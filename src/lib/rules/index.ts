@@ -3,7 +3,13 @@ import type { CanonicalModel, SpaceReq } from '../model/canonical.ts'
 import type { Design } from '../engine/types.ts'
 
 export type Severity = 'error' | 'warning' | 'info'
-export type FindingCategory = 'geometry' | 'egress' | 'topology' | 'vertical' | 'planning'
+export type FindingCategory =
+  | 'geometry'
+  | 'egress'
+  | 'topology'
+  | 'vertical'
+  | 'planning'
+  | 'vastu'
 
 export type Finding = {
   code: string
@@ -109,8 +115,14 @@ export function validate(design: Design): ValidationReport {
         }
       }
 
-      // --- geometry: daylight ---
-      if (req?.wantsWindow && !room.outdoor) {
+      // --- geometry: daylight (habitable rooms on the perimeter only) ---
+      const onExterior =
+        Math.abs(room.rect.x - floor.outline.x) < 3 ||
+        Math.abs(rectRight(room.rect) - rectRight(floor.outline)) < 3 ||
+        Math.abs(room.rect.y - floor.outline.y) < 3 ||
+        Math.abs(rectBottom(room.rect) - rectBottom(floor.outline)) < 3
+      const habitable = room.zone === 'social' || room.zone === 'private' || room.zone === 'work'
+      if (req?.wantsWindow && habitable && !room.outdoor && room.area >= 11 && onExterior) {
         const hasWindow = floor.openings.some(
           (o) =>
             o.kind === 'window' &&
@@ -195,6 +207,9 @@ export function validate(design: Design): ValidationReport {
     )
   }
 
+  // --- vastu: orientation guidance (advisory only, never affects the score) ---
+  vastuNotes(design, add)
+
   // --- geometry: setback envelope ---
   const env = design.model
   for (const floor of design.floors) {
@@ -224,9 +239,77 @@ export function validate(design: Design): ValidationReport {
     hardChecksPass: counts.error === 0,
     findings: findings.sort((a, b) => sev(a.severity) - sev(b.severity)),
     counts,
-    checksRun: ['geometry', 'egress', 'topology', 'vertical', 'planning'],
+    checksRun: ['geometry', 'egress', 'topology', 'vertical', 'planning', 'vastu'],
   }
 }
+
+/* ------------------------------------------------------------------ *
+ *  Vastu orientation notes — advisory only (severity 'info', zero
+ *  score weight). The plan is drawn with the road/entry at plan-south;
+ *  `entrySide` says which real compass direction that is, so we rotate
+ *  each room's plan quadrant back to real compass bearings.
+ * ------------------------------------------------------------------ */
+
+const ROTATE: Record<string, Record<string, string>> = {
+  S: { N: 'N', E: 'E', S: 'S', W: 'W' },
+  N: { N: 'S', E: 'W', S: 'N', W: 'E' },
+  E: { N: 'W', E: 'N', S: 'E', W: 'S' },
+  W: { N: 'E', E: 'S', S: 'W', W: 'N' },
+}
+
+function vastuNotes(
+  design: Design,
+  add: (c: string, s: Severity, cat: FindingCategory, m: string, id?: string) => void,
+) {
+  const ground = design.floors[0]
+  if (!ground) return
+  const rot = ROTATE[design.model.entrySide] ?? ROTATE.S
+  const o = ground.outline
+  const cx = o.x + o.w / 2
+  const cy = o.y + o.h / 2
+
+  /** real-compass corner of a room's centroid, always ordered N/S then E/W */
+  const corner = (r: { rect: { x: number; y: number; w: number; h: number } }): string => {
+    const rx = r.rect.x + r.rect.w / 2
+    const ry = r.rect.y + r.rect.h / 2
+    const a = rot[ry < cy ? 'N' : 'S']
+    const b = rot[rx < cx ? 'W' : 'E']
+    const ns = a === 'N' || a === 'S' ? a : b === 'N' || b === 'S' ? b : ''
+    const ew = a === 'E' || a === 'W' ? a : b === 'E' || b === 'W' ? b : ''
+    return ns + ew
+  }
+
+  // acceptable = the ideal corner plus its two axis-neighbours; only the
+  // opposite corner trips a note.
+  const OK: Record<string, string[]> = {
+    SE: ['SE', 'NE', 'SW'],
+    NE: ['NE', 'NW', 'SE'],
+    SW: ['SW', 'SE', 'NW'],
+  }
+  const note = (id: string, ideal: keyof typeof OK, label: string, hint: string) => {
+    const room = ground.rooms.find((r) => r.id === id)
+    if (!room) return
+    const c = corner(room)
+    if (OK[ideal].includes(c)) return
+    add('VASTU_ORIENTATION', 'info', 'vastu', `${label} sits toward the ${compass(c)} — ${hint}`, id)
+  }
+
+  note('kitchen', 'SE', 'Kitchen', 'vastu favours the south-east (agni) corner.')
+  note('pooja', 'NE', 'Pooja room', 'vastu favours the north-east (ishanya) corner.')
+  note('bed1', 'SW', 'Master bedroom', 'vastu favours the south-west (nairitya) corner.')
+
+  // toilets in the north-east are the classic vastu dosha
+  for (const r of ground.rooms) {
+    const isToilet = r.zone === 'service' && /bath|toilet|wc/i.test(r.id + r.name)
+    if (!isToilet) continue
+    if (corner(r) === 'NE') {
+      add('VASTU_ORIENTATION', 'info', 'vastu', `${r.name} is in the north-east — vastu treats a toilet here as a dosha.`, r.id)
+    }
+  }
+}
+
+const compass = (c: string): string =>
+  ({ N: 'north', E: 'east', S: 'south', W: 'west', NE: 'north-east', NW: 'north-west', SE: 'south-east', SW: 'south-west' })[c] ?? c
 
 const sev = (s: Severity) => (s === 'error' ? 0 : s === 'warning' ? 1 : 2)
 

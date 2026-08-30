@@ -242,9 +242,27 @@ function buildFloor(fp: FloorProgram, model: CanonicalModel, ctx: Ctx): FloorPla
     }
   }
 
-  const fill = (us: typeof units, region: Rect) => {
+  const fill = (us: typeof units, region: Rect, tag = '') => {
     if (us.length === 0 || region.w < 1500) return
-    const cells = squarify(us.map((u) => ({ id: u.id, weight: u.weight })), region)
+
+    // A sparse upper floor leaves the treemap more area than the programme needs,
+    // so every room inflates past its brief maximum. Carve the surplus off as a
+    // hall strip against the core (a staple of Indian house planning, and a tidy
+    // circulation spine) so the real rooms land near their target sizes.
+    let roomRegion = region
+    const surplus = toSqm(rectArea(region)) - us.reduce((a, u) => a + u.weight, 0)
+    if (fp.level > 0 && surplus >= 8) {
+      let hallW = snap((surplus * 1e6) / region.h, grid)
+      hallW = Math.min(hallW, snap(region.w * 0.4, grid))
+      if (hallW >= 2000 && region.w - hallW >= 3800) {
+        rooms.push(
+          place(hallSpace(fp.level, tag, surplus), snapRect({ ...region, w: hallW })),
+        )
+        roomRegion = { x: region.x + hallW, y: region.y, w: region.w - hallW, h: region.h }
+      }
+    }
+
+    const cells = squarify(us.map((u) => ({ id: u.id, weight: u.weight })), roomRegion)
     for (const u of us) {
       const cell = cells.get(u.id)
       if (!cell) continue
@@ -273,8 +291,8 @@ function buildFloor(fp: FloorProgram, model: CanonicalModel, ctx: Ctx): FloorPla
         ea += u.weight
       }
     }
-    fill(west, westWing)
-    fill(east, eastWing)
+    fill(west, westWing, 'w')
+    fill(east, eastWing, 'e')
   } else {
     fill(units, mainRect)
   }
@@ -410,6 +428,21 @@ function place(s: SpaceReq, rect: Rect): PlacedRoom {
   }
 }
 
+/** A slack-absorbing hall so treemap rooms don't inflate past the brief. */
+function hallSpace(level: number, tag: string, sqm: number): SpaceReq {
+  return {
+    id: `hall${level}${tag}`,
+    name: 'Hall',
+    zone: 'circulation',
+    target: sqm,
+    min: 6,
+    max: 999,
+    wantsWindow: false,
+    wet: false,
+    outdoor: false,
+  }
+}
+
 function enclosedOutline(rooms: PlacedRoom[]): Rect {
   const enc = rooms.filter((r) => !r.outdoor)
   const x0 = Math.min(...enc.map((r) => r.rect.x))
@@ -447,14 +480,14 @@ function deriveWalls(rooms: PlacedRoom[], outline: Rect): Wall[] {
 }
 
 /**
- * A regular window rhythm on each of the four facades: a window per ~2.7 m bay,
- * clear of the corners and of any door/entry already placed, and only where a
- * daylight room actually sits behind that stretch of wall.
+ * One window per habitable room, snapped to a shared per-facade mullion grid so
+ * windows line up between storeys. Small rooms (baths, utility, pooja) get none —
+ * they don't read at massing scale.
  */
 function deriveWindows(rooms: PlacedRoom[], outline: Rect, out: Opening[]) {
-  const BAY = 2700
-  const CORNER = 850 // keep windows this far from a corner (mm)
-  const WIN_W = 1400
+  const MULLION = 3000 // window-column spacing (mm)
+  const MIN_ROOM = 8 // m² — smaller habitable rooms get no massing window
+  const WIN_W = 1350
 
   const edges = [
     { orient: 'h' as const, fixed: outline.y, lo: outline.x, hi: rectRight(outline) },
@@ -463,64 +496,45 @@ function deriveWindows(rooms: PlacedRoom[], outline: Rect, out: Opening[]) {
     { orient: 'v' as const, fixed: rectRight(outline), lo: outline.y, hi: rectBottom(outline) },
   ]
 
-  const roomOnEdge = (r: PlacedRoom, orient: 'h' | 'v', fixed: number, along: number) => {
-    if (r.outdoor) return false
-    if (orient === 'h') {
-      const touches = Math.abs(r.rect.y - fixed) < 2 || Math.abs(rectBottom(r.rect) - fixed) < 2
-      return touches && along >= r.rect.x - 1 && along <= rectRight(r.rect) + 1
-    }
-    const touches = Math.abs(r.rect.x - fixed) < 2 || Math.abs(rectRight(r.rect) - fixed) < 2
-    return touches && along >= r.rect.y - 1 && along <= rectBottom(r.rect) + 1
-  }
+  const touchesEdge = (r: PlacedRoom, orient: 'h' | 'v', fixed: number) =>
+    orient === 'h'
+      ? Math.abs(r.rect.y - fixed) < 2 || Math.abs(rectBottom(r.rect) - fixed) < 2
+      : Math.abs(r.rect.x - fixed) < 2 || Math.abs(rectRight(r.rect) - fixed) < 2
 
   for (const e of edges) {
-    const usable = e.hi - e.lo - 2 * CORNER
-    if (usable < 1500) continue
-    const n = Math.max(1, Math.round(usable / BAY))
-    for (let i = 0; i < n; i++) {
-      const along = Math.round(e.lo + CORNER + (usable * (i + 0.5)) / n)
+    const span = e.hi - e.lo
+    if (span < 2400) continue
+    const cols = Math.max(1, Math.round((span - 1400) / MULLION))
+    const line = (i: number) => Math.round(e.lo + (span * (i + 0.5)) / cols)
+
+    for (const r of rooms) {
+      if (r.outdoor || !r.wantsWindow || r.area < MIN_ROOM) continue
+      if (!touchesEdge(r, e.orient, e.fixed)) continue
+      const rlo = e.orient === 'h' ? r.rect.x : r.rect.y
+      const rhi = e.orient === 'h' ? rectRight(r.rect) : rectBottom(r.rect)
+      if (rhi - rlo < 1600) continue
+      const rc = (rlo + rhi) / 2
+
+      // nearest mullion column landing inside this room, else the room centre
+      let along = Math.round(rc)
+      let best = Infinity
+      for (let i = 0; i < cols; i++) {
+        const c = line(i)
+        if (c > rlo + 600 && c < rhi - 600 && Math.abs(c - rc) < best) {
+          best = Math.abs(c - rc)
+          along = c
+        }
+      }
+
+      const perpOf = (o: Opening) => (e.orient === 'h' ? o.at.y : o.at.x)
+      const alongOf = (o: Opening) => (e.orient === 'h' ? o.at.x : o.at.y)
+      const clash = out.some(
+        (o) => Math.abs(perpOf(o) - e.fixed) < 400 && Math.abs(alongOf(o) - along) < 1300,
+      )
+      if (clash) continue
       const at: Point = e.orient === 'h' ? { x: along, y: e.fixed } : { x: e.fixed, y: along }
-
-      const blocked = out.some((o) => {
-        if (o.orient !== e.orient) return false
-        const oAlong = e.orient === 'h' ? o.at.x : o.at.y
-        const oPerp = e.orient === 'h' ? o.at.y : o.at.x
-        return Math.abs(oPerp - e.fixed) < 400 && Math.abs(oAlong - along) < WIN_W / 2 + o.width / 2 + 400
-      })
-      if (blocked) continue
-
-      const behind = rooms.find((r) => r.wantsWindow && roomOnEdge(r, e.orient, e.fixed, along))
-      if (!behind) continue
-      out.push({ kind: 'window', at, orient: e.orient, width: WIN_W })
+      out.push({ kind: 'window', at, orient: e.orient, width: Math.min(WIN_W, rhi - rlo - 1000) })
     }
-  }
-
-  // fallback: guarantee one window for any daylight room the bay grid missed
-  for (const r of rooms) {
-    if (r.outdoor || !r.wantsWindow) continue
-    const has = out.some(
-      (o) =>
-        o.kind === 'window' &&
-        o.at.x >= r.rect.x - 100 &&
-        o.at.x <= rectRight(r.rect) + 100 &&
-        o.at.y >= r.rect.y - 100 &&
-        o.at.y <= rectBottom(r.rect) + 100,
-    )
-    if (has) continue
-    const cand: { len: number; at: Point; orient: 'h' | 'v' }[] = []
-    if (Math.abs(r.rect.y - outline.y) < 2)
-      cand.push({ len: r.rect.w, at: { x: Math.round(r.rect.x + r.rect.w / 2), y: r.rect.y }, orient: 'h' })
-    if (Math.abs(rectBottom(r.rect) - rectBottom(outline)) < 2)
-      cand.push({ len: r.rect.w, at: { x: Math.round(r.rect.x + r.rect.w / 2), y: rectBottom(r.rect) }, orient: 'h' })
-    if (Math.abs(r.rect.x - outline.x) < 2)
-      cand.push({ len: r.rect.h, at: { x: r.rect.x, y: Math.round(r.rect.y + r.rect.h / 2) }, orient: 'v' })
-    if (Math.abs(rectRight(r.rect) - rectRight(outline)) < 2)
-      cand.push({ len: r.rect.h, at: { x: rectRight(r.rect), y: Math.round(r.rect.y + r.rect.h / 2) }, orient: 'v' })
-    if (cand.length === 0) continue
-    cand.sort((a, b) => b.len - a.len)
-    const s = cand[0]
-    if (out.some((o) => Math.abs(o.at.x - s.at.x) < 900 && Math.abs(o.at.y - s.at.y) < 900)) continue
-    out.push({ kind: 'window', at: s.at, orient: s.orient, width: Math.min(WIN_W, Math.max(800, s.len - 900)) })
   }
 }
 

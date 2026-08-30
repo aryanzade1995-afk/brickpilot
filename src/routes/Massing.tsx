@@ -304,12 +304,18 @@ function MergedModel({ massing, explode, hidden }: { massing: Massing; explode: 
           b.kind === 'railing'
         )
           continue
-        if (b.kind === 'wall' || b.kind === 'partition') {
+        if (b.kind === 'stair') {
+          // keep the whole ascending flight so the stair still reads as a stair;
+          // just drop the return flight + landing that live up near the ceiling.
+          const floorBase = massing.floors.find((f) => f.level === b.level)?.baseY ?? 0
+          if (b.pos[1] - sh / 2 - floorBase > massing.floorHeight * 0.5) continue
+          cy = b.pos[1] + b.level * lift
+        } else if (b.kind === 'wall' || b.kind === 'partition') {
           const floorBase = massing.floors.find((f) => f.level === b.level)?.baseY ?? 0
           const boxBase = b.pos[1] - sh / 2
           const above = boxBase - floorBase
-          if (above > CUTAWAY_WALL - 0.05) continue // lintel / header above the cut line
-          h = Math.max(0.1, Math.min(sh, CUTAWAY_WALL - above))
+          if (above > CUTAWAY_WALL - 0.05) continue // lintel above the cut line
+          h = Math.max(0.06, Math.min(sh, CUTAWAY_WALL - above))
           cy = boxBase + b.level * lift + h / 2
         }
       } else if (g === 'partition') {
