@@ -46,9 +46,7 @@ export function CaptureCanvas({ design, character }: { design: Design; character
 const raf = () => new Promise<void>((r) => requestAnimationFrame(() => r()))
 
 function CaptureRig({ center, span }: { center: [number, number, number]; span: number }) {
-  const camera = useThree((s) => s.camera)
-  const gl = useThree((s) => s.gl)
-  const scene = useThree((s) => s.scene)
+  const store = useThree((s) => s)
   const setRef = useRender((s) => s.setRef)
   const captureFailed = useRender((s) => s.captureFailed)
   const started = useRef(false)
@@ -65,25 +63,32 @@ function CaptureRig({ center, span }: { center: [number, number, number]; span: 
       ['top', [tx + 0.001, ty + d * 2.1, tz + 0.001]],
     ]
 
+    const shoot = (pose: [number, number, number]): string => {
+      const { camera, gl, scene } = store
+      const cam = camera as THREE.PerspectiveCamera
+      cam.position.set(pose[0], pose[1], pose[2])
+      cam.up.set(0, 1, 0)
+      cam.lookAt(target)
+      cam.aspect = 1200 / 800
+      cam.updateProjectionMatrix()
+      gl.render(scene, cam)
+      return gl.domElement.toDataURL('image/png')
+    }
+
     ;(async () => {
       try {
-        for (const [key, [x, y, z]] of poses) {
-          camera.position.set(x, y, z)
-          camera.up.set(0, 1, 0)
-          camera.lookAt(target)
-          const persp = camera as THREE.PerspectiveCamera
-          persp.aspect = 1200 / 800
-          persp.updateProjectionMatrix()
+        // let the scene (shadow maps, materials) settle once before the first shot
+        await raf()
+        await raf()
+        for (const [key, pose] of poses) {
+          setRef(key, shoot(pose))
           await raf()
-          await raf()
-          gl.render(scene, camera)
-          setRef(key, gl.domElement.toDataURL('image/png'))
         }
       } catch (e) {
         captureFailed(String((e as Error).message))
       }
     })()
-  }, [camera, gl, scene, center, span, setRef, captureFailed])
+  }, [store, center, span, setRef, captureFailed])
 
   return null
 }
