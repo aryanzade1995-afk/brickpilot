@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 import { compile, type CanonicalModel } from '@/lib/model/canonical.ts'
-import { defaultBrief, type Brief } from '@/lib/model/brief.ts'
+import { briefSchema, defaultBrief, type Brief } from '@/lib/model/brief.ts'
 import { generate, generateDirections, type Design, type Strategy } from '@/lib/engine/index.ts'
 import { validate, type ValidationReport } from '@/lib/rules/index.ts'
 import { estimateCost, type CostEstimate } from '@/lib/cost/index.ts'
@@ -112,7 +112,19 @@ export const useStudio = create<StudioState>()(
     })),
     {
       name: 'brickpilot.studio',
+      version: 2,
       partialize: (s) => ({ brief: s.brief, pinned: s.pinned }),
+      // re-parse the persisted brief through the schema so a partial or
+      // stale payload is completed with defaults instead of white-screening
+      merge: (persisted, current) => {
+        const p = (persisted ?? {}) as Partial<{ brief: unknown; pinned: Strategy | null }>
+        const parsed = briefSchema.safeParse(p.brief)
+        return {
+          ...current,
+          brief: parsed.success ? parsed.data : defaultBrief(),
+          pinned: p.pinned ?? null,
+        }
+      },
     },
   ),
 )
