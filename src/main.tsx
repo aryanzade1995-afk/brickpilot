@@ -6,6 +6,7 @@ import './index.css'
 import { Landing } from './routes/Landing.tsx'
 import { Brief } from './routes/Brief.tsx'
 import { Plan } from './routes/Plan.tsx'
+import { Massing } from './routes/Massing.tsx'
 
 const router = createBrowserRouter([
   {
@@ -15,6 +16,7 @@ const router = createBrowserRouter([
       { index: true, element: <Landing /> },
       { path: 'workspace', element: <Brief /> },
       { path: 'workspace/plan', element: <Plan /> },
+      { path: 'workspace/massing', element: <Massing /> },
     ],
   },
 ])

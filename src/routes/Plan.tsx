@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { ArrowLeft, Dices, Download } from 'lucide-react'
+import { Dices, Download } from 'lucide-react'
 import { useStudio } from '@/state/studio.ts'
 import { FloorDrawing } from '@/lib/draw/FloorDrawing.tsx'
 import { ZONE_LABEL } from '@/lib/model/canonical.ts'
 import { formatINR, formatINRShort, formatRange } from '@/lib/format.ts'
 import { cx } from '@/lib/cx.ts'
+import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
 import type { Severity } from '@/lib/rules/index.ts'
 
 const SEV_COLOR: Record<Severity, string> = {
@@ -41,16 +41,10 @@ export function Plan() {
 
   return (
     <div className="mx-auto max-w-[1400px] px-6 py-8 md:px-10">
-      <Link
-        to="/workspace"
-        className="inline-flex items-center gap-2 font-mono text-[0.7rem] uppercase tracking-[0.12em] text-ink-dim hover:text-ink"
-      >
-        <ArrowLeft size={12} />
-        Edit brief
-      </Link>
+      <WorkspaceTabs />
 
       {/* metric bar */}
-      <div className="mt-4 flex flex-wrap items-center gap-x-10 gap-y-3 border-y border-line py-4">
+      <div className="mt-5 flex flex-wrap items-center gap-x-10 gap-y-3 border-b border-line pb-4">
         <Metric k="Validation" v={`${report.score} / 100`} />
         <div
           className={cx(
