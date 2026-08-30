@@ -44,5 +44,14 @@ export default defineConfig({
   server: {
     port: 3000,
     host: true,
+    proxy: {
+      // the render proxy holds the image-model API key server-side
+      '/api': {
+        target: `http://localhost:${process.env.RENDER_PROXY_PORT ?? 8787}`,
+        changeOrigin: true,
+        timeout: 120_000,
+        proxyTimeout: 120_000,
+      },
+    },
   },
 })

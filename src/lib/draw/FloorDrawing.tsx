@@ -28,16 +28,22 @@ export function FloorDrawing({
   theme = 'dark',
   showLabels = true,
   showDimensions = true,
+  markRoomId,
+  svgRef,
 }: {
   floor: FloorPlan
   model: CanonicalModel
   theme?: Theme
   showLabels?: boolean
   showDimensions?: boolean
+  /** highlight one room — used as the interior reference for the render step */
+  markRoomId?: string
+  svgRef?: React.Ref<SVGSVGElement>
 }) {
   const ink = INK[theme]
   const faint = FAINT[theme]
   const bg = BG[theme]
+  const marked = markRoomId ? floor.rooms.find((r) => r.id === markRoomId) : undefined
 
   const padL = 3400
   const padB = 3400
@@ -53,7 +59,12 @@ export function FloorDrawing({
   }
 
   return (
-    <svg viewBox={vb} className="h-full w-full" style={{ background: theme === 'paper' ? bg : 'transparent' }}>
+    <svg
+      ref={svgRef}
+      viewBox={vb}
+      className="h-full w-full"
+      style={{ background: theme === 'paper' ? bg : 'transparent' }}
+    >
       {/* ---- site + setbacks ---- */}
       <g>
         <rect
@@ -97,6 +108,32 @@ export function FloorDrawing({
           />
         ))}
       </g>
+
+      {/* ---- marked room (render step interior reference) ---- */}
+      {marked && (
+        <g>
+          <rect
+            x={marked.rect.x}
+            y={marked.rect.y}
+            width={marked.rect.w}
+            height={marked.rect.h}
+            fill="rgba(224,82,30,0.18)"
+            stroke={ACCENT}
+            strokeWidth={70}
+          />
+          <circle cx={rectCenter(marked.rect).x} cy={marked.rect.y + 520} r={360} fill={ACCENT} />
+          <text
+            x={rectCenter(marked.rect).x}
+            y={marked.rect.y + 520 + 150}
+            textAnchor="middle"
+            fontSize={420}
+            fill="#fff"
+            fontFamily="'IBM Plex Mono', monospace"
+          >
+            1
+          </text>
+        </g>
+      )}
 
       {/* ---- walls ---- */}
       <g strokeLinecap="square">

@@ -8,6 +8,7 @@ import { Brief } from './routes/Brief.tsx'
 import { Directions } from './routes/Directions.tsx'
 import { Plan } from './routes/Plan.tsx'
 import { Massing } from './routes/Massing.tsx'
+import { Render } from './routes/Render.tsx'
 
 const router = createBrowserRouter([
   {
@@ -19,6 +20,7 @@ const router = createBrowserRouter([
       { path: 'workspace/directions', element: <Directions /> },
       { path: 'workspace/plan', element: <Plan /> },
       { path: 'workspace/massing', element: <Massing /> },
+      { path: 'workspace/render', element: <Render /> },
     ],
   },
 ])
