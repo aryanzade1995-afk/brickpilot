@@ -3,9 +3,10 @@ import { cx } from '@/lib/cx.ts'
 
 const TABS = [
   { to: '/workspace', label: 'Brief', n: '01' },
-  { to: '/workspace/plan', label: '2D plan', n: '02' },
-  { to: '/workspace/massing', label: '3D massing', n: '03' },
-  { to: '/workspace/render', label: 'Render', n: '04' },
+  { to: '/workspace/directions', label: 'Directions', n: '02' },
+  { to: '/workspace/plan', label: '2D plan', n: '03' },
+  { to: '/workspace/massing', label: '3D massing', n: '04' },
+  { to: '/workspace/render', label: 'Render', n: '05' },
 ]
 
 export function WorkspaceTabs() {

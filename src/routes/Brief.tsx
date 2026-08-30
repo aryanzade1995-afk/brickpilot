@@ -41,7 +41,7 @@ const STEP_TITLES = [
 export function Brief() {
   const [step, setStep] = useState(0)
   const reset = useStudio((s) => s.reset)
-  const run = useStudio((s) => s.run)
+  const explore = useStudio((s) => s.explore)
   const navigate = useNavigate()
 
   const last = step === BRIEF_STEPS.length - 1
@@ -49,8 +49,8 @@ export function Brief() {
 
   const next = () => {
     if (last) {
-      run()
-      navigate('/workspace/plan')
+      explore()
+      navigate('/workspace/directions')
     } else {
       setStep((s) => s + 1)
     }

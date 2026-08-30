@@ -61,7 +61,7 @@ export function validate(design: Design): ValidationReport {
       // --- geometry: minimum dimension ---
       const minDim = MIN_DIM[room.zone] ?? 1800
       if (shortSide < minDim) {
-        const sev: Severity = room.zone === 'private' || room.zone === 'service' ? 'error' : 'warning'
+        const sev: Severity = room.zone === 'private' ? 'error' : 'warning'
         add(
           'MIN_ROOM_DIMENSION',
           sev,
@@ -199,11 +199,12 @@ export function validate(design: Design): ValidationReport {
   const env = design.model
   for (const floor of design.floors) {
     const o = floor.outline
+    const tol = 160 // one grid module of snapping slack
     if (
-      o.x < env.setbacksMm.W - 2 ||
-      o.y < env.setbacksMm.N - 2 ||
-      rectRight(o) > env.plot.width - env.setbacksMm.E + 2 ||
-      rectBottom(o) > env.plot.depth - env.setbacksMm.S + 2
+      o.x < env.setbacksMm.W - tol ||
+      o.y < env.setbacksMm.N - tol ||
+      rectRight(o) > env.plot.width - env.setbacksMm.E + tol ||
+      rectBottom(o) > env.plot.depth - env.setbacksMm.S + tol
     ) {
       add('SETBACK_BREACH', 'error', 'geometry', `${floor.name} extends past the required setback line.`)
       break

@@ -30,7 +30,34 @@ const ZONE_ORDER: Record<string, number> = {
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
 
-export function generate(model: CanonicalModel): Design {
+export type Strategy = 'orthogonal-core' | 'wing-split'
+
+export const STRATEGIES: { id: Strategy; label: string; blurb: string }[] = [
+  {
+    id: 'orthogonal-core',
+    label: 'Orthogonal core',
+    blurb: 'A compact block with the stair and services drawn to one edge — the shortest walls and the simplest structure.',
+  },
+  {
+    id: 'wing-split',
+    label: 'Split wings',
+    blurb: 'The stair sits centrally and the plan opens into a living wing and a sleeping wing, each with its own aspect.',
+  },
+]
+
+/** One validated scheme per strategy — the "directions" the user picks between. */
+export function generateDirections(
+  model: CanonicalModel,
+): { strategy: Strategy; label: string; blurb: string; design: Design }[] {
+  return STRATEGIES.map((s) => ({
+    strategy: s.id,
+    label: s.label,
+    blurb: s.blurb,
+    design: generate(model, s.id),
+  }))
+}
+
+export function generate(model: CanonicalModel, strategy: Strategy = 'orthogonal-core'): Design {
   const grid = model.grid
 
   const envelope: Rect = {
@@ -61,9 +88,13 @@ export function generate(model: CanonicalModel): Design {
     h: houseH,
   }
 
-  // --- core strip on the west edge; stair pinned to the north end on every floor ---
+  // --- core strip: west edge for orthogonal-core, centred for wing-split ---
   const coreW = snap(clamp(model.brief.levels.stairWidth * 2 + 600, 2400, 2900), grid)
-  const coreRect: Rect = { x: houseRect.x, y: houseRect.y, w: coreW, h: houseRect.h }
+  const coreX =
+    strategy === 'wing-split'
+      ? snap(houseRect.x + (houseRect.w - coreW) / 2, grid)
+      : houseRect.x
+  const coreRect: Rect = { x: coreX, y: houseRect.y, w: coreW, h: houseRect.h }
   const stairRect: Rect = {
     x: coreRect.x + INT_WALL,
     y: coreRect.y + INT_WALL,
@@ -71,7 +102,7 @@ export function generate(model: CanonicalModel): Design {
     h: STAIR_LEN,
   }
 
-  const ctx: Ctx = { houseRect, coreRect, stairRect, envelope, grid, twoCar }
+  const ctx: Ctx = { houseRect, coreRect, stairRect, envelope, grid, twoCar, strategy }
   const floors = model.floors.map((fp) => buildFloor(fp, model, ctx))
 
   const groundMm2 = rectArea(floors[0].outline)
@@ -90,10 +121,10 @@ export function generate(model: CanonicalModel): Design {
   const windows = floors.reduce((n, f) => n + f.openings.filter((o) => o.kind === 'window').length, 0)
 
   return {
-    id: model.seed,
+    id: `${model.seed}-${strategy}`,
     seed: model.seed,
     algorithm: 'deterministic-plan-v1',
-    candidate: 'orthogonal-core',
+    candidate: strategy,
     model,
     floors,
     builtAreaSqm,
@@ -112,6 +143,7 @@ type Ctx = {
   envelope: Rect
   grid: number
   twoCar: boolean
+  strategy: Strategy
 }
 
 function buildFloor(fp: FloorProgram, model: CanonicalModel, ctx: Ctx): FloorPlan {
@@ -124,23 +156,36 @@ function buildFloor(fp: FloorProgram, model: CanonicalModel, ctx: Ctx): FloorPla
     (a, b) => (ZONE_ORDER[a.zone] ?? 9) - (ZONE_ORDER[b.zone] ?? 9),
   )
 
-  // stepped massing: upper floors shrink toward the (NW) stair core to match program
+  // stepped massing: upper floors shrink toward the stair core to match programme
+  const wing = ctx.strategy === 'wing-split'
   const baseArea = baseHouse.w * baseHouse.h
   const need = (interior.reduce((a, s) => a + s.target, 0) + 14) * 1.16 * 1e6
   const scale = fp.level === 0 ? 1 : clamp(Math.sqrt(need / baseArea), 0.62, 1)
+  const fw = snap(
+    clamp(baseHouse.w * clamp(scale * 1.08, 0.55, 1), coreRect.w + (wing ? 5600 : 4200), baseHouse.w),
+    grid,
+  )
+  const coreCx = coreRect.x + coreRect.w / 2
   const houseRect: Rect = {
-    x: baseHouse.x,
+    x: wing ? clamp(snap(coreCx - fw / 2, grid), baseHouse.x, rectRight(baseHouse) - fw) : baseHouse.x,
     y: baseHouse.y,
-    w: snap(clamp(baseHouse.w * clamp(scale * 1.08, 0.6, 1), coreRect.w + 4200, baseHouse.w), grid),
+    w: fw,
     h: snap(clamp(baseHouse.h * scale, stairRect.h + 2400, baseHouse.h), grid),
   }
+  const coreStrip: Rect = { x: coreRect.x, y: coreRect.y, w: coreRect.w, h: houseRect.h }
   const mainRect: Rect = {
     x: houseRect.x + coreRect.w,
     y: houseRect.y,
     w: houseRect.w - coreRect.w,
     h: houseRect.h,
   }
-  const coreStrip: Rect = { x: coreRect.x, y: coreRect.y, w: coreRect.w, h: houseRect.h }
+  const westWing: Rect = { x: houseRect.x, y: houseRect.y, w: coreStrip.x - houseRect.x, h: houseRect.h }
+  const eastWing: Rect = {
+    x: coreStrip.x + coreStrip.w,
+    y: houseRect.y,
+    w: rectRight(houseRect) - (coreStrip.x + coreStrip.w),
+    h: houseRect.h,
+  }
 
   // ---- core strip, north→south: [stair] [circulation?] [foyer / lobby] ----
   const stairSpace = core.find((s) => s.id === 'stair')
@@ -186,27 +231,52 @@ function buildFloor(fp: FloorProgram, model: CanonicalModel, ctx: Ctx): FloorPla
       return { id: s.id, weight: s.target + (bath?.target ?? 0), room: s, bath }
     })
 
-  const layout = squarify(
-    units.map((u) => ({ id: u.id, weight: u.weight })),
-    mainRect,
-  )
-  const snapRect = (r: Rect): Rect => ({
-    x: snap(r.x, grid),
-    y: snap(r.y, grid),
-    w: snap(r.w, grid),
-    h: snap(r.h, grid),
-  })
-
-  for (const u of units) {
-    const cell = layout.get(u.id)
-    if (!cell) continue
-    if (!u.bath) {
-      rooms.push(place(u.room, snapRect(cell)))
-      continue
+  const snapRect = (r: Rect): Rect => {
+    const x = clamp(snap(r.x, grid), houseRect.x, rectRight(houseRect) - grid)
+    const y = clamp(snap(r.y, grid), houseRect.y, rectBottom(houseRect) - grid)
+    return {
+      x,
+      y,
+      w: Math.min(snap(r.w, grid), rectRight(houseRect) - x),
+      h: Math.min(snap(r.h, grid), rectBottom(houseRect) - y),
     }
-    const [bedRect, bathRect] = splitEnsuite(cell, u.bath.target, coreStrip)
-    rooms.push(place(u.room, snapRect(bedRect)))
-    rooms.push(place(u.bath, snapRect(bathRect)))
+  }
+
+  const fill = (us: typeof units, region: Rect) => {
+    if (us.length === 0 || region.w < 1500) return
+    const cells = squarify(us.map((u) => ({ id: u.id, weight: u.weight })), region)
+    for (const u of us) {
+      const cell = cells.get(u.id)
+      if (!cell) continue
+      if (!u.bath) {
+        rooms.push(place(u.room, snapRect(cell)))
+        continue
+      }
+      const [bedRect, bathRect] = splitEnsuite(cell, u.bath.target, coreStrip)
+      rooms.push(place(u.room, snapRect(bedRect)))
+      rooms.push(place(u.bath, snapRect(bathRect)))
+    }
+  }
+
+  if (wing) {
+    // balance the two wings: largest-first, each unit to the lighter wing
+    const west: typeof units = []
+    const east: typeof units = []
+    let wa = 0
+    let ea = 0
+    for (const u of [...units].sort((a, b) => b.weight - a.weight)) {
+      if (wa <= ea) {
+        west.push(u)
+        wa += u.weight
+      } else {
+        east.push(u)
+        ea += u.weight
+      }
+    }
+    fill(west, westWing)
+    fill(east, eastWing)
+  } else {
+    fill(units, mainRect)
   }
 
   repairWindows(rooms, enclosedOutline(rooms))

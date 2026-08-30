@@ -1,2 +1,2 @@
 export * from './types.ts'
-export { generate } from './generate.ts'
+export { generate, generateDirections, STRATEGIES, type Strategy } from './generate.ts'
