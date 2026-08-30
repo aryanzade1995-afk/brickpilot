@@ -1,5 +1,6 @@
 import type { Design, FloorPlan, Opening } from '../engine/types.ts'
 import type { Rect } from '../geometry.ts'
+import { themeOf, type ThemeDef } from '../model/themes.ts'
 
 /* ------------------------------------------------------------------ *
  *  buildMassing — an architect's white-card study model of the house.
@@ -35,6 +36,9 @@ export type MassBox = {
   /** full extents, metres */
   size: [number, number, number]
   level: number
+  /** non-box primitive: a hipped roof solid drawn from `size` (w, rise, d) */
+  shape?: 'hip'
+  ridgeAxis?: 'x' | 'z'
 }
 
 export type Massing = {
@@ -51,9 +55,7 @@ const EXT_T = 0.24 // exterior wall thickness
 const INT_T = 0.11 // interior partition thickness
 const SLAB_T = 0.22 // inset floor plate
 const PLINTH_H = 0.4 // base-course height above grade
-const PLINTH_PROJ = 0.16 // base-course projection past the wall face
-const ROOF_T = 0.22 // roof / terrace deck
-const PARAPET_H = 0.5 // low kerb parapet
+const ROOF_T = 0.22 // terrace deck
 const PARAPET_T = 0.12
 const KERB_H = 0.38 // terrace upstand
 const RECESS = 0.1 // pane reveal depth behind the outer facade
@@ -73,25 +75,37 @@ const BAND: Record<Opening['kind'], { sill: number; head: number }> = {
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
 
 type Vec3 = [number, number, number]
-type Push = (id: string, kind: MassKind, level: number, pos: Vec3, size: Vec3) => void
+type PushExtra = { shape?: 'hip'; ridgeAxis?: 'x' | 'z' }
+type Push = (
+  id: string,
+  kind: MassKind,
+  level: number,
+  pos: Vec3,
+  size: Vec3,
+  extra?: PushExtra,
+) => void
 type XF = (mm: number) => number
 type Side = 'N' | 'S' | 'E' | 'W'
 type FaceOp = { at: number; width: number; sill: number; head: number }
 
 export function buildMassing(design: Design): Massing {
   const { model } = design
+  const T = themeOf(model.brief)
   const plotW = model.plot.width
   const plotD = model.plot.depth
   const H = model.brief.levels.floorToFloor
   const y0 = PLINTH_H
+  const plinthProj = T.massing.plinthProjMm / 1000
+  const winBand = { sill: T.windows.sillMm / 1000, head: T.windows.headMm / 1000 }
 
   const wx: XF = (mm) => (mm - plotW / 2) / 1000
   const wz: XF = (mm) => (mm - plotD / 2) / 1000
   const m: XF = (mm) => mm / 1000
 
   const boxes: MassBox[] = []
-  const push: Push = (id, kind, level, pos, size) => {
-    if (size[0] > 0.02 && size[1] > 0.02 && size[2] > 0.02) boxes.push({ id, kind, pos, size, level })
+  const push: Push = (id, kind, level, pos, size, extra) => {
+    if (size[0] > 0.02 && size[1] > 0.02 && size[2] > 0.02)
+      boxes.push({ id, kind, pos, size, level, ...extra })
   }
 
   const floors = [...design.floors].sort((a, b) => a.level - b.level)
@@ -104,7 +118,7 @@ export function buildMassing(design: Design): Massing {
     'plinth',
     0,
     [wx(g.x + g.w / 2), PLINTH_H / 2, wz(g.y + g.h / 2)],
-    [m(g.w) + EXT_T + 2 * PLINTH_PROJ, PLINTH_H, m(g.h) + EXT_T + 2 * PLINTH_PROJ],
+    [m(g.w) + EXT_T + 2 * plinthProj, PLINTH_H, m(g.h) + EXT_T + 2 * plinthProj],
   )
 
   for (const floor of floors) {
@@ -133,7 +147,7 @@ export function buildMassing(design: Design): Massing {
     const interiorOps: Opening[] = []
     const TOL = 450
     for (const op of floor.openings) {
-      const band = BAND[op.kind]
+      const band = op.kind === 'window' ? winBand : BAND[op.kind]
       const rec = { width: op.width, sill: band.sill, head: band.head }
       let placed = false
       if (op.orient === 'h') {
@@ -169,7 +183,7 @@ export function buildMassing(design: Design): Massing {
 
     // ---- roof on top, deliberate terrace where a lower floor steps out ----
     if (L === topLevel) {
-      buildRoof(o, wallTop, L, push, wx, wz, m)
+      buildRoof(o, wallTop, L, T, push, wx, wz, m)
     } else {
       const up = floors.find((f) => f.level === L + 1)
       if (up) buildTerrace(o, up.outline, wallTop, L, push, wx, wz, m)
@@ -178,7 +192,8 @@ export function buildMassing(design: Design): Massing {
     // ---- outdoor rooms ----
     const covers = floor.rooms.filter((r) => r.outdoor && !r.id.startsWith('balcony'))
     for (const r of floor.rooms) {
-      if (r.outdoor && r.id.startsWith('balcony')) buildBalcony(r.rect, baseY, L, push, wx, wz, m)
+      if (r.outdoor && r.id.startsWith('balcony'))
+        buildBalcony(r.rect, baseY, L, T.massing.balconyDepthMm / 1000, push, wx, wz, m)
     }
     // one combined canopy over all covered outdoor bays
     if (covers.length > 0) {
@@ -371,24 +386,58 @@ function segmentPartition(
 
 /* --------------------------------- roof / terrace -------------------------------- */
 
-function buildRoof(o: Rect, wallTop: number, L: number, push: Push, wx: XF, wz: XF, m: XF) {
+function buildRoof(o: Rect, wallTop: number, L: number, T: ThemeDef, push: Push, wx: XF, wz: XF, m: XF) {
   const cxw = wx(o.x + o.w / 2)
   const czw = wz(o.y + o.h / 2)
-  const rw = m(o.w) + EXT_T
-  const rd = m(o.h) + EXT_T
+  const roofT = T.roof.thickMm / 1000
+  const eave = T.roof.eaveMm / 1000
+  const wallW = m(o.w) + EXT_T
+  const wallD = m(o.h) + EXT_T
+  const rw = wallW + 2 * eave
+  const rd = wallD + 2 * eave
 
-  push(`roof-${L}`, 'roof', L, [cxw, wallTop - ROOF_T / 2, czw], [rw, ROOF_T, rd])
+  // ---- Kerala: a hipped clay-tile solid rising from the eave line ----
+  if (T.roof.style === 'hipped-tile') {
+    const rise = Math.max(
+      0.5,
+      Math.min(
+        Math.tan((T.roof.pitchDeg * Math.PI) / 180) * (Math.min(rw, rd) / 2),
+        T.roof.ridgeCapMm / 1000,
+      ),
+    )
+    // a thin fascia ring at the eave so the overhang has an underside
+    push(`eave-${L}`, 'roof', L, [cxw, wallTop - 0.06, czw], [rw, 0.12, rd])
+    push(
+      `hip-${L}`,
+      'roof',
+      L,
+      [cxw, wallTop + rise / 2, czw],
+      [rw, rise, rd],
+      { shape: 'hip', ridgeAxis: o.w >= o.h ? 'x' : 'z' },
+    )
+    return
+  }
 
-  const pcy = wallTop + PARAPET_H / 2
-  const nz = wz(o.y) - EXT_T / 2 + PARAPET_T / 2
-  const sz = wz(o.y + o.h) + EXT_T / 2 - PARAPET_T / 2
-  const wxc = wx(o.x) - EXT_T / 2 + PARAPET_T / 2
-  const exc = wx(o.x + o.w) + EXT_T / 2 - PARAPET_T / 2
-  const vLen = Math.max(rd - 2 * PARAPET_T, 0.2)
-  push(`par-${L}-n`, 'parapet', L, [cxw, pcy, nz], [rw, PARAPET_H, PARAPET_T])
-  push(`par-${L}-s`, 'parapet', L, [cxw, pcy, sz], [rw, PARAPET_H, PARAPET_T])
-  push(`par-${L}-w`, 'parapet', L, [wxc, pcy, czw], [PARAPET_T, PARAPET_H, vLen])
-  push(`par-${L}-e`, 'parapet', L, [exc, pcy, czw], [PARAPET_T, PARAPET_H, vLen])
+  // ---- flat deck, flush (parapet) or oversailing (eave) ----
+  push(`roof-${L}`, 'roof', L, [cxw, wallTop - roofT / 2, czw], [rw, roofT, rd])
+
+  if (T.roof.style === 'flat-eave') {
+    const fh = 0.16
+    const fy = wallTop - roofT - fh / 2
+    push(`fas-${L}-n`, 'roof', L, [cxw, fy, wz(o.y) - EXT_T / 2 - eave + PARAPET_T / 2], [rw, fh, PARAPET_T])
+    push(`fas-${L}-s`, 'roof', L, [cxw, fy, wz(o.y + o.h) + EXT_T / 2 + eave - PARAPET_T / 2], [rw, fh, PARAPET_T])
+    push(`fas-${L}-w`, 'roof', L, [wx(o.x) - EXT_T / 2 - eave + PARAPET_T / 2, fy, czw], [PARAPET_T, fh, rd])
+    push(`fas-${L}-e`, 'roof', L, [wx(o.x + o.w) + EXT_T / 2 + eave - PARAPET_T / 2, fy, czw], [PARAPET_T, fh, rd])
+  }
+
+  const parH = T.roof.parapetMm / 1000
+  if (parH < 0.05) return
+  const pcy = wallTop + parH / 2
+  const vLen = Math.max(wallD - 2 * PARAPET_T, 0.2)
+  push(`par-${L}-n`, 'parapet', L, [cxw, pcy, wz(o.y) - EXT_T / 2 + PARAPET_T / 2], [wallW, parH, PARAPET_T])
+  push(`par-${L}-s`, 'parapet', L, [cxw, pcy, wz(o.y + o.h) + EXT_T / 2 - PARAPET_T / 2], [wallW, parH, PARAPET_T])
+  push(`par-${L}-w`, 'parapet', L, [wx(o.x) - EXT_T / 2 + PARAPET_T / 2, pcy, czw], [PARAPET_T, parH, vLen])
+  push(`par-${L}-e`, 'parapet', L, [wx(o.x + o.w) + EXT_T / 2 - PARAPET_T / 2, pcy, czw], [PARAPET_T, parH, vLen])
 }
 
 function buildTerrace(
@@ -405,13 +454,14 @@ function buildTerrace(
   const exS = o.y + o.h - (up.y + up.h) > 400
   const exW = up.x - o.x > 400
   const exE = o.x + o.w - (up.x + up.w) > 400
-  if (!exN && !exS && !exW && !exE) return
 
   const cxw = wx(o.x + o.w / 2)
   const czw = wz(o.y + o.h / 2)
   const rw = m(o.w) + EXT_T
   const rd = m(o.h) + EXT_T
-  push(`terr-${L}`, 'roof', L, [cxw, wallTop - ROOF_T / 2, czw], [rw, ROOF_T, rd])
+  // always cap the storey — a hair below the storey-above soffit so it never
+  // z-fights the inset slab, and so equal-footprint floors still get a ceiling
+  push(`terr-${L}`, 'roof', L, [cxw, wallTop - SLAB_T - ROOF_T / 2 - 0.01, czw], [rw, ROOF_T, rd])
 
   const kcy = wallTop + KERB_H / 2
   if (exN)
@@ -488,8 +538,17 @@ function buildCarport(
   if (wM > 6.4) col((xL + xR) / 2, zS, 'sm')
 }
 
-function buildBalcony(rect: Rect, baseY: number, L: number, push: Push, wx: XF, wz: XF, m: XF) {
-  const depth = Math.max(rect.h, 1300)
+function buildBalcony(
+  rect: Rect,
+  baseY: number,
+  L: number,
+  depthM: number,
+  push: Push,
+  wx: XF,
+  wz: XF,
+  m: XF,
+) {
+  const depth = Math.max(rect.h, depthM * 1000)
   const bN = rect.y - 150 // tuck under the facade so it connects
   const bS = rect.y + depth
   const bW = rect.x

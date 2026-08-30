@@ -10,6 +10,7 @@ import {
   toSqm,
 } from '../geometry.ts'
 import type { CanonicalModel, FloorProgram, Relationship, SpaceReq } from '../model/canonical.ts'
+import { themeOf } from '../model/themes.ts'
 import { squarify } from './treemap.ts'
 import type { Design, FloorPlan, Opening, PlacedRoom, StairRun, Wall } from './types.ts'
 
@@ -102,8 +103,52 @@ export function generate(model: CanonicalModel, strategy: Strategy = 'orthogonal
     h: STAIR_LEN,
   }
 
+  // --- per-floor footprint schedule: a clean stepped block ---
+  // Each storey sits fully within the one below (never oversails it), but is
+  // also grown to cover every storey above it, so a sparse middle floor can
+  // never be squeezed under a denser floor on top of it.
+  const baseArea = houseRect.w * houseRect.h
+  const wing = strategy === 'wing-split'
+  const minFW = Math.min(coreRect.w + (wing ? 5600 : 4200), houseRect.w)
+  const coreCx = coreRect.x + coreRect.w / 2
+
+  const rawScale = model.floors.map((fp) => {
+    if (fp.level === 0) return 1
+    const interior = fp.spaces.filter((s) => s.zone !== 'circulation' && !s.outdoor)
+    const need = (interior.reduce((a, s) => a + s.target, 0) + 14) * 1.16 * 1e6
+    return clamp(Math.sqrt(need / baseArea), 0.62, 1)
+  })
+  for (let i = rawScale.length - 2; i >= 1; i--) {
+    rawScale[i] = Math.max(rawScale[i], rawScale[i + 1]) // suffix-max
+  }
+
+  const footprints: Rect[] = []
+  let prevW = houseRect.w
+  let prevH = houseRect.h
+  for (const fp of model.floors) {
+    if (fp.level === 0) {
+      footprints.push(houseRect)
+      continue
+    }
+    const s = rawScale[fp.level]
+    const w = Math.min(
+      prevW,
+      snap(clamp(houseRect.w * clamp(s * 1.08, 0.55, 1), minFW, houseRect.w), grid),
+    )
+    const h = Math.min(
+      prevH,
+      snap(clamp(houseRect.h * s, stairRect.h + 2400, houseRect.h), grid),
+    )
+    prevW = w
+    prevH = h
+    const x = wing
+      ? clamp(snap(coreCx - w / 2, grid), houseRect.x, rectRight(houseRect) - w)
+      : houseRect.x
+    footprints.push({ x, y: houseRect.y, w, h })
+  }
+
   const ctx: Ctx = { houseRect, coreRect, stairRect, envelope, grid, twoCar, strategy }
-  const floors = model.floors.map((fp) => buildFloor(fp, model, ctx))
+  const floors = model.floors.map((fp, i) => buildFloor(fp, model, ctx, footprints[i]))
 
   const groundMm2 = rectArea(floors[0].outline)
   const builtMm2 = floors.reduce((a, f) => a + rectArea(f.outline), 0)
@@ -146,8 +191,13 @@ type Ctx = {
   strategy: Strategy
 }
 
-function buildFloor(fp: FloorProgram, model: CanonicalModel, ctx: Ctx): FloorPlan {
-  const { houseRect: baseHouse, coreRect, stairRect, envelope, grid, twoCar } = ctx
+function buildFloor(
+  fp: FloorProgram,
+  model: CanonicalModel,
+  ctx: Ctx,
+  houseRect: Rect,
+): FloorPlan {
+  const { coreRect, stairRect, envelope, grid, twoCar } = ctx
   const rooms: PlacedRoom[] = []
 
   const core = fp.spaces.filter((s) => s.zone === 'circulation')
@@ -156,22 +206,8 @@ function buildFloor(fp: FloorProgram, model: CanonicalModel, ctx: Ctx): FloorPla
     (a, b) => (ZONE_ORDER[a.zone] ?? 9) - (ZONE_ORDER[b.zone] ?? 9),
   )
 
-  // stepped massing: upper floors shrink toward the stair core to match programme
+  // footprint (already clamped to sit within the floor below) → strips & wings
   const wing = ctx.strategy === 'wing-split'
-  const baseArea = baseHouse.w * baseHouse.h
-  const need = (interior.reduce((a, s) => a + s.target, 0) + 14) * 1.16 * 1e6
-  const scale = fp.level === 0 ? 1 : clamp(Math.sqrt(need / baseArea), 0.62, 1)
-  const fw = snap(
-    clamp(baseHouse.w * clamp(scale * 1.08, 0.55, 1), coreRect.w + (wing ? 5600 : 4200), baseHouse.w),
-    grid,
-  )
-  const coreCx = coreRect.x + coreRect.w / 2
-  const houseRect: Rect = {
-    x: wing ? clamp(snap(coreCx - fw / 2, grid), baseHouse.x, rectRight(baseHouse) - fw) : baseHouse.x,
-    y: baseHouse.y,
-    w: fw,
-    h: snap(clamp(baseHouse.h * scale, stairRect.h + 2400, baseHouse.h), grid),
-  }
   const coreStrip: Rect = { x: coreRect.x, y: coreRect.y, w: coreRect.w, h: houseRect.h }
   const mainRect: Rect = {
     x: houseRect.x + coreRect.w,
@@ -243,7 +279,15 @@ function buildFloor(fp: FloorProgram, model: CanonicalModel, ctx: Ctx): FloorPla
   }
 
   const fill = (us: typeof units, region: Rect, tag = '') => {
-    if (us.length === 0 || region.w < 1500) return
+    if (region.w < 1500 || region.h < 1500) return
+
+    // An empty wing (sparse upper floor) becomes one hall, so the enclosed
+    // outline still fills the whole footprint and the storey below never
+    // ends up narrower than the one above it.
+    if (us.length === 0) {
+      if (fp.level > 0) rooms.push(place(hallSpace(fp.level, tag, toSqm(rectArea(region))), snapRect(region)))
+      return
+    }
 
     // A sparse upper floor leaves the treemap more area than the programme needs,
     // so every room inflates past its brief maximum. Carve the surplus off as a
@@ -305,10 +349,15 @@ function buildFloor(fp: FloorProgram, model: CanonicalModel, ctx: Ctx): FloorPla
   } else if (fp.level > 0) {
     for (const s of outdoor) {
       if (!s.id.startsWith('balcony')) continue
-      const w = snap(Math.min(mainRect.w * 0.55, 4200), grid)
+      const w = snap(clamp(houseRect.w * 0.4, 2400, 4200), grid)
       const d = 1500
       rooms.push(
-        place(s, { x: mainRect.x + snap(mainRect.w * 0.2, grid), y: rectBottom(houseRect), w, h: d }),
+        place(s, {
+          x: snap(houseRect.x + houseRect.w / 2 - w / 2, grid),
+          y: rectBottom(houseRect),
+          w,
+          h: d,
+        }),
       )
     }
   }
@@ -327,8 +376,9 @@ function buildFloor(fp: FloorProgram, model: CanonicalModel, ctx: Ctx): FloorPla
     const at = { x: Math.round(b.rect.x + b.rect.w / 2), y: rectBottom(outline) }
     openings.push({ kind: 'door', at, orient: 'h', width: clamp(b.rect.w - 700, 900, 1600) })
   }
-  // regular window rhythm on every daylight facade, clear of the doors above
-  deriveWindows(rooms, outline, openings)
+  // window rhythm on every daylight facade, clear of the doors above — the
+  // spacing and proportion are set by the chosen design character
+  deriveWindows(rooms, outline, openings, themeOf(model.brief).windows)
 
   const { reachable, unreachableRooms } = repairReachability(rooms, openings, fp.level)
   const stair = stairSpace ? makeStair(stairRect, model.brief.levels.floorToFloor) : undefined
@@ -479,15 +529,17 @@ function deriveWalls(rooms: PlacedRoom[], outline: Rect): Wall[] {
   return walls
 }
 
+type WindowSpec = { mullionMm: number; widthMm: number; minRoomSqm: number }
+
 /**
  * One window per habitable room, snapped to a shared per-facade mullion grid so
  * windows line up between storeys. Small rooms (baths, utility, pooja) get none —
- * they don't read at massing scale.
+ * they don't read at massing scale. The rhythm is a design-character choice.
  */
-function deriveWindows(rooms: PlacedRoom[], outline: Rect, out: Opening[]) {
-  const MULLION = 3000 // window-column spacing (mm)
-  const MIN_ROOM = 8 // m² — smaller habitable rooms get no massing window
-  const WIN_W = 1350
+function deriveWindows(rooms: PlacedRoom[], outline: Rect, out: Opening[], spec: WindowSpec) {
+  const MULLION = spec.mullionMm // window-column spacing (mm)
+  const MIN_ROOM = spec.minRoomSqm // m² — smaller habitable rooms get no massing window
+  const WIN_W = spec.widthMm
 
   const edges = [
     { orient: 'h' as const, fixed: outline.y, lo: outline.x, hi: rectRight(outline) },

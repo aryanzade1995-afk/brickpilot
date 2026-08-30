@@ -239,9 +239,9 @@ export function StyleStep() {
         value={brief.style.character}
         onChange={(v) => edit((b) => void (b.style.character = v))}
         options={[
-          { value: 'modernist', title: CHARACTER_LABEL.modernist, body: 'Clear structural rhythm, strong horizontals, disciplined openings.' },
-          { value: 'warm-minimal', title: CHARACTER_LABEL['warm-minimal'], body: 'Quiet planes, timber warmth, restrained detailing.', soon: true },
-          { value: 'kerala-contemporary', title: CHARACTER_LABEL['kerala-contemporary'], body: 'Regional roof cues and rain protection with clean planning.', soon: true },
+          { value: 'modernist', title: CHARACTER_LABEL.modernist, body: 'Flat roof and slim parapet, strong horizontals, a disciplined window grid.' },
+          { value: 'warm-minimal', title: CHARACTER_LABEL['warm-minimal'], body: 'Quiet plaster planes, a thin oversailing roof, fewer larger timber-framed openings.' },
+          { value: 'kerala-contemporary', title: CHARACTER_LABEL['kerala-contemporary'], body: 'Steep hipped tiled roofs, deep monsoon eaves, tall shuttered windows.' },
         ]}
       />
     </div>

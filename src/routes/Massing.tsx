@@ -1,40 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Canvas, useThree } from '@react-three/fiber'
-import { ContactShadows, Grid, OrbitControls } from '@react-three/drei'
+import { Grid, OrbitControls } from '@react-three/drei'
 import { EffectComposer, N8AO, SMAA } from '@react-three/postprocessing'
-import { Camera, Grid3x3 } from 'lucide-react'
+import { ArrowRight, Grid3x3 } from 'lucide-react'
 import * as THREE from 'three'
-import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { useStudio } from '@/state/studio.ts'
-import { buildMassing, type MassKind, type Massing } from '@/lib/three/buildMassing.ts'
+import { buildMassing } from '@/lib/three/buildMassing.ts'
+import { MassingModel, SceneEnv } from '@/lib/three/MassingScene.tsx'
+import type { Group } from '@/lib/three/massingGroups.ts'
 import { cx } from '@/lib/cx.ts'
 import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
-
-type Group = 'shell' | 'glazing' | 'slabs' | 'roof' | 'stair' | 'partition'
-
-const GROUP_OF: Record<MassKind, Group> = {
-  wall: 'shell',
-  parapet: 'shell',
-  column: 'shell',
-  railing: 'shell',
-  partition: 'partition',
-  glass: 'glazing',
-  slab: 'slabs',
-  plinth: 'slabs',
-  roof: 'roof',
-  canopy: 'roof',
-  stair: 'stair',
-}
-
-const GROUP_MAT: Record<Group, { color: string; roughness: number; metalness?: number }> = {
-  shell: { color: '#e8e0cf', roughness: 0.82 },
-  glazing: { color: '#181c1f', roughness: 0.32 },
-  slabs: { color: '#d6ccb5', roughness: 0.9 },
-  roof: { color: '#cfc5ac', roughness: 0.9 },
-  stair: { color: '#d2c8ae', roughness: 0.9 },
-  partition: { color: '#e2d9c5', roughness: 0.92 },
-}
 
 const LAYER_TOGGLES: { g: Group; label: string }[] = [
   { g: 'shell', label: 'Walls' },
@@ -59,26 +36,14 @@ export function Massing() {
   const [explode, setExplode] = useState(0)
   const [hidden, setHidden] = useState<Set<Group>>(new Set())
   const [showSite, setShowSite] = useState(true)
-  const [shots, setShots] = useState<{ key: string; url: string }[]>([])
   const [pendingView, setPendingView] = useState<CamKey | null>('iso')
-  const glRef = useRef<THREE.WebGLRenderer | null>(null)
 
   if (!result || !massing) {
     return <div className="mx-auto max-w-[1400px] px-10 py-24 text-ink-dim">Preparing model…</div>
   }
 
   const span = Math.max(massing.bounds.w, massing.bounds.d)
-
-  const capture = (key: string) => {
-    const gl = glRef.current
-    if (!gl) return
-    requestAnimationFrame(() =>
-      gl.domElement.toBlob((blob) => {
-        if (!blob) return
-        setShots((s) => [...s.filter((x) => x.key !== key), { key, url: URL.createObjectURL(blob) }])
-      }, 'image/png'),
-    )
-  }
+  const character = result.model.brief.style.character
 
   const toggle = (g: Group) =>
     setHidden((h) => {
@@ -118,48 +83,11 @@ export function Massing() {
               gl={{ preserveDrawingBuffer: true, antialias: true }}
               camera={{ fov: 37, near: 0.1, far: span * 40, position: [span * 1.1, span * 0.85, span * 1.1] }}
               onCreated={({ gl }) => {
-                glRef.current = gl
                 gl.toneMapping = THREE.ACESFilmicToneMapping
                 gl.toneMappingExposure = 1.12
               }}
             >
-              <color attach="background" args={['#0b0b0c']} />
-
-              <ambientLight intensity={0.6} />
-              <hemisphereLight args={['#f3ead4', '#2a2620', 0.85]} />
-              <directionalLight
-                position={[
-                  massing.center[0] + span * 0.7,
-                  massing.center[1] + span * 1.35,
-                  massing.center[2] + span * 0.55,
-                ]}
-                intensity={1.7}
-                color="#fff3df"
-                castShadow
-                shadow-mapSize={[2048, 2048]}
-                shadow-bias={-0.0003}
-                shadow-normalBias={0.03}
-                shadow-camera-near={0.5}
-                shadow-camera-far={span * 6}
-                shadow-camera-left={-span * 1.2}
-                shadow-camera-right={span * 1.2}
-                shadow-camera-top={span * 1.2}
-                shadow-camera-bottom={-span * 1.2}
-              />
-              <directionalLight
-                position={[massing.center[0] - span, massing.center[1] + span * 0.55, massing.center[2] - span * 0.7]}
-                intensity={0.45}
-                color="#d3dcec"
-              />
-
-              <mesh
-                rotation={[-Math.PI / 2, 0, 0]}
-                position={[massing.center[0], -0.03, massing.center[2]]}
-                receiveShadow
-              >
-                <planeGeometry args={[massing.bounds.w * 8, massing.bounds.d * 8]} />
-                <meshStandardMaterial color="#17140f" roughness={1} />
-              </mesh>
+              <SceneEnv massing={massing} />
               {showSite && (
                 <Grid
                   position={[massing.center[0], -0.01, massing.center[2]]}
@@ -175,17 +103,7 @@ export function Massing() {
                 />
               )}
 
-              <MergedModel massing={massing} explode={explode} hidden={hidden} />
-
-              <ContactShadows
-                position={[massing.center[0], 0.012, massing.center[2]]}
-                scale={span * 2.4}
-                far={span}
-                opacity={0.5}
-                blur={2.4}
-                resolution={1024}
-                color="#000000"
-              />
+              <MassingModel massing={massing} explode={explode} hidden={hidden} character={character} />
 
               <EffectComposer enableNormalPass multisampling={4}>
                 <N8AO aoRadius={1.2} intensity={2.4} distanceFalloff={1} halfRes />
@@ -237,118 +155,25 @@ export function Massing() {
 
           <div className="border border-line">
             <div className="label flex items-center justify-between border-b border-line px-4 py-2.5">
-              Reference captures
+              Next step
               <Grid3x3 size={12} />
             </div>
-            <div className="space-y-2 p-4">
-              <div className="grid grid-cols-3 gap-2">
-                {['front', 'collage', 'top'].map((k) => {
-                  const shot = shots.find((s) => s.key === k)
-                  return (
-                    <button
-                      key={k}
-                      type="button"
-                      onClick={() => capture(k)}
-                      className="flex aspect-[3/2] items-center justify-center overflow-hidden border border-line-strong text-ink-faint hover:border-ink-dim"
-                    >
-                      {shot ? (
-                        <img src={shot.url} alt={k} className="h-full w-full object-cover" />
-                      ) : (
-                        <Camera size={13} />
-                      )}
-                    </button>
-                  )
-                })}
-              </div>
-              <p className="text-[0.7rem] text-ink-faint">Locked camera captures feed the concept-render step.</p>
+            <div className="space-y-3 p-4">
+              <p className="text-[0.8rem] leading-relaxed text-ink-dim">
+                The verified massing is the reference the concept renders are grounded to.
+              </p>
+              <Link
+                to="/workspace/render"
+                className="flex w-full items-center justify-center gap-2 border border-line-strong py-3 font-mono text-xs uppercase tracking-[0.12em] text-ink-dim hover:border-ink-dim hover:text-ink"
+              >
+                Continue to render
+                <ArrowRight size={13} />
+              </Link>
             </div>
           </div>
-
-          <button
-            type="button"
-            disabled
-            className="w-full border border-line py-3 font-mono text-xs uppercase tracking-[0.12em] text-ink-faint opacity-50"
-          >
-            Generate concept renders (soon)
-          </button>
         </div>
       </div>
     </div>
-  )
-}
-
-/** metres a wall/partition is cut down to in the cutaway (exploded) view */
-const CUTAWAY_WALL = 1.15
-
-function MergedModel({ massing, explode, hidden }: { massing: Massing; explode: number; hidden: Set<Group> }) {
-  const lift = explode * massing.floorHeight * 1.7
-  const cutaway = explode > 0.04
-
-  const groups = useMemo(() => {
-    const byGroup = new Map<Group, THREE.BufferGeometry[]>()
-    for (const b of massing.boxes) {
-      const g = GROUP_OF[b.kind]
-      if (hidden.has(g)) continue
-
-      const [w, sh, d] = b.size
-      let h = sh
-      let cy = b.pos[1] + b.level * lift
-
-      if (cutaway) {
-        // hide the lids + glazing + railings so you can look down into every floor
-        if (
-          b.kind === 'roof' ||
-          b.kind === 'parapet' ||
-          b.kind === 'canopy' ||
-          b.kind === 'glass' ||
-          b.kind === 'railing'
-        )
-          continue
-        if (b.kind === 'stair') {
-          // keep the whole ascending flight so the stair still reads as a stair;
-          // just drop the return flight + landing that live up near the ceiling.
-          const floorBase = massing.floors.find((f) => f.level === b.level)?.baseY ?? 0
-          if (b.pos[1] - sh / 2 - floorBase > massing.floorHeight * 0.5) continue
-          cy = b.pos[1] + b.level * lift
-        } else if (b.kind === 'wall' || b.kind === 'partition') {
-          const floorBase = massing.floors.find((f) => f.level === b.level)?.baseY ?? 0
-          const boxBase = b.pos[1] - sh / 2
-          const above = boxBase - floorBase
-          if (above > CUTAWAY_WALL - 0.05) continue // lintel above the cut line
-          h = Math.max(0.06, Math.min(sh, CUTAWAY_WALL - above))
-          cy = boxBase + b.level * lift + h / 2
-        }
-      } else if (g === 'partition') {
-        continue // partitions only read when the model is opened up
-      }
-
-      const geo = new THREE.BoxGeometry(w, h, d)
-      geo.translate(b.pos[0], cy, b.pos[2])
-      if (!byGroup.has(g)) byGroup.set(g, [])
-      byGroup.get(g)!.push(geo)
-    }
-    const merged: { g: Group; geo: THREE.BufferGeometry }[] = []
-    for (const [g, list] of byGroup) {
-      const m = mergeGeometries(list, false)
-      list.forEach((x) => x.dispose())
-      if (m) merged.push({ g, geo: m })
-    }
-    return merged
-  }, [massing, hidden, lift, cutaway])
-
-  useEffect(() => () => groups.forEach((x) => x.geo.dispose()), [groups])
-
-  return (
-    <group>
-      {groups.map(({ g, geo }) => {
-        const mat = GROUP_MAT[g]
-        return (
-          <mesh key={g} geometry={geo} castShadow receiveShadow>
-            <meshStandardMaterial color={mat.color} roughness={mat.roughness} metalness={mat.metalness ?? 0} />
-          </mesh>
-        )
-      })}
-    </group>
   )
 }
 
