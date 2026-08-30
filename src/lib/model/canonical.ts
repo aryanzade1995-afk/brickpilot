@@ -102,7 +102,8 @@ function mk(
     target,
     max,
     wantsWindow:
-      opts.wantsWindow ?? (zone === 'social' || zone === 'private' || zone === 'work'),
+      opts.wantsWindow ??
+      (zone === 'social' || zone === 'private' || zone === 'work' || zone === 'service'),
     wet: opts.wet ?? false,
     outdoor: opts.outdoor ?? false,
   }

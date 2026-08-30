@@ -2,7 +2,7 @@ import { defaultBrief } from '../src/lib/model/brief.ts'
 import { compile } from '../src/lib/model/canonical.ts'
 import { generate } from '../src/lib/engine/index.ts'
 import { buildMassing } from '../src/lib/three/buildMassing.ts'
-const b = defaultBrief(); b.levels.storeys = 2
+const b = defaultBrief(); b.levels.storeys = 1
 const m = buildMassing(generate(compile(b)))
 console.log('boxes:', m.boxes.length, 'bounds:', m.bounds, 'floors:', m.floors)
 const bad = m.boxes.filter(x => x.pos.some(Number.isNaN) || x.size.some(v => Number.isNaN(v) || v <= 0))

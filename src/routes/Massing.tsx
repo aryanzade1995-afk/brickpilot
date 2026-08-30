@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useThree } from '@react-three/fiber'
 import { ContactShadows, Grid, OrbitControls } from '@react-three/drei'
-import { EffectComposer, N8AO } from '@react-three/postprocessing'
+import { EffectComposer, N8AO, SMAA } from '@react-three/postprocessing'
 import { Camera, Grid3x3 } from 'lucide-react'
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
@@ -11,13 +11,14 @@ import { buildMassing, type MassKind, type Massing } from '@/lib/three/buildMass
 import { cx } from '@/lib/cx.ts'
 import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
 
-type Group = 'shell' | 'glazing' | 'slabs' | 'roof' | 'stair'
+type Group = 'shell' | 'glazing' | 'slabs' | 'roof' | 'stair' | 'partition'
 
 const GROUP_OF: Record<MassKind, Group> = {
   wall: 'shell',
   parapet: 'shell',
   column: 'shell',
   railing: 'shell',
+  partition: 'partition',
   glass: 'glazing',
   slab: 'slabs',
   plinth: 'slabs',
@@ -26,12 +27,13 @@ const GROUP_OF: Record<MassKind, Group> = {
   stair: 'stair',
 }
 
-const GROUP_MAT: Record<Group, { color: string; roughness: number; metalness?: number; opacity?: number }> = {
-  shell: { color: '#e7dfce', roughness: 0.88 },
-  glazing: { color: '#2b3134', roughness: 0.15, metalness: 0.1, opacity: 0.85 },
-  slabs: { color: '#d7cdb6', roughness: 0.92 },
-  roof: { color: '#c6bca3', roughness: 0.95 },
-  stair: { color: '#cfc5ac', roughness: 0.9 },
+const GROUP_MAT: Record<Group, { color: string; roughness: number; metalness?: number }> = {
+  shell: { color: '#e8e0cf', roughness: 0.82 },
+  glazing: { color: '#181c1f', roughness: 0.32 },
+  slabs: { color: '#d6ccb5', roughness: 0.9 },
+  roof: { color: '#cfc5ac', roughness: 0.9 },
+  stair: { color: '#d2c8ae', roughness: 0.9 },
+  partition: { color: '#e2d9c5', roughness: 0.92 },
 }
 
 const LAYER_TOGGLES: { g: Group; label: string }[] = [
@@ -39,6 +41,7 @@ const LAYER_TOGGLES: { g: Group; label: string }[] = [
   { g: 'glazing', label: 'Glazing' },
   { g: 'slabs', label: 'Floor slabs' },
   { g: 'roof', label: 'Roof + canopies' },
+  { g: 'partition', label: 'Partitions (explode)' },
   { g: 'stair', label: 'Stair core' },
 ]
 
@@ -110,68 +113,83 @@ export function Massing() {
 
           <div className="relative aspect-[4/3] w-full overflow-hidden border border-line">
             <Canvas
-              shadows
+              shadows="soft"
               dpr={[1, 2]}
               gl={{ preserveDrawingBuffer: true, antialias: true }}
-              camera={{ fov: 42, near: 0.1, far: span * 40, position: [span * 1.1, span * 0.85, span * 1.1] }}
+              camera={{ fov: 37, near: 0.1, far: span * 40, position: [span * 1.1, span * 0.85, span * 1.1] }}
               onCreated={({ gl }) => {
                 glRef.current = gl
+                gl.toneMapping = THREE.ACESFilmicToneMapping
+                gl.toneMappingExposure = 1.12
               }}
             >
               <color attach="background" args={['#0b0b0c']} />
-              <ambientLight intensity={0.55} />
-              <hemisphereLight args={['#eae3d0', '#20211c', 0.5]} />
+
+              <ambientLight intensity={0.6} />
+              <hemisphereLight args={['#f3ead4', '#2a2620', 0.85]} />
               <directionalLight
-                position={[span * 0.6, span * 1.3, span * 0.45]}
-                intensity={1.15}
+                position={[
+                  massing.center[0] + span * 0.7,
+                  massing.center[1] + span * 1.35,
+                  massing.center[2] + span * 0.55,
+                ]}
+                intensity={1.7}
+                color="#fff3df"
                 castShadow
                 shadow-mapSize={[2048, 2048]}
-                shadow-bias={-0.0005}
-                shadow-camera-left={-span}
-                shadow-camera-right={span}
-                shadow-camera-top={span}
-                shadow-camera-bottom={-span}
+                shadow-bias={-0.0003}
+                shadow-normalBias={0.03}
+                shadow-camera-near={0.5}
                 shadow-camera-far={span * 6}
+                shadow-camera-left={-span * 1.2}
+                shadow-camera-right={span * 1.2}
+                shadow-camera-top={span * 1.2}
+                shadow-camera-bottom={-span * 1.2}
               />
-              <directionalLight position={[-span, span * 0.6, -span * 0.6]} intensity={0.3} />
+              <directionalLight
+                position={[massing.center[0] - span, massing.center[1] + span * 0.55, massing.center[2] - span * 0.7]}
+                intensity={0.45}
+                color="#d3dcec"
+              />
 
               <mesh
                 rotation={[-Math.PI / 2, 0, 0]}
                 position={[massing.center[0], -0.03, massing.center[2]]}
                 receiveShadow
               >
-                <planeGeometry args={[massing.bounds.w * 2.4, massing.bounds.d * 2.4]} />
-                <meshStandardMaterial color="#16130e" roughness={1} />
+                <planeGeometry args={[massing.bounds.w * 8, massing.bounds.d * 8]} />
+                <meshStandardMaterial color="#17140f" roughness={1} />
               </mesh>
               {showSite && (
                 <Grid
-                  position={[massing.center[0], 0, massing.center[2]]}
-                  args={[span * 2, span * 2]}
+                  position={[massing.center[0], -0.01, massing.center[2]]}
+                  args={[span * 3, span * 3]}
                   cellSize={1}
                   cellThickness={0.5}
-                  cellColor="#2c2a22"
+                  cellColor="#2c2921"
                   sectionSize={5}
                   sectionThickness={0.8}
-                  sectionColor="#3d3a2d"
-                  fadeDistance={span * 2.6}
-                  fadeStrength={2}
+                  sectionColor="#403c30"
+                  fadeDistance={span * 3.4}
+                  fadeStrength={1.3}
                 />
               )}
 
               <MergedModel massing={massing} explode={explode} hidden={hidden} />
 
               <ContactShadows
-                position={[massing.center[0], 0.015, massing.center[2]]}
-                scale={span * 1.8}
-                far={span * 0.9}
-                opacity={0.55}
-                blur={2}
+                position={[massing.center[0], 0.012, massing.center[2]]}
+                scale={span * 2.4}
+                far={span}
+                opacity={0.5}
+                blur={2.4}
                 resolution={1024}
                 color="#000000"
               />
 
               <EffectComposer enableNormalPass multisampling={4}>
-                <N8AO aoRadius={1.1} intensity={2} distanceFalloff={0.6} halfRes />
+                <N8AO aoRadius={1.2} intensity={2.4} distanceFalloff={1} halfRes />
+                <SMAA />
               </EffectComposer>
 
               <CameraRig span={span} center={massing.center} pendingView={pendingView} onApplied={() => setPendingView(null)} />
@@ -267,6 +285,7 @@ function MergedModel({ massing, explode, hidden }: { massing: Massing; explode: 
     for (const b of massing.boxes) {
       const g = GROUP_OF[b.kind]
       if (hidden.has(g)) continue
+      if (g === 'partition' && explode < 0.03) continue
       const geo = new THREE.BoxGeometry(b.size[0], b.size[1], b.size[2])
       geo.translate(b.pos[0], b.pos[1] + b.level * lift, b.pos[2])
       if (!byGroup.has(g)) byGroup.set(g, [])
@@ -279,7 +298,7 @@ function MergedModel({ massing, explode, hidden }: { massing: Massing; explode: 
       if (m) merged.push({ g, geo: m })
     }
     return merged
-  }, [massing, hidden, lift])
+  }, [massing, hidden, lift, explode])
 
   useEffect(() => () => groups.forEach((x) => x.geo.dispose()), [groups])
 
@@ -289,13 +308,7 @@ function MergedModel({ massing, explode, hidden }: { massing: Massing; explode: 
         const mat = GROUP_MAT[g]
         return (
           <mesh key={g} geometry={geo} castShadow receiveShadow>
-            <meshStandardMaterial
-              color={mat.color}
-              roughness={mat.roughness}
-              metalness={mat.metalness ?? 0}
-              transparent={mat.opacity != null}
-              opacity={mat.opacity ?? 1}
-            />
+            <meshStandardMaterial color={mat.color} roughness={mat.roughness} metalness={mat.metalness ?? 0} />
           </mesh>
         )
       })}
@@ -320,14 +333,14 @@ function CameraRig({
 
   useEffect(() => {
     if (!pendingView || !controls) return
-    const d = span * 1.25
+    const d = span * 1.3
     const spots: Record<CamKey, [number, number, number]> = {
-      front: [tx, ty + d * 0.15, tz + d],
-      rear: [tx, ty + d * 0.15, tz - d],
-      left: [tx - d, ty + d * 0.15, tz],
-      right: [tx + d, ty + d * 0.15, tz],
-      iso: [tx + d * 0.8, ty + d * 0.65, tz + d * 0.8],
-      top: [tx + 0.001, ty + d * 1.8, tz + 0.001],
+      front: [tx, ty + d * 0.1, tz + d],
+      rear: [tx, ty + d * 0.1, tz - d],
+      left: [tx - d, ty + d * 0.1, tz],
+      right: [tx + d, ty + d * 0.1, tz],
+      iso: [tx + d * 0.78, ty + d * 0.52, tz + d * 0.82],
+      top: [tx + 0.001, ty + d * 1.9, tz + 0.001],
     }
     const [x, y, z] = spots[pendingView]
     camera.position.set(x, y, z)

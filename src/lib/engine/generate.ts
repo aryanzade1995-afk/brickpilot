@@ -439,23 +439,43 @@ function deriveWalls(rooms: PlacedRoom[], outline: Rect): Wall[] {
   return walls
 }
 
+/** 1-3 evenly-spaced windows on the 1-2 longest exterior sides of every daylight room. */
 function deriveWindows(rooms: PlacedRoom[], outline: Rect, out: Opening[]) {
+  const WIN_W = 1500
+  const MARGIN = 550 // clear of the room's own corners (mm)
+  const GAP = 900 // min pier between adjacent windows (mm)
+  const clash = (p: Point) =>
+    out.some((o) => Math.abs(o.at.x - p.x) <= 800 && Math.abs(o.at.y - p.y) <= 800)
+
   for (const r of rooms) {
     if (r.outdoor || !r.wantsWindow) continue
-    const sides: { len: number; a: Point; b: Point; orient: 'h' | 'v' }[] = []
+    const sides: { len: number; coord: number; lo: number; orient: 'h' | 'v' }[] = []
     if (Math.abs(r.rect.y - outline.y) < 2)
-      sides.push({ len: r.rect.w, a: { x: r.rect.x, y: r.rect.y }, b: { x: rectRight(r.rect), y: r.rect.y }, orient: 'h' })
+      sides.push({ len: r.rect.w, coord: r.rect.y, lo: r.rect.x, orient: 'h' })
     if (Math.abs(rectBottom(r.rect) - rectBottom(outline)) < 2)
-      sides.push({ len: r.rect.w, a: { x: r.rect.x, y: rectBottom(r.rect) }, b: { x: rectRight(r.rect), y: rectBottom(r.rect) }, orient: 'h' })
+      sides.push({ len: r.rect.w, coord: rectBottom(r.rect), lo: r.rect.x, orient: 'h' })
     if (Math.abs(r.rect.x - outline.x) < 2)
-      sides.push({ len: r.rect.h, a: { x: r.rect.x, y: r.rect.y }, b: { x: r.rect.x, y: rectBottom(r.rect) }, orient: 'v' })
+      sides.push({ len: r.rect.h, coord: r.rect.x, lo: r.rect.y, orient: 'v' })
     if (Math.abs(rectRight(r.rect) - rectRight(outline)) < 2)
-      sides.push({ len: r.rect.h, a: { x: rectRight(r.rect), y: r.rect.y }, b: { x: rectRight(r.rect), y: rectBottom(r.rect) }, orient: 'v' })
+      sides.push({ len: r.rect.h, coord: rectRight(r.rect), lo: r.rect.y, orient: 'v' })
     if (sides.length === 0) continue
-    sides.sort((x, y) => y.len - x.len)
-    const s = sides[0]
-    const w = clamp(s.len - 700, 700, 2100)
-    out.push({ kind: 'window', at: { x: (s.a.x + s.b.x) / 2, y: (s.a.y + s.b.y) / 2 }, orient: s.orient, width: w })
+    sides.sort((a, b) => b.len - a.len)
+
+    const picks = sides[1] && sides[1].len > 2600 ? sides.slice(0, 2) : sides.slice(0, 1)
+    for (const s of picks) {
+      const usable = s.len - MARGIN * 2
+      if (usable < 900) continue
+      const n = Math.max(1, Math.min(3, Math.floor((usable + GAP) / (WIN_W + GAP))))
+      const w = Math.max(700, Math.min(WIN_W, Math.floor((usable - GAP * (n - 1)) / n)))
+      const span = w * n + GAP * (n - 1)
+      const first = s.lo + (s.len - span) / 2 + w / 2
+      for (let i = 0; i < n; i++) {
+        const q = Math.round(first + i * (w + GAP))
+        const at: Point = s.orient === 'h' ? { x: q, y: s.coord } : { x: s.coord, y: q }
+        if (clash(at)) continue
+        out.push({ kind: 'window', at, orient: s.orient, width: w })
+      }
+    }
   }
 }
 
