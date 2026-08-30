@@ -1,29 +1,45 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useThree } from '@react-three/fiber'
-import { Grid, OrbitControls } from '@react-three/drei'
+import { ContactShadows, Grid, OrbitControls } from '@react-three/drei'
+import { EffectComposer, N8AO } from '@react-three/postprocessing'
 import { Camera, Grid3x3 } from 'lucide-react'
 import * as THREE from 'three'
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { useStudio } from '@/state/studio.ts'
-import { buildMassing, type MassBox, type Massing } from '@/lib/three/buildMassing.ts'
+import { buildMassing, type MassKind, type Massing } from '@/lib/three/buildMassing.ts'
 import { cx } from '@/lib/cx.ts'
 import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
 
-const MAT: Record<MassBox['kind'], { color: string; opacity?: number }> = {
-  wall: { color: '#e9e1d0' },
-  'floor-slab': { color: '#d8cfba' },
-  roof: { color: '#c9bfa6' },
-  parapet: { color: '#e4dbc8' },
-  canopy: { color: '#d3c9b1' },
-  stair: { color: '#c7bda3', opacity: 0.5 },
+type Group = 'shell' | 'glazing' | 'slabs' | 'roof' | 'stair'
+
+const GROUP_OF: Record<MassKind, Group> = {
+  wall: 'shell',
+  parapet: 'shell',
+  column: 'shell',
+  railing: 'shell',
+  glass: 'glazing',
+  slab: 'slabs',
+  plinth: 'slabs',
+  roof: 'roof',
+  canopy: 'roof',
+  stair: 'stair',
 }
 
-const LAYERS: { key: MassBox['kind'][]; label: string }[] = [
-  { key: ['wall'], label: 'Walls' },
-  { key: ['floor-slab'], label: 'Floor slabs' },
-  { key: ['roof', 'parapet'], label: 'Roof' },
-  { key: ['canopy'], label: 'Canopies' },
-  { key: ['stair'], label: 'Stair core' },
+const GROUP_MAT: Record<Group, { color: string; roughness: number; metalness?: number; opacity?: number }> = {
+  shell: { color: '#e7dfce', roughness: 0.88 },
+  glazing: { color: '#2b3134', roughness: 0.15, metalness: 0.1, opacity: 0.85 },
+  slabs: { color: '#d7cdb6', roughness: 0.92 },
+  roof: { color: '#c6bca3', roughness: 0.95 },
+  stair: { color: '#cfc5ac', roughness: 0.9 },
+}
+
+const LAYER_TOGGLES: { g: Group; label: string }[] = [
+  { g: 'shell', label: 'Walls' },
+  { g: 'glazing', label: 'Glazing' },
+  { g: 'slabs', label: 'Floor slabs' },
+  { g: 'roof', label: 'Roof + canopies' },
+  { g: 'stair', label: 'Stair core' },
 ]
 
 type CamKey = 'front' | 'rear' | 'left' | 'right' | 'iso' | 'top'
@@ -38,11 +54,10 @@ export function Massing() {
   const massing = useMemo(() => (result ? buildMassing(result.design) : null), [result])
 
   const [explode, setExplode] = useState(0)
-  const [hidden, setHidden] = useState<Set<string>>(new Set())
+  const [hidden, setHidden] = useState<Set<Group>>(new Set())
   const [showSite, setShowSite] = useState(true)
   const [shots, setShots] = useState<{ key: string; url: string }[]>([])
   const [pendingView, setPendingView] = useState<CamKey | null>('iso')
-
   const glRef = useRef<THREE.WebGLRenderer | null>(null)
 
   if (!result || !massing) {
@@ -54,17 +69,19 @@ export function Massing() {
   const capture = (key: string) => {
     const gl = glRef.current
     if (!gl) return
-    gl.domElement.toBlob((blob) => {
-      if (!blob) return
-      setShots((s) => [...s.filter((x) => x.key !== key), { key, url: URL.createObjectURL(blob) }])
-    }, 'image/png')
+    requestAnimationFrame(() =>
+      gl.domElement.toBlob((blob) => {
+        if (!blob) return
+        setShots((s) => [...s.filter((x) => x.key !== key), { key, url: URL.createObjectURL(blob) }])
+      }, 'image/png'),
+    )
   }
 
-  const toggleLayer = (keys: MassBox['kind'][]) =>
+  const toggle = (g: Group) =>
     setHidden((h) => {
       const n = new Set(h)
-      const anyHidden = keys.some((k) => n.has(k))
-      keys.forEach((k) => (anyHidden ? n.delete(k) : n.add(k)))
+      if (n.has(g)) n.delete(g)
+      else n.add(g)
       return n
     })
 
@@ -96,56 +113,68 @@ export function Massing() {
               shadows
               dpr={[1, 2]}
               gl={{ preserveDrawingBuffer: true, antialias: true }}
-              camera={{ fov: 40, near: 0.1, far: span * 20, position: [span, span * 0.9, span] }}
+              camera={{ fov: 42, near: 0.1, far: span * 40, position: [span * 1.1, span * 0.85, span * 1.1] }}
               onCreated={({ gl }) => {
                 glRef.current = gl
               }}
             >
               <color attach="background" args={['#0b0b0c']} />
-              <hemisphereLight args={['#f2ecdc', '#1a1b17', 0.6]} />
+              <ambientLight intensity={0.55} />
+              <hemisphereLight args={['#eae3d0', '#20211c', 0.5]} />
               <directionalLight
-                position={[span * 0.7, span * 1.4, span * 0.5]}
-                intensity={1.6}
+                position={[span * 0.6, span * 1.3, span * 0.45]}
+                intensity={1.15}
                 castShadow
                 shadow-mapSize={[2048, 2048]}
+                shadow-bias={-0.0005}
                 shadow-camera-left={-span}
                 shadow-camera-right={span}
                 shadow-camera-top={span}
                 shadow-camera-bottom={-span}
                 shadow-camera-far={span * 6}
               />
-              <directionalLight position={[-span, span * 0.6, -span * 0.5]} intensity={0.4} />
+              <directionalLight position={[-span, span * 0.6, -span * 0.6]} intensity={0.3} />
 
-              <Scene massing={massing} explode={explode} hidden={hidden} />
-
+              <mesh
+                rotation={[-Math.PI / 2, 0, 0]}
+                position={[massing.center[0], -0.03, massing.center[2]]}
+                receiveShadow
+              >
+                <planeGeometry args={[massing.bounds.w * 2.4, massing.bounds.d * 2.4]} />
+                <meshStandardMaterial color="#16130e" roughness={1} />
+              </mesh>
               {showSite && (
-                <>
-                  <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.08, 0]} receiveShadow>
-                    <planeGeometry args={[massing.bounds.w * 4, massing.bounds.d * 4]} />
-                    <meshStandardMaterial color="#131313" roughness={1} />
-                  </mesh>
-                  <Grid
-                    position={[0, -0.05, 0]}
-                    args={[span * 3, span * 3]}
-                    cellSize={1}
-                    cellThickness={0.6}
-                    cellColor="#2b2b2b"
-                    sectionSize={5}
-                    sectionThickness={1}
-                    sectionColor="#3c3c3c"
-                    fadeDistance={span * 4}
-                    fadeStrength={1.5}
-                    infiniteGrid
-                  />
-                </>
+                <Grid
+                  position={[massing.center[0], 0, massing.center[2]]}
+                  args={[span * 2, span * 2]}
+                  cellSize={1}
+                  cellThickness={0.5}
+                  cellColor="#2c2a22"
+                  sectionSize={5}
+                  sectionThickness={0.8}
+                  sectionColor="#3d3a2d"
+                  fadeDistance={span * 2.6}
+                  fadeStrength={2}
+                />
               )}
 
-              <CameraRig
-                span={span}
-                center={massing.center}
-                pendingView={pendingView}
-                onApplied={() => setPendingView(null)}
+              <MergedModel massing={massing} explode={explode} hidden={hidden} />
+
+              <ContactShadows
+                position={[massing.center[0], 0.015, massing.center[2]]}
+                scale={span * 1.8}
+                far={span * 0.9}
+                opacity={0.55}
+                blur={2}
+                resolution={1024}
+                color="#000000"
               />
+
+              <EffectComposer enableNormalPass multisampling={4}>
+                <N8AO aoRadius={1.1} intensity={2} distanceFalloff={0.6} halfRes />
+              </EffectComposer>
+
+              <CameraRig span={span} center={massing.center} pendingView={pendingView} onApplied={() => setPendingView(null)} />
             </Canvas>
 
             <div className="pointer-events-none absolute bottom-2 left-3 font-mono text-[0.6rem] uppercase tracking-[0.1em] text-ink-faint">
@@ -181,12 +210,9 @@ export function Massing() {
           <div className="border border-line">
             <div className="label border-b border-line px-4 py-2.5">Layers</div>
             <div className="p-2">
-              {LAYERS.map((l) => {
-                const on = !l.key.some((k) => hidden.has(k))
-                return (
-                  <LayerRow key={l.label} label={l.label} on={on} onClick={() => toggleLayer(l.key)} />
-                )
-              })}
+              {LAYER_TOGGLES.map((l) => (
+                <LayerRow key={l.g} label={l.label} on={!hidden.has(l.g)} onClick={() => toggle(l.g)} />
+              ))}
               <LayerRow label="Site + grid" on={showSite} onClick={() => setShowSite((v) => !v)} />
             </div>
           </div>
@@ -216,9 +242,7 @@ export function Massing() {
                   )
                 })}
               </div>
-              <p className="text-[0.7rem] text-ink-faint">
-                Locked camera captures feed the concept-render step.
-              </p>
+              <p className="text-[0.7rem] text-ink-faint">Locked camera captures feed the concept-render step.</p>
             </div>
           </div>
 
@@ -235,31 +259,46 @@ export function Massing() {
   )
 }
 
-function Scene({ massing, explode, hidden }: { massing: Massing; explode: number; hidden: Set<string> }) {
-  const lift = explode * massing.floorHeight * 1.5
+function MergedModel({ massing, explode, hidden }: { massing: Massing; explode: number; hidden: Set<Group> }) {
+  const lift = explode * massing.floorHeight * 1.6
+
+  const groups = useMemo(() => {
+    const byGroup = new Map<Group, THREE.BufferGeometry[]>()
+    for (const b of massing.boxes) {
+      const g = GROUP_OF[b.kind]
+      if (hidden.has(g)) continue
+      const geo = new THREE.BoxGeometry(b.size[0], b.size[1], b.size[2])
+      geo.translate(b.pos[0], b.pos[1] + b.level * lift, b.pos[2])
+      if (!byGroup.has(g)) byGroup.set(g, [])
+      byGroup.get(g)!.push(geo)
+    }
+    const merged: { g: Group; geo: THREE.BufferGeometry }[] = []
+    for (const [g, list] of byGroup) {
+      const m = mergeGeometries(list, false)
+      list.forEach((x) => x.dispose())
+      if (m) merged.push({ g, geo: m })
+    }
+    return merged
+  }, [massing, hidden, lift])
+
+  useEffect(() => () => groups.forEach((x) => x.geo.dispose()), [groups])
+
   return (
     <group>
-      {massing.boxes
-        .filter((b) => !hidden.has(b.kind))
-        .map((b) => {
-          const mat = MAT[b.kind]
-          return (
-            <mesh
-              key={b.id}
-              position={[b.pos[0], b.pos[1] + b.level * lift, b.pos[2]]}
-              castShadow
-              receiveShadow
-            >
-              <boxGeometry args={b.size} />
-              <meshStandardMaterial
-                color={mat.color}
-                roughness={0.9}
-                transparent={mat.opacity != null}
-                opacity={mat.opacity ?? 1}
-              />
-            </mesh>
-          )
-        })}
+      {groups.map(({ g, geo }) => {
+        const mat = GROUP_MAT[g]
+        return (
+          <mesh key={g} geometry={geo} castShadow receiveShadow>
+            <meshStandardMaterial
+              color={mat.color}
+              roughness={mat.roughness}
+              metalness={mat.metalness ?? 0}
+              transparent={mat.opacity != null}
+              opacity={mat.opacity ?? 1}
+            />
+          </mesh>
+        )
+      })}
     </group>
   )
 }
@@ -275,37 +314,36 @@ function CameraRig({
   pendingView: CamKey | null
   onApplied: () => void
 }) {
-  const controls = useRef<OrbitControlsImpl>(null)
   const camera = useThree((s) => s.camera)
+  const controls = useThree((s) => s.controls) as OrbitControlsImpl | null
   const [tx, ty, tz] = center
 
   useEffect(() => {
-    if (!pendingView || !controls.current) return
-    const d = span * 1.15
+    if (!pendingView || !controls) return
+    const d = span * 1.25
     const spots: Record<CamKey, [number, number, number]> = {
-      front: [tx, ty, tz + d],
-      rear: [tx, ty, tz - d],
-      left: [tx - d, ty, tz],
-      right: [tx + d, ty, tz],
-      iso: [tx + d * 0.8, ty + d * 0.7, tz + d * 0.8],
-      top: [tx + 0.001, ty + d * 1.6, tz + 0.001],
+      front: [tx, ty + d * 0.15, tz + d],
+      rear: [tx, ty + d * 0.15, tz - d],
+      left: [tx - d, ty + d * 0.15, tz],
+      right: [tx + d, ty + d * 0.15, tz],
+      iso: [tx + d * 0.8, ty + d * 0.65, tz + d * 0.8],
+      top: [tx + 0.001, ty + d * 1.8, tz + 0.001],
     }
     const [x, y, z] = spots[pendingView]
     camera.position.set(x, y, z)
-    controls.current.target.set(tx, ty, tz)
-    controls.current.update()
+    controls.target.set(tx, ty, tz)
+    controls.update()
     onApplied()
-  }, [pendingView, span, tx, ty, tz, camera, onApplied])
+  }, [pendingView, span, tx, ty, tz, camera, controls, onApplied])
 
   return (
     <OrbitControls
-      ref={controls}
       makeDefault
       enableDamping
-      dampingFactor={0.12}
-      minDistance={span * 0.4}
-      maxDistance={span * 6}
-      maxPolarAngle={Math.PI / 2.03}
+      dampingFactor={0.1}
+      minDistance={span * 0.3}
+      maxDistance={span * 7}
+      maxPolarAngle={Math.PI / 2.05}
     />
   )
 }
