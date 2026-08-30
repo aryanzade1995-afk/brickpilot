@@ -65,9 +65,9 @@ const COL = 0.3 // square column
 const HT_MM = (EXT_T * 1000) / 2 // exterior half-thickness, mm
 
 const BAND: Record<Opening['kind'], { sill: number; head: number }> = {
-  window: { sill: 0.9, head: 2.15 },
-  door: { sill: 0, head: 2.1 },
-  entry: { sill: 0, head: 2.45 },
+  window: { sill: 0.85, head: 2.2 },
+  door: { sill: 0, head: 2.3 },
+  entry: { sill: 0, head: 2.5 },
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
@@ -219,8 +219,8 @@ export function buildMassing(design: Design): Massing {
       if (entry && !sheltered) buildPorch(entry, o, y0, H, push, wx, wz, m)
     }
 
-    // ---- stair ----
-    if (floor.stair) {
+    // ---- stair — only the flights that actually go up to a floor above ----
+    if (floor.stair && L < topLevel) {
       for (const s of buildStair(floor.stair.rect, H)) {
         push(`stair-${L}-${s.tag}`, 'stair', L, [wx(s.x), baseY + s.y, wz(s.z)], s.size)
       }
@@ -500,12 +500,12 @@ function buildBalcony(rect: Rect, baseY: number, L: number, push: Push, wx: XF, 
   // projecting slab, top a step above the finished floor so it clearly reads
   push(`balc-${L}`, 'slab', L, [cxw, baseY - 0.11, wz((bN + bS) / 2)], [m(bE - bW), 0.26, m(bS - bN)])
 
-  const rh = 0.95
+  const rh = 0.88
   const ry = baseY + rh / 2
   const midZ = wz((rect.y + bS) / 2)
-  push(`balr-${L}-s`, 'railing', L, [cxw, ry, wz(bS)], [m(bE - bW) + 0.14, rh, 0.14])
-  push(`balr-${L}-w`, 'railing', L, [wx(bW), ry, midZ], [0.14, rh, m(bS - rect.y)])
-  push(`balr-${L}-e`, 'railing', L, [wx(bE), ry, midZ], [0.14, rh, m(bS - rect.y)])
+  push(`balr-${L}-s`, 'railing', L, [cxw, ry, wz(bS)], [m(bE - bW) + 0.12, rh, 0.12])
+  push(`balr-${L}-w`, 'railing', L, [wx(bW), ry, midZ], [0.12, rh, m(bS - rect.y)])
+  push(`balr-${L}-e`, 'railing', L, [wx(bE), ry, midZ], [0.12, rh, m(bS - rect.y)])
 }
 
 function buildPorch(entry: Opening, o: Rect, y0: number, H: number, push: Push, wx: XF, wz: XF, m: XF) {

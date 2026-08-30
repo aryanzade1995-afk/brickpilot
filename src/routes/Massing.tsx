@@ -277,17 +277,47 @@ export function Massing() {
   )
 }
 
+/** metres a wall/partition is cut down to in the cutaway (exploded) view */
+const CUTAWAY_WALL = 1.15
+
 function MergedModel({ massing, explode, hidden }: { massing: Massing; explode: number; hidden: Set<Group> }) {
-  const lift = explode * massing.floorHeight * 1.6
+  const lift = explode * massing.floorHeight * 1.7
+  const cutaway = explode > 0.04
 
   const groups = useMemo(() => {
     const byGroup = new Map<Group, THREE.BufferGeometry[]>()
     for (const b of massing.boxes) {
       const g = GROUP_OF[b.kind]
       if (hidden.has(g)) continue
-      if (g === 'partition' && explode < 0.03) continue
-      const geo = new THREE.BoxGeometry(b.size[0], b.size[1], b.size[2])
-      geo.translate(b.pos[0], b.pos[1] + b.level * lift, b.pos[2])
+
+      const [w, sh, d] = b.size
+      let h = sh
+      let cy = b.pos[1] + b.level * lift
+
+      if (cutaway) {
+        // hide the lids + glazing + railings so you can look down into every floor
+        if (
+          b.kind === 'roof' ||
+          b.kind === 'parapet' ||
+          b.kind === 'canopy' ||
+          b.kind === 'glass' ||
+          b.kind === 'railing'
+        )
+          continue
+        if (b.kind === 'wall' || b.kind === 'partition') {
+          const floorBase = massing.floors.find((f) => f.level === b.level)?.baseY ?? 0
+          const boxBase = b.pos[1] - sh / 2
+          const above = boxBase - floorBase
+          if (above > CUTAWAY_WALL - 0.05) continue // lintel / header above the cut line
+          h = Math.max(0.1, Math.min(sh, CUTAWAY_WALL - above))
+          cy = boxBase + b.level * lift + h / 2
+        }
+      } else if (g === 'partition') {
+        continue // partitions only read when the model is opened up
+      }
+
+      const geo = new THREE.BoxGeometry(w, h, d)
+      geo.translate(b.pos[0], cy, b.pos[2])
       if (!byGroup.has(g)) byGroup.set(g, [])
       byGroup.get(g)!.push(geo)
     }
@@ -298,7 +328,7 @@ function MergedModel({ massing, explode, hidden }: { massing: Massing; explode: 
       if (m) merged.push({ g, geo: m })
     }
     return merged
-  }, [massing, hidden, lift, explode])
+  }, [massing, hidden, lift, cutaway])
 
   useEffect(() => () => groups.forEach((x) => x.geo.dispose()), [groups])
 

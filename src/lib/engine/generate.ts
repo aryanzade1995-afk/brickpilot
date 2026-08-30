@@ -298,12 +298,19 @@ function buildFloor(fp: FloorProgram, model: CanonicalModel, ctx: Ctx): FloorPla
   const outline = enclosedOutline(rooms)
   const walls = deriveWalls(rooms, outline)
   const openings: Opening[] = []
-  deriveWindows(rooms, outline, openings)
   deriveDoors(rooms, model.relationships, openings)
   const entryRoom = rooms.find((r) => r.id === 'foyer' || r.id.startsWith('lobby'))
   if (entryRoom && fp.level === 0) {
     addEntry(entryRoom, outline, model.brief.entry.mainDoorWidth, openings)
   }
+  // a full-height door on the facade behind every balcony
+  for (const b of rooms) {
+    if (!b.outdoor || !b.id.startsWith('balcony')) continue
+    const at = { x: Math.round(b.rect.x + b.rect.w / 2), y: rectBottom(outline) }
+    openings.push({ kind: 'door', at, orient: 'h', width: clamp(b.rect.w - 700, 900, 1600) })
+  }
+  // regular window rhythm on every daylight facade, clear of the doors above
+  deriveWindows(rooms, outline, openings)
 
   const { reachable, unreachableRooms } = repairReachability(rooms, openings, fp.level)
   const stair = stairSpace ? makeStair(stairRect, model.brief.levels.floorToFloor) : undefined
@@ -439,43 +446,81 @@ function deriveWalls(rooms: PlacedRoom[], outline: Rect): Wall[] {
   return walls
 }
 
-/** 1-3 evenly-spaced windows on the 1-2 longest exterior sides of every daylight room. */
+/**
+ * A regular window rhythm on each of the four facades: a window per ~2.7 m bay,
+ * clear of the corners and of any door/entry already placed, and only where a
+ * daylight room actually sits behind that stretch of wall.
+ */
 function deriveWindows(rooms: PlacedRoom[], outline: Rect, out: Opening[]) {
-  const WIN_W = 1500
-  const MARGIN = 550 // clear of the room's own corners (mm)
-  const GAP = 900 // min pier between adjacent windows (mm)
-  const clash = (p: Point) =>
-    out.some((o) => Math.abs(o.at.x - p.x) <= 800 && Math.abs(o.at.y - p.y) <= 800)
+  const BAY = 2700
+  const CORNER = 850 // keep windows this far from a corner (mm)
+  const WIN_W = 1400
 
+  const edges = [
+    { orient: 'h' as const, fixed: outline.y, lo: outline.x, hi: rectRight(outline) },
+    { orient: 'h' as const, fixed: rectBottom(outline), lo: outline.x, hi: rectRight(outline) },
+    { orient: 'v' as const, fixed: outline.x, lo: outline.y, hi: rectBottom(outline) },
+    { orient: 'v' as const, fixed: rectRight(outline), lo: outline.y, hi: rectBottom(outline) },
+  ]
+
+  const roomOnEdge = (r: PlacedRoom, orient: 'h' | 'v', fixed: number, along: number) => {
+    if (r.outdoor) return false
+    if (orient === 'h') {
+      const touches = Math.abs(r.rect.y - fixed) < 2 || Math.abs(rectBottom(r.rect) - fixed) < 2
+      return touches && along >= r.rect.x - 1 && along <= rectRight(r.rect) + 1
+    }
+    const touches = Math.abs(r.rect.x - fixed) < 2 || Math.abs(rectRight(r.rect) - fixed) < 2
+    return touches && along >= r.rect.y - 1 && along <= rectBottom(r.rect) + 1
+  }
+
+  for (const e of edges) {
+    const usable = e.hi - e.lo - 2 * CORNER
+    if (usable < 1500) continue
+    const n = Math.max(1, Math.round(usable / BAY))
+    for (let i = 0; i < n; i++) {
+      const along = Math.round(e.lo + CORNER + (usable * (i + 0.5)) / n)
+      const at: Point = e.orient === 'h' ? { x: along, y: e.fixed } : { x: e.fixed, y: along }
+
+      const blocked = out.some((o) => {
+        if (o.orient !== e.orient) return false
+        const oAlong = e.orient === 'h' ? o.at.x : o.at.y
+        const oPerp = e.orient === 'h' ? o.at.y : o.at.x
+        return Math.abs(oPerp - e.fixed) < 400 && Math.abs(oAlong - along) < WIN_W / 2 + o.width / 2 + 400
+      })
+      if (blocked) continue
+
+      const behind = rooms.find((r) => r.wantsWindow && roomOnEdge(r, e.orient, e.fixed, along))
+      if (!behind) continue
+      out.push({ kind: 'window', at, orient: e.orient, width: WIN_W })
+    }
+  }
+
+  // fallback: guarantee one window for any daylight room the bay grid missed
   for (const r of rooms) {
     if (r.outdoor || !r.wantsWindow) continue
-    const sides: { len: number; coord: number; lo: number; orient: 'h' | 'v' }[] = []
+    const has = out.some(
+      (o) =>
+        o.kind === 'window' &&
+        o.at.x >= r.rect.x - 100 &&
+        o.at.x <= rectRight(r.rect) + 100 &&
+        o.at.y >= r.rect.y - 100 &&
+        o.at.y <= rectBottom(r.rect) + 100,
+    )
+    if (has) continue
+    const cand: { len: number; at: Point; orient: 'h' | 'v' }[] = []
     if (Math.abs(r.rect.y - outline.y) < 2)
-      sides.push({ len: r.rect.w, coord: r.rect.y, lo: r.rect.x, orient: 'h' })
+      cand.push({ len: r.rect.w, at: { x: Math.round(r.rect.x + r.rect.w / 2), y: r.rect.y }, orient: 'h' })
     if (Math.abs(rectBottom(r.rect) - rectBottom(outline)) < 2)
-      sides.push({ len: r.rect.w, coord: rectBottom(r.rect), lo: r.rect.x, orient: 'h' })
+      cand.push({ len: r.rect.w, at: { x: Math.round(r.rect.x + r.rect.w / 2), y: rectBottom(r.rect) }, orient: 'h' })
     if (Math.abs(r.rect.x - outline.x) < 2)
-      sides.push({ len: r.rect.h, coord: r.rect.x, lo: r.rect.y, orient: 'v' })
+      cand.push({ len: r.rect.h, at: { x: r.rect.x, y: Math.round(r.rect.y + r.rect.h / 2) }, orient: 'v' })
     if (Math.abs(rectRight(r.rect) - rectRight(outline)) < 2)
-      sides.push({ len: r.rect.h, coord: rectRight(r.rect), lo: r.rect.y, orient: 'v' })
-    if (sides.length === 0) continue
-    sides.sort((a, b) => b.len - a.len)
-
-    const picks = sides[1] && sides[1].len > 2600 ? sides.slice(0, 2) : sides.slice(0, 1)
-    for (const s of picks) {
-      const usable = s.len - MARGIN * 2
-      if (usable < 900) continue
-      const n = Math.max(1, Math.min(3, Math.floor((usable + GAP) / (WIN_W + GAP))))
-      const w = Math.max(700, Math.min(WIN_W, Math.floor((usable - GAP * (n - 1)) / n)))
-      const span = w * n + GAP * (n - 1)
-      const first = s.lo + (s.len - span) / 2 + w / 2
-      for (let i = 0; i < n; i++) {
-        const q = Math.round(first + i * (w + GAP))
-        const at: Point = s.orient === 'h' ? { x: q, y: s.coord } : { x: s.coord, y: q }
-        if (clash(at)) continue
-        out.push({ kind: 'window', at, orient: s.orient, width: w })
-      }
-    }
+      cand.push({ len: r.rect.h, at: { x: rectRight(r.rect), y: Math.round(r.rect.y + r.rect.h / 2) }, orient: 'v' })
+    if (cand.length === 0) continue
+    cand.sort((a, b) => b.len - a.len)
+    const s = cand[0]
+    if (out.some((o) => Math.abs(o.at.x - s.at.x) < 900 && Math.abs(o.at.y - s.at.y) < 900)) continue
+    out.push({ kind: 'window', at: s.at, orient: s.orient, width: Math.min(WIN_W, Math.max(800, s.len - 900)) })
   }
 }
 
