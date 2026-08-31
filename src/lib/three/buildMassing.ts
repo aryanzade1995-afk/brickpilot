@@ -268,22 +268,32 @@ export function buildMassing(design: Design): Massing {
     }
   }
 
-  // ---- dark riven-stone feature pier running the full height of the front ----
+  // ---- dark riven-stone feature pier framing the entrance ----
   if (T.accents.featureColumn) {
     const entry = floors[0].openings.find((op) => op.kind === 'entry')
     if (entry) {
-      const total = floors.length * H + 0.25
-      const w = 620
-      // toward the near end of the entry facade, clear of the door
-      const toLeft = entry.at.x > g.x + g.w / 2
-      const x = toLeft ? g.x + 700 : g.x + g.w - 700
-      push(
-        'feat-pier',
-        'feature',
-        0,
-        [wx(x), y0 + total / 2 - 0.1, wz(g.y + g.h) + EXT_T / 2 + 0.09],
-        [m(w), total, 0.22],
+      const w = 660
+      const gap = 260
+      // hard against the door, offset toward the building centre so the upper
+      // storeys sit behind it instead of leaving a lone stick at the corner
+      const toCentre = entry.at.x <= g.x + g.w / 2 ? 1 : -1
+      const px = clamp(
+        entry.at.x + toCentre * (entry.width / 2 + gap + w / 2),
+        g.x + 500,
+        g.x + g.w - 500,
       )
+      // rise only through the storeys whose plan actually covers this x
+      let reached = 1
+      for (const f of floors) {
+        if (px >= f.outline.x - 60 && px <= f.outline.x + f.outline.w + 60) reached = f.level + 1
+        else break
+      }
+      const rise = clamp(reached, Math.min(2, floors.length), floors.length)
+      const total = rise * H + 0.14
+      const pz = wz(g.y + g.h) + EXT_T / 2 + 0.07
+      push('feat-pier', 'feature', 0, [wx(px), y0 + total / 2, pz], [m(w), total, 0.24])
+      // a slim cap so the top reads as intentional, not sliced
+      push('feat-pier-cap', 'roof', 0, [wx(px), y0 + total + 0.05, pz], [m(w) + 0.1, 0.1, 0.32])
     }
   }
 
@@ -853,8 +863,8 @@ function buildLandscape(
   ]
   for (let i = 0; i < Math.min(T.landscape.shrubs, spots.length); i++) {
     const s = spots[i]
-    const r = m(550 + rnd() * 350)
-    const h = m(450 + rnd() * 350)
+    const r = m(700 + rnd() * 450)
+    const h = m(600 + rnd() * 450)
     push(`shrub-${i}`, 'hedge', 0, [wx(s.x), h / 2, wz(s.z)], [r, h, r])
   }
 }
