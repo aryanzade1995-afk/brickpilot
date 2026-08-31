@@ -194,14 +194,14 @@ function CameraRig({
 
   useEffect(() => {
     if (!pendingView || !controls) return
-    const d = span * 1.7
-    const aim = ty + span * 0.12
+    const d = span * 1.65
+    const aim = ty - span * 0.04
     const spots: Record<CamKey, [number, number, number]> = {
-      front: [tx, aim + d * 0.06, tz + d],
-      rear: [tx, aim + d * 0.06, tz - d],
-      left: [tx - d, aim + d * 0.06, tz],
-      right: [tx + d, aim + d * 0.06, tz],
-      iso: [tx + d * 0.7, aim + d * 0.5, tz + d * 0.78],
+      front: [tx, aim + d * 0.05, tz + d],
+      rear: [tx, aim + d * 0.05, tz - d],
+      left: [tx - d, aim + d * 0.05, tz],
+      right: [tx + d, aim + d * 0.05, tz],
+      iso: [tx + d * 0.72, aim + d * 0.46, tz + d * 0.8],
       top: [tx + 0.001, ty + d * 2.3, tz + 0.001],
     }
     const [x, y, z] = spots[pendingView]

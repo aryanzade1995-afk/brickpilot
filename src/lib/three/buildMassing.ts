@@ -182,10 +182,11 @@ export function buildMassing(design: Design): Massing {
     }
 
     // ---- one segmented solid plane per facade; E/W full depth, N/S tucked between ----
-    addWall('W', oy0, oy1, ox0, baseY, wallTop, face.W, L, `w${L}W`, push, wx, wz, m)
-    addWall('E', oy0, oy1, ox1, baseY, wallTop, face.E, L, `w${L}E`, push, wx, wz, m)
-    addWall('N', ox0 + HT_MM, ox1 - HT_MM, oy0, baseY, wallTop, face.N, L, `w${L}N`, push, wx, wz, m)
-    addWall('S', ox0 + HT_MM, ox1 - HT_MM, oy1, baseY, wallTop, face.S, L, `w${L}S`, push, wx, wz, m)
+    const gm = T.windows.groupMm
+    addWall('W', oy0, oy1, ox0, baseY, wallTop, face.W, L, gm, `w${L}W`, push, wx, wz, m)
+    addWall('E', oy0, oy1, ox1, baseY, wallTop, face.E, L, gm, `w${L}E`, push, wx, wz, m)
+    addWall('N', ox0 + HT_MM, ox1 - HT_MM, oy0, baseY, wallTop, face.N, L, gm, `w${L}N`, push, wx, wz, m)
+    addWall('S', ox0 + HT_MM, ox1 - HT_MM, oy1, baseY, wallTop, face.S, L, gm, `w${L}S`, push, wx, wz, m)
 
     // ---- interior partitions — own group, hidden until exploded ----
     for (let i = 0; i < floor.walls.length; i++) {
@@ -267,19 +268,21 @@ export function buildMassing(design: Design): Massing {
     }
   }
 
-  // ---- dark full-height feature pier beside the entry door ----
+  // ---- dark riven-stone feature pier running the full height of the front ----
   if (T.accents.featureColumn) {
     const entry = floors[0].openings.find((op) => op.kind === 'entry')
     if (entry) {
-      const total = floors.length * H
-      const w = 520
-      const off = (entry.width / 2 + w / 2 + 250) * (entry.at.x < g.x + g.w / 2 ? -1 : 1)
+      const total = floors.length * H + 0.25
+      const w = 620
+      // toward the near end of the entry facade, clear of the door
+      const toLeft = entry.at.x > g.x + g.w / 2
+      const x = toLeft ? g.x + 700 : g.x + g.w - 700
       push(
         'feat-pier',
         'feature',
         0,
-        [wx(entry.at.x + off), y0 + total / 2, wz(g.y + g.h) + EXT_T / 2 + 0.05],
-        [m(w), total, m(w) * 0.9],
+        [wx(x), y0 + total / 2 - 0.1, wz(g.y + g.h) + EXT_T / 2 + 0.09],
+        [m(w), total, 0.22],
       )
     }
   }
@@ -315,6 +318,7 @@ function addWall(
   wallTop: number,
   ops: FaceOp[],
   level: number,
+  groupMm: number,
   tag: string,
   push: Push,
   wx: XF,
@@ -372,6 +376,37 @@ function addWall(
         [ppx, (sillY + headY) / 2, ppz],
         horizontal ? [pl, ph, PANE_T] : [PANE_T, ph, pl],
       )
+
+      // teak frame at the wall face + vertical mullions on wide (grouped) panes
+      const isWindow = o.head - o.sill < 2.0 // doors/entry keep an open reveal
+      if (isWindow) {
+        const fr = 0.08 // frame member size
+        const ff = fixed + outward * (HT_MM - fr * 500) // sits in the reveal, flush-ish
+        const along = (from: number, to: number, yb: number, yt: number, thin: boolean, sub: string) => {
+          const len = m(to - from)
+          const hh = yt - yb
+          if (len < 0.03 || hh < 0.03) return
+          const mid = (from + to) / 2
+          const px = horizontal ? wx(mid) : wx(ff)
+          const pz = horizontal ? wz(ff) : wz(mid)
+          push(
+            `${tag}-fr${i}${sub}`,
+            'clad',
+            level,
+            [px, (yb + yt) / 2, pz],
+            horizontal ? [len, hh, thin ? fr : fr] : [thin ? fr : fr, hh, len],
+          )
+        }
+        along(s, e, sillY, sillY + fr, false, 'b')
+        along(s, e, headY - fr, headY, false, 't')
+        along(s, s + Math.round(fr * 1000), sillY, headY, true, 'l')
+        along(e - Math.round(fr * 1000), e, sillY, headY, true, 'r')
+        const bays = Math.max(1, Math.round((e - s) / groupMm))
+        for (let k = 1; k < bays; k++) {
+          const c = s + ((e - s) * k) / bays
+          along(c - Math.round(fr * 500), c + Math.round(fr * 500), sillY, headY, true, `m${k}`)
+        }
+      }
     }
     cursor = e
   })
@@ -696,22 +731,23 @@ function buildBalcony(
   })
 }
 
-/** flat-roof entry porch on a slim pier — the reference car-porch look */
+/** slim flat-roof entry porch on one column — the reference car-porch look */
 function buildPorch(entry: Opening, o: Rect, y0: number, H: number, push: Push, wx: XF, wz: XF, m: XF) {
   if (entry.orient !== 'h') return // only the plan-south entry gets the porch
-  const w = m(entry.width) + 1.6
-  const proj = 2.4 // how far the porch reaches out from the facade
-  const topY = y0 + Math.min(BAND.entry.head + 0.55, H - 0.1)
-  const zFace = entry.at.y + o.h - o.h // = entry.at.y
+  const w = m(entry.width) + 1.3
+  const proj = 1.9 // how far the porch reaches out from the facade
+  const topY = y0 + Math.min(BAND.entry.head + 0.45, H - 0.15)
+  const zFace = entry.at.y
   const zMid = zFace + proj * 0.55
 
-  push('estep', 'plinth', 0, [wx(entry.at.x), y0 - 0.04, wz(zFace + 700)], [w * 0.8, 0.14, 1.5])
-  // flat porch slab + a white fascia lip
-  push('eporch', 'canopy', 0, [wx(entry.at.x), topY - 0.11, wz(zMid)], [w, 0.22, proj])
-  push('eporch-lip', 'roof', 0, [wx(entry.at.x), topY - 0.02, wz(zFace + proj + 0.06)], [w + 0.1, 0.16, 0.12])
-  // one slim pier at the outer front corner away from the feature column
-  const px = entry.at.x + (entry.width / 2 + 400) * (entry.at.x < o.x + o.w / 2 ? 1 : -1)
-  push('eporch-col', 'column', 0, [wx(px), y0 + (topY - 0.22 - y0) / 2, wz(zFace + proj - 0.25)], [0.24, topY - 0.22 - y0, 0.24])
+  push('estep', 'plinth', 0, [wx(entry.at.x), y0 - 0.04, wz(zFace + 650)], [w * 0.75, 0.13, 1.3])
+  // a thin flat slab + a crisp white lip on the outer edge
+  push('eporch', 'canopy', 0, [wx(entry.at.x), topY - 0.09, wz(zMid)], [w, 0.16, proj])
+  push('eporch-lip', 'roof', 0, [wx(entry.at.x), topY, wz(zFace + proj)], [w + 0.08, 0.13, 0.1])
+  // one slim column at the outer front corner
+  const px = entry.at.x + (entry.width / 2 + 300) * (entry.at.x < o.x + o.w / 2 ? 1 : -1)
+  const colH = topY - 0.16 - y0
+  push('eporch-col', 'column', 0, [wx(px), y0 + colH / 2, wz(zFace + proj - 0.2)], [0.22, colH, 0.22])
 }
 
 /* --------------------------------- site / garden -------------------------------- */
