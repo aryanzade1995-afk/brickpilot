@@ -3,41 +3,8 @@ import * as THREE from 'three'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import { ContactShadows } from '@react-three/drei'
 import type { Massing } from './buildMassing.ts'
-import { hipRoofGeometry } from './hipRoof.ts'
 import { GROUP_OF, CUTAWAY_WALL, type Group } from './massingGroups.ts'
-import { THEMES, type Character, type TreeStyle } from '@/lib/model/themes.ts'
-
-/** trunk + canopy geometry for one stylised tree, at the origin. All primitives
- *  are indexed so they merge cleanly with the rest of their material group. */
-function treeParts(style: TreeStyle, r: number, h: number): {
-  trunk: THREE.BufferGeometry
-  canopy: THREE.BufferGeometry
-} {
-  const trunkH = style === 'palm' ? h * 0.74 : h * 0.44
-  const trunkR = style === 'palm' ? 0.09 : 0.13
-  const trunk = new THREE.CylinderGeometry(trunkR * 0.8, trunkR, trunkH, 5)
-  trunk.translate(0, trunkH / 2, 0)
-
-  let canopy: THREE.BufferGeometry
-  if (style === 'clipped') {
-    const cH = Math.max(h - trunkH, 0.8)
-    canopy = new THREE.BoxGeometry(r * 1.25, cH, r * 1.25)
-    canopy.translate(0, trunkH + cH / 2, 0)
-  } else if (style === 'palm') {
-    canopy = new THREE.SphereGeometry(r, 6, 4)
-    canopy.scale(1.15, 0.42, 1.15)
-    canopy.translate(0, h - r * 0.25, 0)
-  } else {
-    const a = new THREE.SphereGeometry(r, 6, 5)
-    a.translate(0, trunkH + r * 0.75, 0)
-    const b = new THREE.SphereGeometry(r * 0.72, 6, 5)
-    b.translate(r * 0.28, trunkH + r * 1.6, 0)
-    canopy = mergeGeometries([a, b], false) ?? a
-    a.dispose()
-    b.dispose()
-  }
-  return { trunk, canopy }
-}
+import { THEMES, type Character } from '@/lib/model/themes.ts'
 
 export function MassingModel({
   massing,
@@ -54,9 +21,8 @@ export function MassingModel({
   const lift = explode * massing.floorHeight * 1.7
   const cutaway = explode > 0.04
 
-  const { merged, hips } = useMemo(() => {
+  const merged = useMemo(() => {
     const byGroup = new Map<Group, THREE.BufferGeometry[]>()
-    const hipMeshes: { key: string; geo: THREE.BufferGeometry; pos: [number, number, number] }[] = []
 
     for (const b of massing.boxes) {
       const g = GROUP_OF[b.kind]
@@ -92,28 +58,6 @@ export function MassingModel({
         continue
       }
 
-      if (b.shape === 'hip') {
-        // hipRoofGeometry has its eave base at local y = 0, so drop the mesh
-        // from the box centre to the box bottom
-        hipMeshes.push({
-          key: b.id,
-          geo: hipRoofGeometry(w, h, d, b.ridgeAxis ?? 'x'),
-          pos: [b.pos[0], cy - h / 2, b.pos[2]],
-        })
-        continue
-      }
-
-      if (b.shape === 'tree') {
-        const { trunk, canopy } = treeParts(b.treeStyle ?? 'canopy', w / 2, h)
-        trunk.translate(b.pos[0], b.pos[1], b.pos[2])
-        canopy.translate(b.pos[0], b.pos[1], b.pos[2])
-        if (!byGroup.has('trunk')) byGroup.set('trunk', [])
-        if (!byGroup.has('greenery')) byGroup.set('greenery', [])
-        byGroup.get('trunk')!.push(trunk)
-        byGroup.get('greenery')!.push(canopy)
-        continue
-      }
-
       const geo = new THREE.BoxGeometry(w, h, d)
       geo.translate(b.pos[0], cy, b.pos[2])
       if (!byGroup.has(g)) byGroup.set(g, [])
@@ -122,33 +66,20 @@ export function MassingModel({
 
     const out: { g: Group; geo: THREE.BufferGeometry }[] = []
     for (const [g, list] of byGroup) {
-      const m = mergeGeometries(list, false)
+      const mg = mergeGeometries(list, false)
       list.forEach((x) => x.dispose())
-      if (m) out.push({ g, geo: m })
+      if (mg) out.push({ g, geo: mg })
     }
-    return { merged: out, hips: hipMeshes }
+    return out
   }, [massing, hidden, lift, cutaway])
 
-  useEffect(
-    () => () => {
-      merged.forEach((x) => x.geo.dispose())
-      hips.forEach((x) => x.geo.dispose())
-    },
-    [merged, hips],
-  )
-
-  const roofMat = mat.roof
+  useEffect(() => () => merged.forEach((x) => x.geo.dispose()), [merged])
 
   return (
     <group>
       {merged.map(({ g, geo }) => (
         <mesh key={g} geometry={geo} castShadow receiveShadow>
           <meshStandardMaterial color={mat[g].color} roughness={mat[g].roughness} metalness={mat[g].metalness ?? 0} />
-        </mesh>
-      ))}
-      {hips.map(({ key, geo, pos }) => (
-        <mesh key={key} geometry={geo} position={pos} castShadow receiveShadow>
-          <meshStandardMaterial color={roofMat.color} roughness={roofMat.roughness} side={THREE.DoubleSide} />
         </mesh>
       ))}
     </group>

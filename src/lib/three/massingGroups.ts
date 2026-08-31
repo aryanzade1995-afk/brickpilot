@@ -8,7 +8,7 @@ export const GROUP_OF: Record<MassKind, Group> = {
   wall: 'shell',
   parapet: 'shell',
   column: 'shell',
-  railing: 'shell',
+  railing: 'feature',
   partition: 'partition',
   glass: 'glazing',
   slab: 'slabs',
@@ -16,16 +16,17 @@ export const GROUP_OF: Record<MassKind, Group> = {
   roof: 'roof',
   canopy: 'roof',
   stair: 'stair',
+  clad: 'clad',
+  feature: 'feature',
   lawn: 'garden',
   paving: 'paving',
   planter: 'greenery',
   hedge: 'greenery',
   fence: 'shell',
-  trunk: 'trunk',
 }
 
 /** primitives that stay fully visible in the cutaway / exploded view */
-export const SITE_KINDS = new Set<MassKind>(['lawn', 'paving', 'planter', 'hedge', 'fence', 'trunk'])
+export const SITE_KINDS = new Set<MassKind>(['lawn', 'paving', 'planter', 'hedge', 'fence'])
 
 /** metres a wall / partition is cut down to in the cutaway (exploded) view */
 export const CUTAWAY_WALL = 1.15

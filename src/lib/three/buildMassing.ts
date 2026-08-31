@@ -28,12 +28,13 @@ export type MassKind =
   | 'column'
   | 'canopy'
   | 'railing'
+  | 'clad'
+  | 'feature'
   | 'lawn'
   | 'paving'
   | 'planter'
   | 'hedge'
   | 'fence'
-  | 'trunk'
 
 export type MassBox = {
   id: string
@@ -43,10 +44,6 @@ export type MassBox = {
   /** full extents, metres */
   size: [number, number, number]
   level: number
-  /** non-box primitive: 'hip' roof solid, or 'tree' marker (size = canopy w/h/d) */
-  shape?: 'hip' | 'tree'
-  ridgeAxis?: 'x' | 'z'
-  treeStyle?: 'clipped' | 'canopy' | 'palm'
 }
 
 export type Massing = {
@@ -99,19 +96,7 @@ function seededRng(seed: string): () => number {
 }
 
 type Vec3 = [number, number, number]
-type PushExtra = {
-  shape?: 'hip' | 'tree'
-  ridgeAxis?: 'x' | 'z'
-  treeStyle?: 'clipped' | 'canopy' | 'palm'
-}
-type Push = (
-  id: string,
-  kind: MassKind,
-  level: number,
-  pos: Vec3,
-  size: Vec3,
-  extra?: PushExtra,
-) => void
+type Push = (id: string, kind: MassKind, level: number, pos: Vec3, size: Vec3) => void
 type XF = (mm: number) => number
 type Side = 'N' | 'S' | 'E' | 'W'
 type FaceOp = { at: number; width: number; sill: number; head: number }
@@ -131,9 +116,9 @@ export function buildMassing(design: Design): Massing {
   const m: XF = (mm) => mm / 1000
 
   const boxes: MassBox[] = []
-  const push: Push = (id, kind, level, pos, size, extra) => {
+  const push: Push = (id, kind, level, pos, size) => {
     if (size[0] > 0.02 && size[1] > 0.02 && size[2] > 0.02)
-      boxes.push({ id, kind, pos, size, level, ...extra })
+      boxes.push({ id, kind, pos, size, level })
   }
 
   const floors = [...design.floors].sort((a, b) => a.level - b.level)
@@ -209,6 +194,11 @@ export function buildMassing(design: Design): Massing {
       segmentPartition(w, interiorOps, baseY, H, L, `p${L}-${i}`, push, wx, wz, m)
     }
 
+    // ---- timber cladding strip on the entry (plan-south) facade ----
+    if (T.accents.cladFacade) {
+      buildCladding(o, face.S, baseY, wallTop, L, T.accents.cladWidthMm, push, wx, wz, m)
+    }
+
     // ---- roof on top, deliberate terrace where a lower floor steps out ----
     if (L === topLevel) {
       buildRoof(o, wallTop, L, T, push, wx, wz, m)
@@ -221,7 +211,17 @@ export function buildMassing(design: Design): Massing {
     const covers = floor.rooms.filter((r) => r.outdoor && !r.id.startsWith('balcony'))
     for (const r of floor.rooms) {
       if (r.outdoor && r.id.startsWith('balcony'))
-        buildBalcony(r.rect, baseY, L, T.massing.balconyDepthMm / 1000, push, wx, wz, m)
+        buildBalcony(
+          r.rect,
+          baseY,
+          L,
+          T.massing.balconyDepthMm / 1000,
+          T.accents.railStyle,
+          push,
+          wx,
+          wz,
+          m,
+        )
     }
     // one combined canopy over all covered outdoor bays
     if (covers.length > 0) {
@@ -247,19 +247,10 @@ export function buildMassing(design: Design): Massing {
       )
     }
 
-    // ---- entry porch — only if a verandah/carport isn't already sheltering the door ----
+    // ---- flat-roof entry porch over the door ----
     if (L === 0) {
       const entry = floor.openings.find((op) => op.kind === 'entry')
-      const sheltered =
-        entry &&
-        covers.some(
-          (c) =>
-            entry.at.x > c.rect.x - 600 &&
-            entry.at.x < c.rect.x + c.rect.w + 600 &&
-            entry.at.y > c.rect.y - 900 &&
-            entry.at.y < c.rect.y + c.rect.h + 900,
-        )
-      if (entry && !sheltered) buildPorch(entry, o, y0, H, push, wx, wz, m)
+      if (entry) buildPorch(entry, o, y0, H, push, wx, wz, m)
     }
 
     // ---- stair — only the flights that actually go up to a floor above ----
@@ -273,6 +264,23 @@ export function buildMassing(design: Design): Massing {
     if (T.landscape.terraceGarden && L < topLevel) {
       const up = floors.find((f) => f.level === L + 1)
       if (up) buildTerraceGarden(o, up.outline, wallTop, L, push, wx, wz, m)
+    }
+  }
+
+  // ---- dark full-height feature pier beside the entry door ----
+  if (T.accents.featureColumn) {
+    const entry = floors[0].openings.find((op) => op.kind === 'entry')
+    if (entry) {
+      const total = floors.length * H
+      const w = 520
+      const off = (entry.width / 2 + w / 2 + 250) * (entry.at.x < g.x + g.w / 2 ? -1 : 1)
+      push(
+        'feat-pier',
+        'feature',
+        0,
+        [wx(entry.at.x + off), y0 + total / 2, wz(g.y + g.h) + EXT_T / 2 + 0.05],
+        [m(w), total, m(w) * 0.9],
+      )
     }
   }
 
@@ -434,30 +442,31 @@ function buildRoof(o: Rect, wallTop: number, L: number, T: ThemeDef, push: Push,
   const rw = wallW + 2 * eave
   const rd = wallD + 2 * eave
 
-  // ---- Kerala: a hipped clay-tile solid rising from the eave line ----
-  if (T.roof.style === 'hipped-tile') {
-    const rise = Math.max(
-      0.5,
-      Math.min(
-        Math.tan((T.roof.pitchDeg * Math.PI) / 180) * (Math.min(rw, rd) / 2),
-        T.roof.ridgeCapMm / 1000,
-      ),
-    )
-    // a thin fascia ring at the eave so the overhang has an underside
-    push(`eave-${L}`, 'roof', L, [cxw, wallTop - 0.06, czw], [rw, 0.12, rd])
-    push(
-      `hip-${L}`,
-      'roof',
-      L,
-      [cxw, wallTop + rise / 2, czw],
-      [rw, rise, rd],
-      { shape: 'hip', ridgeAxis: o.w >= o.h ? 'x' : 'z' },
-    )
+  // thin roof deck flush with top-of-wall (+ any eave oversail)
+  push(`roof-${L}`, 'roof', L, [cxw, wallTop - roofT / 2, czw], [rw, roofT, rd])
+
+  // ---- flat-band: the signature bold white fascia beam wrapping the slab ----
+  if (T.roof.style === 'flat-band') {
+    const band = T.roof.bandMm / 1000
+    const t = 0.14 // fascia beam thickness (how proud it sits)
+    // the band centres on the slab edge, projecting past the wall face
+    const by = wallTop - roofT / 2 // vertical centre — straddles the deck
+    const nz = wz(o.y) - EXT_T / 2 - eave + t / 2
+    const sz = wz(o.y + o.h) + EXT_T / 2 + eave - t / 2
+    const wxc = wx(o.x) - EXT_T / 2 - eave + t / 2
+    const exc = wx(o.x + o.w) + EXT_T / 2 + eave - t / 2
+    push(`band-${L}-n`, 'roof', L, [cxw, by, nz], [rw, band, t])
+    push(`band-${L}-s`, 'roof', L, [cxw, by, sz], [rw, band, t])
+    push(`band-${L}-w`, 'roof', L, [wxc, by, czw], [t, band, rd])
+    push(`band-${L}-e`, 'roof', L, [exc, by, czw], [t, band, rd])
+    // a slim upstand lip on the outer top edge
+    const ly = by + band / 2 + 0.05
+    push(`lip-${L}-n`, 'roof', L, [cxw, ly, nz], [rw + 0.04, 0.1, t + 0.04])
+    push(`lip-${L}-s`, 'roof', L, [cxw, ly, sz], [rw + 0.04, 0.1, t + 0.04])
+    push(`lip-${L}-w`, 'roof', L, [wxc, ly, czw], [t + 0.04, 0.1, rd + 0.04])
+    push(`lip-${L}-e`, 'roof', L, [exc, ly, czw], [t + 0.04, 0.1, rd + 0.04])
     return
   }
-
-  // ---- flat deck, flush (parapet) or oversailing (eave) ----
-  push(`roof-${L}`, 'roof', L, [cxw, wallTop - roofT / 2, czw], [rw, roofT, rd])
 
   if (T.roof.style === 'flat-eave') {
     const fh = 0.16
@@ -476,6 +485,46 @@ function buildRoof(o: Rect, wallTop: number, L: number, T: ThemeDef, push: Push,
   push(`par-${L}-s`, 'parapet', L, [cxw, pcy, wz(o.y + o.h) + EXT_T / 2 - PARAPET_T / 2], [wallW, parH, PARAPET_T])
   push(`par-${L}-w`, 'parapet', L, [wx(o.x) - EXT_T / 2 + PARAPET_T / 2, pcy, czw], [PARAPET_T, parH, vLen])
   push(`par-${L}-e`, 'parapet', L, [wx(o.x + o.w) + EXT_T / 2 - PARAPET_T / 2, pcy, czw], [PARAPET_T, parH, vLen])
+}
+
+/** a vertical timber-batten cladding panel on the entry (plan-south) facade,
+ *  framed in a slim white L, positioned clear of the door and windows */
+function buildCladding(
+  o: Rect,
+  southOps: FaceOp[],
+  baseY: number,
+  wallTop: number,
+  L: number,
+  widthMm: number,
+  push: Push,
+  wx: XF,
+  wz: XF,
+  m: XF,
+) {
+  const a0 = o.x + HT_MM
+  const a1 = o.x + o.w - HT_MM
+  if (a1 - a0 < widthMm + 800) return
+  // widest clear stretch on the south face, away from any opening
+  const blocked = southOps
+    .map((op) => ({ s: op.at - op.width / 2 - 400, e: op.at + op.width / 2 + 400 }))
+    .sort((p, q) => p.s - q.s)
+  let best = { s: a0, e: a0, len: 0 }
+  let cur = a0
+  for (const b of [...blocked, { s: a1, e: a1 }]) {
+    if (b.s - cur > best.len) best = { s: cur, e: b.s, len: b.s - cur }
+    cur = Math.max(cur, b.e)
+  }
+  if (best.len < widthMm) return
+  const cw = Math.min(widthMm, best.len - 200)
+  const cx = best.s + (best.len - cw) / 2 + cw / 2
+  const z = wz(o.y + o.h) + EXT_T / 2 + 0.02
+  const h = wallTop - baseY - 0.12
+  push(`clad-${L}`, 'clad', L, [wx(cx), baseY + 0.06 + h / 2, z], [m(cw), h, 0.05])
+  // slim white frame: top rail + two jambs
+  const ft = 0.12
+  push(`cladf-${L}-t`, 'roof', L, [wx(cx), baseY + 0.06 + h + ft / 2, z + 0.01], [m(cw) + 2 * ft, ft, 0.09])
+  push(`cladf-${L}-l`, 'roof', L, [wx(cx - cw / 2) - ft / 2, baseY + 0.06 + h / 2, z + 0.01], [ft, h, 0.09])
+  push(`cladf-${L}-r`, 'roof', L, [wx(cx + cw / 2) + ft / 2, baseY + 0.06 + h / 2, z + 0.01], [ft, h, 0.09])
 }
 
 function buildTerrace(
@@ -589,6 +638,7 @@ function buildBalcony(
   baseY: number,
   L: number,
   depthM: number,
+  rail: 'bar' | 'baluster',
   push: Push,
   wx: XF,
   wz: XF,
@@ -605,11 +655,7 @@ function buildBalcony(
   // projecting slab, top a step above the finished floor so it clearly reads
   push(`balc-${L}`, 'slab', L, [cxw, baseY - 0.11, wz((bN + bS) / 2)], [m(bE - bW), 0.26, m(bS - bN)])
 
-  // barrier: a bottom rail + top handrail carried on evenly spaced posts,
-  // on the three outer edges (south + the two returns)
-  const rh = 0.95 // handrail height above the balcony floor
-  const post = 0.05
-  const railT = 0.06
+  const rh = 0.98 // handrail height above the balcony floor
   const y = baseY
   const edges: { from: Vec3; to: Vec3 }[] = [
     { from: [wx(bW), y, wz(bS)], to: [wx(bE), y, wz(bS)] }, // south
@@ -622,33 +668,50 @@ function buildBalcony(
     if (len < 0.4) return
     const mx = (e.from[0] + e.to[0]) / 2
     const mz = (e.from[2] + e.to[2]) / 2
+    const post = 0.05
+    const railT = rail === 'bar' ? 0.035 : 0.06
     const railSize: Vec3 = horiz ? [len + post, railT, railT] : [railT, railT, len + post]
-    push(`balr-${L}-${ei}-top`, 'railing', L, [mx, y + rh, mz], railSize)
-    push(`balr-${L}-${ei}-bot`, 'railing', L, [mx, y + 0.12, mz], railSize)
-    const n = Math.max(2, Math.round(len / 0.28))
-    for (let i = 0; i <= n; i++) {
-      const t = i / n
-      const px = e.from[0] + (e.to[0] - e.from[0]) * t
-      const pz = e.from[2] + (e.to[2] - e.from[2]) * t
-      push(`balp-${L}-${ei}-${i}`, 'railing', L, [px, y + rh / 2, pz], [post, rh, post])
+
+    if (rail === 'bar') {
+      // slim black steel: a top handrail + three thin horizontals, end posts only
+      for (const f of [1, 0.7, 0.42, 0.14]) {
+        push(`balr-${L}-${ei}-${f}`, 'railing', L, [mx, y + rh * f, mz], railSize)
+      }
+      for (const t of [0, 1]) {
+        const px = e.from[0] + (e.to[0] - e.from[0]) * t
+        const pz = e.from[2] + (e.to[2] - e.from[2]) * t
+        push(`balp-${L}-${ei}-${t}`, 'railing', L, [px, y + rh / 2, pz], [post, rh, post])
+      }
+    } else {
+      push(`balr-${L}-${ei}-top`, 'railing', L, [mx, y + rh, mz], railSize)
+      push(`balr-${L}-${ei}-bot`, 'railing', L, [mx, y + 0.12, mz], railSize)
+      const n = Math.max(2, Math.round(len / 0.28))
+      for (let i = 0; i <= n; i++) {
+        const t = i / n
+        const px = e.from[0] + (e.to[0] - e.from[0]) * t
+        const pz = e.from[2] + (e.to[2] - e.from[2]) * t
+        push(`balp-${L}-${ei}-${i}`, 'railing', L, [px, y + rh / 2, pz], [post, rh, post])
+      }
     }
   })
 }
 
+/** flat-roof entry porch on a slim pier — the reference car-porch look */
 function buildPorch(entry: Opening, o: Rect, y0: number, H: number, push: Push, wx: XF, wz: XF, m: XF) {
-  const wmv = m(entry.width) + 0.6
-  const porchY = y0 + Math.min(BAND.entry.head + 0.3, H - 0.15)
-  if (entry.orient === 'h') {
-    const onNorth = Math.abs(entry.at.y - o.y) < Math.abs(entry.at.y - (o.y + o.h))
-    const sgn = onNorth ? -1 : 1
-    push('estep', 'plinth', 0, [wx(entry.at.x), y0 - 0.05, wz(entry.at.y + sgn * 650)], [wmv, 0.16, 1.1])
-    push('eporch', 'canopy', 0, [wx(entry.at.x), porchY - 0.09, wz(entry.at.y + sgn * 720)], [wmv + 0.4, 0.18, 1.75])
-  } else {
-    const onWest = Math.abs(entry.at.x - o.x) < Math.abs(entry.at.x - (o.x + o.w))
-    const sgn = onWest ? -1 : 1
-    push('estep', 'plinth', 0, [wx(entry.at.x + sgn * 650), y0 - 0.05, wz(entry.at.y)], [1.1, 0.16, wmv])
-    push('eporch', 'canopy', 0, [wx(entry.at.x + sgn * 720), porchY - 0.09, wz(entry.at.y)], [1.75, 0.18, wmv + 0.4])
-  }
+  if (entry.orient !== 'h') return // only the plan-south entry gets the porch
+  const w = m(entry.width) + 1.6
+  const proj = 2.4 // how far the porch reaches out from the facade
+  const topY = y0 + Math.min(BAND.entry.head + 0.55, H - 0.1)
+  const zFace = entry.at.y + o.h - o.h // = entry.at.y
+  const zMid = zFace + proj * 0.55
+
+  push('estep', 'plinth', 0, [wx(entry.at.x), y0 - 0.04, wz(zFace + 700)], [w * 0.8, 0.14, 1.5])
+  // flat porch slab + a white fascia lip
+  push('eporch', 'canopy', 0, [wx(entry.at.x), topY - 0.11, wz(zMid)], [w, 0.22, proj])
+  push('eporch-lip', 'roof', 0, [wx(entry.at.x), topY - 0.02, wz(zFace + proj + 0.06)], [w + 0.1, 0.16, 0.12])
+  // one slim pier at the outer front corner away from the feature column
+  const px = entry.at.x + (entry.width / 2 + 400) * (entry.at.x < o.x + o.w / 2 ? 1 : -1)
+  push('eporch-col', 'column', 0, [wx(px), y0 + (topY - 0.22 - y0) / 2, wz(zFace + proj - 0.25)], [0.24, topY - 0.22 - y0, 0.24])
 }
 
 /* --------------------------------- site / garden -------------------------------- */
@@ -742,39 +805,22 @@ function buildLandscape(
     }
   }
 
-  // ---- trees along the front + rear setback strips and the side gaps ----
-  const rearZ = Math.max((gy0 + 350) / 2, 500)
-  const frontZ = (gy1 + plotD - 300 + gy1) / 2 // mid of the front setback
-  const sideW = gx0 - 350 > 1400
-  const treeSlots: { x: number; z: number }[] = []
-  const nFront = Math.ceil(T.landscape.treeCount / 2)
-  const nRear = T.landscape.treeCount - nFront
-  for (let i = 0; i < nRear && gy0 > 900; i++) {
-    const t = (i + 0.7) / (nRear + 0.4)
-    treeSlots.push({ x: 500 + t * (plotW - 1000), z: rearZ })
+  // ---- a few low shrub clumps near the entry walk and front corners ----
+  const walkX = entry ? entry.at.x : driveX
+  const shrubZ = clamp(gy1 + 900, gy1 + 600, plotD - 500)
+  const spots = [
+    { x: walkX - 1400, z: shrubZ },
+    { x: walkX + 1400, z: shrubZ },
+    { x: 700, z: plotD - 700 },
+    { x: plotW - 700, z: plotD - 700 },
+    { x: gx0 - 500, z: (gy0 + gy1) / 2 },
+  ]
+  for (let i = 0; i < Math.min(T.landscape.shrubs, spots.length); i++) {
+    const s = spots[i]
+    const r = m(550 + rnd() * 350)
+    const h = m(450 + rnd() * 350)
+    push(`shrub-${i}`, 'hedge', 0, [wx(s.x), h / 2, wz(s.z)], [r, h, r])
   }
-  for (let i = 0; i < nFront && plotD - gy1 > 1400; i++) {
-    const t = (i + 0.6) / (nFront + 0.2)
-    let x = 500 + t * (plotW - 1000)
-    if (Math.abs(x - driveX) < 2600) x = x < driveX ? driveX - 2800 : driveX + 2800
-    treeSlots.push({ x: clamp(x, 500, plotW - 500), z: clamp(frontZ, gy1 + 700, plotD - 500) })
-  }
-  if (sideW && treeSlots.length < T.landscape.treeCount) {
-    treeSlots.push({ x: (350 + gx0) / 2, z: (gy0 + gy1) / 2 })
-  }
-
-  treeSlots.slice(0, T.landscape.treeCount).forEach((s, i) => {
-    const rM = 1.05 + rnd() * 0.6
-    const hM = (T.landscape.treeStyle === 'palm' ? 4.6 : 3.4) + rnd() * 2.2
-    push(
-      `tree-${i}`,
-      'trunk',
-      0,
-      [wx(s.x + (rnd() - 0.5) * 500), 0, wz(s.z + (rnd() - 0.5) * 500)],
-      [rM, hM, rM],
-      { shape: 'tree', treeStyle: T.landscape.treeStyle },
-    )
-  })
 }
 
 /** planter boxes along the exposed edge of a stepped-back flat roof terrace */
