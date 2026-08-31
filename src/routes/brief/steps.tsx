@@ -222,6 +222,14 @@ export function RoomsStep() {
           <Toggle checked={p.courtyard} onChange={(v) => edit((b) => void (b.rooms.priorities.courtyard = v))} label="Central courtyard" />
         </div>
       </div>
+
+      <div>
+        <span className="label">Site</span>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          <Toggle checked={p.garden} onChange={(v) => edit((b) => void (b.rooms.priorities.garden = v))} label="Garden &amp; landscaping" hint="Lawn, trees, hedges, driveway" />
+          <Toggle checked={p.compoundWall} onChange={(v) => edit((b) => void (b.rooms.priorities.compoundWall = v))} label="Compound wall" hint="Boundary wall with a gate" />
+        </div>
+      </div>
     </div>
   )
 }
