@@ -19,8 +19,15 @@ export async function rasterizeSvg(svg: SVGSVGElement, w = 1200, h = 800): Promi
   const img = new Image()
   img.decoding = 'sync'
   await new Promise<void>((resolve, reject) => {
-    img.onload = () => resolve()
-    img.onerror = () => reject(new Error('svg rasterization failed'))
+    const to = setTimeout(() => reject(new Error('svg rasterization timed out')), 8000)
+    img.onload = () => {
+      clearTimeout(to)
+      resolve()
+    }
+    img.onerror = () => {
+      clearTimeout(to)
+      reject(new Error('svg rasterization failed'))
+    }
     img.src = src
   })
 

@@ -1,94 +1,112 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo } from 'react'
 import { Canvas, useThree } from '@react-three/fiber'
+import { OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
+import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { buildMassing } from '@/lib/three/buildMassing.ts'
 import { MassingModel, SceneEnv } from '@/lib/three/MassingScene.tsx'
 import type { Group } from '@/lib/three/massingGroups.ts'
 import type { Character } from '@/lib/model/themes.ts'
-import { useRender, type RefKey } from '@/state/render.ts'
+import type { RefKey } from '@/state/render.ts'
 import type { Design } from '@/lib/engine/types.ts'
 
 const NO_HIDE: Set<Group> = new Set()
 
+export type CaptureView = Exclude<RefKey, 'interior'> | 'orbit'
+
+/** the parent finds this canvas with `document.querySelector(MASSING_CANVAS)` */
+export const MASSING_CANVAS = '[data-massing-capture] canvas'
+
 /**
- * A hidden, fixed 1200×800 canvas that captures three locked camera views of
- * the verified massing as the FRONT / COLLAGE / TOP references. No orbit
- * controls, no postprocessing — a clean deterministic read for the image model.
- * Mount only while `phase === 'capturing'`.
+ * The verified massing, shown on the render screen. A `view` prop drives the
+ * camera (same pattern as the massing page's CameraRig, which works reliably);
+ * the parent reads the canvas element back after each locked pose settles.
  */
-export function CaptureCanvas({ design, character }: { design: Design; character: Character }) {
-  const massing = buildMassing(design)
+export function MassingViewport({
+  design,
+  character,
+  view,
+}: {
+  design: Design
+  character: Character
+  view: CaptureView
+}) {
+  const massing = useMemo(() => buildMassing(design), [design])
+  // frame the building, not the plot
+  const span = Math.max(massing.footprint.w, massing.footprint.d, massing.stats.heightM)
 
   return (
     <div
-      aria-hidden
-      style={{ position: 'fixed', left: -10000, top: 0, width: 1200, height: 800, pointerEvents: 'none' }}
+      data-massing-capture
+      className="relative aspect-[3/2] w-full overflow-hidden border border-line-strong bg-bg-inset"
     >
       <Canvas
-        dpr={1}
-        frameloop="demand"
-        shadows
+        dpr={[1, 2]}
+        shadows="soft"
         gl={{ preserveDrawingBuffer: true, antialias: true }}
-        camera={{ fov: 36, near: 0.1, far: 4000 }}
+        camera={{ fov: 36, near: 0.1, far: span * 60, position: [span * 1.3, span * 1.0, span * 1.4] }}
         onCreated={({ gl }) => {
           gl.toneMapping = THREE.ACESFilmicToneMapping
           gl.toneMappingExposure = 1.12
         }}
       >
-        <SceneEnv massing={massing} contact={false} />
+        <SceneEnv massing={massing} />
         <MassingModel massing={massing} explode={0} hidden={NO_HIDE} character={character} />
-        <CaptureRig center={massing.center} span={Math.max(massing.bounds.w, massing.bounds.d)} />
+        <ViewRig center={massing.center} span={span} view={view} />
       </Canvas>
+      <div className="pointer-events-none absolute bottom-2 left-3 font-mono text-[0.6rem] uppercase tracking-[0.1em] text-ink-faint">
+        verified massing · reference source
+      </div>
     </div>
   )
 }
 
-const raf = () => new Promise<void>((r) => requestAnimationFrame(() => r()))
-
-function CaptureRig({ center, span }: { center: [number, number, number]; span: number }) {
-  const store = useThree((s) => s)
-  const setRef = useRender((s) => s.setRef)
-  const captureFailed = useRender((s) => s.captureFailed)
-  const started = useRef(false)
+function ViewRig({
+  center,
+  span,
+  view,
+}: {
+  center: [number, number, number]
+  span: number
+  view: CaptureView
+}) {
+  const camera = useThree((s) => s.camera)
+  const controls = useThree((s) => s.controls) as OrbitControlsImpl | null
+  const [tx, ty, tz] = center
 
   useEffect(() => {
-    if (started.current) return
-    started.current = true
-    const [tx, ty, tz] = center
-    const target = new THREE.Vector3(tx, ty, tz)
-    const d = span * 1.4
-    const poses: [Exclude<RefKey, 'interior'>, [number, number, number]][] = [
-      ['front', [tx, ty + d * 0.06, tz + d]],
-      ['collage', [tx + d * 0.82, ty + d * 0.58, tz + d * 0.82]],
-      ['top', [tx + 0.001, ty + d * 2.1, tz + 0.001]],
-    ]
-
-    const shoot = (pose: [number, number, number]): string => {
-      const { camera, gl, scene } = store
-      const cam = camera as THREE.PerspectiveCamera
-      cam.position.set(pose[0], pose[1], pose[2])
-      cam.up.set(0, 1, 0)
-      cam.lookAt(target)
-      cam.aspect = 1200 / 800
-      cam.updateProjectionMatrix()
-      gl.render(scene, cam)
-      return gl.domElement.toDataURL('image/png')
+    if (view === 'orbit') {
+      if (controls) controls.enabled = true
+      return
     }
+    const d = span * 1.35
+    // aim a little above the storey mid-point so the roof stays in frame
+    const aimY = ty + span * 0.18
+    const spots: Record<Exclude<CaptureView, 'orbit'>, [number, number, number]> = {
+      front: [tx, aimY + d * 0.05, tz + d],
+      collage: [tx + d * 0.72, aimY + d * 0.5, tz + d * 0.72],
+      top: [tx + 0.001, ty + d * 2.4, tz + 0.001],
+    }
+    const [x, y, z] = spots[view]
+    camera.position.set(x, y, z)
+    camera.up.set(0, 1, 0)
+    camera.lookAt(tx, aimY, tz)
+    camera.updateProjectionMatrix()
+    if (controls) {
+      controls.enabled = false
+      controls.target.set(tx, aimY, tz)
+      controls.update()
+    }
+  }, [view, camera, controls, span, tx, ty, tz])
 
-    ;(async () => {
-      try {
-        // let the scene (shadow maps, materials) settle once before the first shot
-        await raf()
-        await raf()
-        for (const [key, pose] of poses) {
-          setRef(key, shoot(pose))
-          await raf()
-        }
-      } catch (e) {
-        captureFailed(String((e as Error).message))
-      }
-    })()
-  }, [store, center, span, setRef, captureFailed])
-
-  return null
+  return (
+    <OrbitControls
+      makeDefault
+      enableDamping
+      dampingFactor={0.12}
+      minDistance={span * 0.4}
+      maxDistance={span * 6}
+      maxPolarAngle={Math.PI / 2.05}
+    />
+  )
 }

@@ -45,6 +45,7 @@ export type Massing = {
   boxes: MassBox[]
   floors: { level: number; baseY: number }[]
   bounds: { w: number; d: number }
+  footprint: { w: number; d: number }
   center: [number, number, number]
   floorHeight: number
   stats: { storeys: number; heightM: number; builtAreaSqm: number; openings: number }
@@ -247,6 +248,8 @@ export function buildMassing(design: Design): Massing {
     boxes,
     floors: floors.map((f) => ({ level: f.level, baseY: y0 + f.level * H })),
     bounds: { w: plotW / 1000, d: plotD / 1000 },
+    /** ground-storey building extent (metres) — for framing the camera */
+    footprint: { w: g.w / 1000, d: g.h / 1000 },
     center: [wx(g.x + g.w / 2), y0 + (storeys * H) / 2, wz(g.y + g.h / 2)],
     floorHeight: H,
     stats: {
