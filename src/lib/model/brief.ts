@@ -76,6 +76,8 @@ export const briefSchema = z
             utility: z.boolean().default(true),
             pooja: z.boolean().default(true),
             courtyard: z.boolean().default(false),
+            garden: z.boolean().default(true),
+            compoundWall: z.boolean().default(false),
           })
           .prefault({}),
       })

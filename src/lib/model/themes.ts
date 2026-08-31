@@ -10,7 +10,18 @@ import type { Brief } from './brief.ts'
 export type Character = Brief['style']['character']
 
 export type RoofStyle = 'flat-parapet' | 'flat-eave' | 'hipped-tile'
-export type GroupKey = 'shell' | 'glazing' | 'slabs' | 'roof' | 'stair' | 'partition'
+export type TreeStyle = 'clipped' | 'canopy' | 'palm'
+export type GroupKey =
+  | 'shell'
+  | 'glazing'
+  | 'slabs'
+  | 'roof'
+  | 'stair'
+  | 'partition'
+  | 'garden'
+  | 'paving'
+  | 'greenery'
+  | 'trunk'
 type Mat = { color: string; roughness: number; metalness?: number }
 
 export type ThemeDef = {
@@ -35,10 +46,24 @@ export type ThemeDef = {
     widthMm: number
     /** habitable rooms smaller than this get no massing window */
     minRoomSqm: number
+    /** at most this many windows on one facade of one storey */
+    perFacade: number
     sillMm: number
     headMm: number
   }
   massing: { plinthProjMm: number; balconyDepthMm: number }
+  /** site & garden treatment */
+  landscape: {
+    treeStyle: TreeStyle
+    /** trees placed in the setback zones */
+    treeCount: number
+    /** front / side hedge height, mm (0 = none) */
+    hedgeMm: number
+    /** planter boxes + shrubs on the stepped roof terraces */
+    terraceGarden: boolean
+    /** compound-wall height when the brief asks for one, mm */
+    boundaryMm: number
+  }
   materials: Record<GroupKey, Mat>
   renderPrompt: string
 }
@@ -52,8 +77,9 @@ export const THEMES: Record<Character, ThemeDef> = {
     label: 'Modernist',
     blurb: 'Clear structural rhythm, strong horizontals, disciplined openings.',
     roof: { style: 'flat-parapet', eaveMm: 0, parapetMm: 500, pitchDeg: 0, ridgeCapMm: 0, thickMm: 220 },
-    windows: { mullionMm: 3000, widthMm: 1350, minRoomSqm: 8, sillMm: 850, headMm: 2200 },
+    windows: { mullionMm: 3200, widthMm: 1500, minRoomSqm: 11, perFacade: 2, sillMm: 850, headMm: 2250 },
     massing: { plinthProjMm: 160, balconyDepthMm: 1500 },
+    landscape: { treeStyle: 'clipped', treeCount: 4, hedgeMm: 650, terraceGarden: true, boundaryMm: 1650 },
     materials: {
       shell: { color: '#e8e0cf', roughness: 0.82 },
       glazing: { color: '#181c1f', roughness: 0.32 },
@@ -61,6 +87,10 @@ export const THEMES: Record<Character, ThemeDef> = {
       roof: { color: '#cfc5ac', roughness: 0.9 },
       stair: { color: '#d2c8ae', roughness: 0.9 },
       partition: { color: '#e2d9c5', roughness: 0.92 },
+      garden: { color: '#8f9c73', roughness: 0.96 },
+      paving: { color: '#c7c1b1', roughness: 0.95 },
+      greenery: { color: '#6d7c53', roughness: 0.95 },
+      trunk: { color: '#6b5644', roughness: 0.9 },
     },
     renderPrompt:
       `Photorealistic architectural concept of a modernist Indian villa. Crisp flat roof with a slim parapet, deep horizontal shadow reveals, tall glazing on a disciplined structural grid, off-white board-formed concrete and lime render. Hard mid-morning sun, spare landscaping. ${GROUNDING}`,
@@ -70,8 +100,9 @@ export const THEMES: Record<Character, ThemeDef> = {
     label: 'Warm minimal',
     blurb: 'Quiet planes, timber warmth, restrained detailing.',
     roof: { style: 'flat-eave', eaveMm: 450, parapetMm: 120, pitchDeg: 0, ridgeCapMm: 0, thickMm: 150 },
-    windows: { mullionMm: 3600, widthMm: 1800, minRoomSqm: 10, sillMm: 700, headMm: 2350 },
+    windows: { mullionMm: 3900, widthMm: 2000, minRoomSqm: 12, perFacade: 2, sillMm: 700, headMm: 2400 },
     massing: { plinthProjMm: 110, balconyDepthMm: 1500 },
+    landscape: { treeStyle: 'canopy', treeCount: 3, hedgeMm: 500, terraceGarden: true, boundaryMm: 1500 },
     materials: {
       shell: { color: '#e6dcc4', roughness: 0.9 },
       glazing: { color: '#22201b', roughness: 0.3, metalness: 0.08 },
@@ -79,6 +110,10 @@ export const THEMES: Record<Character, ThemeDef> = {
       roof: { color: '#b7a689', roughness: 0.68 },
       stair: { color: '#cabfa2', roughness: 0.9 },
       partition: { color: '#e3dac6', roughness: 0.92 },
+      garden: { color: '#97a06d', roughness: 0.96 },
+      paving: { color: '#d6cdbb', roughness: 0.95 },
+      greenery: { color: '#78855a', roughness: 0.95 },
+      trunk: { color: '#7a6249', roughness: 0.88 },
     },
     renderPrompt:
       `Photorealistic architectural concept of a warm-minimalist Indian house. Quiet unbroken lime-plaster planes in a soft sand tone, one thin flat roof slab oversailing to cast a crisp eave shadow line, a few large teak-framed windows, timber soffit and screen. Soft late-afternoon light, restrained planting. ${GROUNDING}`,
@@ -88,8 +123,9 @@ export const THEMES: Record<Character, ThemeDef> = {
     label: 'Kerala contemporary',
     blurb: 'Regional roof cues and rain protection with clean planning.',
     roof: { style: 'hipped-tile', eaveMm: 550, parapetMm: 0, pitchDeg: 28, ridgeCapMm: 2600, thickMm: 170 },
-    windows: { mullionMm: 2600, widthMm: 1100, minRoomSqm: 8, sillMm: 650, headMm: 2450 },
+    windows: { mullionMm: 2900, widthMm: 1250, minRoomSqm: 11, perFacade: 2, sillMm: 650, headMm: 2450 },
     massing: { plinthProjMm: 220, balconyDepthMm: 1600 },
+    landscape: { treeStyle: 'palm', treeCount: 5, hedgeMm: 700, terraceGarden: true, boundaryMm: 1550 },
     materials: {
       shell: { color: '#efe7d6', roughness: 0.9 },
       glazing: { color: '#171009', roughness: 0.4 },
@@ -97,6 +133,10 @@ export const THEMES: Record<Character, ThemeDef> = {
       roof: { color: '#8a4a2e', roughness: 0.66 },
       stair: { color: '#d0c4a6', roughness: 0.9 },
       partition: { color: '#e8e0cc', roughness: 0.92 },
+      garden: { color: '#6f9256', roughness: 0.96 },
+      paving: { color: '#c6bca4', roughness: 0.95 },
+      greenery: { color: '#5c7d42', roughness: 0.95 },
+      trunk: { color: '#66513c', roughness: 0.9 },
     },
     renderPrompt:
       `Photorealistic architectural concept of a contemporary Kerala house. Steep hipped clay-tile roofs with wide overhanging eaves and exposed rafter tails, white plaster walls over a laterite base course, tall louvered timber shutters, a wrapped verandah. Humid diffuse light, coconut palms and tropical greenery. ${GROUNDING}`,

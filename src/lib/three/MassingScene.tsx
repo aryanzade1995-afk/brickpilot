@@ -5,7 +5,39 @@ import { ContactShadows } from '@react-three/drei'
 import type { Massing } from './buildMassing.ts'
 import { hipRoofGeometry } from './hipRoof.ts'
 import { GROUP_OF, CUTAWAY_WALL, type Group } from './massingGroups.ts'
-import { THEMES, type Character } from '@/lib/model/themes.ts'
+import { THEMES, type Character, type TreeStyle } from '@/lib/model/themes.ts'
+
+/** trunk + canopy geometry for one stylised tree, at the origin. All primitives
+ *  are indexed so they merge cleanly with the rest of their material group. */
+function treeParts(style: TreeStyle, r: number, h: number): {
+  trunk: THREE.BufferGeometry
+  canopy: THREE.BufferGeometry
+} {
+  const trunkH = style === 'palm' ? h * 0.74 : h * 0.44
+  const trunkR = style === 'palm' ? 0.09 : 0.13
+  const trunk = new THREE.CylinderGeometry(trunkR * 0.8, trunkR, trunkH, 5)
+  trunk.translate(0, trunkH / 2, 0)
+
+  let canopy: THREE.BufferGeometry
+  if (style === 'clipped') {
+    const cH = Math.max(h - trunkH, 0.8)
+    canopy = new THREE.BoxGeometry(r * 1.25, cH, r * 1.25)
+    canopy.translate(0, trunkH + cH / 2, 0)
+  } else if (style === 'palm') {
+    canopy = new THREE.SphereGeometry(r, 6, 4)
+    canopy.scale(1.15, 0.42, 1.15)
+    canopy.translate(0, h - r * 0.25, 0)
+  } else {
+    const a = new THREE.SphereGeometry(r, 6, 5)
+    a.translate(0, trunkH + r * 0.75, 0)
+    const b = new THREE.SphereGeometry(r * 0.72, 6, 5)
+    b.translate(r * 0.28, trunkH + r * 1.6, 0)
+    canopy = mergeGeometries([a, b], false) ?? a
+    a.dispose()
+    b.dispose()
+  }
+  return { trunk, canopy }
+}
 
 export function MassingModel({
   massing,
@@ -40,7 +72,8 @@ export function MassingModel({
           b.kind === 'parapet' ||
           b.kind === 'canopy' ||
           b.kind === 'glass' ||
-          b.kind === 'railing'
+          b.kind === 'railing' ||
+          b.kind === 'planter'
         )
           continue
         if (b.kind === 'stair') {
@@ -67,6 +100,17 @@ export function MassingModel({
           geo: hipRoofGeometry(w, h, d, b.ridgeAxis ?? 'x'),
           pos: [b.pos[0], cy - h / 2, b.pos[2]],
         })
+        continue
+      }
+
+      if (b.shape === 'tree') {
+        const { trunk, canopy } = treeParts(b.treeStyle ?? 'canopy', w / 2, h)
+        trunk.translate(b.pos[0], b.pos[1], b.pos[2])
+        canopy.translate(b.pos[0], b.pos[1], b.pos[2])
+        if (!byGroup.has('trunk')) byGroup.set('trunk', [])
+        if (!byGroup.has('greenery')) byGroup.set('greenery', [])
+        byGroup.get('trunk')!.push(trunk)
+        byGroup.get('greenery')!.push(canopy)
         continue
       }
 
@@ -149,11 +193,11 @@ export function SceneEnv({ massing, contact = true }: { massing: Massing; contac
       </mesh>
       {contact && (
         <ContactShadows
-          position={[massing.center[0], 0.012, massing.center[2]]}
+          position={[massing.center[0], 0.05, massing.center[2]]}
           scale={span * 2.4}
           far={span}
-          opacity={0.5}
-          blur={2.4}
+          opacity={0.42}
+          blur={2.6}
           resolution={1024}
           color="#000000"
         />

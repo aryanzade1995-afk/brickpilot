@@ -529,12 +529,18 @@ function deriveWalls(rooms: PlacedRoom[], outline: Rect): Wall[] {
   return walls
 }
 
-type WindowSpec = { mullionMm: number; widthMm: number; minRoomSqm: number }
+type WindowSpec = {
+  mullionMm: number
+  widthMm: number
+  minRoomSqm: number
+  perFacade: number
+}
 
 /**
- * One window per habitable room, snapped to a shared per-facade mullion grid so
- * windows line up between storeys. Small rooms (baths, utility, pooja) get none —
- * they don't read at massing scale. The rhythm is a design-character choice.
+ * At most one window per habitable room and no more than `perFacade` on any one
+ * facade of a storey — the largest rooms win. Windows snap to a shared per-facade
+ * mullion grid so they line up between storeys. Small rooms (baths, utility,
+ * pooja) get none. The rhythm is a design-character choice.
  */
 function deriveWindows(rooms: PlacedRoom[], outline: Rect, out: Opening[], spec: WindowSpec) {
   const MULLION = spec.mullionMm // window-column spacing (mm)
@@ -559,12 +565,24 @@ function deriveWindows(rooms: PlacedRoom[], outline: Rect, out: Opening[], spec:
     const cols = Math.max(1, Math.round((span - 1400) / MULLION))
     const line = (i: number) => Math.round(e.lo + (span * (i + 0.5)) / cols)
 
-    for (const r of rooms) {
-      if (r.outdoor || !r.wantsWindow || r.area < MIN_ROOM) continue
-      if (!touchesEdge(r, e.orient, e.fixed)) continue
+    // biggest rooms on this facade first, capped
+    const facadeRooms = rooms
+      .filter(
+        (r) =>
+          !r.outdoor &&
+          r.wantsWindow &&
+          r.area >= MIN_ROOM &&
+          touchesEdge(r, e.orient, e.fixed) &&
+          (e.orient === 'h'
+            ? rectRight(r.rect) - r.rect.x
+            : rectBottom(r.rect) - r.rect.y) >= 1600,
+      )
+      .sort((a, b) => b.area - a.area)
+      .slice(0, spec.perFacade)
+
+    for (const r of facadeRooms) {
       const rlo = e.orient === 'h' ? r.rect.x : r.rect.y
       const rhi = e.orient === 'h' ? rectRight(r.rect) : rectBottom(r.rect)
-      if (rhi - rlo < 1600) continue
       const rc = (rlo + rhi) / 2
 
       // nearest mullion column landing inside this room, else the room centre

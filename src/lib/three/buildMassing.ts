@@ -1,5 +1,6 @@
 import type { Design, FloorPlan, Opening } from '../engine/types.ts'
 import type { Rect } from '../geometry.ts'
+import type { CanonicalModel } from '../model/canonical.ts'
 import { themeOf, type ThemeDef } from '../model/themes.ts'
 
 /* ------------------------------------------------------------------ *
@@ -27,6 +28,12 @@ export type MassKind =
   | 'column'
   | 'canopy'
   | 'railing'
+  | 'lawn'
+  | 'paving'
+  | 'planter'
+  | 'hedge'
+  | 'fence'
+  | 'trunk'
 
 export type MassBox = {
   id: string
@@ -36,9 +43,10 @@ export type MassBox = {
   /** full extents, metres */
   size: [number, number, number]
   level: number
-  /** non-box primitive: a hipped roof solid drawn from `size` (w, rise, d) */
-  shape?: 'hip'
+  /** non-box primitive: 'hip' roof solid, or 'tree' marker (size = canopy w/h/d) */
+  shape?: 'hip' | 'tree'
   ridgeAxis?: 'x' | 'z'
+  treeStyle?: 'clipped' | 'canopy' | 'palm'
 }
 
 export type Massing = {
@@ -75,8 +83,27 @@ const BAND: Record<Opening['kind'], { sill: number; head: number }> = {
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
 
+/** deterministic PRNG seeded from the design seed string */
+function seededRng(seed: string): () => number {
+  let h = 2166136261
+  for (let i = 0; i < seed.length; i++) {
+    h ^= seed.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return () => {
+    h = (h + 0x6d2b79f5) | 0
+    let t = Math.imul(h ^ (h >>> 15), 1 | h)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
 type Vec3 = [number, number, number]
-type PushExtra = { shape?: 'hip'; ridgeAxis?: 'x' | 'z' }
+type PushExtra = {
+  shape?: 'hip' | 'tree'
+  ridgeAxis?: 'x' | 'z'
+  treeStyle?: 'clipped' | 'canopy' | 'palm'
+}
 type Push = (
   id: string,
   kind: MassKind,
@@ -241,7 +268,15 @@ export function buildMassing(design: Design): Massing {
         push(`stair-${L}-${s.tag}`, 'stair', L, [wx(s.x), baseY + s.y, wz(s.z)], s.size)
       }
     }
+
+    // ---- terrace garden on the flat roof where a lower floor steps out ----
+    if (T.landscape.terraceGarden && L < topLevel) {
+      const up = floors.find((f) => f.level === L + 1)
+      if (up) buildTerraceGarden(o, up.outline, wallTop, L, push, wx, wz, m)
+    }
   }
+
+  buildLandscape(model, floors[0], T, push, wx, wz, m)
 
   const storeys = floors.length
   return {
@@ -516,7 +551,15 @@ function buildCarport(
   const topY = y0 + CANOPY_TOP
 
   push(`can-${L}-${id}`, 'canopy', L, [cxm, topY - CANOPY_T / 2, czm], [wM + 0.25, CANOPY_T, dM + 0.25])
-  push(`cpad-${L}-${id}`, 'slab', L, [cxm, y0 - 0.05, czm], [wM, 0.1, dM])
+
+  // a paved parking pad, a touch proud of the lawn, with a low kerb and
+  // painted bay lines so it reads as a real parking space
+  push(`cpad-${L}-${id}`, 'paving', L, [cxm, 0.05, czm], [wM + 0.3, 0.1, dM + 0.3])
+  const bays = wM > 5 ? 2 : 1
+  for (let i = 1; i < bays; i++) {
+    const bx = wx(cW) + (wM / bays) * i
+    push(`bay-${L}-${id}-${i}`, 'slab', L, [bx, 0.11, czm], [0.08, 0.02, dM * 0.9])
+  }
 
   const colH = CANOPY_TOP - CANOPY_T
   const ins = COL / 2 + 0.14
@@ -562,12 +605,34 @@ function buildBalcony(
   // projecting slab, top a step above the finished floor so it clearly reads
   push(`balc-${L}`, 'slab', L, [cxw, baseY - 0.11, wz((bN + bS) / 2)], [m(bE - bW), 0.26, m(bS - bN)])
 
-  const rh = 0.88
-  const ry = baseY + rh / 2
-  const midZ = wz((rect.y + bS) / 2)
-  push(`balr-${L}-s`, 'railing', L, [cxw, ry, wz(bS)], [m(bE - bW) + 0.12, rh, 0.12])
-  push(`balr-${L}-w`, 'railing', L, [wx(bW), ry, midZ], [0.12, rh, m(bS - rect.y)])
-  push(`balr-${L}-e`, 'railing', L, [wx(bE), ry, midZ], [0.12, rh, m(bS - rect.y)])
+  // barrier: a bottom rail + top handrail carried on evenly spaced posts,
+  // on the three outer edges (south + the two returns)
+  const rh = 0.95 // handrail height above the balcony floor
+  const post = 0.05
+  const railT = 0.06
+  const y = baseY
+  const edges: { from: Vec3; to: Vec3 }[] = [
+    { from: [wx(bW), y, wz(bS)], to: [wx(bE), y, wz(bS)] }, // south
+    { from: [wx(bW), y, wz(rect.y - 100)], to: [wx(bW), y, wz(bS)] }, // west return
+    { from: [wx(bE), y, wz(rect.y - 100)], to: [wx(bE), y, wz(bS)] }, // east return
+  ]
+  edges.forEach((e, ei) => {
+    const horiz = Math.abs(e.to[0] - e.from[0]) >= Math.abs(e.to[2] - e.from[2])
+    const len = horiz ? Math.abs(e.to[0] - e.from[0]) : Math.abs(e.to[2] - e.from[2])
+    if (len < 0.4) return
+    const mx = (e.from[0] + e.to[0]) / 2
+    const mz = (e.from[2] + e.to[2]) / 2
+    const railSize: Vec3 = horiz ? [len + post, railT, railT] : [railT, railT, len + post]
+    push(`balr-${L}-${ei}-top`, 'railing', L, [mx, y + rh, mz], railSize)
+    push(`balr-${L}-${ei}-bot`, 'railing', L, [mx, y + 0.12, mz], railSize)
+    const n = Math.max(2, Math.round(len / 0.28))
+    for (let i = 0; i <= n; i++) {
+      const t = i / n
+      const px = e.from[0] + (e.to[0] - e.from[0]) * t
+      const pz = e.from[2] + (e.to[2] - e.from[2]) * t
+      push(`balp-${L}-${ei}-${i}`, 'railing', L, [px, y + rh / 2, pz], [post, rh, post])
+    }
+  })
 }
 
 function buildPorch(entry: Opening, o: Rect, y0: number, H: number, push: Push, wx: XF, wz: XF, m: XF) {
@@ -584,6 +649,154 @@ function buildPorch(entry: Opening, o: Rect, y0: number, H: number, push: Push, 
     push('estep', 'plinth', 0, [wx(entry.at.x + sgn * 650), y0 - 0.05, wz(entry.at.y)], [1.1, 0.16, wmv])
     push('eporch', 'canopy', 0, [wx(entry.at.x + sgn * 720), porchY - 0.09, wz(entry.at.y)], [1.75, 0.18, wmv + 0.4])
   }
+}
+
+/* --------------------------------- site / garden -------------------------------- */
+
+function buildLandscape(
+  model: CanonicalModel,
+  ground: FloorPlan,
+  T: ThemeDef,
+  push: Push,
+  wx: XF,
+  wz: XF,
+  m: XF,
+) {
+  const P = model.brief.rooms.priorities
+  if (!P.garden && !P.compoundWall) return
+
+  const rnd = seededRng(model.seed)
+  const plotW = model.plot.width
+  const plotD = model.plot.depth
+  const sb = model.setbacksMm
+  const g = ground.outline
+  const gx0 = g.x
+  const gy0 = g.y
+  const gy1 = g.y + g.h
+  const carport = ground.rooms.find((r) => r.id === 'parking')
+  const entry = ground.openings.find((o) => o.kind === 'entry')
+  const driveX = carport ? carport.rect.x + carport.rect.w / 2 : entry ? entry.at.x : plotW / 2
+
+  // ---- lawn covering the plot, just above grade (hard surfaces sit on top) ----
+  if (P.garden) {
+    push('lawn', 'lawn', 0, [wx(plotW / 2), 0.02, wz(plotD / 2)], [m(plotW - 400), 0.04, m(plotD - 400)])
+
+    // driveway from the approach (plan-south) to the carport / house front
+    const driveW = carport ? Math.min(carport.rect.w, 3400) : 3000
+    const driveN = carport ? carport.rect.y + carport.rect.h : gy1
+    push(
+      'drive',
+      'paving',
+      0,
+      [wx(driveX), 0.03, wz((driveN + plotD) / 2)],
+      [m(driveW), 0.06, m(plotD - driveN + 200)],
+    )
+    if (entry) {
+      const walkFromY = carport ? carport.rect.y : gy1
+      push(
+        'walk',
+        'paving',
+        0,
+        [wx(entry.at.x), 0.035, wz((entry.at.y + walkFromY) / 2)],
+        [1.4, 0.06, m(Math.abs(walkFromY - entry.at.y) + 400)],
+      )
+    }
+  }
+
+  // ---- compound wall with a gate opening on the approach side ----
+  if (P.compoundWall) {
+    const wallH = T.landscape.boundaryMm / 1000
+    const t = 0.16
+    const inset = 150
+    const x0 = inset
+    const x1 = plotW - inset
+    const z0 = inset
+    const z1 = plotD - inset
+    const cy = wallH / 2
+    push('cw-n', 'fence', 0, [wx(plotW / 2), cy, wz(z0)], [m(x1 - x0 + t), wallH, t])
+    push('cw-e', 'fence', 0, [wx(x1), cy, wz(plotD / 2)], [t, wallH, m(z1 - z0)])
+    push('cw-w', 'fence', 0, [wx(x0), cy, wz(plotD / 2)], [t, wallH, m(z1 - z0)])
+    const gateHalf = 1900
+    const gL1 = driveX - gateHalf
+    const gR0 = driveX + gateHalf
+    if (gL1 - x0 > 300) push('cw-sl', 'fence', 0, [wx((x0 + gL1) / 2), cy, wz(z1)], [m(gL1 - x0), wallH, t])
+    if (x1 - gR0 > 300) push('cw-sr', 'fence', 0, [wx((gR0 + x1) / 2), cy, wz(z1)], [m(x1 - gR0), wallH, t])
+    const gpH = wallH + 0.35
+    push('gp-l', 'fence', 0, [wx(gL1), gpH / 2, wz(z1)], [0.28, gpH, 0.28])
+    push('gp-r', 'fence', 0, [wx(gR0), gpH / 2, wz(z1)], [0.28, gpH, 0.28])
+  }
+
+  if (!P.garden) return
+
+  // ---- front hedge along the approach setback, split around the drive ----
+  if (T.landscape.hedgeMm > 0) {
+    const hH = T.landscape.hedgeMm / 1000
+    const hz = plotD - Math.max(sb.S * 0.45, 500)
+    const gap = 2300
+    for (const [a, b] of [
+      [400, driveX - gap],
+      [driveX + gap, plotW - 400],
+    ]) {
+      if (b - a < 700) continue
+      push(`hedge-${Math.round(a)}`, 'hedge', 0, [wx((a + b) / 2), hH / 2, wz(hz)], [m(b - a), hH, 0.55])
+    }
+  }
+
+  // ---- trees along the front + rear setback strips and the side gaps ----
+  const rearZ = Math.max((gy0 + 350) / 2, 500)
+  const frontZ = (gy1 + plotD - 300 + gy1) / 2 // mid of the front setback
+  const sideW = gx0 - 350 > 1400
+  const treeSlots: { x: number; z: number }[] = []
+  const nFront = Math.ceil(T.landscape.treeCount / 2)
+  const nRear = T.landscape.treeCount - nFront
+  for (let i = 0; i < nRear && gy0 > 900; i++) {
+    const t = (i + 0.7) / (nRear + 0.4)
+    treeSlots.push({ x: 500 + t * (plotW - 1000), z: rearZ })
+  }
+  for (let i = 0; i < nFront && plotD - gy1 > 1400; i++) {
+    const t = (i + 0.6) / (nFront + 0.2)
+    let x = 500 + t * (plotW - 1000)
+    if (Math.abs(x - driveX) < 2600) x = x < driveX ? driveX - 2800 : driveX + 2800
+    treeSlots.push({ x: clamp(x, 500, plotW - 500), z: clamp(frontZ, gy1 + 700, plotD - 500) })
+  }
+  if (sideW && treeSlots.length < T.landscape.treeCount) {
+    treeSlots.push({ x: (350 + gx0) / 2, z: (gy0 + gy1) / 2 })
+  }
+
+  treeSlots.slice(0, T.landscape.treeCount).forEach((s, i) => {
+    const rM = 1.05 + rnd() * 0.6
+    const hM = (T.landscape.treeStyle === 'palm' ? 4.6 : 3.4) + rnd() * 2.2
+    push(
+      `tree-${i}`,
+      'trunk',
+      0,
+      [wx(s.x + (rnd() - 0.5) * 500), 0, wz(s.z + (rnd() - 0.5) * 500)],
+      [rM, hM, rM],
+      { shape: 'tree', treeStyle: T.landscape.treeStyle },
+    )
+  })
+}
+
+/** planter boxes along the exposed edge of a stepped-back flat roof terrace */
+function buildTerraceGarden(
+  o: Rect,
+  up: Rect,
+  wallTop: number,
+  L: number,
+  push: Push,
+  wx: XF,
+  wz: XF,
+  m: XF,
+) {
+  const deckTop = wallTop - SLAB_T - 0.01
+  const plH = 0.42
+  const put = (x: number, z: number, w: number, d: number, tag: string) => {
+    if (w < 600 || d < 400) return
+    push(`plnt-${L}-${tag}`, 'planter', L, [wx(x + w / 2), deckTop + plH / 2, wz(z + d / 2)], [m(w), plH, m(d)])
+  }
+  if (o.y + o.h - (up.y + up.h) > 900) put(o.x + 400, o.y + o.h - 750, o.w - 800, 700, 's')
+  if (o.x + o.w - (up.x + up.w) > 900) put(o.x + o.w - 750, up.y + 300, 700, up.h - 600, 'e')
+  if (up.x - o.x > 900) put(o.x + 300, up.y + 300, 700, up.h - 600, 'w')
 }
 
 /* ----------------------------------- stair ----------------------------------- */
