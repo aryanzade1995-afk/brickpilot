@@ -28,6 +28,26 @@ npm run build
 npm run lint
 ```
 
+## Deploy (Render)
+
+One web service serves the built SPA and proxies `/api/render`, so the Gemini
+key never reaches the browser.
+
+- **Blueprint:** commit `render.yaml`, then in Render → *New → Blueprint* pick this
+  repo. It provisions the service with build `npm ci --include=dev && npm run build`
+  and start `npm start`.
+- **Manual:** *New → Web Service* → this repo → runtime **Node**, build
+  `npm ci --include=dev && npm run build`, start `npm start`.
+- Set **`GEMINI_API_KEY`** in the service's *Environment* tab
+  ([aistudio.google.com/apikey](https://aistudio.google.com/apikey), free tier).
+  Without it the render step still works — it echoes the massing reference.
+
+Run the production bundle locally:
+
+```bash
+npm run build && npm start   # http://localhost:8787
+```
+
 ## Roadmap
 
 - [x] Shell + theme + landing

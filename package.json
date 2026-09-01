@@ -8,6 +8,7 @@
     "dev:web": "vite",
     "dev:proxy": "node server/index.mjs",
     "build": "tsc -b && vite build",
+    "start": "node server/index.mjs",
     "lint": "oxlint",
     "preview": "vite preview"
   },

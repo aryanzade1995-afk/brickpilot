@@ -1,0 +1,20 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+# One web service: builds the SPA and runs server/index.mjs, which serves
+# ../dist and proxies /api/render so the Gemini key never reaches the browser.
+services:
+  - type: web
+    name: brickpilot
+    runtime: node
+    plan: free
+    # --include=dev because vite / typescript / tailwind are devDependencies
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/render/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Set this in the Render dashboard (Environment tab) — do not commit a key.
+      # Without it the render step still works, echoing the massing reference.
+      - key: GEMINI_API_KEY
+        sync: false
