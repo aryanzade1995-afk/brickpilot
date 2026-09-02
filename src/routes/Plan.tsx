@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Dices, Download } from 'lucide-react'
 import { useStudio } from '@/state/studio.ts'
 import { FloorDrawing } from '@/lib/draw/FloorDrawing.tsx'
@@ -136,14 +137,13 @@ export function Plan() {
             <Dices size={13} />
             Reroll variation
           </button>
-          <button
-            type="button"
-            disabled
-            className="flex w-full items-center justify-center gap-2 border border-line py-3 font-mono text-xs uppercase tracking-[0.12em] text-ink-faint opacity-50"
+          <Link
+            to="/workspace/report"
+            className="flex w-full items-center justify-center gap-2 border border-line-strong py-3 font-mono text-xs uppercase tracking-[0.12em] text-ink-dim hover:border-ink-dim hover:text-ink"
           >
             <Download size={13} />
-            Export SVG · PDF (soon)
-          </button>
+            Project report · PDF
+          </Link>
         </div>
       </div>
 

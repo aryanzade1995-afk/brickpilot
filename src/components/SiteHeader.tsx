@@ -1,6 +1,9 @@
 import { Link, NavLink } from 'react-router-dom'
 import { ArrowUpRight } from 'lucide-react'
 import { ButtonLink } from './ui/Button.tsx'
+import { AccountMenu } from './AccountMenu.tsx'
+import { SaveDesignButton } from './SaveDesignButton.tsx'
+import { useAuth } from '@/state/auth.ts'
 import { cx } from '@/lib/cx.ts'
 
 const NAV = [
@@ -10,7 +13,36 @@ const NAV = [
   { label: 'How it works', to: '/' },
 ]
 
+function SignInButton({ label }: { label: string }) {
+  const configured = useAuth((s) => s.configured)
+  const status = useAuth((s) => s.status)
+  const openDialog = useAuth((s) => s.openDialog)
+
+  if (!configured) {
+    return (
+      <span
+        title="Accounts are not configured for this deployment"
+        className="font-mono text-[0.7rem] uppercase tracking-[0.14em] text-ink-faint"
+      >
+        {label} · off
+      </span>
+    )
+  }
+  return (
+    <button
+      type="button"
+      onClick={openDialog}
+      disabled={status === 'loading'}
+      className="font-mono text-[0.7rem] font-medium uppercase tracking-[0.14em] text-ink-dim transition-colors hover:text-ink disabled:opacity-40"
+    >
+      {label}
+    </button>
+  )
+}
+
 export function SiteHeader({ variant }: { variant: 'marketing' | 'workspace' }) {
+  const user = useAuth((s) => s.user)
+
   return (
     <header className="relative z-20 border-b border-line">
       <div className="mx-auto flex h-16 max-w-[1400px] items-center gap-8 px-6 md:px-10">
@@ -46,22 +78,30 @@ export function SiteHeader({ variant }: { variant: 'marketing' | 'workspace' }) 
 
         <div className={cx('flex items-center gap-4', variant === 'marketing' && 'ml-auto')}>
           {variant === 'marketing' ? (
+            user ? (
+              <>
+                <AccountMenu />
+                <ButtonLink to="/workspace" size="sm">
+                  Open studio
+                  <ArrowUpRight size={13} strokeWidth={2.5} />
+                </ButtonLink>
+              </>
+            ) : (
+              <>
+                <SignInButton label="Sign in" />
+                <ButtonLink to="/workspace" size="sm">
+                  Get started
+                  <ArrowUpRight size={13} strokeWidth={2.5} />
+                </ButtonLink>
+              </>
+            )
+          ) : user ? (
             <>
-              <Link
-                to="/workspace"
-                className="font-mono text-[0.7rem] font-medium uppercase tracking-[0.14em] text-ink-dim transition-colors hover:text-ink"
-              >
-                Sign in
-              </Link>
-              <ButtonLink to="/workspace" size="sm">
-                Get started
-                <ArrowUpRight size={13} strokeWidth={2.5} />
-              </ButtonLink>
+              <SaveDesignButton />
+              <AccountMenu />
             </>
           ) : (
-            <span className="font-mono text-[0.7rem] uppercase tracking-[0.14em] text-ink-faint">
-              Local draft
-            </span>
+            <SignInButton label="Sign in to save" />
           )}
         </div>
       </div>

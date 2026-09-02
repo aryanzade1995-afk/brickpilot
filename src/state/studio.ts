@@ -30,6 +30,8 @@ type StudioState = {
   result: Result | null
   edit: (recipe: (b: Brief) => void) => void
   reset: () => void
+  /** replace the working brief + pinned direction (loading a saved design) */
+  loadSaved: (brief: Brief, pinned: Strategy | null) => void
   reroll: () => void
   explore: () => DirectionOption[]
   pin: (strategy: Strategy) => Result
@@ -69,6 +71,14 @@ export const useStudio = create<StudioState>()(
           s.brief = defaultBrief()
           s.directions = null
           s.pinned = null
+          s.result = null
+        }),
+
+      loadSaved: (brief, pinned) =>
+        set((s) => {
+          s.brief = brief
+          s.pinned = pinned
+          s.directions = null
           s.result = null
         }),
 

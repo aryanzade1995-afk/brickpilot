@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# local env (root .env is read by Vite; keys live here)
+.env
+.env.*
+!.env.example
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

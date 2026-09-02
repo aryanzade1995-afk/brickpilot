@@ -17,7 +17,8 @@ A free-tools rebuild. See the teardown / architecture notes for the full plan.
 | 3D massing *(later)* | three.js + react-three-fiber |
 | AI renders *(later)* | Gemini 2.5 Flash Image / local ComfyUI |
 | Advisory LLM *(later)* | Gemini free tier + pgvector |
-| Backend *(later)* | Express + Supabase |
+| Accounts + saved designs | Supabase (Auth + Postgres, RLS) |
+| Report export | jsPDF + jspdf-autotable (lazy-loaded) |
 
 ## Develop
 
@@ -47,6 +48,36 @@ Run the production bundle locally:
 ```bash
 npm run build && npm start   # http://localhost:8787
 ```
+
+## Accounts & saved designs (Supabase)
+
+Optional. The app is fully usable signed-out — the Home page is the landing for
+everyone and nothing is gated. Signing in only lets you **save a design to your
+account** (Save in the workspace header) and reload past ones from **My designs**
+(`/designs`). A saved design is just its brief + pinned direction; the
+deterministic engine rebuilds the plan, validation and costs from that.
+
+With the env below unset, the app still builds and runs — the sign-in button just
+shows an "off" state.
+
+1. Create a free project at [supabase.com](https://supabase.com).
+2. Run [`supabase/schema.sql`](supabase/schema.sql) in the Supabase **SQL editor**
+   (it creates the `designs` table, its RLS policy and an `updated_at` trigger).
+3. **Auth → Providers**: keep **Email** enabled. For a friction-free demo you can
+   turn **"Confirm email"** off — the sign-in dialog handles both.
+4. Copy `.env.example` → `.env.local` and fill in **`VITE_SUPABASE_URL`** and
+   **`VITE_SUPABASE_ANON_KEY`** (Supabase → *Settings → API*). For production set
+   the same two in the Render dashboard. The anon key is meant to ship in the
+   browser — RLS is the security boundary.
+
+## Project report (PDF)
+
+Workspace step **06 · Report** shows the whole-project summary and exports it as a
+single PDF (**Download PDF**): cover + brief · per-floor plan drawing + room
+schedule · 3D massing views · all validation findings · the full cost estimate ·
+any generated concepts. **Clear** wipes only the generated concept/interior
+images — the brief, plan, findings and cost stay. jsPDF loads as a lazy chunk, so
+it costs nothing until you export.
 
 ## Local AI interiors (ComfyUI)
 

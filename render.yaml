@@ -14,7 +14,12 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "22"
-      # Set this in the Render dashboard (Environment tab) — do not commit a key.
-      # Without it the render step still works, echoing the massing reference.
+      # Set these in the Render dashboard (Environment tab) — do not commit keys.
+      # Without GEMINI_API_KEY the render step still works, echoing the massing
+      # reference. Without the Supabase pair, accounts / saved designs are off.
       - key: GEMINI_API_KEY
+        sync: false
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY
         sync: false

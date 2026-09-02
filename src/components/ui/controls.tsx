@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { KeyboardEvent, ReactNode } from 'react'
 import { Check } from 'lucide-react'
 import { cx } from '@/lib/cx.ts'
 
@@ -24,16 +24,27 @@ export function TextInput({
   value,
   onChange,
   placeholder,
+  type = 'text',
+  autoComplete,
+  autoFocus,
+  onKeyDown,
 }: {
   value: string
   onChange: (v: string) => void
   placeholder?: string
+  type?: 'text' | 'email' | 'password'
+  autoComplete?: string
+  autoFocus?: boolean
+  onKeyDown?: (e: KeyboardEvent<HTMLInputElement>) => void
 }) {
   return (
     <input
-      type="text"
+      type={type}
       value={value}
       placeholder={placeholder}
+      autoComplete={autoComplete}
+      autoFocus={autoFocus}
+      onKeyDown={onKeyDown}
       onChange={(e) => onChange(e.target.value)}
       className="w-full border border-line-strong bg-bg-inset px-3 py-2.5 text-sm text-ink outline-none transition-colors focus:border-accent"
     />
