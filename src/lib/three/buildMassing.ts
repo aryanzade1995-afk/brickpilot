@@ -30,6 +30,11 @@ export type MassKind =
   | 'railing'
   | 'clad'
   | 'feature'
+  | 'shade'
+  | 'band'
+  | 'screen'
+  | 'mumty'
+  | 'tank'
   | 'lawn'
   | 'paving'
   | 'planter'
@@ -183,10 +188,16 @@ export function buildMassing(design: Design): Massing {
 
     // ---- one segmented solid plane per facade; E/W full depth, N/S tucked between ----
     const gm = T.windows.groupMm
-    addWall('W', oy0, oy1, ox0, baseY, wallTop, face.W, L, gm, `w${L}W`, push, wx, wz, m)
-    addWall('E', oy0, oy1, ox1, baseY, wallTop, face.E, L, gm, `w${L}E`, push, wx, wz, m)
-    addWall('N', ox0 + HT_MM, ox1 - HT_MM, oy0, baseY, wallTop, face.N, L, gm, `w${L}N`, push, wx, wz, m)
-    addWall('S', ox0 + HT_MM, ox1 - HT_MM, oy1, baseY, wallTop, face.S, L, gm, `w${L}S`, push, wx, wz, m)
+    const cj = T.massing.chajjaMm
+    addWall('W', oy0, oy1, ox0, baseY, wallTop, face.W, L, gm, cj, `w${L}W`, push, wx, wz, m)
+    addWall('E', oy0, oy1, ox1, baseY, wallTop, face.E, L, gm, cj, `w${L}E`, push, wx, wz, m)
+    addWall('N', ox0 + HT_MM, ox1 - HT_MM, oy0, baseY, wallTop, face.N, L, gm, cj, `w${L}N`, push, wx, wz, m)
+    addWall('S', ox0 + HT_MM, ox1 - HT_MM, oy1, baseY, wallTop, face.S, L, gm, cj, `w${L}S`, push, wx, wz, m)
+
+    // ---- floor-line string course wrapping the storey (thin projecting band) ----
+    if (T.massing.stringCourseMm > 0 && L >= 1) {
+      stringCourse(o, baseY, L, T.massing.stringCourseMm / 1000, push, wx, wz, m)
+    }
 
     // ---- interior partitions — own group, hidden until exploded ----
     for (let i = 0; i < floor.walls.length; i++) {
@@ -248,10 +259,10 @@ export function buildMassing(design: Design): Massing {
       )
     }
 
-    // ---- flat-roof entry porch over the door ----
+    // ---- flat-roof entry portico over the door ----
     if (L === 0) {
       const entry = floor.openings.find((op) => op.kind === 'entry')
-      if (entry) buildPorch(entry, o, y0, H, push, wx, wz, m)
+      if (entry) buildPorch(entry, y0, H, push, wx, wz, m)
     }
 
     // ---- stair — only the flights that actually go up to a floor above ----
@@ -297,6 +308,18 @@ export function buildMassing(design: Design): Massing {
     }
   }
 
+  // ---- perforated timber jaali over the entrance ----
+  if (T.accents.jaali) {
+    const entry = floors[0].openings.find((op) => op.kind === 'entry')
+    if (entry) jaaliScreen(entry, g, floors, y0, H, push, wx, wz)
+  }
+
+  // ---- roof services: stair mumty + water tank on the top terrace ----
+  if (T.landscape.roofServices) {
+    const tf = floors[floors.length - 1]
+    roofServices(tf, y0 + tf.level * H + H, push, wx, wz, m)
+  }
+
   buildLandscape(model, floors[0], T, push, wx, wz, m)
 
   const storeys = floors.length
@@ -329,6 +352,7 @@ function addWall(
   ops: FaceOp[],
   level: number,
   groupMm: number,
+  chajjaMm: number,
   tag: string,
   push: Push,
   wx: XF,
@@ -416,6 +440,35 @@ function addWall(
           const c = s + ((e - s) * k) / bays
           along(c - Math.round(fr * 500), c + Math.round(fr * 500), sillY, headY, true, `m${k}`)
         }
+
+        // ---- cantilevered chajja (weather-hood) over the window ----
+        if (chajjaMm > 200 && headY + 0.2 < wallTop) {
+          const proj = chajjaMm / 1000
+          const cw = m(e - s) + 0.34
+          const cyc = headY + 0.055
+          const off = outward * (EXT_T / 2 + proj / 2)
+          const cd = proj + 0.16
+          const cpx = horizontal ? wx((s + e) / 2) : wx(fixed) + off
+          const cpz = horizontal ? wz(fixed) + off : wz((s + e) / 2)
+          push(
+            `${tag}-cj${i}`,
+            'shade',
+            level,
+            [cpx, cyc, cpz],
+            horizontal ? [cw, 0.09, cd] : [cd, 0.09, cw],
+          )
+          // a slim down-turned drip lip on the outer edge
+          const lo = outward * (EXT_T / 2 + proj)
+          push(
+            `${tag}-cjl${i}`,
+            'shade',
+            level,
+            horizontal
+              ? [wx((s + e) / 2), cyc + 0.005, wz(fixed) + lo]
+              : [wx(fixed) + lo, cyc + 0.005, wz((s + e) / 2)],
+            horizontal ? [cw + 0.03, 0.11, 0.05] : [0.05, 0.11, cw + 0.03],
+          )
+        }
       }
     }
     cursor = e
@@ -477,6 +530,59 @@ function segmentPartition(
 
 /* --------------------------------- roof / terrace -------------------------------- */
 
+/** a thin projecting horizontal band wrapping a storey at its floor line */
+function stringCourse(o: Rect, baseY: number, L: number, proj: number, push: Push, wx: XF, wz: XF, m: XF) {
+  const cxw = wx(o.x + o.w / 2)
+  const czw = wz(o.y + o.h / 2)
+  const bh = 0.14
+  const by = baseY - 0.03
+  const t = 0.1
+  const rw = m(o.w) + EXT_T + 2 * proj
+  const rd = m(o.h) + EXT_T + 2 * proj
+  const nz = wz(o.y) - EXT_T / 2 - proj + t / 2
+  const sz = wz(o.y + o.h) + EXT_T / 2 + proj - t / 2
+  const wxc = wx(o.x) - EXT_T / 2 - proj + t / 2
+  const exc = wx(o.x + o.w) + EXT_T / 2 + proj - t / 2
+  push(`sc-${L}-n`, 'band', L, [cxw, by, nz], [rw, bh, t])
+  push(`sc-${L}-s`, 'band', L, [cxw, by, sz], [rw, bh, t])
+  push(`sc-${L}-w`, 'band', L, [wxc, by, czw], [t, bh, rd])
+  push(`sc-${L}-e`, 'band', L, [exc, by, czw], [t, bh, rd])
+}
+
+/** slim steel guard rail (top + mid rail + posts) along one plan-mm edge */
+function guardRail(
+  x0: number,
+  z0: number,
+  x1: number,
+  z1: number,
+  yBase: number,
+  level: number,
+  tag: string,
+  push: Push,
+  wx: XF,
+  wz: XF,
+  m: XF,
+) {
+  const dx = x1 - x0
+  const dz = z1 - z0
+  const lenMm = Math.hypot(dx, dz)
+  if (lenMm < 600) return
+  const horiz = Math.abs(dx) >= Math.abs(dz)
+  const lm = m(lenMm)
+  const mx = wx((x0 + x1) / 2)
+  const mz = wz((z0 + z1) / 2)
+  const rt = 0.036
+  const H = 0.95
+  for (const h of [H, H * 0.5]) {
+    push(`${tag}-r${Math.round(h * 100)}`, 'railing', level, [mx, yBase + h, mz], horiz ? [lm, rt, rt] : [rt, rt, lm])
+  }
+  const n = Math.max(1, Math.round(lenMm / 2000))
+  for (let i = 0; i <= n; i++) {
+    const t = i / n
+    push(`${tag}-p${i}`, 'railing', level, [wx(x0 + dx * t), yBase + H / 2, wz(z0 + dz * t)], [0.045, H, 0.045])
+  }
+}
+
 function buildRoof(o: Rect, wallTop: number, L: number, T: ThemeDef, push: Push, wx: XF, wz: XF, m: XF) {
   const cxw = wx(o.x + o.w / 2)
   const czw = wz(o.y + o.h / 2)
@@ -489,6 +595,16 @@ function buildRoof(o: Rect, wallTop: number, L: number, T: ThemeDef, push: Push,
 
   // thin roof deck flush with top-of-wall (+ any eave oversail)
   push(`roof-${L}`, 'roof', L, [cxw, wallTop - roofT / 2, czw], [rw, roofT, rd])
+
+  // ---- perimeter guard rail — the top slab is a usable terrace ----
+  const gx0 = o.x - HT_MM
+  const gx1 = o.x + o.w + HT_MM
+  const gz0 = o.y - HT_MM
+  const gz1 = o.y + o.h + HT_MM
+  guardRail(gx0, gz0, gx1, gz0, wallTop, L, `groof-${L}-n`, push, wx, wz, m)
+  guardRail(gx0, gz1, gx1, gz1, wallTop, L, `groof-${L}-s`, push, wx, wz, m)
+  guardRail(gx0, gz0, gx0, gz1, wallTop, L, `groof-${L}-w`, push, wx, wz, m)
+  guardRail(gx1, gz0, gx1, gz1, wallTop, L, `groof-${L}-e`, push, wx, wz, m)
 
   // ---- flat-band: the signature bold white fascia beam wrapping the slab ----
   if (T.roof.style === 'flat-band') {
@@ -616,6 +732,17 @@ function buildTerrace(
       [wx(o.x + o.w) + EXT_T / 2 - PARAPET_T / 2, kcy, czw],
       [PARAPET_T, KERB_H, rd],
     )
+
+  // ---- a slim steel guard above the kerb on every walkable edge ----
+  const dT = wallTop - SLAB_T - 0.01
+  const ax0 = o.x - HT_MM
+  const ax1 = o.x + o.w + HT_MM
+  const az0 = o.y - HT_MM
+  const az1 = o.y + o.h + HT_MM
+  if (exN) guardRail(ax0, az0, ax1, az0, dT, L, `gt-${L}-n`, push, wx, wz, m)
+  if (exS) guardRail(ax0, az1, ax1, az1, dT, L, `gt-${L}-s`, push, wx, wz, m)
+  if (exW) guardRail(ax0, az0, ax0, az1, dT, L, `gt-${L}-w`, push, wx, wz, m)
+  if (exE) guardRail(ax1, az0, ax1, az1, dT, L, `gt-${L}-e`, push, wx, wz, m)
 }
 
 /* --------------------------------- carport / porch ------------------------------- */
@@ -741,23 +868,109 @@ function buildBalcony(
   })
 }
 
-/** slim flat-roof entry porch on one column — the reference car-porch look */
-function buildPorch(entry: Opening, o: Rect, y0: number, H: number, push: Push, wx: XF, wz: XF, m: XF) {
+/** flat-roof entry portico — two columns, a downstand beam, tiered steps */
+function buildPorch(entry: Opening, y0: number, H: number, push: Push, wx: XF, wz: XF, m: XF) {
   if (entry.orient !== 'h') return // only the plan-south entry gets the porch
-  const w = m(entry.width) + 1.3
-  const proj = 1.9 // how far the porch reaches out from the facade
-  const topY = y0 + Math.min(BAND.entry.head + 0.45, H - 0.15)
+  const cx = entry.at.x
   const zFace = entry.at.y
-  const zMid = zFace + proj * 0.55
+  const w = m(entry.width) + 1.9 // canopy width, metres
+  const projMm = 2450 // how far the portico reaches out from the facade
+  const topY = y0 + Math.min(BAND.entry.head + 0.55, H - 0.12)
 
-  push('estep', 'plinth', 0, [wx(entry.at.x), y0 - 0.04, wz(zFace + 650)], [w * 0.75, 0.13, 1.3])
-  // a thin flat slab + a crisp white lip on the outer edge
-  push('eporch', 'canopy', 0, [wx(entry.at.x), topY - 0.09, wz(zMid)], [w, 0.16, proj])
-  push('eporch-lip', 'roof', 0, [wx(entry.at.x), topY, wz(zFace + proj)], [w + 0.08, 0.13, 0.1])
-  // one slim column at the outer front corner
-  const px = entry.at.x + (entry.width / 2 + 300) * (entry.at.x < o.x + o.w / 2 ? 1 : -1)
-  const colH = topY - 0.16 - y0
-  push('eporch-col', 'column', 0, [wx(px), y0 + colH / 2, wz(zFace + proj - 0.2)], [0.22, colH, 0.22])
+  // two-tier threshold steps
+  push('estep0', 'plinth', 0, [wx(cx), y0 - 0.02, wz(zFace + 520)], [w * 0.6, 0.16, 1.0])
+  push('estep1', 'plinth', 0, [wx(cx), y0 - 0.12, wz(zFace + 940)], [w * 0.72, 0.16, 0.58])
+
+  // thin flat canopy slab + a slim downstand edge beam + crisp outer lip
+  push('eporch', 'canopy', 0, [wx(cx), topY - 0.08, wz(zFace + projMm / 2)], [w, 0.16, m(projMm)])
+  push('eporch-beam', 'canopy', 0, [wx(cx), topY - 0.2, wz(zFace + projMm - 130)], [w, 0.18, 0.16])
+  push('eporch-lip', 'roof', 0, [wx(cx), topY + 0.01, wz(zFace + projMm)], [w + 0.08, 0.12, 0.09])
+
+  // two slim square columns at the outer corners
+  const colH = topY - 0.24 - y0
+  const half = entry.width / 2 + 520
+  for (const s of [-1, 1] as const) {
+    push(
+      `eporch-col${s < 0 ? 'l' : 'r'}`,
+      'column',
+      0,
+      [wx(cx + s * half), y0 + colH / 2, wz(zFace + projMm - 320)],
+      [0.24, colH, 0.24],
+    )
+  }
+}
+
+/** a stair mumty + a water tank on a stand, on the top terrace */
+function roofServices(tf: FloorPlan, deckY: number, push: Push, wx: XF, wz: XF, m: XF) {
+  const o = tf.outline
+
+  // --- stair mumty: a small enclosed box giving terrace access ---
+  const mw = Math.min(2200, o.w - 1100)
+  const md = Math.min(2500, o.h - 1100)
+  if (mw > 1400 && md > 1400) {
+    const st = tf.stair?.rect
+    const mx = st
+      ? clamp(st.x + st.w / 2, o.x + mw / 2 + 300, o.x + o.w - mw / 2 - 300)
+      : o.x + o.w - mw / 2 - 600
+    const mz = st
+      ? clamp(st.y + st.h / 2, o.y + md / 2 + 300, o.y + o.h - md / 2 - 300)
+      : o.y + md / 2 + 600
+    const mh = 2.35
+    const wt = 0.12
+    push('mumty-n', 'mumty', 0, [wx(mx), deckY + mh / 2, wz(mz - md / 2)], [m(mw), mh, wt])
+    push('mumty-s', 'mumty', 0, [wx(mx), deckY + mh / 2, wz(mz + md / 2)], [m(mw), mh, wt])
+    push('mumty-w', 'mumty', 0, [wx(mx - mw / 2), deckY + mh / 2, wz(mz)], [wt, mh, m(md)])
+    push('mumty-e', 'mumty', 0, [wx(mx + mw / 2), deckY + mh / 2, wz(mz)], [wt, mh, m(md)])
+    // a dark opening on the terrace-facing (south) side
+    push('mumty-door', 'glass', 0, [wx(mx), deckY + 1.05, wz(mz + md / 2)], [Math.min(m(mw) - 0.6, 1.1), 2.0, 0.09])
+    // flat cap + slim projecting lip
+    push('mumty-roof', 'roof', 0, [wx(mx), deckY + mh + 0.06, wz(mz)], [m(mw) + 0.34, 0.12, m(md) + 0.34])
+    push('mumty-lip', 'roof', 0, [wx(mx), deckY + mh + 0.16, wz(mz)], [m(mw) + 0.48, 0.06, m(md) + 0.48])
+  }
+
+  // --- square water tank on a slim frame, tucked to a rear corner ---
+  const near = o.x + o.w - 720
+  const nz = o.y + 720
+  const legH = 0.85
+  const tk = 0.9
+  const th = 0.95
+  const legs: [number, number][] = [
+    [near - tk / 2 + 0.08, nz - tk / 2 + 0.08],
+    [near + tk / 2 - 0.08, nz - tk / 2 + 0.08],
+    [near - tk / 2 + 0.08, nz + tk / 2 - 0.08],
+    [near + tk / 2 - 0.08, nz + tk / 2 - 0.08],
+  ]
+  legs.forEach(([lx, lz], i) => {
+    push(`tank-leg${i}`, 'railing', 0, [wx(lx), deckY + legH / 2, wz(lz)], [0.07, legH, 0.07])
+  })
+  push('tank-frame', 'railing', 0, [wx(near), deckY + legH, wz(nz)], [tk + 0.12, 0.05, tk + 0.12])
+  push('tank', 'tank', 0, [wx(near), deckY + legH + th / 2, wz(nz)], [tk, th, tk])
+}
+
+/** a perforated timber jaali rising over the entrance (stairwell light) */
+function jaaliScreen(entry: Opening, g: Rect, floors: FloorPlan[], y0: number, H: number, push: Push, wx: XF, wz: XF) {
+  if (entry.orient !== 'h') return
+  const storeys = Math.min(2, floors.length)
+  const yb = y0 + 3.0
+  const yt = y0 + storeys * H - 0.35
+  const h = yt - yb
+  if (h < 1.2) return
+  const w = 1.5
+  const cx = clamp(entry.at.x, g.x + w / 2 + 300, g.x + g.w - w / 2 - 300)
+  const z = wz(g.y + g.h) + EXT_T / 2 + 0.05
+  const bar = 0.045
+  push('jaali-t', 'screen', 0, [wx(cx), yt - bar, z], [w + 0.16, bar * 1.7, 0.11])
+  push('jaali-b', 'screen', 0, [wx(cx), yb + bar, z], [w + 0.16, bar * 1.7, 0.11])
+  push('jaali-l', 'screen', 0, [wx(cx - w / 2), yb + h / 2, z], [bar * 1.7, h, 0.11])
+  push('jaali-r', 'screen', 0, [wx(cx + w / 2), yb + h / 2, z], [bar * 1.7, h, 0.11])
+  const cols = Math.max(4, Math.round(w / 0.2))
+  for (let i = 1; i < cols; i++) {
+    push(`jaali-v${i}`, 'screen', 0, [wx(cx - w / 2 + (w * i) / cols), yb + h / 2, z], [bar, h, 0.08])
+  }
+  const rows = Math.max(4, Math.round(h / 0.24))
+  for (let i = 1; i < rows; i++) {
+    push(`jaali-h${i}`, 'screen', 0, [wx(cx), yb + (h * i) / rows, z], [w, bar, 0.08])
+  }
 }
 
 /* --------------------------------- site / garden -------------------------------- */
@@ -831,8 +1044,35 @@ function buildLandscape(
     if (gL1 - x0 > 300) push('cw-sl', 'fence', 0, [wx((x0 + gL1) / 2), cy, wz(z1)], [m(gL1 - x0), wallH, t])
     if (x1 - gR0 > 300) push('cw-sr', 'fence', 0, [wx((gR0 + x1) / 2), cy, wz(z1)], [m(x1 - gR0), wallH, t])
     const gpH = wallH + 0.35
-    push('gp-l', 'fence', 0, [wx(gL1), gpH / 2, wz(z1)], [0.28, gpH, 0.28])
-    push('gp-r', 'fence', 0, [wx(gR0), gpH / 2, wz(z1)], [0.28, gpH, 0.28])
+    push('gp-l', 'fence', 0, [wx(gL1), gpH / 2, wz(z1)], [0.3, gpH, 0.3])
+    push('gp-r', 'fence', 0, [wx(gR0), gpH / 2, wz(z1)], [0.3, gpH, 0.3])
+
+    // ---- coping course along the top of every run ----
+    const cop = 0.09
+    const copY = wallH + cop / 2
+    push('cw-cop-n', 'fence', 0, [wx(plotW / 2), copY, wz(z0)], [m(x1 - x0 + t) + 0.12, cop, t + 0.12])
+    push('cw-cop-e', 'fence', 0, [wx(x1), copY, wz(plotD / 2)], [t + 0.12, cop, m(z1 - z0) + 0.12])
+    push('cw-cop-w', 'fence', 0, [wx(x0), copY, wz(plotD / 2)], [t + 0.12, cop, m(z1 - z0) + 0.12])
+
+    // ---- regular piers so the boundary reads as built, not a ribbon ----
+    const pierH = wallH + 0.16
+    const pierT = 0.32
+    const piers = (from: number, to: number, fixed: number, vert: boolean, tag: string) => {
+      const n = Math.max(2, Math.round(Math.abs(to - from) / 3600))
+      for (let i = 0; i <= n; i++) {
+        const p = from + ((to - from) * i) / n
+        push(
+          `cwp-${tag}${i}`,
+          'fence',
+          0,
+          vert ? [wx(fixed), pierH / 2, wz(p)] : [wx(p), pierH / 2, wz(fixed)],
+          [pierT, pierH, pierT],
+        )
+      }
+    }
+    piers(x0, x1, z0, false, 'n')
+    piers(z0, z1, x0, true, 'w')
+    piers(z0, z1, x1, true, 'e')
   }
 
   if (!P.garden) return

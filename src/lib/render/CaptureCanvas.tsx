@@ -46,8 +46,8 @@ export function MassingViewport({
         gl={{ preserveDrawingBuffer: true, antialias: true }}
         camera={{ fov: 36, near: 0.1, far: span * 60, position: [span * 1.3, span * 1.0, span * 1.4] }}
         onCreated={({ gl }) => {
-          gl.toneMapping = THREE.ACESFilmicToneMapping
-          gl.toneMappingExposure = 1.12
+          gl.toneMapping = THREE.NeutralToneMapping
+          gl.toneMappingExposure = 1.32
         }}
       >
         <SceneEnv massing={massing} />

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Canvas, useThree } from '@react-three/fiber'
 import { Grid, OrbitControls } from '@react-three/drei'
-import { EffectComposer, N8AO, SMAA } from '@react-three/postprocessing'
+import { BrightnessContrast, EffectComposer, N8AO, SMAA, Vignette } from '@react-three/postprocessing'
 import { ArrowRight, Grid3x3 } from 'lucide-react'
 import * as THREE from 'three'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
@@ -83,8 +83,8 @@ export function Massing() {
               gl={{ preserveDrawingBuffer: true, antialias: true }}
               camera={{ fov: 37, near: 0.1, far: span * 40, position: [span * 1.1, span * 0.85, span * 1.1] }}
               onCreated={({ gl }) => {
-                gl.toneMapping = THREE.ACESFilmicToneMapping
-                gl.toneMappingExposure = 1.12
+                gl.toneMapping = THREE.NeutralToneMapping
+                gl.toneMappingExposure = 1.5
               }}
             >
               <SceneEnv massing={massing} />
@@ -94,10 +94,10 @@ export function Massing() {
                   args={[span * 3, span * 3]}
                   cellSize={1}
                   cellThickness={0.5}
-                  cellColor="#2c2921"
+                  cellColor="#343b44"
                   sectionSize={5}
                   sectionThickness={0.8}
-                  sectionColor="#403c30"
+                  sectionColor="#48515c"
                   fadeDistance={span * 3.4}
                   fadeStrength={1.3}
                 />
@@ -106,8 +106,10 @@ export function Massing() {
               <MassingModel massing={massing} explode={explode} hidden={hidden} character={character} />
 
               <EffectComposer enableNormalPass multisampling={4}>
-                <N8AO aoRadius={1.2} intensity={2.4} distanceFalloff={1} halfRes />
+                <N8AO aoRadius={1.5} intensity={2.7} distanceFalloff={1.1} halfRes />
+                <BrightnessContrast brightness={0.015} contrast={0.09} />
                 <SMAA />
+                <Vignette eskil={false} offset={0.42} darkness={0.36} />
               </EffectComposer>
 
               <CameraRig span={span} center={massing.center} pendingView={pendingView} onApplied={() => setPendingView(null)} />
