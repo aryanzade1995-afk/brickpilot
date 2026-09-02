@@ -23,7 +23,18 @@ export async function healthy() {
 
 /* ---- workflow assembly ---- */
 
-const NUMERIC = new Set(['seed', 'steps', 'cfg', 'denoise', 'strength', 'start_percent', 'end_percent'])
+const NUMERIC = new Set([
+  'seed',
+  'steps',
+  'cfg',
+  'denoise',
+  'strength',
+  'start_percent',
+  'end_percent',
+  'width',
+  'height',
+  'batch_size',
+])
 const esc = (s) => JSON.stringify(String(s)).slice(1, -1)
 
 function buildWorkflow({ depthName, edgeName, beautyName, positive, negative, params }) {
@@ -43,8 +54,12 @@ function buildWorkflow({ depthName, edgeName, beautyName, positive, negative, pa
     '%DENOISE%': String(params.denoise ?? process.env.INTERIOR_DENOISE ?? 0.75),
     '%SAMPLER%': esc(process.env.INTERIOR_SAMPLER || 'dpmpp_2m_sde'),
     '%SCHEDULER%': esc(process.env.INTERIOR_SCHEDULER || 'karras'),
-    '%CN_DEPTH_STR%': String(params.cnDepth ?? process.env.CN_DEPTH_STR ?? 0.85),
-    '%CN_CANNY_STR%': String(params.cnCanny ?? process.env.CN_CANNY_STR ?? 0.55),
+    '%CN_DEPTH_STR%': String(params.cnDepth ?? process.env.CN_DEPTH_STR ?? 0.7),
+    '%CN_CANNY_STR%': String(params.cnCanny ?? process.env.CN_CANNY_STR ?? 0.6),
+    '%CN_DEPTH_END%': String(process.env.CN_DEPTH_END ?? 0.8),
+    '%CN_CANNY_END%': String(process.env.CN_CANNY_END ?? 0.6),
+    '%WIDTH%': String(params.width ?? process.env.INTERIOR_WIDTH ?? 1024),
+    '%HEIGHT%': String(params.height ?? process.env.INTERIOR_HEIGHT ?? 768),
   }
   let s = readFileSync(new URL('../workflows/interior-sdxl.json', import.meta.url), 'utf8')
   for (const [k, v] of Object.entries(sub)) s = s.split(k).join(v)
