@@ -1,6 +1,9 @@
-/* ComfyUI interior provider — SDXL + ControlNet (depth + edge), img2img
- * on the 3D beauty render, run on a local ComfyUI. Zero dependencies:
- * Node 22 globals fetch / WebSocket / FormData / Blob.
+/* ComfyUI interior provider — SDXL txt2img + a single Canny ControlNet on
+ * the 3D room's edge map, run on a local ComfyUI. The prompt furnishes the
+ * room; canny holds the walls + opening lines. (Depth was dropped: on a
+ * Lightning checkpoint it mostly read the empty floor as "leave it empty",
+ * and canny already carries the perspective — one less CN pass per step.)
+ * Zero dependencies: Node 22 globals fetch / WebSocket / FormData / Blob.
  *
  * Swap in another backend by adding a sibling file with the same
  * { id, healthy, generateInterior } shape and registering it in index.mjs.
@@ -37,27 +40,22 @@ const NUMERIC = new Set([
 ])
 const esc = (s) => JSON.stringify(String(s)).slice(1, -1)
 
-function buildWorkflow({ depthName, edgeName, beautyName, positive, negative, params }) {
+function buildWorkflow({ edgeName, positive, negative, params }) {
   const seed = Number(params.seed ?? Math.floor(Math.random() * 1e15))
   const sub = {
     '%CKPT%': esc(process.env.SDXL_CKPT || 'sd_xl_base_1.0.safetensors'),
-    '%CN_DEPTH_MODEL%': esc(process.env.CN_DEPTH_MODEL || 'control-lora-depth-rank256.safetensors'),
     '%CN_CANNY_MODEL%': esc(process.env.CN_CANNY_MODEL || 'control-lora-canny-rank256.safetensors'),
     '%POSITIVE%': esc(positive),
     '%NEGATIVE%': esc(negative),
-    '%DEPTH%': esc(depthName),
     '%EDGE%': esc(edgeName),
-    '%BEAUTY%': esc(beautyName),
     '%SEED%': String(seed),
-    '%STEPS%': String(params.steps ?? process.env.INTERIOR_STEPS ?? 28),
-    '%CFG%': String(params.cfg ?? process.env.INTERIOR_CFG ?? 6.5),
-    '%DENOISE%': String(params.denoise ?? process.env.INTERIOR_DENOISE ?? 0.75),
-    '%SAMPLER%': esc(process.env.INTERIOR_SAMPLER || 'dpmpp_2m_sde'),
+    '%STEPS%': String(params.steps ?? process.env.INTERIOR_STEPS ?? 8),
+    '%CFG%': String(params.cfg ?? process.env.INTERIOR_CFG ?? 2.6),
+    '%DENOISE%': String(params.denoise ?? process.env.INTERIOR_DENOISE ?? 1.0),
+    '%SAMPLER%': esc(process.env.INTERIOR_SAMPLER || 'dpmpp_sde'),
     '%SCHEDULER%': esc(process.env.INTERIOR_SCHEDULER || 'karras'),
-    '%CN_DEPTH_STR%': String(params.cnDepth ?? process.env.CN_DEPTH_STR ?? 0.7),
-    '%CN_CANNY_STR%': String(params.cnCanny ?? process.env.CN_CANNY_STR ?? 0.6),
-    '%CN_DEPTH_END%': String(process.env.CN_DEPTH_END ?? 0.8),
-    '%CN_CANNY_END%': String(process.env.CN_CANNY_END ?? 0.6),
+    '%CN_CANNY_STR%': String(params.cnCanny ?? process.env.CN_CANNY_STR ?? 0.62),
+    '%CN_CANNY_END%': String(process.env.CN_CANNY_END ?? 0.55),
     '%WIDTH%': String(params.width ?? process.env.INTERIOR_WIDTH ?? 1024),
     '%HEIGHT%': String(params.height ?? process.env.INTERIOR_HEIGHT ?? 768),
   }
@@ -184,21 +182,17 @@ function awaitResult(clientId, promptId, onProgress) {
   })
 }
 
-export async function generateInterior({ beauty, depth, edge, positive, negative, params = {}, onProgress }) {
+export async function generateInterior({ edge, positive, negative, params = {}, onProgress }) {
   const h = await healthy()
   if (!h.reachable) throw new Error(h.note)
 
   const clientId = `brickpilot-${Math.random().toString(36).slice(2)}`
   const tag = Date.now().toString(36)
-  onProgress?.(5, 'uploading conditioning maps')
-  const [depthName, edgeName, beautyName] = await Promise.all([
-    uploadImage(depth, `bp_depth_${tag}.png`),
-    uploadImage(edge, `bp_edge_${tag}.png`),
-    uploadImage(beauty, `bp_beauty_${tag}.png`),
-  ])
+  onProgress?.(5, 'uploading edge map')
+  const edgeName = await uploadImage(edge, `bp_edge_${tag}.png`)
 
   onProgress?.(10, 'queuing')
-  const { graph, seed } = buildWorkflow({ depthName, edgeName, beautyName, positive, negative, params })
+  const { graph, seed } = buildWorkflow({ edgeName, positive, negative, params })
   const promptId = await submit(graph, clientId)
 
   const ref = await awaitResult(clientId, promptId, onProgress)

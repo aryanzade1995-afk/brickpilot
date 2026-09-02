@@ -45,6 +45,7 @@ export function InteriorStudio({
   const capRef = useRef<RoomCaptureHandle | null>(null)
   const [roomModel, setRoomModel] = useState<RoomModel | null>(null)
   const [lastMaps, setLastMaps] = useState<CaptureMaps[] | null>(null)
+  const [dualPov, setDualPov] = useState(true)
 
   useEffect(() => {
     probeHealth()
@@ -68,11 +69,12 @@ export function InteriorStudio({
     if (!roomModel || !capRef.current || busy) return
     useInterior.setState({ phase: 'capturing', progress: { pct: 0, stage: 'rendering the 3D room' }, error: null })
     await new Promise((r) => setTimeout(r, 180)) // let the viewport settle on the room
-    const maps = capRef.current.capture()
-    if (!maps || !maps.length) {
+    const captured = capRef.current.capture()
+    if (!captured || !captured.length) {
       useInterior.setState({ phase: 'error', error: 'could not read the 3D room canvas — try again' })
       return
     }
+    const maps = dualPov ? captured : captured.slice(0, 1)
     setLastMaps(maps)
     const p = buildInteriorPrompt(roomModel, style)
     await generate({
@@ -136,7 +138,7 @@ export function InteriorStudio({
                   )}
                 </div>
                 <figcaption className="label text-center">
-                  {k === 'beauty' ? '3D render' : k === 'depth' ? 'Depth · ControlNet' : 'Edges · ControlNet'}
+                  {k === 'beauty' ? '3D render' : k === 'depth' ? 'Depth' : 'Edges · ControlNet'}
                 </figcaption>
               </figure>
             ))}
@@ -202,6 +204,27 @@ export function InteriorStudio({
             </details>
           )}
 
+          <label
+            className={cx(
+              'flex cursor-pointer items-center justify-between gap-3 border border-line px-4 py-3 text-sm',
+              busy && 'cursor-not-allowed opacity-50',
+            )}
+          >
+            <span>
+              <span className="text-ink">Second camera angle</span>
+              <span className="mt-0.5 block font-mono text-[0.65rem] uppercase tracking-[0.08em] text-ink-faint">
+                {dualPov ? '2 views · ~2× time' : '1 view · faster'}
+              </span>
+            </span>
+            <input
+              type="checkbox"
+              checked={dualPov}
+              disabled={busy}
+              onChange={(e) => setDualPov(e.target.checked)}
+              className="h-4 w-4 flex-none accent-accent"
+            />
+          </label>
+
           <button
             type="button"
             onClick={run}
@@ -249,9 +272,9 @@ export function InteriorStudio({
           )}
 
           <p className="text-[0.78rem] leading-relaxed text-ink-faint">
-            The 3D room drives ControlNet (depth + edges), so walls, openings, proportions and the
-            camera stay put — only materials, furniture and light are generated. Two camera angles
-            are rendered, so each run returns two views of the room.
+            The 3D room drives a Canny ControlNet on the edge map, so walls, openings, proportions
+            and the camera stay put — only materials, furniture and light are generated. With the
+            second angle on, each run renders two views of the room.
           </p>
         </div>
       </div>
