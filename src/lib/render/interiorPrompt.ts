@@ -43,11 +43,11 @@ function furnitureFor(model: RoomModel): string {
   if (n.includes('pooja'))
     return 'a carved teak mandir shrine on a low stone platform, hanging brass bells and oil lamps, a small seating mat, a shelf of framed deities'
   if (n.includes('dining'))
-    return 'a six-seat solid-wood dining table with upholstered chairs, a sideboard against the wall, a linear pendant light centred over the table'
+    return 'a six-seat solid-wood dining table set with tableware and a runner, upholstered dining chairs, a full sideboard / crockery unit against the wall, a bar cart, a linear pendant light low over the table, framed art, a large rug under the table, curtains on the window, a potted plant in the corner'
   if (n.includes('living'))
-    return 'a three-seat sofa with an accent chair and pouffe, a coffee table, a low media console, a large area rug, a floor lamp, framed art and a few plants'
+    return 'a full three-seat sofa with two accent chairs and a pouffe, plenty of cushions and a throw, a coffee table with books and a tray, a large area rug, a media console with a wall-mounted TV, a tall bookshelf, side tables with table lamps, a floor lamp, full-length curtains on the window, framed art in a gallery arrangement, two or three large potted plants, a ceiling light'
   if (n.includes('lounge'))
-    return 'an L-shaped sectional sofa, a media wall unit, a bar cabinet, a lounge chair, layered floor and table lighting'
+    return 'a large L-shaped sectional sofa with cushions and throws, an ottoman, a media wall unit with a TV, a bar cabinet, two lounge chairs, a big rug, side tables and table lamps, a floor lamp, wall art, curtains, potted plants'
   if (n.includes('study'))
     return 'a desk with an ergonomic chair facing the window, a full-height bookshelf, a task lamp, a pinboard, a reading chair'
   if (n.includes('foyer'))
@@ -57,8 +57,8 @@ function furnitureFor(model: RoomModel): string {
   if (n.includes('stair'))
     return 'a staircase with a slatted timber or black-steel railing, a tall cascading pendant light, a bench below, minimal decor'
   if (n.includes('bed'))
-    return 'a made double bed with an upholstered headboard and layered bedding, two bedside tables with lamps, a wardrobe along one wall, a bench at the foot of the bed, a soft rug'
-  return 'tasteful, uncluttered furniture suited to the room, arranged against the walls'
+    return 'a made king bed with an upholstered headboard, layered bedding, pillows and a throw, two bedside tables with lamps, a full-height wardrobe along one wall, a bench or blanket box at the foot of the bed, a dressing table with a mirror and stool, an armchair with a floor lamp in the corner, a large rug under the bed, full-length curtains on the window, wall art above the bed, a potted plant, a ceiling light'
+  return 'a full, well-appointed set of furniture suited to the room — seating, storage, tables, lighting, a rug, curtains, wall art and plants'
 }
 
 function openingsPhrase(model: RoomModel): string {
@@ -67,13 +67,10 @@ function openingsPhrase(model: RoomModel): string {
   const bits: string[] = []
   bits.push(wins.length === 0 ? 'no windows' : wins.length === 1 ? 'exactly one window' : `exactly ${wins.length} windows`)
   bits.push(doors.length === 0 ? 'no doorway' : doors.length === 1 ? 'one doorway' : `${doors.length} doorways`)
-  const facing = wins.find((o) => o.viewRel === 'facing')
-  const lead = facing
-    ? 'The main window is on the wall directly ahead with daylight coming through it. '
-    : wins.length
-      ? 'Daylight enters from a side window. '
-      : 'There is no exterior window — light the room warmly and evenly with lamps and ceiling light. '
-  return `${lead}The room has ${bits.join(' and ')} — do not add, move or remove any windows or doors.`
+  const lead = wins.length
+    ? 'Natural daylight comes through the window. '
+    : 'There is no exterior window — light the room warmly and evenly with lamps and ceiling light. '
+  return `${lead}The room has exactly ${bits.join(' and ')} — do not add, move or remove any windows or doors.`
 }
 
 export function buildInteriorPrompt(model: RoomModel, style: InteriorStyle): InteriorPrompt {
@@ -84,19 +81,20 @@ export function buildInteriorPrompt(model: RoomModel, style: InteriorStyle): Int
   const size = `a ${d.w.toFixed(1)} by ${d.d.toFixed(1)} metre ${word} with a ${d.h.toFixed(1)} metre ceiling`
 
   const positive = [
-    `Photorealistic interior photograph of ${size}, decorated in ${style.label} style.`,
+    `Photorealistic interior photograph of a fully furnished, richly decorated, lived-in ${size}, ${style.label} style.`,
+    `The room is completely furnished with ${furniture} — every piece present, well arranged and clearly in shot, the room looks warm and inhabited, not staged empty.`,
     style.prompt,
-    `Furnish it with ${furniture}.`,
     openings,
     'Keep the wall layout, ceiling height, opening positions and camera viewpoint exactly as the reference geometry.',
-    'Wide-angle architectural interior photography, 24mm lens, eye level, natural daylight plus warm ambient light, physically based materials, realistic soft shadows and reflections, sharp focus, ultra-detailed, magazine quality, 8k.',
+    'Interior design magazine photograph, 28mm lens, eye level, natural daylight plus warm layered lighting, physically based materials, realistic soft shadows and reflections, styled and dressed, sharp focus, ultra-detailed, 8k.',
   ].join(' ')
 
   const negative = [
+    'empty room, bare room, unfurnished, undecorated, sparse, vacant, staged empty, minimal furniture, empty floor, bare walls, nothing on the walls, nothing in the room, showroom',
     'distorted perspective, warped or curved walls, sloping floor, extra windows, extra doors, blocked or missing openings, misaligned geometry, fisheye distortion',
     'blurry, low resolution, jpeg artifacts, noise, watermark, text, logo, signature, frame border',
     'people, faces, hands, pets',
-    'clutter, messy, duplicated furniture, floating furniture, oversized furniture, mismatched scale',
+    'duplicated furniture, floating furniture, oversized furniture, mismatched scale, messy pile',
     'cartoon, anime, illustration, painting, 3d render look, video game, plasticky, overexposed, oversaturated, HDR halo',
     style.negative ?? '',
   ]

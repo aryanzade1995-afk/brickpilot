@@ -11,7 +11,8 @@ export const CAP_W = 1024
 export const CAP_H = 768
 
 export type CaptureMaps = { beauty: string; depth: string; edge: string }
-export type RoomCaptureHandle = { capture: () => CaptureMaps | null }
+/** one CaptureMaps per camera pose in the room (2 different POVs) */
+export type RoomCaptureHandle = { capture: () => CaptureMaps[] | null }
 
 const DEPTH_NEAR = 0.2
 const DEPTH_FAR = 9.0
@@ -92,11 +93,12 @@ function Capturer({
         gl.getSize(prevSize)
         const prevTone = gl.toneMapping
         const prevAspect = camera.aspect
-        try {
-          gl.setSize(CAP_W, CAP_H, false)
-          camera.aspect = CAP_W / CAP_H
-          camera.updateProjectionMatrix()
+        const prevFov = camera.fov
+        const prevPos = camera.position.clone()
+        const prevQuat = camera.quaternion.clone()
 
+        // one capture pass (beauty + depth + edge) from wherever the camera sits now
+        const pass = (): CaptureMaps => {
           // 1 — beauty (tone-mapped, lit)
           gl.render(scene, camera)
           const beauty = cvs.toDataURL('image/png')
@@ -118,15 +120,35 @@ function Capturer({
           const edge = sobelToDataURL(px, CAP_W, CAP_H)
 
           scene.overrideMaterial = null
+          gl.toneMapping = prevTone
           dm.dispose()
           nm.dispose()
           return { beauty, depth, edge }
+        }
+
+        try {
+          gl.setSize(CAP_W, CAP_H, false)
+          camera.aspect = CAP_W / CAP_H
+
+          const poses = model.cameras.length ? model.cameras : [model.camera]
+          const out: CaptureMaps[] = []
+          for (const pose of poses) {
+            camera.position.set(...pose.position)
+            camera.fov = pose.fov
+            camera.updateProjectionMatrix()
+            camera.lookAt(...pose.target)
+            out.push(pass())
+          }
+          return out
         } catch {
           scene.overrideMaterial = null
           return null
         } finally {
           gl.toneMapping = prevTone
           camera.aspect = prevAspect
+          camera.fov = prevFov
+          camera.position.copy(prevPos)
+          camera.quaternion.copy(prevQuat)
           camera.updateProjectionMatrix()
           gl.setSize(prevSize.x, prevSize.y, false)
           gl.render(scene, camera)

@@ -35,9 +35,18 @@ export type RoomOpening = {
   exterior: boolean
 }
 
+export type CameraPose = {
+  position: [number, number, number]
+  target: [number, number, number]
+  fov: number
+}
+
 export type RoomModel = {
   boxes: RoomBox[]
-  camera: { position: [number, number, number]; target: [number, number, number]; fov: number }
+  /** primary view (faces the main window wall) */
+  camera: CameraPose
+  /** primary + a second angle facing a side wall — one image is generated per pose */
+  cameras: CameraPose[]
   /** interior clear dimensions, metres */
   dims: { w: number; d: number; h: number }
   openings: RoomOpening[]
@@ -155,6 +164,26 @@ export function buildRoom(
   const minDim = Math.min(rw, rd)
   const fov = clamp(58 + (4.2 - minDim) * 6.5, 56, 76)
 
+  // ---- second POV: face a side wall (perpendicular to the window wall) from
+  // the far side of the room, so the two images show different furniture ----
+  const side2 = (focalHoriz ? 'E' : 'S') as Side
+  const s2Horiz = side2 === 'N' || side2 === 'S'
+  const s2Fixed = s2Horiz ? halfD : halfW
+  const s2Len = s2Horiz ? rw : rd
+  const s2SideLen = s2Horiz ? rd : rw
+  const s2PullIn = clamp(s2SideLen * 0.34, 0.35, 0.7)
+  const s2Perp = -s2Fixed - Math.sign(-s2Fixed || 1) * s2PullIn
+  const s2LatMax = Math.max(0.05, s2Len / 2 - 0.55)
+  const s2Lat = clamp(s2Len * 0.26, -s2LatMax, s2LatMax)
+  const s2TgtPerp = s2Fixed - Math.sign(s2Fixed || 1) * 0.2
+  const s2TgtAlong = clamp(-s2Len * 0.12, -s2Len / 2 + 0.6, s2Len / 2 - 0.6)
+  const pos2: [number, number, number] = s2Horiz ? [s2Lat, 1.5, s2Perp] : [s2Perp, 1.5, s2Lat]
+  const tgt2: [number, number, number] = s2Horiz ? [s2TgtAlong, 1.12, s2TgtPerp] : [s2TgtPerp, 1.12, s2TgtAlong]
+  const cameras: CameraPose[] = [
+    { position, target, fov },
+    { position: pos2, target: tgt2, fov: clamp(fov + 2, 56, 78) },
+  ]
+
   // ---- four walls, segmented around their openings ----
   for (const side of ['N', 'S', 'E', 'W'] as Side[]) {
     const t = isExt[side] ? EXT_T : INT_T
@@ -227,7 +256,8 @@ export function buildRoom(
 
   return {
     boxes,
-    camera: { position, target, fov },
+    camera: cameras[0],
+    cameras,
     dims: { w: rw, d: rd, h: rh },
     openings: raw.map((o) => ({
       kind: o.kind,

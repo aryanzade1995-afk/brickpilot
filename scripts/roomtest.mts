@@ -33,11 +33,12 @@ for (const c of chars) {
               x.pos.some((v) => Math.abs(v) > 40) ||
               Number.isNaN(x.pos[0] + x.size[0]),
           )
-          // camera inside the room footprint
-          const [cx, cy, cz] = m.camera.position
-          const insideX = Math.abs(cx) < m.dims.w / 2 + 0.01
-          const insideZ = Math.abs(cz) < m.dims.d / 2 + 0.01
-          const eye = cy > 1.0 && cy < m.dims.h
+          // every camera pose (primary + the 2nd POV) inside the room footprint
+          const poses = m.cameras?.length ? m.cameras : [m.camera]
+          const cy = m.camera.position[1]
+          const insideX = poses.every((p) => Math.abs(p.position[0]) < m.dims.w / 2 + 0.01)
+          const insideZ = poses.every((p) => Math.abs(p.position[2]) < m.dims.d / 2 + 0.01)
+          const eye = poses.every((p) => p.position[1] > 1.0 && p.position[1] < m.dims.h)
           const hasShell = m.boxes.some((x) => x.mat === 'slab') && m.boxes.some((x) => x.mat === 'ceil')
           const wallCount = new Set(m.boxes.filter((x) => x.mat === 'wall').map((x) => x.id.split('-')[1])).size
 

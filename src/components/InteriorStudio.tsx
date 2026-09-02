@@ -44,7 +44,7 @@ export function InteriorStudio({
 
   const capRef = useRef<RoomCaptureHandle | null>(null)
   const [roomModel, setRoomModel] = useState<RoomModel | null>(null)
-  const [lastMaps, setLastMaps] = useState<CaptureMaps | null>(null)
+  const [lastMaps, setLastMaps] = useState<CaptureMaps[] | null>(null)
 
   useEffect(() => {
     probeHealth()
@@ -69,7 +69,7 @@ export function InteriorStudio({
     useInterior.setState({ phase: 'capturing', progress: { pct: 0, stage: 'rendering the 3D room' }, error: null })
     await new Promise((r) => setTimeout(r, 180)) // let the viewport settle on the room
     const maps = capRef.current.capture()
-    if (!maps) {
+    if (!maps || !maps.length) {
       useInterior.setState({ phase: 'error', error: 'could not read the 3D room canvas — try again' })
       return
     }
@@ -93,7 +93,7 @@ export function InteriorStudio({
     a.remove()
   }
 
-  const maps = lastMaps
+  const maps = lastMaps?.[0] ?? null
   const offline = health && !health.reachable
 
   return (
@@ -250,7 +250,8 @@ export function InteriorStudio({
 
           <p className="text-[0.78rem] leading-relaxed text-ink-faint">
             The 3D room drives ControlNet (depth + edges), so walls, openings, proportions and the
-            camera stay put — only materials, furniture and light are generated.
+            camera stay put — only materials, furniture and light are generated. Two camera angles
+            are rendered, so each run returns two views of the room.
           </p>
         </div>
       </div>
@@ -262,50 +263,64 @@ export function InteriorStudio({
             <span className="label">Session only · {results.length}</span>
           </div>
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            {results.map((r) => (
-              <figure key={r.id} className="border border-line">
-                <div className="relative aspect-[4/3] overflow-hidden bg-bg-inset">
-                  <img src={r.url} alt={r.roomLabel} className="h-full w-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => removeResult(r.id)}
-                    className="absolute right-1.5 top-1.5 border border-line-strong bg-bg/80 p-1 text-ink-dim hover:text-ink"
-                    aria-label="Remove"
-                  >
-                    <X size={12} />
-                  </button>
-                </div>
-                <figcaption className="flex items-center justify-between gap-2 border-t border-line px-3 py-2">
-                  <span className="truncate font-mono text-[0.65rem] uppercase tracking-[0.08em] text-ink-faint">
-                    {styleById(r.styleId).label} · {r.roomLabel}
-                  </span>
-                  <span className="flex flex-none items-center gap-1">
+            {results.map((r) => {
+              const slug = `brickpilot-${r.styleId}-${r.roomLabel.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`
+              return (
+                <figure key={r.id} className="border border-line">
+                  <div className="relative bg-bg-inset">
+                    <div className={cx('grid gap-px', r.urls.length > 1 && 'grid-cols-2')}>
+                      {r.urls.map((u, i) => (
+                        <div key={i} className="relative aspect-[4/3] overflow-hidden">
+                          <img
+                            src={u}
+                            alt={`${r.roomLabel} — view ${i + 1}`}
+                            className="h-full w-full object-cover"
+                          />
+                          {r.urls.length > 1 && (
+                            <span className="absolute left-1.5 top-1.5 bg-bg/80 px-1.5 py-0.5 font-mono text-[0.55rem] uppercase tracking-[0.08em] text-ink-dim">
+                              View {i + 1}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                     <button
                       type="button"
-                      onClick={() =>
-                        useRender.getState().setRef('interior', r.url)
-                      }
-                      title="Use as the interior reference for the building concepts"
-                      className="border border-line-strong px-2 py-1 font-mono text-[0.6rem] uppercase tracking-[0.08em] text-ink-dim hover:text-ink"
+                      onClick={() => removeResult(r.id)}
+                      className="absolute right-1.5 top-1.5 border border-line-strong bg-bg/80 p-1 text-ink-dim hover:text-ink"
+                      aria-label="Remove"
                     >
-                      → refs
+                      <X size={12} />
                     </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        download(
-                          r.url,
-                          `brickpilot-${r.styleId}-${r.roomLabel.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.png`,
-                        )
-                      }
-                      className="flex items-center gap-1 border border-line-strong px-2 py-1 font-mono text-[0.6rem] uppercase tracking-[0.08em] text-ink-dim hover:text-ink"
-                    >
-                      <Download size={10} /> PNG
-                    </button>
-                  </span>
-                </figcaption>
-              </figure>
-            ))}
+                  </div>
+                  <figcaption className="flex items-center justify-between gap-2 border-t border-line px-3 py-2">
+                    <span className="truncate font-mono text-[0.65rem] uppercase tracking-[0.08em] text-ink-faint">
+                      {styleById(r.styleId).label} · {r.roomLabel}
+                    </span>
+                    <span className="flex flex-none items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => useRender.getState().setRef('interior', r.urls[0])}
+                        title="Use as the interior reference for the building concepts"
+                        className="border border-line-strong px-2 py-1 font-mono text-[0.6rem] uppercase tracking-[0.08em] text-ink-dim hover:text-ink"
+                      >
+                        → refs
+                      </button>
+                      {r.urls.map((u, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => download(u, `${slug}${r.urls.length > 1 ? `-v${i + 1}` : ''}.png`)}
+                          className="flex items-center gap-1 border border-line-strong px-2 py-1 font-mono text-[0.6rem] uppercase tracking-[0.08em] text-ink-dim hover:text-ink"
+                        >
+                          <Download size={10} /> {r.urls.length > 1 ? `V${i + 1}` : 'PNG'}
+                        </button>
+                      ))}
+                    </span>
+                  </figcaption>
+                </figure>
+              )
+            })}
           </div>
         </section>
       )}

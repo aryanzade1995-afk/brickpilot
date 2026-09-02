@@ -13,8 +13,9 @@ export type InteriorHealth = { provider: string; reachable: boolean; note?: stri
 
 export type InteriorResult = {
   id: string
-  url: string
-  maps: CaptureMaps
+  /** one generated image per camera POV (primary first) */
+  urls: string[]
+  maps: CaptureMaps[]
   positive: string
   negative: string
   styleId: string
@@ -24,7 +25,8 @@ export type InteriorResult = {
 }
 
 export type GeneratePayload = {
-  maps: CaptureMaps
+  /** one CaptureMaps per camera POV — a separate render job runs for each */
+  maps: CaptureMaps[]
   positive: string
   negative: string
   styleId: string
@@ -82,61 +84,75 @@ export const useInterior = create<InteriorState>((set, get) => ({
   },
 
   generate: async (payload) => {
-    set({ phase: 'generating', progress: { pct: 2, stage: 'submitting' }, error: null })
+    const povs = payload.maps
+    const n = Math.max(1, povs.length)
+    set({ phase: 'generating', progress: { pct: 2, stage: n > 1 ? 'submitting view 1' : 'submitting' }, error: null })
     try {
-      const res = await fetch('/api/interior', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          beauty: payload.maps.beauty.split(',')[1],
-          depth: payload.maps.depth.split(',')[1],
-          edge: payload.maps.edge.split(',')[1],
-          positive: payload.positive,
-          negative: payload.negative,
-          params: payload.params ?? {},
-        }),
-      })
-      if (!res.ok || !res.body) {
-        const j = await res.json().catch(() => ({}))
-        throw new Error(j?.error || `interior render failed (${res.status})`)
-      }
+      const urls: string[] = []
+      let firstSeed: number | undefined
 
-      const reader = res.body.getReader()
-      const dec = new TextDecoder()
-      let buf = ''
-      let done: { imageBase64: string; mimeType?: string; meta?: Record<string, unknown> } | null = null
+      for (let i = 0; i < n; i++) {
+        const m = povs[i]
+        const label = n > 1 ? `view ${i + 1}/${n} · ` : ''
+        const band = (p: number) => Math.round(((i + Math.min(1, Math.max(0, p / 100))) / n) * 100)
 
-      for (;;) {
-        const { done: streamDone, value } = await reader.read()
-        if (streamDone) break
-        buf += dec.decode(value, { stream: true })
-        const parts = buf.split('\n\n')
-        buf = parts.pop() ?? ''
-        for (const part of parts) {
-          if (!part.trim()) continue
-          const { event, data } = parseSse(part)
-          if (!data) continue
-          const j = JSON.parse(data)
-          if (event === 'progress') {
-            set({ progress: { pct: Math.round(j.pct ?? 0), stage: j.stage ?? '' } })
-          } else if (event === 'done') {
-            done = j
-          } else if (event === 'error') {
-            throw new Error(j.error || 'generation error')
+        const res = await fetch('/api/interior', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            beauty: m.beauty.split(',')[1],
+            depth: m.depth.split(',')[1],
+            edge: m.edge.split(',')[1],
+            positive: payload.positive,
+            negative: payload.negative,
+            params: payload.params ?? {},
+          }),
+        })
+        if (!res.ok || !res.body) {
+          const j = await res.json().catch(() => ({}))
+          throw new Error(j?.error || `interior render failed (${res.status})`)
+        }
+
+        const reader = res.body.getReader()
+        const dec = new TextDecoder()
+        let buf = ''
+        let done: { imageBase64: string; mimeType?: string; meta?: Record<string, unknown> } | null = null
+
+        for (;;) {
+          const { done: streamDone, value } = await reader.read()
+          if (streamDone) break
+          buf += dec.decode(value, { stream: true })
+          const parts = buf.split('\n\n')
+          buf = parts.pop() ?? ''
+          for (const part of parts) {
+            if (!part.trim()) continue
+            const { event, data } = parseSse(part)
+            if (!data) continue
+            const j = JSON.parse(data)
+            if (event === 'progress') {
+              set({ progress: { pct: band(j.pct ?? 0), stage: `${label}${j.stage ?? ''}` } })
+            } else if (event === 'done') {
+              done = j
+            } else if (event === 'error') {
+              throw new Error(j.error || 'generation error')
+            }
           }
         }
+
+        if (!done?.imageBase64) throw new Error('no image returned')
+        urls.push(`data:${done.mimeType || 'image/png'};base64,${done.imageBase64}`)
+        if (i === 0 && typeof done.meta?.seed === 'number') firstSeed = done.meta.seed as number
       }
 
-      if (!done?.imageBase64) throw new Error('no image returned')
       const result: InteriorResult = {
         id: `${Date.now()}`,
-        url: `data:${done.mimeType || 'image/png'};base64,${done.imageBase64}`,
-        maps: payload.maps,
+        urls,
+        maps: povs,
         positive: payload.positive,
         negative: payload.negative,
         styleId: payload.styleId,
         roomLabel: payload.roomLabel,
-        seed: typeof done.meta?.seed === 'number' ? (done.meta.seed as number) : undefined,
+        seed: firstSeed,
         at: Date.now(),
       }
       set((s) => ({ phase: 'done', progress: { pct: 100, stage: 'done' }, results: [result, ...s.results] }))
