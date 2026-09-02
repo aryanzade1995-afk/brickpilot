@@ -41,6 +41,8 @@ function buildWorkflow({ depthName, edgeName, beautyName, positive, negative, pa
     '%STEPS%': String(params.steps ?? process.env.INTERIOR_STEPS ?? 28),
     '%CFG%': String(params.cfg ?? process.env.INTERIOR_CFG ?? 6.5),
     '%DENOISE%': String(params.denoise ?? process.env.INTERIOR_DENOISE ?? 0.75),
+    '%SAMPLER%': esc(process.env.INTERIOR_SAMPLER || 'dpmpp_2m_sde'),
+    '%SCHEDULER%': esc(process.env.INTERIOR_SCHEDULER || 'karras'),
     '%CN_DEPTH_STR%': String(params.cnDepth ?? process.env.CN_DEPTH_STR ?? 0.85),
     '%CN_CANNY_STR%': String(params.cnCanny ?? process.env.CN_CANNY_STR ?? 0.55),
   }
