@@ -386,9 +386,24 @@ function addWall(
 
   let cursor = a0
   clean.forEach((o, i) => {
-    const s = clamp(o.s, a0 + 120, a1 - 420)
-    const e = clamp(o.e, s + 300, a1 - 120)
-    if (e - s < 350 || s < cursor + 60) return
+    // keep the opening exactly where the plan grid put it (so stacked storeys
+    // line up); shrink it symmetrically if it grazes the wall end, and skip it
+    // if it can't fit or overlaps the previous pier
+    let s = o.s
+    let e = o.e
+    const lo = a0 + 110
+    const hi = a1 - 110
+    if (s < lo) {
+      const d = lo - s
+      s += d
+      e -= d
+    }
+    if (e > hi) {
+      const d = e - hi
+      e -= d
+      s += d
+    }
+    if (e - s < 400 || s < cursor + 80) return
     const sillY = baseY + o.sill
     const headY = Math.min(baseY + o.head, wallTop - 0.08)
     solid(cursor, s, baseY, wallTop, `p${i}`) // pier
@@ -782,7 +797,9 @@ function buildCarport(
     push(`bay-${L}-${id}-${i}`, 'slab', L, [bx, 0.11, czm], [0.08, 0.02, dM * 0.9])
   }
 
-  const colH = CANOPY_TOP - CANOPY_T
+  const colTop = y0 + CANOPY_TOP - CANOPY_T // canopy soffit
+  const colBot = 0.02
+  const colH = colTop - colBot
   const ins = COL / 2 + 0.14
   const xL = wx(cW) + ins
   const xR = wx(cE) - ins
@@ -792,7 +809,8 @@ function buildCarport(
   const houseZ = wz(houseS)
   const col = (x: number, z: number, k: string) => {
     if (Math.abs(z - houseZ) < 0.9) return // the house wall carries this edge
-    push(`col-${L}-${id}-${k}`, 'column', L, [x, y0 + colH / 2, z], [COL, colH, COL])
+    push(`col-${L}-${id}-${k}`, 'column', L, [x, colBot + colH / 2, z], [COL + 0.04, colH, COL + 0.04])
+    push(`colbase-${L}-${id}-${k}`, 'plinth', L, [x, 0.09, z], [COL + 0.26, 0.16, COL + 0.26])
   }
   col(xL, zS, 'sw')
   col(xR, zS, 'se')
@@ -886,17 +904,14 @@ function buildPorch(entry: Opening, y0: number, H: number, push: Push, wx: XF, w
   push('eporch-beam', 'canopy', 0, [wx(cx), topY - 0.2, wz(zFace + projMm - 130)], [w, 0.18, 0.16])
   push('eporch-lip', 'roof', 0, [wx(cx), topY + 0.01, wz(zFace + projMm)], [w + 0.08, 0.12, 0.09])
 
-  // two slim square columns at the outer corners
-  const colH = topY - 0.24 - y0
+  // two square columns at the outer corners — from the ground, on a base pad
+  const colH = topY - 0.22
   const half = entry.width / 2 + 520
+  const colZ = zFace + projMm - 320
   for (const s of [-1, 1] as const) {
-    push(
-      `eporch-col${s < 0 ? 'l' : 'r'}`,
-      'column',
-      0,
-      [wx(cx + s * half), y0 + colH / 2, wz(zFace + projMm - 320)],
-      [0.24, colH, 0.24],
-    )
+    const px = cx + s * half
+    push(`eporch-col${s < 0 ? 'l' : 'r'}`, 'column', 0, [wx(px), colH / 2, wz(colZ)], [0.26, colH, 0.26])
+    push(`eporch-colbase${s < 0 ? 'l' : 'r'}`, 'plinth', 0, [wx(px), 0.07, wz(colZ)], [0.44, 0.14, 0.44])
   }
 }
 
@@ -1133,7 +1148,7 @@ function buildTerraceGarden(
 
 /* ----------------------------------- stair ----------------------------------- */
 
-/** dog-leg stair: two flights of tread boxes + a mid landing.
+/** dog-leg stair: two flights of SOLID steps + a mid landing + a spine wall.
  *  x/z in plan-millimetres; y and size in metres, y relative to the storey base. */
 function buildStair(rect: Rect, H: number) {
   const risers = Math.max(14, Math.round((H * 1000) / 172))
@@ -1144,31 +1159,47 @@ function buildStair(rect: Rect, H: number) {
   const goingMm = runMm / perFlight
   const going = goingMm / 1000
   const rise = H / risers
+  const landY = perFlight * rise
   const out: { tag: string; x: number; y: number; z: number; size: Vec3 }[] = []
 
+  const xA = rect.x + 60 + flightWmm / 2
+  const xB = rect.x + 60 + flightWmm + 120 + flightWmm / 2
+
   for (let i = 0; i < perFlight; i++) {
-    const h = (i + 0.5) * rise
+    const topA = (i + 1) * rise // solid block: floor of storey up to this tread
     out.push({
       tag: `a${i}`,
-      x: rect.x + 60 + flightWmm / 2,
-      y: h,
+      x: xA,
+      y: topA / 2,
       z: rect.y + goingMm * (i + 0.5),
-      size: [flightW, Math.max(rise, 0.05), Math.max(going * 1.02, 0.05)],
+      size: [flightW, topA, Math.max(going * 1.02, 0.05)],
     })
+    const topB = landY + (i + 1) * rise // second flight climbs off the landing
     out.push({
       tag: `b${i}`,
-      x: rect.x + 60 + flightWmm + 120 + flightWmm / 2,
-      y: H - h,
+      x: xB,
+      y: topB / 2,
       z: rect.y + runMm - goingMm * (i + 0.5),
-      size: [flightW, Math.max(rise, 0.05), Math.max(going * 1.02, 0.05)],
+      size: [flightW, topB, Math.max(going * 1.02, 0.05)],
     })
   }
+
+  // mid landing slab
+  const landDepth = Math.max((rect.h - runMm) / 1000, 0.6)
   out.push({
     tag: 'land',
     x: rect.x + rect.w / 2,
-    y: H / 2 - 0.09,
-    z: rect.y + runMm + Math.max(rect.h - runMm, 200) / 2,
-    size: [Math.max(rect.w / 1000, 0.4), 0.18, Math.max((rect.h - runMm) / 1000, 0.2)],
+    y: landY - 0.09,
+    z: rect.y + runMm + (landDepth * 1000) / 2,
+    size: [Math.max(rect.w / 1000, 0.4), 0.18, landDepth],
+  })
+  // a spine wall between the two flights
+  out.push({
+    tag: 'spine',
+    x: (xA + xB) / 2,
+    y: H / 2,
+    z: rect.y + runMm / 2,
+    size: [0.12, H, Math.max(runMm / 1000, 0.4)],
   })
   return out
 }

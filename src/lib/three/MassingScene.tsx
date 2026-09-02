@@ -19,6 +19,8 @@ const CUTAWAY_SKIP = new Set<MassKind>([
   'screen',
   'mumty',
   'tank',
+  'clad', // window frames + timber cladding — float above the cut wall
+  'feature', // the entry pier — a full-height stick once the storeys lift
 ])
 
 export function MassingModel({
@@ -50,8 +52,8 @@ export function MassingModel({
       if (cutaway) {
         if (CUTAWAY_SKIP.has(b.kind)) continue
         if (b.kind === 'stair') {
-          const floorBase = massing.floors.find((f) => f.level === b.level)?.baseY ?? 0
-          if (b.pos[1] - sh / 2 - floorBase > massing.floorHeight * 0.5) continue
+          // keep the whole flight — the dog-leg belongs to this storey and
+          // rises to the floor above; only its geometry lifts with the storey
           cy = b.pos[1] + b.level * lift
         } else if (b.kind === 'wall' || b.kind === 'partition') {
           const floorBase = massing.floors.find((f) => f.level === b.level)?.baseY ?? 0

@@ -377,8 +377,9 @@ function buildFloor(
     openings.push({ kind: 'door', at, orient: 'h', width: clamp(b.rect.w - 700, 900, 1600) })
   }
   // window rhythm on every daylight facade, clear of the doors above — the
-  // spacing and proportion are set by the chosen design character
-  deriveWindows(rooms, outline, openings, themeOf(model.brief).windows)
+  // spacing and proportion are set by the chosen design character. The mullion
+  // grid is anchored to the ground footprint so stacked storeys line up.
+  deriveWindows(rooms, outline, openings, themeOf(model.brief).windows, ctx.houseRect)
 
   const { reachable, unreachableRooms } = repairReachability(rooms, openings, fp.level)
   const stair = stairSpace ? makeStair(stairRect, model.brief.levels.floorToFloor) : undefined
@@ -542,16 +543,22 @@ type WindowSpec = {
  * mullion grid so they line up between storeys. Small rooms (baths, utility,
  * pooja) get none. The rhythm is a design-character choice.
  */
-function deriveWindows(rooms: PlacedRoom[], outline: Rect, out: Opening[], spec: WindowSpec) {
+function deriveWindows(
+  rooms: PlacedRoom[],
+  outline: Rect,
+  out: Opening[],
+  spec: WindowSpec,
+  gridRef: Rect,
+) {
   const MULLION = spec.mullionMm // window-column spacing (mm)
   const MIN_ROOM = spec.minRoomSqm // m² — smaller habitable rooms get no massing window
   const WIN_W = spec.widthMm
 
   const edges = [
-    { orient: 'h' as const, fixed: outline.y, lo: outline.x, hi: rectRight(outline) },
-    { orient: 'h' as const, fixed: rectBottom(outline), lo: outline.x, hi: rectRight(outline) },
-    { orient: 'v' as const, fixed: outline.x, lo: outline.y, hi: rectBottom(outline) },
-    { orient: 'v' as const, fixed: rectRight(outline), lo: outline.y, hi: rectBottom(outline) },
+    { orient: 'h' as const, fixed: outline.y, lo: outline.x, hi: rectRight(outline), glo: gridRef.x, ghi: rectRight(gridRef) },
+    { orient: 'h' as const, fixed: rectBottom(outline), lo: outline.x, hi: rectRight(outline), glo: gridRef.x, ghi: rectRight(gridRef) },
+    { orient: 'v' as const, fixed: outline.x, lo: outline.y, hi: rectBottom(outline), glo: gridRef.y, ghi: rectBottom(gridRef) },
+    { orient: 'v' as const, fixed: rectRight(outline), lo: outline.y, hi: rectBottom(outline), glo: gridRef.y, ghi: rectBottom(gridRef) },
   ]
 
   const touchesEdge = (r: PlacedRoom, orient: 'h' | 'v', fixed: number) =>
@@ -562,8 +569,11 @@ function deriveWindows(rooms: PlacedRoom[], outline: Rect, out: Opening[], spec:
   for (const e of edges) {
     const span = e.hi - e.lo
     if (span < 2400) continue
-    const cols = Math.max(1, Math.round((span - 1400) / MULLION))
-    const line = (i: number) => Math.round(e.lo + (span * (i + 0.5)) / cols)
+    // the column grid is fixed to the ground footprint (glo/ghi) so windows on
+    // every storey snap to the same lines and stack vertically
+    const gspan = e.ghi - e.glo
+    const cols = Math.max(1, Math.round((gspan - 1400) / MULLION))
+    const line = (i: number) => Math.round(e.glo + (gspan * (i + 0.5)) / cols)
 
     // biggest rooms on this facade first, capped
     const facadeRooms = rooms
@@ -585,12 +595,15 @@ function deriveWindows(rooms: PlacedRoom[], outline: Rect, out: Opening[], spec:
       const rhi = e.orient === 'h' ? rectRight(r.rect) : rectBottom(r.rect)
       const rc = (rlo + rhi) / 2
 
-      // nearest mullion column landing inside this room, else the room centre
+      // nearest mullion column landing inside this room AND on this storey's
+      // wall, else the room centre
       let along = Math.round(rc)
       let best = Infinity
+      const wLo = Math.max(rlo, e.lo) + 600
+      const wHi = Math.min(rhi, e.hi) - 600
       for (let i = 0; i < cols; i++) {
         const c = line(i)
-        if (c > rlo + 600 && c < rhi - 600 && Math.abs(c - rc) < best) {
+        if (c > wLo && c < wHi && Math.abs(c - rc) < best) {
           best = Math.abs(c - rc)
           along = c
         }

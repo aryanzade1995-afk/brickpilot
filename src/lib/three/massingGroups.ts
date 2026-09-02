@@ -34,4 +34,4 @@ export const GROUP_OF: Record<MassKind, Group> = {
 export const SITE_KINDS = new Set<MassKind>(['lawn', 'paving', 'planter', 'hedge', 'fence'])
 
 /** metres a wall / partition is cut down to in the cutaway (exploded) view */
-export const CUTAWAY_WALL = 1.15
+export const CUTAWAY_WALL = 1.4
