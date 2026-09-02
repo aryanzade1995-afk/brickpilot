@@ -45,12 +45,13 @@ export default defineConfig({
     port: 3000,
     host: true,
     proxy: {
-      // the render proxy holds the image-model API key server-side
+      // the proxy holds the image-model keys + talks to ComfyUI server-side;
+      // long timeout so SSE interior generations aren't cut off
       '/api': {
         target: `http://localhost:${process.env.RENDER_PROXY_PORT ?? 8787}`,
         changeOrigin: true,
-        timeout: 120_000,
-        proxyTimeout: 120_000,
+        timeout: 600_000,
+        proxyTimeout: 600_000,
       },
     },
   },

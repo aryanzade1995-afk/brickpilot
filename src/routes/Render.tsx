@@ -6,8 +6,11 @@ import { THEMES, VIEW_PROMPT } from '@/lib/model/themes.ts'
 import { FloorDrawing } from '@/lib/draw/FloorDrawing.tsx'
 import { MassingViewport, MASSING_CANVAS, type CaptureView } from '@/lib/render/CaptureCanvas.tsx'
 import { rasterizeSvg } from '@/lib/render/rasterizeSvg.ts'
+import { InteriorStudio } from '@/components/InteriorStudio.tsx'
 import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
 import { cx } from '@/lib/cx.ts'
+
+type Mode = 'building' | 'interior'
 
 const CONCEPT_LABEL: Record<RefKey, string> = {
   front: 'Street-level front elevation',
@@ -43,6 +46,7 @@ export function Render() {
   const svgRef = useRef<SVGSVGElement>(null)
   const capBusy = useRef(false)
   const [view, setView] = useState<CaptureView>('orbit')
+  const [mode, setMode] = useState<Mode>('building')
 
   useEffect(() => {
     probeHealth()
@@ -143,22 +147,44 @@ export function Render() {
     <div className="mx-auto max-w-[1400px] px-6 py-8 md:px-10">
       <WorkspaceTabs />
 
-      <div className="mt-4 flex flex-wrap items-baseline justify-between gap-2">
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-2xl">{model.brief.project.name}</h1>
-        <div className="label text-accent">Step 4 · Render</div>
+        <div className="flex items-center gap-3">
+          <div className="flex border border-line-strong">
+            {(['building', 'interior'] as Mode[]).map((mkey) => (
+              <button
+                key={mkey}
+                type="button"
+                onClick={() => setMode(mkey)}
+                className={cx(
+                  'px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.1em] transition-colors',
+                  mkey === 'interior' && 'border-l border-line-strong',
+                  mode === mkey ? 'bg-accent text-white' : 'text-ink-dim hover:text-ink',
+                )}
+              >
+                {mkey === 'building' ? 'Building concepts' : 'AI Interior'}
+              </button>
+            ))}
+          </div>
+          <div className="label text-accent">Step 4 · Render</div>
+        </div>
       </div>
 
-      {configuredNote && (
-        <p className="mt-4 border-l-2 border-warn/60 bg-warn/5 px-4 py-2.5 text-sm text-ink-dim">
-          {configuredNote}
-        </p>
-      )}
-      {error && (
-        <p className="mt-4 border-l-2 border-bad/60 bg-bad/5 px-4 py-2.5 text-sm text-ink-dim">{error}</p>
-      )}
+      {mode === 'interior' && <InteriorStudio design={design} character={character} />}
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_340px]">
-        {/* live massing — the reference source */}
+      {mode === 'building' && (
+        <>
+          {configuredNote && (
+            <p className="mt-4 border-l-2 border-warn/60 bg-warn/5 px-4 py-2.5 text-sm text-ink-dim">
+              {configuredNote}
+            </p>
+          )}
+          {error && (
+            <p className="mt-4 border-l-2 border-bad/60 bg-bad/5 px-4 py-2.5 text-sm text-ink-dim">{error}</p>
+          )}
+
+          <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_340px]">
+            {/* live massing — the reference source */}
         <div>
           <MassingViewport design={design} character={character} view={view} />
           <div className="mt-3 grid grid-cols-4 gap-3">
@@ -299,18 +325,20 @@ export function Render() {
         </section>
       )}
 
-      {/* offscreen interior-plan source for the fourth reference */}
-      <div aria-hidden style={{ position: 'fixed', left: -10000, top: 0, width: 1200, height: 800 }}>
-        <FloorDrawing
-          svgRef={svgRef}
-          floor={interiorFloor}
-          model={model}
-          theme="dark"
-          showLabels
-          showDimensions={false}
-          markRoomId={roomId || undefined}
-        />
-      </div>
+          {/* offscreen interior-plan source for the fourth reference */}
+          <div aria-hidden style={{ position: 'fixed', left: -10000, top: 0, width: 1200, height: 800 }}>
+            <FloorDrawing
+              svgRef={svgRef}
+              floor={interiorFloor}
+              model={model}
+              theme="dark"
+              showLabels
+              showDimensions={false}
+              markRoomId={roomId || undefined}
+            />
+          </div>
+        </>
+      )}
     </div>
   )
 }

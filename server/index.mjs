@@ -14,6 +14,7 @@ import { createServer } from 'node:http'
 import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs'
 import { extname, join, normalize } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { resolveProvider } from './providers/index.mjs'
 
 // --- load server/.env (no dependency, no --env-file flag needed) ---
 try {
@@ -43,6 +44,26 @@ const send = (res, code, obj) => {
   res.writeHead(code, { 'content-type': 'application/json', 'access-control-allow-origin': '*' })
   res.end(JSON.stringify(obj))
 }
+
+const readJson = (req, cap = 16e6) =>
+  new Promise((resolve, reject) => {
+    let body = ''
+    req.on('data', (c) => {
+      body += c
+      if (body.length > cap) {
+        req.destroy()
+        reject(new Error('request body too large'))
+      }
+    })
+    req.on('end', () => {
+      try {
+        resolve(JSON.parse(body))
+      } catch {
+        reject(new Error('invalid JSON body'))
+      }
+    })
+    req.on('error', reject)
+  })
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -170,6 +191,61 @@ const server = createServer((req, res) => {
     return
   }
 
+  // ---- AI interior render (SDXL + ControlNet via ComfyUI, modular provider) ----
+  if (req.method === 'GET' && req.url === '/api/interior/health') {
+    resolveProvider()
+      .then(({ id, reachable, note, usingMock }) =>
+        send(res, 200, { provider: usingMock && id !== 'mock' ? `mock (${id} offline)` : id, reachable, note }),
+      )
+      .catch((e) => send(res, 200, { provider: 'error', reachable: false, note: String(e?.message || e) }))
+    return
+  }
+
+  if (req.method === 'POST' && req.url === '/api/interior') {
+    readJson(req, 40e6)
+      .then(async (p) => {
+        const { beauty, depth, edge, positive, negative = '', params = {} } = p || {}
+        if (!beauty || !depth || !edge || !positive) {
+          return send(res, 400, { error: 'beauty, depth, edge and positive are required' })
+        }
+        res.writeHead(200, {
+          'content-type': 'text/event-stream',
+          'cache-control': 'no-cache, no-transform',
+          connection: 'keep-alive',
+          'access-control-allow-origin': '*',
+          'x-accel-buffering': 'no',
+        })
+        const sse = (event, data) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
+        let pct = 0
+        const onProgress = (p2, stage) => {
+          if (typeof p2 === 'number') pct = Math.max(pct, Math.min(99, p2))
+          sse('progress', { pct, stage: stage || '' })
+        }
+        const ping = setInterval(() => res.write(': keep-alive\n\n'), 15000)
+        try {
+          const r = await resolveProvider()
+          if (r.usingMock && r.id !== 'mock') sse('progress', { pct: 2, stage: r.note })
+          const out = await r.provider.generateInterior({
+            beauty,
+            depth,
+            edge,
+            positive,
+            negative,
+            params,
+            onProgress,
+          })
+          sse('done', { imageBase64: out.imageBase64, mimeType: out.mimeType || 'image/png', meta: out.meta || {} })
+        } catch (e) {
+          sse('error', { error: String(e?.message || e) })
+        } finally {
+          clearInterval(ping)
+          res.end()
+        }
+      })
+      .catch((e) => send(res, 400, { error: String(e?.message || e) }))
+    return
+  }
+
   if ((req.method === 'GET' || req.method === 'HEAD') && SERVE_STATIC) {
     return serveStatic(req, res)
   }
@@ -178,7 +254,9 @@ const server = createServer((req, res) => {
 })
 
 server.listen(PORT, () => {
+  const interior = (process.env.INTERIOR_PROVIDER || 'comfyui').toLowerCase()
   console.log(
-    `[brickpilot] http://localhost:${PORT}  static=${SERVE_STATIC ? 'dist' : 'off'}  model=${MODEL}  key=${KEY ? 'set' : 'MISSING'}  mock=${MOCK}`,
+    `[brickpilot] http://localhost:${PORT}  static=${SERVE_STATIC ? 'dist' : 'off'}  ` +
+      `render=${MOCK ? 'mock' : KEY ? 'gemini' : 'MISSING'}  interior=${interior}`,
   )
 })
