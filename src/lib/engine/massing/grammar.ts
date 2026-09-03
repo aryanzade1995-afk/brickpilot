@@ -1,7 +1,7 @@
 import type { Rect } from '../../geometry.ts'
 import { rectRight, rectBottom } from '../../geometry.ts'
 import { makeRng } from './rng.ts'
-import { ARCHETYPES, floorAreaSqm, type MassingCtx } from './archetypes.ts'
+import { ARCHETYPES, flatRoof, floorAreaSqm, type MassingCtx } from './archetypes.ts'
 import { MASSING_TYPES, type FloorMassing, type MassingPlan, type MassingRequest, type MassingType } from './types.ts'
 
 /* ------------------------------------------------------------------ *
@@ -256,6 +256,12 @@ export function planMassing(
       const p = ARCHETYPES[t](env, ctx, rng, req.diversity)
       clampToEnv(p, env)
       if (!placeCore(p, ctx)) return null
+      // a G+0 house never runs the archetype's per-storey roof loop, so give its
+      // single storey the style's roof here
+      const top = p.floors[p.floors.length - 1]
+      if (ctx.roofBias !== 'flat' && (top.roof.kind === 'flat' || top.roof.kind === 'flat-parapet')) {
+        top.roof = flatRoof(ctx.roofBias, makeRng(req.seed, `${briefKey}|${t}|${salt}|roof`))
+      }
       return validateMassingPlan(p, env, ctx) ? p : null
     } catch {
       return null

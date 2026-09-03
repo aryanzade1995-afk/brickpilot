@@ -47,6 +47,8 @@ export type FloorPlan = {
   /** the real footprint: a union of axis-aligned blocks (the massing) */
   footprint: Rect[]
   roof: RoofSpec
+  /** open void inside the footprint (courtyard archetypes, ground floor) */
+  courtyard?: Rect | null
   rooms: PlacedRoom[]
   walls: Wall[]
   openings: Opening[]

@@ -6,6 +6,7 @@ import {
   DIRECTION_LABEL,
   type Direction,
   type MassingChoice,
+  type Character,
 } from '@/lib/model/brief.ts'
 import { canonicalSummary, compile } from '@/lib/model/canonical.ts'
 import { programmeCapacity } from '@/lib/rules/index.ts'
@@ -273,11 +274,7 @@ export function StyleStep() {
         <CardChoice
           value={brief.style.character}
           onChange={(v) => edit((b) => void (b.style.character = v))}
-          options={[
-            { value: 'modernist', title: CHARACTER_LABEL.modernist, body: 'Stacked white volumes, a slim deep oversailing roof, a timber-baffle feature tower and vertical shading screens.' },
-            { value: 'warm-minimal', title: CHARACTER_LABEL['warm-minimal'], body: 'Quiet plaster planes, a thin oversailing roof, fewer larger timber-framed openings.' },
-            { value: 'kerala-contemporary', title: CHARACTER_LABEL['kerala-contemporary'], body: 'Stepped white roof bands, teak cladding panels, a stone entry pier.' },
-          ]}
+          options={CHARACTER_CARDS}
         />
       </div>
 
@@ -335,6 +332,17 @@ export function StyleStep() {
     </div>
   )
 }
+
+const CHARACTER_CARDS: { value: Character; title: string; body: string }[] = [
+  { value: 'modern-indian', title: CHARACTER_LABEL['modern-indian'], body: 'Stacked white volumes, a slim deep oversailing roof, a baffle-screen feature tower and vertical shading fins.' },
+  { value: 'contemporary-indian', title: CHARACTER_LABEL['contemporary-indian'], body: 'Plaster planes over a stone-clad ground floor, wide sliding glass, deep flat hoods, a double-height entry.' },
+  { value: 'modern-kerala', title: CHARACTER_LABEL['modern-kerala'], body: 'Low pitched tile roofs with wide eaves, a deep verandah on square columns, a laterite base and a brick jaali.' },
+  { value: 'kerala-contemporary', title: CHARACTER_LABEL['kerala-contemporary'], body: 'Stepped white roof bands, two-storey teak cladding panels, a dark stone entry pier and a timber jaali.' },
+  { value: 'luxury-indian', title: CHARACTER_LABEL['luxury-indian'], body: 'A double-height colonnaded portico, travertine over a granite plinth, deep overhangs and a wrap-around verandah.' },
+  { value: 'tropical-indian', title: CHARACTER_LABEL['tropical-indian'], body: 'Broad low mono-pitch roofs with very deep overhangs, a wrap verandah on slim round columns, jaali and a pergola.' },
+  { value: 'minimal-indian', title: CHARACTER_LABEL['minimal-indian'], body: 'Quiet plaster planes, one thin oversailing roof, a few large timber-framed openings, restrained detailing.' },
+  { value: 'courtyard-indian', title: CHARACTER_LABEL['courtyard-indian'], body: 'Wings wrapping a planted courtyard behind a columned verandah and street-facing terracotta jaali screens.' },
+]
 
 const MASSING_CHOICES: { value: MassingChoice; label: string }[] = [
   { value: 'auto', label: 'Auto' },

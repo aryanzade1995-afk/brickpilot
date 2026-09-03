@@ -24,6 +24,7 @@ export type MassKind =
   | 'glass'
   | 'stair'
   | 'roof'
+  | 'prism'
   | 'parapet'
   | 'column'
   | 'canopy'
@@ -41,6 +42,16 @@ export type MassKind =
   | 'hedge'
   | 'fence'
 
+/** a sloped roof volume — the box bounds the eaves rectangle, `form` + `ridge`
+ *  say how the top is shaped, `low` (mono-slope) which eave sits at the base */
+export type RoofPrism = {
+  form: 'gable' | 'hip' | 'mono'
+  /** ridge runs along this world axis */
+  ridge: 'x' | 'z'
+  /** mono-slope: the low eave */
+  low?: 'x-' | 'x+' | 'z-' | 'z+'
+}
+
 export type MassBox = {
   id: string
   kind: MassKind
@@ -49,6 +60,8 @@ export type MassBox = {
   /** full extents, metres */
   size: [number, number, number]
   level: number
+  /** only for kind === 'prism' */
+  prism?: RoofPrism
 }
 
 export type Massing = {
@@ -101,7 +114,7 @@ function seededRng(seed: string): () => number {
 }
 
 type Vec3 = [number, number, number]
-type Push = (id: string, kind: MassKind, level: number, pos: Vec3, size: Vec3) => void
+type Push = (id: string, kind: MassKind, level: number, pos: Vec3, size: Vec3, prism?: RoofPrism) => void
 type XF = (mm: number) => number
 type Side = 'N' | 'S' | 'E' | 'W'
 type FaceOp = { at: number; width: number; sill: number; head: number }
@@ -150,9 +163,9 @@ export function buildMassing(design: Design): Massing {
   const m: XF = (mm) => mm / 1000
 
   const boxes: MassBox[] = []
-  const push: Push = (id, kind, level, pos, size) => {
+  const push: Push = (id, kind, level, pos, size, prism) => {
     if (size[0] > 0.02 && size[1] > 0.02 && size[2] > 0.02)
-      boxes.push({ id, kind, pos, size, level })
+      boxes.push({ id, kind, pos, size, level, prism })
   }
 
   const floors = [...design.floors].sort((a, b) => a.level - b.level)
@@ -258,7 +271,12 @@ export function buildMassing(design: Design): Massing {
 
       // ---- roof on top; a walkable terrace where nothing stands on this block ----
       if (L === topLevel) {
-        buildRoof(o, wallTop, L, T, push, wx, wz, m)
+        const rk = floor.roof?.perBlock?.[bi]?.kind ?? floor.roof?.kind ?? 'flat'
+        if (rk === 'hip' || rk === 'gable' || rk === 'mono-slope') {
+          buildPitchedRoof(o, wallTop, L, rk, floor.roof?.perBlock?.[bi]?.pitchDeg ?? floor.roof?.pitchDeg ?? T.roof.pitchDeg, T, push, wx, wz, m)
+        } else {
+          buildRoof(o, wallTop, L, T, push, wx, wz, m)
+        }
       } else {
         const cover = coverAbove(o, above)
         buildTerrace(o, cover, wallTop, L, T, push, wx, wz, m)
@@ -314,10 +332,15 @@ export function buildMassing(design: Design): Massing {
       )
     }
 
-    // ---- flat-roof entry portico over the door ----
+    // ---- entry threshold: a portico over the door, or a full colonnaded
+    // verandah where the style calls for one ----
     if (L === 0) {
       const entry = floor.openings.find((op) => op.kind === 'entry')
-      if (entry) buildPorch(entry, y0, H, push, wx, wz, m)
+      if (T.verandah) {
+        buildVerandah(oFull, entry, floor.courtyard ?? null, y0, H, T, push, wx, wz, m)
+      } else if (entry) {
+        buildPorch(entry, y0, H, push, wx, wz, m)
+      }
     }
 
     // ---- stair — only the flights that actually go up to a floor above ----
@@ -758,6 +781,51 @@ function buildRoof(o: Rect, wallTop: number, L: number, T: ThemeDef, push: Push,
   push(`par-${L}-e`, 'parapet', L, [wx(o.x + o.w) + EXT_T / 2 - PARAPET_T / 2, pcy, czw], [PARAPET_T, parH, vLen])
 }
 
+/** a real sloped roof volume over a block — a `prism` box the scene renders as a
+ *  hip / gable / mono-slope solid, plus a thin eave fascia band under it */
+function buildPitchedRoof(
+  o: Rect,
+  wallTop: number,
+  L: number,
+  kind: 'hip' | 'gable' | 'mono-slope',
+  pitchDeg: number,
+  T: ThemeDef,
+  push: Push,
+  wx: XF,
+  wz: XF,
+  m: XF,
+) {
+  const eave = Math.max(T.roof.eaveMm, 500) / 1000
+  const wallW = m(o.w) + EXT_T
+  const wallD = m(o.h) + EXT_T
+  const rw = wallW + 2 * eave
+  const rd = wallD + 2 * eave
+  const cxw = wx(o.x + o.w / 2)
+  const czw = wz(o.y + o.h / 2)
+  // ridge runs along the longer plan axis
+  const ridge: 'x' | 'z' = o.w >= o.h ? 'x' : 'z'
+  const span = (ridge === 'x' ? rd : rw) / 2
+  const rise = Math.min(span * Math.tan((pitchDeg * Math.PI) / 180), 3.4)
+  const fasciaT = T.roof.thickMm / 1000
+
+  // thin eave fascia sitting on top of the wall, all round
+  push(`eave-${L}-n`, 'roof', L, [cxw, wallTop + fasciaT / 2, wz(o.y) - EXT_T / 2 - eave + 0.06], [rw, fasciaT, 0.12])
+  push(`eave-${L}-s`, 'roof', L, [cxw, wallTop + fasciaT / 2, wz(o.y + o.h) + EXT_T / 2 + eave - 0.06], [rw, fasciaT, 0.12])
+  push(`eave-${L}-w`, 'roof', L, [wx(o.x) - EXT_T / 2 - eave + 0.06, wallTop + fasciaT / 2, czw], [0.12, fasciaT, rd])
+  push(`eave-${L}-e`, 'roof', L, [wx(o.x + o.w) + EXT_T / 2 + eave - 0.06, wallTop + fasciaT / 2, czw], [0.12, fasciaT, rd])
+
+  const form = kind === 'mono-slope' ? 'mono' : kind === 'gable' ? 'gable' : 'hip'
+  const low = form === 'mono' ? (ridge === 'x' ? 'z-' : 'x-') : undefined
+  push(
+    `pitch-${L}`,
+    'prism',
+    L,
+    [cxw, wallTop + fasciaT + rise / 2, czw],
+    [rw, rise, rd],
+    { form, ridge, low },
+  )
+}
+
 /** a vertical timber-batten cladding panel on the entry (plan-south) facade,
  *  framed in a slim white L, positioned clear of the door and windows */
 function buildCladding(
@@ -1098,6 +1166,74 @@ function buildPorch(entry: Opening, y0: number, H: number, push: Push, wx: XF, w
     const px = cx + s * half
     push(`eporch-col${s < 0 ? 'l' : 'r'}`, 'column', 0, [wx(px), colH / 2, wz(colZ)], [0.26, colH, 0.26])
     push(`eporch-colbase${s < 0 ? 'l' : 'r'}`, 'plinth', 0, [wx(px), 0.07, wz(colZ)], [0.44, 0.14, 0.44])
+  }
+}
+
+/**
+ * A covered verandah / sit-out on a colonnade along the entry (plan-south)
+ * facade of the ground floor — the recognisably-Indian shaded threshold. Skips
+ * the bay over the entry door. `wrapCourt` extends a matching run along the
+ * courtyard's near edge.
+ */
+function buildVerandah(
+  g: Rect,
+  entry: Opening | undefined,
+  court: Rect | null,
+  y0: number,
+  H: number,
+  T: ThemeDef,
+  push: Push,
+  wx: XF,
+  wz: XF,
+  m: XF,
+) {
+  const v = T.verandah
+  if (!v) return
+  const col = T.columns ?? { style: 'square' as const, sizeMm: 300 }
+  const depth = Math.max(v.depthMm, 1500) / 1000
+  const headY = y0 + Math.min(BAND.entry.head + 0.35, H - 0.2)
+  const beamT = 0.22
+  const colH = headY - beamT
+
+  const colGeo = (px: number, pz: number, tag: string) => {
+    const s = col.sizeMm / 1000
+    if (col.style === 'round') {
+      // an octagon-ish stack of thin boxes reads round enough at this scale
+      push(`${tag}a`, 'column', 0, [wx(px), colH / 2, wz(pz)], [s, colH, s])
+      push(`${tag}b`, 'column', 0, [wx(px), colH / 2, wz(pz)], [s * 0.72, colH, s * 1.18])
+      push(`${tag}c`, 'column', 0, [wx(px), colH / 2, wz(pz)], [s * 1.18, colH, s * 0.72])
+    } else if (col.style === 'tapered') {
+      push(`${tag}base`, 'column', 0, [wx(px), colH * 0.12, wz(pz)], [s * 1.25, colH * 0.24, s * 1.25])
+      push(`${tag}sh`, 'column', 0, [wx(px), colH * 0.56, wz(pz)], [s, colH * 0.64, s])
+      push(`${tag}cap`, 'column', 0, [wx(px), colH - colH * 0.06, wz(pz)], [s * 1.3, colH * 0.12, s * 1.3])
+    } else {
+      push(`${tag}`, 'column', 0, [wx(px), colH / 2, wz(pz)], [s, colH, s])
+    }
+    push(`${tag}pad`, 'plinth', 0, [wx(px), 0.06, wz(pz)], [s * 1.5, 0.12, s * 1.5])
+  }
+
+  const run = (a: number, b: number, faceZ: number, dir: 1 | -1, key: string) => {
+    const span = b - a
+    if (span < 3200) return
+    const zEdge = faceZ + dir * depth * 1000
+    const cxw = wx((a + b) / 2)
+    // deck at grade + flat canopy slab + edge beam
+    push(`${key}-deck`, 'paving', 0, [cxw, y0 - 0.06, wz((faceZ + zEdge) / 2)], [m(span), 0.12, depth])
+    push(`${key}-slab`, 'canopy', 0, [cxw, headY - 0.08, wz((faceZ + zEdge) / 2)], [m(span) + 0.2, 0.16, depth + 0.1])
+    push(`${key}-beam`, 'canopy', 0, [cxw, headY - 0.24, wz(zEdge)], [m(span) + 0.2, beamT, 0.16])
+    // columns, skipping the entry bay
+    const n = Math.max(2, Math.round(span / 2900))
+    const doorX = entry && entry.orient === 'h' ? entry.at.x : null
+    for (let i = 0; i <= n; i++) {
+      const px = a + (span * i) / n
+      if (doorX != null && Math.abs(px - doorX) < entry!.width / 2 + 700) continue
+      colGeo(px, zEdge - dir * (col.sizeMm / 2), `${key}-c${i}`)
+    }
+  }
+
+  run(g.x + 300, g.x + g.w - 300, g.y + g.h, 1, 'ver-s')
+  if (v.wrapCourt && court) {
+    run(court.x + 200, court.x + court.w - 200, court.y + court.h, 1, 'ver-ct')
   }
 }
 

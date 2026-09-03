@@ -54,7 +54,7 @@ export function Report() {
   const [error, setError] = useState<string | null>(null)
   const [confirmClear, setConfirmClear] = useState(false)
 
-  const character = result?.model.brief.style.character ?? 'modernist'
+  const character = result?.model.brief.style.character ?? 'modern-indian'
 
   const conceptImages = useMemo<ReportImage[]>(() => {
     const out: ReportImage[] = []

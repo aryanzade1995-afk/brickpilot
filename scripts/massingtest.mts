@@ -15,7 +15,7 @@ import { validate } from '../src/lib/rules/index.ts'
 import { buildMassing } from '../src/lib/three/buildMassing.ts'
 import { MASSING_TYPES, type MassingType } from '../src/lib/engine/massing/types.ts'
 
-const CHARACTERS = ['modernist', 'warm-minimal', 'kerala-contemporary'] as const
+const CHARACTERS = ['modern-indian', 'minimal-indian', 'kerala-contemporary', 'modern-kerala', 'tropical-indian'] as const
 const EXPLICIT: (MassingType | 'auto')[] = [
   'auto',
   'rectangular',
@@ -86,8 +86,23 @@ for (const character of CHARACTERS) {
 
       if (massing === 'auto') {
         const g = design.floors[0].outline
-        const up = design.floors[1]?.footprint?.[0]
-        const offset = up ? Math.abs(up.x - design.floors[0].footprint[0].x) + Math.abs(up.y - design.floors[0].footprint[0].y) : 0
+        // per-floor movement: how far the top storey's bounding box differs from
+        // the ground bounding box on any edge (shrink / step / cantilever / offset)
+        const bb = (f: (typeof design.floors)[number]) => {
+          const bs = f.footprint
+          return {
+            x: Math.min(...bs.map((b) => b.x)),
+            y: Math.min(...bs.map((b) => b.y)),
+            r: Math.max(...bs.map((b) => b.x + b.w)),
+            b: Math.max(...bs.map((b) => b.y + b.h)),
+          }
+        }
+        const g0 = bb(design.floors[0])
+        const gt = bb(design.floors[design.floors.length - 1])
+        const offset =
+          design.floors.length > 1
+            ? Math.max(Math.abs(gt.x - g0.x), Math.abs(gt.y - g0.y), Math.abs(gt.r - g0.r), Math.abs(gt.b - g0.b))
+            : 0
         autoRows.push({
           seed,
           aspect: Math.round((g.w / g.h) * 100) / 100,
@@ -102,17 +117,17 @@ for (const character of CHARACTERS) {
 }
 
 /* ---- diversity gate over the 20 auto seeds (one character's worth) ---- */
-const auto = autoRows.filter((_, i) => i < SEEDS) // modernist run
+const auto = autoRows.filter((_, i) => i < SEEDS) // modern-indian run
 const distinctTypes = new Set(auto.map((r) => r.type)).size
 const multiBlock = auto.filter((r) => r.blocks >= 2).length
 const maxBlocks = Math.max(...auto.map((r) => r.blocks))
-const withOffset = auto.filter((r) => r.offset > 300).length
+const withOffset = auto.filter((r) => r.offset > 600).length
 const distinctRoofs = new Set(auto.map((r) => r.roof)).size
 
-console.log('\nauto-pick spread (modernist, 20 seeds):')
+console.log('\nauto-pick spread (modern-indian, 20 seeds):')
 console.log('  distinct massing types :', distinctTypes, '     ', [...new Set(auto.map((r) => r.type))].join(', '))
 console.log('  seeds w/ a multi-block footprint:', multiBlock, '/', SEEDS, '(max', maxBlocks, 'blocks)')
-console.log('  seeds with a real floor offset :', withOffset, '/', SEEDS)
+console.log('  seeds w/ real per-floor movement:', withOffset, '/', SEEDS)
 console.log('  distinct roof kinds    :', distinctRoofs)
 
 // the grammar must not collapse back to one template: several distinct
@@ -121,7 +136,7 @@ console.log('  distinct roof kinds    :', distinctRoofs)
 if (distinctTypes < 5) fail('diversity', `only ${distinctTypes} distinct massing types over 20 seeds`)
 if (multiBlock < 2) fail('diversity', `only ${multiBlock} seeds have a multi-block footprint`)
 if (maxBlocks < 2) fail('diversity', 'no multi-block footprint ever chosen')
-if (withOffset < 3) fail('diversity', `only ${withOffset} seeds have a floor offset`)
+if (withOffset < 4) fail('diversity', `only ${withOffset} seeds show real per-floor movement`)
 
 console.log(`\n${cases} cases, ${bad} bad`)
 void MASSING_TYPES

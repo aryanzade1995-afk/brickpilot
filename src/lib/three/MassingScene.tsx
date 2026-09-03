@@ -2,13 +2,14 @@ import { useEffect, useMemo } from 'react'
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import { ContactShadows, Environment, Lightformer } from '@react-three/drei'
-import type { Massing, MassKind } from './buildMassing.ts'
+import type { Massing, MassKind, RoofPrism } from './buildMassing.ts'
 import { GROUP_OF, CUTAWAY_WALL, type Group } from './massingGroups.ts'
 import { THEMES, type Character } from '@/lib/model/themes.ts'
 
 /** exterior trim + anything sitting on / above the roof — dropped in the cutaway */
 const CUTAWAY_SKIP = new Set<MassKind>([
   'roof',
+  'prism',
   'parapet',
   'canopy',
   'glass',
@@ -22,6 +23,89 @@ const CUTAWAY_SKIP = new Set<MassKind>([
   'clad', // window frames + timber cladding — float above the cut wall
   'feature', // the entry pier — a full-height stick once the storeys lift
 ])
+
+/**
+ * A sloped-roof solid centred at the origin: base at y=-h/2 (the eaves
+ * rectangle w×d), ridge / apex at y=+h/2. Built as a flat-shaded triangle soup.
+ */
+function makePrism(w: number, h: number, d: number, p: RoofPrism): THREE.BufferGeometry {
+  const hw = w / 2
+  const hh = h / 2
+  const hd = d / 2
+  const tris: number[] = []
+  const quad = (
+    a: [number, number, number],
+    b: [number, number, number],
+    c: [number, number, number],
+    e: [number, number, number],
+  ) => tris.push(...a, ...b, ...c, ...a, ...c, ...e)
+  const tri = (a: [number, number, number], b: [number, number, number], c: [number, number, number]) =>
+    tris.push(...a, ...b, ...c)
+
+  // shared bottom (eaves) rectangle — faces down
+  quad([-hw, -hh, hd], [hw, -hh, hd], [hw, -hh, -hd], [-hw, -hh, -hd])
+
+  if (p.form === 'mono') {
+    // low edge on `low`, high edge opposite
+    const lowZ = p.low === 'z+' ? hd : -hd
+    const lowX = p.low === 'x+' ? hw : -hw
+    if (p.ridge === 'x') {
+      const zL = lowZ
+      const zH = -lowZ
+      quad([-hw, hh, zH], [hw, hh, zH], [hw, -hh, zL], [-hw, -hh, zL]) // sloped top
+      quad([-hw, -hh, zH], [hw, -hh, zH], [hw, hh, zH], [-hw, hh, zH]) // high wall
+      tri([-hw, -hh, zL], [-hw, -hh, zH], [-hw, hh, zH]) // gable-ish ends
+      tri([hw, -hh, zH], [hw, -hh, zL], [hw, hh, zH])
+    } else {
+      const xL = lowX
+      const xH = -lowX
+      quad([xH, hh, -hd], [xH, hh, hd], [xL, -hh, hd], [xL, -hh, -hd])
+      quad([xH, -hh, -hd], [xH, -hh, hd], [xH, hh, hd], [xH, hh, -hd])
+      tri([xL, -hh, -hd], [xH, -hh, -hd], [xH, hh, -hd])
+      tri([xH, -hh, hd], [xL, -hh, hd], [xH, hh, hd])
+    }
+  } else if (p.form === 'gable') {
+    if (p.ridge === 'x') {
+      quad([-hw, hh, 0], [hw, hh, 0], [hw, -hh, hd], [-hw, -hh, hd]) // +z slope
+      quad([hw, hh, 0], [-hw, hh, 0], [-hw, -hh, -hd], [hw, -hh, -hd]) // -z slope
+      tri([-hw, -hh, -hd], [-hw, -hh, hd], [-hw, hh, 0]) // -x gable
+      tri([hw, -hh, hd], [hw, -hh, -hd], [hw, hh, 0]) // +x gable
+    } else {
+      quad([0, hh, -hd], [0, hh, hd], [hw, -hh, hd], [hw, -hh, -hd])
+      quad([0, hh, hd], [0, hh, -hd], [-hw, -hh, -hd], [-hw, -hh, hd])
+      tri([-hw, -hh, -hd], [hw, -hh, -hd], [0, hh, -hd])
+      tri([hw, -hh, hd], [-hw, -hh, hd], [0, hh, hd])
+    }
+  } else {
+    // hip — the ridge is inset from both ends along the ridge axis
+    const inset = p.ridge === 'x' ? Math.min(hw, hd) * 0.55 : Math.min(hw, hd) * 0.55
+    if (p.ridge === 'x') {
+      const r0: [number, number, number] = [-hw + inset, hh, 0]
+      const r1: [number, number, number] = [hw - inset, hh, 0]
+      quad(r0, r1, [hw, -hh, hd], [-hw, -hh, hd]) // +z hip plane
+      quad(r1, r0, [-hw, -hh, -hd], [hw, -hh, -hd]) // -z hip plane
+      tri([-hw, -hh, -hd], [-hw, -hh, hd], r0) // -x hip end
+      tri([hw, -hh, hd], [hw, -hh, -hd], r1) // +x hip end
+    } else {
+      const r0: [number, number, number] = [0, hh, -hd + inset]
+      const r1: [number, number, number] = [0, hh, hd - inset]
+      quad(r1, r0, [hw, -hh, -hd], [hw, -hh, hd])
+      quad(r0, r1, [-hw, -hh, hd], [-hw, -hh, -hd])
+      tri([-hw, -hh, -hd], [hw, -hh, -hd], r0)
+      tri([hw, -hh, hd], [-hw, -hh, hd], r1)
+    }
+  }
+
+  const geo = new THREE.BufferGeometry()
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(tris, 3))
+  const nv = tris.length / 3
+  // a matching uv attr + a trivial index so this merges with the (indexed,
+  // uv'd) BoxGeometry roof decks in the same group
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(nv * 2), 2))
+  geo.setIndex(Array.from({ length: nv }, (_, i) => i))
+  geo.computeVertexNormals()
+  return geo
+}
 
 export function MassingModel({
   massing,
@@ -67,7 +151,8 @@ export function MassingModel({
         continue
       }
 
-      const geo = new THREE.BoxGeometry(w, h, d)
+      const geo =
+        b.kind === 'prism' && b.prism ? makePrism(w, h, d, b.prism) : new THREE.BoxGeometry(w, h, d)
       geo.translate(b.pos[0], cy, b.pos[2])
       if (!byGroup.has(g)) byGroup.set(g, [])
       byGroup.get(g)!.push(geo)

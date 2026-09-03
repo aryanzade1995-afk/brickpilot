@@ -199,8 +199,6 @@ export function generate(model: CanonicalModel, opts: Strategy | GenerateOpts = 
   const floorProgSqm = model.floors.map(
     (fp) => fp.spaces.filter((s) => !s.outdoor).reduce((a, s) => a + s.target, 0) + 12,
   )
-  const roofBias: 'flat' | 'pitched' =
-    model.brief.style.character === 'kerala-contemporary' ? 'pitched' : 'flat'
   const mctx: MassingCtx = {
     storeys: model.brief.levels.storeys,
     coreW,
@@ -209,7 +207,7 @@ export function generate(model: CanonicalModel, opts: Strategy | GenerateOpts = 
     plotW: model.plot.width,
     plotD: model.plot.depth,
     floorProgSqm,
-    roofBias,
+    roofBias: themeOf(model.brief).roofBias,
   }
   // brief-key is the variation-independent hash (before the `-<variation>` tail)
   // so a pinned direction reproduces exactly when its seed is written to the brief
@@ -517,6 +515,7 @@ function buildFloor(
     outline,
     footprint: blocks,
     roof: fm.roof,
+    courtyard: court,
     rooms,
     walls,
     openings,

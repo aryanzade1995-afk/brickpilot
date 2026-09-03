@@ -18,11 +18,40 @@ export const BUILDING_TYPE_LABEL: Record<BuildingType, string> = {
   'large-villa': 'Large villa',
 }
 
-export const characterSchema = z.enum(['modernist', 'warm-minimal', 'kerala-contemporary'])
-export const CHARACTER_LABEL: Record<z.infer<typeof characterSchema>, string> = {
-  modernist: 'Modern Indian',
-  'warm-minimal': 'Minimal Indian',
+/**
+ * Architectural style catalogue. `character` controls only STYLE — materials,
+ * roof expression, screens, columns, landscaping — never the structure (that is
+ * `style.massing`). New styles are additive; the three legacy ids are migrated
+ * on load (see `MIGRATE_CHARACTER` + `studio.ts`).
+ */
+export const characterSchema = z.enum([
+  'modern-indian',
+  'contemporary-indian',
+  'modern-kerala',
+  'kerala-contemporary',
+  'luxury-indian',
+  'tropical-indian',
+  'minimal-indian',
+  'courtyard-indian',
+])
+export type Character = z.infer<typeof characterSchema>
+
+/** legacy character ids → the current catalogue */
+export const MIGRATE_CHARACTER: Record<string, Character> = {
+  modernist: 'modern-indian',
+  'warm-minimal': 'minimal-indian',
+  'kerala-contemporary': 'kerala-contemporary',
+}
+
+export const CHARACTER_LABEL: Record<Character, string> = {
+  'modern-indian': 'Modern Indian',
+  'contemporary-indian': 'Contemporary Indian',
+  'modern-kerala': 'Modern Kerala',
   'kerala-contemporary': 'Kerala Contemporary',
+  'luxury-indian': 'Luxury Indian villa',
+  'tropical-indian': 'Tropical Indian modern',
+  'minimal-indian': 'Minimal Indian',
+  'courtyard-indian': 'Courtyard Indian modern',
 }
 
 export const massingSchema = z.enum([
@@ -113,7 +142,12 @@ export const briefSchema = z
       .prefault({}),
     style: z
       .object({
-        character: characterSchema.default('modernist'),
+        character: z
+          .preprocess(
+            (v) => (typeof v === 'string' && v in MIGRATE_CHARACTER ? MIGRATE_CHARACTER[v] : v),
+            characterSchema,
+          )
+          .default('modern-indian'),
         /** architectural massing archetype — `auto` picks by fit, `random` re-rolls */
         massing: massingSchema.default('auto'),
         /** how far the massing grammar pushes offsets / cantilevers / asymmetry */

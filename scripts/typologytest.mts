@@ -11,7 +11,7 @@ import { buildMassing } from '../src/lib/three/buildMassing.ts'
  * headline social room than a default (15×18) villa; keep its rooms believable
  * (no runaway ballooning); and produce only finite, positive-size massing boxes. */
 
-const chars = ['modernist', 'warm-minimal', 'kerala-contemporary'] as const
+const chars = ['modern-indian', 'minimal-indian', 'kerala-contemporary', 'modern-kerala', 'tropical-indian', 'luxury-indian', 'contemporary-indian', 'courtyard-indian'] as const
 
 // headline social room of a plain villa on the default plot — the "large" one must beat it
 const socialOf = (d: ReturnType<typeof generate>) =>

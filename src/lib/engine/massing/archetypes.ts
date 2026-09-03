@@ -19,8 +19,8 @@ export type MassingCtx = {
   plotD: number
   /** rough per-floor programme areas (m²), ground-first — sizes the upper blocks */
   floorProgSqm: number[]
-  /** kerala / tropical want pitched roofs; modern wants flat */
-  roofBias: 'flat' | 'pitched'
+  /** kerala / tropical want pitched roofs; modern wants flat; some want a mix */
+  roofBias: 'flat' | 'pitched' | 'mixed'
 }
 
 const G = 100
@@ -71,10 +71,13 @@ const amp = (d: Diversity) => ({ low: 0.9, medium: 1.7, high: 2.6, extreme: 3.6 
 /** cantilever projection cap by diversity (mm) — validation hard limit is 1800 */
 const cantMax = (d: Diversity) => ({ low: 700, medium: 1100, high: 1500, extreme: 1750 })[d]
 
-const flatRoof = (bias: 'flat' | 'pitched', rng: Rng): RoofSpec =>
-  bias === 'pitched' && rng.chance(0.7)
-    ? { kind: rng.pick(['hip', 'gable', 'mono-slope'] as const), pitchDeg: rng.int(18, 30) }
+/** the top-storey roof for a style's `roofBias` */
+export const flatRoof = (bias: 'flat' | 'pitched' | 'mixed', rng: Rng): RoofSpec => {
+  const pitchChance = bias === 'pitched' ? 0.82 : bias === 'mixed' ? 0.45 : 0
+  return pitchChance > 0 && rng.chance(pitchChance)
+    ? { kind: rng.pick(['hip', 'gable', 'mono-slope'] as const), pitchDeg: rng.int(16, 28) }
     : { kind: rng.chance(0.5) ? 'flat-parapet' : 'flat' }
+}
 
 /** m² of footprint a floor's programme really needs (rooms + circulation + walls) */
 const progNeed = (ctx: MassingCtx, level: number): number =>
@@ -126,8 +129,8 @@ const insetBudget = (env: Rect, ctx: MassingCtx, d: Diversity): number => {
 }
 
 /** stack N upper floors that shrink toward the (west-edge) core — the baseline */
-function shrinkStack(g: Rect, ctx: MassingCtx, rng: Rng, bias: 'flat' | 'pitched'): FloorMassing[] {
-  const out = [floor(0, [g], { kind: bias === 'pitched' ? 'flat-parapet' : 'flat' })]
+function shrinkStack(g: Rect, ctx: MassingCtx, rng: Rng, bias: 'flat' | 'pitched' | 'mixed'): FloorMassing[] {
+  const out = [floor(0, [g], { kind: bias === 'flat' ? 'flat' : 'flat-parapet' })]
   const groundSqm = area(g) / 1e6
   let prev = g
   for (let l = 1; l <= ctx.storeys; l++) {

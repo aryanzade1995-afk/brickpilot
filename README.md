@@ -88,10 +88,18 @@ Two orthogonal choices on the Style step drive the geometry:
   coverage limit), adds a generous forecourt / courtyard when the plot allows,
   and carries a +12 % build-rate premium. `repairNarrow()` in the engine slides
   a party wall to widen any room the treemap left below the 2.4 m minimum.
-- **Character** — *Modern Indian* / *Minimal Indian* / *Kerala Contemporary*.
-  Drives the window rhythm, cladding and roof expression (flat for the first two,
-  pitched bands for Kerala) — the *style*, kept separate from the *structure*.
-  All three render flat-shaded white.
+- **Character** — an 8-style catalogue: *Modern Indian*, *Contemporary Indian*,
+  *Modern Kerala*, *Kerala Contemporary*, *Luxury Indian villa*, *Tropical Indian
+  modern*, *Minimal Indian*, *Courtyard Indian modern*. Each is a `ThemeDef`
+  (`src/lib/model/themes.ts`) built from a shared `BASE` + a small delta — window
+  rhythm, roof bias (flat / pitched / mixed), cladding, screens, columns,
+  verandah, landscaping and the step-4 render prompt. Character controls **style
+  only** — never the structure (that is `style.massing`). Legacy ids
+  (`modernist` / `warm-minimal` / `kerala-contemporary`) migrate on load via
+  `MIGRATE_CHARACTER`. `roofBias: 'pitched'` biases the massing grammar toward
+  real hip / gable / mono-slope roofs — rendered as a `prism` primitive
+  (`MassingScene.tsx` `makePrism`). `verandah` + `columns` add a colonnaded
+  covered sit-out along the entry facade (square / round / tapered posts).
 
 ## Massing grammar (Style step)
 

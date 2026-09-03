@@ -3,7 +3,7 @@ import { compile } from '../src/lib/model/canonical.ts'
 import { generate, STRATEGIES } from '../src/lib/engine/index.ts'
 import { buildRoom } from '../src/lib/three/buildRoom.ts'
 
-const chars = ['modernist', 'warm-minimal', 'kerala-contemporary'] as const
+const chars = ['modern-indian', 'minimal-indian', 'kerala-contemporary', 'modern-kerala', 'tropical-indian', 'luxury-indian', 'contemporary-indian', 'courtyard-indian'] as const
 let total = 0
 let bad = 0
 
