@@ -80,18 +80,24 @@ export function generate(model: CanonicalModel, strategy: Strategy = 'orthogonal
   else if (outdoorIds.has('verandah') || outdoorIds.has('courtyard')) frontStrip = verandahD
   if (frontStrip > 0) frontStrip += 300
 
-  // --- house footprint: fills the envelope, less the front strip ---
-  // A large villa gets wider/deeper caps so it can genuinely spread out; a
-  // coverage guard then holds the ground footprint just under the concept
-  // plot-coverage limit so a grand house on a modest plot doesn't silently
-  // breach it. Standard villas are unchanged.
+  // --- house footprint ---
   const plotArea = model.plot.width * model.plot.depth
-  let houseW = snap(Math.min(envelope.w, large ? 27000 : 22000), grid)
-  let houseH = snap(clamp(envelope.h - frontStrip, 6000, large ? 22000 : 18000), grid)
-  if (large && houseW * houseH > plotArea * 0.56) {
-    const k = Math.sqrt((plotArea * 0.56) / (houseW * houseH))
-    houseW = snap(Math.max(houseW * k, 11000), grid)
-    houseH = snap(Math.max(houseH * k, 9000), grid)
+  let houseW = snap(Math.min(envelope.w, 22000), grid)
+  let houseH = snap(clamp(envelope.h - frontStrip, 6000, 18000), grid)
+
+  if (large) {
+    // A large villa is sized to its (inflated) programme, not to the whole plot
+    // — grander rooms that stay believable rather than ballooning to fill a big
+    // site. The ground footprint must hold the busiest single floor; shape it to
+    // the plot aspect and cap it under the concept coverage limit.
+    const floorProg = (spaces: SpaceReq[]) =>
+      spaces.filter((s) => !s.outdoor).reduce((a, s) => a + s.target, 0) * 1e6
+    const busiest = Math.max(...model.floors.map((fp) => floorProg(fp.spaces)))
+    const envH = clamp(envelope.h - frontStrip, 6000, 24000)
+    const envW = Math.min(envelope.w, 30000)
+    const budget = Math.min((busiest / 0.62) * 1.15, plotArea * 0.56)
+    houseW = snap(clamp(Math.sqrt(budget * (envW / envH)), 11000, envW), grid)
+    houseH = snap(clamp(budget / houseW, 9000, envH), grid)
   }
   const houseRect: Rect = {
     x: snap(envelope.x + (envelope.w - houseW) / 2, grid),
@@ -454,9 +460,10 @@ function splitEnsuite(cell: Rect, bathTargetSqm: number, coreStrip: Rect): [Rect
 
 /**
  * Widen any habitable room the treemap left below the concept minimum width by
- * sliding its party wall into the fattest adjacent room, as long as that donor
- * stays above the minimum too. A local 2-room fix — the enclosed outline and
- * every other party wall are untouched.
+ * sliding its party wall into the adjacent room(s) on one side — a column of
+ * stacked neighbours counts, as long as together they fully cover the narrow
+ * room's span and each stays above the minimum. The enclosed outline and every
+ * unrelated party wall are untouched.
  */
 function repairNarrow(rooms: PlacedRoom[], grid: number) {
   const MIN = 2400
@@ -469,42 +476,50 @@ function repairNarrow(rooms: PlacedRoom[], grid: number) {
       if (!nx && !ny) break
       const need = snap((nx ? MIN - r.rect.w : MIN - r.rect.h) + 50, grid)
 
-      const donor = enc
-        .filter((o) => {
+      // donors on a given side that cover the narrow room's whole span
+      const pick = (side: 'lo' | 'hi') => {
+        const ds = enc.filter((o) => {
           if (o === r || o.zone === 'circulation') return false
-          if (nx) {
-            const onL = Math.abs(rectRight(o.rect) - r.rect.x) < 2
-            const onR = Math.abs(o.rect.x - rectRight(r.rect)) < 2
-            if (!onL && !onR) return false
-            const ov = Math.min(rectBottom(o.rect), rectBottom(r.rect)) - Math.max(o.rect.y, r.rect.y)
-            return ov > r.rect.h * 0.8 && o.rect.w - need >= MIN
-          }
-          const onT = Math.abs(rectBottom(o.rect) - r.rect.y) < 2
-          const onB = Math.abs(o.rect.y - rectBottom(r.rect)) < 2
-          if (!onT && !onB) return false
-          const ov = Math.min(rectRight(o.rect), rectRight(r.rect)) - Math.max(o.rect.x, r.rect.x)
-          return ov > r.rect.w * 0.8 && o.rect.h - need >= MIN
+          const edgeOk = nx
+            ? side === 'lo'
+              ? Math.abs(rectRight(o.rect) - r.rect.x) < 2
+              : Math.abs(o.rect.x - rectRight(r.rect)) < 2
+            : side === 'lo'
+              ? Math.abs(rectBottom(o.rect) - r.rect.y) < 2
+              : Math.abs(o.rect.y - rectBottom(r.rect)) < 2
+          if (!edgeOk) return false
+          return nx ? o.rect.w - need >= MIN : o.rect.h - need >= MIN
         })
-        .sort((a, b) => rectArea(b.rect) - rectArea(a.rect))[0]
-      if (!donor) break
+        if (!ds.length) return null
+        const cov = nx
+          ? ds.reduce((a, o) => a + Math.max(0, Math.min(rectBottom(o.rect), rectBottom(r.rect)) - Math.max(o.rect.y, r.rect.y)), 0)
+          : ds.reduce((a, o) => a + Math.max(0, Math.min(rectRight(o.rect), rectRight(r.rect)) - Math.max(o.rect.x, r.rect.x)), 0)
+        const span = nx ? r.rect.h : r.rect.w
+        return cov >= span - 2 * grid ? ds : null
+      }
+
+      const lo = pick('lo')
+      const hi = lo ? null : pick('hi')
+      const donors = lo ?? hi
+      if (!donors) break
 
       if (nx) {
-        if (Math.abs(rectRight(donor.rect) - r.rect.x) < 2) {
-          donor.rect = { ...donor.rect, w: donor.rect.w - need }
+        if (lo) {
+          for (const o of donors) o.rect = { ...o.rect, w: o.rect.w - need }
           r.rect = { ...r.rect, x: r.rect.x - need, w: r.rect.w + need }
         } else {
+          for (const o of donors) o.rect = { ...o.rect, x: o.rect.x + need, w: o.rect.w - need }
           r.rect = { ...r.rect, w: r.rect.w + need }
-          donor.rect = { ...donor.rect, x: donor.rect.x + need, w: donor.rect.w - need }
         }
-      } else if (Math.abs(rectBottom(donor.rect) - r.rect.y) < 2) {
-        donor.rect = { ...donor.rect, h: donor.rect.h - need }
+      } else if (lo) {
+        for (const o of donors) o.rect = { ...o.rect, h: o.rect.h - need }
         r.rect = { ...r.rect, y: r.rect.y - need, h: r.rect.h + need }
       } else {
+        for (const o of donors) o.rect = { ...o.rect, y: o.rect.y + need, h: o.rect.h - need }
         r.rect = { ...r.rect, h: r.rect.h + need }
-        donor.rect = { ...donor.rect, y: donor.rect.y + need, h: donor.rect.h - need }
       }
       r.area = toSqm(rectArea(r.rect))
-      donor.area = toSqm(rectArea(donor.rect))
+      for (const o of donors) o.area = toSqm(rectArea(o.rect))
     }
   }
 }

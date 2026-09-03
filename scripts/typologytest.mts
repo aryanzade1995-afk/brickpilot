@@ -5,11 +5,18 @@ import { validate } from '../src/lib/rules/index.ts'
 import { estimateCost } from '../src/lib/cost/index.ts'
 import { buildMassing } from '../src/lib/three/buildMassing.ts'
 
-/* Large-villa typology: for every character × storey count × strategy the design
- * must stay valid, cost more and build bigger than the matching plain villa, and
- * the massing must produce only finite, positive-size boxes. */
+/* Large-villa typology. For every character × storey count × strategy the large
+ * villa must: stay valid and reachable; carry a higher build rate; score at
+ * least as well as the plain villa on the same plot; give a genuinely larger
+ * headline social room than a default (15×18) villa; keep its rooms believable
+ * (no runaway ballooning); and produce only finite, positive-size massing boxes. */
 
 const chars = ['modernist', 'warm-minimal', 'kerala-contemporary'] as const
+
+// headline social room of a plain villa on the default plot — the "large" one must beat it
+const socialOf = (d: ReturnType<typeof generate>) =>
+  Math.max(0, ...d.floors.flatMap((f) => f.rooms).filter((r) => r.zone === 'social').map((r) => r.area))
+
 let total = 0
 let bad = 0
 
@@ -20,19 +27,20 @@ for (const c of chars) {
       const base = defaultBrief()
       base.levels.storeys = st
       base.style.character = c
-      // a plot large enough that the standard-villa caps bind but the large
-      // villa still has room to spread
-      base.site.plotWidth = 26
-      base.site.plotDepth = 32
 
-      const small = { ...structuredClone(base), project: { ...base.project, buildingType: 'villa' as const } }
-      const big = { ...structuredClone(base), project: { ...base.project, buildingType: 'large-villa' as const } }
+      const dfault = generate(compile(base), s.id) // default 15×18 plain villa
 
-      const ds = generate(compile(small), s.id)
-      const db = generate(compile(big), s.id)
+      const onPlot = (bt: 'villa' | 'large-villa') => {
+        const b = structuredClone(base)
+        b.project.buildingType = bt
+        b.site.plotWidth = 26
+        b.site.plotDepth = 32
+        return generate(compile(b), s.id)
+      }
+      const ds = onPlot('villa')
+      const db = onPlot('large-villa')
       const rs = validate(ds)
       const rb = validate(db)
-      const reach = db.floors.every((f) => f.reachable)
       const cs = estimateCost(ds)
       const cb = estimateCost(db)
 
@@ -40,46 +48,26 @@ for (const c of chars) {
       const badBox = m.boxes.find(
         (x) => x.pos.some((v) => !Number.isFinite(v)) || x.size.some((v) => !(v > 0) || !Number.isFinite(v)),
       )
-      const finiteBounds = Number.isFinite(m.bounds.w) && Number.isFinite(m.bounds.d) && m.bounds.w > 0
-
-      const bigger = db.builtAreaSqm > ds.builtAreaSqm + 1
-      const dearerRate = cb.ratePerSqm.high > cs.ratePerSqm.high
-      // the large villa must be no worse than the plain villa on the same plot —
-      // a hard-check the plain villa already fails is a pre-existing engine issue,
-      // not a typology regression
-      const notWorse = rb.hardChecksPass || !rs.hardChecksPass
-      const scoreOk = rb.score >= rs.score - 4
-
+      const checks = {
+        valid: rb.hardChecksPass || !rs.hardChecksPass, // no worse than the plain villa
+        reach: db.floors.every((f) => f.reachable),
+        dearerRate: cb.ratePerSqm.high > cs.ratePerSqm.high,
+        scoreOk: rb.score >= Math.max(55, rs.score - 2),
+        roomier: socialOf(db) > socialOf(dfault) + 2,
+        believable: socialOf(db) < 140, // grand, not runaway
+        boxesOk: !badBox && Number.isFinite(m.bounds.w) && m.bounds.w > 0,
+      }
       const tag = `${c} G+${st} ${s.id}`
-      const fail =
-        !notWorse || !reach || !bigger || !dearerRate || !scoreOk || !!badBox || !finiteBounds
-      if (fail) {
+      const failed = Object.entries(checks).filter(([, ok]) => !ok).map(([k]) => k)
+      if (failed.length) {
         bad++
-        console.log(
-          'BAD ',
-          tag.padEnd(34),
-          JSON.stringify({
-            notWorse,
-            hardPassS: rs.hardChecksPass,
-            hardPassB: rb.hardChecksPass,
-            reach,
-            bigger,
-            builtS: +ds.builtAreaSqm.toFixed(0),
-            builtB: +db.builtAreaSqm.toFixed(0),
-            dearerRate,
-            scoreOk,
-            scoreS: rs.score,
-            scoreB: rb.score,
-            badBox: badBox?.id,
-            finiteBounds,
-          }),
-        )
+        console.log('BAD ', tag.padEnd(34), failed.join(','), JSON.stringify({
+          scoreS: rs.score, scoreB: rb.score, socialDefault: +socialOf(dfault).toFixed(0),
+          socialB: +socialOf(db).toFixed(0), builtB: +db.builtAreaSqm.toFixed(0), badBox: badBox?.id,
+        }))
       } else {
-        console.log(
-          'ok  ',
-          tag.padEnd(34),
-          `built ${ds.builtAreaSqm.toFixed(0)}→${db.builtAreaSqm.toFixed(0)} m²  score ${rb.score}  boxes ${m.boxes.length}`,
-        )
+        console.log('ok  ', tag.padEnd(34),
+          `social ${socialOf(dfault).toFixed(0)}→${socialOf(db).toFixed(0)} m²  score ${rs.score}→${rb.score}  boxes ${m.boxes.length}`)
       }
     }
   }
