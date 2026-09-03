@@ -27,7 +27,9 @@ const RATE_SPREAD = 0.14
 
 export function estimateCost(design: Design): CostEstimate {
   const area = design.builtAreaSqm
-  const mid = BASE_RATE[design.model.brief.style.character]
+  const large = design.model.brief.project.buildingType === 'large-villa'
+  // a large villa carries longer spans, more glazing and a grander finish level
+  const mid = BASE_RATE[design.model.brief.style.character] * (large ? 1.12 : 1)
   const rate: Band = { low: mid * (1 - RATE_SPREAD), high: mid * (1 + RATE_SPREAD) }
 
   const base: Band = { low: area * rate.low, high: area * rate.high }
@@ -57,7 +59,7 @@ export function estimateCost(design: Design): CostEstimate {
     expected: (total.low + total.high) / 2,
     ratePerSqm: rate,
     lines,
-    basis: `${design.floors.length} floors · ${area.toFixed(0)} m² built-up · ${design.openingCounts.doors} doors · ${design.openingCounts.windows} windows`,
+    basis: `${large ? 'Large villa · ' : ''}${design.floors.length} floors · ${area.toFixed(0)} m² built-up · ${design.openingCounts.doors} doors · ${design.openingCounts.windows} windows`,
     confidence: 'C',
     included: [
       'Structure, envelope and internal finishes at the selected character',

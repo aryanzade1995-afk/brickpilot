@@ -60,6 +60,7 @@ export function generateDirections(
 
 export function generate(model: CanonicalModel, strategy: Strategy = 'orthogonal-core'): Design {
   const grid = model.grid
+  const large = model.brief.project.buildingType === 'large-villa'
 
   const envelope: Rect = {
     x: model.setbacksMm.W,
@@ -80,8 +81,18 @@ export function generate(model: CanonicalModel, strategy: Strategy = 'orthogonal
   if (frontStrip > 0) frontStrip += 300
 
   // --- house footprint: fills the envelope, less the front strip ---
-  const houseW = snap(Math.min(envelope.w, 22000), grid)
-  const houseH = snap(clamp(envelope.h - frontStrip, 6000, 18000), grid)
+  // A large villa gets wider/deeper caps so it can genuinely spread out; a
+  // coverage guard then holds the ground footprint just under the concept
+  // plot-coverage limit so a grand house on a modest plot doesn't silently
+  // breach it. Standard villas are unchanged.
+  const plotArea = model.plot.width * model.plot.depth
+  let houseW = snap(Math.min(envelope.w, large ? 27000 : 22000), grid)
+  let houseH = snap(clamp(envelope.h - frontStrip, 6000, large ? 22000 : 18000), grid)
+  if (large && houseW * houseH > plotArea * 0.56) {
+    const k = Math.sqrt((plotArea * 0.56) / (houseW * houseH))
+    houseW = snap(Math.max(houseW * k, 11000), grid)
+    houseH = snap(Math.max(houseH * k, 9000), grid)
+  }
   const houseRect: Rect = {
     x: snap(envelope.x + (envelope.w - houseW) / 2, grid),
     y: envelope.y,
@@ -109,7 +120,7 @@ export function generate(model: CanonicalModel, strategy: Strategy = 'orthogonal
   // never be squeezed under a denser floor on top of it.
   const baseArea = houseRect.w * houseRect.h
   const wing = strategy === 'wing-split'
-  const minFW = Math.min(coreRect.w + (wing ? 5600 : 4200), houseRect.w)
+  const minFW = Math.min(coreRect.w + (wing ? 5600 : 4200) * (large ? 1.3 : 1), houseRect.w)
   const coreCx = coreRect.x + coreRect.w / 2
 
   const rawScale = model.floors.map((fp) => {
@@ -147,7 +158,7 @@ export function generate(model: CanonicalModel, strategy: Strategy = 'orthogonal
     footprints.push({ x, y: houseRect.y, w, h })
   }
 
-  const ctx: Ctx = { houseRect, coreRect, stairRect, envelope, grid, twoCar, strategy }
+  const ctx: Ctx = { houseRect, coreRect, stairRect, envelope, grid, twoCar, strategy, large }
   const floors = model.floors.map((fp, i) => buildFloor(fp, model, ctx, footprints[i]))
 
   const groundMm2 = rectArea(floors[0].outline)
@@ -189,6 +200,7 @@ type Ctx = {
   grid: number
   twoCar: boolean
   strategy: Strategy
+  large: boolean
 }
 
 function buildFloor(
@@ -341,11 +353,12 @@ function buildFloor(
     fill(units, mainRect)
   }
 
+  repairNarrow(rooms, grid)
   repairWindows(rooms, enclosedOutline(rooms))
 
   // ---- outdoor ----
   if (fp.level === 0 && outdoor.length > 0) {
-    layoutFrontYard(outdoor, rooms, { houseRect, envelope, grid, twoCar })
+    layoutFrontYard(outdoor, rooms, { houseRect, envelope, grid, twoCar, large: ctx.large })
   } else if (fp.level > 0) {
     for (const s of outdoor) {
       if (!s.id.startsWith('balcony')) continue
@@ -392,17 +405,18 @@ function buildFloor(
 function layoutFrontYard(
   outdoor: SpaceReq[],
   rooms: PlacedRoom[],
-  o: { houseRect: Rect; envelope: Rect; grid: number; twoCar: boolean },
+  o: { houseRect: Rect; envelope: Rect; grid: number; twoCar: boolean; large: boolean },
 ) {
-  const { houseRect, envelope, grid, twoCar } = o
+  const { houseRect, envelope, grid, twoCar, large } = o
   const frontY = rectBottom(houseRect) + 200
   const availH = rectBottom(envelope) - frontY - 100
   let cx = houseRect.x
 
   const sizeFor = (s: SpaceReq): { w: number; h: number } => {
     if (s.id === 'parking') return { w: twoCar ? 5200 : 3000, h: Math.min(availH, 5000) }
-    if (s.id === 'verandah') return { w: 3400, h: Math.min(availH, 2600) }
-    return { w: 3200, h: Math.min(availH, 3200) }
+    if (s.id === 'verandah') return { w: large ? 4200 : 3400, h: Math.min(availH, large ? 3200 : 2600) }
+    // courtyard / forecourt — a large villa gets a generous entrance court
+    return { w: large ? 4600 : 3200, h: Math.min(availH, large ? 4400 : 3200) }
   }
 
   for (const s of outdoor) {
@@ -436,6 +450,63 @@ function splitEnsuite(cell: Rect, bathTargetSqm: number, coreStrip: Rect): [Rect
     { x: cell.x, y: cell.y + bh, w: cell.w, h: cell.h - bh },
     { x: cell.x, y: cell.y, w: cell.w, h: bh },
   ]
+}
+
+/**
+ * Widen any habitable room the treemap left below the concept minimum width by
+ * sliding its party wall into the fattest adjacent room, as long as that donor
+ * stays above the minimum too. A local 2-room fix — the enclosed outline and
+ * every other party wall are untouched.
+ */
+function repairNarrow(rooms: PlacedRoom[], grid: number) {
+  const MIN = 2400
+  const enc = rooms.filter((r) => !r.outdoor)
+  for (const r of enc) {
+    if (r.zone !== 'private' && r.zone !== 'social' && r.zone !== 'work') continue
+    for (let pass = 0; pass < 2; pass++) {
+      const nx = r.rect.w < MIN && r.rect.w <= r.rect.h
+      const ny = r.rect.h < MIN && r.rect.h < r.rect.w
+      if (!nx && !ny) break
+      const need = snap((nx ? MIN - r.rect.w : MIN - r.rect.h) + 50, grid)
+
+      const donor = enc
+        .filter((o) => {
+          if (o === r || o.zone === 'circulation') return false
+          if (nx) {
+            const onL = Math.abs(rectRight(o.rect) - r.rect.x) < 2
+            const onR = Math.abs(o.rect.x - rectRight(r.rect)) < 2
+            if (!onL && !onR) return false
+            const ov = Math.min(rectBottom(o.rect), rectBottom(r.rect)) - Math.max(o.rect.y, r.rect.y)
+            return ov > r.rect.h * 0.8 && o.rect.w - need >= MIN
+          }
+          const onT = Math.abs(rectBottom(o.rect) - r.rect.y) < 2
+          const onB = Math.abs(o.rect.y - rectBottom(r.rect)) < 2
+          if (!onT && !onB) return false
+          const ov = Math.min(rectRight(o.rect), rectRight(r.rect)) - Math.max(o.rect.x, r.rect.x)
+          return ov > r.rect.w * 0.8 && o.rect.h - need >= MIN
+        })
+        .sort((a, b) => rectArea(b.rect) - rectArea(a.rect))[0]
+      if (!donor) break
+
+      if (nx) {
+        if (Math.abs(rectRight(donor.rect) - r.rect.x) < 2) {
+          donor.rect = { ...donor.rect, w: donor.rect.w - need }
+          r.rect = { ...r.rect, x: r.rect.x - need, w: r.rect.w + need }
+        } else {
+          r.rect = { ...r.rect, w: r.rect.w + need }
+          donor.rect = { ...donor.rect, x: donor.rect.x + need, w: donor.rect.w - need }
+        }
+      } else if (Math.abs(rectBottom(donor.rect) - r.rect.y) < 2) {
+        donor.rect = { ...donor.rect, h: donor.rect.h - need }
+        r.rect = { ...r.rect, y: r.rect.y - need, h: r.rect.h + need }
+      } else {
+        r.rect = { ...r.rect, h: r.rect.h + need }
+        donor.rect = { ...donor.rect, y: donor.rect.y + need, h: donor.rect.h - need }
+      }
+      r.area = toSqm(rectArea(r.rect))
+      donor.area = toSqm(rectArea(donor.rect))
+    }
+  }
 }
 
 /** swap any daylight-hungry room that ended up landlocked with a perimeter service room */

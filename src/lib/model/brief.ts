@@ -11,7 +11,13 @@ export const DIRECTION_LABEL: Record<Direction, string> = {
   W: 'West',
 }
 
-export const buildingTypeSchema = z.enum(['villa'])
+export const buildingTypeSchema = z.enum(['villa', 'large-villa'])
+export type BuildingType = z.infer<typeof buildingTypeSchema>
+export const BUILDING_TYPE_LABEL: Record<BuildingType, string> = {
+  villa: 'Villa / bungalow',
+  'large-villa': 'Large villa',
+}
+
 export const characterSchema = z.enum(['modernist', 'warm-minimal', 'kerala-contemporary'])
 export const CHARACTER_LABEL: Record<z.infer<typeof characterSchema>, string> = {
   modernist: 'Modernist',

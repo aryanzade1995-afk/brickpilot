@@ -1,4 +1,10 @@
-import { CHARACTER_LABEL, DIRECTIONS, DIRECTION_LABEL, type Direction } from '@/lib/model/brief.ts'
+import {
+  BUILDING_TYPE_LABEL,
+  CHARACTER_LABEL,
+  DIRECTIONS,
+  DIRECTION_LABEL,
+  type Direction,
+} from '@/lib/model/brief.ts'
 import { canonicalSummary, compile } from '@/lib/model/canonical.ts'
 import { programmeCapacity } from '@/lib/rules/index.ts'
 import { useStudio } from '@/state/studio.ts'
@@ -25,21 +31,10 @@ export function ProjectStep() {
       <Field label="Project name">
         <TextInput value={brief.project.name} onChange={(v) => edit((b) => void (b.project.name = v))} />
       </Field>
-      <div>
-        <span className="label">Building type</span>
-        <div className="mt-3">
-          <CardChoice
-            value={brief.project.buildingType}
-            onChange={(v) => edit((b) => void (b.project.buildingType = v))}
-            options={[
-              { value: 'villa', title: 'Villa / bungalow', body: 'A single-family home, ground-only through G+3.' },
-            ]}
-          />
-        </div>
-      </div>
       <p className="border-l-2 border-line-strong pl-4 text-sm text-ink-dim">
-        BrickPilot produces a residential concept and feasibility package. A licensed architect and
-        engineers must verify it before permits or construction.
+        BrickPilot produces a residential concept and feasibility package — a villa or bungalow,
+        ground-only through G+3. Pick the typology and character on the Style step. A licensed
+        architect and engineers must verify it before permits or construction.
       </p>
     </div>
   )
@@ -239,19 +234,50 @@ export function RoomsStep() {
 export function StyleStep() {
   const [brief, edit] = useBrief()
   return (
-    <div className="max-w-2xl space-y-6">
-      <p className="text-sm text-ink-dim">
-        A design constraint, not a label — it drives elevation vocabulary, shade and roof expression.
-      </p>
-      <CardChoice
-        value={brief.style.character}
-        onChange={(v) => edit((b) => void (b.style.character = v))}
-        options={[
-          { value: 'modernist', title: CHARACTER_LABEL.modernist, body: 'Crisp white roof bands, strong horizontals, wide disciplined glazing.' },
-          { value: 'warm-minimal', title: CHARACTER_LABEL['warm-minimal'], body: 'Quiet plaster planes, a thin oversailing roof, fewer larger timber-framed openings.' },
-          { value: 'kerala-contemporary', title: CHARACTER_LABEL['kerala-contemporary'], body: 'Stepped white roof bands, teak cladding panels, a stone entry pier.' },
-        ]}
-      />
+    <div className="max-w-2xl space-y-10">
+      <div className="space-y-4">
+        <div>
+          <span className="label">Typology</span>
+          <p className="mt-1 text-sm text-ink-dim">
+            The scale and massing grammar of the house.
+          </p>
+        </div>
+        <CardChoice
+          value={brief.project.buildingType}
+          onChange={(v) => edit((b) => void (b.project.buildingType = v))}
+          options={[
+            {
+              value: 'villa',
+              title: BUILDING_TYPE_LABEL.villa,
+              body: 'A single-family home sized to the brief. Compact block or split wings, ground-only through G+3.',
+            },
+            {
+              value: 'large-villa',
+              title: BUILDING_TYPE_LABEL['large-villa'],
+              body: 'A grander home — wider footprint, more generous rooms, a central courtyard or second wing when the plot allows, deep roof overhangs.',
+            },
+          ]}
+        />
+      </div>
+
+      <div className="space-y-4">
+        <div>
+          <span className="label">Character</span>
+          <p className="mt-1 text-sm text-ink-dim">
+            A design constraint, not a label — it drives elevation vocabulary, shade and roof
+            expression.
+          </p>
+        </div>
+        <CardChoice
+          value={brief.style.character}
+          onChange={(v) => edit((b) => void (b.style.character = v))}
+          options={[
+            { value: 'modernist', title: CHARACTER_LABEL.modernist, body: 'Stacked white volumes, a slim deep oversailing roof, a timber-baffle feature tower and vertical shading screens.' },
+            { value: 'warm-minimal', title: CHARACTER_LABEL['warm-minimal'], body: 'Quiet plaster planes, a thin oversailing roof, fewer larger timber-framed openings.' },
+            { value: 'kerala-contemporary', title: CHARACTER_LABEL['kerala-contemporary'], body: 'Stepped white roof bands, teak cladding panels, a stone entry pier.' },
+          ]}
+        />
+      </div>
     </div>
   )
 }

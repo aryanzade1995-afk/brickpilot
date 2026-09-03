@@ -87,11 +87,14 @@ function DesignRow({ design }: { design: SavedDesign }) {
   const b = design.brief
   const beds = b.rooms.bedroomsWithBath + b.rooms.bedroomsNoBath
   const meta = [
-    CHARACTER_LABEL[b.style.character],
+    b.project.buildingType === 'large-villa' ? 'Large villa' : CHARACTER_LABEL[b.style.character],
+    b.project.buildingType === 'large-villa' ? CHARACTER_LABEL[b.style.character] : null,
     `${b.site.plotWidth} × ${b.site.plotDepth} m`,
     `G+${b.levels.storeys}`,
     `${beds} bed${beds === 1 ? '' : 's'}`,
-  ].join(' · ')
+  ]
+    .filter(Boolean)
+    .join(' · ')
 
   const open = () => {
     const d = load(design.id)

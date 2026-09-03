@@ -1,7 +1,7 @@
 import { jsPDF } from 'jspdf'
 import { autoTable } from 'jspdf-autotable'
 import type { Brief } from '@/lib/model/brief.ts'
-import { CHARACTER_LABEL, DIRECTION_LABEL } from '@/lib/model/brief.ts'
+import { BUILDING_TYPE_LABEL, CHARACTER_LABEL, DIRECTION_LABEL } from '@/lib/model/brief.ts'
 import type { Design } from '@/lib/engine/types.ts'
 import type { ValidationReport } from '@/lib/rules/index.ts'
 import type { CostEstimate } from '@/lib/cost/index.ts'
@@ -258,7 +258,7 @@ function briefRows(b: Brief): string[][] {
     .filter(([, v]) => v)
     .map(([k]) => k)
   return [
-    ['Building type', b.project.buildingType],
+    ['Typology', BUILDING_TYPE_LABEL[b.project.buildingType]],
     ['Character', CHARACTER_LABEL[b.style.character]],
     ['Plot', `${b.site.plotWidth} m × ${b.site.plotDepth} m`],
     ['Facing', DIRECTION_LABEL[b.site.facing]],

@@ -57,6 +57,10 @@ export function validate(design: Design): ValidationReport {
   ) => findings.push({ code, severity, category, message, roomId })
 
   const reqIndex = indexRequirements(design.model)
+  // a large villa is chosen for generous rooms — an over-target room is the
+  // point, not a defect, so the "exceeds maximum" advisory is suppressed
+  // (a room *below* its minimum is still flagged).
+  const large = design.model.brief.project.buildingType === 'large-villa'
 
   for (const floor of design.floors) {
     for (const room of floor.rooms) {
@@ -104,7 +108,7 @@ export function validate(design: Design): ValidationReport {
             `${room.name} is ${room.area.toFixed(1)} m² — under its ${req.min} m² minimum.`,
             room.id,
           )
-        } else if (room.area > req.max + 0.4) {
+        } else if (!large && room.area > req.max + 0.4) {
           add(
             'AREA_TARGET_EXCEEDED',
             'warning',

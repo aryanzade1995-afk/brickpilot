@@ -149,6 +149,11 @@ export function compile(brief: Brief): CanonicalModel {
   const hasUpper = storeys > 0
   const p = brief.rooms.priorities
 
+  // --- "Large villa" typology: grander rooms, and a central courtyard when the
+  // plot is deep enough to hold one without starving the habitable rooms. ---
+  const large = brief.project.buildingType === 'large-villa'
+  const wantsCourtyard = p.courtyard || (large && envelope.depth >= 14000 && envelope.width >= 11000)
+
   // --- distribute bedrooms across floors ---
   const totalBeds = brief.rooms.bedroomsWithBath + brief.rooms.bedroomsNoBath
   const groundBeds = brief.spaces.stepFree && totalBeds > 0 ? 1 : 0
@@ -240,10 +245,16 @@ export function compile(brief: Brief): CanonicalModel {
       spaces.push(ver)
       addRel('foyer', 'verandah', 'adjacent')
     }
-    if (p.courtyard) {
-      spaces.push(
-        mk('courtyard', 'Courtyard', 'outdoor', 'courtyard', { outdoor: true, wantsWindow: false }),
-      )
+    if (wantsCourtyard) {
+      const court = mk('courtyard', 'Courtyard', 'outdoor', 'courtyard', {
+        outdoor: true,
+        wantsWindow: false,
+      })
+      if (large) {
+        court.target = Math.round(court.target * 1.3)
+        court.max = Math.round(court.max * 1.4)
+      }
+      spaces.push(court)
     }
 
     floors.push({ level: 0, name: ordinalFloor(0), spaces })
@@ -293,6 +304,30 @@ export function compile(brief: Brief): CanonicalModel {
     }
 
     floors.push({ level, name: ordinalFloor(level), spaces })
+  }
+
+  // --- "Large villa": inflate the habitable programme so the treemap lays out
+  // genuinely generous rooms. Wet / service rooms stay near normal (a bigger
+  // bathroom is wasted); circulation grows modestly to keep proportions. ---
+  if (large) {
+    const bump: Partial<Record<Zone, number>> = {
+      social: 1.3,
+      private: 1.22,
+      work: 1.2,
+      sacred: 1.12,
+      circulation: 1.12,
+      service: 1.06,
+    }
+    const r1 = (n: number) => Math.round(n * 10) / 10
+    for (const f of floors) {
+      for (const s of f.spaces) {
+        const k = s.outdoor ? undefined : bump[s.zone]
+        if (!k) continue
+        s.min = r1(s.min * k)
+        s.target = r1(s.target * k)
+        s.max = r1(s.max * k)
+      }
+    }
   }
 
   return { seed, brief, envelope, plot, setbacksMm, grid, entrySide, floors, relationships: rel }
