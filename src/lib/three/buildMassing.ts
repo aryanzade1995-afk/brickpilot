@@ -269,16 +269,33 @@ export function buildMassing(design: Design): Massing {
         baffleScreen(o, opsOnEdge(o, 'S'), baseY, wallTop, L, push, wx, wz, m)
       }
 
-      // ---- roof on top; a walkable terrace where nothing stands on this block ----
-      if (L === topLevel) {
-        const rk = floor.roof?.perBlock?.[bi]?.kind ?? floor.roof?.kind ?? 'flat'
-        if (rk === 'hip' || rk === 'gable' || rk === 'mono-slope') {
-          buildPitchedRoof(o, wallTop, L, rk, floor.roof?.perBlock?.[bi]?.pitchDeg ?? floor.roof?.pitchDeg ?? T.roof.pitchDeg, T, push, wx, wz, m)
-        } else {
-          buildRoof(o, wallTop, L, T, push, wx, wz, m)
-        }
-      } else {
-        const cover = coverAbove(o, above)
+      // ---- roof: a pitched cap where the storey is the last over this block
+      // (top floor, or a lower wing with nothing standing on it); a flat
+      // terrace where a floor above steps back off it ----
+      const cover = L === topLevel ? null : coverAbove(o, above)
+      // coverAbove returns a degenerate rect when nothing stands on this block
+      const exposed = L === topLevel || !cover || cover.w < 900 || cover.h < 900
+      const rk = floor.roof?.perBlock?.[bi]?.kind ?? floor.roof?.kind ?? 'flat'
+      const pitched = rk === 'hip' || rk === 'gable' || rk === 'mono-slope'
+      if (exposed && pitched) {
+        buildPitchedRoof(
+          o,
+          wallTop,
+          L,
+          rk,
+          floor.roof?.perBlock?.[bi]?.pitchDeg ?? floor.roof?.pitchDeg ?? T.roof.pitchDeg,
+          T,
+          push,
+          wx,
+          wz,
+          m,
+        )
+      } else if (exposed && L !== topLevel && T.roofBias !== 'flat') {
+        // a lower wing of a pitched-roof style still gets a small pitched cap
+        buildPitchedRoof(o, wallTop, L, 'hip', T.roof.pitchDeg, T, push, wx, wz, m)
+      } else if (L === topLevel) {
+        buildRoof(o, wallTop, L, T, push, wx, wz, m)
+      } else if (cover) {
         buildTerrace(o, cover, wallTop, L, T, push, wx, wz, m)
       }
     })
@@ -332,12 +349,14 @@ export function buildMassing(design: Design): Massing {
       )
     }
 
-    // ---- entry threshold: a portico over the door, or a full colonnaded
-    // verandah where the style calls for one ----
+    // ---- entry threshold: a colonnaded verandah, a double-height glazed
+    // portal, or a simple portico — whichever the style calls for ----
     if (L === 0) {
       const entry = floor.openings.find((op) => op.kind === 'entry')
       if (T.verandah) {
         buildVerandah(oFull, entry, floor.courtyard ?? null, y0, H, T, push, wx, wz, m)
+      } else if (T.doubleHeightEntry && entry && topLevel >= 1) {
+        buildDoubleHeightEntry(entry, y0, H, push, wx, wz, m)
       } else if (entry) {
         buildPorch(entry, y0, H, push, wx, wz, m)
       }
@@ -1235,6 +1254,41 @@ function buildVerandah(
   if (v.wrapCourt && court) {
     run(court.x + 200, court.x + court.w - 200, court.y + court.h, 1, 'ver-ct')
   }
+}
+
+/**
+ * A two-storey glazed portal at the entrance: two feature piers rising through
+ * the first floor, a tall recessed glass plane between them and a flat lintel
+ * across the top. Reads as a double-height entry without voiding the slab.
+ */
+function buildDoubleHeightEntry(entry: Opening, y0: number, H: number, push: Push, wx: XF, wz: XF, m: XF) {
+  if (entry.orient !== 'h') return
+  const cx = entry.at.x
+  const zFace = entry.at.y
+  const portalW = m(entry.width) + 2.6
+  const top = y0 + 2 * H - 0.15
+  const pierW = 0.34
+  const proj = 0.9 // how far the portal steps forward of the facade
+
+  // threshold step
+  push('dh-step', 'plinth', 0, [wx(cx), y0 - 0.05, wz(zFace + 420)], [portalW * 0.7, 0.16, 0.9])
+
+  // two full-height piers
+  for (const s of [-1, 1] as const) {
+    const px = cx + s * (portalW / 2 - pierW / 2)
+    push(`dh-pier${s < 0 ? 'l' : 'r'}`, 'feature', 0, [wx(px), top / 2, wz(zFace + proj / 2)], [pierW, top, proj + 0.3])
+  }
+  // recessed tall glass between the piers
+  const gW = portalW - 2 * pierW - 0.1
+  push('dh-glass', 'glass', 0, [wx(cx), y0 + (top - y0) / 2 + 0.1, wz(zFace + 0.16)], [gW, top - y0 - 0.4, 0.08])
+  // slim mullions
+  const mull = Math.max(1, Math.round(gW / 1.3))
+  for (let i = 1; i < mull; i++) {
+    push(`dh-mull${i}`, 'clad', 0, [wx(cx - gW / 2 + (gW * i) / mull), y0 + (top - y0) / 2 + 0.1, wz(zFace + 0.2)], [0.05, top - y0 - 0.5, 0.06])
+  }
+  // lintel beam + a slim projecting hood
+  push('dh-lintel', 'feature', 0, [wx(cx), top + 0.12, wz(zFace + proj / 2)], [portalW, 0.36, proj + 0.3])
+  push('dh-hood', 'roof', 0, [wx(cx), top + 0.02, wz(zFace + proj + 0.35)], [portalW + 0.2, 0.14, 0.7])
 }
 
 /** a stair mumty + a water tank on a stand, on the top terrace */

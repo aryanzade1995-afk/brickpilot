@@ -126,10 +126,16 @@ is a seeded procedural grammar:
   a new seed ⇒ a structurally different one. The Directions screen offers the
   `auto` pick plus a ladder of distinct validated alternates.
 
-`scripts/massingtest.mts` asserts 600 seed × archetype × character combinations
+`scripts/massingtest.mts` asserts 1000 seed × archetype × character combinations
 are all valid, reachable and hard-clean, and that 20 `auto` seeds spread across
-≥ 5 massing types with real per-floor movement. `scripts/massinggrid.mts`
-renders a 20-seed contact sheet.
+several massing types with real per-floor movement. `scripts/massinggrid.mts`
+renders a contact sheet.
+
+`src/lib/engine/massing/stats.ts` holds the scale-invariant parameter ranges the
+grammar reads from the dataset analysis (footprint solidity → the `auto` picker's
+rect / non-rect split ≈ 1 in 5; per-floor offset ceiling ≈ 26 % of span). Every
+value is clamped to a safe band; villa-specific numbers stay on the hand-tuned
+defaults in `archetypes.ts`.
 
 ## Datasets
 
@@ -148,13 +154,17 @@ then re-tune `AREA` in `src/lib/model/canonical.ts` and `MIN_DIM` in
 provisional NBC-2016 / practice reference values, not dataset-derived ones.
 
 **3-D house datasets → the massing grammar.** `scripts/analyze_datasets.py`
-mines SYNBUILD-3D-style JSON exports and COLLADA (`.dae`) villa models for the
-*parameter ranges* the archetypes use — storey counts, footprint solidity
-(rect vs L/U), floor-to-floor offset / shrink ratios, roof pitch, opening
-density — into `scripts/massing_stats.json` (statistics only; no geometry, no
-models, no assets are copied). SketchUp `.skp` files can't be parsed in this
-stack; their `.dae` / zip exports can. When `massing_stats.json` is absent the
-grammar uses the built-in defaults compiled into `archetypes.ts`.
+mines SYNBUILD-3D-style JSON exports for the *parameter ranges* the archetypes
+use — storey counts, footprint solidity (rect vs L/U), floor-to-floor offset /
+shrink ratios, roof pitch, opening density — into `scripts/massing_stats.json`
+(statistics only; no geometry, no models, no assets are copied). It traces each
+storey's outer boundary from the building wireframe (`final_building_points` +
+`final_building_adj`) and takes the polygon area vs its bounding box.  COLLADA
+(`.dae`) villa exports are also scanned for shape ratios (their scene-graph
+transforms aren't composed, so only ratios — not metres — are reported).
+SketchUp `.skp` files can't be parsed in this stack; their `.dae` / zip exports
+can. The usable numbers are transcribed into `src/lib/engine/massing/stats.ts`;
+that file's clamped defaults apply when the JSON hasn't been regenerated.
 
 ```bash
 python scripts/analyze_datasets.py ~/Downloads/sample_100.zip ~/Downloads/villa.zip

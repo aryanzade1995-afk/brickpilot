@@ -1,6 +1,6 @@
 {
   "_source": "SYNBUILD-3D-style JSON + COLLADA villa exports \u2014 statistics only, not redistributed",
-  "buildings_used": 100,
+  "buildings_used": 38,
   "collada_exemplars": [
     {
       "source": "model.dae",
@@ -18,44 +18,44 @@
     }
   ],
   "storey_hist": {
-    "3": 8,
-    "4": 92
+    "3": 7,
+    "4": 31
   },
   "footprint_solidity": {
-    "p10": 0.057,
-    "p50": 0.243,
-    "p90": 0.643
+    "p10": 0.8,
+    "p50": 1.0,
+    "p90": 1.0
   },
-  "share_non_rectangular_footprint": 0.97,
+  "share_non_rectangular_footprint": 0.19,
   "footprint_aspect": {
-    "p10": 1.115,
-    "p50": 1.433,
-    "p90": 2.013
+    "p10": 1.058,
+    "p50": 1.373,
+    "p90": 1.931
   },
   "floor_offset_ratio": {
     "p10": 0.0,
     "p50": 0.0,
-    "p90": 0.233
+    "p90": 0.262
   },
   "floor_shrink_ratio": {
-    "p10": 0.594,
+    "p10": 0.792,
     "p50": 1.0,
-    "p90": 1.0
+    "p90": 1.233
   },
   "roof_rise_over_run": {
     "p10": 0.0,
-    "p50": 0.461,
-    "p90": 1.164
+    "p50": 1.029,
+    "p90": 1.2
   },
   "roof_pitch_deg": {
     "p10": 0.0,
-    "p50": 24.75,
-    "p90": 49.32
+    "p50": 45.8,
+    "p90": 62.1
   },
-  "share_flat_roof": 0.32,
+  "share_flat_roof": 0.39,
   "window_density_per_m": {
-    "p10": 1.573,
-    "p50": 2.284,
-    "p90": 3.517
+    "p10": 5.672,
+    "p50": 8.16,
+    "p90": 12.158
   }
 }

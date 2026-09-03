@@ -64,6 +64,44 @@ def bbox(pts):
     return min(xs), min(ys), max(xs), max(ys)
 
 
+def trace_outer_boundary(pts, adj, subset):
+    """Walk the outer face of the planar wireframe restricted to `subset`
+    (vertex indices). Returns the boundary as an ordered [x, y] list, or None.
+    `adj` is an N×N 0/1 matrix."""
+    S = set(subset)
+    nbrs = {i: [j for j in subset if j != i and adj[i][j]] for i in subset}
+    nbrs = {i: v for i, v in nbrs.items() if v}
+    if len(nbrs) < 3:
+        return None
+    start = min(nbrs, key=lambda i: (pts[i][0], pts[i][1]))
+    # first step: the neighbour giving the smallest polar angle from straight down
+    import math as _m
+
+    def ang(frm, to):
+        return _m.atan2(pts[to][1] - pts[frm][1], pts[to][0] - pts[frm][0])
+
+    prev = start
+    cur = min(nbrs[start], key=lambda j: (ang(start, j) - (-_m.pi / 2)) % (2 * _m.pi))
+    loop = [start]
+    for _ in range(len(subset) * 3):
+        loop.append(cur)
+        if cur == start:
+            break
+        back = ang(cur, prev)
+        # turn as far clockwise (right) as possible → hugs the outer boundary
+        nxt = min(
+            nbrs.get(cur, []),
+            key=lambda j: (back - ang(cur, j)) % (2 * _m.pi) if j != prev else 1e9,
+            default=None,
+        )
+        if nxt is None:
+            return None
+        prev, cur = cur, nxt
+    if len(loop) < 4 or loop[-1] != start:
+        return None
+    return [pts[i][:2] for i in loop[:-1]]
+
+
 # --------------------------------------------------------------------------- #
 #  SYNBUILD-3D style JSON
 # --------------------------------------------------------------------------- #
@@ -90,29 +128,39 @@ def synbuild_records(src: Path):
 def analyse_synbuild(src: Path, acc: dict) -> int:
     n = 0
     for d in synbuild_records(src):
-        floors = d.get("unit_dict_list") or []
-        if not (1 <= len(floors) <= 5):
+        bp = d.get("final_building_points") or []
+        ba = d.get("final_building_adj") or []
+        n_units = len(d.get("unit_dict_list") or [])
+        if not bp or len(ba) != len(bp) or not (1 <= n_units <= 5):
             continue
-        # per-floor outline from floor_unit_points
-        outlines = []
-        for fl in floors:
-            pts = fl.get("floor_unit_points") or []
-            pts = [p for p in pts if isinstance(p, (list, tuple)) and len(p) >= 2]
-            if len(pts) < 3:
-                outlines = []
+
+        # group vertices by storey z-level (SYNBUILD stacks floors at a fixed
+        # floor-to-floor height); trace the outer boundary of each level
+        zs = sorted({round(p[2], 1) for p in bp})
+        levels = [z for z in zs if z < max(zs)] or zs[:1]  # drop the roof band
+        foots = []
+        for z in levels[:n_units]:
+            sub = [i for i, p in enumerate(bp) if abs(p[2] - z) < 0.6]
+            poly = trace_outer_boundary(bp, ba, sub) if len(sub) >= 3 else None
+            if not poly:
+                foots = []
                 break
-            outlines.append(pts)
-        if not outlines:
+            a = poly_area(poly)
+            bx = bbox(poly)
+            sol = a / (max(1e-6, (bx[2] - bx[0]) * (bx[3] - bx[1])))
+            if not (0.3 <= sol <= 1.03):  # a bad trace — skip the whole building
+                foots = []
+                break
+            foots.append((a, bx))
+        if len(foots) < 2:
             continue
         n += 1
-        acc["storeys"].append(len(floors))
+        acc["storeys"].append(n_units)
 
         prev_c = None
         prev_span = None
-        for i, pts in enumerate(outlines):
-            x0, y0, x1, y1 = bbox(pts)
+        for area, (x0, y0, x1, y1) in foots:  # type: ignore[misc]
             w, h = (x1 - x0) or 1e-6, (y1 - y0) or 1e-6
-            area = poly_area(pts)
             acc["solidity"].append(min(1.0, area / (w * h)))
             acc["aspect"].append(max(w, h) / min(w, h))
             c = ((x0 + x1) / 2, (y0 + y1) / 2)
@@ -123,23 +171,23 @@ def analyse_synbuild(src: Path, acc: dict) -> int:
                 acc["floor_shrink_ratio"].append(min(1.5, span / prev_span))
             prev_c, prev_span = c, span
 
-        # roof rise / pitch from the sampled roof cloud
+        top_bb = foots[-1][1]  # type: ignore[index]
+        g_bb = foots[0][1]  # type: ignore[index]
+
+        # roof rise / pitch from the sampled roof cloud, over the top-floor span
         roof = d.get("sampled_roof_points_list") or []
         roof = [p for p in roof if isinstance(p, (list, tuple)) and len(p) >= 3]
         if len(roof) > 20:
             zs = [p[2] for p in roof]
             rise = max(zs) - min(zs)
-            foot = outlines[-1]
-            fx0, fy0, fx1, fy1 = bbox(foot)
-            run = max(fx1 - fx0, fy1 - fy0) / 2 or 1e-6
+            run = max(top_bb[2] - top_bb[0], top_bb[3] - top_bb[1]) / 2 or 1e-6
             acc["roof_rise_over_run"].append(min(1.2, rise / run))
             acc["roof_pitch_deg"].append(round(math.degrees(math.atan2(rise, run)), 1))
             acc["roof_flat"].append(1 if rise / run < 0.08 else 0)
 
-        # opening density: windows per metre of ground perimeter (unit-agnostic → per span)
+        # opening density: windows per metre of ground perimeter
         win = d.get("final_window_points") or []
-        gx0, gy0, gx1, gy1 = bbox(outlines[0])
-        perim = 2 * ((gx1 - gx0) + (gy1 - gy0)) or 1e-6
+        perim = 2 * ((g_bb[2] - g_bb[0]) + (g_bb[3] - g_bb[1])) or 1e-6
         acc["window_density"].append(len(win) / perim)
     return n
 

@@ -391,18 +391,25 @@ function buildFloor(
 
     // A sparse upper floor leaves the treemap more area than the programme needs,
     // so every room inflates past its brief maximum. Carve the surplus off as a
-    // hall strip against the core (a staple of Indian house planning, and a tidy
-    // circulation spine) so the real rooms land near their target sizes.
+    // hall strip on the CORE side of the region (a staple of Indian house
+    // planning, and a tidy circulation spine) so the real rooms keep the
+    // daylight perimeter and land near their target sizes.
     let roomRegion = region
     const surplus = toSqm(rectArea(region)) - us.reduce((a, u) => a + u.weight, 0)
     if (fp.level > 0 && surplus >= 8) {
       let hallW = snap((surplus * 1e6) / region.h, grid)
       hallW = Math.min(hallW, snap(region.w * 0.4, grid))
       if (hallW >= 2000 && region.w - hallW >= 3800) {
-        rooms.push(
-          place(hallSpace(fp.level, tag, surplus), snapRect({ ...region, w: hallW })),
-        )
-        roomRegion = { x: region.x + hallW, y: region.y, w: region.w - hallW, h: region.h }
+        // the hall hugs whichever region edge is closer to the core strip
+        const coreCxLocal = coreStrip.x + coreStrip.w / 2
+        const hallOnRight = coreCxLocal > region.x + region.w / 2
+        const hallRect = hallOnRight
+          ? { ...region, x: region.x + region.w - hallW, w: hallW }
+          : { ...region, w: hallW }
+        rooms.push(place(hallSpace(fp.level, tag, surplus), snapRect(hallRect)))
+        roomRegion = hallOnRight
+          ? { x: region.x, y: region.y, w: region.w - hallW, h: region.h }
+          : { x: region.x + hallW, y: region.y, w: region.w - hallW, h: region.h }
       }
     }
 

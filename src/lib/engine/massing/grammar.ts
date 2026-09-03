@@ -2,7 +2,17 @@ import type { Rect } from '../../geometry.ts'
 import { rectRight, rectBottom } from '../../geometry.ts'
 import { makeRng } from './rng.ts'
 import { ARCHETYPES, flatRoof, floorAreaSqm, type MassingCtx } from './archetypes.ts'
+import { STATS } from './stats.ts'
 import { MASSING_TYPES, type FloorMassing, type MassingPlan, type MassingRequest, type MassingType } from './types.ts'
+
+/** archetypes whose ground floor is a single rectangle (vs a rect-union) */
+const SINGLE_BLOCK = new Set<MassingType>([
+  'rectangular',
+  'offset-box',
+  'cantilever',
+  'stepped',
+  'central-core',
+])
 
 /* ------------------------------------------------------------------ *
  *  planMassing — choose an archetype (auto / random / explicit), run
@@ -187,6 +197,11 @@ function fitScore(t: MassingType, ctx: MassingCtx, env: Rect): number {
     else if (tight > 0.82) score -= 0.22
   }
   if ((t === 'rectangular' || t === 'central-core' || t === 'stepped') && tight > 0.9) score += 0.25
+  // real multi-storey buildings are non-rectangular only ~1 in 5 (STATS); a
+  // gentle nudge toward simple rectangles so the `auto` mix leans that way
+  // without losing the L / U / courtyard / split forms
+  const nonRectPull = (0.5 - STATS.nonRectShare) * 0.28
+  score += SINGLE_BLOCK.has(t) ? nonRectPull : -nonRectPull
   switch (t) {
     case 'rectangular':
       add(elong < 1.4, 0.15)

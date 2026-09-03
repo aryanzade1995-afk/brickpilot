@@ -1,6 +1,7 @@
 import type { Rect } from '../../geometry.ts'
 import { rectRight, rectBottom, rectUnionArea, snap } from '../../geometry.ts'
 import type { Rng } from './rng.ts'
+import { STATS } from './stats.ts'
 import type { Direction, Diversity, FloorMassing, MassingPlan, MassingType, RoofSpec } from './types.ts'
 
 /* ------------------------------------------------------------------ *
@@ -284,7 +285,9 @@ const stepped: Arch = (env, ctx, rng, d) => {
     { dx: 1, dy: 1 },
   ] as const)
   const slack = Math.max(sn(600), insetBudget(env, ctx, d) * 2)
-  const step = Math.min(sn(amp(d) * 1000), slack)
+  // real per-floor moves top out around STATS.offsetRatioP90 of the span
+  const statCap = sn(STATS.offsetRatioP90 * Math.min(g.w, g.h))
+  const step = Math.min(sn(amp(d) * 1000), slack, statCap)
   const floors: FloorMassing[] = [floor(0, [g], { kind: 'flat-parapet' })]
   let prev = g
   for (let l = 1; l <= ctx.storeys; l++) {
@@ -311,9 +314,10 @@ const offsetBox: Arch = (env, ctx, rng, d) => {
   const groundSqm = area(g) / 1e6
   let prev = g
   const dirSign = rng.sign()
+  const slideCap = STATS.offsetRatioP90 * Math.min(g.w, g.h)
   for (let l = 1; l <= ctx.storeys; l++) {
     const s = shrinkCorner(prev, upperTarget(ctx, l, groundSqm))
-    const slide = sn(amp(d) * 1000) * dirSign
+    const slide = sn(Math.min(amp(d) * 1000, slideCap)) * dirSign
     const b = within({ ...s, x: sn(s.x + slide) }, env)
     const overhangs =
       b.x < prev.x - 200 || rectRight(b) > rectRight(prev) + 200 || rectBottom(b) > rectBottom(prev) + 200
