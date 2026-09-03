@@ -74,7 +74,7 @@ const cantMax = (d: Diversity) => ({ low: 700, medium: 1100, high: 1500, extreme
 
 /** the top-storey roof for a style's `roofBias` */
 export const flatRoof = (bias: 'flat' | 'pitched' | 'mixed', rng: Rng): RoofSpec => {
-  const pitchChance = bias === 'pitched' ? 0.82 : bias === 'mixed' ? 0.45 : 0
+  const pitchChance = bias === 'pitched' ? 1 : bias === 'mixed' ? 0.5 : 0
   return pitchChance > 0 && rng.chance(pitchChance)
     ? { kind: rng.pick(['hip', 'gable', 'mono-slope'] as const), pitchDeg: rng.int(16, 28) }
     : { kind: rng.chance(0.5) ? 'flat-parapet' : 'flat' }
@@ -210,42 +210,44 @@ function courtLike(type: 'u-shape' | 'courtyard' | 'rear-courtyard'): Arch {
   return (env, ctx, rng, d) => {
     const g = groundBlock(env)
     const bandW = sn(clamp(Math.min(g.w, g.h) * rng.range(0.26, 0.34), 3400, 6500))
+    // the south band carries the stair + entry foyer, so it must be deep enough
+    const southD = Math.max(bandW, sn(6200))
     const openN = type === 'u-shape' && rng.chance(0.5)
-    const openS = type === 'u-shape' && !openN
-    // court sits centred (courtyard) or toward the rear/north (rear-courtyard)
-    const courtBias = type === 'rear-courtyard' ? 0.15 : 0.5
     const cw = sn(g.w - 2 * bandW)
-    const ch = sn(g.h - 2 * bandW)
-    if (cw < 2600 || ch < 2600) return rectangular(env, ctx, rng, d)
-    const court: Rect = {
-      x: sn(g.x + bandW),
-      y: sn(g.y + bandW + (g.h - 2 * bandW - ch) * courtBias),
-      w: cw,
-      h: ch,
-    }
-    const bands: Rect[] = [
-      { x: g.x, y: g.y, w: g.w, h: sn(court.y - g.y) }, // north band
-      { x: g.x, y: rectBottom(court), w: g.w, h: sn(rectBottom(g) - rectBottom(court)) }, // south band
-      { x: g.x, y: court.y, w: bandW, h: court.h }, // west band
-      { x: rectRight(court), y: court.y, w: sn(rectRight(g) - rectRight(court)), h: court.h }, // east band
-    ]
-    if (openN) bands.shift()
-    if (openS) bands.splice(1, 1)
+    const northD = openN ? 0 : bandW
+    const ch = sn(g.h - southD - northD)
+    if (cw < 2600 || ch < 3000) return rectangular(env, ctx, rng, d)
+
+    const court: Rect = { x: sn(g.x + bandW), y: sn(g.y + northD), w: cw, h: ch }
+    const bands: Rect[] = []
+    if (!openN) bands.push({ x: g.x, y: g.y, w: g.w, h: bandW }) // north band
+    bands.push({ x: g.x, y: sn(rectBottom(court)), w: g.w, h: sn(rectBottom(g) - rectBottom(court)) }) // south band (deep)
+    bands.push({ x: g.x, y: court.y, w: bandW, h: court.h }) // west band
+    bands.push({ x: rectRight(court), y: court.y, w: sn(rectRight(g) - rectRight(court)), h: court.h }) // east band
+    const southBand = bands.find((b) => Math.abs(rectBottom(b) - rectBottom(g)) < 2 && b.w > cw)!
     const groundBlocks = bands.filter((b) => b.w > 2000 && b.h > 2000)
 
     const floors: FloorMassing[] = [floor(0, groundBlocks, { kind: 'flat-parapet' })]
     let carry = groundBlocks
     for (let l = 1; l <= ctx.storeys; l++) {
-      // upper floor keeps 1-2 bands (the sleeping wing), others become roof terrace
-      const n = rng.chance(0.5) ? 1 : Math.min(2, carry.length)
-      const keep = [...carry].sort((a, b) => area(b) - area(a)).slice(0, n)
+      // the upper floor keeps the south band (with the core) plus 0-1 more; the
+      // rest of the ring becomes roof terrace
+      const extra = rng.chance(0.5) ? 0 : 1
+      const rest = carry.filter((b) => b !== southBand).sort((a, b) => area(b) - area(a)).slice(0, extra)
+      const keep = [southBand, ...rest].filter((b) => b.w > 2000 && b.h > 2000)
       floors.push(
         floor(l, keep.map((b) => within(b, g)), l === ctx.storeys ? flatRoof(ctx.roofBias, rng) : { kind: 'flat' }),
       )
       carry = keep
     }
     const keepCourt = type !== 'u-shape'
-    return plan(type, floors, within({ ...bands[0], w: ctx.coreW, x: sn(court.x) }, g), ctx.entrySide, keepCourt ? court : null)
+    return plan(
+      type,
+      floors,
+      within({ x: sn(court.x), y: southBand.y, w: ctx.coreW, h: southBand.h }, g),
+      ctx.entrySide,
+      keepCourt ? court : null,
+    )
   }
 }
 

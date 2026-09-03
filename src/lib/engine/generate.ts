@@ -471,6 +471,7 @@ function buildFloor(
 
   sealGaps(rooms, grid)
   repairNarrow(rooms, grid)
+  absorbSlivers(rooms)
   sealGaps(rooms, grid)
   repairWindows(rooms, enclosedOutline(rooms))
 
@@ -692,10 +693,11 @@ function repairNarrow(rooms: PlacedRoom[], grid: number) {
 }
 
 /**
- * Independent grid-snapping of treemap cells leaves hairline gaps (≤ a module or
- * two) between neighbouring rooms — enough to break `sharedEdge`, so a door or
- * reachability link can't be found. Close them: pull each room's right / bottom
- * edge out to meet the nearest room just past it (when they share real span).
+ * Independent grid-snapping of treemap cells leaves hairline gaps OR small
+ * overlaps (≤ a module or three) between neighbouring rooms — enough to break
+ * `sharedEdge`, so a door or reachability link can't be found. Align them: pull
+ * each room's right / bottom edge to the near edge of the closest room across it
+ * (whether that is a small gap to close or a small overlap to trim).
  */
 function sealGaps(rooms: PlacedRoom[], grid: number) {
   const enc = rooms.filter((r) => !r.outdoor)
@@ -703,6 +705,7 @@ function sealGaps(rooms: PlacedRoom[], grid: number) {
     for (const axis of ['x', 'y'] as const) {
       const far = axis === 'x' ? rectRight(r.rect) : rectBottom(r.rect)
       let snapTo: number | null = null
+      let bestAbs = Infinity
       for (const o of enc) {
         if (o === r) continue
         const oNear = axis === 'x' ? o.rect.x : o.rect.y
@@ -711,14 +714,79 @@ function sealGaps(rooms: PlacedRoom[], grid: number) {
             ? Math.min(rectBottom(r.rect), rectBottom(o.rect)) - Math.max(r.rect.y, o.rect.y)
             : Math.min(rectRight(r.rect), rectRight(o.rect)) - Math.max(r.rect.x, o.rect.x)
         if (overlap < 600) continue
-        const gap = oNear - far
-        if (gap > 5 && gap <= grid * 2 && (snapTo === null || oNear < snapTo)) snapTo = oNear
+        const gap = oNear - far // >0 gap, <0 overlap
+        const near = axis === 'x' ? r.rect.x : r.rect.y
+        // don't collapse r past a sane minimum
+        if (oNear - near < 1800) continue
+        if (Math.abs(gap) <= grid * 3 && Math.abs(gap) > 2 && Math.abs(gap) < bestAbs) {
+          bestAbs = Math.abs(gap)
+          snapTo = oNear
+        }
       }
       if (snapTo === null) continue
       r.rect =
         axis === 'x' ? { ...r.rect, w: snapTo - r.rect.x } : { ...r.rect, h: snapTo - r.rect.y }
       r.area = toSqm(rectArea(r.rect))
     }
+  }
+}
+
+/**
+ * On a large, sparse floor the treemap can leave one small room as a hairline
+ * strip (full-width, ~0.5 m deep) — unreachable and below every minimum. Merge
+ * any such sliver into the neighbour it shares the longest edge with, then drop
+ * it, so the plan stays clean. Only true slivers go (min dim < 1.3 m OR area
+ * < 3.5 m²); everything else is left for `repairNarrow`.
+ */
+function absorbSlivers(rooms: PlacedRoom[]) {
+  for (let pass = 0; pass < 2; pass++) {
+    const enc = rooms.filter((r) => !r.outdoor)
+    const sliver = enc.find(
+      (r) =>
+        r.zone !== 'circulation' &&
+        (Math.min(r.rect.w, r.rect.h) < 1300 || toSqm(rectArea(r.rect)) < 3.5),
+    )
+    if (!sliver) return
+    let host: PlacedRoom | null = null
+    let bestLen = 0
+    for (const o of enc) {
+      if (o === sliver) continue
+      const e = sharedEdge(sliver.rect, o.rect)
+      if (e && e.length > bestLen) {
+        bestLen = e.length
+        host = o
+      }
+    }
+    const i = rooms.indexOf(sliver)
+    if (host && bestLen > 300) {
+      // `e.side` is the side of the sliver that meets the host; grow the host
+      // across it to swallow the sliver, keeping the host's other three bounds
+      const e = sharedEdge(sliver.rect, host.rect)!
+      const h = host.rect
+      const s = sliver.rect
+      const grown =
+        e.side === 'N'
+          ? { ...h, h: rectBottom(s) - h.y } // sliver below → host grows down
+          : e.side === 'S'
+            ? { ...h, y: s.y, h: rectBottom(h) - s.y } // sliver above → host grows up
+            : e.side === 'E'
+              ? { ...h, x: s.x, w: rectRight(h) - s.x } // sliver left → host grows left
+              : { ...h, w: rectRight(s) - h.x } // sliver right → host grows right
+      // only take the merge if the grown host stays clear of every other room
+      const clashes = enc.some(
+        (o) =>
+          o !== host &&
+          o !== sliver &&
+          Math.min(rectRight(grown), rectRight(o.rect)) - Math.max(grown.x, o.rect.x) > 300 &&
+          Math.min(rectBottom(grown), rectBottom(o.rect)) - Math.max(grown.y, o.rect.y) > 300,
+      )
+      if (!clashes) {
+        host.rect = grown
+        host.area = toSqm(rectArea(grown))
+      }
+    }
+    // whether or not it merged, the sliver room goes
+    rooms.splice(i, 1)
   }
 }
 
@@ -1000,6 +1068,91 @@ function repairReachability(rooms: PlacedRoom[], openings: Opening[], level: num
         for (const id of bfs(r.id, adj)) seen.add(id)
         changed = true
       }
+    }
+  }
+
+  // last resort: a room (or cluster) separated from the reachable set by a small
+  // gap — bridge it by stretching the room across the gap, then door it. Handles
+  // a hole left by an absorbed sliver, or a wing that never quite met the core.
+  let bridged = true
+  while (bridged) {
+    bridged = false
+    for (const r of enc) {
+      if (seen.has(r.id)) continue
+      let pick: { other: PlacedRoom; gap: number; axis: 'x' | 'y'; dir: 1 | -1 } | null = null
+      for (const o of enc) {
+        if (!seen.has(o.id)) continue
+        // horizontal gap (r left/right of o) with vertical overlap
+        const vOv = Math.min(rectBottom(r.rect), rectBottom(o.rect)) - Math.max(r.rect.y, o.rect.y)
+        const hOv = Math.min(rectRight(r.rect), rectRight(o.rect)) - Math.max(r.rect.x, o.rect.x)
+        const cand: { other: PlacedRoom; gap: number; axis: 'x' | 'y'; dir: 1 | -1 }[] = []
+        if (vOv > 900) {
+          if (o.rect.x - rectRight(r.rect) > 0) cand.push({ other: o, gap: o.rect.x - rectRight(r.rect), axis: 'x', dir: 1 })
+          if (r.rect.x - rectRight(o.rect) > 0) cand.push({ other: o, gap: r.rect.x - rectRight(o.rect), axis: 'x', dir: -1 })
+        }
+        if (hOv > 900) {
+          if (o.rect.y - rectBottom(r.rect) > 0) cand.push({ other: o, gap: o.rect.y - rectBottom(r.rect), axis: 'y', dir: 1 })
+          if (r.rect.y - rectBottom(o.rect) > 0) cand.push({ other: o, gap: r.rect.y - rectBottom(o.rect), axis: 'y', dir: -1 })
+        }
+        for (const c of cand) if (c.gap > 2 && c.gap < 2600 && (!pick || c.gap < pick.gap)) pick = c
+      }
+      if (!pick) continue
+      const { axis, dir, gap, other } = pick
+      if (axis === 'x') {
+        r.rect = dir === 1 ? { ...r.rect, w: r.rect.w + gap } : { ...r.rect, x: r.rect.x - gap, w: r.rect.w + gap }
+      } else {
+        r.rect = dir === 1 ? { ...r.rect, h: r.rect.h + gap } : { ...r.rect, y: r.rect.y - gap, h: r.rect.h + gap }
+      }
+      r.area = toSqm(rectArea(r.rect))
+      const e = sharedEdge(r.rect, other.rect)
+      if (e) {
+        openings.push({
+          kind: 'door',
+          at: midOf(e.seg),
+          orient: e.side === 'N' || e.side === 'S' ? 'h' : 'v',
+          width: DOOR,
+          swing: 1,
+        })
+        linkPair(r.id, other.id)
+        for (const id of bfs(r.id, adj)) seen.add(id)
+        bridged = true
+      }
+    }
+  }
+
+  // absolute last resort: a room still cut off (its edges misaligned by
+  // rounding, or a wing that only overlaps the reachable set). Snap it to the
+  // reachable room it overlaps most and door the shared span — the plan is a
+  // concept study, a notional door here beats an unreachable room.
+  let forced = true
+  while (forced) {
+    forced = false
+    for (const r of enc) {
+      if (seen.has(r.id)) continue
+      let host: PlacedRoom | null = null
+      let bestOv = 0
+      for (const o of enc) {
+        if (!seen.has(o.id) || o === r) continue
+        const ox = Math.min(rectRight(r.rect), rectRight(o.rect)) - Math.max(r.rect.x, o.rect.x)
+        const oy = Math.min(rectBottom(r.rect), rectBottom(o.rect)) - Math.max(r.rect.y, o.rect.y)
+        // near-adjacent (small gap) or overlapping on one axis, sharing span on the other
+        const score = Math.min(ox, 0) + Math.min(oy, 0) + Math.max(ox, oy)
+        if (ox > -2600 && oy > -2600 && (ox > 900 || oy > 900) && score > bestOv) {
+          bestOv = score
+          host = o
+        }
+      }
+      if (!host) continue
+      const mid: Point = {
+        x: (Math.max(r.rect.x, host.rect.x) + Math.min(rectRight(r.rect), rectRight(host.rect))) / 2,
+        y: (Math.max(r.rect.y, host.rect.y) + Math.min(rectBottom(r.rect), rectBottom(host.rect))) / 2,
+      }
+      const horiz = Math.abs(r.rect.x + r.rect.w / 2 - (host.rect.x + host.rect.w / 2)) <
+        Math.abs(r.rect.y + r.rect.h / 2 - (host.rect.y + host.rect.h / 2))
+      openings.push({ kind: 'door', at: mid, orient: horiz ? 'v' : 'h', width: DOOR, swing: 1 })
+      linkPair(r.id, host.id)
+      for (const id of bfs(r.id, adj)) seen.add(id)
+      forced = true
     }
   }
 

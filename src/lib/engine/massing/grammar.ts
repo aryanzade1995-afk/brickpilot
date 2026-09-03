@@ -292,7 +292,7 @@ export function planMassing(
   }
 
   if (req.type !== 'auto' && req.type !== 'random') {
-    return tryType(req.type) ?? tryType('rectangular') ?? forceRect(env, ctx)
+    return tryType(req.type) ?? tryType('rectangular') ?? forceRect(env, ctx, req.seed)
   }
 
   const rng = makeRng(req.seed, `${briefKey}|choose`)
@@ -302,7 +302,7 @@ export function planMassing(
       const p = tryType(t)
       if (p) return p
     }
-    return forceRect(env, ctx)
+    return forceRect(env, ctx, req.seed)
   }
 
   // auto: score every archetype, add seed jitter so the pick genuinely varies,
@@ -312,22 +312,29 @@ export function planMassing(
   ).sort((a, b) => b[1] - a[1])
   const pool = scored.slice(0, 7)
   const chosen = rng.weighted(pool)
-  return tryType(chosen) ?? tryType(scored[0][0]) ?? tryType('rectangular') ?? forceRect(env, ctx)
+  return tryType(chosen) ?? tryType(scored[0][0]) ?? tryType('rectangular') ?? forceRect(env, ctx, req.seed)
 }
 
 /** last-resort: a plain rectangular stack that always validates. Upper floors
  *  shrink toward the core only as far as their programme allows. */
-function forceRect(env: Rect, ctx: MassingCtx): MassingPlan {
+function forceRect(env: Rect, ctx: MassingCtx, seed = 1): MassingPlan {
   const g: Rect = { x: sn(env.x), y: sn(env.y), w: sn(Math.min(env.w, 22000)), h: sn(env.h) }
   const groundSqm = g0(g) / 1e6
-  const floors: FloorMassing[] = [{ level: 0, blocks: [g], cantilevers: [], roof: { kind: 'flat' } }]
+  const rrng = makeRng(seed, 'forceRect|roof')
+  const topRoof = ctx.storeys === 0 ? flatRoof(ctx.roofBias, rrng) : { kind: 'flat' as const }
+  const floors: FloorMassing[] = [{ level: 0, blocks: [g], cantilevers: [], roof: topRoof }]
   let prev = g
   for (let l = 1; l <= ctx.storeys; l++) {
     const need = (ctx.floorProgSqm[l] ?? ctx.floorProgSqm[ctx.floorProgSqm.length - 1] ?? 60) / 0.72
     const k = Math.sqrt(Math.min(1, Math.max(0.78, need / groundSqm)))
     // NW-anchored: the west wall and the stair column never move
     const b: Rect = { x: g.x, y: g.y, w: sn(prev.w * k), h: sn(prev.h * k) }
-    floors.push({ level: l, blocks: [b], cantilevers: [], roof: { kind: 'flat' } })
+    floors.push({
+      level: l,
+      blocks: [b],
+      cantilevers: [],
+      roof: l === ctx.storeys ? flatRoof(ctx.roofBias, rrng) : { kind: 'flat' },
+    })
     prev = b
   }
   return {
