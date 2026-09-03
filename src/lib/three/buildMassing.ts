@@ -1,7 +1,7 @@
 import type { Design, FloorPlan, Opening } from '../engine/types.ts'
 import type { Rect } from '../geometry.ts'
 import type { CanonicalModel } from '../model/canonical.ts'
-import { themeOf, type ThemeDef } from '../model/themes.ts'
+import { themeOf, type RailStyle, type ThemeDef } from '../model/themes.ts'
 
 /* ------------------------------------------------------------------ *
  *  buildMassing — an architect's white-card study model of the house.
@@ -211,12 +211,21 @@ export function buildMassing(design: Design): Massing {
       buildCladding(o, face.S, baseY, wallTop, L, T.accents.cladWidthMm, push, wx, wz, m)
     }
 
+    // ---- contemporary-villa moves (modernist): a cantilever apron over the
+    // recessed ground floor, and vertical brise-soleil fins over the glazing ----
+    if (T.modern && L >= 1 && T.modern.cantileverMm > 0) {
+      cantileverApron(o, baseY, L, T.modern.cantileverMm / 1000, push, wx, wz, m)
+    }
+    if (T.modern?.baffleScreen) {
+      baffleScreen(o, face.S, baseY, wallTop, L, push, wx, wz, m)
+    }
+
     // ---- roof on top, deliberate terrace where a lower floor steps out ----
     if (L === topLevel) {
       buildRoof(o, wallTop, L, T, push, wx, wz, m)
     } else {
       const up = floors.find((f) => f.level === L + 1)
-      if (up) buildTerrace(o, up.outline, wallTop, L, push, wx, wz, m)
+      if (up) buildTerrace(o, up.outline, wallTop, L, T, push, wx, wz, m)
     }
 
     // ---- outdoor rooms ----
@@ -300,11 +309,31 @@ export function buildMassing(design: Design): Massing {
         else break
       }
       const rise = clamp(reached, Math.min(2, floors.length), floors.length)
-      const total = rise * H + 0.14
       const pz = wz(g.y + g.h) + EXT_T / 2 + 0.07
-      push('feat-pier', 'feature', 0, [wx(px), y0 + total / 2, pz], [m(w), total, 0.24])
-      // a slim cap so the top reads as intentional, not sliced
-      push('feat-pier-cap', 'roof', 0, [wx(px), y0 + total + 0.05, pz], [m(w) + 0.1, 0.1, 0.32])
+
+      if (T.modern?.featureTower) {
+        // a slender stair/feature tower rising ~1.9 m above the top roofline,
+        // its street face wrapped in vertical baffle fins
+        const tw = 1500 // mm
+        const td = 0.9 // m, depth
+        const top = y0 + floors.length * H + 1.9
+        const twx = wx(px)
+        push('feat-tower', 'feature', 0, [twx, top / 2, pz], [m(tw), top, td])
+        push('feat-tower-cap', 'roof', 0, [twx, top + 0.06, pz], [m(tw) + 0.28, 0.12, td + 0.28])
+        // vertical fins on the south (street) face
+        const finZ = pz + td / 2 + 0.08
+        const finBot = y0 + 1.6
+        const finH = top - finBot - 0.25
+        const fins = Math.max(5, Math.round(tw / 210))
+        for (let i = 0; i <= fins; i++) {
+          const fx = wx(px - tw / 2 + (tw * i) / fins)
+          push(`feat-tower-fin${i}`, 'screen', 0, [fx, finBot + finH / 2, finZ], [0.045, finH, 0.14])
+        }
+      } else {
+        const total = rise * H + 0.14
+        push('feat-pier', 'feature', 0, [wx(px), y0 + total / 2, pz], [m(w), total, 0.24])
+        push('feat-pier-cap', 'roof', 0, [wx(px), y0 + total + 0.05, pz], [m(w) + 0.1, 0.1, 0.32])
+      }
     }
   }
 
@@ -318,6 +347,12 @@ export function buildMassing(design: Design): Massing {
   if (T.landscape.roofServices) {
     const tf = floors[floors.length - 1]
     roofServices(tf, y0 + tf.level * H + H, push, wx, wz, m)
+  }
+
+  // ---- a slatted pergola + planting over part of the top terrace ----
+  if (T.modern?.roofPergola) {
+    const tf = floors[floors.length - 1]
+    roofPergola(tf.outline, y0 + tf.level * H + H - SLAB_T, push, wx, wz, m)
   }
 
   buildLandscape(model, floors[0], T, push, wx, wz, m)
@@ -577,6 +612,7 @@ function guardRail(
   wx: XF,
   wz: XF,
   m: XF,
+  rail: RailStyle = 'bar',
 ) {
   const dx = x1 - x0
   const dz = z1 - z0
@@ -586,8 +622,20 @@ function guardRail(
   const lm = m(lenMm)
   const mx = wx((x0 + x1) / 2)
   const mz = wz((z0 + z1) / 2)
-  const rt = 0.036
   const H = 0.95
+
+  if (rail === 'glass') {
+    // one frameless panel + a slim capping rail
+    const pt = 0.02
+    push(`${tag}-glass`, 'glass', level, [mx, yBase + H / 2 + 0.06, mz], horiz ? [lm, H - 0.12, pt] : [pt, H - 0.12, lm])
+    push(`${tag}-cap`, 'railing', level, [mx, yBase + H, mz], horiz ? [lm + 0.05, 0.05, 0.05] : [0.05, 0.05, lm + 0.05])
+    for (const t of [0, 1]) {
+      push(`${tag}-p${t}`, 'railing', level, [wx(x0 + dx * t), yBase + H / 2, wz(z0 + dz * t)], [0.05, H, 0.05])
+    }
+    return
+  }
+
+  const rt = 0.036
   for (const h of [H, H * 0.5]) {
     push(`${tag}-r${Math.round(h * 100)}`, 'railing', level, [mx, yBase + h, mz], horiz ? [lm, rt, rt] : [rt, rt, lm])
   }
@@ -616,10 +664,11 @@ function buildRoof(o: Rect, wallTop: number, L: number, T: ThemeDef, push: Push,
   const gx1 = o.x + o.w + HT_MM
   const gz0 = o.y - HT_MM
   const gz1 = o.y + o.h + HT_MM
-  guardRail(gx0, gz0, gx1, gz0, wallTop, L, `groof-${L}-n`, push, wx, wz, m)
-  guardRail(gx0, gz1, gx1, gz1, wallTop, L, `groof-${L}-s`, push, wx, wz, m)
-  guardRail(gx0, gz0, gx0, gz1, wallTop, L, `groof-${L}-w`, push, wx, wz, m)
-  guardRail(gx1, gz0, gx1, gz1, wallTop, L, `groof-${L}-e`, push, wx, wz, m)
+  const gr = T.accents.railStyle
+  guardRail(gx0, gz0, gx1, gz0, wallTop, L, `groof-${L}-n`, push, wx, wz, m, gr)
+  guardRail(gx0, gz1, gx1, gz1, wallTop, L, `groof-${L}-s`, push, wx, wz, m, gr)
+  guardRail(gx0, gz0, gx0, gz1, wallTop, L, `groof-${L}-w`, push, wx, wz, m, gr)
+  guardRail(gx1, gz0, gx1, gz1, wallTop, L, `groof-${L}-e`, push, wx, wz, m, gr)
 
   // ---- flat-band: the signature bold white fascia beam wrapping the slab ----
   if (T.roof.style === 'flat-band') {
@@ -703,11 +752,92 @@ function buildCladding(
   push(`cladf-${L}-r`, 'roof', L, [wx(cx + cw / 2) + ft / 2, baseY + 0.06 + h / 2, z + 0.01], [ft, h, 0.09])
 }
 
+/* ---------------------- contemporary-villa moves (modernist) ---------------------- */
+
+/** an upper storey cantilevering over the recessed ground floor on the street
+ *  (plan-south) side — a projecting floor apron + a shallow skirt below it.
+ *  Massing only; the walls and windows stay on the plan. */
+function cantileverApron(
+  o: Rect,
+  baseY: number,
+  L: number,
+  projM: number,
+  push: Push,
+  wx: XF,
+  wz: XF,
+  m: XF,
+) {
+  const cxw = wx(o.x + o.w / 2)
+  const w = m(o.w) + EXT_T
+  const southZ = wz(o.y + o.h) + EXT_T / 2
+  const apronT = 0.42
+  push(`cant-${L}`, 'band', L, [cxw, baseY - apronT / 2 + 0.12, southZ + projM / 2], [w, apronT, projM + 0.12])
+  // shallow skirt hanging under the front edge so the cantilever reads as mass
+  push(`cant-skirt-${L}`, 'band', L, [cxw, baseY - 0.42, southZ + projM - 0.06], [w, 0.78, 0.12])
+}
+
+/** vertical brise-soleil fins over the widest glazed opening on the street
+ *  (plan-south) facade of a storey. */
+function baffleScreen(
+  o: Rect,
+  southOps: FaceOp[],
+  baseY: number,
+  wallTop: number,
+  L: number,
+  push: Push,
+  wx: XF,
+  wz: XF,
+  m: XF,
+) {
+  const w0 = southOps.filter((op) => op.head - op.sill > 1.2).sort((a, b) => b.width - a.width)[0]
+  if (!w0 || w0.width < 900) return
+  const sMm = w0.at - w0.width / 2 - 150
+  const spanMm = w0.width + 300
+  const z = wz(o.y + o.h) + EXT_T / 2 + 0.15
+  const yb = baseY + Math.max(0.1, w0.sill - 0.25)
+  const yt = Math.min(wallTop - 0.12, baseY + w0.head + 0.35)
+  const h = yt - yb
+  if (h < 1) return
+  const n = Math.max(4, Math.round(spanMm / 260))
+  for (let i = 0; i <= n; i++) {
+    push(`baf-${L}-${i}`, 'screen', L, [wx(sMm + (spanMm * i) / n), yb + h / 2, z], [0.04, h, 0.16])
+  }
+  push(`baf-${L}-t`, 'screen', L, [wx(sMm + spanMm / 2), yt, z], [m(spanMm) + 0.08, 0.05, 0.16])
+  push(`baf-${L}-b`, 'screen', L, [wx(sMm + spanMm / 2), yb, z], [m(spanMm) + 0.08, 0.05, 0.16])
+}
+
+/** a slatted pergola + a planter run over part of the top terrace */
+function roofPergola(o: Rect, deckY: number, push: Push, wx: XF, wz: XF, m: XF) {
+  const pw = Math.min(o.w * 0.55, 4400)
+  const pd = Math.min(o.h * 0.45, 3800)
+  if (pw < 2200 || pd < 1900) return
+  const px = o.x + 400
+  const pz0 = o.y + o.h - pd - 350 // drawn toward the street edge
+  const top = deckY + 2.4
+  for (const z of [pz0, pz0 + pd]) {
+    push(`perg-b${Math.round(z)}`, 'shade', 0, [wx(px + pw / 2), top, wz(z)], [m(pw) + 0.2, 0.12, 0.1])
+  }
+  const n = Math.max(5, Math.round(pw / 430))
+  for (let i = 0; i <= n; i++) {
+    push(`perg-s${i}`, 'shade', 0, [wx(px + (pw * i) / n), top + 0.03, wz(pz0 + pd / 2)], [0.09, 0.07, m(pd) + 0.16])
+  }
+  for (const [cx, cz] of [
+    [px, pz0],
+    [px + pw, pz0],
+    [px, pz0 + pd],
+    [px + pw, pz0 + pd],
+  ] as const) {
+    push(`perg-p${Math.round(cx)}-${Math.round(cz)}`, 'railing', 0, [wx(cx), deckY + 1.2, wz(cz)], [0.09, 2.4, 0.09])
+  }
+  push('perg-plnt', 'planter', 0, [wx(px + pw / 2), deckY + 0.22, wz(pz0 - 250)], [m(pw), 0.44, 0.7])
+}
+
 function buildTerrace(
   o: Rect,
   up: Rect,
   wallTop: number,
   L: number,
+  T: ThemeDef,
   push: Push,
   wx: XF,
   wz: XF,
@@ -754,10 +884,11 @@ function buildTerrace(
   const ax1 = o.x + o.w + HT_MM
   const az0 = o.y - HT_MM
   const az1 = o.y + o.h + HT_MM
-  if (exN) guardRail(ax0, az0, ax1, az0, dT, L, `gt-${L}-n`, push, wx, wz, m)
-  if (exS) guardRail(ax0, az1, ax1, az1, dT, L, `gt-${L}-s`, push, wx, wz, m)
-  if (exW) guardRail(ax0, az0, ax0, az1, dT, L, `gt-${L}-w`, push, wx, wz, m)
-  if (exE) guardRail(ax1, az0, ax1, az1, dT, L, `gt-${L}-e`, push, wx, wz, m)
+  const gr = T.accents.railStyle
+  if (exN) guardRail(ax0, az0, ax1, az0, dT, L, `gt-${L}-n`, push, wx, wz, m, gr)
+  if (exS) guardRail(ax0, az1, ax1, az1, dT, L, `gt-${L}-s`, push, wx, wz, m, gr)
+  if (exW) guardRail(ax0, az0, ax0, az1, dT, L, `gt-${L}-w`, push, wx, wz, m, gr)
+  if (exE) guardRail(ax1, az0, ax1, az1, dT, L, `gt-${L}-e`, push, wx, wz, m, gr)
 }
 
 /* --------------------------------- carport / porch ------------------------------- */
@@ -828,7 +959,7 @@ function buildBalcony(
   baseY: number,
   L: number,
   depthM: number,
-  rail: 'bar' | 'baluster',
+  rail: RailStyle,
   push: Push,
   wx: XF,
   wz: XF,
@@ -862,7 +993,16 @@ function buildBalcony(
     const railT = rail === 'bar' ? 0.035 : 0.06
     const railSize: Vec3 = horiz ? [len + post, railT, railT] : [railT, railT, len + post]
 
-    if (rail === 'bar') {
+    if (rail === 'glass') {
+      const pt = 0.02
+      push(`balg-${L}-${ei}`, 'glass', L, [mx, y + rh / 2 + 0.06, mz], horiz ? [len, rh - 0.12, pt] : [pt, rh - 0.12, len])
+      push(`balc-cap-${L}-${ei}`, 'railing', L, [mx, y + rh, mz], railSize)
+      for (const t of [0, 1]) {
+        const px = e.from[0] + (e.to[0] - e.from[0]) * t
+        const pz = e.from[2] + (e.to[2] - e.from[2]) * t
+        push(`balp-${L}-${ei}-${t}`, 'railing', L, [px, y + rh / 2, pz], [post, rh, post])
+      }
+    } else if (rail === 'bar') {
       // slim black steel: a top handrail + three thin horizontals, end posts only
       for (const f of [1, 0.7, 0.42, 0.14]) {
         push(`balr-${L}-${ei}-${f}`, 'railing', L, [mx, y + rh * f, mz], railSize)

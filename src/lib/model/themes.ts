@@ -11,7 +11,7 @@ import type { Brief } from './brief.ts'
 export type Character = Brief['style']['character']
 
 export type RoofStyle = 'flat-parapet' | 'flat-eave' | 'flat-band'
-export type RailStyle = 'bar' | 'baluster'
+export type RailStyle = 'bar' | 'baluster' | 'glass'
 export type GroupKey =
   | 'shell'
   | 'glazing'
@@ -78,6 +78,18 @@ export type ThemeDef = {
     jaali: boolean
     railStyle: RailStyle
   }
+  /** contemporary-villa massing vocabulary — present only for `modernist`.
+   *  All flat-shaded white geometry (no textures / materials). */
+  modern?: {
+    /** upper storeys project this far past the plan on the street facade, mm */
+    cantileverMm: number
+    /** a slender clad stair/feature tower rising above the roofline */
+    featureTower: boolean
+    /** vertical brise-soleil fins over the widest street-facing glazing */
+    baffleScreen: boolean
+    /** a slatted pergola + planting over part of the top terrace */
+    roofPergola: boolean
+  }
   /** site & garden treatment */
   landscape: {
     /** front / side hedge height, mm (0 = none) */
@@ -102,11 +114,12 @@ export const THEMES: Record<Character, ThemeDef> = {
   modernist: {
     id: 'modernist',
     label: 'Modernist',
-    blurb: 'Crisp white roof lines, strong horizontals, disciplined openings.',
-    roof: { style: 'flat-band', eaveMm: 200, parapetMm: 0, bandMm: 340, thickMm: 200 },
-    windows: { mullionMm: 3200, widthMm: 2100, minRoomSqm: 11, perFacade: 2, sillMm: 850, headMm: 2300, groupMm: 1150 },
-    massing: { plinthProjMm: 150, balconyDepthMm: 1500, chajjaMm: 450, stringCourseMm: 90 },
-    accents: { cladFacade: true, cladWidthMm: 1600, featureColumn: true, jaali: true, railStyle: 'bar' },
+    blurb: 'Stacked white volumes, a slim deep roof, a baffle-screen tower.',
+    roof: { style: 'flat-band', eaveMm: 720, parapetMm: 0, bandMm: 210, thickMm: 170 },
+    windows: { mullionMm: 3200, widthMm: 2400, minRoomSqm: 11, perFacade: 2, sillMm: 750, headMm: 2400, groupMm: 1150 },
+    massing: { plinthProjMm: 150, balconyDepthMm: 1600, chajjaMm: 0, stringCourseMm: 70 },
+    accents: { cladFacade: true, cladWidthMm: 1600, featureColumn: true, jaali: false, railStyle: 'glass' },
+    modern: { cantileverMm: 1100, featureTower: true, baffleScreen: true, roofPergola: true },
     landscape: { hedgeMm: 600, shrubs: 4, terraceGarden: true, roofServices: true, boundaryMm: 1650 },
     materials: {
       shell: { color: '#ece7db', roughness: 0.82, env: 0.5 },
@@ -115,15 +128,17 @@ export const THEMES: Record<Character, ThemeDef> = {
       roof: { color: '#f6f4ee', roughness: 0.62, env: 0.55 },
       stair: { color: '#d2c8ae', roughness: 0.9, env: 0.4 },
       partition: { color: '#e2d9c5', roughness: 0.92, env: 0.3 },
-      clad: { color: '#8a6e46', roughness: 0.5, env: 0.7 },
-      feature: { color: '#403d39', roughness: 0.86, env: 0.4 },
+      // white study-model — the baffle screens / fins / entry pier read by form,
+      // not by a contrasting material
+      clad: { color: '#e4ddce', roughness: 0.72, env: 0.4 },
+      feature: { color: '#cfc8ba', roughness: 0.8, env: 0.4 },
       metal: { color: '#24242a', roughness: 0.36, metalness: 0.9, env: 1.4 },
       garden: { color: '#6f8f4f', roughness: 0.97, env: 0.2 },
       paving: { color: '#c6bfae', roughness: 0.95, env: 0.35 },
       greenery: { color: '#5d7c40', roughness: 0.94, env: 0.25 },
     },
     renderPrompt:
-      `Photorealistic architectural concept of a modernist Indian villa. Stepped flat roofs each edged with a bold white fascia band, off-white plaster walls with slim floor-line string courses and cantilevered chajja weather-hoods over every window, a vertical timber-batten feature panel, a perforated timber jaali and a dark stone pier by the entry, wide teak-framed sliding windows, slim black steel balcony railings, a stair mumty and water tank on the terrace. Warm evening light, clipped lawn. ${GROUNDING}`,
+      `Photorealistic architectural concept of a contemporary villa. Stacked crisp white plaster volumes, the upper floor cantilevering over a recessed carport, a slim deep flat roof oversailing with a sharp shadow line, a slender vertical stair tower clad in white baffle fins rising above the roofline, full-height vertical brise-soleil fins over the main glazing, floor-to-ceiling glass in disciplined bays, recessed balconies with frameless glass balustrades, a stone-clad entry pier, a slatted pergola with planting on the roof terrace, a stair mumty and water tank set back. Warm late-afternoon light, clipped lawn, a few shrubs. ${GROUNDING}`,
   },
   'warm-minimal': {
     id: 'warm-minimal',
