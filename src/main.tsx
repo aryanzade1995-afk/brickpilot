@@ -11,6 +11,7 @@ import { Massing } from './routes/Massing.tsx'
 import { Render } from './routes/Render.tsx'
 import { Report } from './routes/Report.tsx'
 import { Designs } from './routes/Designs.tsx'
+import { StyleSheet } from './routes/StyleSheet.tsx'
 
 const router = createBrowserRouter([
   {
@@ -27,6 +28,7 @@ const router = createBrowserRouter([
       { path: 'designs', element: <Designs /> },
     ],
   },
+  { path: '/__styles', element: <StyleSheet /> },
 ])
 
 createRoot(document.getElementById('root')!).render(
