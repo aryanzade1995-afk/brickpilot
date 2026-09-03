@@ -79,6 +79,43 @@ any generated concepts. **Clear** wipes only the generated concept/interior
 images — the brief, plan, findings and cost stay. jsPDF loads as a lazy chunk, so
 it costs nothing until you export.
 
+## Typology & character (Style step)
+
+Two orthogonal choices on the Style step drive the geometry:
+
+- **Typology** — *Villa / bungalow* or *Large villa*. A large villa inflates the
+  habitable programme ~1.2–1.3×, widens the footprint (held under the concept
+  coverage limit), adds a generous forecourt / courtyard when the plot allows,
+  and carries a +12 % build-rate premium. `repairNarrow()` in the engine slides
+  a party wall to widen any room the treemap left below the 2.4 m minimum.
+- **Character** — *Modernist* / *Warm minimal* / *Kerala contemporary*. Drives
+  the window rhythm and the massing vocabulary. **Modernist** produces a
+  contemporary-villa massing — stacked white volumes with a street cantilever, a
+  slim deep oversailing roof, a baffle-screen feature tower, vertical brise-soleil
+  fins, a roof pergola and frameless glass balustrades — all flat-shaded white.
+
+## Datasets
+
+The generator's room-size / adjacency numbers are tuned against **ResPlan**
+([github.com/m-agour/ResPlan](https://github.com/m-agour/ResPlan), 17k South-Asian
+plans, CC BY 4.0). We only read it for *statistics* — nothing from the dataset is
+shipped (it carries a takedown policy). To regenerate the numbers:
+
+```bash
+pip install numpy shapely networkx          # + ResPlan/requirements.txt
+python scripts/resplan_stats.py path/to/ResPlan.zip   # → scripts/resplan_stats.json
+```
+
+then re-tune `AREA` in `src/lib/model/canonical.ts` and `MIN_DIM` in
+`src/lib/rules/index.ts`. The committed `resplan_stats.json` currently holds
+provisional NBC-2016 / practice reference values, not dataset-derived ones.
+
+Two other datasets were evaluated and **not used**: **LSAA** (CC BY-NC-SA —
+non-commercial, and it's European street facades, not architecture assets) and
+**Structured3D** (the data is gated behind a signed agreement form). The app is a
+deterministic procedural engine with no ML pipeline, so neither could be "wired
+in" regardless.
+
 ## Local AI interiors (ComfyUI)
 
 Step 5 → **AI Interior** builds a clean 3D shell of the selected room (real walls,

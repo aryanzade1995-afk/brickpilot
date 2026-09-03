@@ -1,0 +1,21 @@
+{
+  "_note": "PROVISIONAL reference values from Indian residential design norms (NBC 2016 minimum room sizes + common villa practice). Regenerate with `python scripts/resplan_stats.py <path>/ResPlan.zip` for dataset-derived numbers, then re-tune AREA in src/lib/model/canonical.ts and MIN_DIM in src/lib/rules/index.ts against the output.",
+  "_source": "reference norms — not yet dataset-derived",
+  "plans_used": 0,
+  "room_area_m2": {
+    "living":    { "p10": 14, "p50": 22, "p90": 34 },
+    "dining":    { "p10": 9,  "p50": 14, "p90": 22 },
+    "kitchen":   { "p10": 7,  "p50": 11, "p90": 17 },
+    "masterBed": { "p10": 11, "p50": 15, "p90": 21 },
+    "bed":       { "p10": 9,  "p50": 12, "p90": 18 },
+    "bath":      { "p10": 2.8,"p50": 4,  "p90": 6.5 },
+    "utility":   { "p10": 3,  "p50": 5,  "p90": 9 },
+    "pooja":     { "p10": 1.5,"p50": 3,  "p90": 6 },
+    "study":     { "p10": 6,  "p50": 9,  "p90": 15 },
+    "foyer":     { "p10": 2.5,"p50": 4.5,"p90": 8 },
+    "balcony":   { "p10": 3,  "p50": 5,  "p90": 10 }
+  },
+  "habitable_room_count": { "p10": 4, "p50": 6, "p90": 9 },
+  "plan_aspect_ratio":    { "p10": 0.7, "p50": 1.1, "p90": 1.7 },
+  "share_with": { "balcony": 0.62, "pooja": 0.41, "utility": 0.55 }
+}

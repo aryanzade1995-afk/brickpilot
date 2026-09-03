@@ -62,28 +62,34 @@ export type CanonicalModel = {
   relationships: Relationship[]
 }
 
-/** Room area presets in m² — [min, target, max]. Rough Indian residential. */
+/**
+ * Room area presets in m² — [min, target, max]. Indian residential.
+ * `min` follows NBC 2016 habitable-room minimums; `target` / `max` are widened
+ * to the p50 / p90 of the ResPlan reference norms (scripts/resplan_stats.json)
+ * so a well-proportioned villa doesn't trip the "over maximum" advisory.
+ * Regenerate that file against ResPlan.zip and re-tune here.
+ */
 const AREA: Record<string, [number, number, number]> = {
-  foyer: [3, 5, 8],
-  living: [16, 22, 30],
-  dining: [9, 13, 18],
-  livingDining: [24, 32, 42],
-  kitchen: [8, 12, 16],
-  utility: [3.5, 6, 9],
-  pooja: [2, 4, 6],
-  circulation: [4, 8, 14],
+  foyer: [3, 5, 9],
+  living: [14, 22, 34],
+  dining: [9, 14, 22],
+  livingDining: [22, 34, 50],
+  kitchen: [7, 11, 18],
+  utility: [3, 5.5, 10],
+  pooja: [1.5, 3.5, 7],
+  circulation: [4, 8, 16],
   stair: [5.5, 7, 9],
-  lobby: [5, 8, 12],
-  familyLounge: [14, 20, 28],
-  masterBed: [12, 15, 20],
-  bed: [10, 13, 17],
-  study: [7, 10, 14],
-  attachedBath: [3, 4, 5.5],
-  sharedBath: [3, 4.5, 6],
-  balcony: [4, 6, 10],
-  coveredParking: [13.5, 18, 24],
-  coveredVerandah: [8, 12, 18],
-  courtyard: [8, 12, 20],
+  lobby: [5, 8, 13],
+  familyLounge: [14, 20, 32],
+  masterBed: [11, 15, 22],
+  bed: [9, 12.5, 19],
+  study: [6, 10, 16],
+  attachedBath: [2.8, 4, 6.5],
+  sharedBath: [2.8, 4.5, 7],
+  balcony: [3, 6, 11],
+  coveredParking: [13.5, 18, 26],
+  coveredVerandah: [8, 12, 20],
+  courtyard: [8, 12, 24],
 }
 
 function mk(
