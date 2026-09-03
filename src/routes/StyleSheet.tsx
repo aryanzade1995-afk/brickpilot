@@ -17,14 +17,14 @@ const CELL_H = 470
 const COLS = 2
 const GAP = 14
 const LABEL_H = 34
-const SETTLE_MS = 2600
+const SETTLE_MS = 3200
 
 export function StyleSheet() {
   const designs = useMemo(() => {
     const b = defaultBrief()
-    b.site.plotWidth = 18
-    b.site.plotDepth = 22
-    b.levels.storeys = 2
+    b.site.plotWidth = 19
+    b.site.plotDepth = 23
+    b.levels.storeys = 1 // G+1 — the roof reads as most of the silhouette
     return STYLES.map((c) => ({
       c,
       design: generate(
@@ -38,6 +38,8 @@ export function StyleSheet() {
   const [sheet, setSheet] = useState<string | null>(null)
   const shots = useRef<string[]>([])
 
+  const [bump, setBump] = useState(0)
+  const tries = useRef(0)
   useEffect(() => {
     if (i >= STYLES.length) {
       void composite(shots.current, setSheet)
@@ -45,15 +47,25 @@ export function StyleSheet() {
     }
     const t = setTimeout(() => {
       const el = document.querySelector<HTMLCanvasElement>('[data-massing-capture] canvas')
+      let url = ''
       try {
-        shots.current[i] = el ? el.toDataURL('image/png') : ''
+        url = el ? el.toDataURL('image/png') : ''
       } catch {
-        shots.current[i] = ''
+        url = ''
       }
-      setI((v) => v + 1)
+      // a canvas that hasn't finished its first frames reads back near-black —
+      // retry a few times before giving up on this style
+      if ((url && el && !looksBlank(el)) || tries.current >= 4) {
+        shots.current[i] = url
+        tries.current = 0
+        setI((v) => v + 1)
+      } else {
+        tries.current += 1
+        setBump((v) => v + 1)
+      }
     }, SETTLE_MS)
     return () => clearTimeout(t)
-  }, [i])
+  }, [i, bump])
 
   const active = designs[Math.min(i, STYLES.length - 1)]
 
@@ -79,6 +91,23 @@ export function StyleSheet() {
       )}
     </div>
   )
+}
+
+/** true if the canvas reads back as ~solid dark (first frames not drawn yet) */
+function looksBlank(el: HTMLCanvasElement): boolean {
+  try {
+    const s = document.createElement('canvas')
+    s.width = 24
+    s.height = 24
+    const c = s.getContext('2d')!
+    c.drawImage(el, 0, 0, 24, 24)
+    const px = c.getImageData(0, 0, 24, 24).data
+    let bright = 0
+    for (let k = 0; k < px.length; k += 4) bright += px[k] + px[k + 1] + px[k + 2]
+    return bright / (24 * 24) < 90 // avg channel-sum per pixel
+  } catch {
+    return false
+  }
 }
 
 async function composite(urls: string[], setSheet: (s: string) => void) {

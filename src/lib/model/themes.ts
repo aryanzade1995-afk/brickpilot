@@ -303,7 +303,7 @@ export const THEMES: Record<Character, ThemeDef> = {
     'Photorealistic architectural concept of a tropical modern Indian house in Goa. Broad low mono-pitch roofs with very deep overhangs and exposed steel rafters, white and warm-timber planes, a deep wrap-around verandah on slim round columns, floor-to-ceiling louvred glazing, a large terracotta jaali screen wall, a timber pergola with climbers over the sit-out, an outdoor shower court. Dappled afternoon light through dense palms, ferns and frangipani, a black plunge pool.',
     {
       roofBias: 'pitched',
-      roof: { style: 'pitched', eaveMm: 1200, parapetMm: 0, thickMm: 170, pitchDeg: 14 },
+      roof: { style: 'pitched', eaveMm: 1200, parapetMm: 0, thickMm: 170, pitchDeg: 18 },
       windows: { mullionMm: 3300, widthMm: 2600, sillMm: 250, headMm: 2500, perFacade: 3, groupMm: 1200 },
       massing: { plinthProjMm: 200, chajjaMm: 300, stringCourseMm: 0 },
       accents: { cladWidthMm: 2100, jaali: true, railStyle: 'bar' },
