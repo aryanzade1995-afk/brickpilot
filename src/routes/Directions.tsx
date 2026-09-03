@@ -21,8 +21,8 @@ export function Directions() {
     return <div className="mx-auto max-w-[1400px] px-10 py-24 text-ink-dim">Engineering directions…</div>
   }
 
-  const choose = (strategy: (typeof directions)[number]['strategy']) => {
-    pin(strategy)
+  const choose = (d: (typeof directions)[number]) => {
+    pin({ massing: d.massing, seed: d.seed })
     navigate('/workspace/plan')
   }
 
@@ -40,10 +40,10 @@ export function Directions() {
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
         {directions.map((d) => {
-          const isPinned = pinned === d.strategy
+          const isPinned = pinned?.massing === d.massing && pinned?.seed === d.seed
           return (
             <div
-              key={d.strategy}
+              key={`${d.massing}:${d.seed}`}
               className={cx(
                 'flex flex-col border transition-colors',
                 isPinned ? 'border-accent' : 'border-line',
@@ -91,7 +91,7 @@ export function Directions() {
 
               <button
                 type="button"
-                onClick={() => choose(d.strategy)}
+                onClick={() => choose(d)}
                 className={cx(
                   'mt-auto flex items-center justify-center gap-2 border-t py-3.5 font-mono text-xs uppercase tracking-[0.12em] transition-colors',
                   isPinned

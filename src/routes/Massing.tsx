@@ -7,6 +7,7 @@ import { ArrowRight, Grid3x3 } from 'lucide-react'
 import * as THREE from 'three'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { useStudio } from '@/state/studio.ts'
+import { MASSING_LABEL } from '@/lib/engine/index.ts'
 import { buildMassing } from '@/lib/three/buildMassing.ts'
 import { MassingModel, SceneEnv } from '@/lib/three/MassingScene.tsx'
 import type { Group } from '@/lib/three/massingGroups.ts'
@@ -27,6 +28,7 @@ type CamKey = 'front' | 'rear' | 'left' | 'right' | 'iso' | 'top'
 export function Massing() {
   const result = useStudio((s) => s.result)
   const run = useStudio((s) => s.run)
+  const reseed = useStudio((s) => s.reseed)
   useEffect(() => {
     if (!result) run()
   }, [result, run])
@@ -139,10 +141,18 @@ export function Massing() {
 
         <div className="space-y-6">
           <Panel title="Model">
+            <Stat k="Massing" v={MASSING_LABEL[result.design.massingType] ?? result.design.massingType} />
             <Stat k="Storeys" v={String(massing.stats.storeys)} />
             <Stat k="Height" v={`${massing.stats.heightM} m`} />
             <Stat k="Built area" v={`${massing.stats.builtAreaSqm.toFixed(1)} m²`} />
             <Stat k="Openings" v={String(massing.stats.openings)} />
+            <button
+              type="button"
+              onClick={reseed}
+              className="mt-1 flex w-full items-center justify-center gap-1.5 border border-line-strong py-2 font-mono text-[0.65rem] uppercase tracking-[0.12em] text-ink-dim transition-colors hover:border-accent hover:text-ink"
+            >
+              <Grid3x3 size={11} /> Re-roll this massing
+            </button>
           </Panel>
 
           <div className="border border-line">

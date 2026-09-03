@@ -66,3 +66,119 @@ export function edgeIsExterior(r: Rect, side: 'N' | 'S' | 'E' | 'W', outer: Rect
 
 export const segLength = (s: Segment): number => Math.hypot(s.b.x - s.a.x, s.b.y - s.a.y)
 export const segMidpoint = (s: Segment): Point => ({ x: (s.a.x + s.b.x) / 2, y: (s.a.y + s.b.y) / 2 })
+
+/* ------------------------------------------------------------------ *
+ *  Rect-union boundary — trace the outer edges of a union of a few
+ *  axis-aligned rectangles (the massing "footprint"). Cell-grid method:
+ *  cut the plane on every rect edge, mark cells inside/outside, and emit
+ *  the edges that separate the two. Deterministic; O(cells) with cells
+ *  ≤ (2n)² for n rects.
+ * ------------------------------------------------------------------ */
+
+export type BoundaryEdge = { a: Point; b: Point; side: 'N' | 'S' | 'E' | 'W' }
+
+const uniqSorted = (xs: number[]): number[] => [...new Set(xs.map((v) => Math.round(v)))].sort((a, b) => a - b)
+
+/** union bounding box of a rect list */
+export function rectUnionBBox(rects: Rect[]): Rect {
+  const x = Math.min(...rects.map((r) => r.x))
+  const y = Math.min(...rects.map((r) => r.y))
+  const x1 = Math.max(...rects.map(rectRight))
+  const y1 = Math.max(...rects.map(rectBottom))
+  return { x, y, w: x1 - x, h: y1 - y }
+}
+
+/** true if `p` sits strictly inside any rect (grid-cell centres never land on an edge) */
+const inAny = (rects: Rect[], px: number, py: number): boolean =>
+  rects.some((r) => px > r.x && px < rectRight(r) && py > r.y && py < rectBottom(r))
+
+/** union area in mm² */
+export function rectUnionArea(rects: Rect[]): number {
+  if (rects.length === 1) return rectArea(rects[0])
+  const xs = uniqSorted(rects.flatMap((r) => [r.x, rectRight(r)]))
+  const ys = uniqSorted(rects.flatMap((r) => [r.y, rectBottom(r)]))
+  let area = 0
+  for (let i = 0; i < xs.length - 1; i++) {
+    for (let j = 0; j < ys.length - 1; j++) {
+      const cx = (xs[i] + xs[i + 1]) / 2
+      const cy = (ys[j] + ys[j + 1]) / 2
+      if (inAny(rects, cx, cy)) area += (xs[i + 1] - xs[i]) * (ys[j + 1] - ys[j])
+    }
+  }
+  return area
+}
+
+/**
+ * Outer boundary edges of the rect union, each tagged with the compass
+ * direction it faces (outward). Collinear runs are merged. A `hole` (courtyard)
+ * subtracts: its boundary edges are emitted too, facing *inward*.
+ */
+export function rectUnionEdges(rects: Rect[], hole?: Rect | null): BoundaryEdge[] {
+  const all = hole ? [...rects] : rects
+  const xs = uniqSorted(all.flatMap((r) => [r.x, rectRight(r)]).concat(hole ? [hole.x, rectRight(hole)] : []))
+  const ys = uniqSorted(all.flatMap((r) => [r.y, rectBottom(r)]).concat(hole ? [hole.y, rectBottom(hole)] : []))
+
+  const solid = (cx: number, cy: number) =>
+    inAny(rects, cx, cy) && !(hole && cx > hole.x && cx < rectRight(hole) && cy > hole.y && cy < rectBottom(hole))
+
+  const vert: BoundaryEdge[] = []
+  const horiz: BoundaryEdge[] = []
+
+  // vertical edges: between horizontal neighbours
+  for (let i = 0; i < xs.length; i++) {
+    for (let j = 0; j < ys.length - 1; j++) {
+      const x = xs[i]
+      const y0 = ys[j]
+      const y1 = ys[j + 1]
+      const cy = (y0 + y1) / 2
+      const left = i > 0 && solid((xs[i - 1] + x) / 2, cy)
+      const right = i < xs.length - 1 && solid((x + xs[i + 1]) / 2, cy)
+      if (left !== right) {
+        vert.push({ a: { x, y: y0 }, b: { x, y: y1 }, side: right ? 'W' : 'E' })
+      }
+    }
+  }
+  // horizontal edges: between vertical neighbours
+  for (let j = 0; j < ys.length; j++) {
+    for (let i = 0; i < xs.length - 1; i++) {
+      const y = ys[j]
+      const x0 = xs[i]
+      const x1 = xs[i + 1]
+      const cx = (x0 + x1) / 2
+      const above = j > 0 && solid(cx, (ys[j - 1] + y) / 2)
+      const below = j < ys.length - 1 && solid(cx, (y + ys[j + 1]) / 2)
+      if (above !== below) {
+        horiz.push({ a: { x: x0, y }, b: { x: x1, y }, side: below ? 'N' : 'S' })
+      }
+    }
+  }
+
+  // merge collinear runs sharing an endpoint + side
+  const merge = (edges: BoundaryEdge[], axis: 'x' | 'y'): BoundaryEdge[] => {
+    const key = (e: BoundaryEdge) => `${axis === 'x' ? e.a.x : e.a.y}|${e.side}`
+    const groups = new Map<string, BoundaryEdge[]>()
+    for (const e of edges) {
+      const g = groups.get(key(e)) ?? []
+      g.push(e)
+      groups.set(key(e), g)
+    }
+    const out: BoundaryEdge[] = []
+    for (const g of groups.values()) {
+      g.sort((p, q) => (axis === 'x' ? p.a.y - q.a.y : p.a.x - q.a.x))
+      let cur = { ...g[0], a: { ...g[0].a }, b: { ...g[0].b } }
+      for (let k = 1; k < g.length; k++) {
+        const nxt = g[k]
+        const contiguous = axis === 'x' ? cur.b.y === nxt.a.y : cur.b.x === nxt.a.x
+        if (contiguous) cur.b = { ...nxt.b }
+        else {
+          out.push(cur)
+          cur = { ...nxt, a: { ...nxt.a }, b: { ...nxt.b } }
+        }
+      }
+      out.push(cur)
+    }
+    return out
+  }
+
+  return [...merge(vert, 'x'), ...merge(horiz, 'y')]
+}

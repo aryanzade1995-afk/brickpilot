@@ -20,10 +20,33 @@ export const BUILDING_TYPE_LABEL: Record<BuildingType, string> = {
 
 export const characterSchema = z.enum(['modernist', 'warm-minimal', 'kerala-contemporary'])
 export const CHARACTER_LABEL: Record<z.infer<typeof characterSchema>, string> = {
-  modernist: 'Modernist',
-  'warm-minimal': 'Warm minimal',
-  'kerala-contemporary': 'Kerala contemporary',
+  modernist: 'Modern Indian',
+  'warm-minimal': 'Minimal Indian',
+  'kerala-contemporary': 'Kerala Contemporary',
 }
+
+export const massingSchema = z.enum([
+  'auto',
+  'random',
+  'rectangular',
+  'l-shape',
+  't-shape',
+  'u-shape',
+  'courtyard',
+  'rear-courtyard',
+  'offset-box',
+  'split-volume',
+  'cantilever',
+  'stepped',
+  'interlocking',
+  'central-core',
+  'side-wing',
+  'front-projection',
+  'asymmetric',
+])
+export type MassingChoice = z.infer<typeof massingSchema>
+
+export const diversitySchema = z.enum(['low', 'medium', 'high', 'extreme'])
 
 /**
  * Raw wizard input. Every leaf has a default so `briefSchema.parse({})`
@@ -91,6 +114,10 @@ export const briefSchema = z
     style: z
       .object({
         character: characterSchema.default('modernist'),
+        /** architectural massing archetype — `auto` picks by fit, `random` re-rolls */
+        massing: massingSchema.default('auto'),
+        /** how far the massing grammar pushes offsets / cantilevers / asymmetry */
+        diversity: diversitySchema.default('medium'),
       })
       .prefault({}),
     entry: z

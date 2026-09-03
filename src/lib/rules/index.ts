@@ -178,6 +178,29 @@ export function validate(design: Design): ValidationReport {
     add('NO_ENTRY_DOOR', 'error', 'egress', 'No entry door was placed on the ground floor.')
   }
 
+  // --- vertical: every upper storey must be carried by the one below it ---
+  for (let i = 1; i < design.floors.length; i++) {
+    const upper = design.floors[i].footprint ?? [design.floors[i].outline]
+    const lower = design.floors[i - 1].footprint ?? [design.floors[i - 1].outline]
+    const upArea = upper.reduce((a, b) => a + b.w * b.h, 0)
+    let carried = 0
+    for (const u of upper) {
+      for (const l of lower) {
+        const ox = Math.max(0, Math.min(rectRight(u), rectRight(l)) - Math.max(u.x, l.x))
+        const oy = Math.max(0, Math.min(rectBottom(u), rectBottom(l)) - Math.max(u.y, l.y))
+        carried += ox * oy
+      }
+    }
+    if (upArea > 0 && carried / upArea < 0.55) {
+      add(
+        'FLOOR_STACKING',
+        'error',
+        'vertical',
+        `${design.floors[i].name} is only ${Math.round((carried / upArea) * 100)}% supported by the storey below — an unbuildable overhang.`,
+      )
+    }
+  }
+
   // --- vertical: stair present & aligned ---
   if (design.floors.length > 1) {
     const stairRects = design.floors.map((f) => f.rooms.find((r) => r.id === 'stair')?.rect)

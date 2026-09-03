@@ -1,8 +1,7 @@
 import { create } from 'zustand'
 import { supabase } from '@/lib/supabase.ts'
 import { briefSchema, type Brief } from '@/lib/model/brief.ts'
-import { STRATEGIES, type Strategy } from '@/lib/engine/index.ts'
-import { useStudio } from '@/state/studio.ts'
+import { useStudio, parsePinned, serializePinned, type PinnedDir } from '@/state/studio.ts'
 import { useAuth } from '@/state/auth.ts'
 
 /* ------------------------------------------------------------------ *
@@ -15,13 +14,10 @@ export type SavedDesign = {
   id: string
   name: string
   brief: Brief
-  pinned: Strategy | null
+  pinned: PinnedDir | null
   createdAt: string
   updatedAt: string
 }
-
-const asPinned = (v: unknown): Strategy | null =>
-  typeof v === 'string' && STRATEGIES.some((s) => s.id === v) ? (v as Strategy) : null
 
 function parseRow(row: {
   id: string
@@ -37,7 +33,7 @@ function parseRow(row: {
     id: row.id,
     name: row.name,
     brief: brief.data,
-    pinned: asPinned(row.pinned),
+    pinned: parsePinned(row.pinned),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
@@ -92,7 +88,7 @@ export const useDesigns = create<DesignsState>((set, get) => ({
       user_id: user.id,
       name: (name ?? brief.project.name ?? 'Untitled design').trim() || 'Untitled design',
       brief,
-      pinned,
+      pinned: serializePinned(pinned),
     }
 
     const q = currentId

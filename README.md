@@ -88,11 +88,40 @@ Two orthogonal choices on the Style step drive the geometry:
   coverage limit), adds a generous forecourt / courtyard when the plot allows,
   and carries a +12 % build-rate premium. `repairNarrow()` in the engine slides
   a party wall to widen any room the treemap left below the 2.4 m minimum.
-- **Character** — *Modernist* / *Warm minimal* / *Kerala contemporary*. Drives
-  the window rhythm and the massing vocabulary. **Modernist** produces a
-  contemporary-villa massing — stacked white volumes with a street cantilever, a
-  slim deep oversailing roof, a baffle-screen feature tower, vertical brise-soleil
-  fins, a roof pergola and frameless glass balustrades — all flat-shaded white.
+- **Character** — *Modern Indian* / *Minimal Indian* / *Kerala Contemporary*.
+  Drives the window rhythm, cladding and roof expression (flat for the first two,
+  pitched bands for Kerala) — the *style*, kept separate from the *structure*.
+  All three render flat-shaded white.
+
+## Massing grammar (Style step)
+
+Structure is chosen **before and independently of** style. `src/lib/engine/massing/`
+is a seeded procedural grammar:
+
+- **`archetypes.ts`** — one pure `(env, ctx, rng, diversity) → MassingPlan` per
+  form: `rectangular`, `l-shape`, `t-shape`, `u-shape`, `courtyard`,
+  `rear-courtyard`, `offset-box`, `split-volume`, `cantilever`, `stepped`,
+  `interlocking`, `central-core`, `side-wing`, `front-projection`, `asymmetric`.
+  A plan is a per-storey **rect-union** (1–4 axis-aligned blocks) + a courtyard
+  void + the roof spec.
+- **`grammar.ts`** — `planMassing()` picks an archetype (`auto` scores every form
+  against plot aspect / storeys / programme fit with a seeded jitter; `random`
+  shuffles; an explicit choice is honoured, falling back to `rectangular`), then
+  hard-clamps every block inside the setback line, drops the stair core into the
+  column every storey shares, and re-rolls on any geometry that fails
+  `validateMassingPlan` (disconnected blocks, an unsupported oversail, a floor
+  too small for its programme).
+- **Seed + diversity** — the Style step exposes a **Massing** picker
+  (Auto / the archetypes / Random), a **Design variation** control
+  (Low → Extreme, scaling offset amplitude and the cantilever cap 0.9 → 3.6 m /
+  0.7 → 1.75 m) and a **Seed** field. Same seed + brief ⇒ byte-identical villa;
+  a new seed ⇒ a structurally different one. The Directions screen offers the
+  `auto` pick plus a ladder of distinct validated alternates.
+
+`scripts/massingtest.mts` asserts 600 seed × archetype × character combinations
+are all valid, reachable and hard-clean, and that 20 `auto` seeds spread across
+≥ 5 massing types with real per-floor movement. `scripts/massinggrid.mts`
+renders a 20-seed contact sheet.
 
 ## Datasets
 
@@ -110,11 +139,25 @@ then re-tune `AREA` in `src/lib/model/canonical.ts` and `MIN_DIM` in
 `src/lib/rules/index.ts`. The committed `resplan_stats.json` currently holds
 provisional NBC-2016 / practice reference values, not dataset-derived ones.
 
+**3-D house datasets → the massing grammar.** `scripts/analyze_datasets.py`
+mines SYNBUILD-3D-style JSON exports and COLLADA (`.dae`) villa models for the
+*parameter ranges* the archetypes use — storey counts, footprint solidity
+(rect vs L/U), floor-to-floor offset / shrink ratios, roof pitch, opening
+density — into `scripts/massing_stats.json` (statistics only; no geometry, no
+models, no assets are copied). SketchUp `.skp` files can't be parsed in this
+stack; their `.dae` / zip exports can. When `massing_stats.json` is absent the
+grammar uses the built-in defaults compiled into `archetypes.ts`.
+
+```bash
+python scripts/analyze_datasets.py ~/Downloads/sample_100.zip ~/Downloads/villa.zip
+```
+
 Two other datasets were evaluated and **not used**: **LSAA** (CC BY-NC-SA —
 non-commercial, and it's European street facades, not architecture assets) and
 **Structured3D** (the data is gated behind a signed agreement form). The app is a
 deterministic procedural engine with no ML pipeline, so neither could be "wired
-in" regardless.
+in" regardless. Respect the licence of every dataset and model — none is
+redistributed here.
 
 ## Local AI interiors (ComfyUI)
 

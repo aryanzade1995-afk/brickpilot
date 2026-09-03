@@ -115,9 +115,11 @@ function mk(
   }
 }
 
-/** FNV-1a hash → short hex string. Deterministic seed from the brief. */
+/** FNV-1a hash → short hex string. Deterministic seed from the brief, ignoring
+ *  the `variation` nonce so the massing grammar's brief-key stays stable across
+ *  re-rolls (the seed integer is what varies). */
 function hashSeed(brief: Brief): string {
-  const s = JSON.stringify(brief)
+  const s = JSON.stringify({ ...brief, variation: 0 })
   let h = 0x811c9dc5
   for (let i = 0; i < s.length; i++) {
     h ^= s.charCodeAt(i)

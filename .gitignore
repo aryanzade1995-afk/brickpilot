@@ -29,3 +29,6 @@ dist-ssr
 *.sw?
 .shots/
 server/.env
+
+# generated contact sheet
+massing-grid.html

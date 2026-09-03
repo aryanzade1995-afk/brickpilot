@@ -1,9 +1,11 @@
+import { Dices } from 'lucide-react'
 import {
   BUILDING_TYPE_LABEL,
   CHARACTER_LABEL,
   DIRECTIONS,
   DIRECTION_LABEL,
   type Direction,
+  type MassingChoice,
 } from '@/lib/model/brief.ts'
 import { canonicalSummary, compile } from '@/lib/model/canonical.ts'
 import { programmeCapacity } from '@/lib/rules/index.ts'
@@ -278,9 +280,77 @@ export function StyleStep() {
           ]}
         />
       </div>
+
+      <div className="space-y-4">
+        <div>
+          <span className="label">Massing</span>
+          <p className="mt-1 text-sm text-ink-dim">
+            The architectural structure — footprint, floor offsets, courtyard, cantilevers.{' '}
+            <span className="text-ink-faint">Auto</span> chooses one that fits the plot and brief.
+          </p>
+        </div>
+        <Segmented
+          value={brief.style.massing}
+          onChange={(v) => edit((b) => void (b.style.massing = v))}
+          options={MASSING_CHOICES}
+        />
+      </div>
+
+      <div className="grid gap-8 sm:grid-cols-2">
+        <Field
+          label="Design variation"
+          hint="How far the massing pushes offsets, cantilevers and asymmetry"
+        >
+          <Segmented
+            value={brief.style.diversity}
+            onChange={(v) => edit((b) => void (b.style.diversity = v))}
+            options={[
+              { value: 'low' as const, label: 'Low' },
+              { value: 'medium' as const, label: 'Medium' },
+              { value: 'high' as const, label: 'High' },
+              { value: 'extreme' as const, label: 'Extreme' },
+            ]}
+          />
+        </Field>
+        <Field label="Seed" hint="Same seed + brief → the same house; change it for a new one">
+          <div className="flex items-center gap-2">
+            <NumberInput
+              value={brief.variation}
+              min={0}
+              max={999999}
+              step={1}
+              onChange={(v) => edit((b) => void (b.variation = Math.max(0, Math.round(v))))}
+            />
+            <button
+              type="button"
+              aria-label="Random seed"
+              onClick={() => edit((b) => void (b.variation = Math.floor(Math.random() * 100000)))}
+              className="flex-none border border-line-strong p-2.5 text-ink-dim transition-colors hover:border-accent hover:text-ink"
+            >
+              <Dices size={16} />
+            </button>
+          </div>
+        </Field>
+      </div>
     </div>
   )
 }
+
+const MASSING_CHOICES: { value: MassingChoice; label: string }[] = [
+  { value: 'auto', label: 'Auto' },
+  { value: 'rectangular', label: 'Rectangular' },
+  { value: 'l-shape', label: 'L-shaped' },
+  { value: 'u-shape', label: 'U-shaped' },
+  { value: 'courtyard', label: 'Courtyard' },
+  { value: 'split-volume', label: 'Split volume' },
+  { value: 'cantilever', label: 'Cantilever' },
+  { value: 'stepped', label: 'Stepped' },
+  { value: 'interlocking', label: 'Interlocking' },
+  { value: 'side-wing', label: 'Side wing' },
+  { value: 'front-projection', label: 'Front projection' },
+  { value: 'asymmetric', label: 'Asymmetric' },
+  { value: 'random', label: 'Random' },
+]
 
 /* -------------------------------------------------------------------------- */
 

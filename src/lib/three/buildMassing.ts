@@ -106,6 +106,35 @@ type XF = (mm: number) => number
 type Side = 'N' | 'S' | 'E' | 'W'
 type FaceOp = { at: number; width: number; sill: number; head: number }
 
+/** the real footprint of a storey — a union of axis-aligned blocks (the massing
+ *  grammar); falls back to the bounding box for any legacy plan */
+const blocksOf = (floor: FloorPlan): Rect[] =>
+  floor.footprint && floor.footprint.length ? floor.footprint : [floor.outline]
+
+/** the rect (bbox of the overlapping blocks) standing on `b` from the floor
+ *  above — or a degenerate rect clear of `b` on all four sides, so the whole
+ *  block reads as a walkable terrace */
+function coverAbove(b: Rect, above: FloorPlan | undefined): Rect {
+  if (above) {
+    const hit = blocksOf(above).filter((u) => {
+      const ox = Math.min(b.x + b.w, u.x + u.w) - Math.max(b.x, u.x)
+      const oy = Math.min(b.y + b.h, u.y + u.h) - Math.max(b.y, u.y)
+      return ox > 800 && oy > 800
+    })
+    if (hit.length) {
+      const x = Math.min(...hit.map((u) => u.x))
+      const y = Math.min(...hit.map((u) => u.y))
+      return {
+        x,
+        y,
+        w: Math.max(...hit.map((u) => u.x + u.w)) - x,
+        h: Math.max(...hit.map((u) => u.y + u.h)) - y,
+      }
+    }
+  }
+  return { x: b.x + b.w / 2, y: b.y + b.h / 2, w: 0, h: 0 }
+}
+
 export function buildMassing(design: Design): Massing {
   const { model } = design
   const T = themeOf(model.brief)
@@ -143,24 +172,11 @@ export function buildMassing(design: Design): Massing {
     const L = floor.level
     const baseY = y0 + L * H
     const wallTop = baseY + H
-    const o = floor.outline
-    const ox0 = o.x
-    const ox1 = o.x + o.w
-    const oy0 = o.y
-    const oy1 = o.y + o.h
-    const midX = wx(o.x + o.w / 2)
-    const midZ = wz(o.y + o.h / 2)
+    const blocks = blocksOf(floor)
+    const above = floors.find((f) => f.level === L + 1)
 
-    // ---- inset floor plate — hidden assembled, reads the storey when exploded ----
-    push(
-      `slab-${L}`,
-      'slab',
-      L,
-      [midX, baseY - SLAB_T / 2, midZ],
-      [Math.max(m(o.w) - 2 * EXT_T, 0.4), SLAB_T, Math.max(m(o.h) - 2 * EXT_T, 0.4)],
-    )
-
-    // ---- classify openings onto the four facades; the rest are interior ----
+    // ---- classify openings onto facades once for the whole storey ----
+    const oFull = floor.outline
     const face: Record<Side, FaceOp[]> = { N: [], S: [], E: [], W: [] }
     const interiorOps: Opening[] = []
     const TOL = 450
@@ -169,63 +185,93 @@ export function buildMassing(design: Design): Massing {
       const rec = { width: op.width, sill: band.sill, head: band.head }
       let placed = false
       if (op.orient === 'h') {
-        if (Math.abs(op.at.y - oy0) < TOL) {
+        if (Math.abs(op.at.y - oFull.y) < TOL) {
           face.N.push({ at: op.at.x, ...rec })
           placed = true
-        } else if (Math.abs(op.at.y - oy1) < TOL) {
+        } else if (Math.abs(op.at.y - (oFull.y + oFull.h)) < TOL) {
           face.S.push({ at: op.at.x, ...rec })
           placed = true
         }
-      } else if (Math.abs(op.at.x - ox0) < TOL) {
+      } else if (Math.abs(op.at.x - oFull.x) < TOL) {
         face.W.push({ at: op.at.y, ...rec })
         placed = true
-      } else if (Math.abs(op.at.x - ox1) < TOL) {
+      } else if (Math.abs(op.at.x - (oFull.x + oFull.w)) < TOL) {
         face.E.push({ at: op.at.y, ...rec })
         placed = true
       }
       if (!placed) interiorOps.push(op)
     }
-
-    // ---- one segmented solid plane per facade; E/W full depth, N/S tucked between ----
     const gm = T.windows.groupMm
     const cj = T.massing.chajjaMm
-    addWall('W', oy0, oy1, ox0, baseY, wallTop, face.W, L, gm, cj, `w${L}W`, push, wx, wz, m)
-    addWall('E', oy0, oy1, ox1, baseY, wallTop, face.E, L, gm, cj, `w${L}E`, push, wx, wz, m)
-    addWall('N', ox0 + HT_MM, ox1 - HT_MM, oy0, baseY, wallTop, face.N, L, gm, cj, `w${L}N`, push, wx, wz, m)
-    addWall('S', ox0 + HT_MM, ox1 - HT_MM, oy1, baseY, wallTop, face.S, L, gm, cj, `w${L}S`, push, wx, wz, m)
 
-    // ---- floor-line string course wrapping the storey (thin projecting band) ----
-    if (T.massing.stringCourseMm > 0 && L >= 1) {
-      stringCourse(o, baseY, L, T.massing.stringCourseMm / 1000, push, wx, wz, m)
+    // openings that fall on a given block's edge (so a facade plane only gets
+    // the voids that actually pierce it)
+    const opsOnEdge = (b: Rect, side: Side): FaceOp[] => {
+      const src = face[side]
+      return src.filter((f) =>
+        side === 'N' || side === 'S'
+          ? Math.abs((side === 'N' ? b.y : b.y + b.h) - (side === 'N' ? oFull.y : oFull.y + oFull.h)) < TOL &&
+            f.at >= b.x - 60 &&
+            f.at <= b.x + b.w + 60
+          : Math.abs((side === 'W' ? b.x : b.x + b.w) - (side === 'W' ? oFull.x : oFull.x + oFull.w)) < TOL &&
+            f.at >= b.y - 60 &&
+            f.at <= b.y + b.h + 60,
+      )
     }
+
+    blocks.forEach((o, bi) => {
+      const ox0 = o.x
+      const ox1 = o.x + o.w
+      const oy0 = o.y
+      const oy1 = o.y + o.h
+      const midX = wx(o.x + o.w / 2)
+      const midZ = wz(o.y + o.h / 2)
+      const bid = `${L}b${bi}`
+
+      // ---- inset floor plate — reads the storey when exploded ----
+      push(
+        `slab-${bid}`,
+        'slab',
+        L,
+        [midX, baseY - SLAB_T / 2, midZ],
+        [Math.max(m(o.w) - 2 * EXT_T, 0.4), SLAB_T, Math.max(m(o.h) - 2 * EXT_T, 0.4)],
+      )
+
+      // ---- one segmented solid plane per facade ----
+      addWall('W', oy0, oy1, ox0, baseY, wallTop, opsOnEdge(o, 'W'), L, gm, cj, `w${bid}W`, push, wx, wz, m)
+      addWall('E', oy0, oy1, ox1, baseY, wallTop, opsOnEdge(o, 'E'), L, gm, cj, `w${bid}E`, push, wx, wz, m)
+      addWall('N', ox0 + HT_MM, ox1 - HT_MM, oy0, baseY, wallTop, opsOnEdge(o, 'N'), L, gm, cj, `w${bid}N`, push, wx, wz, m)
+      addWall('S', ox0 + HT_MM, ox1 - HT_MM, oy1, baseY, wallTop, opsOnEdge(o, 'S'), L, gm, cj, `w${bid}S`, push, wx, wz, m)
+
+      if (T.massing.stringCourseMm > 0 && L >= 1) {
+        stringCourse(o, baseY, L, T.massing.stringCourseMm / 1000, push, wx, wz, m)
+      }
+      if (T.accents.cladFacade) {
+        buildCladding(o, opsOnEdge(o, 'S'), baseY, wallTop, L, T.accents.cladWidthMm, push, wx, wz, m)
+      }
+      if (T.modern && L >= 1 && T.modern.cantileverMm > 0) {
+        cantileverApron(o, baseY, L, T.modern.cantileverMm / 1000, push, wx, wz, m)
+      }
+      if (T.modern?.baffleScreen) {
+        baffleScreen(o, opsOnEdge(o, 'S'), baseY, wallTop, L, push, wx, wz, m)
+      }
+
+      // ---- roof on top; a walkable terrace where nothing stands on this block ----
+      if (L === topLevel) {
+        buildRoof(o, wallTop, L, T, push, wx, wz, m)
+      } else {
+        const cover = coverAbove(o, above)
+        buildTerrace(o, cover, wallTop, L, T, push, wx, wz, m)
+      }
+    })
+
+    const o = oFull
 
     // ---- interior partitions — own group, hidden until exploded ----
     for (let i = 0; i < floor.walls.length; i++) {
       const w = floor.walls[i]
       if (w.kind !== 'interior') continue
       segmentPartition(w, interiorOps, baseY, H, L, `p${L}-${i}`, push, wx, wz, m)
-    }
-
-    // ---- timber cladding strip on the entry (plan-south) facade ----
-    if (T.accents.cladFacade) {
-      buildCladding(o, face.S, baseY, wallTop, L, T.accents.cladWidthMm, push, wx, wz, m)
-    }
-
-    // ---- contemporary-villa moves (modernist): a cantilever apron over the
-    // recessed ground floor, and vertical brise-soleil fins over the glazing ----
-    if (T.modern && L >= 1 && T.modern.cantileverMm > 0) {
-      cantileverApron(o, baseY, L, T.modern.cantileverMm / 1000, push, wx, wz, m)
-    }
-    if (T.modern?.baffleScreen) {
-      baffleScreen(o, face.S, baseY, wallTop, L, push, wx, wz, m)
-    }
-
-    // ---- roof on top, deliberate terrace where a lower floor steps out ----
-    if (L === topLevel) {
-      buildRoof(o, wallTop, L, T, push, wx, wz, m)
-    } else {
-      const up = floors.find((f) => f.level === L + 1)
-      if (up) buildTerrace(o, up.outline, wallTop, L, T, push, wx, wz, m)
     }
 
     // ---- outdoor rooms ----

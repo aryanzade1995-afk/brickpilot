@@ -1,5 +1,8 @@
 import type { Rect, Point } from '../geometry.ts'
 import type { CanonicalModel, Zone } from '../model/canonical.ts'
+import type { MassingType, RoofSpec } from './massing/types.ts'
+
+export type { RoofSpec }
 
 export type PlacedRoom = {
   id: string
@@ -39,8 +42,11 @@ export type StairRun = {
 export type FloorPlan = {
   level: number
   name: string
-  /** enclosed building outline on this floor (mm) */
+  /** bounding box of the floor footprint (mm) — camera framing / cost / coverage */
   outline: Rect
+  /** the real footprint: a union of axis-aligned blocks (the massing) */
+  footprint: Rect[]
+  roof: RoofSpec
   rooms: PlacedRoom[]
   walls: Wall[]
   openings: Opening[]
@@ -54,6 +60,7 @@ export type Design = {
   seed: string
   algorithm: string
   candidate: string
+  massingType: MassingType
   model: CanonicalModel
   floors: FloorPlan[]
   /** gross built-up area, m² (enclosed footprint × floors) */
