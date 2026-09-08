@@ -13,7 +13,7 @@ import { buildDollhouse } from '@/lib/three/buildDollhouse.ts'
 import { MassingModel, SceneEnv } from '@/lib/three/MassingScene.tsx'
 import { DollhouseModel, DollhouseEnv } from '@/lib/three/DollhouseScene.tsx'
 import { GlbVilla } from '@/lib/three/GlbVilla.tsx'
-import { useVillaMatch } from '@/lib/three/villaCatalog.ts'
+import { useVillaGlb } from '@/lib/three/villaCatalog.ts'
 import type { Group } from '@/lib/three/massingGroups.ts'
 import { cx } from '@/lib/cx.ts'
 import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
@@ -40,9 +40,10 @@ export function Massing() {
   }, [result, run])
 
   const massing = useMemo(() => (result ? buildMassing(result.design) : null), [result])
-  // a baked Blender GLB for this design, if the villa catalog has one (else null
-  // → the procedural buildMassing model below is used, exactly as before)
-  const villa = useVillaMatch(result?.design)
+  // the architectural-grammar DesignSpec for this design, and a Blender GLB for
+  // it if one is baked/available (else glb=null → the procedural buildMassing
+  // model below is used, exactly as before)
+  const { glb: villaGlb, spec: designSpec } = useVillaGlb(result?.design)
   const [mode, setMode] = useState<ViewMode>('study')
   const [floorSel, setFloorSel] = useState<number | 'all'>(0)
   const doll = useMemo(
@@ -116,12 +117,18 @@ export function Massing() {
                 </button>
               ))}
             </div>
-            {villa && mode === 'study' && (
+            {designSpec && (
               <span
-                className="border border-accent/40 bg-accent/10 px-2 py-1 font-mono text-[0.6rem] uppercase tracking-[0.1em] text-accent"
-                title={`Baked villa ${villa.id} (${villa.strategy})`}
+                className={cx(
+                  'border px-2 py-1 font-mono text-[0.6rem] uppercase tracking-[0.1em]',
+                  villaGlb && mode === 'study'
+                    ? 'border-accent/40 bg-accent/10 text-accent'
+                    : 'border-line-strong text-ink-dim',
+                )}
+                title={`Architectural grammar — ${designSpec.grammar.label} · seed ${designSpec.seed}`}
               >
-                Blender GLB
+                {villaGlb && mode === 'study' ? 'Blender GLB · ' : ''}
+                {designSpec.massing.strategy.replace('_', ' ')}
               </span>
             )}
             <div className="flex flex-wrap gap-1">
@@ -191,8 +198,8 @@ export function Massing() {
                       fadeStrength={1.3}
                     />
                   )}
-                  {villa && mode === 'study' ? (
-                    <GlbVilla url={`${import.meta.env.BASE_URL}${villa.url}`} hidden={hidden as Set<string>} />
+                  {villaGlb && mode === 'study' ? (
+                    <GlbVilla url={villaGlb.url} hidden={hidden as Set<string>} />
                   ) : (
                     <MassingModel massing={massing} explode={explode} hidden={hidden} character={character} />
                   )}
@@ -250,6 +257,7 @@ export function Massing() {
         <div className="space-y-6">
           <Panel title="Model">
             <Stat k="Shape" v={SHAPE_LABEL[result.design.shape] ?? result.design.shape} />
+            {designSpec && <Stat k="Massing" v={designSpec.massing.strategy.replace('_', ' ')} />}
             <Stat k="Storeys" v={String(massing.stats.storeys)} />
             <Stat k="Height" v={`${massing.stats.heightM} m`} />
             <Stat k="Built area" v={`${massing.stats.builtAreaSqm.toFixed(1)} m²`} />
@@ -261,12 +269,13 @@ export function Massing() {
             ) : (
               <Stat k="Openings" v={String(massing.stats.openings)} />
             )}
+            {designSpec && <Stat k="Design seed" v={String(designSpec.seed)} />}
             <button
               type="button"
               onClick={reseed}
               className="mt-1 flex w-full items-center justify-center gap-1.5 border border-line-strong py-2 font-mono text-[0.65rem] uppercase tracking-[0.12em] text-ink-dim transition-colors hover:border-accent hover:text-ink"
             >
-              <Grid3x3 size={11} /> Re-roll this massing
+              <Grid3x3 size={11} /> Regenerate design
             </button>
           </Panel>
 

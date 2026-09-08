@@ -5,6 +5,8 @@
  *
  *   POST /api/render          { imageBase64, mimeType?, prompt } -> { imageBase64, mimeType }
  *   GET  /api/render/health                                      -> { ok, configured, mock, model }
+ *   POST /api/generate        { spec }              -> { glbUrl, cached }  (villa.mjs)
+ *   GET  /api/generate/health                       -> { ok, blender, baked }
  *   GET  /*                    -> static file from ../dist, SPA-fallback to index.html
  *
  * In dev the Vite server handles the SPA and proxies /api here; in production
@@ -15,6 +17,7 @@ import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs'
 import { extname, join, normalize } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { resolveProvider } from './providers/index.mjs'
+import { handleVilla } from './villa.mjs'
 
 // --- load server/.env (no dependency, no --env-file flag needed) ---
 try {
@@ -137,6 +140,9 @@ const server = createServer((req, res) => {
   if (req.method === 'GET' && req.url === '/api/render/health') {
     return send(res, 200, { ok: true, configured: Boolean(KEY), mock: MOCK, model: MODEL })
   }
+
+  // ---- villa GLB generation (architectural grammar -> Blender -> GLB) ----
+  if (handleVilla(req, res, send, readJson)) return
 
   if (req.method === 'POST' && req.url === '/api/render') {
     let body = ''

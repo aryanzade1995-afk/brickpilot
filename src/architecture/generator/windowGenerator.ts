@@ -56,7 +56,9 @@ export function generateWindows(input: WindowGenInput): WindowSpec[] {
     const rule: RoomWindowRule = wr.byRoom[cls] ?? wr.fallback
 
     // ---- candidate walls: exterior, long enough, not the entry, not doored-out
-    const doors = floor.openings.filter((o) => o.kind === 'door' || o.kind === 'entry')
+    const doors = floor.openings
+      .filter((o) => o.kind === 'door' || o.kind === 'entry')
+      .map((o) => ({ at: o.at, width: o.width }))
     const walls = roomWalls(room, floor).filter((w) => {
       if (!w.exterior) return false
       if (w.lengthMm < rule.widthMm[0] + 2 * wr.minCornerOffsetMm) return false
@@ -65,6 +67,7 @@ export function generateWindows(input: WindowGenInput): WindowSpec[] {
       return doorSpan < w.lengthMm * 0.7
     })
     if (walls.length === 0) continue
+    const doorsOn = (w: WallEdge) => doors.filter((d) => doorOnEdge(w, d.at) != null)
 
     // ---- rank walls
     const ranked = [...walls].sort((a, b) => wallScore(b, cls, level, wr.upperPrivacyBias) - wallScore(a, cls, level, wr.upperPrivacyBias))
@@ -80,15 +83,18 @@ export function generateWindows(input: WindowGenInput): WindowSpec[] {
 
     // ---- decide the opening kind
     const privacy = rule.privacy || (streetPrivate && rng.chance(0.6))
+    // a ribbon window needs a door-free wall — else pick a standard set instead
+    const stripWall = ranked.find((w) => doorsOn(w).length === 0) ?? null
     const strip =
       !privacy &&
       rule.allowStrip &&
-      (primary.facesCourt || !primary.facesStreet || cls === 'living' || cls === 'dining') &&
+      !!stripWall &&
+      (stripWall.facesCourt || !stripWall.facesStreet || cls === 'living' || cls === 'dining') &&
       rng.chance(grammar.window.stripGlazingChance)
     const picture = !privacy && !strip && rule.allowPicture && rng.chance(grammar.window.pictureWindowChance)
 
-    if (strip) {
-      const w = placeStrip(primary, room.id, cls, level, rule, wr, floorHeightMm, rng, uid++)
+    if (strip && stripWall) {
+      const w = placeStrip(stripWall, room.id, cls, level, rule, wr, floorHeightMm, rng, uid++)
       if (w) out.push(w)
       continue
     }
@@ -104,7 +110,7 @@ export function generateWindows(input: WindowGenInput): WindowSpec[] {
       wr,
       cw,
       floorHeightMm,
-      doors: doors.map((d) => d.at),
+      doors,
       privacy,
       picture,
       rng,
@@ -182,7 +188,7 @@ type PlaceInput = {
   wr: StyleGrammar['window']
   cw: GenerationConstraints['window']
   floorHeightMm: number
-  doors: Point[]
+  doors: { at: Point; width: number }[]
   privacy: boolean
   picture: boolean
   rng: Rng
@@ -203,10 +209,11 @@ function placeWindows(p: PlaceInput): WindowSpec[] {
     const hi = wall.lengthMm - wr.minCornerOffsetMm
     if (hi - lo < rule.widthMm[0]) continue
     const blocked: [number, number][] = []
-    for (const at of doors) {
-      const off = doorOnEdge(wall, at)
+    for (const d of doors) {
+      const off = doorOnEdge(wall, d.at)
       if (off == null) continue
-      blocked.push([off - 600 - wr.minDoorWindowDistanceMm, off + 600 + wr.minDoorWindowDistanceMm])
+      const clr = d.width / 2 + wr.minDoorWindowDistanceMm + 150
+      blocked.push([off - clr, off + clr])
     }
     const intervals = subtract([lo, hi], blocked).filter(([a, b]) => b - a >= rule.widthMm[0])
     if (intervals.length === 0) continue

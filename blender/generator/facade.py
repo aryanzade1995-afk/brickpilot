@@ -7,7 +7,7 @@ feature tower, a columned verandah and pergolas.
 
 from __future__ import annotations
 
-from .context import Spec, add_box, assign, collection, material, mm
+from .context import Spec, add_box, assign, collection, linked_box, material, mm
 
 FIN_T = 0.05
 
@@ -62,7 +62,7 @@ def build(spec: Spec):
             z0 = el["level"] * fh
             for i in range(cnt):
                 fx = cx - sx / 2 + sx * (i / max(cnt - 1, 1))
-                obj = add_box(f"fin{i}", coll, (fx, cy - depth / 2, z0 + fh / 2), (FIN_T, depth, fh - 0.4))
+                obj = linked_box(f"fin{i}", coll, (fx, cy - depth / 2, z0 + fh / 2), (FIN_T, depth, fh - 0.4))
                 assign(obj, material("trim", spec))
 
         elif k == "jaali":
@@ -106,7 +106,7 @@ def build(spec: Spec):
             x = cx - sx / 2
             while x <= cx + sx / 2 + 1:
                 for yy in (cy - sy / 2 + 0.2, cy + sy / 2 - 0.2):
-                    obj = add_box("col", coll, (x, yy, (fh - 0.3) / 2), (cm, cm, fh - 0.3))
+                    obj = linked_box("col", coll, (x, yy, (fh - 0.3) / 2), (cm, cm, fh - 0.3))
                     assign(obj, material("wall", spec))
                 x += step
 
@@ -123,7 +123,7 @@ def build(spec: Spec):
             assign(frame, material("accent", spec))
             for i in range(int(sx / 0.35) + 1):
                 sx0 = cx - sx / 2 + i * 0.35
-                obj = add_box(f"pergola-slat{i}", coll, (sx0, cy, z + 0.1), (0.05, sy, 0.14))
+                obj = linked_box(f"pergola-slat{i}", coll, (sx0, cy, z + 0.1), (0.05, sy, 0.14))
                 assign(obj, material("accent", spec))
 
     return coll

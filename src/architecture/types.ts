@@ -352,7 +352,24 @@ export type BalconySpec = {
   rect: Rect
   depthMm: number
   recessed: boolean
+  /** how the balcony reads architecturally (derived from the plan geometry) */
+  type: 'cantilever' | 'recessed' | 'corner' | 'continuous' | 'verandah'
   railStyle: 'bar' | 'baluster' | 'glass'
+}
+
+export type StairSpec = {
+  id: string
+  level: number
+  /** stair footprint (mm, plot frame) */
+  rect: Rect
+  /** slab-top z this flight starts at, mm */
+  fromMm: number
+  /** the next floor level it reaches, mm */
+  toMm: number
+  steps: number
+  /** direction you climb, plan frame */
+  runDir: Direction4
+  kind: 'straight' | 'dogleg'
 }
 
 export type FacadeElement =
@@ -390,6 +407,7 @@ export type DesignSpecFloor = {
   windows: WindowSpec[]
   doors: DoorSpec[]
   balconies: BalconySpec[]
+  stairs: StairSpec[]
   courtyard: Rect | null
 }
 

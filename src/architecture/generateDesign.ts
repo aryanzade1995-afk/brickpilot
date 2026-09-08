@@ -35,6 +35,7 @@ import type {
   DesignSpecFloor,
   Direction4,
   DoorSpec,
+  StairSpec,
   StyleGrammar,
   StyleId,
   WindowSpec,
@@ -80,6 +81,9 @@ export function generateDesign(req0: DesignRequirements, seed = req0.seed): Desi
     h: req.plotDepthMm - constraints.setbackMinMm.N - constraints.setbackMinMm.S,
   }
 
+  const topLevel = design.floors.length - 1
+  const risers = Math.max(14, Math.round(req.floorHeightMm / 175))
+
   const windowsByLevel: WindowSpec[][] = []
   const floors: DesignSpecFloor[] = design.floors.map((fl) => {
     // dedicated per-floor rng so upper floors are NOT a copy of the ground floor
@@ -96,6 +100,21 @@ export function generateDesign(req0: DesignRequirements, seed = req0.seed): Desi
     windowsByLevel[fl.level] = windows
     const doors = resolveDoors(fl, grammar, req.entrySide)
     const balconies = resolveBalconies(grammar, constraints, fl, fl.level, buildable, frng)
+    const stairs: StairSpec[] =
+      fl.stair && fl.level < topLevel
+        ? [
+            {
+              id: `stair${fl.level}`,
+              level: fl.level,
+              rect: fl.stair.rect,
+              fromMm: fl.level * req.floorHeightMm,
+              toMm: (fl.level + 1) * req.floorHeightMm,
+              steps: risers,
+              runDir: 'N',
+              kind: 'dogleg',
+            },
+          ]
+        : []
     return {
       level: fl.level,
       name: fl.name,
@@ -106,6 +125,7 @@ export function generateDesign(req0: DesignRequirements, seed = req0.seed): Desi
       windows,
       doors,
       balconies,
+      stairs,
       courtyard: fl.courtyard ?? null,
     }
   })

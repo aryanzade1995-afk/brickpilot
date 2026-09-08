@@ -27,7 +27,9 @@ if _BLENDER not in sys.path:
     sys.path.insert(0, _BLENDER)
 
 from generator.context import HAS_BPY, Spec, reset_scene  # noqa: E402
-from generator import massing, floors, walls, windows, doors, roofs, balconies, facade, materials, rooms  # noqa: E402
+from generator import (  # noqa: E402
+    massing, floors, walls, windows, doors, roofs, balconies, facade, materials, rooms, stairs, optimize,
+)
 from generator import validator  # noqa: E402
 
 
@@ -45,7 +47,7 @@ def _args(argv: list[str]) -> argparse.Namespace:
     return p.parse_args(argv)
 
 
-def build_scene(spec: Spec, mode: str) -> None:
+def build_scene(spec: Spec, mode: str) -> dict:
     reset_scene()
     materials.build(spec)
 
@@ -54,17 +56,19 @@ def build_scene(spec: Spec, mode: str) -> None:
         roofs.build(spec)
         facade.build(spec)
         balconies.build(spec)
-        return
+    else:
+        floors.build(spec)
+        _coll, wall_objs = walls.build(spec, detailed=True)
+        windows.build(spec, wall_objs)
+        doors.build(spec, wall_objs, include_internal=(mode == "cutaway"))
+        stairs.build(spec)
+        roofs.build(spec)
+        balconies.build(spec)
+        facade.build(spec)
+        if mode == "cutaway":
+            rooms.build(spec)
 
-    floors.build(spec)
-    _coll, wall_objs = walls.build(spec, detailed=True)
-    windows.build(spec, wall_objs)
-    doors.build(spec, wall_objs, include_internal=(mode == "cutaway"))
-    roofs.build(spec)
-    balconies.build(spec)
-    facade.build(spec)
-    if mode == "cutaway":
-        rooms.build(spec)
+    return optimize.finalize(spec)
 
 
 def main() -> int:
@@ -87,7 +91,7 @@ def main() -> int:
         print("[dry-run] no Blender (bpy) — spec is valid, nothing built")
         return 0 if ok else 2
 
-    build_scene(spec, ns.mode)
+    gstats = build_scene(spec, ns.mode)
 
     sok, sissues = validator.check_scene(spec)
     for it in sissues:
@@ -97,14 +101,17 @@ def main() -> int:
         return 3
 
     out = ns.out or os.path.splitext(ns.spec)[0] + ".glb"
-    from export.gltf import export_glb
+    from export import export_glb
 
-    export_glb(out)
-    size = os.path.getsize(out)
-    print(f"[ok] {out}  ({size / 1024:.0f} KB)")
+    size = export_glb(out)
+    print(f"[ok] {out}  ({size / 1024:.0f} KB, {gstats['objects']} objects, {gstats['tris']} tris)")
     # a sidecar manifest the viewer / catalog reads
     with open(os.path.splitext(out)[0] + ".json", "w", encoding="utf-8") as fh:
-        json.dump({"id": spec.raw["id"], "style": spec.style, "seed": spec.seed, "mode": ns.mode, "bytes": size}, fh)
+        json.dump(
+            {"id": spec.raw["id"], "style": spec.style, "seed": spec.seed, "mode": ns.mode,
+             "bytes": size, "objects": gstats["objects"], "tris": gstats["tris"]},
+            fh,
+        )
     return 0
 
 

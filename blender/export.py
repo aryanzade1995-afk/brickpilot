@@ -1,4 +1,8 @@
-"""GLB / glTF export for the three.js viewer."""
+"""GLB / glTF export for the three.js viewer.
+
+Y-up, materials exported, collection names kept as node extras so the viewer's
+layer toggles keep working. Called by generator/house_generator.py.
+"""
 
 from __future__ import annotations
 
@@ -13,11 +17,11 @@ except Exception:  # pragma: no cover
     HAS_BPY = False
 
 
-def export_glb(path: str) -> None:
+def export_glb(path: str) -> int:
+    """write the current scene to `path`; returns byte size"""
     if not HAS_BPY:
         raise RuntimeError("export_glb requires Blender (bpy)")
     os.makedirs(os.path.dirname(os.path.abspath(path)) or ".", exist_ok=True)
-    # select everything so the exporter picks it all up
     for obj in bpy.data.objects:
         obj.select_set(obj.type == "MESH")
     bpy.ops.export_scene.gltf(
@@ -25,9 +29,11 @@ def export_glb(path: str) -> None:
         export_format="GLB",
         use_selection=False,
         export_apply=True,
-        export_yup=True,  # three.js is Y-up
+        export_yup=True,
         export_materials="EXPORT",
         export_cameras=False,
         export_lights=False,
-        export_extras=True,  # keep collection names -> viewer layer toggles
+        export_extras=True,
+        export_draco_mesh_compression_enable=False,
     )
+    return os.path.getsize(path)

@@ -161,6 +161,29 @@ def add_box(name: str, coll, center: tuple[float, float, float], size: tuple[flo
     return obj
 
 
+_UNIT_CUBE = [None]
+
+
+def linked_box(name: str, coll, center: tuple[float, float, float], size: tuple[float, float, float]):
+    """a box that SHARES one unit-cube mesh — for repeated decorative elements
+    (fins, mullions, slats, treads, columns). optimize.finalize() bakes the
+    per-object scale into the joined mesh."""
+    if not HAS_BPY:
+        return None
+    if _UNIT_CUBE[0] is None:
+        me = bpy.data.meshes.new("bp_unit_cube")
+        bm = bmesh.new()
+        bmesh.ops.create_cube(bm, size=1.0)
+        bm.to_mesh(me)
+        bm.free()
+        _UNIT_CUBE[0] = me
+    obj = bpy.data.objects.new(name, _UNIT_CUBE[0])
+    coll.objects.link(obj)
+    obj.location = center
+    obj.scale = size
+    return obj
+
+
 def add_prism(name: str, coll, verts: list[tuple[float, float, float]], faces: list[tuple[int, ...]]):
     if not HAS_BPY:
         return None

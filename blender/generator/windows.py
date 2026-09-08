@@ -7,7 +7,7 @@ frame material.
 
 from __future__ import annotations
 
-from .context import Spec, add_box, assign, boolean_cut, collection, material, mm
+from .context import Spec, add_box, assign, boolean_cut, collection, linked_box, material, mm
 
 FRAME_T = 0.06
 GLASS_T = 0.02
@@ -75,5 +75,5 @@ def build(spec: Spec, wall_objs: dict):
 
 
 def add_and_mat(coll, spec, center, size):
-    obj = add_box("mullion", coll, center, size)
+    obj = linked_box("mullion", coll, center, size)
     assign(obj, material("frame", spec))

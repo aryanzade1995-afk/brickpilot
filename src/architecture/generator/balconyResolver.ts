@@ -36,15 +36,26 @@ export function resolveBalconies(
 
   for (const room of candidates) {
     if (out.length >= cap) break
-    const walls = roomWalls(room, floor).filter((w) => w.exterior && w.lengthMm >= rule.minWidthMm + 400)
-    if (walls.length === 0) continue
+    const exWalls = roomWalls(room, floor).filter((w) => w.exterior && w.lengthMm >= rule.minWidthMm + 400)
+    if (exWalls.length === 0) continue
     // prefer a street or a view (court) wall, longest
-    walls.sort((a, b) => balconyScore(b) - balconyScore(a))
-    const wall = walls[0]
+    exWalls.sort((a, b) => balconyScore(b) - balconyScore(a))
+    const wall = exWalls[0]
     const depthMm = snap(clamp(lerp(rule.depthMm[0], rule.depthMm[1], rng.next()), constraints.balcony.minDepthMm, constraints.balcony.maxDepthMm))
     const recessed = rng.chance(rule.recessedChance)
     const rect = balconyRect(room.rect, wall.side, depthMm, recessed, buildable)
     if (!rect) continue
+    // classify: two exterior walls meeting -> corner; wrapVerandah -> continuous/verandah
+    const corner = exWalls.length >= 2 && exWalls[1].lengthMm >= rule.minWidthMm
+    const type: BalconySpec['type'] = recessed
+      ? 'recessed'
+      : rule.wrapVerandah
+        ? level === 1
+          ? 'verandah'
+          : 'continuous'
+        : corner
+          ? 'corner'
+          : 'cantilever'
     out.push({
       id: `bal${level}-${out.length}`,
       roomId: room.id,
@@ -53,6 +64,7 @@ export function resolveBalconies(
       rect,
       depthMm,
       recessed,
+      type,
       railStyle: rule.railStyle,
     })
   }
