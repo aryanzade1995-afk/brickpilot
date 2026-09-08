@@ -76,9 +76,17 @@ def main() -> int:
     spec = Spec.load(ns.spec)
 
     ok, issues = validator.check_spec(spec)
+    g = spec.genome or {}
     print(f"[spec] {spec.raw['id']}  style={spec.style}  seed={spec.seed}  "
           f"floors={len(spec.floors)}  strategy={spec.massing['strategy']}  "
           f"windows={sum(len(f['windows']) for f in spec.floors)}  ok={ok}")
+    if g:
+        print(f"  genome: {g.get('massingComposition')} / {g.get('planFigure')} / {g.get('volumeCount')} vol"
+              f"  roof={g.get('roof')}  entrance={g.get('entrance')}{' (2H)' if g.get('doubleHeightEntrance') else ''}"
+              f"  balcony={g.get('balcony')}  facade={g.get('facadeComposition')}+{g.get('screen')}"
+              f"  court={g.get('courtyard')}  fp={(spec.fingerprint or {}).get('hash', '?')}")
+        if g.get("repaired"):
+            print(f"  ~ genome repaired: {'; '.join(g['repaired'])}")
     for it in issues:
         print(f"  ! {it}")
     if spec.validation.get("repaired"):

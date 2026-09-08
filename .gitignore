@@ -37,3 +37,13 @@ massing-grid.html
 blender/specs/
 blender/**/__pycache__/
 public/villas/
+
+# architectural reference dataset — images + raw downloads are not committed
+# (metadata/*.json, scripts/, reports/, docs ARE committed — they're the deliverable)
+brickpilot-architecture-dataset/images/**
+!brickpilot-architecture-dataset/images/**/
+!brickpilot-architecture-dataset/images/**/.gitkeep
+brickpilot-architecture-dataset/raw/
+brickpilot-architecture-dataset/**/__pycache__/
+brickpilot-architecture-dataset/metadata/dedup_dropped.json
+brickpilot-architecture-dataset/raw/candidates.json

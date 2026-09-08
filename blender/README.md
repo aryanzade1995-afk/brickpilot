@@ -8,12 +8,21 @@ for the existing three.js viewer.
 
 ```
 brief  ->  engine floor plan (src/lib/engine, `Design`)
-       ->  StyleGrammar        (src/architecture/grammar.ts)
-       ->  generateDesign(requirements, seed)  ->  DesignSpec  (JSON, geometry-free)
+       ->  StyleGrammar     (src/architecture/grammar.ts)  +  StylePattern (library/stylePatterns.ts)
+       ->  resolveGenome()  ->  DesignGenome  (seeded, compatibility-checked, reference-nudged)
+       ->  generateDesign(requirements, seed)  ->  DesignSpec { +genome, +fingerprint }  (JSON, geometry-free)
        ->  POST /api/generate   (server/villa.mjs — resolves a GLB)
        ->  blender/generator/   (headless, offline / CI)  ->  GLB / GLTF
        ->  three.js viewer      (loads the GLB; else the procedural buildMassing model)
 ```
+
+**The DesignGenome is the single design intent.** `spec.genome` names the
+massing composition, upper-floor strategy, roof form, entrance, balcony type,
+facade composition, screen, glazing, courtyard, parking and landscape — all
+drawn from `src/architecture/library/architecturalVocabulary.ts`. Every
+generator module reads it, so the massing, roof, openings, balconies and facade
+of one build all agree. `house_generator.py` prints the genome + its
+architectural fingerprint on every run.
 
 Three.js is the **viewer**, not the geometry author. Blender is run **offline /
 in CI** — users never install it; the app serves pre-baked GLBs from
@@ -99,10 +108,15 @@ stays small. Typical output: ~8–12 objects, a few thousand triangles.
 
 ## How a style changes the geometry (not just materials)
 
-`DesignSpec.massing.strategy` is one of `stacked · offset_volumes · stepped ·
-cantilever · split_mass · linear`; the seed picks it plus the offset/cantilever
-magnitudes, so `massing.py` builds a genuinely different **form** per style and
-per seed. `roofs.py` reads a per-block roof form (Kerala → hip 22–28°, tropical
+`spec.genome.massingComposition` is one of 13 vocabulary terms
+(`offset_volumes · cantilevered_volumes · split_volumes · stepped_volumes ·
+floating_upper_volume · side_wing · single_volume · stacked_volumes · …`),
+resolved from the style's weighted distribution + the reference library + the
+seed; it maps to the engine strategy `stacked · offset_volumes · stepped ·
+cantilever · split_mass · linear` plus the seeded offset/cantilever magnitudes,
+so `massing.py` builds a genuinely different **form** per style and per seed.
+`scripts/diversitytest.mts` shows ~47–49 / 50 architecturally distinct designs
+from one fixed brief per style. `roofs.py` reads a per-block roof form (Kerala → hip 22–28°, tropical
 → mono-slope 12–20°, modern → flat band). `facade.py` only emits the elements
 the style's `FacadeRule` allows — Kerala: verandah on square columns + laterite
 plinth + brick jaali; modern-Indian: brise-soleil fins + feature tower + stone

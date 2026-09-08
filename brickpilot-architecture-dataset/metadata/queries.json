@@ -1,0 +1,3207 @@
+{
+  "generated": "2026-09-08",
+  "count": 800,
+  "note": "DISCOVERY queries only. Use open-licensed sources; verify each licence.",
+  "queries": [
+    {
+      "q": "australian contemporary house front view",
+      "style_bucket": "international"
+    },
+    {
+      "q": "australian contemporary house street view",
+      "style_bucket": "international"
+    },
+    {
+      "q": "brazilian modernist house facade",
+      "style_bucket": "international"
+    },
+    {
+      "q": "brazilian modernist house street view",
+      "style_bucket": "international"
+    },
+    {
+      "q": "brick facade australian contemporary house",
+      "style_bucket": "international"
+    },
+    {
+      "q": "brick facade brazilian modernist house",
+      "style_bucket": "international"
+    },
+    {
+      "q": "brick facade contemporary indian house",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "brick facade courtyard house india",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "brick facade european minimalist house",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "brick facade japanese modern house",
+      "style_bucket": "international"
+    },
+    {
+      "q": "brick facade kerala contemporary villa",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "brick facade luxury indian villa",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "brick facade minimal indian house",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "brick facade tropical modern house bali",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "butterfly roof australian contemporary house",
+      "style_bucket": "international"
+    },
+    {
+      "q": "butterfly roof brazilian modernist house",
+      "style_bucket": "international"
+    },
+    {
+      "q": "butterfly roof courtyard house india",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "butterfly roof minimal indian house",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "butterfly roof tropical modern house bali",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "cantilever australian contemporary house",
+      "style_bucket": "international"
+    },
+    {
+      "q": "cantilever balcony courtyard house india",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "cantilever balcony kerala contemporary villa",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "cantilever balcony modern indian villa",
+      "style_bucket": "cantilever"
+    },
+    {
+      "q": "cantilever brazilian modernist house",
+      "style_bucket": "international"
+    },
+    {
+      "q": "cantilever contemporary indian house butterfly roof",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "cantilever contemporary indian house deep overhang roof",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "cantilever contemporary indian house roof terrace",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "cantilever courtyard house india",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "cantilever courtyard house india butterfly roof",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "cantilever courtyard house india deep overhang roof",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "cantilever courtyard house india floating roof",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "cantilever courtyard house india kerala tiled roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "cantilever courtyard house india roof terrace",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "cantilever courtyard house india sloped roof",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "cantilever european minimalist house",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "cantilever indian villa",
+      "style_bucket": "cantilever"
+    },
+    {
+      "q": "cantilever kerala contemporary villa",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "cantilever kerala contemporary villa deep overhang roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "cantilever kerala contemporary villa roof terrace",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "cantilever luxury indian villa",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "cantilever luxury indian villa floating roof",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "cantilever luxury indian villa kerala tiled roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "cantilever minimal indian house deep overhang roof",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "cantilever minimal indian house flat roof",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "cantilever modern indian villa",
+      "style_bucket": "cantilever"
+    },
+    {
+      "q": "cantilever modern indian villa butterfly roof",
+      "style_bucket": "cantilever"
+    },
+    {
+      "q": "cantilever modern indian villa flat roof",
+      "style_bucket": "cantilever"
+    },
+    {
+      "q": "cantilever modern indian villa floating roof",
+      "style_bucket": "cantilever"
+    },
+    {
+      "q": "cantilever modern indian villa roof terrace",
+      "style_bucket": "cantilever"
+    },
+    {
+      "q": "cantilever modern kerala home butterfly roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "cantilever modern kerala home deep overhang roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "cantilever modern kerala home floating roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "cantilever modern kerala home kerala tiled roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "cantilever southeast asian modern villa",
+      "style_bucket": "international"
+    },
+    {
+      "q": "cantilever tropical indian modern house deep overhang roof",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "cantilever tropical indian modern house roof terrace",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "contemporary indian house brick facade",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "contemporary indian house brick facade exterior",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "contemporary indian house cantilever exterior",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "contemporary indian house courtyard exterior",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "contemporary indian house double height entrance exterior",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "contemporary indian house elevation",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "contemporary indian house exposed concrete recessed entrance",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "contemporary indian house exterior",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "contemporary indian house facade",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "contemporary indian house floating roof",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "contemporary indian house floating roof exterior",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "contemporary indian house framed entrance",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "contemporary indian house framed entrance exterior",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "contemporary indian house jaali screen framed entrance",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "contemporary indian house jaali screen porte cochere",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "contemporary indian house jaali screen recessed entrance",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "contemporary indian house kerala tiled roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "contemporary indian house kerala tiled roof exterior",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "contemporary indian house louvers",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "contemporary indian house louvers exterior",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "contemporary indian house louvers porte cochere",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "contemporary indian house sloped roof",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "contemporary indian house sloped roof exterior",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "contemporary indian house stacked volumes exterior",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "contemporary indian house stone facade framed entrance",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "contemporary indian house stone facade recessed entrance",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "contemporary indian house street view",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "contemporary indian house vertical fins",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "contemporary indian house vertical fins exterior",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "contemporary indian house vertical fins recessed entrance",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "contemporary indian house white minimal facade exterior",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "contemporary indian house white minimal facade framed entrance",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "contemporary indian house white minimal facade recessed entrance",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "contemporary indian house wood screen",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "contemporary indian sloped roof villa",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "contemporary indian villa architecture",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "corner balcony kerala contemporary villa",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "corner balcony minimal indian house",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "corner balcony modern indian villa",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "corner balcony modern kerala home",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "courtyard australian contemporary house",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard brazilian modernist house",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard contemporary indian house deep overhang roof",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard contemporary indian house flat roof",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard courtyard house india",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard courtyard house india butterfly roof",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard courtyard house india deep overhang roof",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard courtyard house india flat roof",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard courtyard house india kerala tiled roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "courtyard house india brick facade double height entrance",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard house india double height entrance",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard house india elevation",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard house india exposed concrete",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard house india exposed concrete framed entrance",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard house india exposed concrete porte cochere",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard house india floating roof",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard house india floating roof exterior",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard house india front view",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard house india jaali screen",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard house india jaali screen framed entrance",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard house india jaali screen porte cochere",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard house india kerala tiled roof exterior",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "courtyard house india l-shaped exterior",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard house india offset volumes exterior",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard house india roof terrace exterior",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard house india stepped volumes exterior",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard house india stone facade",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard house india vertical fins",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard house india vertical fins double height entrance",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard house india vertical fins framed entrance",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard house india white minimal facade",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard house india white minimal facade exterior",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard house india white minimal facade framed entrance",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard house india wood screen",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard house india wood screen framed entrance",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard house india wood screen porte cochere",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard house india wood screen recessed entrance",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard japanese modern house",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard kerala contemporary villa flat roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "courtyard kerala contemporary villa floating roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "courtyard kerala contemporary villa roof terrace",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "courtyard kerala contemporary villa sloped roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "courtyard luxury indian villa butterfly roof",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "courtyard luxury indian villa flat roof",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "courtyard luxury indian villa kerala tiled roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "courtyard luxury indian villa sloped roof",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "courtyard minimal indian house",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard minimal indian house floating roof",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard minimal indian house kerala tiled roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "courtyard minimal indian house roof terrace",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard minimal indian house sloped roof",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard modern indian villa",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard modern indian villa butterfly roof",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard modern indian villa deep overhang roof",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard modern indian villa floating roof",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard modern indian villa kerala tiled roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "courtyard modern indian villa roof terrace",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "courtyard modern kerala home butterfly roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "courtyard modern kerala home deep overhang roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "courtyard modern kerala home sloped roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "courtyard tropical indian modern house deep overhang roof",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "courtyard tropical indian modern house floating roof",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "courtyard tropical indian modern house roof terrace",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "courtyard tropical indian modern house sloped roof",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "deep overhang roof australian contemporary house",
+      "style_bucket": "international"
+    },
+    {
+      "q": "deep overhang roof courtyard house india",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "deep overhang roof european minimalist house",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "deep overhang roof kerala contemporary villa",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "deep overhang roof modern kerala home",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "deep overhang roof southeast asian modern villa",
+      "style_bucket": "international"
+    },
+    {
+      "q": "double height entrance luxury indian villa",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "double height entrance modern kerala home",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "double height entrance tropical indian modern house",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "european minimalist house elevation",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "european minimalist house front view",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "exposed concrete australian contemporary house",
+      "style_bucket": "international"
+    },
+    {
+      "q": "exposed concrete european minimalist house",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "exposed concrete japanese modern house",
+      "style_bucket": "international"
+    },
+    {
+      "q": "exposed concrete luxury indian villa",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "exposed concrete tropical modern house bali",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "flat roof brazilian modernist house",
+      "style_bucket": "international"
+    },
+    {
+      "q": "flat roof courtyard house india",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "flat roof kerala contemporary villa",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "flat roof luxury indian villa",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "flat roof minimal indian house",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "flat roof tropical modern house bali",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "floating roof brazilian modernist house",
+      "style_bucket": "international"
+    },
+    {
+      "q": "floating roof contemporary indian house",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "floating roof kerala contemporary villa",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "floating roof mediterranean contemporary villa",
+      "style_bucket": "international"
+    },
+    {
+      "q": "floating roof modern kerala home",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "floating roof southeast asian modern villa",
+      "style_bucket": "international"
+    },
+    {
+      "q": "floating upper floor contemporary indian house flat roof",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "floating upper floor contemporary indian house roof terrace",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "floating upper floor contemporary indian house sloped roof",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "floating upper floor courtyard house india",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "floating upper floor courtyard house india deep overhang roof",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "floating upper floor courtyard house india sloped roof",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "floating upper floor kerala contemporary villa butterfly roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "floating upper floor kerala contemporary villa floating roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "floating upper floor kerala contemporary villa kerala tiled roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "floating upper floor luxury indian villa",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "floating upper floor luxury indian villa deep overhang roof",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "floating upper floor luxury indian villa floating roof",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "floating upper floor luxury indian villa roof terrace",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "floating upper floor mediterranean contemporary villa",
+      "style_bucket": "international"
+    },
+    {
+      "q": "floating upper floor minimal indian house butterfly roof",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "floating upper floor minimal indian house floating roof",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "floating upper floor modern indian villa",
+      "style_bucket": "cantilever"
+    },
+    {
+      "q": "floating upper floor modern indian villa deep overhang roof",
+      "style_bucket": "cantilever"
+    },
+    {
+      "q": "floating upper floor modern indian villa flat roof",
+      "style_bucket": "cantilever"
+    },
+    {
+      "q": "floating upper floor modern indian villa floating roof",
+      "style_bucket": "cantilever"
+    },
+    {
+      "q": "floating upper floor modern kerala home butterfly roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "floating upper floor modern kerala home flat roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "floating upper floor modern kerala home floating roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "floating upper floor modern kerala home sloped roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "floating upper floor tropical indian modern house",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "floating upper floor tropical indian modern house deep overhang roof",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "floating upper floor tropical indian modern house flat roof",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "floating upper floor tropical indian modern house kerala tiled roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "floating upper floor tropical indian modern house roof terrace",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "floating upper floor tropical indian modern house sloped roof",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "floating upper floor tropical modern house bali",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "floating volume villa architecture",
+      "style_bucket": "cantilever"
+    },
+    {
+      "q": "framed entrance luxury indian villa",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "framed entrance modern kerala home",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "indian bungalow flat roof parapet",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "indian luxury villa facade",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "indian tropical modern villa",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "indian villa asymmetric massing",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "indian villa deep overhang",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "indian villa stone wood facade",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "jaali screen brazilian modernist house",
+      "style_bucket": "international"
+    },
+    {
+      "q": "jaali screen contemporary indian house",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "jaali screen courtyard house india",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "jaali screen european minimalist house",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "jaali screen kerala contemporary villa",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "jaali screen mediterranean contemporary villa",
+      "style_bucket": "international"
+    },
+    {
+      "q": "jaali screen southeast asian modern villa",
+      "style_bucket": "international"
+    },
+    {
+      "q": "jaali screen tropical modern house bali",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "japanese modern house architecture",
+      "style_bucket": "international"
+    },
+    {
+      "q": "japanese modern house elevation",
+      "style_bucket": "international"
+    },
+    {
+      "q": "japanese modern house facade",
+      "style_bucket": "international"
+    },
+    {
+      "q": "kerala contemporary villa",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa architecture",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa brick facade",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa brick facade exterior",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa butterfly roof exterior",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa cantilever balcony exterior",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa cantilever exterior",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa corner balcony exterior",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa deep overhang roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa deep overhang roof exterior",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa double height entrance",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa exposed concrete exterior",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa exposed concrete framed entrance",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa exposed concrete porte cochere",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa facade",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa flat roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa flat roof exterior",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa floating roof exterior",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa framed entrance exterior",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa front view",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa jaali screen framed entrance",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa jaali screen recessed entrance",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa kerala tiled roof exterior",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa l-shaped exterior",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa linear exterior",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa louvers",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa louvers exterior",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa louvers framed entrance",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa porte cochere",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa porte cochere exterior",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa recessed entrance exterior",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa roof terrace exterior",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa sloped roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa stacked volumes exterior",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa stepped volumes exterior",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa stone facade",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa stone facade double height entrance",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa stone facade recessed entrance",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa u-shaped exterior",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa vertical fins",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa vertical fins double height entrance",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa vertical fins framed entrance",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa vertical fins porte cochere",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa white minimal facade framed entrance",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa wood screen",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa wood screen double height entrance",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa wood screen recessed entrance",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala contemporary villa wrap verandah exterior",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala modern house tiled roof verandah",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "kerala tiled roof australian contemporary house",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "kerala tiled roof brazilian modernist house",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "kerala tiled roof tropical modern house bali",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "l-shaped brazilian modernist house",
+      "style_bucket": "international"
+    },
+    {
+      "q": "l-shaped contemporary indian house butterfly roof",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "l-shaped contemporary indian house flat roof",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "l-shaped courtyard house india",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "l-shaped courtyard house india butterfly roof",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "l-shaped courtyard house india deep overhang roof",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "l-shaped courtyard house india floating roof",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "l-shaped courtyard house india roof terrace",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "l-shaped courtyard house india sloped roof",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "l-shaped european minimalist house",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "l-shaped japanese modern house",
+      "style_bucket": "international"
+    },
+    {
+      "q": "l-shaped kerala contemporary villa deep overhang roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "l-shaped kerala contemporary villa floating roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "l-shaped kerala contemporary villa roof terrace",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "l-shaped luxury indian villa",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "l-shaped luxury indian villa flat roof",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "l-shaped luxury indian villa sloped roof",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "l-shaped mediterranean contemporary villa",
+      "style_bucket": "international"
+    },
+    {
+      "q": "l-shaped minimal indian house",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "l-shaped minimal indian house butterfly roof",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "l-shaped minimal indian house floating roof",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "l-shaped minimal indian house kerala tiled roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "l-shaped minimal indian house roof terrace",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "l-shaped modern indian villa",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "l-shaped modern indian villa deep overhang roof",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "l-shaped modern indian villa flat roof",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "l-shaped modern indian villa floating roof",
+      "style_bucket": "cantilever"
+    },
+    {
+      "q": "l-shaped modern indian villa roof terrace",
+      "style_bucket": "rooftop_terrace"
+    },
+    {
+      "q": "l-shaped modern indian villa sloped roof",
+      "style_bucket": "sloped_roof"
+    },
+    {
+      "q": "l-shaped modern kerala home butterfly roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "l-shaped modern kerala home kerala tiled roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "l-shaped modern kerala home sloped roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "l-shaped tropical indian modern house",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "l-shaped tropical indian modern house deep overhang roof",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "l-shaped tropical indian modern house floating roof",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "l-shaped tropical modern house bali",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "linear australian contemporary house",
+      "style_bucket": "international"
+    },
+    {
+      "q": "linear brazilian modernist house",
+      "style_bucket": "international"
+    },
+    {
+      "q": "linear contemporary indian house roof terrace",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "linear courtyard house india",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "linear courtyard house india butterfly roof",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "linear courtyard house india deep overhang roof",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "linear courtyard house india flat roof",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "linear courtyard house india kerala tiled roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "linear courtyard house india roof terrace",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "linear courtyard house india sloped roof",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "linear european minimalist house",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "linear japanese modern house",
+      "style_bucket": "international"
+    },
+    {
+      "q": "linear kerala contemporary villa deep overhang roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "linear kerala contemporary villa flat roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "linear kerala contemporary villa floating roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "linear kerala contemporary villa roof terrace",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "linear kerala contemporary villa sloped roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "linear luxury indian villa deep overhang roof",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "linear luxury indian villa floating roof",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "linear luxury indian villa kerala tiled roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "linear luxury indian villa roof terrace",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "linear mediterranean contemporary villa",
+      "style_bucket": "international"
+    },
+    {
+      "q": "linear minimal indian house kerala tiled roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "linear minimal indian house roof terrace",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "linear minimal indian house sloped roof",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "linear modern indian villa butterfly roof",
+      "style_bucket": "sloped_roof"
+    },
+    {
+      "q": "linear modern indian villa deep overhang roof",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "linear modern indian villa roof terrace",
+      "style_bucket": "rooftop_terrace"
+    },
+    {
+      "q": "linear modern indian villa sloped roof",
+      "style_bucket": "sloped_roof"
+    },
+    {
+      "q": "linear modern kerala home butterfly roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "linear modern kerala home flat roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "linear modern kerala home floating roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "linear modern kerala home sloped roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "linear tropical indian modern house sloped roof",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "louvers australian contemporary house",
+      "style_bucket": "international"
+    },
+    {
+      "q": "louvers courtyard house india",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "louvers kerala contemporary villa",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "louvers mediterranean contemporary villa",
+      "style_bucket": "international"
+    },
+    {
+      "q": "louvers modern kerala home",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "louvers southeast asian modern villa",
+      "style_bucket": "international"
+    },
+    {
+      "q": "louvers tropical indian modern house",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "luxury indian villa brick facade",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa brick facade framed entrance",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa butterfly roof",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa butterfly roof exterior",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa cantilever balcony exterior",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa cantilever exterior",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa corner balcony exterior",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa courtyard exterior",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa deep overhang roof",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa deep overhang roof exterior",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa double height entrance",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa double height entrance exterior",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa exposed concrete",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa exposed concrete double height entrance",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa exposed concrete exterior",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa exposed concrete framed entrance",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa floating roof exterior",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa framed entrance",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa framed entrance exterior",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa jaali screen framed entrance",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa jaali screen porte cochere",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa jaali screen recessed entrance",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa l-shaped exterior",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa louvers",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa louvers double height entrance",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa louvers porte cochere",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa porte cochere exterior",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa roof terrace exterior",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa sloped roof exterior",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa split volume exterior",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa stone facade exterior",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa stone facade framed entrance",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa stone facade porte cochere",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa stone facade recessed entrance",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa terrace balcony exterior",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa u-shaped exterior",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa vertical fins",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa vertical fins double height entrance",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa vertical fins porte cochere",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa vertical fins recessed entrance",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa white minimal facade double height entrance",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa white minimal facade framed entrance",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa wood screen",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa wood screen framed entrance",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "luxury indian villa wrap verandah exterior",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "mediterranean contemporary villa architecture",
+      "style_bucket": "international"
+    },
+    {
+      "q": "mediterranean contemporary villa facade",
+      "style_bucket": "international"
+    },
+    {
+      "q": "minimal indian house brick facade",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "minimal indian house brick facade recessed entrance",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "minimal indian house butterfly roof",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "minimal indian house butterfly roof exterior",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "minimal indian house courtyard exterior",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "minimal indian house deep overhang roof",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "minimal indian house elevation",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "minimal indian house exposed concrete double height entrance",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "minimal indian house exposed concrete exterior",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "minimal indian house flat roof",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "minimal indian house framed entrance exterior",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "minimal indian house jaali screen double height entrance",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "minimal indian house kerala tiled roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "minimal indian house kerala tiled roof exterior",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "minimal indian house l-shaped exterior",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "minimal indian house louvers recessed entrance",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "minimal indian house offset volumes exterior",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "minimal indian house porte cochere",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "minimal indian house recessed entrance",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "minimal indian house recessed entrance exterior",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "minimal indian house sloped roof exterior",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "minimal indian house stacked volumes exterior",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "minimal indian house stone facade recessed entrance",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "minimal indian house street view",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "minimal indian house vertical fins double height entrance",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "minimal indian house vertical fins framed entrance",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "minimal indian house vertical fins recessed entrance",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "minimal indian house white minimal facade exterior",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "minimal indian house white minimal facade framed entrance",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "minimal indian house white minimal facade porte cochere",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "minimal indian house wood screen",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "minimal indian house wood screen double height entrance",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "minimal indian house wood screen framed entrance",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "minimal indian villa architecture",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "modern courtyard villa india",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "modern indian house brick jaali",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "modern indian villa brick facade",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "modern indian villa brick facade exterior",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "modern indian villa brick facade porte cochere",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "modern indian villa brick facade recessed entrance",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "modern indian villa butterfly roof exterior",
+      "style_bucket": "sloped_roof"
+    },
+    {
+      "q": "modern indian villa corner balcony exterior",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "modern indian villa deep overhang roof exterior",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "modern indian villa elevation",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "modern indian villa exterior",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "modern indian villa facade",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "modern indian villa flat roof",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "modern indian villa flat roof exterior",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "modern indian villa floating roof exterior",
+      "style_bucket": "cantilever"
+    },
+    {
+      "q": "modern indian villa floating upper floor exterior",
+      "style_bucket": "cantilever"
+    },
+    {
+      "q": "modern indian villa jaali screen",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "modern indian villa jaali screen double height entrance",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "modern indian villa louvers exterior",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "modern indian villa louvers framed entrance",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "modern indian villa louvers porte cochere",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "modern indian villa offset volumes exterior",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "modern indian villa porte cochere",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "modern indian villa porte cochere exterior",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "modern indian villa recessed entrance",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "modern indian villa roof terrace",
+      "style_bucket": "rooftop_terrace"
+    },
+    {
+      "q": "modern indian villa roof terrace exterior",
+      "style_bucket": "rooftop_terrace"
+    },
+    {
+      "q": "modern indian villa sloped roof",
+      "style_bucket": "sloped_roof"
+    },
+    {
+      "q": "modern indian villa split volume exterior",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "modern indian villa stone facade double height entrance",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "modern indian villa stone facade framed entrance",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "modern indian villa stone facade recessed entrance",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "modern indian villa street view",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "modern indian villa vertical fins framed entrance",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "modern indian villa vertical fins recessed entrance",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "modern indian villa white minimal facade double height entrance",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "modern indian villa white minimal facade recessed entrance",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "modern indian villa wood screen double height entrance",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "modern indian villa wood screen exterior",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "modern indian villa wood screen porte cochere",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "modern indian villa wood screen recessed entrance",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "modern indian villa wrap verandah exterior",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "modern kerala home brick facade",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home brick facade framed entrance",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home brick facade recessed entrance",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home butterfly roof exterior",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home cantilever balcony exterior",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home cantilever exterior",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home exposed concrete exterior",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home exposed concrete porte cochere",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home exposed concrete recessed entrance",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home floating roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home floating roof exterior",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home framed entrance",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home jaali screen",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home jaali screen exterior",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home jaali screen framed entrance",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home jaali screen recessed entrance",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home kerala tiled roof exterior",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home l-shaped exterior",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home louvers",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home louvers double height entrance",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home louvers exterior",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home louvers recessed entrance",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home offset volumes exterior",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home recessed entrance exterior",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home roof terrace exterior",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home sloped roof exterior",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home split volume exterior",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home stacked volumes exterior",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home stone facade double height entrance",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home stone facade framed entrance",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home stone facade recessed entrance",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home street view",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home vertical fins",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home vertical fins double height entrance",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home vertical fins porte cochere",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home white minimal facade",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home white minimal facade double height entrance",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home white minimal facade recessed entrance",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home wood screen",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home wood screen recessed entrance",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala home wrap verandah exterior",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern kerala house exterior",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "modern tropical villa courtyard",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "modern villa double height entrance",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "modern villa vertical fins",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "offset volume house india",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "offset volumes brazilian modernist house",
+      "style_bucket": "international"
+    },
+    {
+      "q": "offset volumes contemporary indian house butterfly roof",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "offset volumes contemporary indian house flat roof",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "offset volumes contemporary indian house sloped roof",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "offset volumes courtyard house india butterfly roof",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "offset volumes courtyard house india deep overhang roof",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "offset volumes courtyard house india floating roof",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "offset volumes courtyard house india roof terrace",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "offset volumes courtyard house india sloped roof",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "offset volumes japanese modern house",
+      "style_bucket": "international"
+    },
+    {
+      "q": "offset volumes kerala contemporary villa",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "offset volumes kerala contemporary villa deep overhang roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "offset volumes kerala contemporary villa flat roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "offset volumes kerala contemporary villa floating roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "offset volumes kerala contemporary villa roof terrace",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "offset volumes kerala contemporary villa sloped roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "offset volumes luxury indian villa floating roof",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "offset volumes luxury indian villa kerala tiled roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "offset volumes luxury indian villa roof terrace",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "offset volumes luxury indian villa sloped roof",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "offset volumes minimal indian house floating roof",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "offset volumes minimal indian house kerala tiled roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "offset volumes modern indian villa flat roof",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "offset volumes modern indian villa roof terrace",
+      "style_bucket": "rooftop_terrace"
+    },
+    {
+      "q": "offset volumes modern kerala home flat roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "offset volumes modern kerala home roof terrace",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "offset volumes modern kerala home sloped roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "offset volumes tropical indian modern house butterfly roof",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "offset volumes tropical indian modern house deep overhang roof",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "offset volumes tropical indian modern house kerala tiled roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "offset volumes tropical indian modern house sloped roof",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "offset volumes tropical modern house bali",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "porte cochere kerala contemporary villa",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "porte cochere modern kerala home",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "porte cochere tropical indian modern house",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "recessed entrance courtyard house india",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "recessed entrance minimal indian house",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "recessed entrance modern indian villa",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "recessed entrance modern kerala home",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "recessed entrance tropical indian modern house",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "roof terrace brazilian modernist house",
+      "style_bucket": "international"
+    },
+    {
+      "q": "roof terrace european minimalist house",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "roof terrace kerala contemporary villa",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "roof terrace luxury indian villa",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "roof terrace modern kerala home",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "sloped roof contemporary indian house",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "sloped roof japanese modern house",
+      "style_bucket": "international"
+    },
+    {
+      "q": "sloped roof mediterranean contemporary villa",
+      "style_bucket": "international"
+    },
+    {
+      "q": "sloped roof modern indian villa",
+      "style_bucket": "sloped_roof"
+    },
+    {
+      "q": "sloped roof modern kerala home",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "sloped roof tropical modern house bali",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "southeast asian modern villa architecture",
+      "style_bucket": "international"
+    },
+    {
+      "q": "southeast asian modern villa facade",
+      "style_bucket": "international"
+    },
+    {
+      "q": "southeast asian modern villa front view",
+      "style_bucket": "international"
+    },
+    {
+      "q": "southeast asian modern villa street view",
+      "style_bucket": "international"
+    },
+    {
+      "q": "split volume contemporary indian house floating roof",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "split volume contemporary indian house kerala tiled roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "split volume contemporary indian house sloped roof",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "split volume courtyard house india",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "split volume courtyard house india butterfly roof",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "split volume courtyard house india sloped roof",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "split volume japanese modern house",
+      "style_bucket": "international"
+    },
+    {
+      "q": "split volume kerala contemporary villa",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "split volume kerala contemporary villa deep overhang roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "split volume kerala contemporary villa floating roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "split volume kerala contemporary villa kerala tiled roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "split volume luxury indian villa",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "split volume luxury indian villa butterfly roof",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "split volume luxury indian villa kerala tiled roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "split volume mediterranean contemporary villa",
+      "style_bucket": "international"
+    },
+    {
+      "q": "split volume minimal indian house",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "split volume minimal indian house butterfly roof",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "split volume minimal indian house deep overhang roof",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "split volume minimal indian house flat roof",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "split volume modern indian villa butterfly roof",
+      "style_bucket": "sloped_roof"
+    },
+    {
+      "q": "split volume modern indian villa flat roof",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "split volume modern indian villa floating roof",
+      "style_bucket": "cantilever"
+    },
+    {
+      "q": "split volume modern indian villa sloped roof",
+      "style_bucket": "sloped_roof"
+    },
+    {
+      "q": "split volume modern kerala home",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "split volume modern kerala home butterfly roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "split volume modern kerala home flat roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "split volume modern kerala home kerala tiled roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "split volume modern kerala home sloped roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "split volume southeast asian modern villa",
+      "style_bucket": "international"
+    },
+    {
+      "q": "split volume tropical indian modern house",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "split volume tropical indian modern house deep overhang roof",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "split volume tropical indian modern house kerala tiled roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "split volume tropical indian modern house sloped roof",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "stacked volumes brazilian modernist house",
+      "style_bucket": "international"
+    },
+    {
+      "q": "stacked volumes contemporary indian house butterfly roof",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "stacked volumes contemporary indian house deep overhang roof",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "stacked volumes contemporary indian house floating roof",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "stacked volumes contemporary indian house roof terrace",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "stacked volumes contemporary indian house sloped roof",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "stacked volumes courtyard house india butterfly roof",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "stacked volumes courtyard house india deep overhang roof",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "stacked volumes courtyard house india flat roof",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "stacked volumes courtyard house india roof terrace",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "stacked volumes japanese modern house",
+      "style_bucket": "international"
+    },
+    {
+      "q": "stacked volumes kerala contemporary villa flat roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "stacked volumes kerala contemporary villa floating roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "stacked volumes kerala contemporary villa kerala tiled roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "stacked volumes luxury indian villa",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "stacked volumes luxury indian villa roof terrace",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "stacked volumes minimal indian house",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "stacked volumes minimal indian house butterfly roof",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "stacked volumes minimal indian house deep overhang roof",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "stacked volumes minimal indian house floating roof",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "stacked volumes minimal indian house kerala tiled roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "stacked volumes minimal indian house roof terrace",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "stacked volumes minimal indian house sloped roof",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "stacked volumes modern indian villa",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "stacked volumes modern indian villa deep overhang roof",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "stacked volumes modern indian villa flat roof",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "stacked volumes modern indian villa roof terrace",
+      "style_bucket": "rooftop_terrace"
+    },
+    {
+      "q": "stacked volumes modern indian villa sloped roof",
+      "style_bucket": "sloped_roof"
+    },
+    {
+      "q": "stacked volumes modern kerala home",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "stacked volumes modern kerala home butterfly roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "stacked volumes modern kerala home deep overhang roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "stacked volumes modern kerala home flat roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "stacked volumes modern kerala home kerala tiled roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "stacked volumes tropical indian modern house butterfly roof",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "stacked volumes tropical modern house bali",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "stepped volumes contemporary indian house",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "stepped volumes contemporary indian house butterfly roof",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "stepped volumes contemporary indian house deep overhang roof",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "stepped volumes contemporary indian house flat roof",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "stepped volumes contemporary indian house floating roof",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "stepped volumes contemporary indian house kerala tiled roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "stepped volumes contemporary indian house roof terrace",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "stepped volumes contemporary indian house sloped roof",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "stepped volumes courtyard house india",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "stepped volumes courtyard house india flat roof",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "stepped volumes courtyard house india roof terrace",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "stepped volumes courtyard house india sloped roof",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "stepped volumes european minimalist house",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "stepped volumes kerala contemporary villa butterfly roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "stepped volumes kerala contemporary villa deep overhang roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "stepped volumes kerala contemporary villa flat roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "stepped volumes kerala contemporary villa floating roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "stepped volumes kerala contemporary villa sloped roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "stepped volumes luxury indian villa",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "stepped volumes luxury indian villa kerala tiled roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "stepped volumes luxury indian villa sloped roof",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "stepped volumes mediterranean contemporary villa",
+      "style_bucket": "international"
+    },
+    {
+      "q": "stepped volumes minimal indian house deep overhang roof",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "stepped volumes minimal indian house flat roof",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "stepped volumes minimal indian house roof terrace",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "stepped volumes modern indian villa butterfly roof",
+      "style_bucket": "sloped_roof"
+    },
+    {
+      "q": "stepped volumes modern indian villa deep overhang roof",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "stepped volumes modern indian villa roof terrace",
+      "style_bucket": "rooftop_terrace"
+    },
+    {
+      "q": "stepped volumes modern indian villa sloped roof",
+      "style_bucket": "sloped_roof"
+    },
+    {
+      "q": "stepped volumes modern kerala home deep overhang roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "stepped volumes modern kerala home roof terrace",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "stepped volumes modern kerala home sloped roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "stepped volumes tropical indian modern house deep overhang roof",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "stepped volumes tropical indian modern house kerala tiled roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "stepped volumes tropical indian modern house roof terrace",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "stepped volumes tropical modern house bali",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "stone facade australian contemporary house",
+      "style_bucket": "international"
+    },
+    {
+      "q": "stone facade brazilian modernist house",
+      "style_bucket": "international"
+    },
+    {
+      "q": "stone facade european minimalist house",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "stone facade modern indian villa",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "stone facade modern kerala home",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "stone facade tropical modern house bali",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "terrace balcony contemporary indian house",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "terrace balcony courtyard house india",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "terrace balcony minimal indian house",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "terrace balcony tropical indian modern house",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical indian modern house architecture",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical indian modern house brick facade",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical indian modern house brick facade exterior",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical indian modern house brick facade porte cochere",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical indian modern house brick facade recessed entrance",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical indian modern house butterfly roof",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical indian modern house butterfly roof exterior",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical indian modern house corner balcony exterior",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical indian modern house deep overhang roof exterior",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical indian modern house exposed concrete exterior",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical indian modern house exposed concrete framed entrance",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical indian modern house exposed concrete porte cochere",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical indian modern house flat roof",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical indian modern house floating roof exterior",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical indian modern house framed entrance exterior",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical indian modern house jaali screen",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical indian modern house jaali screen porte cochere",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical indian modern house kerala tiled roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "tropical indian modern house l-shaped exterior",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical indian modern house louvers",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical indian modern house louvers exterior",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical indian modern house louvers framed entrance",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical indian modern house porte cochere exterior",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical indian modern house roof terrace exterior",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical indian modern house sloped roof",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical indian modern house stone facade",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical indian modern house stone facade porte cochere",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical indian modern house stone facade recessed entrance",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical indian modern house vertical fins framed entrance",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical indian modern house vertical fins recessed entrance",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical indian modern house white minimal facade",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical indian modern house white minimal facade double height entrance",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical indian modern house white minimal facade exterior",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical indian modern house wood screen",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical indian modern house wood screen double height entrance",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical indian modern house wood screen exterior",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical indian modern house wood screen framed entrance",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical indian modern house wrap verandah exterior",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical modern house bali elevation",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "tropical modern house bali facade",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "u-shaped brazilian modernist house",
+      "style_bucket": "international"
+    },
+    {
+      "q": "u-shaped contemporary indian house butterfly roof",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "u-shaped contemporary indian house deep overhang roof",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "u-shaped contemporary indian house flat roof",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "u-shaped contemporary indian house floating roof",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "u-shaped contemporary indian house roof terrace",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "u-shaped contemporary indian house sloped roof",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "u-shaped courtyard house india",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "u-shaped courtyard house india roof terrace",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "u-shaped courtyard house india sloped roof",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "u-shaped kerala contemporary villa",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "u-shaped kerala contemporary villa butterfly roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "u-shaped kerala contemporary villa deep overhang roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "u-shaped kerala contemporary villa flat roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "u-shaped kerala contemporary villa kerala tiled roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "u-shaped kerala contemporary villa sloped roof",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "u-shaped luxury indian villa",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "u-shaped luxury indian villa deep overhang roof",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "u-shaped luxury indian villa floating roof",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "u-shaped luxury indian villa kerala tiled roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "u-shaped minimal indian house butterfly roof",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "u-shaped minimal indian house deep overhang roof",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "u-shaped minimal indian house flat roof",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "u-shaped minimal indian house floating roof",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "u-shaped minimal indian house kerala tiled roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "u-shaped modern indian villa kerala tiled roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "u-shaped modern indian villa roof terrace",
+      "style_bucket": "rooftop_terrace"
+    },
+    {
+      "q": "u-shaped modern kerala home",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "u-shaped modern kerala home butterfly roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "u-shaped modern kerala home deep overhang roof",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "u-shaped tropical indian modern house",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "u-shaped tropical indian modern house floating roof",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "u-shaped tropical indian modern house roof terrace",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "u-shaped tropical modern house bali",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "vertical fins australian contemporary house",
+      "style_bucket": "international"
+    },
+    {
+      "q": "vertical fins brazilian modernist house",
+      "style_bucket": "international"
+    },
+    {
+      "q": "vertical fins courtyard house india",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "vertical fins european minimalist house",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "vertical fins kerala contemporary villa",
+      "style_bucket": "kerala_contemporary"
+    },
+    {
+      "q": "vertical fins tropical modern house bali",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "white minimal facade brazilian modernist house",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "white minimal facade courtyard house india",
+      "style_bucket": "courtyard"
+    },
+    {
+      "q": "white minimal facade luxury indian villa",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "white minimal facade modern indian villa",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "white minimal facade modern kerala home",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "white minimal facade tropical modern house bali",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "wood screen contemporary indian house",
+      "style_bucket": "contemporary_indian"
+    },
+    {
+      "q": "wood screen luxury indian villa",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "wood screen minimal indian house",
+      "style_bucket": "minimalist"
+    },
+    {
+      "q": "wood screen modern kerala home",
+      "style_bucket": "modern_kerala"
+    },
+    {
+      "q": "wood screen tropical indian modern house",
+      "style_bucket": "tropical_indian"
+    },
+    {
+      "q": "wrap verandah luxury indian villa",
+      "style_bucket": "luxury_indian"
+    },
+    {
+      "q": "wrap verandah modern indian villa",
+      "style_bucket": "modern_indian"
+    },
+    {
+      "q": "wrap verandah tropical indian modern house",
+      "style_bucket": "tropical_indian"
+    }
+  ]
+}

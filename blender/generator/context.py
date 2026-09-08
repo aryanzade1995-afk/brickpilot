@@ -80,6 +80,9 @@ class Spec:
     massing: dict
     requirements: dict
     validation: dict
+    # the composed architectural decision set (src/architecture/library/designGenome.ts)
+    genome: dict = field(default_factory=dict)
+    fingerprint: dict = field(default_factory=dict)
     # plot-centre offset so the model sits at the world origin
     ox: float = field(default=0.0)
     oy: float = field(default=0.0)
@@ -103,6 +106,8 @@ class Spec:
             massing=raw["massing"],
             requirements=raw["requirements"],
             validation=raw.get("validation", {"ok": True, "issues": [], "repaired": []}),
+            genome=raw.get("genome", {}),
+            fingerprint=raw.get("fingerprint", {}),
         )
         # centre the footprint bbox on the origin (metres)
         s.ox = mm(foot["x"] + foot["w"] / 2)

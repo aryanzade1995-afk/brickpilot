@@ -1,0 +1,325 @@
+{
+  "generated": "2026-09-08T13:13:08.606Z",
+  "source": "src/architecture/library/architecturalVocabulary.ts",
+  "fields": {
+    "planFigure": [
+      "rectangular",
+      "square",
+      "l_shape",
+      "t_shape",
+      "u_shape",
+      "h_shape",
+      "courtyard",
+      "linear",
+      "pavilion",
+      "split"
+    ],
+    "massingComposition": [
+      "single_volume",
+      "stacked_volumes",
+      "offset_volumes",
+      "split_volumes",
+      "stepped_volumes",
+      "interlocking_volumes",
+      "cantilevered_volumes",
+      "floating_upper_volume",
+      "central_core",
+      "side_wing",
+      "courtyard_ring",
+      "pavilion_cluster",
+      "linear_bar"
+    ],
+    "compositionBalance": [
+      "symmetric",
+      "near_symmetric",
+      "asymmetric",
+      "dynamic_asymmetric"
+    ],
+    "emphasis": [
+      "none",
+      "low",
+      "medium",
+      "strong"
+    ],
+    "upperFloorStrategy": [
+      "full_upper",
+      "partial_upper",
+      "front_setback",
+      "rear_setback",
+      "side_setback",
+      "asymmetric_setback",
+      "split_upper",
+      "partial_cantilever",
+      "full_cantilever",
+      "terrace_cutout",
+      "stacked_plumb"
+    ],
+    "voidStrategy": [
+      "none",
+      "double_height_living",
+      "double_height_entrance",
+      "vertical_void",
+      "central_atrium",
+      "stair_void"
+    ],
+    "roofType": [
+      "flat_slab",
+      "floating_slab",
+      "parapet_roof",
+      "roof_terrace",
+      "deep_overhang_flat",
+      "butterfly",
+      "gable",
+      "hip",
+      "mono_slope",
+      "kerala_tiled_hip",
+      "contemporary_sloped",
+      "mixed_roof"
+    ],
+    "overhangDepth": [
+      "none",
+      "shallow",
+      "medium",
+      "deep",
+      "very_deep"
+    ],
+    "entranceType": [
+      "centered",
+      "offset",
+      "recessed",
+      "projecting",
+      "double_height",
+      "porch",
+      "covered_courtyard_entry",
+      "side_entry",
+      "framed",
+      "porte_cochere"
+    ],
+    "entrancePosition": [
+      "left_front",
+      "center_front",
+      "right_front",
+      "recessed_center",
+      "corner",
+      "side",
+      "courtyard"
+    ],
+    "balconyType": [
+      "none",
+      "cantilever",
+      "recessed",
+      "corner",
+      "corner_cantilever",
+      "full_width",
+      "partial_width",
+      "juliet",
+      "terrace_balcony",
+      "planted_balcony",
+      "continuous",
+      "wrap_verandah"
+    ],
+    "balconyPosition": [
+      "upper_front",
+      "upper_front_corner",
+      "upper_rear",
+      "upper_side",
+      "wrap",
+      "court_facing"
+    ],
+    "facadeComposition": [
+      "flat_plane",
+      "solid_void",
+      "layered_solid_void",
+      "framed",
+      "stacked_bands",
+      "stone_volume",
+      "glass_box",
+      "mixed_material"
+    ],
+    "screenElement": [
+      "none",
+      "vertical_fins",
+      "horizontal_fins",
+      "jaali",
+      "perforated_screen",
+      "louvers",
+      "wood_screen",
+      "pergola_screen"
+    ],
+    "facadeMaterial": [
+      "white_plaster",
+      "sand_plaster",
+      "off_white_plaster",
+      "exposed_concrete",
+      "natural_stone",
+      "dark_stone",
+      "laterite",
+      "travertine",
+      "granite",
+      "brick",
+      "wood",
+      "teak_batten",
+      "metal_panel",
+      "glass"
+    ],
+    "materialPalette": [
+      "white_minimal",
+      "white_stone",
+      "stone_white_wood",
+      "plaster_stone_base",
+      "concrete_wood",
+      "laterite_white",
+      "travertine_granite",
+      "brick_white",
+      "earth_timber"
+    ],
+    "windowStrategy": [
+      "punched",
+      "horizontal_ribbon",
+      "vertical_slit",
+      "floor_to_ceiling",
+      "corner_glazing",
+      "recessed",
+      "screened",
+      "clerestory",
+      "controlled_panoramic"
+    ],
+    "glazingRatio": [
+      "minimal",
+      "modest",
+      "controlled_large",
+      "expansive",
+      "full_glass"
+    ],
+    "courtyardType": [
+      "none",
+      "central",
+      "side",
+      "rear",
+      "entrance_courtyard",
+      "pool_courtyard",
+      "garden_courtyard",
+      "double_height_courtyard"
+    ],
+    "parkingIntegration": [
+      "none",
+      "open_pad",
+      "integrated_front",
+      "integrated_side",
+      "porte_cochere",
+      "stilt",
+      "basement"
+    ],
+    "landscapeStrategy": [
+      "minimal",
+      "front_lawn",
+      "courtyard_garden",
+      "courtyard_pool",
+      "rear_pool",
+      "wrap_deck",
+      "roof_garden",
+      "water_court"
+    ],
+    "characteristic": [
+      "strong_horizontal_lines",
+      "strong_vertical_lines",
+      "deep_shadows",
+      "cantilever",
+      "floating_volume",
+      "asymmetric_balance",
+      "symmetric_balance",
+      "layered_facade",
+      "solid_void_play",
+      "monolithic",
+      "lightweight",
+      "transparent_ground",
+      "heavy_base_light_top",
+      "sheltered_verandah",
+      "courtyard_focused",
+      "roof_as_feature",
+      "screen_as_feature",
+      "stone_as_feature",
+      "minimal_detailing",
+      "tropical_shading",
+      "climate_responsive",
+      "privacy_to_street"
+    ],
+    "style": [
+      "modern_indian",
+      "contemporary_indian",
+      "modern_kerala",
+      "kerala_contemporary",
+      "luxury_indian_villa",
+      "tropical_indian_modern",
+      "minimal_indian",
+      "courtyard_indian_modern"
+    ],
+    "internationalTag": [
+      "japanese_modern",
+      "mediterranean_contemporary",
+      "tropical_modern",
+      "southeast_asian_modern",
+      "australian_contemporary",
+      "brazilian_modern",
+      "european_minimalist"
+    ]
+  },
+  "aliases": {
+    "planFigure": {
+      "l": "l_shape",
+      "u": "u_shape",
+      "t": "t_shape",
+      "h": "h_shape",
+      "rectangle": "rectangular",
+      "rect": "rectangular"
+    },
+    "massingComposition": {
+      "offset_box": "offset_volumes",
+      "stacked_box": "stacked_volumes",
+      "cantilevered_box": "cantilevered_volumes",
+      "cantilever": "cantilevered_volumes",
+      "floating_box": "floating_upper_volume",
+      "linear": "linear_bar"
+    },
+    "compositionBalance": {
+      "low": "asymmetric",
+      "high": "symmetric",
+      "medium": "near_symmetric"
+    },
+    "roofType": {
+      "flat": "flat_slab",
+      "flat_roof": "flat_slab",
+      "floating_flat": "floating_slab",
+      "terrace": "roof_terrace",
+      "sloped": "contemporary_sloped",
+      "tiled": "kerala_tiled_hip",
+      "pitched": "hip"
+    },
+    "entranceType": {
+      "recessed_center": "recessed",
+      "double_height_entrance": "double_height",
+      "drive_through": "porte_cochere"
+    },
+    "balconyType": {
+      "corner_cantilever": "corner_cantilever",
+      "verandah": "wrap_verandah",
+      "wrap": "wrap_verandah"
+    },
+    "screenElement": {
+      "fins": "vertical_fins",
+      "screen": "perforated_screen",
+      "jali": "jaali",
+      "brise_soleil": "vertical_fins"
+    },
+    "glazingRatio": {
+      "large": "controlled_large",
+      "controlled": "controlled_large",
+      "panoramic": "expansive"
+    },
+    "courtyardType": {
+      "court": "central",
+      "internal_court": "central"
+    }
+  },
+  "termCount": 213
+}
