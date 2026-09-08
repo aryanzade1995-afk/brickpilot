@@ -152,16 +152,20 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--no-analyze", action="store_true")
     ap.add_argument("--no-synthetic", action="store_true")
+    ap.add_argument("--no-harvested", action="store_true", help="skip raw/collected.json (committed dataset is synthetic-only)")
+    ap.add_argument("--no-user", action="store_true", help="skip loose images in images/<bucket>/")
     args = ap.parse_args()
     do_analyze = not args.no_analyze
 
     designs: list[dict] = []
     if not args.no_synthetic:
         designs += synthetic_entries()
-    designs += harvested_entries(do_analyze)
+    if not args.no_harvested:
+        designs += harvested_entries(do_analyze)
 
     known = {d["id"] for d in designs}
-    for bucket, f, fid, path, an in user_dropped_entries(do_analyze):
+    user_rows = [] if args.no_user else user_dropped_entries(do_analyze)
+    for bucket, f, fid, path, an in user_rows:
         if fid in known:
             continue
         dna = {}

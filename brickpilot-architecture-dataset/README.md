@@ -59,18 +59,36 @@ npx tsx scripts/sync-vocabulary.mts
 # 2. generate the 650+ synthetic design genomes (the core "data")
 npx tsx scripts/genome-corpus.mts --target 650
 
-# 3. (optional) harvest open-licensed reference photos
+# 3. (optional) harvest open-licensed reference photos — see the caveat below
 python brickpilot-architecture-dataset/scripts/generate_search_queries.py
-python brickpilot-architecture-dataset/scripts/collect_references.py --dry-run
-python brickpilot-architecture-dataset/scripts/collect_references.py --yes --limit 150 --permissive-only
+python brickpilot-architecture-dataset/scripts/collect_references.py --dry-run --max-queries 25
+python brickpilot-architecture-dataset/scripts/collect_references.py --yes --shuffle --max-queries 90 --limit 90 --permissive-only
 
-# 4. assemble + fingerprint + dedup + validate
+# 4. assemble + fingerprint + dedup + validate  (committed dataset = synthetic-only)
 cd brickpilot-architecture-dataset/scripts
-python generate_metadata.py         # merges synthetic genomes + any harvested / user images
+python generate_metadata.py --no-harvested --no-user   # synthetic genomes only
 python build_fingerprints.py        # dHash + architectural fingerprint
 python deduplicate.py               # drop perceptual + architectural near-duplicates
 python validate_dataset.py          # §10 gate → ../reports/dataset_report.json
+
+# 4b. to fold harvested / user images in, drop --no-harvested / --no-user
+#     (needs GEMINI_API_KEY for real DNA — the heuristic fallback is weak)
 ```
+
+### Harvest caveat
+
+Open-licensed image sources carry **very little contemporary Indian
+residential architecture**. A test run of 90 queries against Openverse +
+Wikimedia Commons returned 86 licence-clean images — almost all
+**public-domain book scans** (digitised architecture journals, 19th-century
+travel illustrations), not villa photographs. After analysis + dedup only ~2
+survived as usable references.
+
+The **650 synthetic Design Genomes are the substantive dataset.** A real
+photo corpus needs one of: your own photographs dropped into
+`images/<bucket>/`; a licensed architectural-reference dataset; or AI-vision
+analysis (`GEMINI_API_KEY`) over images you already have the rights to.
+`raw/collected.json` keeps the harvest for re-processing if you get vision.
 
 You can also drop your own photos straight into `images/<bucket>/` and re-run
 step 4 — `generate_metadata.py` analyses and records them (`licenseStatus =
