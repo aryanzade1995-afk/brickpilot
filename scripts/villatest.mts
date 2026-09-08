@@ -18,7 +18,8 @@ import { defaultBrief } from '../src/lib/model/brief.ts'
 import { compile } from '../src/lib/model/canonical.ts'
 import { generate } from '../src/lib/engine/index.ts'
 import { CHARACTER_OF_STYLE, requirementsOf, generateDesign } from '../src/architecture/index.ts'
-import type { DesignSpec, StyleId } from '../src/architecture/index.ts'
+import { distinctCount, meanPairwiseSimilarity } from '../src/architecture/index.ts'
+import type { ArchitecturalFingerprint, DesignSpec, StyleId } from '../src/architecture/index.ts'
 
 // storeys = additional floors above ground -> a G+1 (2-level) 4-bed villa
 const REQ = { beds: 4, baths: 3, storeys: 1, levels: 2, plotW: 18, plotD: 27 }
@@ -63,6 +64,7 @@ for (const style of STYLES) {
   console.log(`\n=== ${style} ===`)
   const specs: DesignSpec[] = []
   const forms = new Set<string>()
+  const fps: ArchitecturalFingerprint[] = []
   const reqSig = new Set<string>()
 
   for (const seed of SEEDS) {
@@ -129,15 +131,22 @@ for (const style of STYLES) {
     // valid geometry
     line(spec.validation.issues.length === 0, `seed ${seed}: ${spec.validation.issues.join('; ')}`)
 
+    fps.push(spec.fingerprint)
     forms.add(`${spec.massing.strategy}|${spec.floors.map((f) => f.blocks.map((b) => `${b.rect.w | 0}x${b.rect.h | 0}`).join(',')).join('/')}`)
     const roofs = spec.floors.flatMap((f) => f.blocks.map((b) => b.roof.kind))
     const facades = [...new Set(spec.facade.map((e) => e.kind))].sort().join('+')
-    console.log(`  seed ${seed}: ${spec.massing.strategy.padEnd(16)} roof=${[...new Set(roofs)].join('/')}  bal=${spec.floors.flatMap((f) => f.balconies.map((b) => b.type)).join(',') || '—'}  facade=${facades}`)
+    console.log(
+      `  seed ${seed}: ${spec.genome.massingComposition.padEnd(20)} roof=${[...new Set(roofs)].join('/').padEnd(20)} bal=${(spec.floors.flatMap((f) => f.balconies.map((b) => b.type)).join(',') || '—').padEnd(24)} fp=${spec.fingerprint.hash}`,
+    )
   }
 
   line(reqSig.size === 1, `requirements DIFFER across seeds: ${[...reqSig].join(' vs ')}`)
-  line(forms.size >= 3, `only ${forms.size}/5 visibly distinct forms`)
-  console.log(`  -> ${forms.size}/5 distinct massing forms, requirements ${reqSig.size === 1 ? 'identical ✓' : 'DIFFER ✗'}`)
+  // architectural distinctness via the fingerprint (§9) — not a hand-rolled string
+  const distinct = distinctCount(fps, 0.86)
+  const meanSim = meanPairwiseSimilarity(fps)
+  line(distinct >= 3, `only ${distinct}/5 architecturally distinct (fingerprint)`)
+  line(meanSim < 0.82, `mean similarity ${meanSim} too high — designs too alike`)
+  console.log(`  -> ${distinct}/5 distinct fingerprints · mean similarity ${meanSim} · requirements ${reqSig.size === 1 ? 'identical ✓' : 'DIFFER ✗'}`)
 }
 
 console.log(`\n${fail === 0 ? '✓ all checks pass' : `✗ ${fail} check(s) failed`}`)
