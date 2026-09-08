@@ -10,6 +10,7 @@ import { validate } from '../src/lib/rules/index.ts'
 import { buildMassing, type MassKind } from '../src/lib/three/buildMassing.ts'
 import { SHAPES } from '../src/lib/engine/index.ts'
 import { characterSchema } from '../src/lib/model/brief.ts'
+import { specFromDesign } from '../src/architecture/generateDesign.ts'
 
 const PLOTS: [number, number][] = [
   [24, 30],
@@ -67,9 +68,15 @@ for (const [pw, pd] of PLOTS) {
         }
 
         // ---- 3-D model ----
+        // Built WITH the architectural spec, so the facade articulation
+        // (reveals / sills / chhajjas / fins / screens / plate edges / coping)
+        // is geometry-checked too, not just the bare massing.
         let m
         try {
-          m = buildMassing(design)
+          const spec = specFromDesign(design)
+          m = buildMassing(design, spec)
+          // the no-spec fallback must stay valid on its own
+          buildMassing(design)
         } catch (e) {
           flag(tag, `buildMassing() threw: ${e}`)
           continue
@@ -107,6 +114,13 @@ for (const [pw, pd] of PLOTS) {
           minZ = Math.min(minZ, z - d / 2)
           maxZ = Math.max(maxZ, z + d / 2)
         }
+
+        // articulation minimums — every opening must read as a hole with a
+        // thickness, not a decal, and every window must have a sill
+        if (!kinds.has('reveal')) flag(tag, 'openings have no reveal returns')
+        if (!kinds.has('winframe')) flag(tag, 'windows have no frame assembly')
+        const winOps = design.floors.reduce((n, f) => n + f.openings.filter((o) => o.kind === 'window').length, 0)
+        if (winOps > 0 && !kinds.has('sill')) flag(tag, `${winOps} windows but no projecting sills`)
 
         // structural minimums
         if (!kinds.has('wall')) flag(tag, 'no exterior walls')

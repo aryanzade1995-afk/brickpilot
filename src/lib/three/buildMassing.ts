@@ -2,6 +2,16 @@ import type { Design, FloorPlan, Opening } from '../engine/types.ts'
 import type { Rect } from '../geometry.ts'
 import type { CanonicalModel } from '../model/canonical.ts'
 import { themeOf, type RailStyle, type ThemeDef } from '../model/themes.ts'
+import { ARTICULATION } from '../../architecture/dims.ts'
+import type {
+  ChajjaSpec,
+  DesignSpec,
+  FinBankSpec,
+  FloorArticulation,
+  ParapetSpec,
+  SlabEdgeSpec,
+  SlatScreenSpec,
+} from '../../architecture/types.ts'
 
 /* ------------------------------------------------------------------ *
  *  buildMassing — an architect's white-card study model of the house.
@@ -41,6 +51,23 @@ export type MassKind =
   | 'planter'
   | 'hedge'
   | 'fence'
+  /* ---- articulation: the geometry that gives the facade depth ---- */
+  /** plastered jamb / head returns lining an opening */
+  | 'reveal'
+  /** projecting weathered window sill */
+  | 'sill'
+  /** aluminium master frame + sash + mullions */
+  | 'winframe'
+  /** cantilevered weather hood over an opening */
+  | 'chajja'
+  /** vertical brise-soleil */
+  | 'fin'
+  /** exposed floor-plate edge + drip */
+  | 'fascia'
+  /** projecting parapet cap stone */
+  | 'coping'
+  /** timber batten / jaali slat */
+  | 'louver'
 
 /** a sloped roof volume — the box bounds the eaves rectangle, `form` + `ridge`
  *  say how the top is shaped, `low` (mono-slope) which eave sits at the base */
@@ -82,8 +109,6 @@ const PLINTH_H = 0.4 // base-course height above grade
 const ROOF_T = 0.22 // terrace deck
 const PARAPET_T = 0.12
 const KERB_H = 0.38 // terrace upstand
-const RECESS = 0.1 // pane reveal depth behind the outer facade
-const PANE_T = 0.06
 const PANE_SHRINK = 0.006 // pane a hair smaller than the void — avoids an exact coincident plane
 const CANOPY_TOP = 2.75 // carport canopy top, metres above FFL
 const CANOPY_T = 0.26
@@ -94,6 +119,53 @@ const BAND: Record<Opening['kind'], { sill: number; head: number }> = {
   window: { sill: 0.85, head: 2.2 },
   door: { sill: 0, head: 2.3 },
   entry: { sill: 0, head: 2.5 },
+}
+
+/* ---- articulation: the facade-depth numbers, in METRES ---------------------
+ * Sourced from the DesignSpec when the architectural pass resolved one, else
+ * from `dims.ARTICULATION` directly — so the study model articulates the same
+ * whether or not a spec is available. One reveal depth and one plate
+ * projection per building; never a per-window roll. */
+type Art = {
+  jamb: number
+  head: number
+  sillProj: number
+  sillThick: number
+  sillEar: number
+  sillDrip: number
+  frame: number
+  sash: number
+  glass: number
+  sashSetback: number
+  mullionSpacing: number
+  plinthProj: number
+  plinthBand: number
+  /** the resolved per-storey elements, or null when no spec was supplied */
+  floor: (level: number) => FloorArticulation | null
+}
+
+function makeArt(spec: DesignSpec | null | undefined, T: ThemeDef): Art {
+  const A = ARTICULATION
+  const r = spec?.articulation.defaultReveal
+  const pl = spec?.articulation.plinth
+  return {
+    jamb: (r?.jambMm ?? (A.reveal.jambMm[0] + A.reveal.jambMm[1]) / 2) / 1000,
+    head: (r?.headMm ?? (A.reveal.jambMm[0] + A.reveal.jambMm[1]) / 2 + A.reveal.headExtraMm) / 1000,
+    sillProj: (r?.sillProjMm ?? A.sill.projMm) / 1000,
+    sillThick: (r?.sillThickMm ?? A.sill.thickMm) / 1000,
+    sillEar: (r?.sillEarMm ?? A.sill.earMm) / 1000,
+    sillDrip: A.sill.dripMm / 1000,
+    frame: (r?.frameMm ?? A.frame.masterMm) / 1000,
+    sash: (r?.sashMm ?? A.frame.sashMm) / 1000,
+    glass: (r?.glassMm ?? A.frame.glassMm) / 1000,
+    sashSetback: A.frame.sashSetbackMm / 1000,
+    mullionSpacing: A.frame.mullionSpacingMm / 1000,
+    // the theme still owns the plinth projection — it is a style call, and the
+    // spec agrees with it to within a few mm
+    plinthProj: (pl?.projMm ?? T.massing.plinthProjMm) / 1000,
+    plinthBand: (pl?.bandMm ?? A.plinth.bandMm) / 1000,
+    floor: (level: number) => spec?.floors.find((f) => f.level === level)?.articulation ?? null,
+  }
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
@@ -148,14 +220,22 @@ function coverAbove(b: Rect, above: FloorPlan | undefined): Rect {
   return { x: b.x + b.w / 2, y: b.y + b.h / 2, w: 0, h: 0 }
 }
 
-export function buildMassing(design: Design): Massing {
+/**
+ * @param spec  the resolved architectural DesignSpec, when the architecture pass
+ *              produced one. It drives the facade articulation — reveals, sills,
+ *              chhajjas, fins, screens, plate edges, parapet coping. Omit it and
+ *              the builder falls back to `dims.ARTICULATION` defaults, so the
+ *              study model is never worse than it was.
+ */
+export function buildMassing(design: Design, spec?: DesignSpec | null): Massing {
   const { model } = design
   const T = themeOf(model.brief)
+  const art = makeArt(spec, T)
   const plotW = model.plot.width
   const plotD = model.plot.depth
   const H = model.brief.levels.floorToFloor
   const y0 = PLINTH_H
-  const plinthProj = T.massing.plinthProjMm / 1000
+  const plinthProj = art.plinthProj
   const winBand = { sill: T.windows.sillMm / 1000, head: T.windows.headMm / 1000 }
 
   const wx: XF = (mm) => (mm - plotW / 2) / 1000
@@ -215,7 +295,10 @@ export function buildMassing(design: Design): Massing {
       if (!placed) interiorOps.push(op)
     }
     const gm = T.windows.groupMm
-    const cj = T.massing.chajjaMm
+    const fa = art.floor(L)
+    // when the architectural pass resolved hoods for this storey it owns them —
+    // the theme fallback would otherwise double them up
+    const cj = fa && fa.chajjas.length ? 0 : T.massing.chajjaMm
 
     // openings that fall on a given block's edge (so a facade plane only gets
     // the voids that actually pierce it)
@@ -251,18 +334,23 @@ export function buildMassing(design: Design): Massing {
       )
 
       // ---- one segmented solid plane per facade ----
-      addWall('W', oy0, oy1, ox0, baseY, wallTop, opsOnEdge(o, 'W'), L, gm, cj, `w${bid}W`, push, wx, wz, m)
-      addWall('E', oy0, oy1, ox1, baseY, wallTop, opsOnEdge(o, 'E'), L, gm, cj, `w${bid}E`, push, wx, wz, m)
-      addWall('N', ox0 + HT_MM, ox1 - HT_MM, oy0, baseY, wallTop, opsOnEdge(o, 'N'), L, gm, cj, `w${bid}N`, push, wx, wz, m)
-      addWall('S', ox0 + HT_MM, ox1 - HT_MM, oy1, baseY, wallTop, opsOnEdge(o, 'S'), L, gm, cj, `w${bid}S`, push, wx, wz, m)
+      addWall('W', oy0, oy1, ox0, baseY, wallTop, opsOnEdge(o, 'W'), L, gm, cj, `w${bid}W`, art, push, wx, wz, m)
+      addWall('E', oy0, oy1, ox1, baseY, wallTop, opsOnEdge(o, 'E'), L, gm, cj, `w${bid}E`, art, push, wx, wz, m)
+      addWall('N', ox0 + HT_MM, ox1 - HT_MM, oy0, baseY, wallTop, opsOnEdge(o, 'N'), L, gm, cj, `w${bid}N`, art, push, wx, wz, m)
+      addWall('S', ox0 + HT_MM, ox1 - HT_MM, oy1, baseY, wallTop, opsOnEdge(o, 'S'), L, gm, cj, `w${bid}S`, art, push, wx, wz, m)
 
-      if (T.massing.stringCourseMm > 0 && L >= 1) {
+      // The articulation pass expresses the floor line as a real projecting
+      // plate with a fascia and a drip. That IS the string course — drawing the
+      // theme's band as well stacks three horizontals on one floor line.
+      const artPlate = !!fa && fa.slabEdges.length > 0 && L >= 1
+      if (T.massing.stringCourseMm > 0 && L >= 1 && !artPlate) {
         stringCourse(o, baseY, L, T.massing.stringCourseMm / 1000, push, wx, wz, m)
       }
       if (T.accents.cladFacade) {
         buildCladding(o, opsOnEdge(o, 'S'), baseY, wallTop, L, T.accents.cladWidthMm, push, wx, wz, m)
       }
-      if (T.modern && L >= 1 && T.modern.cantileverMm > 0) {
+      // likewise the apron — the plate edge already reads as the overhang
+      if (T.modern && L >= 1 && T.modern.cantileverMm > 0 && !artPlate) {
         cantileverApron(o, baseY, L, T.modern.cantileverMm / 1000, push, wx, wz, m)
       }
       if (T.modern?.baffleScreen) {
@@ -294,11 +382,23 @@ export function buildMassing(design: Design): Massing {
         // a lower wing of a pitched-roof style still gets a small pitched cap
         buildPitchedRoof(o, wallTop, L, 'hip', T.roof.pitchDeg, T, push, wx, wz, m)
       } else if (L === topLevel) {
-        buildRoof(o, wallTop, L, T, push, wx, wz, m)
+        buildRoof(o, wallTop, L, T, push, wx, wz, m, !!fa && fa.parapets.length > 0)
       } else if (cover) {
         buildTerrace(o, cover, wallTop, L, T, push, wx, wz, m)
       }
     })
+
+    // ---- ARTICULATION: the facade depth the architectural pass resolved ----
+    // Emitted once per storey, not per block: every rect is already in absolute
+    // plot coordinates, so it never has to be matched back to a viewer block.
+    if (fa) {
+      for (const c of fa.chajjas) emitChajja(c, baseY, push, wx, wz, m)
+      for (const f of fa.fins) emitFins(f, baseY, push, wx, wz, m)
+      for (const sc of fa.screens) emitScreen(sc, baseY, push, wx, wz, m)
+      // the ground plate sits on the plinth and has no edge to express
+      if (L > 0) for (const se of fa.slabEdges) emitSlabEdge(se, baseY, push, wx, wz, m)
+      for (const pa of fa.parapets) emitParapet(pa, wallTop, push, wx, wz, m)
+    }
 
     const o = oFull
 
@@ -477,6 +577,7 @@ function addWall(
   groupMm: number,
   chajjaMm: number,
   tag: string,
+  art: Art,
   push: Push,
   wx: XF,
   wz: XF,
@@ -486,6 +587,7 @@ function addWall(
   const outward = side === 'S' || side === 'E' ? 1 : -1
   if (a1 - a0 < 120) return
 
+  /** a box spanning `from`..`to` along the wall, `yb`..`yt` high, at the wall plane */
   const solid = (from: number, to: number, yb: number, yt: number, sub: string) => {
     const len = m(to - from)
     const h = yt - yb
@@ -493,13 +595,58 @@ function addWall(
     const mid = (from + to) / 2
     const px = horizontal ? wx(mid) : wx(fixed)
     const pz = horizontal ? wz(fixed) : wz(mid)
-    push(
-      `${tag}-${sub}`,
-      'wall',
-      level,
-      [px, (yb + yt) / 2, pz],
-      horizontal ? [len, h, EXT_T] : [EXT_T, h, len],
-    )
+    push(`${tag}-${sub}`, 'wall', level, [px, (yb + yt) / 2, pz], horizontal ? [len, h, EXT_T] : [EXT_T, h, len])
+  }
+
+  /**
+   * A box sitting at a given DEPTH through the wall. `d0`/`d1` are measured
+   * inward from the outer wall face, so 0 is flush outside and EXT_T is flush
+   * inside. This is what makes a reveal readable: every part of the opening
+   * assembly knows exactly how far back it sits.
+   */
+  const atDepth = (
+    from: number,
+    to: number,
+    yb: number,
+    yt: number,
+    d0: number,
+    d1: number,
+    kind: MassKind,
+    sub: string,
+  ) => {
+    const len = m(to - from)
+    const h = yt - yb
+    const th = d1 - d0
+    if (len <= 0.012 || h <= 0.012 || th <= 0.004) return
+    const mid = (from + to) / 2
+    const faceMm = fixed + outward * (EXT_T * 500)
+    const cMm = faceMm - outward * ((d0 + d1) / 2) * 1000
+    const px = horizontal ? wx(mid) : wx(cMm)
+    const pz = horizontal ? wz(cMm) : wz(mid)
+    push(`${tag}-${sub}`, kind, level, [px, (yb + yt) / 2, pz], horizontal ? [len, h, th] : [th, h, len])
+  }
+
+  /** a box PROJECTING out past the wall face — sills, hoods, drips */
+  const proud = (
+    from: number,
+    to: number,
+    yb: number,
+    yt: number,
+    p0: number,
+    p1: number,
+    kind: MassKind,
+    sub: string,
+  ) => {
+    const len = m(to - from)
+    const h = yt - yb
+    const th = p1 - p0
+    if (len <= 0.012 || h <= 0.004 || th <= 0.004) return
+    const mid = (from + to) / 2
+    const faceMm = fixed + outward * (EXT_T * 500)
+    const cMm = faceMm + outward * ((p0 + p1) / 2) * 1000
+    const px = horizontal ? wx(mid) : wx(cMm)
+    const pz = horizontal ? wz(cMm) : wz(mid)
+    push(`${tag}-${sub}`, kind, level, [px, (yb + yt) / 2, pz], horizontal ? [len, h, th] : [th, h, len])
   }
 
   const clean = ops
@@ -533,11 +680,37 @@ function addWall(
     if (sillY - baseY > 0.08) solid(s, e, baseY, sillY, `sp${i}`) // spandrel under a window
     if (wallTop - headY > 0.08) solid(s, e, headY, wallTop, `hd${i}`) // header
 
-    // one recessed dark pane, smaller than the void on every edge
-    const paneFixed = fixed + outward * (HT_MM - (RECESS + PANE_T / 2) * 1000)
-    const pl = m(e - s) - 2 * PANE_SHRINK
-    const ph = headY - sillY - 2 * PANE_SHRINK
+    const isWindow = o.head - o.sill < 2.0 // doors / entries keep an open reveal
+    // a reveal has to stay inside the wall it is cut through
+    const jamb = Math.min(art.jamb, EXT_T - 0.03)
+    const head = Math.min(art.head, EXT_T - 0.02)
+    const jambMm = jamb * 1000
+    const wMm = e - s
+
+    // ---- 1. reveal returns: the lining that makes a jamb catch light -------
+    // Without these an opening reads as a black rectangle painted on a flat
+    // plane; with them you see the wall's real thickness at every edge.
+    atDepth(s, s + jambMm, sillY, headY, 0, jamb, 'reveal', `rvL${i}`)
+    atDepth(e - jambMm, e, sillY, headY, 0, jamb, 'reveal', `rvR${i}`)
+    atDepth(s, e, headY - 0.001, headY + Math.min(head, 0.09), 0, head, 'reveal', `rvH${i}`)
+
+    // ---- 2. sill: a projecting weathered nose, windows only ---------------
+    if (isWindow && art.sillProj > 0.005) {
+      const ear = art.sillEar * 1000
+      const s0 = Math.max(a0 + 20, s - ear)
+      const e0 = Math.min(a1 - 20, e + ear)
+      proud(s0, e0, sillY - art.sillThick, sillY, -jamb, art.sillProj, 'sill', `sl${i}`)
+      // a down-turned drip, so water leaves the wall instead of staining it
+      proud(s0, e0, sillY - art.sillThick - art.sillDrip, sillY - art.sillThick, art.sillProj - 0.02, art.sillProj, 'sill', `sld${i}`)
+    }
+
+    // ---- 3. glazing assembly: master frame -> sash -> glass, each at depth --
+    const glassDepth = jamb
+    const frameFront = Math.max(0.01, glassDepth - art.frame)
+    const pl = m(wMm)
+    const ph = headY - sillY
     if (pl > 0.1 && ph > 0.1) {
+      const paneFixed = fixed + outward * (HT_MM - (glassDepth + art.glass / 2) * 1000)
       const pmid = (s + e) / 2
       const ppx = horizontal ? wx(pmid) : wx(paneFixed)
       const ppz = horizontal ? wz(paneFixed) : wz(pmid)
@@ -546,66 +719,46 @@ function addWall(
         'glass',
         level,
         [ppx, (sillY + headY) / 2, ppz],
-        horizontal ? [pl, ph, PANE_T] : [PANE_T, ph, pl],
+        horizontal
+          ? [pl - 2 * PANE_SHRINK, ph - 2 * PANE_SHRINK, art.glass]
+          : [art.glass, ph - 2 * PANE_SHRINK, pl - 2 * PANE_SHRINK],
       )
 
-      // teak frame at the wall face + vertical mullions on wide (grouped) panes
-      const isWindow = o.head - o.sill < 2.0 // doors/entry keep an open reveal
       if (isWindow) {
-        const fr = 0.08 // frame member size
-        const ff = fixed + outward * (HT_MM - fr * 500) // sits in the reveal, flush-ish
-        const along = (from: number, to: number, yb: number, yt: number, thin: boolean, sub: string) => {
-          const len = m(to - from)
-          const hh = yt - yb
-          if (len < 0.03 || hh < 0.03) return
-          const mid = (from + to) / 2
-          const px = horizontal ? wx(mid) : wx(ff)
-          const pz = horizontal ? wz(ff) : wz(mid)
-          push(
-            `${tag}-fr${i}${sub}`,
-            'clad',
-            level,
-            [px, (yb + yt) / 2, pz],
-            horizontal ? [len, hh, thin ? fr : fr] : [thin ? fr : fr, hh, len],
-          )
-        }
-        along(s, e, sillY, sillY + fr, false, 'b')
-        along(s, e, headY - fr, headY, false, 't')
-        along(s, s + Math.round(fr * 1000), sillY, headY, true, 'l')
-        along(e - Math.round(fr * 1000), e, sillY, headY, true, 'r')
-        const bays = Math.max(1, Math.round((e - s) / groupMm))
-        for (let k = 1; k < bays; k++) {
-          const c = s + ((e - s) * k) / bays
-          along(c - Math.round(fr * 500), c + Math.round(fr * 500), sillY, headY, true, `m${k}`)
+        const fMm = art.frame * 1000
+        const sMm = art.sash * 1000
+        // 3a. master frame — the outer ring fixed into the reveal
+        atDepth(s, s + fMm, sillY, headY, frameFront, glassDepth, 'winframe', `mfL${i}`)
+        atDepth(e - fMm, e, sillY, headY, frameFront, glassDepth, 'winframe', `mfR${i}`)
+        atDepth(s, e, sillY, sillY + art.frame, frameFront, glassDepth, 'winframe', `mfB${i}`)
+        atDepth(s, e, headY - art.frame, headY, frameFront, glassDepth, 'winframe', `mfT${i}`)
+        // 3b. sash — the opening leaf, set back inside the master
+        const sashFront = frameFront + art.sashSetback
+        const si0 = s + fMm
+        const si1 = e - fMm
+        const sy0 = sillY + art.frame
+        const sy1 = headY - art.frame
+        if (si1 - si0 > 200 && sy1 - sy0 > 0.2) {
+          atDepth(si0, si0 + sMm, sy0, sy1, sashFront, glassDepth, 'winframe', `sL${i}`)
+          atDepth(si1 - sMm, si1, sy0, sy1, sashFront, glassDepth, 'winframe', `sR${i}`)
+          atDepth(si0, si1, sy0, sy0 + art.sash, sashFront, glassDepth, 'winframe', `sB${i}`)
+          atDepth(si0, si1, sy1 - art.sash, sy1, sashFront, glassDepth, 'winframe', `sT${i}`)
+          // 3c. sash mullions — a wide slider reads divided, not as one sheet
+          const spanM = m(si1 - si0)
+          const bays = Math.max(1, Math.round(spanM / Math.max(0.6, Math.min(art.mullionSpacing, groupMm / 1000))))
+          for (let k = 1; k < bays; k++) {
+            const c = si0 + ((si1 - si0) * k) / bays
+            atDepth(c - sMm / 2, c + sMm / 2, sy0, sy1, sashFront, glassDepth, 'winframe', `mu${i}_${k}`)
+          }
         }
 
-        // ---- cantilevered chajja (weather-hood) over the window ----
+        // ---- 4. chhajja — the theme fallback, when no spec resolved one ----
         if (chajjaMm > 200 && headY + 0.2 < wallTop) {
-          const proj = chajjaMm / 1000
-          const cw = m(e - s) + 0.34
-          const cyc = headY + 0.055
-          const off = outward * (EXT_T / 2 + proj / 2)
-          const cd = proj + 0.16
-          const cpx = horizontal ? wx((s + e) / 2) : wx(fixed) + off
-          const cpz = horizontal ? wz(fixed) + off : wz((s + e) / 2)
-          push(
-            `${tag}-cj${i}`,
-            'shade',
-            level,
-            [cpx, cyc, cpz],
-            horizontal ? [cw, 0.09, cd] : [cd, 0.09, cw],
-          )
-          // a slim down-turned drip lip on the outer edge
-          const lo = outward * (EXT_T / 2 + proj)
-          push(
-            `${tag}-cjl${i}`,
-            'shade',
-            level,
-            horizontal
-              ? [wx((s + e) / 2), cyc + 0.005, wz(fixed) + lo]
-              : [wx(fixed) + lo, cyc + 0.005, wz((s + e) / 2)],
-            horizontal ? [cw + 0.03, 0.11, 0.05] : [0.05, 0.11, cw + 0.03],
-          )
+          const projM = chajjaMm / 1000
+          const earMm = 170
+          const cy = headY + 0.055
+          proud(s - earMm, e + earMm, cy, cy + 0.09, -EXT_T / 2, projM, 'chajja', `cj${i}`)
+          proud(s - earMm, e + earMm, cy - 0.055, cy + 0.09, projM - 0.05, projM, 'chajja', `cjd${i}`)
         }
       }
     }
@@ -734,7 +887,18 @@ function guardRail(
   }
 }
 
-function buildRoof(o: Rect, wallTop: number, L: number, T: ThemeDef, push: Push, wx: XF, wz: XF, m: XF) {
+function buildRoof(
+  o: Rect,
+  wallTop: number,
+  L: number,
+  T: ThemeDef,
+  push: Push,
+  wx: XF,
+  wz: XF,
+  m: XF,
+  /** the articulation pass already put a real parapet + coping here */
+  hasArtParapet = false,
+) {
   const cxw = wx(o.x + o.w / 2)
   const czw = wz(o.y + o.h / 2)
   const roofT = T.roof.thickMm / 1000
@@ -753,10 +917,13 @@ function buildRoof(o: Rect, wallTop: number, L: number, T: ThemeDef, push: Push,
   const gz0 = o.y - HT_MM
   const gz1 = o.y + o.h + HT_MM
   const gr = T.accents.railStyle
-  guardRail(gx0, gz0, gx1, gz0, wallTop, L, `groof-${L}-n`, push, wx, wz, m, gr)
-  guardRail(gx0, gz1, gx1, gz1, wallTop, L, `groof-${L}-s`, push, wx, wz, m, gr)
-  guardRail(gx0, gz0, gx0, gz1, wallTop, L, `groof-${L}-w`, push, wx, wz, m, gr)
-  guardRail(gx1, gz0, gx1, gz1, wallTop, L, `groof-${L}-e`, push, wx, wz, m, gr)
+  // a real parapet supersedes the steel rail — you do not get both
+  if (!hasArtParapet) {
+    guardRail(gx0, gz0, gx1, gz0, wallTop, L, `groof-${L}-n`, push, wx, wz, m, gr)
+    guardRail(gx0, gz1, gx1, gz1, wallTop, L, `groof-${L}-s`, push, wx, wz, m, gr)
+    guardRail(gx0, gz0, gx0, gz1, wallTop, L, `groof-${L}-w`, push, wx, wz, m, gr)
+    guardRail(gx1, gz0, gx1, gz1, wallTop, L, `groof-${L}-e`, push, wx, wz, m, gr)
+  }
 
   // ---- flat-band: the signature bold white fascia beam wrapping the slab ----
   if (T.roof.style === 'flat-band') {
@@ -790,7 +957,7 @@ function buildRoof(o: Rect, wallTop: number, L: number, T: ThemeDef, push: Push,
     push(`fas-${L}-e`, 'roof', L, [wx(o.x + o.w) + EXT_T / 2 + eave - PARAPET_T / 2, fy, czw], [PARAPET_T, fh, rd])
   }
 
-  const parH = T.roof.parapetMm / 1000
+  const parH = hasArtParapet ? 0 : T.roof.parapetMm / 1000
   if (parH < 0.05) return
   const pcy = wallTop + parH / 2
   const vLen = Math.max(wallD - 2 * PARAPET_T, 0.2)
@@ -1578,4 +1745,164 @@ function buildStair(rect: Rect, H: number) {
     size: [0.12, H, Math.max(runMm / 1000, 0.4)],
   })
   return out
+}
+
+/* ================================================================== *
+ *  ARTICULATION EMITTERS
+ *
+ *  Each of these takes one resolved element from `DesignSpec.floors[].
+ *  articulation` — already in the plot frame, in mm — and turns it into
+ *  boxes. The resolver decided *how far* everything projects; these only
+ *  decide how to draw it. Blender's `generator/articulation.py` reads the
+ *  same specs and builds the same shapes, so the study model and the baked
+ *  GLB never disagree.
+ *
+ *  Convention: every articulation rect is already positioned OUTSIDE the
+ *  wall face, so there is no "which way is out" arithmetic here.
+ * ================================================================== */
+
+/** a box from a plot-frame rect extruded between two world heights */
+function fromRect(
+  id: string,
+  kind: MassKind,
+  level: number,
+  r: Rect,
+  y0: number,
+  y1: number,
+  push: Push,
+  wx: XF,
+  wz: XF,
+  m: XF,
+) {
+  const h = y1 - y0
+  if (h <= 0.004 || r.w <= 4 || r.h <= 4) return
+  push(id, kind, level, [wx(r.x + r.w / 2), (y0 + y1) / 2, wz(r.y + r.h / 2)], [m(r.w), h, m(r.h)])
+}
+
+/** grow a rect outward on every side */
+const grow = (r: Rect, by: number): Rect => ({ x: r.x - by, y: r.y - by, w: r.w + 2 * by, h: r.h + 2 * by })
+
+/** a cantilevered weather hood, with the down-turned drip that makes it read */
+function emitChajja(c: ChajjaSpec, baseY: number, push: Push, wx: XF, wz: XF, m: XF) {
+  const y0 = baseY + c.atMm / 1000
+  const th = c.thickMm / 1000
+  fromRect(`art-${c.id}`, 'chajja', c.level, c.rect, y0, y0 + th, push, wx, wz, m)
+  if (c.dripMm <= 0) return
+  // the drip is a fin turned down at the OUTER edge only — a hood without one
+  // stains the wall it is meant to protect
+  const horiz = c.side === 'N' || c.side === 'S'
+  const lip: Rect = horiz
+    ? { x: c.rect.x, y: c.side === 'S' ? c.rect.y + c.rect.h - 70 : c.rect.y, w: c.rect.w, h: 70 }
+    : { x: c.side === 'E' ? c.rect.x + c.rect.w - 70 : c.rect.x, y: c.rect.y, w: 70, h: c.rect.h }
+  fromRect(`art-${c.id}-drip`, 'chajja', c.level, lip, y0 - c.dripMm / 1000, y0 + th, push, wx, wz, m)
+}
+
+/** vertical brise-soleil across one opening */
+function emitFins(f: FinBankSpec, baseY: number, push: Push, wx: XF, wz: XF, m: XF) {
+  const y0 = baseY + f.fromMm / 1000
+  const y1 = baseY + f.toMm / 1000
+  if (y1 - y0 < 0.15) return
+  const horiz = f.side === 'N' || f.side === 'S'
+  const along = horiz ? f.rect.w : f.rect.h
+  const n = Math.max(2, f.count)
+  for (let i = 0; i < n; i++) {
+    const t = n === 1 ? 0.5 : i / (n - 1)
+    const c = (horiz ? f.rect.x : f.rect.y) + t * along
+    const r: Rect = horiz
+      ? { x: c - f.thickMm / 2, y: f.rect.y, w: f.thickMm, h: f.rect.h }
+      : { x: f.rect.x, y: c - f.thickMm / 2, w: f.rect.w, h: f.thickMm }
+    fromRect(`art-${f.id}-${i}`, 'fin', f.level, r, y0, y1, push, wx, wz, m)
+  }
+}
+
+/** a battened louver / jaali plane — balcony privacy, stair core light */
+function emitScreen(sc: SlatScreenSpec, baseY: number, push: Push, wx: XF, wz: XF, m: XF) {
+  const y0 = baseY + sc.fromMm / 1000
+  const y1 = baseY + sc.toMm / 1000
+  if (y1 - y0 < 0.2) return
+  const horiz = sc.side === 'N' || sc.side === 'S'
+  const along = horiz ? sc.rect.w : sc.rect.h
+  const [face, depth] = sc.slatMm
+  const n = Math.max(2, sc.count)
+  // the plane stands off whatever is behind it, so light passes between
+  const plane: Rect = horiz
+    ? { x: sc.rect.x, y: sc.side === 'S' ? sc.rect.y + sc.rect.h - depth : sc.rect.y, w: sc.rect.w, h: depth }
+    : { x: sc.side === 'E' ? sc.rect.x + sc.rect.w - depth : sc.rect.x, y: sc.rect.y, w: depth, h: sc.rect.h }
+
+  for (let i = 0; i < n; i++) {
+    const c = (horiz ? plane.x : plane.y) + ((i + 0.5) * along) / n
+    const r: Rect = horiz
+      ? { x: c - face / 2, y: plane.y, w: face, h: plane.h }
+      : { x: plane.x, y: c - face / 2, w: plane.w, h: face }
+    fromRect(`art-${sc.id}-${i}`, 'louver', sc.level, r, y0, y1, push, wx, wz, m)
+  }
+  // head + sill rails carrying the battens
+  const rail = sc.railMm / 1000
+  fromRect(`art-${sc.id}-rb`, 'louver', sc.level, plane, y0, y0 + rail, push, wx, wz, m)
+  fromRect(`art-${sc.id}-rt`, 'louver', sc.level, plane, y1 - rail, y1, push, wx, wz, m)
+}
+
+/**
+ * The expressed edge of a floor plate. The band hangs BELOW finished floor and
+ * stops `shadowGapMm` short of it, so the plate reads as a separate horizontal
+ * element with a dark line above it rather than a bulge in the wall.
+ */
+function emitSlabEdge(se: SlabEdgeSpec, baseY: number, push: Push, wx: XF, wz: XF, m: XF) {
+  const fascia = se.fasciaMm / 1000
+  const gap = se.shadowGapMm / 1000
+  const top = baseY - gap
+  const bot = top - fascia
+  fromRect(`art-${se.id}`, 'fascia', se.level, se.rect, bot, top, push, wx, wz, m)
+  if (se.dripMm > 0) {
+    // a crisp nose on the underside — this is the line that reads from the street
+    fromRect(`art-${se.id}-drip`, 'fascia', se.level, grow(se.rect, se.dripMm), bot, bot + 25 / 1000, push, wx, wz, m)
+  }
+}
+
+/**
+ * Parapet upstand + projecting coping cap, and a batten screen above the solid
+ * base where the terrace is occupied. Four walls, not one box, so the roof deck
+ * stays open.
+ */
+function emitParapet(pa: ParapetSpec, wallTop: number, push: Push, wx: XF, wz: XF, m: XF) {
+  const t = pa.thickMm
+  const solidTop = wallTop + (pa.heightMm - pa.screenAboveMm) / 1000
+  const capBot = wallTop + pa.heightMm / 1000
+  const r = pa.rect
+  const runs: [string, Rect][] = [
+    ['n', { x: r.x, y: r.y, w: r.w, h: t }],
+    ['s', { x: r.x, y: r.y + r.h - t, w: r.w, h: t }],
+    ['w', { x: r.x, y: r.y + t, w: t, h: r.h - 2 * t }],
+    ['e', { x: r.x + r.w - t, y: r.y + t, w: t, h: r.h - 2 * t }],
+  ]
+  for (const [k, run] of runs) {
+    fromRect(`art-${pa.id}-${k}`, 'parapet', pa.level, run, wallTop, solidTop, push, wx, wz, m)
+    // batten screen above the solid base on an occupied terrace
+    if (pa.screenAboveMm > 0) {
+      const horiz = k === 'n' || k === 's'
+      const along = horiz ? run.w : run.h
+      const n = Math.max(2, Math.floor(along / 220))
+      for (let i = 0; i < n; i++) {
+        const c = (horiz ? run.x : run.y) + ((i + 0.5) * along) / n
+        const slat: Rect = horiz
+          ? { x: c - 40, y: run.y, w: 80, h: run.h }
+          : { x: run.x, y: c - 40, w: run.w, h: 80 }
+        fromRect(`art-${pa.id}-${k}s${i}`, 'louver', pa.level, slat, solidTop, capBot, push, wx, wz, m)
+      }
+    }
+    // the coping cap — a projecting stone, the detail that stops a parapet
+    // reading as a wall someone sawed the top off
+    fromRect(
+      `art-${pa.id}-${k}cap`,
+      'coping',
+      pa.level,
+      grow(run, pa.copingProjMm),
+      capBot,
+      capBot + pa.copingThickMm / 1000,
+      push,
+      wx,
+      wz,
+      m,
+    )
+  }
 }

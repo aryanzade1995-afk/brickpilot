@@ -4,6 +4,7 @@ import { OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { buildMassing } from '@/lib/three/buildMassing.ts'
+import { specFromDesign } from '@/architecture/generateDesign.ts'
 import { MassingModel, SceneEnv } from '@/lib/three/MassingScene.tsx'
 import type { Group } from '@/lib/three/massingGroups.ts'
 import type { Character } from '@/lib/model/themes.ts'
@@ -31,7 +32,10 @@ export function MassingViewport({
   character: Character
   view: CaptureView
 }) {
-  const massing = useMemo(() => buildMassing(design), [design])
+  // the same articulated model the study view shows, so the AI render is fed a
+  // facade with real depth rather than a flat box
+  const spec = useMemo(() => specFromDesign(design), [design])
+  const massing = useMemo(() => buildMassing(design, spec), [design, spec])
   // frame the building, not the plot
   const span = Math.max(massing.footprint.w, massing.footprint.d, massing.stats.heightM)
 

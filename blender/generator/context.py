@@ -87,6 +87,9 @@ class Spec:
     grid: dict = field(default_factory=dict)
     # the §14 architectural audit
     audit: dict = field(default_factory=dict)
+    # design-wide facade depth (src/architecture/generator/articulationResolver.ts)
+    # per-storey elements live on floors[].articulation
+    articulation: dict = field(default_factory=dict)
     # plot-centre offset so the model sits at the world origin
     ox: float = field(default=0.0)
     oy: float = field(default=0.0)
@@ -114,6 +117,7 @@ class Spec:
             fingerprint=raw.get("fingerprint", {}),
             grid=raw.get("grid", {}),
             audit=raw.get("audit", {}),
+            articulation=raw.get("articulation", {}),
         )
         # centre the footprint bbox on the origin (metres)
         s.ox = mm(foot["x"] + foot["w"] / 2)

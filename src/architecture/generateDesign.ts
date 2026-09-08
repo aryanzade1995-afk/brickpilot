@@ -25,6 +25,7 @@ import { resolveConstraints } from './constraints.ts'
 import { styleGrammar, STYLE_OF_CHARACTER } from './grammar.ts'
 import { classifyRoom, planShapeOf } from './generator/classify.ts'
 import { auditArchitecture } from './generator/architecturalValidator.ts'
+import { resolveArticulation, resolveOpeningReveal, resolveRevealBasis, type RevealBasis } from './generator/articulationResolver.ts'
 import { resolveBalconies } from './generator/balconyResolver.ts'
 import { resolveFacade } from './generator/facadeResolver.ts'
 import { resolveMassing } from './generator/massingResolver.ts'
@@ -125,6 +126,10 @@ function buildOnce(req0: DesignRequirements, seed: number, canonicalSeed: number
     referenceHints(req.style, design.shape),
   )
 
+  // one reveal depth for the whole building — resolved once, used by every
+  // opening and by the viewer + the Blender bake alike
+  const revealBasis = resolveRevealBasis(makeRng(seed, `${req.style}|reveal`))
+
   const massing = resolveMassing(grammar, req, constraints, rng, genome)
   const buildable = {
     x: constraints.setbackMinMm.W,
@@ -149,9 +154,9 @@ function buildOnce(req0: DesignRequirements, seed: number, canonicalSeed: number
     // dedicated per-floor rng so upper floors are NOT a copy of the ground floor
     const frng = makeRng(seed, `${req.style}|floor${fl.level}`)
     // doors + balconies FIRST — so windows are generated clear of them (§3)
-    const doors = resolveDoors(fl, grammar, req.entrySide, genome)
+    const doors = resolveDoors(fl, grammar, req.entrySide, genome, revealBasis)
     const balconies = resolveBalconies(grammar, constraints, fl, fl.level, buildable, frng, genome)
-    const balconyDoors = balconies.map((b) => balconyDoorSpec(b, fl))
+    const balconyDoors = balconies.map((b) => balconyDoorSpec(b, fl, revealBasis))
     doors.push(...balconyDoors.filter((d): d is DoorSpec => d != null))
     doorsByLevel[fl.level] = doors
     const windows = generateWindows({
@@ -163,6 +168,7 @@ function buildOnce(req0: DesignRequirements, seed: number, canonicalSeed: number
       entrySide: req.entrySide,
       rng: frng,
       genome,
+      revealBasis,
       extraDoors: doors.map((d) => ({ at: { x: (d.wall.a.x + d.wall.b.x) / 2, y: (d.wall.a.y + d.wall.b.y) / 2 }, width: d.widthMm })),
     })
     windowsByLevel[fl.level] = windows
@@ -185,6 +191,7 @@ function buildOnce(req0: DesignRequirements, seed: number, canonicalSeed: number
       columns: st.columns,
       beams: st.beams,
       slabs: st.slabs,
+      articulation: { chajjas: [], fins: [], screens: [], slabEdges: [], parapets: [] },
       courtyard: fl.courtyard ?? null,
     }
   })
@@ -197,6 +204,28 @@ function buildOnce(req0: DesignRequirements, seed: number, canonicalSeed: number
   // rebuild the per-level window index from the POST-repair floors so the facade
   // only ever anchors to a window that still exists
   for (const fl of floors) windowsByLevel[fl.level] = fl.windows
+
+  // ---- ARTICULATION: how far every element stands proud of the wall face.
+  //      Runs after the opening repair so a chhajja / fin is always over an
+  //      opening that survived, and after the balcony slabs so a screen has a
+  //      plate to sit on. The viewer and the Blender bake read this same result.
+  const articulation = resolveArticulation({
+    genome,
+    floorHeightMm: req.floorHeightMm,
+    topLevel,
+    rng: makeRng(seed, `${req.style}|articulation`),
+    basis: revealBasis,
+    levels: floors.map((fl) => ({
+      level: fl.level,
+      blocks: fl.blocks,
+      windows: fl.windows,
+      doors: fl.doors,
+      balconies: fl.balconies.map((b) => ({ id: b.id, side: b.side, rect: b.rect })),
+    })),
+  })
+  for (const fl of floors) {
+    fl.articulation = articulation.perFloor[fl.level] ?? { chajjas: [], fins: [], screens: [], slabEdges: [], parapets: [] }
+  }
 
   const materials = resolveMaterials(grammar, rng, genome)
   // FACADE runs LAST — every element anchors to a real block / opening / column (§9)
@@ -222,6 +251,7 @@ function buildOnce(req0: DesignRequirements, seed: number, canonicalSeed: number
     },
     massing: { strategy: massing.strategy, planShape: massing.planShape, footprintMm: massing.footprintMm },
     grid: structure.grid,
+    articulation: articulation.spec,
     genome,
     fingerprint: architecturalFingerprint(genome, req.floors),
     floors,
@@ -380,7 +410,7 @@ function makeStair(id: string, level: number, rect: Rect, fromMm: number, toMm: 
 }
 
 /** the balcony access door — on the host room wall, aligned to the balcony (§6) */
-function balconyDoorSpec(b: BalconySpec, fl: FloorPlan): DoorSpec | null {
+function balconyDoorSpec(b: BalconySpec, fl: FloorPlan, basis: RevealBasis): DoorSpec | null {
   const room = fl.rooms.find((rm) => rm.id === b.roomId)
   if (!room) return null
   const r = room.rect
@@ -405,6 +435,7 @@ function balconyDoorSpec(b: BalconySpec, fl: FloorPlan): DoorSpec | null {
     heightMm: DOOR.balcony.heightMm,
     double: true,
     canopyMm: 0,
+    reveal: resolveOpeningReveal(basis, { widthMm: w, isDoor: true }),
   }
 }
 
@@ -447,7 +478,9 @@ export function specFromDesign(design: Design, styleOverride?: StyleId, seed?: n
 
 /* ------------------------------------------------------------------ */
 
-function resolveDoors(fl: FloorPlan, grammar: StyleGrammar, entrySide: Direction4, genome: DesignGenome): DoorSpec[] {
+function resolveDoors(fl: FloorPlan, grammar: StyleGrammar, entrySide: Direction4, genome: DesignGenome,
+  basis: RevealBasis,
+): DoorSpec[] {
   const out: DoorSpec[] = []
   let i = 0
   const ent = entranceEntry(genome.entrance as EntranceType)
@@ -490,6 +523,10 @@ function resolveDoors(fl: FloorPlan, grammar: StyleGrammar, entrySide: Direction
       heightMm: isEntry ? entryDims.heightMm : DOOR.internal.heightMm,
       double: isEntry ? grammar.door.doubleLeafEntry || entryWidth >= 1700 : op.width > 1400,
       canopyMm: isEntry ? canopyMm : 0,
+      reveal: resolveOpeningReveal(basis, {
+        widthMm: isEntry ? entryWidth : Math.max(op.width, DOOR.internal.widthMm),
+        isDoor: true,
+      }),
     })
   }
 
@@ -527,6 +564,7 @@ function resolveDoors(fl: FloorPlan, grammar: StyleGrammar, entrySide: Direction
         heightMm: entryDims.heightMm,
         double: entryWidth >= 1700,
         canopyMm,
+        reveal: resolveOpeningReveal(basis, { widthMm: entryWidth, isDoor: true }),
       })
     }
   }

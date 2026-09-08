@@ -28,7 +28,7 @@ if _BLENDER not in sys.path:
 
 from generator.context import HAS_BPY, Spec, reset_scene  # noqa: E402
 from generator import (  # noqa: E402
-    massing, floors, walls, windows, doors, roofs, balconies, facade, materials, rooms, stairs, structure, optimize,
+    articulation, massing, floors, walls, windows, doors, roofs, balconies, facade, materials, rooms, stairs, structure, optimize,
 )
 from generator import validator  # noqa: E402
 
@@ -54,6 +54,7 @@ def build_scene(spec: Spec, mode: str) -> dict:
     if mode == "study":
         massing.build(spec)
         structure.build(spec)
+        articulation.build(spec)
         roofs.build(spec)
         facade.build(spec)
         balconies.build(spec)
@@ -67,6 +68,7 @@ def build_scene(spec: Spec, mode: str) -> dict:
         doors.build(spec, wall_objs, include_internal=(mode == "cutaway"))
         stairs.build(spec)
         roofs.build(spec)
+        articulation.build(spec)
         balconies.build(spec)
         facade.build(spec)
         if mode == "cutaway":

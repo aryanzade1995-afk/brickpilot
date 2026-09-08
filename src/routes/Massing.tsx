@@ -38,11 +38,15 @@ export function Massing() {
     if (!result) run()
   }, [result, run])
 
-  const massing = useMemo(() => (result ? buildMassing(result.design) : null), [result])
   // the architectural-grammar DesignSpec for this design, and a Blender GLB for
   // it if one is baked/available (else glb=null → the procedural buildMassing
-  // model below is used, exactly as before)
+  // model below is used, exactly as before). `spec` resolves synchronously, so
+  // the study model gets its facade articulation on the first frame.
   const { glb: villaGlb, spec: designSpec } = useVillaGlb(result?.design)
+  const massing = useMemo(
+    () => (result ? buildMassing(result.design, designSpec) : null),
+    [result, designSpec],
+  )
   const [mode, setMode] = useState<ViewMode>('study')
   const [floorSel, setFloorSel] = useState<number | 'all'>(0)
   const doll = useMemo(

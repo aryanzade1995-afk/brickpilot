@@ -138,6 +138,152 @@ export const STAIR = {
 } as const
 
 /* ================================================================== *
+ *  ARTICULATION — the facade depth system.
+ *
+ *  Everything here exists to stop the model reading as a shoebox: the
+ *  offsets that give a wall a *thickness* you can see, a floor plate an
+ *  edge, an opening a reveal, and a parapet a cap. Ranges are resolved
+ *  once, seeded, by generator/articulationResolver.ts; the viewer and
+ *  the Blender bake both read the resolved numbers, never these.
+ * ================================================================== */
+
+export const ARTICULATION = {
+  /* ---- floor plates: the horizontal shadow lines ------------------ */
+  slabEdge: {
+    /** upper plate projects past the wall face below — the drip shadow line */
+    projMm: [600, 1200] as [number, number],
+    /** projection where the plate only expresses a line, no balcony */
+    trimProjMm: 150,
+    /** exposed fascia depth of a projecting plate */
+    fasciaMm: 320,
+    /** reveal cut behind the fascia so the plate reads detached from the wall */
+    shadowGapMm: 40,
+    /** down-turned drip at the outer edge */
+    dripMm: 30,
+    dripThickMm: 25,
+    /** a projection past this carries a balcony rather than a trim band */
+    balconyThresholdMm: 900,
+  },
+
+  /* ---- openings: reveals, sills, heads ---------------------------- */
+  reveal: {
+    /** glass line set back from the outer wall face (jamb depth you see) */
+    jambMm: [150, 200] as [number, number],
+    /** head reveal — usually a touch deeper so the soffit catches shadow */
+    headExtraMm: 25,
+    /** the reveal return is this thick where it meets the frame */
+    returnMm: 60,
+    /** privacy / ventilator openings sit shallower — not worth the detail */
+    minWidthForRevealMm: 700,
+  },
+  sill: {
+    /** projection past the outer wall face */
+    projMm: 60,
+    /** thickness of the sill stone / band */
+    thickMm: 50,
+    /** the sill runs past the opening this far at each end */
+    earMm: 75,
+    /** weathering fall, degrees — drives a slight top-face slope */
+    fallDeg: 6,
+    /** down-turned drip on the underside of the sill nose */
+    dripMm: 15,
+  },
+  frame: {
+    /** master (outer) frame member — the section fixed to the reveal */
+    masterMm: 75,
+    /** sash (opening leaf) member, set inside the master */
+    sashMm: 50,
+    /** glass thickness */
+    glassMm: 24,
+    /** a pane wider than this is split by a sash mullion */
+    mullionSpacingMm: 1450,
+    /** the sash sits this far behind the master frame face */
+    sashSetbackMm: 20,
+  },
+
+  /* ---- weather protection ---------------------------------------- */
+  chajja: {
+    /** cantilever past the wall face over an opening */
+    projMm: [450, 750] as [number, number],
+    thickMm: 90,
+    /** runs past the opening at each end */
+    earMm: 170,
+    dripMm: 55,
+    dripThickMm: 110,
+    /** clear height above the opening head */
+    aboveHeadMm: 55,
+    /** only shade openings at least this wide — a ventilator needs none */
+    minOpeningMm: 900,
+    /** the orientations that actually earn a chhajja in the Indian sun */
+    sides: ['S', 'W', 'E'] as const,
+  },
+  fin: {
+    /** vertical brise-soleil projection past the wall face */
+    projMm: [300, 450] as [number, number],
+    /** fin face width (the thin dimension seen head-on) */
+    thickMm: 80,
+    /** centre-to-centre spacing across the shaded opening */
+    spacingMm: [450, 700] as [number, number],
+    /** fins run from sill to head plus this margin top and bottom */
+    overrunMm: 120,
+    /** west + south glazing wider than this earns fins */
+    minOpeningMm: 1600,
+    sides: ['W', 'S'] as const,
+  },
+
+  /* ---- screens: louvers + jaali ----------------------------------- */
+  screen: {
+    /** vertical timber batten section, mm (face × depth) */
+    battenMm: [40, 80] as [number, number],
+    /** centre-to-centre batten spacing */
+    spacingMm: 120,
+    /** the screen plane stands this far off the wall / rail behind it */
+    standoffMm: 90,
+    /** head + sill rail section carrying the battens */
+    railMm: 60,
+    /** jaali block module and its void */
+    jaaliModuleMm: 200,
+    jaaliVoidMm: 120,
+    jaaliDepthMm: 110,
+  },
+
+  /* ---- parapet + coping ------------------------------------------ */
+  parapet: {
+    /** solid upstand around an unused roof */
+    solidMm: 1000,
+    /** taller upstand where the terrace is occupied (screen wall) */
+    screenMm: 1500,
+    /** the screen portion above the solid base is battened, not solid */
+    screenSolidBaseMm: 450,
+    thickMm: STRUCTURE.parapetWallMm,
+  },
+  coping: {
+    /** projecting cap stone thickness */
+    thickMm: 50,
+    /** overhang each side of the parapet */
+    projMm: 40,
+    /** the drip groove under the overhang */
+    dripMm: 12,
+  },
+
+  /* ---- base ------------------------------------------------------ */
+  plinth: {
+    /** finished floor above grade (mirrors STRUCTURE.plinthMm) */
+    heightMm: STRUCTURE.plinthMm,
+    /** projection past the wall face — the base course shadow */
+    projMm: 90,
+    /** a chamfered / recessed band at the top of the plinth */
+    bandMm: 60,
+  },
+
+  /* ---- horizontal banding ---------------------------------------- */
+  stringCourse: {
+    projMm: 100,
+    depthMm: 220,
+  },
+} as const
+
+/* ================================================================== *
  *  CLEARANCES  (§13 collision matrix minimums, mm)
  * ================================================================== */
 

@@ -30,6 +30,15 @@ export type GroupKey =
   | 'garden'
   | 'paving'
   | 'greenery'
+  // ---- articulation materials: the detail needs its own surfaces ----
+  /** raised base course — a darker, rougher stone than the wall above */
+  | 'plinth'
+  /** exposed RCC: floor-plate fascias, chhajjas, fins, sills, coping */
+  | 'rcc'
+  /** timber battens — balcony + stair screens, jaali */
+  | 'louver'
+  /** anodised aluminium window frames + sashes */
+  | 'frame'
 type Mat = {
   color: string
   roughness: number
@@ -150,6 +159,13 @@ const WHITE_MATERIALS: Record<GroupKey, Mat> = {
   garden: { color: '#6f8f4f', roughness: 0.97, env: 0.2 },
   paving: { color: '#c6bfae', roughness: 0.95, env: 0.35 },
   greenery: { color: '#5d7c40', roughness: 0.94, env: 0.25 },
+  // a base course reads darker and rougher than the plaster it carries
+  plinth: { color: '#8e8677', roughness: 0.95, env: 0.28 },
+  // off-form concrete — cooler and flatter than the plaster, so a chhajja and
+  // a plate edge read as separate elements rather than a bulge in the wall
+  rcc: { color: '#cdc9c0', roughness: 0.88, env: 0.38 },
+  louver: { color: '#8a5f38', roughness: 0.62, env: 0.55 },
+  frame: { color: '#3c3f44', roughness: 0.34, metalness: 0.78, env: 1.25 },
 }
 
 type Base = Omit<ThemeDef, 'id' | 'label' | 'blurb' | 'renderPrompt'>

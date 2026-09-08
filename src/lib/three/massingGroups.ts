@@ -6,6 +6,7 @@ export type Group = GroupKey
 
 export const GROUP_OF: Record<MassKind, Group> = {
   wall: 'shell',
+  reveal: 'shell',
   parapet: 'shell',
   column: 'shell',
   mumty: 'shell',
@@ -15,7 +16,15 @@ export const GROUP_OF: Record<MassKind, Group> = {
   partition: 'partition',
   glass: 'glazing',
   slab: 'slabs',
-  plinth: 'slabs',
+  plinth: 'plinth',
+  // exposed concrete — the plate edge, the hood, the fin, the sill, the cap
+  fascia: 'rcc',
+  chajja: 'rcc',
+  fin: 'rcc',
+  sill: 'rcc',
+  coping: 'rcc',
+  louver: 'louver',
+  winframe: 'frame',
   roof: 'roof',
   prism: 'roof',
   canopy: 'roof',

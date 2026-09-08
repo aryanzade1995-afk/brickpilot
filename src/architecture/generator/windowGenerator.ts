@@ -22,6 +22,7 @@ import type { Rng } from '../../lib/engine/shape/rng.ts'
 import type { DesignGenome, Direction4, GenerationConstraints, RoomClass, RoomWindowRule, StyleGrammar, WindowSpec } from '../types.ts'
 import { GLAZING_LIBRARY, WINDOW_STRATEGY_LIBRARY } from '../library/windowLibrary.ts'
 import { classifyRoom, doorOnEdge, roomWalls, type WallEdge } from './classify.ts'
+import { resolveOpeningReveal, type RevealBasis } from './articulationResolver.ts'
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t
@@ -44,6 +45,8 @@ export type WindowGenInput = {
   genome: DesignGenome
   /** resolved doors (entry / internal / balcony) the windows must stay clear of */
   extraDoors?: { at: Point; width: number }[]
+  /** the one reveal depth this building uses (articulationResolver) */
+  revealBasis: RevealBasis
 }
 
 export function generateWindows(input: WindowGenInput): WindowSpec[] {
@@ -102,6 +105,7 @@ export function generateWindows(input: WindowGenInput): WindowSpec[] {
             mullions: 0,
             facesCourt: w.facesCourt,
             facesStreet: w.facesStreet,
+            reveal: resolveOpeningReveal(input.revealBasis, { widthMm: width, isDoor: false, kind: width < 900 ? 'ventilator' : 'standard' }),
           })
         }
       }
@@ -140,7 +144,7 @@ export function generateWindows(input: WindowGenInput): WindowSpec[] {
     const picture = !privacy && !strip && rule.allowPicture && rng.chance(clamp(pictureChance, 0, 0.95))
 
     if (strip && stripWall) {
-      const w = placeStrip(stripWall, room.id, cls, level, rule, wr, floorHeightMm, sillBiasMm, rng, uid++)
+      const w = placeStrip(stripWall, room.id, cls, level, rule, wr, floorHeightMm, sillBiasMm, rng, uid++, input.revealBasis)
       if (w) out.push(w)
       continue
     }
@@ -163,6 +167,7 @@ export function generateWindows(input: WindowGenInput): WindowSpec[] {
       sillBiasMm,
       rng,
       startUid: uid,
+      basis: input.revealBasis,
     })
     uid += placed.length
     out.push(...placed)
@@ -203,6 +208,7 @@ function placeStrip(
   sillBiasMm: number,
   rng: Rng,
   id: number,
+  basis: RevealBasis,
 ): WindowSpec | null {
   const usable = wall.lengthMm - 2 * wr.minCornerOffsetMm
   if (usable < 1600) return null
@@ -224,6 +230,7 @@ function placeStrip(
     mullions: Math.max(2, Math.floor(widthMm / 1500)),
     facesCourt: wall.facesCourt,
     facesStreet: wall.facesStreet,
+    reveal: resolveOpeningReveal(basis, { widthMm, isDoor: false, kind: 'strip' }),
   }
 }
 
@@ -246,6 +253,7 @@ type PlaceInput = {
   sillBiasMm: number
   rng: Rng
   startUid: number
+  basis: RevealBasis
 }
 
 function placeWindows(p: PlaceInput): WindowSpec[] {
@@ -323,6 +331,11 @@ function placeWindows(p: PlaceInput): WindowSpec[] {
           mullions: privacy ? 0 : mullionsFor(widthMm),
           facesCourt: wall.facesCourt,
           facesStreet: wall.facesStreet,
+          reveal: resolveOpeningReveal(p.basis, {
+            widthMm,
+            isDoor: false,
+            kind: privacy ? 'privacy' : picture && res.length === 0 ? 'picture' : 'standard',
+          }),
         })
         cursor += widthMm + gap
         remaining--

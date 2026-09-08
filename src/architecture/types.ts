@@ -385,6 +385,33 @@ export type MassBlock = {
   roof: RoofSpecOut
 }
 
+/**
+ * How one opening is set into its wall — the detail that gives a facade
+ * measurable depth instead of a decal. Resolved from `dims.ARTICULATION`
+ * by `resolveOpeningReveal()`; read identically by the three.js viewer and
+ * the Blender bake.
+ */
+export type OpeningReveal = {
+  /** glass line set back from the OUTER wall face, mm */
+  jambMm: number
+  /** head soffit reveal — usually a touch deeper than the jamb */
+  headMm: number
+  /** projecting sill: 0 = flush (doors, ventilators) */
+  sillProjMm: number
+  sillThickMm: number
+  /** the sill runs past the opening this far at each end */
+  sillEarMm: number
+  /** weathering fall on the sill top face, degrees */
+  sillFallDeg: number
+  /** master (outer) frame section */
+  frameMm: number
+  /** sash (leaf) section, set inside the master */
+  sashMm: number
+  glassMm: number
+  /** sash mullions across the opening (0 = single pane) */
+  mullions: number
+}
+
 export type WindowSpec = {
   id: string
   roomId: string
@@ -403,6 +430,8 @@ export type WindowSpec = {
   mullions: number
   facesCourt: boolean
   facesStreet: boolean
+  /** jamb / head / sill / frame detail — the opening's third dimension */
+  reveal: OpeningReveal
 }
 
 export type DoorSpec = {
@@ -418,6 +447,8 @@ export type DoorSpec = {
   double: boolean
   /** projecting canopy over an entry, mm (0 = none) */
   canopyMm: number
+  /** jamb / head / frame detail — a door reveal has no projecting sill */
+  reveal: OpeningReveal
 }
 
 export type BalconySpec = {
@@ -547,6 +578,123 @@ export type MaterialSpec = Record<
   MaterialSlot
 >
 
+/* ================================================================== *
+ *  ARTICULATION — the resolved facade depth system.
+ *
+ *  `generator/articulationResolver.ts` resolves these once, seeded, from
+ *  `dims.ARTICULATION` + the genome + orientation. The three.js viewer
+ *  (buildMassing) and the Blender bake then read the SAME numbers, so the
+ *  study model and the baked GLB articulate identically.
+ *
+ *  All mm, plot-origin frame, `atMm` measured from that storey's slab top.
+ * ================================================================== */
+
+/** a cantilevered weather hood (chhajja) over one opening */
+export type ChajjaSpec = {
+  id: string
+  level: number
+  side: Direction4
+  /** the window / door id it shades */
+  overId: string
+  /** the hood plate: width along the wall x projection out from the wall face */
+  rect: Rect
+  /** soffit height above this storey's slab top */
+  atMm: number
+  thickMm: number
+  projMm: number
+  /** down-turned drip at the outer edge (0 = none) */
+  dripMm: number
+}
+
+/** a bank of vertical brise-soleil fins shading one opening */
+export type FinBankSpec = {
+  id: string
+  level: number
+  side: Direction4
+  overId: string
+  /** the plane the fins stand on, along the wall */
+  rect: Rect
+  /** vertical extent above this storey's slab top */
+  fromMm: number
+  toMm: number
+  count: number
+  projMm: number
+  /** fin face width — the thin dimension seen head-on */
+  thickMm: number
+  spacingMm: number
+}
+
+/** a battened (louver) or perforated (jaali) screen plane */
+export type SlatScreenSpec = {
+  id: string
+  level: number
+  side: Direction4
+  kind: 'louver' | 'jaali'
+  /** the screen plane along the wall */
+  rect: Rect
+  fromMm: number
+  toMm: number
+  /** louver: [batten face, batten depth]; jaali: [module, block depth] */
+  slatMm: [number, number]
+  spacingMm: number
+  count: number
+  /** how far the screen plane stands off whatever is behind it */
+  standoffMm: number
+  /** head + sill rail section carrying the battens */
+  railMm: number
+  host: 'balcony' | 'stair' | 'parapet' | 'wall'
+}
+
+/** the expressed edge of one floor plate — the horizontal shadow line */
+export type SlabEdgeSpec = {
+  id: string
+  level: number
+  /** the plate outline INCLUDING its projection, plot frame */
+  rect: Rect
+  /** projection past the wall face below, per side */
+  projMm: Partial<Record<Direction4, number>>
+  /** plate top above this storey's slab top (0 = the plate itself) */
+  atMm: number
+  /** exposed fascia depth */
+  fasciaMm: number
+  /** reveal cut behind the fascia so the plate reads detached */
+  shadowGapMm: number
+  dripMm: number
+  /** the projection is deep enough to stand on, not just a trim band */
+  carriesBalcony: boolean
+}
+
+/** parapet upstand + coping cap around one roof */
+export type ParapetSpec = {
+  id: string
+  level: number
+  blockId: string
+  rect: Rect
+  heightMm: number
+  thickMm: number
+  /** the portion above `heightMm - screenAboveMm` is a batten screen (0 = solid) */
+  screenAboveMm: number
+  copingThickMm: number
+  copingProjMm: number
+}
+
+/** everything that gives one storey its facade depth */
+export type FloorArticulation = {
+  chajjas: ChajjaSpec[]
+  fins: FinBankSpec[]
+  screens: SlatScreenSpec[]
+  slabEdges: SlabEdgeSpec[]
+  parapets: ParapetSpec[]
+}
+
+/** design-wide articulation constants the viewer + bake both apply */
+export type ArticulationSpec = {
+  plinth: { heightMm: number; projMm: number; bandMm: number }
+  stringCourse: { projMm: number; depthMm: number; levels: number[] }
+  /** default reveal for any opening that carries none of its own */
+  defaultReveal: OpeningReveal
+}
+
 export type DesignSpecFloor = {
   level: number
   name: string
@@ -562,6 +710,8 @@ export type DesignSpecFloor = {
   columns: ColumnSpec[]
   beams: BeamSpec[]
   slabs: SlabSpec[]
+  /** facade depth for this storey (chhajjas / fins / screens / plate edges) */
+  articulation: FloorArticulation
   courtyard: Rect | null
 }
 
@@ -597,6 +747,8 @@ export type DesignSpec = {
   fingerprint: ArchitecturalFingerprint
   floors: DesignSpecFloor[]
   facade: FacadeElement[]
+  /** design-wide facade depth constants the viewer + bake both apply */
+  articulation: ArticulationSpec
   materials: MaterialSpec
   constraintsUsed: GenerationConstraints
   /** cheap pre-Blender checks + repairs */
