@@ -222,7 +222,14 @@ export function layoutFloor(
   // leave the host below ~2.5 m it flips to a shallow strip on the far side
   // instead (still off the hub edge).
   const HOST_MIN = 2500
-  const emit = (s: SpaceReq, r: Rect, axis: 'x' | 'y') => {
+  // `hubAtHiX` — for a column (axis 'y') region, is the hub on its high-x side?
+  // The core tail and the side column sit on opposite edges of the plan, so the
+  // hub is inboard of each on a different side; the ensuite / niche must land on
+  // the far side so the host keeps the wall it doors onto the hub through.
+  // `canFlip` — a too-tall split may turn on its side (a shallow ensuite strip)
+  // in the side column, but NOT in the core tail: flipping there wedges a 0.9 m
+  // foyer between the pooja and the hub. A short foyer is fine, unreachable isn't.
+  const emit = (s: SpaceReq, r: Rect, axis: 'x' | 'y', hubAtHiX: boolean, canFlip: boolean) => {
     const sub = split.get(s.id) ?? (bathFor.has(s.id) ? bathFor.get(s.id)! : null)
     if (!sub) {
       rooms.push(place(s, r))
@@ -232,15 +239,16 @@ export function layoutFloor(
     const subLen = Math.max(GRAMMAR.min.bath, (sub.target * 1e6) / Math.max(axis === 'x' ? r.h : r.w, 1))
     let splitAxis = axis
     let subStart = axis === 'x' ? coreLeft : true
-    if (along - subLen < HOST_MIN) {
+    if (canFlip && along - subLen < HOST_MIN) {
       splitAxis = axis === 'x' ? 'y' : 'x'
-      // keep the sub off the hub edge: hub is south of a row / inboard of a column
-      subStart = axis === 'x' ? true : !coreLeft
+      // keep the sub off the hub edge: hub is south of a row, or on the hi/lo-x
+      // side of a column depending which side of the plan the column is on
+      subStart = axis === 'x' ? true : hubAtHiX
     }
     const [main, subR] = splitCell(r, sub.target, splitAxis, subStart)
     rooms.push(place(s, main), place(sub, subR))
   }
-  const fillRegion = (region: Rect, list: SpaceReq[], axis: 'x' | 'y') => {
+  const fillRegion = (region: Rect, list: SpaceReq[], axis: 'x' | 'y', hubAtHiX = false, canFlip = true) => {
     if (region.w < 1100 || region.h < 1100 || !list.length) return
     const cross = axis === 'x' ? region.h : region.w
     const cells = sliceRegion(
@@ -254,7 +262,7 @@ export function layoutFloor(
     )
     for (const s of list) {
       const r = cells.get(s.id)
-      if (r) emit(s, r, axis)
+      if (r) emit(s, r, axis, hubAtHiX, canFlip)
     }
   }
 
@@ -266,8 +274,10 @@ export function layoutFloor(
   }
 
   // ---- core tail: foyer / study, stacked below the stair, front-anchored ----
+  // the hub sits inboard of the core — to its right when the core is on the left;
+  // never flip a split here (keeps the foyer full-width and hub-reachable)
   if (coreTail.length) {
-    fillRegion({ x: coreX, y: house.y + stairH, w: wA, h: H - stairH }, coreTail, 'y')
+    fillRegion({ x: coreX, y: house.y + stairH, w: wA, h: H - stairH }, coreTail, 'y', coreLeft, false)
   }
 
   // ---- north back-of-house row ----
@@ -276,8 +286,9 @@ export function layoutFloor(
   }
 
   // ---- side column: bedrooms, full height ----
+  // the hub sits inboard of the side column — opposite hand to the core
   if (side.length) {
-    fillRegion({ x: sideX, y: house.y, w: wS, h: H }, side, 'y')
+    fillRegion({ x: sideX, y: house.y, w: wS, h: H }, side, 'y', !coreLeft)
   }
 
   // ---- hub ----

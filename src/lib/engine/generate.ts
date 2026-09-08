@@ -291,8 +291,6 @@ function buildFloor(
   rng: Rng,
 ): FloorPlan {
   const { footprint, envelope, grid, twoCar, frontLimitY } = ctx
-  const blocks = footprint.blocks
-  const houseRect = rectUnionBBox(blocks)
   const court = fp.level === 0 ? footprint.courtyard : null
   const outdoor = fp.spaces.filter((s) => s.outdoor)
 
@@ -304,7 +302,13 @@ function buildFloor(
   repairNarrow(rooms, grid)
   absorbSlivers(rooms)
   sealGaps(rooms, grid)
-  repairWindows(rooms, blocks)
+  repairWindows(rooms, footprint.blocks)
+
+  // "adjust the exterior to the structure" — once the repairs have settled the
+  // rooms, redraw a small single-block shell to hug them so the outer wall sits
+  // on the partitions, not a grid line the layout drifted off of.
+  const blocks = fitShellToRooms(rooms, footprint.blocks, grid)
+  const houseRect = rectUnionBBox(blocks)
 
   // ---- outdoor ----
   if (fp.level === 0 && outdoor.length > 0) {
@@ -342,11 +346,14 @@ function buildFloor(
     const at = { x: Math.round(b.rect.x + b.rect.w / 2), y: rectBottom(outline) }
     openings.push({ kind: 'door', at, orient: 'h', width: clamp(b.rect.w - 700, 900, 1600) })
   }
+  const { reachable, unreachableRooms } = repairReachability(rooms, openings, fp.level)
+  // one circulation door per room — drop the extra a relationship + hub link (and
+  // any reachability repair) left on a second wall, but only where the plan stays
+  // connected without it
+  pruneDoors(rooms, laid.hubId, openings, fp.level)
   // one window per daylight room, centred on its exterior wall and clear of the
   // doors already placed — width by room type, per scripts/opening_stats.json.
   deriveWindows(rooms, walls, openings, themeOf(model.brief).windows)
-
-  const { reachable, unreachableRooms } = repairReachability(rooms, openings, fp.level)
   const stair = laid.stairRect
     ? makeStair(
         {
@@ -384,14 +391,121 @@ function linkToHub(rooms: PlacedRoom[], hubId: string | null, out: Opening[]) {
     if (r.id === hubId || r.outdoor) continue
     if (/^bath\d+$/.test(r.id)) continue // an ensuite doors to its bedroom
     const e = sharedEdge(hub.rect, r.rect)
-    if (!e || e.length < DOOR_LEAF + 120) continue
+    // the stair→hub link is the ResPlan invariant (step off the flight straight
+    // into the lounge) — take it on any wall wide enough for a leaf, so
+    // repairReachability never wedges the stair in through a bedroom
+    const minEdge = r.id === 'stair' ? DOOR_LEAF : DOOR_LEAF + 120
+    if (!e || e.length < minEdge) continue
     // the stair opens to the hub as a wide leaf-less cased opening — it reads as
     // part of the living room / lounge, not a separate stair hall
-    const width = r.id === 'stair' ? Math.min(DOOR_CASED, e.length - 120) : undefined
+    const width = r.id === 'stair' ? Math.max(DOOR_LEAF, Math.min(DOOR_CASED, e.length - 120)) : undefined
     const d = doorOnEdge(e, { width, swing: swingInto(e, hub, r) })
     if (out.some((o) => near(o.at, d.at, 500))) continue
     out.push(d)
   }
+}
+
+/** does opening `o` sit on the shared wall `e` between two rooms */
+function openingOnEdge(o: Opening, e: NonNullable<ReturnType<typeof sharedEdge>>): boolean {
+  const horiz = e.side === 'N' || e.side === 'S'
+  const fixed = horiz ? e.seg.a.y : e.seg.a.x
+  const lo = horiz ? Math.min(e.seg.a.x, e.seg.b.x) : Math.min(e.seg.a.y, e.seg.b.y)
+  const hi = horiz ? Math.max(e.seg.a.x, e.seg.b.x) : Math.max(e.seg.a.y, e.seg.b.y)
+  const perp = horiz ? o.at.y : o.at.x
+  const along = horiz ? o.at.x : o.at.y
+  return Math.abs(perp - fixed) <= 160 && along >= lo - 120 && along <= hi + 120
+}
+
+/**
+ * One way in. `deriveDoors` (relationship pairs), `linkToHub` (a hub door for
+ * every room) and `repairReachability` (gap-filling) can each land a door for the
+ * same room on a *different* wall — so a bedroom ends up with a door to the hall
+ * AND a door to the living room. The ResPlan grammar is a single circulation door
+ * per room.
+ *
+ * For every private / service / work / sacred room we keep exactly ONE
+ * circulation door (onto the hub, else a circulation room, else the widest) plus
+ * any door to a genuine dead-end sub-room (an ensuite bath, a utility off the
+ * kitchen). A redundant door is only actually removed when the plan stays fully
+ * connected without it — a door that is some room's sole route stays. The open
+ * social core (living / dining / lounge) and circulation rooms are exempt. Runs
+ * after `repairReachability` so it cleans up its additions too.
+ */
+function pruneDoors(rooms: PlacedRoom[], hubId: string | null, out: Opening[], level: number) {
+  const enc = rooms.filter((r) => !r.outdoor)
+  const parentOf = (id: string) => (/^bath\d+$/.test(id) ? `bed${id.slice(4)}` : null)
+  const exempt = (r: PlacedRoom) => r.zone === 'circulation' || r.zone === 'social' || r.id === hubId
+
+  type Link = { o: Opening; a: PlacedRoom; b: PlacedRoom; len: number }
+  const links: Link[] = []
+  for (const o of out) {
+    if (o.kind !== 'door') continue
+    let hit: Link | null = null
+    for (let i = 0; i < enc.length && !hit; i++) {
+      for (let j = i + 1; j < enc.length; j++) {
+        const e = sharedEdge(enc[i].rect, enc[j].rect)
+        if (e && openingOnEdge(o, e)) {
+          hit = { o, a: enc[i], b: enc[j], len: e.length }
+          break
+        }
+      }
+    }
+    if (hit) links.push(hit)
+  }
+
+  // live adjacency — dropping a door mutates this, and we only commit a drop
+  // that leaves every room still reachable from the entry root
+  const adj = new Map<string, Set<string>>()
+  for (const r of enc) adj.set(r.id, new Set())
+  for (const l of links) {
+    adj.get(l.a.id)?.add(l.b.id)
+    adj.get(l.b.id)?.add(l.a.id)
+  }
+  const root =
+    enc.find((r) => (level === 0 ? r.id === 'foyer' : r.id.startsWith('lobby'))) ??
+    enc.find((r) => r.id === hubId) ??
+    enc.find((r) => r.id === 'stair') ??
+    enc[0]
+  if (!root) return
+  const allReachable = () => bfs(root.id, adj).size === enc.length
+
+  const rank = (o: PlacedRoom) =>
+    o.id === hubId ? 4 : o.zone === 'circulation' ? 3 : o.zone === 'social' ? 2 : 1
+  const dropped = new Set<Opening>()
+  for (const r of enc) {
+    if (exempt(r)) continue
+    const mine = links.filter((l) => (l.a === r || l.b === r) && !dropped.has(l.o))
+    if (mine.length <= 1) continue
+    const other = (l: Link) => (l.a === r ? l.b : l.a)
+    // a door to a dead-end sub-room (an ensuite / a wet room reachable only
+    // through me) is never a candidate
+    const isDependent = (l: Link) => {
+      const o = other(l)
+      if (parentOf(o.id) === r.id || parentOf(r.id) === o.id) return true
+      return (
+        (adj.get(o.id)?.size ?? 0) === 1 && o.zone !== 'circulation' && o.zone !== 'social'
+      )
+    }
+    // one circulation door stays; try to shed the rest, weakest first, keeping a
+    // drop only when the plan is still fully connected without it
+    const cands = mine
+      .filter((l) => !isDependent(l))
+      .sort((p, q) => rank(other(p)) - rank(other(q)) || p.len - q.len)
+    let live = cands.length
+    for (const l of cands) {
+      if (live <= 1) break
+      adj.get(l.a.id)?.delete(l.b.id)
+      adj.get(l.b.id)?.delete(l.a.id)
+      if (allReachable()) {
+        dropped.add(l.o)
+        live--
+      } else {
+        adj.get(l.a.id)?.add(l.b.id)
+        adj.get(l.b.id)?.add(l.a.id)
+      }
+    }
+  }
+  if (dropped.size) for (let i = out.length - 1; i >= 0; i--) if (dropped.has(out[i])) out.splice(i, 1)
 }
 
 /* ---------------------------------- layout --------------------------------- */
@@ -647,6 +761,64 @@ function repairWindows(rooms: PlacedRoom[], blocks: Rect[]) {
   }
 }
 
+/**
+ * "Adjust the exterior to the structure." A rectangle / square footprint is only
+ * right if its outer wall sits on the rooms. After the repair passes have nudged
+ * the rooms around — more so on a tight plot — the sized block can stand a module
+ * or two proud of them on one side, leaving a dead gap between a partition and
+ * the facade. Redraw the block as the tight bounding box of the enclosed rooms
+ * (never larger than the block it was sized to, so it stays inside the setbacks),
+ * and pull any room that pokes out, or falls short, back onto that edge. Returns
+ * a fresh array — the caller's `footprint.blocks` is shared across floors.
+ */
+function fitShellToRooms(rooms: PlacedRoom[], blocks: Rect[], grid: number): Rect[] {
+  if (blocks.length !== 1) return blocks.map((b) => ({ ...b }))
+  const src = blocks[0]
+  const enc = rooms.filter((r) => !r.outdoor)
+  if (enc.length < 2) return [{ ...src }]
+
+  const bx0 = Math.min(...enc.map((r) => r.rect.x))
+  const by0 = Math.min(...enc.map((r) => r.rect.y))
+  const bx1 = Math.max(...enc.map((r) => rectRight(r.rect)))
+  const by1 = Math.max(...enc.map((r) => rectBottom(r.rect)))
+
+  // shrink only — clamp every fitted edge inside the block the shape sized
+  const fit: Rect = {
+    x: snap(clamp(bx0, src.x, rectRight(src)), grid),
+    y: snap(clamp(by0, src.y, rectBottom(src)), grid),
+    w: 0,
+    h: 0,
+  }
+  fit.w = Math.max(grid, snap(clamp(bx1, src.x, rectRight(src)), grid) - fit.x)
+  fit.h = Math.max(grid, snap(clamp(by1, src.y, rectBottom(src)), grid) - fit.y)
+  const fitR = rectRight(fit)
+  const fitB = rectBottom(fit)
+  // no meaningful drift → leave the sized block alone
+  if (Math.abs(fit.x - src.x) < grid && Math.abs(fit.y - src.y) < grid && Math.abs(fitR - rectRight(src)) < grid && Math.abs(fitB - rectBottom(src)) < grid) {
+    return [{ ...src }]
+  }
+
+  // a room within half a metre of a pre-fit extreme is a perimeter room — grow
+  // or trim it so its outer edge lands exactly on the fitted shell
+  const NEAR = 500
+  for (const r of enc) {
+    let { x, y, w, h } = r.rect
+    if (x - bx0 <= NEAR || x < fit.x) {
+      w += x - fit.x
+      x = fit.x
+    }
+    if (y - by0 <= NEAR || y < fit.y) {
+      h += y - fit.y
+      y = fit.y
+    }
+    if (bx1 - rectRight(r.rect) <= NEAR || rectRight(r.rect) > fitR) w = fitR - x
+    if (by1 - rectBottom(r.rect) <= NEAR || rectBottom(r.rect) > fitB) h = fitB - y
+    r.rect = { x, y, w: Math.max(grid, w), h: Math.max(grid, h) }
+    r.area = toSqm(rectArea(r.rect))
+  }
+  return [fit]
+}
+
 /* ---------------------------------- helpers -------------------------------- */
 
 function place(s: SpaceReq, rect: Rect): PlacedRoom {
@@ -728,11 +900,11 @@ type WindowSpec = {
 }
 
 const WIN_W_BY_KIND: Record<string, number> = {
-  living: 2000,
-  dining: 1650,
-  kitchen: 1350,
-  bed: 1400,
-  study: 1300,
+  living: 1800,
+  dining: 1500,
+  kitchen: 1200,
+  bed: 1350,
+  study: 1200,
   bath: 700,
 }
 
@@ -748,15 +920,15 @@ function winKind(r: PlacedRoom): keyof typeof WIN_W_BY_KIND {
 }
 
 /**
- * One window per daylight room, **centred on the room's exterior wall** — real
- * plans centre 95 % of windows within 15 % of the wall midpoint (SYNBUILD-3D),
- * they do not snap to a building-wide mullion grid. A long wall in a large
- * living room gets a pair; a wet room on an outside wall gets a small high one.
- * `walls` carries the real exterior run so L / U footprints resolve correctly.
+ * Exactly one window per daylight room, centred on the room's longest exterior
+ * wall. Width is a clean value per room type (living / dining a touch wider) and
+ * never a slit; if a door already sits at the centre the window slides to the
+ * larger free side, dropping one size only if it has to. A wet room gets a small
+ * high window. `walls` carries the real exterior run so an L / U wall resolves.
  */
 function deriveWindows(rooms: PlacedRoom[], walls: Wall[], out: Opening[], spec: WindowSpec) {
   const ext = walls.filter((w) => w.kind === 'exterior')
-  const cap = Math.max(1400, spec.widthMm) // the theme's widest single pane
+  const CORNER = 500 // minimum pier from either end of the wall run
 
   /** the exterior wall run coincident with room side `s`, as [lo, hi] along it, or null */
   const run = (rc: Rect, s: Side4): [number, number] | null => {
@@ -798,55 +970,52 @@ function deriveWindows(rooms: PlacedRoom[], walls: Wall[], out: Opening[], spec:
     const fixed = side === 'N' ? r.rect.y : side === 'S' ? rectBottom(r.rect) : side === 'W' ? r.rect.x : rectRight(r.rect)
     const runLen = rr[1] - rr[0]
     const mid = (rr[0] + rr[1]) / 2
+
     const kind = winKind(r)
-    const baseW = kind === 'living' ? Math.min(cap, 2400) : WIN_W_BY_KIND[kind]
+    const target = kind === 'living' ? clamp(spec.widthMm || 1800, 1800, 2200) : WIN_W_BY_KIND[kind]
+    const least = wet ? 550 : 800
+    const maxFit = runLen - 2 * CORNER
+    if (maxFit < least) continue
 
-    // spans already taken on this wall line — doors keep a 150 mm reveal, other
-    // windows a 250 mm pier
-    const blocked = (): [number, number][] =>
-      out
-        .filter((o) => Math.abs((horiz ? o.at.y : o.at.x) - fixed) < 320)
-        .map((o) => {
-          const c = horiz ? o.at.x : o.at.y
-          const pad = o.kind === 'window' ? 250 : 150
-          return [c - o.width / 2 - pad, c + o.width / 2 + pad]
-        })
+    // a door already on this wall line keeps a 250 mm reveal each side
+    const blocked = out
+      .filter((o) => o.kind !== 'window' && Math.abs((horiz ? o.at.y : o.at.x) - fixed) < 320)
+      .map((o) => {
+        const c = horiz ? o.at.x : o.at.y
+        return [c - o.width / 2 - 250, c + o.width / 2 + 250] as [number, number]
+      })
+    const clearAt = (a: number, w: number) =>
+      a - w / 2 >= rr[0] + CORNER - 1 &&
+      a + w / 2 <= rr[1] - CORNER + 1 &&
+      !blocked.some(([b0, b1]) => a - w / 2 < b1 && a + w / 2 > b0)
 
-    /** centre a window on `want`, then slide / shrink until it clears the doors */
-    const place = (want: number, wide: number) => {
-      const b = blocked()
-      const fits = (a: number, w: number) =>
-        a - w / 2 >= rr[0] + 60 &&
-        a + w / 2 <= rr[1] - 60 &&
-        !b.some(([b0, b1]) => a - w / 2 < b1 && a + w / 2 > b0)
-      for (const w of [Math.min(wide, runLen - 300), Math.max(650, wide * 0.6), 550]) {
-        if (w < 520) break
-        const steps: number[] = [want]
-        for (let d = 250; d <= runLen; d += 250) steps.push(want + d, want - d)
-        for (const s of steps) {
-          const a = Math.round(clamp(s, rr[0] + w / 2 + 60, rr[1] - w / 2 - 60))
-          if (fits(a, w)) {
-            out.push({
-              kind: 'window',
-              at: horiz ? { x: a, y: fixed } : { x: fixed, y: a },
-              orient: horiz ? 'h' : 'v',
-              width: Math.round(w),
-            })
-            return
+    let width = Math.min(target, maxFit)
+    let at = Math.round(mid)
+    if (!clearAt(at, width)) {
+      let done = false
+      for (const w of [width, Math.max(least, width * 0.7)]) {
+        for (let d = 200; d <= runLen && !done; d += 200) {
+          for (const cand of [mid + d, mid - d]) {
+            const a = Math.round(clamp(cand, rr[0] + CORNER + w / 2, rr[1] - CORNER - w / 2))
+            if (clearAt(a, w)) {
+              at = a
+              width = w
+              done = true
+              break
+            }
           }
         }
+        if (done) break
       }
+      if (!done) continue
     }
 
-    const twin = !wet && runLen >= 4400 && (kind === 'living' || r.area >= 20)
-    if (twin) {
-      const off = runLen / 4
-      const each = Math.min(baseW, runLen / 2 - 500)
-      place(mid - off, each)
-      place(mid + off, each)
-    } else {
-      place(mid, baseW)
-    }
+    out.push({
+      kind: 'window',
+      at: horiz ? { x: at, y: fixed } : { x: fixed, y: at },
+      orient: horiz ? 'h' : 'v',
+      width: Math.round(width),
+    })
   }
 }
 
