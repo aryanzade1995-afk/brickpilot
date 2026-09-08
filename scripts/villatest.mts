@@ -63,7 +63,6 @@ const line = (ok: boolean, msg: string) => {
 for (const style of STYLES) {
   console.log(`\n=== ${style} ===`)
   const specs: DesignSpec[] = []
-  const forms = new Set<string>()
   const fps: ArchitecturalFingerprint[] = []
   const reqSig = new Set<string>()
 
@@ -132,11 +131,10 @@ for (const style of STYLES) {
     line(spec.validation.issues.length === 0, `seed ${seed}: ${spec.validation.issues.join('; ')}`)
 
     fps.push(spec.fingerprint)
-    forms.add(`${spec.massing.strategy}|${spec.floors.map((f) => f.blocks.map((b) => `${b.rect.w | 0}x${b.rect.h | 0}`).join(',')).join('/')}`)
     const roofs = spec.floors.flatMap((f) => f.blocks.map((b) => b.roof.kind))
     const facades = [...new Set(spec.facade.map((e) => e.kind))].sort().join('+')
     console.log(
-      `  seed ${seed}: ${spec.genome.massingComposition.padEnd(20)} roof=${[...new Set(roofs)].join('/').padEnd(20)} bal=${(spec.floors.flatMap((f) => f.balconies.map((b) => b.type)).join(',') || '—').padEnd(24)} fp=${spec.fingerprint.hash}`,
+      `  seed ${seed}: ${spec.genome.massingComposition.padEnd(20)} roof=${[...new Set(roofs)].join('/').padEnd(20)} bal=${(spec.floors.flatMap((f) => f.balconies.map((b) => b.type)).join(',') || '—').padEnd(22)} facade=${facades}`,
     )
   }
 
