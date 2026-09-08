@@ -10,11 +10,24 @@ for the existing three.js viewer.
 brief  ->  engine floor plan (src/lib/engine, `Design`)
        ->  StyleGrammar     (src/architecture/grammar.ts)  +  StylePattern (library/stylePatterns.ts)
        ->  resolveGenome()  ->  DesignGenome  (seeded, compatibility-checked, reference-nudged)
-       ->  generateDesign(requirements, seed)  ->  DesignSpec { +genome, +fingerprint }  (JSON, geometry-free)
+       ->  resolveMassing → resolveStructure (grid → columns → beams → slabs)
+       ->  doors + balconies → room-aware windows → stairs (NBC) → facade (anchored)
+       ->  auditArchitecture()  — major errors ⇒ regenerate (4-attempt rejection loop)
+       ->  DesignSpec { +grid, +genome, +fingerprint, +audit, per-floor columns/beams/slabs }
        ->  POST /api/generate   (server/villa.mjs — resolves a GLB)
        ->  blender/generator/   (headless, offline / CI)  ->  GLB / GLTF
        ->  three.js viewer      (loads the GLB; else the procedural buildMassing model)
 ```
+
+**The structural frame is the skeleton.** `structure.py` builds Columns / Beams /
+Slabs FIRST, from `spec.floors[].columns/beams/slabs` — every piece was resolved
+with a support relationship (`structure.ts`): columns align vertically within
+50 mm or get a transfer beam, every slab is carried by a block or a beam, porches
+run canopy → beam → column → ground. `dims.ts` centralises every dimension
+(§15 — no magic numbers). `auditArchitecture` (§14) checks entrance / reachability
+/ openings / structure / stairs / facade anchoring / plumbing and returns
+`{valid, score, errors, warnings}`; `house_generator.py` prints it and
+`validator.py` blocks the bake on a major error.
 
 **The DesignGenome is the single design intent.** `spec.genome` names the
 massing composition, upper-floor strategy, roof form, entrance, balcony type,
