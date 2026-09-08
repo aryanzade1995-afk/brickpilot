@@ -1,16 +1,9 @@
 export * from './types.ts'
+export { generate, generateDirections, type GenerateOpts, type DirectionResult } from './generate.ts'
 export {
-  generate,
-  generateDirections,
-  STRATEGIES,
-  type Strategy,
-  type GenerateOpts,
-  type DirectionResult,
-} from './generate.ts'
-export {
-  MASSING_TYPES,
-  MASSING_LABEL,
-  DIVERSITIES,
-  type MassingType,
-  type Diversity,
-} from './massing/types.ts'
+  SHAPES,
+  SHAPE_LABEL,
+  SHAPE_BLURB,
+  SHAPE_BLURB as SHAPE_BLURBS,
+  type Shape,
+} from './shape/types.ts'

@@ -1,0 +1,157 @@
+{
+  "_source": "ResPlan (17k real South-Asian plans, arXiv 2508.14006, CC BY 4.0) \u2014 statistics only, not redistributed",
+  "_note": "metres, recovered per-plan from `area` m\u00b2. jamb = gap from a door reveal to the nearest corner of the room it opens into; centre_off = |position-0.5| along the host wall (0 = dead centre). ResPlan is 2-D \u2014 no sill/head; keep those from NBC norms / SYNBUILD (sill ~0.9 m).",
+  "plans_used": 16317,
+  "door": {
+    "interior_jamb_offset_m": {
+      "p10": 0.031,
+      "p25": 0.035,
+      "p50": 0.038,
+      "p75": 0.099,
+      "p90": 0.625
+    },
+    "interior_centre_offset": {
+      "p10": 0.043,
+      "p25": 0.166,
+      "p50": 0.295,
+      "p75": 0.356,
+      "p90": 0.38
+    },
+    "interior_clear_width_m": {
+      "p10": 0.819,
+      "p25": 0.879,
+      "p50": 0.943,
+      "p75": 1.014,
+      "p90": 1.104
+    },
+    "exterior_clear_width_m": {
+      "p10": 0.734,
+      "p25": 0.847,
+      "p50": 0.925,
+      "p75": 0.993,
+      "p90": 1.08
+    },
+    "share_reveal_within_250mm_of_corner": 0.84,
+    "clear_width_by_room_pair_m": {
+      "balcony|bed": {
+        "p50": 0.926,
+        "n": 14100
+      },
+      "balcony|living": {
+        "p50": 0.928,
+        "n": 7256
+      },
+      "bath|bed": {
+        "p50": 0.903,
+        "n": 22255
+      },
+      "bath|kitchen": {
+        "p50": 0.914,
+        "n": 108
+      },
+      "bath|living": {
+        "p50": 0.896,
+        "n": 16073
+      },
+      "bed|kitchen": {
+        "p50": 1.021,
+        "n": 213
+      },
+      "bed|living": {
+        "p50": 0.979,
+        "n": 38728
+      },
+      "kitchen|living": {
+        "p50": 0.96,
+        "n": 3964
+      },
+      "kitchen|utility": {
+        "p50": 0.928,
+        "n": 44
+      },
+      "living|stair": {
+        "p50": 1.406,
+        "n": 76
+      },
+      "living|utility": {
+        "p50": 0.942,
+        "n": 700
+      }
+    }
+  },
+  "window": {
+    "width_m": {
+      "p10": 0.658,
+      "p25": 0.738,
+      "p50": 1.123,
+      "p75": 1.682,
+      "p90": 2.098
+    },
+    "centre_offset_on_wall": {
+      "p10": 0.006,
+      "p25": 0.021,
+      "p50": 0.095,
+      "p75": 0.247,
+      "p90": 0.328
+    },
+    "host_wall_length_m": {
+      "p10": 1.516,
+      "p25": 1.943,
+      "p50": 3.067,
+      "p75": 3.948,
+      "p90": 4.829
+    },
+    "share_centred_within_15pct": 0.59
+  },
+  "windows_per_room": {
+    "balcony": {
+      "mean": 0.0,
+      "p50": 0.0,
+      "p90": 0.0,
+      "share_with_any": 0.0,
+      "n": 20846
+    },
+    "bath": {
+      "mean": 0.98,
+      "p50": 1.0,
+      "p90": 1.0,
+      "share_with_any": 0.92,
+      "n": 38740
+    },
+    "bed": {
+      "mean": 1.04,
+      "p50": 1.0,
+      "p90": 2.0,
+      "share_with_any": 0.82,
+      "n": 39068
+    },
+    "kitchen": {
+      "mean": 1.2,
+      "p50": 1.0,
+      "p90": 2.0,
+      "share_with_any": 0.92,
+      "n": 16199
+    },
+    "living": {
+      "mean": 1.16,
+      "p50": 1.0,
+      "p90": 2.0,
+      "share_with_any": 0.75,
+      "n": 16535
+    },
+    "stair": {
+      "mean": 0.0,
+      "p50": 0.0,
+      "p90": 0.0,
+      "share_with_any": 0.0,
+      "n": 679
+    },
+    "utility": {
+      "mean": 0.28,
+      "p50": 0.0,
+      "p90": 1.0,
+      "share_with_any": 0.27,
+      "n": 1723
+    }
+  }
+}

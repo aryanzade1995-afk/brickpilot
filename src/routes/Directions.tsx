@@ -22,7 +22,7 @@ export function Directions() {
   }
 
   const choose = (d: (typeof directions)[number]) => {
-    pin({ massing: d.massing, seed: d.seed })
+    pin({ shape: d.shape, seed: d.seed })
     navigate('/workspace/plan')
   }
 
@@ -40,10 +40,10 @@ export function Directions() {
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
         {directions.map((d) => {
-          const isPinned = pinned?.massing === d.massing && pinned?.seed === d.seed
+          const isPinned = pinned?.shape === d.shape && pinned?.seed === d.seed
           return (
             <div
-              key={`${d.massing}:${d.seed}`}
+              key={`${d.shape}:${d.seed}`}
               className={cx(
                 'flex flex-col border transition-colors',
                 isPinned ? 'border-accent' : 'border-line',

@@ -1,6 +1,7 @@
 import { defaultBrief } from '../src/lib/model/brief.ts'
 import { compile } from '../src/lib/model/canonical.ts'
-import { generate, STRATEGIES } from '../src/lib/engine/index.ts'
+import { generate } from '../src/lib/engine/index.ts'
+const STRATEGIES = [{ id: 'rectangle' as const }, { id: 'square' as const }]
 import { validate } from '../src/lib/rules/index.ts'
 import { estimateCost } from '../src/lib/cost/index.ts'
 import { buildMassing } from '../src/lib/three/buildMassing.ts'
@@ -28,14 +29,14 @@ for (const c of chars) {
       base.levels.storeys = st
       base.style.character = c
 
-      const dfault = generate(compile(base), s.id) // default 15×18 plain villa
+      const dfault = generate(compile(base), { shape: s.id }) // default 15×18 plain villa
 
       const onPlot = (bt: 'villa' | 'large-villa') => {
         const b = structuredClone(base)
         b.project.buildingType = bt
         b.site.plotWidth = 26
         b.site.plotDepth = 32
-        return generate(compile(b), s.id)
+        return generate(compile(b), { shape: s.id })
       }
       const ds = onPlot('villa')
       const db = onPlot('large-villa')

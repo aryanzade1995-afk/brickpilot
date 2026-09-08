@@ -1,6 +1,6 @@
 import type { Rect, Point } from '../geometry.ts'
 import type { CanonicalModel, Zone } from '../model/canonical.ts'
-import type { MassingType, RoofSpec } from './massing/types.ts'
+import type { RoofSpec, Shape } from './shape/types.ts'
 
 export type { RoofSpec }
 
@@ -62,7 +62,8 @@ export type Design = {
   seed: string
   algorithm: string
   candidate: string
-  massingType: MassingType
+  /** the footprint shape this plan resolved to */
+  shape: Shape
   model: CanonicalModel
   floors: FloorPlan[]
   /** gross built-up area, m² (enclosed footprint × floors) */

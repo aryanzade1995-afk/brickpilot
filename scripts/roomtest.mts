@@ -1,6 +1,7 @@
 import { defaultBrief } from '../src/lib/model/brief.ts'
 import { compile } from '../src/lib/model/canonical.ts'
-import { generate, STRATEGIES } from '../src/lib/engine/index.ts'
+import { generate } from '../src/lib/engine/index.ts'
+const STRATEGIES = [{ id: 'rectangle' as const }, { id: 'square' as const }]
 import { buildRoom } from '../src/lib/three/buildRoom.ts'
 
 const chars = ['modern-indian', 'minimal-indian', 'kerala-contemporary', 'modern-kerala', 'tropical-indian', 'luxury-indian', 'contemporary-indian', 'courtyard-indian'] as const
@@ -13,7 +14,7 @@ for (const c of chars) {
       const b = defaultBrief()
       b.levels.storeys = st
       b.style.character = c
-      const design = generate(compile(b), s.id)
+      const design = generate(compile(b), { shape: s.id })
 
       for (const floor of design.floors) {
         for (const room of floor.rooms) {

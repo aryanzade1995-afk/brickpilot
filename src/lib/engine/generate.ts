@@ -1,6 +1,7 @@
 import {
   type Rect,
   type Point,
+  type Segment,
   snap,
   rectArea,
   rectBottom,
@@ -14,80 +15,99 @@ import {
 } from '../geometry.ts'
 import type { CanonicalModel, FloorProgram, Relationship, SpaceReq } from '../model/canonical.ts'
 import { themeOf } from '../model/themes.ts'
-import { squarify } from './treemap.ts'
-import { planMassing } from './massing/grammar.ts'
-import type { MassingCtx } from './massing/archetypes.ts'
-import type { FloorMassing, MassingPlan, MassingRequest, MassingType } from './massing/types.ts'
-import { MASSING_LABEL } from './massing/types.ts'
-
-const MASSING_BLURB: Partial<Record<MassingType, string>> = {
-  rectangular: 'One clean block — the shortest walls, the simplest structure.',
-  'l-shape': 'Two legs around a sheltered corner court; the sleeping wing steps back upstairs.',
-  't-shape': 'A cross-axis block — a public bar across a private stem.',
-  'u-shape': 'Three wings embracing an open court on one side.',
-  courtyard: 'Rooms wrap a true central courtyard — light and air to every side.',
-  'rear-courtyard': 'A private court held at the back, away from the road.',
-  'offset-box': 'The upper floor slides off the lower — a deep shadow line and a covered edge.',
-  'split-volume': 'Two volumes of different height joined by a glazed link.',
-  cantilever: 'The upper floor reaches out past the ground — a sheltered entry beneath.',
-  stepped: 'Each floor shifts, its roof the terrace of the one above.',
-  interlocking: 'Two volumes overlap and pass through each other.',
-  'central-core': 'A tidy tower set back on a broad ground-floor podium.',
-  'side-wing': 'A tall main house with a low service wing alongside.',
-  'front-projection': 'A projecting room reaches toward the street; the upper floor bridges over the entry.',
-  asymmetric: 'A free composition of unequal volumes with a bold cantilever.',
-}
-import type { Design, FloorPlan, Opening, PlacedRoom, StairRun, Wall } from './types.ts'
+import { pickShape } from './shape/pick.ts'
+import { makeRng, type Rng } from './shape/rng.ts'
+import { SHAPE_LABEL, SHAPE_BLURB, type Shape, type ShapeCtx, type Footprint } from './shape/types.ts'
+import { layoutFloor } from './layout/place.ts'
+import type { Design, FloorPlan, Opening, PlacedRoom, RoofSpec, StairRun, Wall } from './types.ts'
 import { validate } from '../rules/index.ts'
+
+export { SHAPE_LABEL }
 
 const EXT_WALL = 230
 const INT_WALL = 115
 const STAIR_LEN = 4000
 const DOOR = 900
 
-const ZONE_ORDER: Record<string, number> = {
+/* --- opening placement, tuned to real plans (scripts/opening_stats.json) -----
+ * ResPlan (16.3k real South-Asian plans) and SYNBUILD-3D agree: interior doors
+ * sit a ~100 mm jamb off the nearest wall corner (84 % within 250 mm in both),
+ * their centre ~30 % off the wall midpoint — NOT centred; the hinge lands in the
+ * corner and the rest of the wall stays usable. Leaf clear width ~0.9 m
+ * (ResPlan p50 0.94 m). Windows centre on the room's exterior wall (ResPlan
+ * median 10 % off-centre), one per daylight room + bath (bath 92 %, bed 82 %),
+ * living rooms often two; sill ~0.9 m (2-D datasets carry no sill — NBC norm). */
+const JAMB = 110
+const DOOR_LEAF = 900
+const DOOR_CASED = 1500 // leaf-less opening where two living spaces meet on a wide wall (a design choice, not from the data)
+const ZONE_PRIVACY: Record<string, number> = {
   social: 0,
-  service: 1,
-  sacred: 2,
+  circulation: 1,
+  service: 2,
   work: 3,
-  private: 4,
-  outdoor: 5,
-  circulation: 6,
+  sacred: 4,
+  private: 5,
+  outdoor: 0,
 }
+
+type Side4 = 'N' | 'S' | 'E' | 'W'
+const SIDE4: Side4[] = ['N', 'S', 'E', 'W']
+
+/**
+ * A door/entry on a shared (or exterior) edge, seated a jamb-gap from the end
+ * of the run nearer `toward` so the hinge is in a corner. A leaf-less `cased`
+ * opening is centred instead. `swing` defaults to opening into the more private
+ * of the two rooms.
+ */
+function doorOnEdge(
+  edge: { seg: Segment; side: Side4; length: number },
+  opts: {
+    toward?: number
+    width?: number
+    swing?: 1 | -1
+    kind?: 'door' | 'entry'
+    cased?: boolean
+  } = {},
+): Opening {
+  const horiz = edge.side === 'N' || edge.side === 'S'
+  const lo = horiz ? Math.min(edge.seg.a.x, edge.seg.b.x) : Math.min(edge.seg.a.y, edge.seg.b.y)
+  const hi = horiz ? Math.max(edge.seg.a.x, edge.seg.b.x) : Math.max(edge.seg.a.y, edge.seg.b.y)
+  const fixed = horiz ? edge.seg.a.y : edge.seg.a.x
+  const span = hi - lo
+  const w = Math.min(opts.width ?? DOOR_LEAF, Math.max(700, span - 120))
+  const half = w / 2
+  const mid = (lo + hi) / 2
+  const atEnd = opts.cased
+    ? mid
+    : opts.toward !== undefined && opts.toward > mid
+      ? hi - JAMB - half
+      : lo + JAMB + half
+  const along = Math.round(clamp(atEnd, lo + half + 20, hi - half - 20))
+  return {
+    kind: opts.kind ?? 'door',
+    at: horiz ? { x: along, y: fixed } : { x: fixed, y: along },
+    orient: horiz ? 'h' : 'v',
+    width: Math.round(w),
+    swing: opts.swing ?? 1,
+  }
+}
+
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
 
-export type Strategy = 'orthogonal-core' | 'wing-split'
-
-export const STRATEGIES: { id: Strategy; label: string; blurb: string }[] = [
-  {
-    id: 'orthogonal-core',
-    label: 'Orthogonal core',
-    blurb: 'A compact block with the stair and services drawn to one edge — the shortest walls and the simplest structure.',
-  },
-  {
-    id: 'wing-split',
-    label: 'Split wings',
-    blurb: 'The stair sits centrally and the plan opens into a living wing and a sleeping wing, each with its own aspect.',
-  },
-]
-
 export type GenerateOpts = {
-  /** kept for back-compat — maps onto an archetype hint */
-  strategy?: Strategy
-  massing?: MassingType | 'auto' | 'random'
-  diversity?: MassingRequest['diversity']
+  /** override the brief's shape choice */
+  shape?: Shape | 'auto'
   seed?: number
 }
 
 /**
  * A handful of validated schemes from one brief — the "directions" the user
- * picks between. Now genuinely different architectures: the auto pick plus
- * distinct alternates, all from the same seed.
+ * picks between: the auto pick plus distinct footprint shapes from the same seed.
  */
 export type DirectionResult = {
-  /** the concrete archetype this direction resolved to */
-  massing: MassingType
+  /** the footprint shape this direction resolved to */
+  shape: Shape
   /** the seed that produced it — written to the brief when pinned */
   seed: number
   label: string
@@ -97,58 +117,38 @@ export type DirectionResult = {
 
 export function generateDirections(model: CanonicalModel): DirectionResult[] {
   const seed = model.brief.variation
-  const want = model.brief.style.massing
-  const base = { design: generate(model, { massing: want, seed }), seed }
+  const want = model.brief.style.shape
+  const base = { design: generate(model, { shape: want, seed }), seed }
   const out = [base]
-  const seenTypes = new Set([base.design.massingType])
+  const seen = new Set<Shape>([base.design.shape])
 
-  // Offer a genuine spread: the auto pick, then a curated ladder of structurally
-  // distinct archetypes (compact → notched → split → projecting). Each is kept
-  // only if it validates hard-clean AND resolved to a new massing type.
-  const ladder: (MassingType | 'auto')[] = [
-    'auto',
-    'l-shape',
-    'courtyard',
-    'cantilever',
-    'side-wing',
-    'split-volume',
-    'stepped',
-    'central-core',
-    'front-projection',
-    'rectangular',
-  ]
-  for (const m of ladder) {
+  const ladder: (Shape | 'auto')[] = ['auto', 'rectangle', 'square', 'l-shape', 't-shape', 'u-shape', 'courtyard']
+  for (const s of ladder) {
     if (out.length >= 4) break
     const altSeed = seed + out.length * 977
-    const d = generate(model, { massing: m, seed: altSeed })
-    if (seenTypes.has(d.massingType)) continue
-    // don't offer a broken alternate — it must pass the hard checks
+    const d = generate(model, { shape: s, seed: altSeed })
+    if (seen.has(d.shape)) continue
     if (!validate(d).hardChecksPass) continue
-    seenTypes.add(d.massingType)
+    seen.add(d.shape)
     out.push({ design: d, seed: altSeed })
   }
 
   return out.map(({ design, seed: s }) => ({
-    massing: design.massingType,
+    shape: design.shape,
     seed: s,
-    label: MASSING_LABEL[design.massingType],
-    blurb: MASSING_BLURB[design.massingType] ?? 'A distinct architectural massing from the same brief.',
+    label: SHAPE_LABEL[design.shape],
+    blurb: SHAPE_BLURB[design.shape] ?? 'A distinct footprint shape from the same brief.',
     design,
   }))
 }
 
-export function generate(model: CanonicalModel, opts: Strategy | GenerateOpts = {}): Design {
-  const o: GenerateOpts = typeof opts === 'string' ? { strategy: opts } : opts
+export function generate(model: CanonicalModel, opts: GenerateOpts = {}): Design {
+  const o = opts
   const grid = model.grid
   const large = model.brief.project.buildingType === 'large-villa'
 
-  const req: MassingRequest = {
-    type:
-      o.massing ??
-      (o.strategy === 'wing-split' ? 'side-wing' : o.strategy === 'orthogonal-core' ? 'rectangular' : model.brief.style.massing),
-    diversity: o.diversity ?? model.brief.style.diversity,
-    seed: o.seed ?? model.brief.variation,
-  }
+  const seed = o.seed ?? model.brief.variation
+  const want = o.shape ?? model.brief.style.shape
 
   const envelope: Rect = {
     x: model.setbacksMm.W,
@@ -168,69 +168,70 @@ export function generate(model: CanonicalModel, opts: Strategy | GenerateOpts = 
   else if (outdoorIds.has('verandah') || outdoorIds.has('courtyard')) frontStrip = verandahD
   if (frontStrip > 0) frontStrip += 300
 
-  // --- house footprint ---
+  // --- house footprint: sized to the busiest floor's programme, not the whole
+  // plot, so rooms land near their brief targets instead of ballooning ---
   const plotArea = model.plot.width * model.plot.depth
-  let houseW = snap(Math.min(envelope.w, 22000), grid)
-  let houseH = snap(clamp(envelope.h - frontStrip, 6000, 18000), grid)
-
-  if (large) {
-    // A large villa is sized to its (inflated) programme, not to the whole plot
-    // — grander rooms that stay believable rather than ballooning to fill a big
-    // site. The ground footprint must hold the busiest single floor; shape it to
-    // the plot aspect and cap it under the concept coverage limit.
-    const floorProg = (spaces: SpaceReq[]) =>
-      spaces.filter((s) => !s.outdoor).reduce((a, s) => a + s.target, 0) * 1e6
-    const busiest = Math.max(...model.floors.map((fp) => floorProg(fp.spaces)))
-    const envH = clamp(envelope.h - frontStrip, 6000, 24000)
-    const envW = Math.min(envelope.w, 30000)
-    const budget = Math.min((busiest / 0.62) * 1.15, plotArea * 0.56)
-    houseW = snap(clamp(Math.sqrt(budget * (envW / envH)), 11000, envW), grid)
-    houseH = snap(clamp(budget / houseW, 9000, envH), grid)
-  }
-  // --- the buildable ground rectangle the massing grammar carves blocks from ---
+  // the upper lobby folds into the hub — don't reserve floor area for it
+  const busiestSqm =
+    Math.max(
+      ...model.floors.map((fp) =>
+        fp.spaces
+          .filter((s) => !s.outdoor && !/^lobby\d+$/.test(s.id))
+          .reduce((a, s) => a + s.target, 0),
+      ),
+    ) * 1e6
+  // covered parking sits mostly within the entry-side setback, so it only costs
+  // the house the part that spills past it
+  const entrySetback = Math.min(model.setbacksMm[model.entrySide] ?? 0, 3200)
+  const stripCost = frontStrip > 0 ? Math.max(frontStrip * 0.4, frontStrip - entrySetback * 0.8) : 0
+  const envH = clamp(envelope.h - stripCost, 6000, 24000)
+  const envW = Math.min(envelope.w, large ? 30000 : 24000)
+  // a real floor is ~76 % habitable rooms (rest = walls + the hub's circulation
+  // role); +4 % headroom, and never more than ~53 % of the plot
+  const budget = Math.min((busiestSqm / 0.76) * (large ? 1.18 : 1.04), plotArea * (large ? 0.56 : 0.53))
+  // keep the house close to what the programme needs — a bigger plot buys a
+  // garden, not a runaway living room. Aspect follows the plot, capped ~2:1.
+  const plotAsp = clamp(envW / envH, 0.5, 2.1)
+  let houseW = snap(clamp(Math.sqrt(budget * plotAsp), large ? 11000 : 8000, envW), grid)
+  let houseH = snap(clamp(budget / houseW, large ? 9000 : 6800, Math.min(envH, houseW * (large ? 1.4 : 1.3))), grid)
+  // --- the buildable ground rectangle a shape carves its blocks from ---
   const env: Rect = {
     x: snap(envelope.x + (envelope.w - houseW) / 2, grid),
     y: envelope.y,
     w: houseW,
     h: houseH,
   }
-  const coreW = snap(clamp(model.brief.levels.stairWidth * 2 + 600, 2400, 2900), grid)
+  // the core column doubles as the ground-floor service run, so it must hold a
+  // kitchen (~2.9 m) as well as the stair
+  const coreW = snap(clamp(model.brief.levels.stairWidth * 2 + 600, 2600, 3000), grid)
+  const coreH = STAIR_LEN + 800
 
-  const floorProgSqm = model.floors.map(
-    (fp) => fp.spaces.filter((s) => !s.outdoor).reduce((a, s) => a + s.target, 0) + 12,
+  const programSqm = Math.max(
+    ...model.floors.map((fp) => fp.spaces.filter((s) => !s.outdoor).reduce((a, s) => a + s.target, 0)),
   )
-  const mctx: MassingCtx = {
-    storeys: model.brief.levels.storeys,
-    coreW,
-    entrySide: model.entrySide,
-    grid,
-    plotW: model.plot.width,
-    plotD: model.plot.depth,
-    floorProgSqm,
-    roofBias: themeOf(model.brief).roofBias,
-  }
-  // brief-key is the variation-independent hash (before the `-<variation>` tail)
-  // so a pinned direction reproduces exactly when its seed is written to the brief
   const briefKey = model.seed.split('-')[0]
-  const plan = planMassing(env, mctx, req, briefKey)
+  const rng = makeRng(seed, briefKey)
 
-  // the stair core sits in the column every storey shares (planMassing.placeCore)
-  const gbb = rectUnionBBox(plan.floors[0].blocks)
-  const coreRect: Rect = {
-    x: clamp(snap(plan.coreBlock.x, grid), gbb.x, rectRight(gbb) - coreW),
-    y: snap(plan.coreBlock.y, grid),
-    w: coreW,
-    h: Math.min(plan.coreBlock.h, STAIR_LEN + 900),
+  const shapeCtx: ShapeCtx = {
+    env,
+    houseW,
+    houseH,
+    coreW,
+    coreH,
+    entryEdge: model.entrySide,
+    grid,
+    storeys: model.brief.levels.storeys,
+    programSqm,
   }
-  const stairRect: Rect = {
-    x: coreRect.x + INT_WALL,
-    y: coreRect.y + INT_WALL,
-    w: coreRect.w - INT_WALL * 2,
-    h: STAIR_LEN,
-  }
+  const footprint = pickShape(shapeCtx, { want, seed }, rng)
 
-  const ctx: Ctx = { houseRect: gbb, coreRect, stairRect, envelope, grid, twoCar, large, plan }
-  const floors = model.floors.map((fp, i) => buildFloor(fp, model, ctx, plan.floors[i]))
+  // the covered porch may run out into the entry-side setback, up to the plot line
+  const frontLimitY = model.plot.depth - 200
+  const ctx: Ctx = { footprint, envelope, grid, twoCar, large, frontLimitY }
+  const roofBias = themeOf(model.brief).roofBias
+  const floors = model.floors.map((fp) =>
+    buildFloor(fp, model, ctx, roofBias, makeRng(seed, `${briefKey}|${fp.level}`)),
+  )
 
   const groundMm2 = rectUnionArea(floors[0].footprint)
   const builtMm2 = floors.reduce((a, f) => a + rectUnionArea(f.footprint), 0)
@@ -248,11 +249,11 @@ export function generate(model: CanonicalModel, opts: Strategy | GenerateOpts = 
   const windows = floors.reduce((n, f) => n + f.openings.filter((o) => o.kind === 'window').length, 0)
 
   return {
-    id: `${model.seed}-${plan.type}-${req.seed}`,
+    id: `${model.seed}-${footprint.shape}-${seed}`,
     seed: model.seed,
-    algorithm: 'massing-grammar-v1',
-    candidate: plan.type,
-    massingType: plan.type,
+    algorithm: 'real-topology-v1',
+    candidate: footprint.shape,
+    shape: footprint.shape,
     model,
     floors,
     builtAreaSqm,
@@ -265,219 +266,49 @@ export function generate(model: CanonicalModel, opts: Strategy | GenerateOpts = 
 }
 
 type Ctx = {
-  /** bbox of the ground floor's blocks — the many clamp/snap sites use this */
-  houseRect: Rect
-  coreRect: Rect
-  stairRect: Rect
+  footprint: Footprint
   envelope: Rect
   grid: number
   twoCar: boolean
   large: boolean
-  plan: MassingPlan
+  frontLimitY: number
+}
+
+/** the top-storey roof for a style's bias; lower storeys are always flat */
+function roofFor(bias: 'flat' | 'pitched' | 'mixed', top: boolean, rng: Rng): RoofSpec {
+  if (!top) return { kind: 'flat' }
+  const pitchChance = bias === 'pitched' ? 1 : bias === 'mixed' ? 0.5 : 0
+  return pitchChance > 0 && rng.chance(pitchChance)
+    ? { kind: rng.pick(['hip', 'gable', 'mono-slope'] as const), pitchDeg: rng.int(16, 28) }
+    : { kind: rng.chance(0.5) ? 'flat-parapet' : 'flat' }
 }
 
 function buildFloor(
   fp: FloorProgram,
   model: CanonicalModel,
   ctx: Ctx,
-  fm: FloorMassing,
+  roofBias: 'flat' | 'pitched' | 'mixed',
+  rng: Rng,
 ): FloorPlan {
-  const { coreRect, stairRect, envelope, grid, twoCar } = ctx
-  const rooms: PlacedRoom[] = []
-  const blocks = fm.blocks
+  const { footprint, envelope, grid, twoCar, frontLimitY } = ctx
+  const blocks = footprint.blocks
   const houseRect = rectUnionBBox(blocks)
-
-  const core = fp.spaces.filter((s) => s.zone === 'circulation')
+  const court = fp.level === 0 ? footprint.courtyard : null
   const outdoor = fp.spaces.filter((s) => s.outdoor)
-  const interior = [...fp.spaces.filter((s) => s.zone !== 'circulation' && !s.outdoor)].sort(
-    (a, b) => (ZONE_ORDER[a.zone] ?? 9) - (ZONE_ORDER[b.zone] ?? 9),
-  )
 
-  // ---- the block that carries the vertical core, and the core strip within it.
-  // planMassing guarantees a block on every storey covers the canonical coreRect
-  // column, so the stair lands at the same (x,y) on each floor.
-  const coreCx = coreRect.x + coreRect.w / 2
-  const coreCy = coreRect.y + Math.min(coreRect.h, STAIR_LEN) / 2
-  const coreBlock =
-    blocks.find(
-      (b) =>
-        coreCx >= b.x - 2 &&
-        coreCx <= rectRight(b) + 2 &&
-        coreRect.y >= b.y - 2 &&
-        rectBottom(b) >= coreRect.y + STAIR_LEN - 2,
-    ) ??
-    blocks.find((b) => coreCx >= b.x && coreCx <= rectRight(b) && coreCy >= b.y && coreCy <= rectBottom(b)) ??
-    [...blocks].sort((a, b) => rectArea(b) - rectArea(a))[0]
-  const coreStrip: Rect = {
-    x: clamp(snap(coreRect.x, grid), coreBlock.x, Math.max(coreBlock.x, rectRight(coreBlock) - coreRect.w)),
-    y: coreRect.y,
-    w: coreRect.w,
-    h: rectBottom(coreBlock) - coreRect.y,
-  }
-
-  // ---- core strip, north→south: [stair] [circulation?] [foyer / lobby] ----
-  const stairSpace = core.find((s) => s.id === 'stair')
-  const frontSpace = core.find((s) => s.id === 'foyer' || s.id.startsWith('lobby'))
-  const circSpace = core.find((s) => s.id.startsWith('circ'))
-
-  const southStart = stairSpace ? stairRect.y + stairRect.h : coreStrip.y
-  let cursor = southStart
-  const southH = rectBottom(coreStrip) - southStart
-
-  if (stairSpace) {
-    rooms.push(place(stairSpace, { x: coreStrip.x, y: coreStrip.y, w: coreStrip.w, h: stairRect.h }))
-  }
-  if (circSpace && southH > 3200) {
-    const circH = snap(clamp(southH * 0.42, 1600, 3200), grid)
-    rooms.push(place(circSpace, { x: coreStrip.x, y: cursor, w: coreStrip.w, h: circH }))
-    cursor += circH
-  }
-  if (frontSpace) {
-    rooms.push(
-      place(frontSpace, { x: coreStrip.x, y: cursor, w: coreStrip.w, h: rectBottom(coreStrip) - cursor }),
-    )
-  }
-
-  // ---- main area: treemap of interior spaces, bedrooms carrying their ensuite ----
-  const bathFor = new Map<string, SpaceReq>()
-  const consumed = new Set<string>()
-  model.relationships
-    .filter((rel) => rel.kind === 'adjacent')
-    .forEach((rel) => {
-      const bed = interior.find((s) => s.id === rel.a && s.zone === 'private')
-      const bath = interior.find((s) => s.id === rel.b && s.wet)
-      if (bed && bath) {
-        bathFor.set(bed.id, bath)
-        consumed.add(bath.id)
-      }
-    })
-
-  const units = interior
-    .filter((s) => !consumed.has(s.id))
-    .map((s) => {
-      const bath = bathFor.get(s.id)
-      return { id: s.id, weight: s.target + (bath?.target ?? 0), room: s, bath }
-    })
-
-  // a ring plan (courtyard / U) or any multi-block footprint fills its spare
-  // bands with halls so every wing stays connected
-  const court = fp.level === 0 ? ctx.plan.courtyard : null
-  const multiRegion = blocks.length > 1 || !!court
-
-  const snapRect = (r: Rect): Rect => {
-    const x = clamp(snap(r.x, grid), houseRect.x, rectRight(houseRect) - grid)
-    const y = clamp(snap(r.y, grid), houseRect.y, rectBottom(houseRect) - grid)
-    return {
-      x,
-      y,
-      w: Math.min(snap(r.w, grid), rectRight(houseRect) - x),
-      h: Math.min(snap(r.h, grid), rectBottom(houseRect) - y),
-    }
-  }
-
-  const fill = (us: typeof units, region: Rect, tag = '') => {
-    if (region.w < 1500 || region.h < 1500) return
-
-    // An empty region (a spare wing on a sparse upper floor, or a connecting
-    // band of a courtyard / U ring on any floor) becomes one hall — it fills the
-    // footprint and, on a ring plan, is the corridor that keeps every wing
-    // reachable.
-    if (us.length === 0) {
-      if (fp.level > 0 || multiRegion) {
-        rooms.push(place(hallSpace(fp.level, tag, toSqm(rectArea(region))), snapRect(region)))
-      }
-      return
-    }
-
-    // A sparse upper floor leaves the treemap more area than the programme needs,
-    // so every room inflates past its brief maximum. Carve the surplus off as a
-    // hall strip on the CORE side of the region (a staple of Indian house
-    // planning, and a tidy circulation spine) so the real rooms keep the
-    // daylight perimeter and land near their target sizes.
-    let roomRegion = region
-    const surplus = toSqm(rectArea(region)) - us.reduce((a, u) => a + u.weight, 0)
-    if (fp.level > 0 && surplus >= 8) {
-      let hallW = snap((surplus * 1e6) / region.h, grid)
-      hallW = Math.min(hallW, snap(region.w * 0.4, grid))
-      if (hallW >= 2000 && region.w - hallW >= 3800) {
-        // the hall hugs whichever region edge is closer to the core strip
-        const coreCxLocal = coreStrip.x + coreStrip.w / 2
-        const hallOnRight = coreCxLocal > region.x + region.w / 2
-        const hallRect = hallOnRight
-          ? { ...region, x: region.x + region.w - hallW, w: hallW }
-          : { ...region, w: hallW }
-        rooms.push(place(hallSpace(fp.level, tag, surplus), snapRect(hallRect)))
-        roomRegion = hallOnRight
-          ? { x: region.x, y: region.y, w: region.w - hallW, h: region.h }
-          : { x: region.x + hallW, y: region.y, w: region.w - hallW, h: region.h }
-      }
-    }
-
-    const cells = squarify(us.map((u) => ({ id: u.id, weight: u.weight })), roomRegion)
-    for (const u of us) {
-      const cell = cells.get(u.id)
-      if (!cell) continue
-      if (!u.bath) {
-        rooms.push(place(u.room, snapRect(cell)))
-        continue
-      }
-      const [bedRect, bathRect] = splitEnsuite(cell, u.bath.target, coreStrip)
-      rooms.push(place(u.room, snapRect(bedRect)))
-      rooms.push(place(u.bath, snapRect(bathRect)))
-    }
-  }
-
-  // ---- one or more fillable regions per block (block minus the core strip,
-  // minus the courtyard on the ground floor) ----
-  const subtract = (r: Rect, hole: Rect): Rect[] => {
-    const ix = Math.max(r.x, hole.x)
-    const iy = Math.max(r.y, hole.y)
-    const ir = Math.min(rectRight(r), rectRight(hole))
-    const ib = Math.min(rectBottom(r), rectBottom(hole))
-    if (ir - ix < 200 || ib - iy < 200) return [r] // no meaningful overlap
-    const out: Rect[] = []
-    if (ix - r.x > 1800) out.push({ x: r.x, y: r.y, w: snap(ix - r.x, grid), h: r.h })
-    if (rectRight(r) - ir > 1800) out.push({ x: snap(ir, grid), y: r.y, w: snap(rectRight(r) - ir, grid), h: r.h })
-    if (iy - r.y > 1800) out.push({ x: r.x, y: r.y, w: r.w, h: snap(iy - r.y, grid) })
-    if (rectBottom(r) - ib > 1800) out.push({ x: r.x, y: snap(ib, grid), w: r.w, h: snap(rectBottom(r) - ib, grid) })
-    return out.length ? out : [r]
-  }
-  const regions: { r: Rect; tag: string }[] = []
-  blocks.forEach((b, bi) => {
-    let pieces: Rect[] = [b]
-    if (b === coreBlock) pieces = pieces.flatMap((p) => subtract(p, { ...coreStrip, y: houseRect.y, h: houseRect.h }))
-    if (court) pieces = pieces.flatMap((p) => subtract(p, court))
-    pieces.filter((p) => p.w > 2400 && p.h > 2400).forEach((r, pi) => regions.push({ r, tag: `b${bi}${pi}` }))
-  })
-  if (regions.length === 0) regions.push({ r: houseRect, tag: 'm' })
-
-  // ---- distribute the units: largest-first into the region with the most slack ----
-  const buckets: (typeof units)[] = regions.map(() => [])
-  const load = regions.map(() => 0)
-  for (const u of [...units].sort((a, b) => b.weight - a.weight)) {
-    let bi = 0
-    let best = -Infinity
-    regions.forEach((rg, i) => {
-      const slack = toSqm(rectArea(rg.r)) - load[i]
-      if (slack > best) {
-        best = slack
-        bi = i
-      }
-    })
-    buckets[bi].push(u)
-    load[bi] += u.weight
-  }
-  regions.forEach((rg, i) => fill(buckets[i], rg.r, rg.tag))
+  // ---- rooms around the circulation hub, per the ResPlan grammar ----
+  const laid = layoutFloor(fp, footprint, model, { grid, large: ctx.large }, rng)
+  const rooms = laid.rooms
 
   sealGaps(rooms, grid)
   repairNarrow(rooms, grid)
   absorbSlivers(rooms)
   sealGaps(rooms, grid)
-  repairWindows(rooms, enclosedOutline(rooms))
+  repairWindows(rooms, blocks)
 
   // ---- outdoor ----
   if (fp.level === 0 && outdoor.length > 0) {
-    layoutFrontYard(outdoor, rooms, { houseRect, envelope, grid, twoCar, large: ctx.large })
+    layoutFrontYard(outdoor, rooms, { houseRect, envelope, grid, twoCar, large: ctx.large, frontLimitY })
   } else if (fp.level > 0) {
     for (const s of outdoor) {
       if (!s.id.startsWith('balcony')) continue
@@ -494,11 +325,13 @@ function buildFloor(
     }
   }
 
-  // the massing defines the outline (a rect union), not where rooms happened to land
+  // the footprint defines the outline (a rect union), not where rooms landed
   const outline = houseRect
   const walls = deriveWalls(rooms, blocks, court)
   const openings: Opening[] = []
   deriveDoors(rooms, model.relationships, openings)
+  // the ResPlan invariant: every habitable room gets a door onto the hub
+  linkToHub(rooms, laid.hubId, openings)
   const entryRoom = rooms.find((r) => r.id === 'foyer' || r.id.startsWith('lobby'))
   if (entryRoom && fp.level === 0) {
     addEntry(entryRoom, outline, model.brief.entry.mainDoorWidth, openings)
@@ -509,20 +342,29 @@ function buildFloor(
     const at = { x: Math.round(b.rect.x + b.rect.w / 2), y: rectBottom(outline) }
     openings.push({ kind: 'door', at, orient: 'h', width: clamp(b.rect.w - 700, 900, 1600) })
   }
-  // window rhythm on every daylight facade, clear of the doors above — the
-  // spacing and proportion are set by the chosen design character. The mullion
-  // grid is anchored to the ground footprint so stacked storeys line up.
-  deriveWindows(rooms, outline, openings, themeOf(model.brief).windows, ctx.houseRect)
+  // one window per daylight room, centred on its exterior wall and clear of the
+  // doors already placed — width by room type, per scripts/opening_stats.json.
+  deriveWindows(rooms, walls, openings, themeOf(model.brief).windows)
 
   const { reachable, unreachableRooms } = repairReachability(rooms, openings, fp.level)
-  const stair = stairSpace ? makeStair(stairRect, model.brief.levels.floorToFloor) : undefined
+  const stair = laid.stairRect
+    ? makeStair(
+        {
+          x: laid.stairRect.x + INT_WALL,
+          y: laid.stairRect.y + INT_WALL,
+          w: laid.stairRect.w - 2 * INT_WALL,
+          h: STAIR_LEN,
+        },
+        model.brief.levels.floorToFloor,
+      )
+    : undefined
 
   return {
     level: fp.level,
     name: fp.name,
     outline,
     footprint: blocks,
-    roof: fm.roof,
+    roof: roofFor(roofBias, fp.level === model.floors.length - 1, rng),
     courtyard: court,
     rooms,
     walls,
@@ -533,16 +375,43 @@ function buildFloor(
   }
 }
 
+/** a door onto the hub for every habitable room sharing a wall with it */
+function linkToHub(rooms: PlacedRoom[], hubId: string | null, out: Opening[]) {
+  if (!hubId) return
+  const hub = rooms.find((r) => r.id === hubId)
+  if (!hub) return
+  for (const r of rooms) {
+    if (r.id === hubId || r.outdoor) continue
+    if (/^bath\d+$/.test(r.id)) continue // an ensuite doors to its bedroom
+    const e = sharedEdge(hub.rect, r.rect)
+    if (!e || e.length < DOOR_LEAF + 120) continue
+    // the stair opens to the hub as a wide leaf-less cased opening — it reads as
+    // part of the living room / lounge, not a separate stair hall
+    const width = r.id === 'stair' ? Math.min(DOOR_CASED, e.length - 120) : undefined
+    const d = doorOnEdge(e, { width, swing: swingInto(e, hub, r) })
+    if (out.some((o) => near(o.at, d.at, 500))) continue
+    out.push(d)
+  }
+}
+
 /* ---------------------------------- layout --------------------------------- */
 
 function layoutFrontYard(
   outdoor: SpaceReq[],
   rooms: PlacedRoom[],
-  o: { houseRect: Rect; envelope: Rect; grid: number; twoCar: boolean; large: boolean },
+  o: {
+    houseRect: Rect
+    envelope: Rect
+    grid: number
+    twoCar: boolean
+    large: boolean
+    frontLimitY: number
+  },
 ) {
-  const { houseRect, envelope, grid, twoCar, large } = o
+  const { houseRect, envelope, grid, twoCar, large, frontLimitY } = o
   const frontY = rectBottom(houseRect) + 200
-  const availH = rectBottom(envelope) - frontY - 100
+  // the porch may spill past the buildable envelope into the entry setback
+  const availH = Math.max(rectBottom(envelope), frontLimitY) - frontY - 100
   let cx = houseRect.x
 
   const sizeFor = (s: SpaceReq): { w: number; h: number } => {
@@ -563,61 +432,7 @@ function layoutFrontYard(
 }
 
 /**
- * Carve an ensuite bath out of a bedroom cell, pushed to the interior (core)
- * side. The split axis is chosen so the bedroom keeps ≥ 2.4 m and the bath ≥
- * 1.5 m; if the cell is too small to honour both, the tighter constraint (the
- * bedroom) wins and the bath takes what's left.
- */
-function splitEnsuite(cell: Rect, bathTargetSqm: number, coreStrip: Rect): [Rect, Rect] {
-  const BED_MIN = 2400
-  const BATH_MIN = 1500
-  const bathArea = bathTargetSqm * 1e6
-  const nearCoreWest = Math.abs(cell.x - rectRight(coreStrip)) < cell.w
-
-  // width the bath would need on each axis, clamped so the bedroom keeps BED_MIN
-  const bwV = clamp(bathArea / cell.h, BATH_MIN, Math.max(BATH_MIN, cell.w - BED_MIN))
-  const bhH = clamp(bathArea / cell.w, BATH_MIN, Math.max(BATH_MIN, cell.h - BED_MIN))
-
-  const vertOk = cell.w - bwV >= BED_MIN && cell.w >= BED_MIN + BATH_MIN
-  const horizOk = cell.h - bhH >= BED_MIN && cell.h >= BED_MIN + BATH_MIN
-  // prefer splitting along the longer axis when both work
-  const splitVert = vertOk && (!horizOk || cell.w >= cell.h)
-
-  if (splitVert) {
-    return nearCoreWest
-      ? [
-          { x: cell.x + bwV, y: cell.y, w: cell.w - bwV, h: cell.h },
-          { x: cell.x, y: cell.y, w: bwV, h: cell.h },
-        ]
-      : [
-          { x: cell.x, y: cell.y, w: cell.w - bwV, h: cell.h },
-          { x: cell.x + cell.w - bwV, y: cell.y, w: bwV, h: cell.h },
-        ]
-  }
-  if (horizOk) {
-    return [
-      { x: cell.x, y: cell.y + bhH, w: cell.w, h: cell.h - bhH },
-      { x: cell.x, y: cell.y, w: cell.w, h: bhH },
-    ]
-  }
-  // neither axis leaves both rooms legal — split the longer axis in a way that
-  // at least keeps the bedroom square-ish; repairNarrow mops up the rest
-  if (cell.w >= cell.h) {
-    const bw = clamp(cell.w * 0.36, BATH_MIN, cell.w - 2000)
-    return [
-      { x: cell.x + (nearCoreWest ? bw : 0), y: cell.y, w: cell.w - bw, h: cell.h },
-      { x: nearCoreWest ? cell.x : cell.x + cell.w - bw, y: cell.y, w: bw, h: cell.h },
-    ]
-  }
-  const bh = clamp(cell.h * 0.36, BATH_MIN, cell.h - 2000)
-  return [
-    { x: cell.x, y: cell.y + bh, w: cell.w, h: cell.h - bh },
-    { x: cell.x, y: cell.y, w: cell.w, h: bh },
-  ]
-}
-
-/**
- * Widen any habitable room the treemap left below the concept minimum width by
+ * Widen any habitable room the layout left below the concept minimum width by
  * sliding its party wall into the adjacent room(s) on one side — a column of
  * stacked neighbours counts, as long as together they fully cover the narrow
  * room's span and each stays above the minimum. The enclosed outline and every
@@ -792,13 +607,26 @@ function absorbSlivers(rooms: PlacedRoom[]) {
 
 /** swap any daylight-hungry room that ended up landlocked with a perimeter
  *  service room — but only when the swap-in footprint is one the habitable room
- *  can actually live in (min dimension + not a big area cut) */
-function repairWindows(rooms: PlacedRoom[], outline: Rect) {
-  const onPerimeter = (r: PlacedRoom) =>
-    Math.abs(r.rect.x - outline.x) < 2 ||
-    Math.abs(rectRight(r.rect) - rectRight(outline)) < 2 ||
-    Math.abs(r.rect.y - outline.y) < 2 ||
-    Math.abs(rectBottom(r.rect) - rectBottom(outline)) < 2
+ *  can actually live in (min dimension + not a big area cut). "Perimeter" is
+ *  tested against the real footprint edges, not the bounding box, so a room on
+ *  the inner corner of an L / U plan counts as landlocked. */
+function repairWindows(rooms: PlacedRoom[], blocks: Rect[]) {
+  const edges = rectUnionEdges(blocks)
+  const onPerimeter = (r: PlacedRoom) => {
+    for (const e of edges) {
+      const horiz = Math.abs(e.a.y - e.b.y) < 2
+      const elo = horiz ? Math.min(e.a.x, e.b.x) : Math.min(e.a.y, e.b.y)
+      const ehi = horiz ? Math.max(e.a.x, e.b.x) : Math.max(e.a.y, e.b.y)
+      if (horiz) {
+        if (Math.abs(r.rect.y - e.a.y) > 3 && Math.abs(rectBottom(r.rect) - e.a.y) > 3) continue
+        if (Math.min(rectRight(r.rect), ehi) - Math.max(r.rect.x, elo) > 1200) return true
+      } else {
+        if (Math.abs(r.rect.x - e.a.x) > 3 && Math.abs(rectRight(r.rect) - e.a.x) > 3) continue
+        if (Math.min(rectBottom(r.rect), ehi) - Math.max(r.rect.y, elo) > 1200) return true
+      }
+    }
+    return false
+  }
 
   const HABIT_MIN = 2400
   for (const r of rooms) {
@@ -833,20 +661,6 @@ function place(s: SpaceReq, rect: Rect): PlacedRoom {
   }
 }
 
-/** A slack-absorbing hall so treemap rooms don't inflate past the brief. */
-function hallSpace(level: number, tag: string, sqm: number): SpaceReq {
-  return {
-    id: `hall${level}${tag}`,
-    name: 'Hall',
-    zone: 'circulation',
-    target: sqm,
-    min: 6,
-    max: 999,
-    wantsWindow: false,
-    wet: false,
-    outdoor: false,
-  }
-}
 
 function enclosedOutline(rooms: PlacedRoom[]): Rect {
   const enc = rooms.filter((r) => !r.outdoor)
@@ -913,102 +727,166 @@ type WindowSpec = {
   perFacade: number
 }
 
+const WIN_W_BY_KIND: Record<string, number> = {
+  living: 2000,
+  dining: 1650,
+  kitchen: 1350,
+  bed: 1400,
+  study: 1300,
+  bath: 700,
+}
+
+const isWet = (r: PlacedRoom) => /bath|toilet|\bwc\b|powder/i.test(`${r.id} ${r.name}`)
+
+function winKind(r: PlacedRoom): keyof typeof WIN_W_BY_KIND {
+  if (isWet(r)) return 'bath'
+  if (r.id === 'living' || r.id.startsWith('familyLounge') || r.id.startsWith('hall')) return 'living'
+  if (r.id === 'dining') return 'dining'
+  if (r.id === 'kitchen') return 'kitchen'
+  if (r.id === 'study') return 'study'
+  return 'bed'
+}
+
 /**
- * At most one window per habitable room and no more than `perFacade` on any one
- * facade of a storey — the largest rooms win. Windows snap to a shared per-facade
- * mullion grid so they line up between storeys. Small rooms (baths, utility,
- * pooja) get none. The rhythm is a design-character choice.
+ * One window per daylight room, **centred on the room's exterior wall** — real
+ * plans centre 95 % of windows within 15 % of the wall midpoint (SYNBUILD-3D),
+ * they do not snap to a building-wide mullion grid. A long wall in a large
+ * living room gets a pair; a wet room on an outside wall gets a small high one.
+ * `walls` carries the real exterior run so L / U footprints resolve correctly.
  */
-function deriveWindows(
-  rooms: PlacedRoom[],
-  outline: Rect,
-  out: Opening[],
-  spec: WindowSpec,
-  gridRef: Rect,
-) {
-  const MULLION = spec.mullionMm // window-column spacing (mm)
-  const MIN_ROOM = spec.minRoomSqm // m² — smaller habitable rooms get no massing window
-  const WIN_W = spec.widthMm
+function deriveWindows(rooms: PlacedRoom[], walls: Wall[], out: Opening[], spec: WindowSpec) {
+  const ext = walls.filter((w) => w.kind === 'exterior')
+  const cap = Math.max(1400, spec.widthMm) // the theme's widest single pane
 
-  const edges = [
-    { orient: 'h' as const, fixed: outline.y, lo: outline.x, hi: rectRight(outline), glo: gridRef.x, ghi: rectRight(gridRef) },
-    { orient: 'h' as const, fixed: rectBottom(outline), lo: outline.x, hi: rectRight(outline), glo: gridRef.x, ghi: rectRight(gridRef) },
-    { orient: 'v' as const, fixed: outline.x, lo: outline.y, hi: rectBottom(outline), glo: gridRef.y, ghi: rectBottom(gridRef) },
-    { orient: 'v' as const, fixed: rectRight(outline), lo: outline.y, hi: rectBottom(outline), glo: gridRef.y, ghi: rectBottom(gridRef) },
-  ]
+  /** the exterior wall run coincident with room side `s`, as [lo, hi] along it, or null */
+  const run = (rc: Rect, s: Side4): [number, number] | null => {
+    const horiz = s === 'N' || s === 'S'
+    const line = s === 'N' ? rc.y : s === 'S' ? rectBottom(rc) : s === 'W' ? rc.x : rectRight(rc)
+    const rlo = horiz ? rc.x : rc.y
+    const rhi = horiz ? rectRight(rc) : rectBottom(rc)
+    let lo = Infinity
+    let hi = -Infinity
+    for (const w of ext) {
+      const wHoriz = Math.abs(w.a.y - w.b.y) < 2
+      if (wHoriz !== horiz) continue
+      if (Math.abs((wHoriz ? w.a.y : w.a.x) - line) > 3) continue
+      const wLo = wHoriz ? Math.min(w.a.x, w.b.x) : Math.min(w.a.y, w.b.y)
+      const wHi = wHoriz ? Math.max(w.a.x, w.b.x) : Math.max(w.a.y, w.b.y)
+      const s0 = Math.max(rlo, wLo)
+      const s1 = Math.min(rhi, wHi)
+      if (s1 - s0 > 900) {
+        lo = Math.min(lo, s0)
+        hi = Math.max(hi, s1)
+      }
+    }
+    return hi > lo ? [lo, hi] : null
+  }
 
-  const touchesEdge = (r: PlacedRoom, orient: 'h' | 'v', fixed: number) =>
-    orient === 'h'
-      ? Math.abs(r.rect.y - fixed) < 2 || Math.abs(rectBottom(r.rect) - fixed) < 2
-      : Math.abs(r.rect.x - fixed) < 2 || Math.abs(rectRight(r.rect) - fixed) < 2
+  for (const r of rooms) {
+    if (r.outdoor) continue
+    const wet = isWet(r)
+    if (!r.wantsWindow && !wet) continue
+    if (r.area < 5 && !wet) continue
 
-  for (const e of edges) {
-    const span = e.hi - e.lo
-    if (span < 2400) continue
-    // the column grid is fixed to the ground footprint (glo/ghi) so windows on
-    // every storey snap to the same lines and stack vertically
-    const gspan = e.ghi - e.glo
-    const cols = Math.max(1, Math.round((gspan - 1400) / MULLION))
-    const line = (i: number) => Math.round(e.glo + (gspan * (i + 0.5)) / cols)
+    const cands = SIDE4
+      .map((s) => ({ s, run: run(r.rect, s) }))
+      .filter((c): c is { s: Side4; run: [number, number] } => c.run !== null)
+    if (!cands.length) continue
+    cands.sort((a, b) => b.run[1] - b.run[0] - (a.run[1] - a.run[0]))
+    const { s: side, run: rr } = cands[0]
+    const horiz = side === 'N' || side === 'S'
+    const fixed = side === 'N' ? r.rect.y : side === 'S' ? rectBottom(r.rect) : side === 'W' ? r.rect.x : rectRight(r.rect)
+    const runLen = rr[1] - rr[0]
+    const mid = (rr[0] + rr[1]) / 2
+    const kind = winKind(r)
+    const baseW = kind === 'living' ? Math.min(cap, 2400) : WIN_W_BY_KIND[kind]
 
-    // biggest rooms on this facade first, capped
-    const facadeRooms = rooms
-      .filter(
-        (r) =>
-          !r.outdoor &&
-          r.wantsWindow &&
-          r.area >= MIN_ROOM &&
-          touchesEdge(r, e.orient, e.fixed) &&
-          (e.orient === 'h'
-            ? rectRight(r.rect) - r.rect.x
-            : rectBottom(r.rect) - r.rect.y) >= 1600,
-      )
-      .sort((a, b) => b.area - a.area)
-      .slice(0, spec.perFacade)
+    // spans already taken on this wall line — doors keep a 150 mm reveal, other
+    // windows a 250 mm pier
+    const blocked = (): [number, number][] =>
+      out
+        .filter((o) => Math.abs((horiz ? o.at.y : o.at.x) - fixed) < 320)
+        .map((o) => {
+          const c = horiz ? o.at.x : o.at.y
+          const pad = o.kind === 'window' ? 250 : 150
+          return [c - o.width / 2 - pad, c + o.width / 2 + pad]
+        })
 
-    for (const r of facadeRooms) {
-      const rlo = e.orient === 'h' ? r.rect.x : r.rect.y
-      const rhi = e.orient === 'h' ? rectRight(r.rect) : rectBottom(r.rect)
-      const rc = (rlo + rhi) / 2
-
-      // nearest mullion column landing inside this room AND on this storey's
-      // wall, else the room centre
-      let along = Math.round(rc)
-      let best = Infinity
-      const wLo = Math.max(rlo, e.lo) + 600
-      const wHi = Math.min(rhi, e.hi) - 600
-      for (let i = 0; i < cols; i++) {
-        const c = line(i)
-        if (c > wLo && c < wHi && Math.abs(c - rc) < best) {
-          best = Math.abs(c - rc)
-          along = c
+    /** centre a window on `want`, then slide / shrink until it clears the doors */
+    const place = (want: number, wide: number) => {
+      const b = blocked()
+      const fits = (a: number, w: number) =>
+        a - w / 2 >= rr[0] + 60 &&
+        a + w / 2 <= rr[1] - 60 &&
+        !b.some(([b0, b1]) => a - w / 2 < b1 && a + w / 2 > b0)
+      for (const w of [Math.min(wide, runLen - 300), Math.max(650, wide * 0.6), 550]) {
+        if (w < 520) break
+        const steps: number[] = [want]
+        for (let d = 250; d <= runLen; d += 250) steps.push(want + d, want - d)
+        for (const s of steps) {
+          const a = Math.round(clamp(s, rr[0] + w / 2 + 60, rr[1] - w / 2 - 60))
+          if (fits(a, w)) {
+            out.push({
+              kind: 'window',
+              at: horiz ? { x: a, y: fixed } : { x: fixed, y: a },
+              orient: horiz ? 'h' : 'v',
+              width: Math.round(w),
+            })
+            return
+          }
         }
       }
+    }
 
-      const perpOf = (o: Opening) => (e.orient === 'h' ? o.at.y : o.at.x)
-      const alongOf = (o: Opening) => (e.orient === 'h' ? o.at.x : o.at.y)
-      const clash = out.some(
-        (o) => Math.abs(perpOf(o) - e.fixed) < 400 && Math.abs(alongOf(o) - along) < 1300,
-      )
-      if (clash) continue
-      const at: Point = e.orient === 'h' ? { x: along, y: e.fixed } : { x: e.fixed, y: along }
-      out.push({ kind: 'window', at, orient: e.orient, width: Math.min(WIN_W, rhi - rlo - 1000) })
+    const twin = !wet && runLen >= 4400 && (kind === 'living' || r.area >= 20)
+    if (twin) {
+      const off = runLen / 4
+      const each = Math.min(baseW, runLen / 2 - 500)
+      place(mid - off, each)
+      place(mid + off, each)
+    } else {
+      place(mid, baseW)
     }
   }
 }
 
+/** the coordinate a door on `edge` should hinge toward — the circulation core */
+function coreHint(rooms: PlacedRoom[]): Point {
+  const core =
+    rooms.find((r) => r.id === 'stair') ??
+    rooms.find((r) => r.id === 'foyer' || r.id.startsWith('lobby'))
+  return core ? rectCenter(core.rect) : rectCenter(enclosedOutline(rooms.filter((r) => !r.outdoor)))
+}
+
+/** which way a door between `a` and `b` should swing on `edge` — into the more private room */
+function swingInto(edge: { seg: Segment; side: Side4 }, a: PlacedRoom, b: PlacedRoom): 1 | -1 {
+  const horiz = edge.side === 'N' || edge.side === 'S'
+  const into = (ZONE_PRIVACY[b.zone] ?? 0) >= (ZONE_PRIVACY[a.zone] ?? 0) ? b : a
+  const c = rectCenter(into.rect)
+  const line = horiz ? edge.seg.a.y : edge.seg.a.x
+  return (horiz ? c.y : c.x) >= line ? 1 : -1
+}
+
 function deriveDoors(rooms: PlacedRoom[], rels: Relationship[], out: Opening[]) {
   const byId = new Map(rooms.map((r) => [r.id, r]))
+  const hint = coreHint(rooms)
   for (const rel of rels) {
     if (rel.kind === 'separated') continue
     const a = byId.get(rel.a)
     const b = byId.get(rel.b)
     if (!a || !b) continue
     const e = sharedEdge(a.rect, b.rect)
-    if (!e || e.length < DOOR + 200) continue
-    const mid = midOf(e.seg)
-    if (out.some((o) => near(o.at, mid, 400))) continue
-    out.push({ kind: 'door', at: mid, orient: e.side === 'N' || e.side === 'S' ? 'h' : 'v', width: DOOR, swing: 1 })
+    if (!e || e.length < DOOR_LEAF + 220) continue
+    const horiz = e.side === 'N' || e.side === 'S'
+    const cased = a.zone === 'social' && b.zone === 'social' && e.length >= 2600
+    const d = doorOnEdge(e, {
+      toward: horiz ? hint.x : hint.y,
+      width: cased ? DOOR_CASED : DOOR_LEAF,
+      swing: swingInto(e, a, b),
+      cased,
+    })
+    if (out.some((o) => near(o.at, d.at, 320))) continue
+    out.push(d)
   }
 }
 
@@ -1031,12 +909,24 @@ function repairReachability(rooms: PlacedRoom[], openings: Opening[], level: num
     adj.get(b)?.add(a)
   }
 
+  // two rooms are linked only by a door that actually sits ON their shared wall
+  // — not merely near its midpoint (a nearby door to a *third* room used to
+  // create a phantom link and leave the room genuinely doorless).
+  const doorOnSharedWall = (o: Opening, e: NonNullable<ReturnType<typeof sharedEdge>>) => {
+    const horiz = e.side === 'N' || e.side === 'S'
+    const fixed = horiz ? e.seg.a.y : e.seg.a.x
+    const lo = horiz ? Math.min(e.seg.a.x, e.seg.b.x) : Math.min(e.seg.a.y, e.seg.b.y)
+    const hi = horiz ? Math.max(e.seg.a.x, e.seg.b.x) : Math.max(e.seg.a.y, e.seg.b.y)
+    const perp = horiz ? o.at.y : o.at.x
+    const along = horiz ? o.at.x : o.at.y
+    return Math.abs(perp - fixed) <= 160 && along >= lo - 120 && along <= hi + 120
+  }
+
   for (let i = 0; i < enc.length; i++) {
     for (let j = i + 1; j < enc.length; j++) {
       const e = sharedEdge(enc[i].rect, enc[j].rect)
       if (!e) continue
-      const mid = midOf(e.seg)
-      if (openings.some((o) => (o.kind === 'door' || o.kind === 'entry') && near(o.at, mid, Math.max(700, e.length / 2)))) {
+      if (openings.some((o) => (o.kind === 'door' || o.kind === 'entry') && doorOnSharedWall(o, e))) {
         linkPair(enc[i].id, enc[j].id)
       }
     }
@@ -1048,23 +938,61 @@ function repairReachability(rooms: PlacedRoom[], openings: Opening[], level: num
     enc[0]
   if (!start) return { reachable: false, unreachableRooms: enc.map((r) => r.id) }
 
+  const hint = coreHint(rooms)
   const seen = bfs(start.id, adj)
+  // an attached bath (`bath2`) belongs to its bedroom (`bed2`)
+  const parentOf = (id: string) => (/^bath\d+$/.test(id) ? `bed${id.slice(4)}` : null)
+  // how good a host `other` is for a repair door into `r`. An ensuite bath opens
+  // ONLY off its own bedroom; a bedroom is never entered through its ensuite or
+  // through another bedroom; circulation > social > a study, in a pinch.
+  const hostScore = (r: PlacedRoom, other: PlacedRoom, len: number) => {
+    const rParent = parentOf(r.id)
+    const oParent = parentOf(other.id)
+    if (rParent && rParent !== other.id) return -1e9
+    if (oParent && oParent !== r.id) return -1e9
+    let s = len
+    if (rParent === other.id) s += 500000
+    else if (other.zone === 'circulation') s += 250000
+    else if (other.zone === 'social') s += 120000
+    else if (other.zone === 'work') s += 40000
+    if (other.zone === 'service') s -= 200000
+    if (r.zone === 'private' && other.zone === 'private') s -= 200000
+    if (len < 1300) s -= 180000
+    return s
+  }
+  // grow outward through circulation first, ensuite baths last, so a bedroom is
+  // connected before the bath that hangs off it
+  const REPAIR_ORDER: Record<string, number> = {
+    circulation: 0, social: 1, sacred: 2, work: 3, private: 4, service: 5, outdoor: 6,
+  }
   let changed = true
   while (changed) {
     changed = false
-    for (const r of enc) {
+    const queue = enc
+      .filter((r) => !seen.has(r.id))
+      .sort((a, b) => (REPAIR_ORDER[a.zone] ?? 9) - (REPAIR_ORDER[b.zone] ?? 9))
+    for (const r of queue) {
       if (seen.has(r.id)) continue
-      let best: { other: string; len: number; mid: Point; orient: 'h' | 'v' } | null = null
+      let best: { other: PlacedRoom; score: number; edge: ReturnType<typeof sharedEdge> } | null = null
+      let widest: { other: PlacedRoom; len: number; edge: ReturnType<typeof sharedEdge> } | null = null
       for (const other of enc) {
         if (!seen.has(other.id)) continue
         const e = sharedEdge(r.rect, other.rect)
         if (!e || e.length < DOOR) continue
-        if (!best || e.length > best.len)
-          best = { other: other.id, len: e.length, mid: midOf(e.seg), orient: e.side === 'N' || e.side === 'S' ? 'h' : 'v' }
+        const score = hostScore(r, other, e.length)
+        if (score > -1e8 && (!best || score > best.score)) best = { other, score, edge: e }
+        if (score > -1e8 && (!widest || e.length > widest.len)) widest = { other, len: e.length, edge: e }
       }
-      if (best) {
-        openings.push({ kind: 'door', at: best.mid, orient: best.orient, width: DOOR, swing: 1 })
-        linkPair(r.id, best.other)
+      // a clean 3 m opening reads better than a door squeezed into a < 1.4 m wall
+      if (best && widest && best.edge && best.edge.length < 1400 && widest.len >= 2200) {
+        best = { other: widest.other, score: 0, edge: widest.edge }
+      }
+      if (best && best.edge) {
+        const horiz = best.edge.side === 'N' || best.edge.side === 'S'
+        openings.push(
+          doorOnEdge(best.edge, { toward: horiz ? hint.x : hint.y, swing: swingInto(best.edge, r, best.other) }),
+        )
+        linkPair(r.id, best.other.id)
         for (const id of bfs(r.id, adj)) seen.add(id)
         changed = true
       }
@@ -1106,13 +1034,8 @@ function repairReachability(rooms: PlacedRoom[], openings: Opening[], level: num
       r.area = toSqm(rectArea(r.rect))
       const e = sharedEdge(r.rect, other.rect)
       if (e) {
-        openings.push({
-          kind: 'door',
-          at: midOf(e.seg),
-          orient: e.side === 'N' || e.side === 'S' ? 'h' : 'v',
-          width: DOOR,
-          swing: 1,
-        })
+        const horiz = e.side === 'N' || e.side === 'S'
+        openings.push(doorOnEdge(e, { toward: horiz ? hint.x : hint.y, swing: swingInto(e, r, other) }))
         linkPair(r.id, other.id)
         for (const id of bfs(r.id, adj)) seen.add(id)
         bridged = true
@@ -1193,5 +1116,4 @@ function makeStair(rect: Rect, floorToFloor: number): StairRun {
   return { rect, treads, direction: 'up' }
 }
 
-const midOf = (seg: { a: Point; b: Point }): Point => ({ x: (seg.a.x + seg.b.x) / 2, y: (seg.a.y + seg.b.y) / 2 })
 const near = (a: Point, b: Point, tol: number) => Math.abs(a.x - b.x) <= tol && Math.abs(a.y - b.y) <= tol

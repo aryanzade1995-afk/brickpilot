@@ -5,7 +5,7 @@ import {
   DIRECTIONS,
   DIRECTION_LABEL,
   type Direction,
-  type MassingChoice,
+  type ShapeChoice,
   type Character,
 } from '@/lib/model/brief.ts'
 import { canonicalSummary, compile } from '@/lib/model/canonical.ts'
@@ -280,35 +280,20 @@ export function StyleStep() {
 
       <div className="space-y-4">
         <div>
-          <span className="label">Massing</span>
+          <span className="label">Footprint shape</span>
           <p className="mt-1 text-sm text-ink-dim">
-            The architectural structure — footprint, floor offsets, courtyard, cantilevers.{' '}
+            The building silhouette the rooms are laid into.{' '}
             <span className="text-ink-faint">Auto</span> chooses one that fits the plot and brief.
           </p>
         </div>
         <Segmented
-          value={brief.style.massing}
-          onChange={(v) => edit((b) => void (b.style.massing = v))}
-          options={MASSING_CHOICES}
+          value={brief.style.shape}
+          onChange={(v) => edit((b) => void (b.style.shape = v))}
+          options={SHAPE_CHOICES}
         />
       </div>
 
       <div className="grid gap-8 sm:grid-cols-2">
-        <Field
-          label="Design variation"
-          hint="How far the massing pushes offsets, cantilevers and asymmetry"
-        >
-          <Segmented
-            value={brief.style.diversity}
-            onChange={(v) => edit((b) => void (b.style.diversity = v))}
-            options={[
-              { value: 'low' as const, label: 'Low' },
-              { value: 'medium' as const, label: 'Medium' },
-              { value: 'high' as const, label: 'High' },
-              { value: 'extreme' as const, label: 'Extreme' },
-            ]}
-          />
-        </Field>
         <Field label="Seed" hint="Same seed + brief → the same house; change it for a new one">
           <div className="flex items-center gap-2">
             <NumberInput
@@ -344,20 +329,14 @@ const CHARACTER_CARDS: { value: Character; title: string; body: string }[] = [
   { value: 'courtyard-indian', title: CHARACTER_LABEL['courtyard-indian'], body: 'Wings wrapping a planted courtyard behind a columned verandah and street-facing terracotta jaali screens.' },
 ]
 
-const MASSING_CHOICES: { value: MassingChoice; label: string }[] = [
+const SHAPE_CHOICES: { value: ShapeChoice; label: string }[] = [
   { value: 'auto', label: 'Auto' },
-  { value: 'rectangular', label: 'Rectangular' },
+  { value: 'square', label: 'Square' },
+  { value: 'rectangle', label: 'Rectangle' },
   { value: 'l-shape', label: 'L-shaped' },
+  { value: 't-shape', label: 'T-shaped' },
   { value: 'u-shape', label: 'U-shaped' },
   { value: 'courtyard', label: 'Courtyard' },
-  { value: 'split-volume', label: 'Split volume' },
-  { value: 'cantilever', label: 'Cantilever' },
-  { value: 'stepped', label: 'Stepped' },
-  { value: 'interlocking', label: 'Interlocking' },
-  { value: 'side-wing', label: 'Side wing' },
-  { value: 'front-projection', label: 'Front projection' },
-  { value: 'asymmetric', label: 'Asymmetric' },
-  { value: 'random', label: 'Random' },
 ]
 
 /* -------------------------------------------------------------------------- */

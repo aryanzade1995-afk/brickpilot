@@ -54,28 +54,23 @@ export const CHARACTER_LABEL: Record<Character, string> = {
   'courtyard-indian': 'Courtyard Indian modern',
 }
 
-export const massingSchema = z.enum([
-  'auto',
-  'random',
-  'rectangular',
-  'l-shape',
-  't-shape',
-  'u-shape',
-  'courtyard',
-  'rear-courtyard',
-  'offset-box',
-  'split-volume',
-  'cantilever',
-  'stepped',
-  'interlocking',
-  'central-core',
-  'side-wing',
-  'front-projection',
-  'asymmetric',
-])
-export type MassingChoice = z.infer<typeof massingSchema>
+/** footprint shape — `auto` picks by plot aspect + programme size */
+export const shapeSchema = z.enum(['auto', 'square', 'rectangle', 'l-shape', 't-shape', 'u-shape', 'courtyard'])
+export type ShapeChoice = z.infer<typeof shapeSchema>
 
-export const diversitySchema = z.enum(['low', 'medium', 'high', 'extreme'])
+/** legacy `style.massing` archetype ids → the current 6-shape vocabulary */
+const MIGRATE_SHAPE: Record<string, ShapeChoice> = {
+  random: 'auto',
+  rectangular: 'rectangle',
+  'l-shape': 'l-shape',
+  't-shape': 't-shape',
+  'u-shape': 'u-shape',
+  courtyard: 'courtyard',
+  'rear-courtyard': 'courtyard',
+  'central-core': 'square',
+  'side-wing': 'l-shape',
+  'front-projection': 't-shape',
+}
 
 /**
  * Raw wizard input. Every leaf has a default so `briefSchema.parse({})`
@@ -148,10 +143,14 @@ export const briefSchema = z
             characterSchema,
           )
           .default('modern-indian'),
-        /** architectural massing archetype — `auto` picks by fit, `random` re-rolls */
-        massing: massingSchema.default('auto'),
-        /** how far the massing grammar pushes offsets / cantilevers / asymmetry */
-        diversity: diversitySchema.default('medium'),
+        /** footprint shape — `auto` picks by plot aspect + programme size */
+        shape: z
+          .preprocess(
+            (v) => (typeof v === 'string' && v in MIGRATE_SHAPE ? MIGRATE_SHAPE[v] : v),
+            shapeSchema,
+          )
+          .catch('auto')
+          .default('auto'),
       })
       .prefault({}),
     entry: z

@@ -8,7 +8,7 @@ import { compile } from '../src/lib/model/canonical.ts'
 import { generate } from '../src/lib/engine/index.ts'
 import { validate } from '../src/lib/rules/index.ts'
 import { buildMassing, type MassKind } from '../src/lib/three/buildMassing.ts'
-import { MASSING_TYPES } from '../src/lib/engine/massing/types.ts'
+import { SHAPES } from '../src/lib/engine/index.ts'
 import { characterSchema } from '../src/lib/model/brief.ts'
 
 const PLOTS: [number, number][] = [
@@ -27,7 +27,7 @@ const flag = (tag: string, msg: string) => issues.push({ tag, msg })
 
 for (const [pw, pd] of PLOTS) {
   for (let storeys = 1; storeys <= 3; storeys++) {
-    for (const mt of MASSING_TYPES) {
+    for (const mt of SHAPES) {
       for (let ci = 0; ci < CHARS.length; ci++) {
         const character = CHARS[(ci + storeys) % CHARS.length]
         const b = defaultBrief()
@@ -40,10 +40,9 @@ for (const [pw, pd] of PLOTS) {
         b.rooms.bedroomsWithBath = 3
         b.rooms.bedroomsNoBath = 2
         b.rooms.studies = 1
-        b.rooms.priorities.courtyard = mt === 'courtyard' || mt === 'u-shape' || mt === 'rear-courtyard'
+        b.rooms.priorities.courtyard = mt === 'courtyard' || mt === 'u-shape'
         b.style.character = character
-        b.style.massing = mt
-        b.style.diversity = (['low', 'medium', 'high', 'extreme'] as const)[(pw + storeys) % 4]
+        b.style.shape = mt
         b.variation = (pw * 31 + pd * 7 + storeys * 101 + ci * 13) % 99991
 
         const tag = `${pw}x${pd} G+${storeys} ${mt}/${character}`

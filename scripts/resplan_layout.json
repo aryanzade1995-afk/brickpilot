@@ -1,0 +1,334 @@
+{
+  "_source": "ResPlan (17k real South-Asian plans, arXiv 2508.14006, CC BY 4.0) \u2014 statistics only, not redistributed",
+  "_note": "shape classes are of the habitable built silhouette (balconies excluded); real listing envelopes are genuinely notched, so u/t dominate \u2014 treat shape_mix as a weak prior, `auto` keys off plot aspect + programme. zone centroids are normalised 0..1 with the front door oriented to plan-south (cy\u21921).",
+  "plans_used": 16317,
+  "shape_mix": {
+    "u-shape": 0.423,
+    "t-shape": 0.255,
+    "complex": 0.168,
+    "l-shape": 0.046,
+    "rectangle": 0.04,
+    "courtyard": 0.04,
+    "square": 0.028
+  },
+  "shape_aspect": {
+    "complex": {
+      "p25": 1.123,
+      "p50": 1.268,
+      "p75": 1.503
+    },
+    "courtyard": {
+      "p25": 1.152,
+      "p50": 1.337,
+      "p75": 1.593
+    },
+    "l-shape": {
+      "p25": 1.142,
+      "p50": 1.342,
+      "p75": 1.688
+    },
+    "rectangle": {
+      "p25": 1.481,
+      "p50": 1.714,
+      "p75": 2.082
+    },
+    "square": {
+      "p25": 1.071,
+      "p50": 1.133,
+      "p75": 1.206
+    },
+    "t-shape": {
+      "p25": 1.111,
+      "p50": 1.268,
+      "p75": 1.537
+    },
+    "u-shape": {
+      "p25": 1.107,
+      "p50": 1.247,
+      "p75": 1.464
+    }
+  },
+  "corridor_share": 0.0,
+  "program": {
+    "1": {
+      "rooms": {
+        "balcony": 0.78,
+        "bath": 1.98,
+        "bed": 1.0,
+        "kitchen": 1.0,
+        "living": 1.01
+      },
+      "area_fraction": {
+        "balcony": {
+          "p25": 0.054,
+          "p50": 0.07,
+          "p75": 0.107
+        },
+        "bath": {
+          "p25": 0.036,
+          "p50": 0.053,
+          "p75": 0.064
+        },
+        "bed": {
+          "p25": 0.245,
+          "p50": 0.267,
+          "p75": 0.284
+        },
+        "kitchen": {
+          "p25": 0.129,
+          "p50": 0.148,
+          "p75": 0.166
+        },
+        "living": {
+          "p25": 0.424,
+          "p50": 0.453,
+          "p75": 0.482
+        }
+      }
+    },
+    "2": {
+      "rooms": {
+        "balcony": 1.11,
+        "bath": 2.03,
+        "bed": 2.0,
+        "kitchen": 1.0,
+        "living": 1.01
+      },
+      "area_fraction": {
+        "balcony": {
+          "p25": 0.038,
+          "p50": 0.05,
+          "p75": 0.067
+        },
+        "bath": {
+          "p25": 0.042,
+          "p50": 0.048,
+          "p75": 0.054
+        },
+        "bed": {
+          "p25": 0.171,
+          "p50": 0.19,
+          "p75": 0.21
+        },
+        "kitchen": {
+          "p25": 0.087,
+          "p50": 0.101,
+          "p75": 0.116
+        },
+        "living": {
+          "p25": 0.346,
+          "p50": 0.381,
+          "p75": 0.413
+        }
+      }
+    },
+    "3": {
+      "rooms": {
+        "balcony": 1.49,
+        "bath": 2.64,
+        "bed": 3.0,
+        "kitchen": 1.0,
+        "living": 1.02
+      },
+      "area_fraction": {
+        "balcony": {
+          "p25": 0.03,
+          "p50": 0.04,
+          "p75": 0.052
+        },
+        "bath": {
+          "p25": 0.032,
+          "p50": 0.037,
+          "p75": 0.042
+        },
+        "bed": {
+          "p25": 0.126,
+          "p50": 0.142,
+          "p75": 0.159
+        },
+        "kitchen": {
+          "p25": 0.07,
+          "p50": 0.08,
+          "p75": 0.091
+        },
+        "living": {
+          "p25": 0.317,
+          "p50": 0.345,
+          "p75": 0.373
+        }
+      }
+    },
+    "4": {
+      "rooms": {
+        "balcony": 2.05,
+        "bath": 3.86,
+        "bed": 4.0,
+        "kitchen": 0.99,
+        "living": 1.03
+      },
+      "area_fraction": {
+        "balcony": {
+          "p25": 0.024,
+          "p50": 0.035,
+          "p75": 0.051
+        },
+        "bath": {
+          "p25": 0.023,
+          "p50": 0.03,
+          "p75": 0.036
+        },
+        "bed": {
+          "p25": 0.093,
+          "p50": 0.111,
+          "p75": 0.128
+        },
+        "kitchen": {
+          "p25": 0.062,
+          "p50": 0.069,
+          "p75": 0.077
+        },
+        "living": {
+          "p25": 0.296,
+          "p50": 0.323,
+          "p75": 0.356
+        }
+      }
+    },
+    "5": {
+      "rooms": {
+        "balcony": 2.57,
+        "bath": 4.92,
+        "bed": 5.05,
+        "kitchen": 1.0,
+        "living": 1.03
+      },
+      "area_fraction": {
+        "balcony": {
+          "p25": 0.023,
+          "p50": 0.035,
+          "p75": 0.051
+        },
+        "bath": {
+          "p25": 0.018,
+          "p50": 0.025,
+          "p75": 0.032
+        },
+        "bed": {
+          "p25": 0.073,
+          "p50": 0.091,
+          "p75": 0.107
+        },
+        "kitchen": {
+          "p25": 0.058,
+          "p50": 0.064,
+          "p75": 0.07
+        },
+        "living": {
+          "p25": 0.286,
+          "p50": 0.312,
+          "p75": 0.338
+        }
+      }
+    }
+  },
+  "zone": {
+    "living": {
+      "cx": 0.502,
+      "cy": 0.596,
+      "sx": 0.175,
+      "sy": 0.119,
+      "n": 16568
+    },
+    "kitchen": {
+      "cx": 0.521,
+      "cy": 0.471,
+      "sx": 0.254,
+      "sy": 0.273,
+      "n": 16264
+    },
+    "bed": {
+      "cx": 0.494,
+      "cy": 0.436,
+      "sx": 0.288,
+      "sy": 0.251,
+      "n": 39118
+    },
+    "bath": {
+      "cx": 0.496,
+      "cy": 0.487,
+      "sx": 0.271,
+      "sy": 0.28,
+      "n": 38797
+    },
+    "balcony": {
+      "cx": 0.496,
+      "cy": 0.327,
+      "sx": 0.381,
+      "sy": 0.352,
+      "n": 20863
+    },
+    "entry": {
+      "cx": 0.501,
+      "cy": 0.867,
+      "sx": 0.389,
+      "sy": 0.156,
+      "n": 16315
+    }
+  },
+  "adjacency": {
+    "balcony->bath": 0.001,
+    "balcony->bed": 0.624,
+    "balcony->front_door": 0.001,
+    "balcony->kitchen": 0.002,
+    "balcony->living": 0.373,
+    "balcony->stair": 0.003,
+    "balcony->utility": 0.003,
+    "bath->balcony": 0.001,
+    "bath->bed": 0.55,
+    "bath->front_door": 0.0,
+    "bath->kitchen": 0.004,
+    "bath->living": 0.447,
+    "bath->stair": 0.143,
+    "bath->utility": 0.01,
+    "bed->balcony": 0.465,
+    "bed->bath": 0.545,
+    "bed->front_door": 0.0,
+    "bed->kitchen": 0.012,
+    "bed->living": 0.991,
+    "bed->stair": 0.041,
+    "bed->utility": 0.014,
+    "front_door->balcony": 0.002,
+    "front_door->bath": 0.0,
+    "front_door->bed": 0.001,
+    "front_door->kitchen": 0.003,
+    "front_door->living": 0.973,
+    "front_door->stair": 0.145,
+    "front_door->utility": 0.002,
+    "kitchen->balcony": 0.003,
+    "kitchen->bath": 0.01,
+    "kitchen->bed": 0.026,
+    "kitchen->front_door": 0.003,
+    "kitchen->living": 0.788,
+    "kitchen->stair": 0.053,
+    "kitchen->utility": 0.032,
+    "living->balcony": 0.552,
+    "living->bath": 0.87,
+    "living->bed": 0.998,
+    "living->front_door": 0.973,
+    "living->kitchen": 0.788,
+    "living->stair": 0.146,
+    "living->utility": 0.517,
+    "stair->balcony": 0.003,
+    "stair->bath": 0.232,
+    "stair->bed": 0.066,
+    "stair->front_door": 0.132,
+    "stair->kitchen": 0.052,
+    "stair->living": 0.137,
+    "utility->balcony": 0.005,
+    "utility->bath": 0.032,
+    "utility->bed": 0.035,
+    "utility->front_door": 0.002,
+    "utility->kitchen": 0.03,
+    "utility->living": 0.516
+  }
+}

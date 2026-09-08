@@ -28,8 +28,8 @@ export function StyleSheet() {
     return STYLES.map((c) => ({
       c,
       design: generate(
-        compile({ ...b, style: { ...b.style, character: c, massing: 'l-shape' as const } }),
-        { massing: 'l-shape', seed: 7 },
+        compile({ ...b, style: { ...b.style, character: c, shape: 'rectangle' as const } }),
+        { shape: 'rectangle', seed: 7 },
       ),
     }))
   }, [])
