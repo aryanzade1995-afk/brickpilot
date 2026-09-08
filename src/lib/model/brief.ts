@@ -21,37 +21,28 @@ export const BUILDING_TYPE_LABEL: Record<BuildingType, string> = {
 /**
  * Architectural style catalogue. `character` controls only STYLE — materials,
  * roof expression, screens, columns, landscaping — never the structure (that is
- * `style.massing`). New styles are additive; the three legacy ids are migrated
- * on load (see `MIGRATE_CHARACTER` + `studio.ts`).
+ * `style.shape`). Only the two flat-roof modern styles ship: the pitched-roof
+ * (Kerala), tropical and courtyard styles are retired until there is a Blender
+ * bake to verify their geometry. Old ids are migrated on load.
  */
-export const characterSchema = z.enum([
-  'modern-indian',
-  'contemporary-indian',
-  'modern-kerala',
-  'kerala-contemporary',
-  'luxury-indian',
-  'tropical-indian',
-  'minimal-indian',
-  'courtyard-indian',
-])
+export const characterSchema = z.enum(['modern-indian', 'contemporary-indian'])
 export type Character = z.infer<typeof characterSchema>
 
-/** legacy character ids → the current catalogue */
+/** legacy / retired character ids → the current 2-style catalogue */
 export const MIGRATE_CHARACTER: Record<string, Character> = {
   modernist: 'modern-indian',
-  'warm-minimal': 'minimal-indian',
-  'kerala-contemporary': 'kerala-contemporary',
+  'warm-minimal': 'modern-indian',
+  'minimal-indian': 'modern-indian',
+  'modern-kerala': 'modern-indian',
+  'tropical-indian': 'modern-indian',
+  'kerala-contemporary': 'contemporary-indian',
+  'luxury-indian': 'contemporary-indian',
+  'courtyard-indian': 'contemporary-indian',
 }
 
 export const CHARACTER_LABEL: Record<Character, string> = {
   'modern-indian': 'Modern Indian',
   'contemporary-indian': 'Contemporary Indian',
-  'modern-kerala': 'Modern Kerala',
-  'kerala-contemporary': 'Kerala Contemporary',
-  'luxury-indian': 'Luxury Indian villa',
-  'tropical-indian': 'Tropical Indian modern',
-  'minimal-indian': 'Minimal Indian',
-  'courtyard-indian': 'Courtyard Indian modern',
 }
 
 /** footprint shape — `auto` picks by plot aspect + programme size */
@@ -142,6 +133,7 @@ export const briefSchema = z
             (v) => (typeof v === 'string' && v in MIGRATE_CHARACTER ? MIGRATE_CHARACTER[v] : v),
             characterSchema,
           )
+          .catch('modern-indian')
           .default('modern-indian'),
         /** footprint shape — `auto` picks by plot aspect + programme size */
         shape: z

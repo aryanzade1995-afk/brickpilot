@@ -160,7 +160,7 @@ export function resolveGenome(
   )
   const rEntry = ROOF_LIBRARY[roof as keyof typeof ROOF_LIBRARY]
   const overhang = set('overhang', rEntry.overhang)
-  const roofDeck = rEntry.deckCapable && rng.chance(pattern.id === 'minimal_indian' ? 0.35 : 0.55)
+  const roofDeck = rEntry.deckCapable && rng.chance(0.5)
   const parapet = rEntry.parapet
 
   /* 7 — entrance: porte-cochere / porch need plot width */

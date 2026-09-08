@@ -27,7 +27,7 @@ import type { ArchitecturalFingerprint, DesignSpec, StyleId } from '../src/archi
 // 40 × 60 ft in mm, ~2200 sq ft built-up, G+1, 4 bed
 const REQ = { plotW: 12192, plotD: 18288, storeys: 1, levels: 2, beds: 4, bathsWithBed: 2, sharedBaths: 1 }
 const N = 50
-const STYLES: StyleId[] = ['modern_indian', 'modern_kerala', 'luxury_indian_villa']
+const STYLES: StyleId[] = ['modern_indian', 'contemporary_indian']
 
 /** the composition axes we expect to vary across seeds (NOT colour / windows) */
 const AXES = [

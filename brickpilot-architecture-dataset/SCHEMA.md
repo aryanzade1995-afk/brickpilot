@@ -18,7 +18,7 @@
 {
   "id": "modern_indian_0042",              // <style|bucket>_<n> or <bucket>_<filehash>
   "kind": "synthetic",                      // synthetic | harvested | user_provided
-  "style": "modern_indian",                 // one of the 8 styles, or "international"
+  "style": "modern_indian",                 // "modern_indian" | "contemporary_indian" | "international"
   "internationalTag": null,                 // §13 — set only for images/international/*
 
   "source": {                               // §2 — licence record, always present
@@ -55,7 +55,7 @@
 
 | field | vocabulary field | notes |
 |---|---|---|
-| `style` | `style` | 8 styles + `international` |
+| `style` | `style` | modern_indian · contemporary_indian · international |
 | `internationalTag` | `internationalTag` | japanese_modern … european_minimalist \| null |
 | `floors` | — | integer 1–4 |
 | `planFigure` | `planFigure` | rectangular · square · l_shape · t_shape · u_shape · h_shape · courtyard · linear · pavilion · split |

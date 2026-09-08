@@ -14,7 +14,7 @@ import { validate } from '../src/lib/rules/index.ts'
 import { sharedEdge, rectRight, rectBottom } from '../src/lib/geometry.ts'
 import type { FloorPlan, Opening, PlacedRoom } from '../src/lib/engine/types.ts'
 
-const CHARACTERS = ['modern-indian', 'modern-kerala', 'luxury-indian'] as const
+const CHARACTERS = ['modern-indian', 'contemporary-indian'] as const
 const SHAPES_A = ['rectangle', 'square'] as const // Milestone A
 void SHAPES
 

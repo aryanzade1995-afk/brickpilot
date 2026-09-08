@@ -128,9 +128,7 @@ for (const [pw, pd] of PLOTS) {
         if (modelH > expectH + 6) flag(tag, `model ${modelH.toFixed(1)} m tall vs expected ~${expectH.toFixed(1)} m`)
         if (modelH < expectH * 0.6) flag(tag, `model only ${modelH.toFixed(1)} m tall vs expected ~${expectH.toFixed(1)} m`)
 
-        // pitched-roof styles should actually emit a prism
-        const themeRoof = ['modern-kerala', 'tropical-indian'].includes(character)
-        if (themeRoof && !kinds.has('prism')) flag(tag, `${character} but no prism roof`)
+        // (both shipping styles are flat-roofed — no prism-roof assertion)
       }
     }
   }

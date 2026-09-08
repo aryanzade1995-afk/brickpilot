@@ -25,15 +25,14 @@ USER REQUIREMENTS -> STYLE -> reference library (bias) + style grammar
 ```
 brickpilot-architecture-dataset/
 ├── images/                       (gitignored — populated by harvest / user drop)
-│   ├── modern_indian/  contemporary_indian/  modern_kerala/  kerala_contemporary/
-│   ├── luxury_indian/  tropical_indian/  courtyard/  minimalist/
-│   ├── cantilever/  rooftop_terrace/  sloped_roof/  mixed/
+│   ├── modern_indian/  contemporary_indian/  cantilever/  rooftop_terrace/
+│   ├── sloped_roof/  mixed/
 │   └── international/             (§13 — composition references, never a target style)
 ├── metadata/
 │   ├── vocabulary.json           the term taxonomy      (from sync-vocabulary.mts)
 │   ├── compatibility.json        incompatibilities + affinities + figure↔massing
 │   ├── styles.json               per-style genome distribution + element libraries
-│   ├── genomes.json              650+ synthetic Design Genomes (from genome-corpus.mts)
+│   ├── genomes.json              500+ synthetic Design Genomes (from genome-corpus.mts)
 │   ├── queries.json              search queries          (from generate_search_queries.py)
 │   └── designs.json              THE MASTER RECORD — every reference's DNA + fingerprint
 ├── raw/                          (gitignored — downloads land here before analysis)
@@ -56,8 +55,8 @@ brickpilot-architecture-dataset/
 # 1. sync the vocabulary + style patterns from the TS libraries (single source of truth)
 npx tsx scripts/sync-vocabulary.mts
 
-# 2. generate the 650+ synthetic design genomes (the core "data")
-npx tsx scripts/genome-corpus.mts --target 650
+# 2. generate the synthetic design genomes (the core "data")
+npx tsx scripts/genome-corpus.mts --target 520
 
 # 3. (optional) harvest open-licensed reference photos — see the caveat below
 python brickpilot-architecture-dataset/scripts/generate_search_queries.py
@@ -84,7 +83,7 @@ Wikimedia Commons returned 86 licence-clean images — almost all
 travel illustrations), not villa photographs. After analysis + dedup only ~2
 survived as usable references.
 
-The **650 synthetic Design Genomes are the substantive dataset.** A real
+The **520 synthetic Design Genomes are the substantive dataset.** A real
 photo corpus needs one of: your own photographs dropped into
 `images/<bucket>/`; a licensed architectural-reference dataset; or AI-vision
 analysis (`GEMINI_API_KEY`) over images you already have the rights to.
@@ -110,15 +109,15 @@ See `LICENSES.md`.
 
 ## Synthetic genomes (§14)
 
-`genomes.json` holds 650+ **Design Genomes**, each a real `resolveGenome()`
+`genomes.json` holds 500+ **Design Genomes**, each a real `resolveGenome()`
 output — the exact architectural vocabulary BrickPilot can procedurally build,
 across a spread of realistic Indian plot programmes (30×50 → 60×90 ft, G → G+2),
 deduplicated by architectural fingerprint. They are not random AI houses: every
 one is a compatible composition of massing + roof + entrance + balcony + facade +
 courtyard decisions. Distribution (current build):
 
-- 8 / 8 massing compositions · 11 / 11 roof forms · 8 / 8 facade compositions
-- all 8 target styles, 51–100 genomes each
+- most massing compositions · the flat-roof forms · most facade compositions
+- both shipping styles (modern_indian, contemporary_indian), ~230–290 genomes each
 
 ## How the dataset influences generation (§15, §16)
 

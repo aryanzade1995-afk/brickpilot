@@ -4,7 +4,7 @@ import { generate } from '../src/lib/engine/index.ts'
 const STRATEGIES = [{ id: 'rectangle' as const }, { id: 'square' as const }]
 import { buildRoom } from '../src/lib/three/buildRoom.ts'
 
-const chars = ['modern-indian', 'minimal-indian', 'kerala-contemporary', 'modern-kerala', 'tropical-indian', 'luxury-indian', 'contemporary-indian', 'courtyard-indian'] as const
+const chars = ['modern-indian', 'contemporary-indian'] as const
 let total = 0
 let bad = 0
 

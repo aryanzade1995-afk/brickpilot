@@ -321,16 +321,7 @@ export type Characteristic = (typeof CHARACTERISTICS)[number]
  *  STYLES  (mirrors src/architecture/types.ts StyleId — kept in sync)
  * ================================================================== */
 
-export const VOCAB_STYLES = [
-  'modern_indian',
-  'contemporary_indian',
-  'modern_kerala',
-  'kerala_contemporary',
-  'luxury_indian_villa',
-  'tropical_indian_modern',
-  'minimal_indian',
-  'courtyard_indian_modern',
-] as const
+export const VOCAB_STYLES = ['modern_indian', 'contemporary_indian'] as const
 export type VocabStyle = (typeof VOCAB_STYLES)[number]
 
 /** international reference families — tagged, never a target output style */

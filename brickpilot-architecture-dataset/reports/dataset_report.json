@@ -1,17 +1,11 @@
 {
   "generated": "2026-09-08",
-  "total_images": 650,
+  "total_images": 520,
   "real_images": 0,
-  "synthetic": 650,
+  "synthetic": 520,
   "images_per_style": {
-    "contemporary_indian": 76,
-    "courtyard_indian_modern": 72,
-    "kerala_contemporary": 85,
-    "luxury_indian_villa": 100,
-    "minimal_indian": 51,
-    "modern_indian": 98,
-    "modern_kerala": 87,
-    "tropical_indian_modern": 81
+    "contemporary_indian": 234,
+    "modern_indian": 286
   },
   "duplicate_count": 0,
   "unknown_license_count": 0,
@@ -19,42 +13,34 @@
   "bad_image_count": 0,
   "vocab_violations": 0,
   "massing_distribution": {
-    "split_volumes": 129,
-    "single_volume": 101,
-    "stacked_volumes": 98,
-    "cantilevered_volumes": 90,
-    "side_wing": 90,
-    "offset_volumes": 49,
-    "floating_upper_volume": 47,
-    "stepped_volumes": 46
+    "stacked_volumes": 111,
+    "split_volumes": 93,
+    "floating_upper_volume": 90,
+    "cantilevered_volumes": 86,
+    "offset_volumes": 74,
+    "single_volume": 57,
+    "stepped_volumes": 9
   },
   "roof_distribution": {
-    "floating_slab": 134,
-    "flat_slab": 130,
-    "roof_terrace": 102,
-    "mixed_roof": 60,
-    "kerala_tiled_hip": 47,
-    "hip": 47,
-    "deep_overhang_flat": 46,
-    "mono_slope": 31,
-    "parapet_roof": 22,
-    "butterfly": 16,
-    "contemporary_sloped": 15
+    "floating_slab": 207,
+    "flat_slab": 122,
+    "roof_terrace": 89,
+    "deep_overhang_flat": 51,
+    "parapet_roof": 28,
+    "mixed_roof": 23
   },
   "facade_distribution": {
-    "layered_solid_void": 170,
-    "framed": 151,
-    "stacked_bands": 113,
-    "mixed_material": 86,
-    "solid_void": 51,
-    "stone_volume": 46,
-    "flat_plane": 21,
-    "glass_box": 12
+    "layered_solid_void": 179,
+    "framed": 93,
+    "solid_void": 67,
+    "stone_volume": 66,
+    "mixed_material": 64,
+    "stacked_bands": 51
   },
   "floor_distribution": {
-    "1": 146,
-    "2": 249,
-    "3": 255
+    "1": 78,
+    "2": 221,
+    "3": 221
   },
   "quality_score": 100.0,
   "passes_gate": true,

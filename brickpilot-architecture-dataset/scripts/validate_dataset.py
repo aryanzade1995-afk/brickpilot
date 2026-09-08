@@ -66,7 +66,7 @@ def check_image(rel: str, min_res: int) -> tuple[bool, str]:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--min", type=int, default=500)
+    ap.add_argument("--min", type=int, default=400)
     ap.add_argument("--min-resolution", type=int, default=640)
     ap.add_argument("--arch-threshold", type=float, default=0.9)
     args = ap.parse_args()

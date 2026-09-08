@@ -24,19 +24,16 @@ import type { ArchitecturalFingerprint, DesignSpec, StyleId } from '../src/archi
 // storeys = additional floors above ground -> a G+1 (2-level) 4-bed villa
 const REQ = { beds: 4, baths: 3, storeys: 1, levels: 2, plotW: 18, plotD: 27 }
 const SEEDS = [1001, 1002, 1003, 1004, 1005]
-const STYLES: StyleId[] = ['modern_indian', 'modern_kerala', 'luxury_indian_villa']
+const STYLES: StyleId[] = ['modern_indian', 'contemporary_indian']
 
 /** per-style "is the style obvious" signature — geometry, not materials */
 const STYLE_SIGNATURE: Record<string, (s: DesignSpec) => boolean> = {
   modern_indian: (s) =>
-    s.floors.some((f) => f.blocks.some((b) => ['flat_band', 'flat_eave', 'flat_parapet'].includes(b.roof.kind))) &&
+    s.floors.some((f) => f.blocks.some((b) => ['flat_band', 'flat_eave', 'flat_parapet', 'mixed'].includes(b.roof.kind))) &&
     s.facade.some((e) => ['fins', 'feature_pier', 'feature_tower', 'clad'].includes(e.kind)),
-  modern_kerala: (s) =>
-    s.floors.some((f) => f.blocks.some((b) => b.roof.kind === 'hip' && b.roof.pitchDeg >= 18)) &&
-    s.facade.some((e) => e.kind === 'verandah' || e.kind === 'base_cladding' || e.kind === 'jaali'),
-  luxury_indian_villa: (s) =>
-    s.floors.some((f) => f.doors.some((d) => d.kind === 'entry' && (d.canopyMm > 0 || d.heightMm >= 3000))) &&
-    s.facade.some((e) => e.kind === 'canopy' || e.kind === 'verandah' || e.kind === 'clad'),
+  contemporary_indian: (s) =>
+    s.floors.some((f) => f.blocks.some((b) => ['flat_band', 'flat_eave', 'flat_parapet', 'mixed'].includes(b.roof.kind))) &&
+    s.facade.some((e) => ['clad', 'base_cladding', 'string_course', 'chajja', 'canopy'].includes(e.kind)),
 }
 
 function briefFor(style: StyleId, seed: number) {

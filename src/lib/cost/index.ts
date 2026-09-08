@@ -21,12 +21,6 @@ export type CostEstimate = {
 const BASE_RATE: Record<Brief['style']['character'], number> = {
   'modern-indian': 22000,
   'contemporary-indian': 21500,
-  'modern-kerala': 20500,
-  'kerala-contemporary': 20500,
-  'luxury-indian': 29000,
-  'tropical-indian': 22500,
-  'minimal-indian': 19500,
-  'courtyard-indian': 21000,
 }
 const RATE_SPREAD = 0.14
 

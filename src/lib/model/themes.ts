@@ -205,7 +205,6 @@ function theme(id: Character, label: string, blurb: string, renderPrompt: string
 
 const TEAK: Partial<Mat> = { color: '#96683c', roughness: 0.48, env: 0.75 }
 const STONE_DARK: Partial<Mat> = { color: '#33322f', roughness: 0.88, env: 0.35 }
-const STONE_WARM: Partial<Mat> = { color: '#8a7355', roughness: 0.82, env: 0.4 }
 
 /* ----------------------------- catalogue --------------------------- */
 
@@ -239,115 +238,6 @@ export const THEMES: Record<Character, ThemeDef> = {
       accents: { featureColumn: true, railStyle: 'bar' },
       doubleHeightEntry: true,
       materials: { feature: STONE_DARK, clad: TEAK, shell: { color: '#efe9dd' } },
-    },
-  ),
-  'modern-kerala': theme(
-    'modern-kerala',
-    'Modern Kerala',
-    'Low pitched tiled roofs, deep verandah on square columns, laterite base.',
-    'Photorealistic architectural concept of a modern Kerala house near Thrissur. Low-pitched clay-tile hip roofs with wide overhanging eaves and exposed rafter ends, white plaster walls over a warm laterite-block base, a deep shaded verandah on square plastered columns, teak-framed windows with slatted shutters, a sloped-roof car porch, a perforated brick jaali panel by the stair. Warm dusk light, a wet courtyard, banana plants and coconut palms behind a low compound wall.',
-    {
-      roofBias: 'pitched',
-      roof: { style: 'pitched', eaveMm: 900, parapetMm: 0, thickMm: 190, pitchDeg: 24 },
-      windows: { mullionMm: 2900, widthMm: 2000, sillMm: 720, headMm: 2400, groupMm: 1000 },
-      massing: { plinthProjMm: 260, chajjaMm: 560, stringCourseMm: 90 },
-      accents: { cladWidthMm: 1900, jaali: true, railStyle: 'bar' },
-      verandah: { depthMm: 2100, wrapCourt: false },
-      columns: { style: 'square', sizeMm: 320 },
-      landscape: { shrubs: 6, tropical: true, boundaryMm: 1400 },
-      materials: { roof: { color: '#9c5a44', roughness: 0.8 }, feature: STONE_WARM, clad: TEAK },
-    },
-  ),
-  'kerala-contemporary': theme(
-    'kerala-contemporary',
-    'Kerala Contemporary',
-    'Stepped white roof bands, teak cladding panels, a stone entry pier.',
-    'Photorealistic architectural concept of a contemporary Kerala house near Kozhikode. Stepped flat roofs each wrapped in a thick white fascia band, cream plaster walls with slim floor-line string courses and cantilevered chajja hoods over every window, two-storey vertical teak-batten cladding panels framed in white, a dark riven-stone pier beside a teak double door, a perforated timber jaali screen, wide teak-framed sliding windows, slim black steel balcony railings, a flat-roof car porch. Warm dusk light, clipped lawn with a few shrubs, coconut palms far behind a plain compound wall.',
-    {
-      roofBias: 'flat',
-      roof: { style: 'flat-band', eaveMm: 260, parapetMm: 0, bandMm: 430, thickMm: 210 },
-      windows: { mullionMm: 2900, widthMm: 2100, headMm: 2500, sillMm: 700, groupMm: 1050 },
-      massing: { plinthProjMm: 200, balconyDepthMm: 1600, chajjaMm: 520, stringCourseMm: 110 },
-      accents: { cladWidthMm: 1900, featureColumn: true, jaali: true, railStyle: 'bar' },
-      landscape: { hedgeMm: 600, shrubs: 5 },
-      materials: { clad: TEAK, feature: STONE_DARK, roof: { color: '#f8f6f1', roughness: 0.58 } },
-    },
-  ),
-  'luxury-indian': theme(
-    'luxury-indian',
-    'Luxury Indian villa',
-    'A double-height colonnaded entrance, deep overhangs, a stone plinth.',
-    'Photorealistic architectural concept of a luxury Indian villa. A grand double-height entrance portico on tall tapered stone columns, wide travertine-clad planes over a dark granite plinth, deep flat overhanging roofs with recessed cove lighting, full-height bronze-framed glazing, a wrap-around verandah, a reflecting pool along the approach, manicured lawns with clipped hedges and uplit palms, a portico-covered porte-cochere. Warm cinematic dusk light.',
-    {
-      roofBias: 'flat',
-      roof: { style: 'flat-eave', eaveMm: 1000, parapetMm: 80, thickMm: 220 },
-      windows: { mullionMm: 3800, widthMm: 2900, perFacade: 3, sillMm: 300, headMm: 2700, groupMm: 1500 },
-      massing: { plinthProjMm: 320, balconyDepthMm: 1800, chajjaMm: 640, stringCourseMm: 120 },
-      accents: { cladWidthMm: 2200, featureColumn: true, railStyle: 'glass' },
-      verandah: { depthMm: 2600, wrapCourt: true },
-      columns: { style: 'tapered', sizeMm: 460 },
-      doubleHeightEntry: true,
-      landscape: { hedgeMm: 750, shrubs: 8, boundaryMm: 2000, tropical: true },
-      materials: {
-        shell: { color: '#e9e3d4' },
-        feature: { color: '#3b3a37', roughness: 0.5, metalness: 0.1 },
-        clad: STONE_WARM,
-        metal: { color: '#5a4a32', roughness: 0.4, metalness: 0.8 },
-      },
-    },
-  ),
-  'tropical-indian': theme(
-    'tropical-indian',
-    'Tropical Indian modern',
-    'Big mono-slope overhangs, a deep verandah, jaali and pergola shade.',
-    'Photorealistic architectural concept of a tropical modern Indian house in Goa. Broad low mono-pitch roofs with very deep overhangs and exposed steel rafters, white and warm-timber planes, a deep wrap-around verandah on slim round columns, floor-to-ceiling louvred glazing, a large terracotta jaali screen wall, a timber pergola with climbers over the sit-out, an outdoor shower court. Dappled afternoon light through dense palms, ferns and frangipani, a black plunge pool.',
-    {
-      roofBias: 'pitched',
-      roof: { style: 'pitched', eaveMm: 1200, parapetMm: 0, thickMm: 170, pitchDeg: 18 },
-      windows: { mullionMm: 3300, widthMm: 2600, sillMm: 250, headMm: 2500, perFacade: 3, groupMm: 1200 },
-      massing: { plinthProjMm: 200, chajjaMm: 300, stringCourseMm: 0 },
-      accents: { cladWidthMm: 2100, jaali: true, railStyle: 'bar' },
-      modern: { cantileverMm: 0, featureTower: false, baffleScreen: true, roofPergola: true },
-      verandah: { depthMm: 2400, wrapCourt: true },
-      columns: { style: 'round', sizeMm: 260 },
-      landscape: { shrubs: 9, tropical: true, hedgeMm: 0, boundaryMm: 1300 },
-      materials: {
-        clad: TEAK,
-        roof: { color: '#e9e6df', roughness: 0.5, metalness: 0.15 },
-        feature: { color: '#a24b34', roughness: 0.85 },
-      },
-    },
-  ),
-  'minimal-indian': theme(
-    'minimal-indian',
-    'Minimal Indian',
-    'Quiet plaster planes, one thin oversailing roof, few large openings.',
-    'Photorealistic architectural concept of a minimalist Indian house. Quiet sand-plaster planes, one thin flat roof oversailing with a crisp shadow line, deep cantilevered chajja hoods over a few large timber-framed windows, a broad teak-batten screen wall, restrained detailing. Soft late-afternoon light, a single tree, gravel and a clipped lawn.',
-    {
-      roofBias: 'flat',
-      roof: { style: 'flat-eave', eaveMm: 500, parapetMm: 120, thickMm: 150 },
-      windows: { mullionMm: 3900, widthMm: 2400, minRoomSqm: 12, sillMm: 700, groupMm: 1300 },
-      massing: { plinthProjMm: 110, balconyDepthMm: 1500, chajjaMm: 600, stringCourseMm: 0 },
-      accents: { cladWidthMm: 2000, railStyle: 'baluster' },
-      landscape: { hedgeMm: 450, shrubs: 3 },
-      materials: { clad: TEAK, feature: { color: '#54504a', roughness: 0.86 } },
-    },
-  ),
-  'courtyard-indian': theme(
-    'courtyard-indian',
-    'Courtyard Indian modern',
-    'Rooms wrap a planted courtyard behind a verandah and jaali screens.',
-    'Photorealistic architectural concept of a modern Indian courtyard house. Single- and double-height wings wrapping an open planted courtyard with a water body and a tree, a shaded verandah on square columns running around the court, large terracotta jaali screens to the street, flat roofs with thin fascias and deep chajja hoods, teak-framed openings onto the court. Warm morning light in the courtyard, dappled shade, a plain compound wall.',
-    {
-      roofBias: 'flat',
-      roof: { style: 'flat-eave', eaveMm: 560, parapetMm: 110, thickMm: 160 },
-      windows: { mullionMm: 3100, widthMm: 2200, sillMm: 700, groupMm: 1100 },
-      massing: { plinthProjMm: 170, chajjaMm: 540, stringCourseMm: 80 },
-      accents: { cladWidthMm: 1800, jaali: true, railStyle: 'bar' },
-      verandah: { depthMm: 2000, wrapCourt: true },
-      columns: { style: 'square', sizeMm: 300 },
-      landscape: { shrubs: 6, tropical: true },
-      materials: { clad: TEAK, feature: { color: '#a24b34', roughness: 0.85 } },
     },
   ),
 }

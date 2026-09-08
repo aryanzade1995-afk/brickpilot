@@ -20,26 +20,9 @@ import type { Design } from '../lib/engine/types.ts'
 
 /** the 8 supported styles — snake_case is the wire/Blender contract. Mapped
  *  1:1 from the UI `character` ids (see grammar.ts `STYLE_OF_CHARACTER`). */
-export type StyleId =
-  | 'modern_indian'
-  | 'contemporary_indian'
-  | 'modern_kerala'
-  | 'kerala_contemporary'
-  | 'luxury_indian_villa'
-  | 'tropical_indian_modern'
-  | 'minimal_indian'
-  | 'courtyard_indian_modern'
+export type StyleId = 'modern_indian' | 'contemporary_indian'
 
-export const STYLE_IDS: readonly StyleId[] = [
-  'modern_indian',
-  'contemporary_indian',
-  'modern_kerala',
-  'kerala_contemporary',
-  'luxury_indian_villa',
-  'tropical_indian_modern',
-  'minimal_indian',
-  'courtyard_indian_modern',
-] as const
+export const STYLE_IDS: readonly StyleId[] = ['modern_indian', 'contemporary_indian'] as const
 
 export type Direction4 = 'N' | 'S' | 'E' | 'W'
 

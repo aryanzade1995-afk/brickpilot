@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-08T13:13:08.606Z",
+  "generated": "2026-09-08T16:35:43.490Z",
   "source": "src/architecture/library/architecturalVocabulary.ts",
   "fields": {
     "planFigure": [
@@ -246,13 +246,7 @@
     ],
     "style": [
       "modern_indian",
-      "contemporary_indian",
-      "modern_kerala",
-      "kerala_contemporary",
-      "luxury_indian_villa",
-      "tropical_indian_modern",
-      "minimal_indian",
-      "courtyard_indian_modern"
+      "contemporary_indian"
     ],
     "internationalTag": [
       "japanese_modern",
@@ -321,5 +315,5 @@
       "internal_court": "central"
     }
   },
-  "termCount": 213
+  "termCount": 207
 }
