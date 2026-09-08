@@ -125,10 +125,10 @@ export function Massing() {
                     ? 'border-accent/40 bg-accent/10 text-accent'
                     : 'border-line-strong text-ink-dim',
                 )}
-                title={`Architectural grammar — ${designSpec.grammar.label} · seed ${designSpec.seed}`}
+                title={`${designSpec.grammar.label} · ${designSpec.genome.massingComposition.replace(/_/g, ' ')} · ${designSpec.genome.volumeCount} volumes · roof ${designSpec.genome.roof.replace(/_/g, ' ')} · seed ${designSpec.seed} · fp ${designSpec.fingerprint.hash}`}
               >
                 {villaGlb && mode === 'study' ? 'Blender GLB · ' : ''}
-                {designSpec.massing.strategy.replace('_', ' ')}
+                {designSpec.genome.massingComposition.replace(/_/g, ' ')}
               </span>
             )}
             <div className="flex flex-wrap gap-1">
@@ -257,7 +257,18 @@ export function Massing() {
         <div className="space-y-6">
           <Panel title="Model">
             <Stat k="Shape" v={SHAPE_LABEL[result.design.shape] ?? result.design.shape} />
-            {designSpec && <Stat k="Massing" v={designSpec.massing.strategy.replace('_', ' ')} />}
+            {designSpec && <Stat k="Massing" v={`${designSpec.genome.massingComposition.replace(/_/g, ' ')} · ${designSpec.genome.volumeCount} vol`} />}
+            {designSpec && <Stat k="Roof" v={designSpec.genome.roof.replace(/_/g, ' ')} />}
+            {designSpec && (
+              <Stat
+                k="Entrance"
+                v={`${designSpec.genome.entrance.replace(/_/g, ' ')}${designSpec.genome.doubleHeightEntrance ? ' · 2H' : ''}`}
+              />
+            )}
+            {designSpec && designSpec.genome.balcony !== 'none' && (
+              <Stat k="Balcony" v={designSpec.genome.balcony.replace(/_/g, ' ')} />
+            )}
+            {designSpec && <Stat k="Facade" v={`${designSpec.genome.facadeComposition.replace(/_/g, ' ')}${designSpec.genome.screen !== 'none' ? ` · ${designSpec.genome.screen.replace(/_/g, ' ')}` : ''}`} />}
             <Stat k="Storeys" v={String(massing.stats.storeys)} />
             <Stat k="Height" v={`${massing.stats.heightM} m`} />
             <Stat k="Built area" v={`${massing.stats.builtAreaSqm.toFixed(1)} m²`} />
@@ -269,7 +280,7 @@ export function Massing() {
             ) : (
               <Stat k="Openings" v={String(massing.stats.openings)} />
             )}
-            {designSpec && <Stat k="Design seed" v={String(designSpec.seed)} />}
+            {designSpec && <Stat k="Design seed" v={`${designSpec.seed} · ${designSpec.fingerprint.hash}`} />}
             <button
               type="button"
               onClick={reseed}

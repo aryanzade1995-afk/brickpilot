@@ -42,7 +42,9 @@ try:
 except Exception:
     requests = None  # type: ignore
 
-UA = "BrickPilot-architecture-dataset/1.0 (research; contact via github aryanzade1995-afk/brickpilot)"
+UA = "BrickPilotDatasetBot/1.0 (https://github.com/aryanzade1995-afk/brickpilot; research use)"
+
+_commons_backoff = [1.0]  # grows on 429, shrinks on success
 
 # CC licence -> (attribution_required, commercial_ok, modification_ok, status)
 LICENSE_RULES = {
@@ -117,17 +119,23 @@ def search_commons(query: str, n: int) -> list[dict]:
     if requests is None:
         return []
     try:
+        time.sleep(_commons_backoff[0])
         r = requests.get(
             "https://commons.wikimedia.org/w/api.php",
             params={
                 "action": "query", "format": "json", "generator": "search",
-                "gsrsearch": f"{query} filetype:bitmap", "gsrnamespace": 6, "gsrlimit": min(n, 20),
-                "prop": "imageinfo", "iiprop": "url|extmetadata|size", "iiurlwidth": 1600,
+                "gsrsearch": f'{query} villa|house|residence -floorplan -"floor plan"', "gsrnamespace": 6, "gsrlimit": min(n, 20),
+                "prop": "imageinfo", "iiprop": "url|extmetadata|size|mime", "iiurlwidth": 1600,
             },
-            headers={"User-Agent": UA},
+            headers={"User-Agent": UA, "Api-User-Agent": UA},
             timeout=30,
         )
+        if r.status_code == 429:
+            _commons_backoff[0] = min(30.0, _commons_backoff[0] * 2)
+            print(f"  (commons 429 — backoff now {_commons_backoff[0]:.0f}s)", flush=True)
+            return []
         r.raise_for_status()
+        _commons_backoff[0] = max(1.0, _commons_backoff[0] * 0.85)
         pages = (r.json().get("query") or {}).get("pages", {})
         out = []
         for p in pages.values():
@@ -175,6 +183,8 @@ def main() -> None:
     ap.add_argument("--source", choices=["all", "openverse", "commons"], default="all")
     ap.add_argument("--max-per-query", type=int, default=4)
     ap.add_argument("--limit", type=int, default=150, help="max images to actually download")
+    ap.add_argument("--max-queries", type=int, default=120, help="stop after this many queries (bounds runtime)")
+    ap.add_argument("--shuffle", action="store_true", help="randomise query order (partial runs stay varied)")
     ap.add_argument("--permissive-only", action="store_true", help="skip anything not verified_open/permissive")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--yes", action="store_true", help="required to actually download")
@@ -186,6 +196,11 @@ def main() -> None:
         sys.exit("queries.json missing - run generate_search_queries.py first")
     with open(args.queries, encoding="utf-8") as fh:
         queries = [q["q"] for q in json.load(fh)["queries"]]
+    if args.shuffle:
+        import random
+
+        random.Random(1).shuffle(queries)
+    queries = queries[: args.max_queries]
 
     manifest_path = os.path.join(RAW, "collected.json")
     collected: list[dict] = []
@@ -194,12 +209,13 @@ def main() -> None:
     seen_urls = {c["image_url"] for c in collected}
 
     candidates: list[dict] = []
-    for q in queries:
+    for qi, q in enumerate(queries):
         hits: list[dict] = []
         if args.source in ("all", "openverse"):
             hits += search_openverse(q, args.max_per_query)
         if args.source in ("all", "commons"):
             hits += search_commons(q, args.max_per_query)
+        added = 0
         for h in hits:
             if h["image_url"] in seen_urls:
                 continue
@@ -207,7 +223,9 @@ def main() -> None:
                 continue
             seen_urls.add(h["image_url"])
             candidates.append(h)
-        time.sleep(0.4)
+            added += 1
+        print(f"  [{qi + 1}/{len(queries)}] {q[:48]:48}  +{added}  (total {len(candidates)})", flush=True)
+        time.sleep(0.3)
         if len(candidates) >= args.limit:
             break
 
