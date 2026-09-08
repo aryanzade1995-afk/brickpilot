@@ -11,6 +11,7 @@ import { rectBottom, rectRight, rectUnionBBox } from '../../lib/geometry.ts'
 import type { Design } from '../../lib/engine/types.ts'
 import type { Rng } from '../../lib/engine/shape/rng.ts'
 import type {
+  DesignGenome,
   DesignRequirements,
   Direction4,
   GenerationConstraints,
@@ -20,6 +21,8 @@ import type {
   RoofSpecOut,
   StyleGrammar,
 } from '../types.ts'
+import { MASSING_LIBRARY } from '../library/massingLibrary.ts'
+import { overhangRange, ROOF_LIBRARY } from '../library/roofLibrary.ts'
 import { planShapeOf } from './classify.ts'
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
@@ -38,15 +41,22 @@ export function resolveMassing(
   req: DesignRequirements,
   constraints: GenerationConstraints,
   rng: Rng,
+  genome: DesignGenome,
 ): MassingResult {
   const design = req.floorPlan
   const planShape = planShapeOf(design.shape)
   const buildable = buildableRect(req, constraints)
 
-  // ---- pick the volumetric strategy allowed by this style + feasible here
+  // ---- the volumetric strategy comes from the GENOME's massing composition;
+  //      fall back to a style-weighted feasible pick only if it can't be built here
+  const genomeStrategy = MASSING_LIBRARY[genome.massingComposition as keyof typeof MASSING_LIBRARY]?.engineStrategy
   const feasible = grammar.massing.strategies.filter(({ kind }) => strategyFeasible(kind, design, buildable))
-  const pool = feasible.length ? feasible : [{ kind: 'stacked' as MassingStrategy, weight: 1 }]
-  const strategy = rng.weighted(pool.map((s) => [s.kind, s.weight] as [MassingStrategy, number]))
+  const strategy: MassingStrategy =
+    genomeStrategy && strategyFeasible(genomeStrategy, design, buildable)
+      ? genomeStrategy
+      : feasible.length
+        ? rng.weighted(feasible.map((s) => [s.kind, s.weight] as [MassingStrategy, number]))
+        : 'stacked'
 
   const fh = req.floorHeightMm
   const topLevel = design.floors.length - 1
@@ -54,13 +64,18 @@ export function resolveMassing(
 
   // the seeded shift direction for offset / stepped strategies (never toward the entry)
   const shiftSide: Direction4 = rng.pick(['N', 'E', 'W'] as const)
+  // magnitudes: prefer the genome's sampled values, else the grammar range
   const offsetMm = snap(
-    lerp(grammar.massing.storeyOffsetMm[0], grammar.massing.storeyOffsetMm[1], rng.next()),
+    genome.storeyOffsetMm > 0
+      ? genome.storeyOffsetMm
+      : lerp(grammar.massing.storeyOffsetMm[0], grammar.massing.storeyOffsetMm[1], rng.next()),
     100,
   )
   const cantMm = snap(
     clamp(
-      lerp(grammar.massing.cantileverMm[0], grammar.massing.cantileverMm[1], rng.next()),
+      genome.cantileverMm > 0
+        ? genome.cantileverMm
+        : lerp(grammar.massing.cantileverMm[0], grammar.massing.cantileverMm[1], rng.next()),
       0,
       constraints.massing.maxCantileverMm,
     ),
@@ -82,7 +97,7 @@ export function resolveMassing(
     perFloor[L] = rects.map((rect, i) => {
       const cantilever: Partial<Record<Direction4, number>> = {}
       if (strategy === 'cantilever' && L > 0) cantilever.S = cantMm
-      const roof = L === topLevel ? topRoof(grammar, rect, rng) : terraceRoof(grammar, perFloor, L, rect)
+      const roof = L === topLevel ? topRoof(grammar, rect, rng, genome) : terraceRoof(grammar, perFloor, L, rect)
       return {
         id: `m${L}-${i}`,
         level: L,
@@ -185,22 +200,28 @@ const snap = (v: number, g: number) => Math.round(v / g) * g
 
 /* ---- roofs ---------------------------------------------------------- */
 
-function topRoof(grammar: StyleGrammar, _rect: Rect, rng: Rng): RoofSpecOut {
+const FLAT_KINDS = new Set(['flat_parapet', 'flat_band', 'flat_eave'])
+
+function topRoof(grammar: StyleGrammar, _rect: Rect, rng: Rng, genome: DesignGenome): RoofSpecOut {
+  const g = ROOF_LIBRARY[genome.roof as keyof typeof ROOF_LIBRARY]
   const r = grammar.roof
-  const pitchDeg = r.kind === 'flat_parapet' || r.kind === 'flat_band' || r.kind === 'flat_eave'
-    ? 0
-    : Math.round(lerp(r.pitchDeg[0], r.pitchDeg[1], rng.next()))
-  const eaveMm = Math.round(lerp(r.eaveMm[0], r.eaveMm[1], rng.next()))
+  // the genome's roof form wins on kind + pitch + overhang; the grammar keeps
+  // the band / parapet detailing that matches the style
+  const kind = g ? g.engineKind : r.kind
+  const isFlat = FLAT_KINDS.has(kind)
+  const pitchDeg = isFlat ? 0 : Math.round(g ? lerp(g.pitchDeg[0], g.pitchDeg[1], rng.next()) : lerp(r.pitchDeg[0], r.pitchDeg[1], rng.next()))
+  const overhang = g ? overhangRange(g.overhang) : r.eaveMm
+  const eaveMm = Math.round(lerp(overhang[0], overhang[1], rng.next()))
   const fall: Direction4 | undefined =
-    r.kind === 'mono_slope' ? rng.pick(['N', 'S'] as const) : r.kind === 'hip' || r.kind === 'gable' ? 'S' : undefined
+    kind === 'mono_slope' ? rng.pick(['N', 'S'] as const) : kind === 'hip' || kind === 'gable' ? 'S' : undefined
   return {
-    kind: r.kind,
+    kind,
     pitchDeg,
     eaveMm,
-    parapetMm: r.parapetMm,
-    bandMm: r.bandMm,
+    parapetMm: g && !g.parapet ? 0 : r.parapetMm,
+    bandMm: kind === 'flat_band' ? r.bandMm : 0,
     fall,
-    terrace: (r.kind === 'flat_parapet' || r.kind === 'flat_band' || r.kind === 'flat_eave') && rng.chance(r.terraceChance),
+    terrace: isFlat && (genome.roofDeck || rng.chance(r.terraceChance)),
   }
 }
 

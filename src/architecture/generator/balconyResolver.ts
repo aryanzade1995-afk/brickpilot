@@ -9,7 +9,8 @@ import type { Rect } from '../../lib/geometry.ts'
 import { rectBottom, rectRight } from '../../lib/geometry.ts'
 import type { FloorPlan } from '../../lib/engine/types.ts'
 import type { Rng } from '../../lib/engine/shape/rng.ts'
-import type { BalconySpec, Direction4, GenerationConstraints, StyleGrammar } from '../types.ts'
+import type { BalconySpec, DesignGenome, Direction4, GenerationConstraints, StyleGrammar } from '../types.ts'
+import { BALCONY_LIBRARY } from '../library/balconyLibrary.ts'
 import { classifyRoom, roomWalls } from './classify.ts'
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
@@ -23,39 +24,48 @@ export function resolveBalconies(
   level: number,
   buildable: Rect,
   rng: Rng,
+  genome: DesignGenome,
 ): BalconySpec[] {
-  if (level === 0) return []
+  // the genome picks ONE balcony type; realise it only where a wall supports it
+  const gType = genome.balcony
+  if (gType === 'none') return []
+  const bEntry = BALCONY_LIBRARY[gType as keyof typeof BALCONY_LIBRARY] ?? null
+  if (!bEntry) return []
+  const isVerandah = gType === 'wrap_verandah'
+  if (level === 0 && !isVerandah && bEntry.upperOnly) return []
+
   const rule = grammar.balcony
   const out: BalconySpec[] = []
-  const cap = rule.wrapVerandah ? 1 : rule.maxPerFloor
+  // count comes from the genome, gated by the library's per-floor max
+  const cap = clamp(genome.balconyCount || bEntry.maxPerFloor, 1, bEntry.maxPerFloor)
+  const minWidthMm = Math.max(rule.minWidthMm, 1400)
+  const rooms = bEntry.rooms.length ? bEntry.rooms : rule.rooms
 
   const candidates = floor.rooms
-    .filter((r) => !r.outdoor && rule.rooms.includes(classifyRoom(r)))
+    .filter((r) => !r.outdoor && rooms.includes(classifyRoom(r)))
     // master first, then by area
     .sort((a, b) => (a.id === 'bed1' ? -1 : b.id === 'bed1' ? 1 : b.area - a.area))
 
   for (const room of candidates) {
     if (out.length >= cap) break
-    const exWalls = roomWalls(room, floor).filter((w) => w.exterior && w.lengthMm >= rule.minWidthMm + 400)
+    const exWalls = roomWalls(room, floor).filter((w) => w.exterior && w.lengthMm >= minWidthMm + 400)
     if (exWalls.length === 0) continue
     // prefer a street or a view (court) wall, longest
     exWalls.sort((a, b) => balconyScore(b) - balconyScore(a))
     const wall = exWalls[0]
-    const depthMm = snap(clamp(lerp(rule.depthMm[0], rule.depthMm[1], rng.next()), constraints.balcony.minDepthMm, constraints.balcony.maxDepthMm))
-    const recessed = rng.chance(rule.recessedChance)
+    const depthMm = snap(
+      clamp(
+        lerp(bEntry.depthMm[0], bEntry.depthMm[1], rng.next()),
+        constraints.balcony.minDepthMm,
+        constraints.balcony.maxDepthMm,
+      ),
+    )
+    // the library type decides projecting vs. carved; corner types need a real corner
+    const corner = exWalls.length >= 2 && exWalls[1].lengthMm >= minWidthMm
+    const recessed = bEntry.recessed || (gType === 'corner' && !corner)
     const rect = balconyRect(room.rect, wall.side, depthMm, recessed, buildable)
     if (!rect) continue
-    // classify: two exterior walls meeting -> corner; wrapVerandah -> continuous/verandah
-    const corner = exWalls.length >= 2 && exWalls[1].lengthMm >= rule.minWidthMm
-    const type: BalconySpec['type'] = recessed
-      ? 'recessed'
-      : rule.wrapVerandah
-        ? level === 1
-          ? 'verandah'
-          : 'continuous'
-        : corner
-          ? 'corner'
-          : 'cantilever'
+    const type: BalconySpec['type'] = mapBalconyType(gType, { corner, recessed, level, wrap: isVerandah })
     out.push({
       id: `bal${level}-${out.length}`,
       roomId: room.id,
@@ -65,10 +75,23 @@ export function resolveBalconies(
       depthMm,
       recessed,
       type,
-      railStyle: rule.railStyle,
+      railStyle: bEntry.rail,
     })
   }
   return out
+}
+
+/** collapse the vocabulary's 12 balcony terms onto the DesignSpec's 5 render types */
+function mapBalconyType(
+  g: string,
+  ctx: { corner: boolean; recessed: boolean; level: number; wrap: boolean },
+): BalconySpec['type'] {
+  if (ctx.wrap) return ctx.level <= 1 ? 'verandah' : 'continuous'
+  if (g === 'continuous' || g === 'full_width') return 'continuous'
+  if (g === 'recessed' || ctx.recessed) return 'recessed'
+  if (g === 'corner' || g === 'corner_cantilever') return ctx.corner ? 'corner' : 'cantilever'
+  if (g === 'terrace_balcony' || g === 'planted_balcony') return 'continuous'
+  return 'cantilever'
 }
 
 function balconyScore(w: { side: Direction4; lengthMm: number; facesStreet: boolean; facesCourt: boolean }): number {

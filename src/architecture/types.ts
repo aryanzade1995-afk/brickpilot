@@ -279,6 +279,101 @@ export type DesignRequirements = {
 }
 
 /* ================================================================== *
+ *  DESIGN GENOME — the composed set of architectural decisions.
+ *  Sits between the StyleGrammar/StylePattern (preferences) and the
+ *  DesignSpec (geometry-free "what to build"). Serialisable, seeded,
+ *  compatibility-checked. `resolveGenome()` produces it;
+ *  `generateDesign()` feeds it to every resolver so the massing, roof,
+ *  balcony, facade and window passes all agree on ONE design intent.
+ *
+ *  All string fields are terms from library/architecturalVocabulary.ts.
+ * ================================================================== */
+
+export type DesignGenome = {
+  style: StyleId
+  seed: number
+
+  /* ---- massing ---- */
+  /** the plan figure (derived from the engine's chosen footprint shape) */
+  planFigure: string
+  /** volumetric composition — the primary 3D move */
+  massingComposition: string
+  volumeCount: number
+  compositionBalance: string
+  horizontalEmphasis: string
+  verticalEmphasis: string
+
+  /* ---- floors ---- */
+  upperFloorStrategy: string
+  voidStrategy: string
+  /** target ground-floor footprint ÷ buildable area */
+  groundCoverage: number
+  /** target upper-floor footprint ÷ ground-floor footprint */
+  upperCoverage: number
+  storeyOffsetMm: number
+  cantileverMm: number
+
+  /* ---- roof ---- */
+  roof: string
+  overhang: string
+  roofDeck: boolean
+  parapet: boolean
+
+  /* ---- entrance ---- */
+  entrance: string
+  entrancePosition: string
+  doubleHeightEntrance: boolean
+
+  /* ---- balcony ---- */
+  balcony: string
+  balconyPosition: string
+  balconyCount: number
+
+  /* ---- facade ---- */
+  facadeComposition: string
+  screen: string
+  materialPalette: string
+  featureStone: boolean
+  featureTower: boolean
+
+  /* ---- glazing ---- */
+  glazing: string
+  windowStrategy: string
+  cornerGlazing: boolean
+
+  /* ---- courtyard / site ---- */
+  courtyard: string
+  parking: string
+  landscape: string
+
+  /* ---- derived descriptive tags ---- */
+  characteristics: string[]
+
+  /** repairs applied during resolution (compatibility fixes) */
+  repaired: string[]
+}
+
+/** the canonical short signature used for dedup + architectural-similarity (§9) */
+export type ArchitecturalFingerprint = {
+  /** `${massingComposition}_${planFigure}` e.g. "offset_volumes_l_shape" */
+  massing: string
+  /** `${floors}f_${upperFloorStrategy}` e.g. "2f_partial_cantilever" */
+  floors: string
+  /** `${roof}` e.g. "floating_slab" */
+  roof: string
+  /** `${entrance}_${doubleHeight ? 'dh' : 'sh'}` */
+  entrance: string
+  /** `${balcony}_${balconyPosition}` */
+  balcony: string
+  /** `${facadeComposition}_${screen}_${materialPalette}` */
+  facade: string
+  /** courtyard type, 'none' if absent */
+  courtyard: string
+  /** stable 12-char hash of the six axes above — the dedup key */
+  hash: string
+}
+
+/* ================================================================== *
  *  DESIGN SPEC — the resolved, seeded "what to build". Serialisable.
  *  This is the Blender generator's only input besides the style knobs.
  * ================================================================== */
@@ -435,6 +530,10 @@ export type DesignSpec = {
     /** overall footprint bbox, mm */
     footprintMm: Rect
   }
+  /** the composed architectural decision set this spec was resolved from */
+  genome: DesignGenome
+  /** canonical signature for dedup + architectural-similarity */
+  fingerprint: ArchitecturalFingerprint
   floors: DesignSpecFloor[]
   facade: FacadeElement[]
   materials: MaterialSpec

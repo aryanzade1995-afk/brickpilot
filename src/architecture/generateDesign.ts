@@ -22,14 +22,21 @@ import type { Design, FloorPlan } from '../lib/engine/types.ts'
 import { makeRng } from '../lib/engine/shape/rng.ts'
 import { resolveConstraints } from './constraints.ts'
 import { styleGrammar, STYLE_OF_CHARACTER } from './grammar.ts'
-import { classifyRoom } from './generator/classify.ts'
+import { classifyRoom, planShapeOf } from './generator/classify.ts'
 import { resolveBalconies } from './generator/balconyResolver.ts'
 import { resolveFacade } from './generator/facadeResolver.ts'
 import { resolveMassing } from './generator/massingResolver.ts'
 import { resolveMaterials } from './generator/materialResolver.ts'
 import { validateSpec } from './generator/validator.ts'
 import { generateWindows } from './generator/windowGenerator.ts'
+import { architecturalFingerprint } from './library/fingerprint.ts'
+import { resolveGenome } from './library/designGenome.ts'
+import { referenceHints } from './library/designLibrary.ts'
+import { stylePattern } from './library/stylePatterns.ts'
+import { entranceEntry } from './library/entranceLibrary.ts'
+import type { EntranceType } from './library/architecturalVocabulary.ts'
 import type {
+  DesignGenome,
   DesignRequirements,
   DesignSpec,
   DesignSpecFloor,
@@ -73,7 +80,19 @@ export function generateDesign(req0: DesignRequirements, seed = req0.seed): Desi
   const rng = makeRng(seed, `${req.style}|arch-grammar`)
   const design = req.floorPlan
 
-  const massing = resolveMassing(grammar, req, constraints, rng)
+  // ---- compose the architectural DESIGN GENOME (seeded, compatibility-checked)
+  //      the reference library nudges the picks; the plot / rooms / floors do not move
+  const planShape = planShapeOf(design.shape)
+  const genome = resolveGenome(
+    stylePattern(req.style),
+    req,
+    constraints,
+    planShape,
+    makeRng(seed, `${req.style}|genome`),
+    referenceHints(req.style, design.shape),
+  )
+
+  const massing = resolveMassing(grammar, req, constraints, rng, genome)
   const buildable = {
     x: constraints.setbackMinMm.W,
     y: constraints.setbackMinMm.N,
@@ -96,10 +115,11 @@ export function generateDesign(req0: DesignRequirements, seed = req0.seed): Desi
       floorHeightMm: req.floorHeightMm,
       entrySide: req.entrySide,
       rng: frng,
+      genome,
     })
     windowsByLevel[fl.level] = windows
-    const doors = resolveDoors(fl, grammar, req.entrySide)
-    const balconies = resolveBalconies(grammar, constraints, fl, fl.level, buildable, frng)
+    const doors = resolveDoors(fl, grammar, req.entrySide, genome)
+    const balconies = resolveBalconies(grammar, constraints, fl, fl.level, buildable, frng, genome)
     const stairs: StairSpec[] =
       fl.stair && fl.level < topLevel
         ? [
@@ -130,8 +150,8 @@ export function generateDesign(req0: DesignRequirements, seed = req0.seed): Desi
     }
   })
 
-  const materials = resolveMaterials(grammar, rng)
-  const facade = resolveFacade(grammar, massing, req, windowsByLevel, rng)
+  const materials = resolveMaterials(grammar, rng, genome)
+  const facade = resolveFacade(grammar, massing, req, windowsByLevel, rng, genome)
 
   const briefHash = design.model.seed.split('-')[0]
   const spec: DesignSpec = {
@@ -152,6 +172,8 @@ export function generateDesign(req0: DesignRequirements, seed = req0.seed): Desi
       floorHeightMm: req.floorHeightMm,
     },
     massing: { strategy: massing.strategy, planShape: massing.planShape, footprintMm: massing.footprintMm },
+    genome,
+    fingerprint: architecturalFingerprint(genome, req.floors),
     floors,
     facade,
     materials,
@@ -175,9 +197,13 @@ export function specFromDesign(design: Design, styleOverride?: StyleId, seed?: n
 
 /* ------------------------------------------------------------------ */
 
-function resolveDoors(fl: FloorPlan, grammar: StyleGrammar, _entrySide: Direction4): DoorSpec[] {
+function resolveDoors(fl: FloorPlan, grammar: StyleGrammar, _entrySide: Direction4, genome: DesignGenome): DoorSpec[] {
   const out: DoorSpec[] = []
   let i = 0
+  const ent = entranceEntry(genome.entrance as EntranceType)
+  const entryWidth = Math.round(lerp(ent.entryWidthMm[0], ent.entryWidthMm[1], 0.5))
+  const canopyMm = Math.round(lerp(ent.canopyMm[0], ent.canopyMm[1], 0.5))
+  const doubleHeight = genome.doubleHeightEntrance
   for (const op of fl.openings) {
     if (op.kind === 'window') continue
     const isEntry = op.kind === 'entry'
@@ -196,12 +222,10 @@ function resolveDoors(fl: FloorPlan, grammar: StyleGrammar, _entrySide: Directio
       wall,
       side,
       centerMm: op.width / 2,
-      widthMm: isEntry
-        ? Math.round(lerp(grammar.door.entryWidthMm[0], grammar.door.entryWidthMm[1], 0.5))
-        : Math.max(op.width, grammar.door.internalWidthMm),
-      heightMm: isEntry && grammar.door.doubleHeightEntry ? 3600 : 2100,
-      double: isEntry ? grammar.door.doubleLeafEntry : op.width > 1400,
-      canopyMm: isEntry ? grammar.door.entryCanopyMm : 0,
+      widthMm: isEntry ? entryWidth : Math.max(op.width, grammar.door.internalWidthMm),
+      heightMm: isEntry && doubleHeight ? 3600 : 2100,
+      double: isEntry ? grammar.door.doubleLeafEntry || entryWidth >= 1700 : op.width > 1400,
+      canopyMm: isEntry ? canopyMm : 0,
     })
   }
   return out

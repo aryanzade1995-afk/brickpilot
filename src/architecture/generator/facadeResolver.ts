@@ -9,11 +9,22 @@
 import type { Point, Rect } from '../../lib/geometry.ts'
 import { rectBottom, rectRight } from '../../lib/geometry.ts'
 import type { Rng } from '../../lib/engine/shape/rng.ts'
-import type { DesignRequirements, Direction4, FacadeElement, StyleGrammar, WindowSpec } from '../types.ts'
+import type { CladMaterial, DesignGenome, DesignRequirements, Direction4, FacadeElement, StyleGrammar, WindowSpec } from '../types.ts'
 import type { MassingResult } from './massingResolver.ts'
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t
 const snap = (v: number) => Math.round(v / 50) * 50
+
+/** the genome's material palette → the CladMaterial the facade elements use */
+function paletteClad(palette: string): CladMaterial {
+  if (/travertine|granite/.test(palette)) return 'travertine'
+  if (/laterite/.test(palette)) return 'laterite'
+  if (/concrete/.test(palette)) return 'exposed_concrete'
+  if (/brick/.test(palette)) return 'brick'
+  if (/wood|timber/.test(palette)) return 'teak'
+  if (/stone/.test(palette)) return 'stone_warm'
+  return 'stone_dark'
+}
 
 export function resolveFacade(
   grammar: StyleGrammar,
@@ -21,6 +32,7 @@ export function resolveFacade(
   req: DesignRequirements,
   windowsByLevel: WindowSpec[][],
   rng: Rng,
+  genome: DesignGenome,
 ): FacadeElement[] {
   const f = grammar.facade
   const out: FacadeElement[] = []
@@ -28,6 +40,11 @@ export function resolveFacade(
   const fh = req.floorHeightMm
   const floors = req.floorPlan.floors.length
   const entry = entryPoint(foot)
+  // the genome's screen / stone / tower decisions gate the stochastic vocabulary
+  const wantsFins = genome.screen === 'vertical_fins' || genome.screen === 'horizontal_fins'
+  const wantsJaali = genome.screen === 'jaali' || genome.screen === 'perforated_screen'
+  const wantsWoodScreen = genome.screen === 'wood_screen' || genome.screen === 'louvers'
+  const cladMat = paletteClad(genome.materialPalette)
 
   // ---- plinth + base cladding (ground band)
   if (f.plinthMm > 0) out.push({ kind: 'plinth', heightMm: f.plinthMm, projMm: Math.max(80, f.plinthMm * 0.6) })
@@ -45,8 +62,8 @@ export function resolveFacade(
     }
   }
 
-  // ---- brise-soleil fins over the widest street glazing
-  if (rng.chance(f.verticalFinsChance)) {
+  // ---- brise-soleil fins over the widest street glazing (genome-gated)
+  if (wantsFins || (genome.screen === 'none' && rng.chance(f.verticalFinsChance * 0.3))) {
     for (let L = 0; L < floors; L++) {
       const streetWide = (windowsByLevel[L] ?? [])
         .filter((w) => w.facesStreet && (w.kind === 'standard' || w.kind === 'strip' || w.kind === 'picture'))
@@ -67,8 +84,8 @@ export function resolveFacade(
     }
   }
 
-  // ---- jaali screens
-  if (rng.chance(f.jaaliScreenChance)) {
+  // ---- jaali screens (genome-gated)
+  if (wantsJaali || (wantsWoodScreen && rng.chance(0.5))) {
     const pattern = rng.pick(['square', 'diamond', 'brick'] as const)
     for (const where of f.jaaliWhere) {
       if (where === 'street_wall') {
@@ -85,16 +102,17 @@ export function resolveFacade(
     }
   }
 
-  // ---- cladding panels (a facade band or a feature volume face)
-  if (f.cladPanels) {
-    const widthMm = snap(lerp(f.cladPanels.widthMm[0], f.cladPanels.widthMm[1], rng.next()))
+  // ---- cladding panels (a facade band or a feature volume face) — genome material
+  if (f.cladPanels || genome.facadeComposition === 'mixed_material' || genome.facadeComposition === 'stone_volume') {
+    const widthMm = snap(lerp(f.cladPanels?.widthMm[0] ?? 1600, f.cladPanels?.widthMm[1] ?? 2200, rng.next()))
     const side: Direction4 = rng.pick(['S', 'E', 'W'] as const)
     const at = bandOnSide(foot, side, widthMm, rng)
-    out.push({ kind: 'clad', level: 0, side, rect: at, material: f.cladPanels.material, twoStorey: f.cladPanels.twoStorey && floors > 1 })
+    const twoStorey = (genome.facadeComposition === 'stone_volume' || (f.cladPanels?.twoStorey ?? false)) && floors > 1
+    out.push({ kind: 'clad', level: 0, side, rect: at, material: cladMat, twoStorey })
   }
 
-  // ---- feature pier at the entry
-  if (f.featurePier && rng.chance(f.featurePier.chance)) {
+  // ---- feature pier at the entry (genome featureStone)
+  if (genome.featureStone) {
     out.push({
       kind: 'feature_pier',
       side: 'S',
@@ -102,49 +120,57 @@ export function resolveFacade(
       widthMm: 700,
       depthMm: 700,
       topMm: floors * fh + 400,
-      material: f.featurePier.material,
+      material: cladMat,
     })
   }
 
-  // ---- slender feature tower at the stair core (above the roofline)
-  if (rng.chance(grammar.massing.featureTowerChance)) {
+  // ---- slender feature tower at the stair core (genome featureTower)
+  if (genome.featureTower) {
     out.push({
       kind: 'feature_tower',
       at: { x: foot.x + 900, y: foot.y + 900 },
       footprint: { x: foot.x + 400, y: foot.y + 400, w: 1800, h: 2600 },
       topMm: floors * fh + snap(lerp(1400, 2600, rng.next())),
-      cladding: f.cladPanels?.material === 'travertine' ? 'travertine' : 'white_fins',
+      cladding: cladMat === 'travertine' ? 'travertine' : 'white_fins',
     })
   }
 
-  // ---- covered verandah along the entry facade
-  if (f.verandah) {
-    const depthMm = snap(lerp(f.verandah.depthMm[0], f.verandah.depthMm[1], rng.next()))
+  // ---- covered verandah along the entry facade (style rule OR genome wrap_verandah)
+  const verRule =
+    f.verandah ??
+    (genome.balcony === 'wrap_verandah'
+      ? { depthMm: [1900, 2400] as [number, number], columns: 'square' as const, columnMm: 300, wrapCourt: false }
+      : null)
+  const hasVerandah = !!verRule
+  if (verRule) {
+    const depthMm = snap(lerp(verRule.depthMm[0], verRule.depthMm[1], rng.next()))
     out.push({
       kind: 'verandah',
       level: 0,
       rect: { x: foot.x + 600, y: foot.y + foot.h, w: foot.w - 1200, h: depthMm },
-      columns: { style: f.verandah.columns, sizeMm: f.verandah.columnMm, spacingMm: snap(lerp(2800, 3600, rng.next())) },
+      columns: { style: verRule.columns, sizeMm: verRule.columnMm, spacingMm: snap(lerp(2800, 3600, rng.next())) },
     })
   }
 
-  // ---- entry canopy
-  if (grammar.door.entryCanopyMm > 0) {
+  // ---- entry canopy (genome entrance: canopy depth or double-height)
+  const canopyMm = genome.doubleHeightEntrance ? 2000 : grammar.door.entryCanopyMm
+  if (canopyMm > 0 || genome.entrance === 'porte_cochere') {
+    const isBig = genome.doubleHeightEntrance || genome.entrance === 'porte_cochere'
     out.push({
       kind: 'canopy',
-      at: { x: entry.x, y: foot.y + foot.h + grammar.door.entryCanopyMm / 2 },
-      widthMm: grammar.door.doubleHeightEntry ? 4200 : 3200,
-      depthMm: grammar.door.entryCanopyMm,
-      heightMm: grammar.door.doubleHeightEntry ? fh * 1.9 : fh - 200,
+      at: { x: entry.x, y: foot.y + foot.h + Math.max(canopyMm, 2400) / 2 },
+      widthMm: isBig ? 4200 : 3200,
+      depthMm: genome.entrance === 'porte_cochere' ? 5000 : Math.max(canopyMm, 1200),
+      heightMm: isBig ? fh * 1.9 : fh - 200,
     })
   }
 
   // ---- pergolas
   for (const where of f.pergola) {
-    if (where === 'roof' && rng.chance(0.7)) {
+    if (where === 'roof' && (genome.roofDeck || rng.chance(0.4))) {
       out.push({ kind: 'pergola', where: 'roof', rect: { x: foot.x + foot.w * 0.5, y: foot.y + 400, w: foot.w * 0.42, h: foot.h * 0.34 } })
     }
-    if (where === 'verandah' && f.verandah) {
+    if (where === 'verandah' && hasVerandah) {
       out.push({ kind: 'pergola', where: 'verandah', rect: { x: foot.x + foot.w * 0.28, y: foot.y + foot.h, w: foot.w * 0.34, h: 2000 } })
     }
   }

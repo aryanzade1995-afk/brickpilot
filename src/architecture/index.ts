@@ -24,3 +24,29 @@ export { generateDesign, requirementsOf, specFromDesign } from './generateDesign
 export { generateWindows } from './generator/windowGenerator.ts'
 export { classifyRoom, roomWalls, planShapeOf } from './generator/classify.ts'
 export { validateSpec } from './generator/validator.ts'
+
+/* ---- the data-driven architectural reference layer (library/) ---- */
+export {
+  VOCABULARY,
+  ALL_TERMS,
+  isValidTerm,
+  normalizeTerm,
+  STYLE_PATTERNS,
+  stylePattern,
+  resolveGenome,
+  validateGenome,
+  repairGenome,
+  genomeSummary,
+  architecturalFingerprint,
+  fingerprintSimilarity,
+  areTooSimilar,
+  distinctCount,
+  meanPairwiseSimilarity,
+  MASSING_LIBRARY,
+  ROOF_LIBRARY,
+  SEED_REFERENCES,
+  referenceHints,
+  compatibilitySnapshot,
+} from './library/index.ts'
+export type { StylePattern } from './library/index.ts'
+export type { ReferenceDesign, ReferenceDNA, ReferenceSource } from './library/index.ts'
