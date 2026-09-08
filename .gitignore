@@ -11,6 +11,8 @@ node_modules
 dist
 dist-ssr
 *.local
+__pycache__/
+*.pyc
 
 # local env (root .env is read by Vite; keys live here)
 .env
