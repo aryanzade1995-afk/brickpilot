@@ -1,0 +1,292 @@
+/* ------------------------------------------------------------------ *
+ *  windowGenerator — the room-driven opening system.
+ *
+ *      ROOM → EXTERIOR WALLS → ORIENTATION → ROOM TYPE → STYLE RULE
+ *           → OPENING COUNT / SIZE / KIND → placement
+ *
+ *  Rules enforced (per the grammar + GenerationConstraints):
+ *   - every window belongs to a real room and a real exterior wall
+ *   - bedroom 1–2, bathroom privacy-only, kitchen 1, living/dining larger
+ *   - respect wall length, keep MIN_WALL_BETWEEN between openings
+ *   - keep MIN_CORNER_OFFSET from each end, MIN_DOOR_WINDOW from any door
+ *   - window-to-wall ratio capped (maxWindowRatio)
+ *   - each floor is generated independently — the upper floors are NOT
+ *     a copy of the ground floor, and street-facing upper rooms shrink
+ *     / raise for privacy
+ *   - never emit windows just to make a facade look busy
+ * ------------------------------------------------------------------ */
+
+import type { Point } from '../../lib/geometry.ts'
+import type { FloorPlan } from '../../lib/engine/types.ts'
+import type { Rng } from '../../lib/engine/shape/rng.ts'
+import type { Direction4, GenerationConstraints, RoomClass, RoomWindowRule, StyleGrammar, WindowSpec } from '../types.ts'
+import { classifyRoom, doorOnEdge, roomWalls, type WallEdge } from './classify.ts'
+
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t
+
+/** room classes that never get an exterior window from this pass */
+const NO_WINDOW: RoomClass = 'foyer'
+const SKIP: Set<RoomClass> = new Set<RoomClass>([NO_WINDOW, 'lobby', 'parking', 'balcony', 'courtyard', 'verandah', 'other'])
+
+/** rough daylight desirability of an orientation (plan frame; S = street/entry) */
+const ORIENT_SCORE: Record<Direction4, number> = { N: 1.0, S: 0.75, E: 0.7, W: 0.55 }
+
+export type WindowGenInput = {
+  grammar: StyleGrammar
+  constraints: GenerationConstraints
+  floor: FloorPlan
+  level: number
+  floorHeightMm: number
+  entrySide: Direction4
+  rng: Rng
+}
+
+export function generateWindows(input: WindowGenInput): WindowSpec[] {
+  const { grammar, constraints, floor, level, floorHeightMm, rng } = input
+  const wr = grammar.window
+  const cw = constraints.window
+  const out: WindowSpec[] = []
+  let uid = 0
+
+  for (const room of floor.rooms) {
+    if (room.outdoor) continue
+    const cls = classifyRoom(room)
+    if (SKIP.has(cls)) continue
+    const rule: RoomWindowRule = wr.byRoom[cls] ?? wr.fallback
+
+    // ---- candidate walls: exterior, long enough, not the entry, not doored-out
+    const doors = floor.openings.filter((o) => o.kind === 'door' || o.kind === 'entry')
+    const walls = roomWalls(room, floor).filter((w) => {
+      if (!w.exterior) return false
+      if (w.lengthMm < rule.widthMm[0] + 2 * wr.minCornerOffsetMm) return false
+      // a wall almost entirely taken by a door is not a window wall
+      const doorSpan = doors.reduce((s, d) => s + (doorOnEdge(w, d.at) != null ? d.width : 0), 0)
+      return doorSpan < w.lengthMm * 0.7
+    })
+    if (walls.length === 0) continue
+
+    // ---- rank walls
+    const ranked = [...walls].sort((a, b) => wallScore(b, cls, level, wr.upperPrivacyBias) - wallScore(a, cls, level, wr.upperPrivacyBias))
+
+    // ---- how many windows this room wants
+    let want = rule.preferred
+    const primary = ranked[0]
+    const streetPrivate = primary.facesStreet && level > 0 && (cls === 'bedroom' || cls === 'master' || cls === 'study')
+    if (streetPrivate) want = Math.max(1, want - Math.round(wr.upperPrivacyBias))
+    want = clamp(want, cls === 'stair' ? 0 : rule.preferred > 0 ? 1 : 0, Math.min(rule.max, cw.maxWindowsPerRoom))
+    if (cls === 'stair') want = rng.chance(0.45) ? 1 : 0
+    if (want === 0) continue
+
+    // ---- decide the opening kind
+    const privacy = rule.privacy || (streetPrivate && rng.chance(0.6))
+    const strip =
+      !privacy &&
+      rule.allowStrip &&
+      (primary.facesCourt || !primary.facesStreet || cls === 'living' || cls === 'dining') &&
+      rng.chance(grammar.window.stripGlazingChance)
+    const picture = !privacy && !strip && rule.allowPicture && rng.chance(grammar.window.pictureWindowChance)
+
+    if (strip) {
+      const w = placeStrip(primary, room.id, cls, level, rule, wr, floorHeightMm, rng, uid++)
+      if (w) out.push(w)
+      continue
+    }
+
+    // ---- distribute `want` standard/privacy/picture windows across the top wall(s)
+    const placed = placeWindows({
+      walls: ranked,
+      want,
+      roomId: room.id,
+      cls,
+      level,
+      rule,
+      wr,
+      cw,
+      floorHeightMm,
+      doors: doors.map((d) => d.at),
+      privacy,
+      picture,
+      rng,
+      startUid: uid,
+    })
+    uid += placed.length
+    out.push(...placed)
+  }
+
+  return out
+}
+
+/* ------------------------------------------------------------------ */
+
+function wallScore(w: WallEdge, cls: RoomClass, level: number, privacyBias: number): number {
+  let s = ORIENT_SCORE[w.side]
+  s += Math.min(w.lengthMm / 6000, 1) * 0.6 // longer wall preferred
+  if (w.facesCourt) s += cls === 'living' || cls === 'dining' || cls === 'master' ? 1.4 : 0.9
+  if (w.facesStreet && level > 0 && (cls === 'bedroom' || cls === 'master' || cls === 'bathroom')) s -= privacyBias * 1.2
+  if (w.facesStreet && (cls === 'living' || cls === 'dining')) s += 0.25 // a street presence for social rooms
+  return s
+}
+
+function windowHeight(rule: RoomWindowRule, floorHeightMm: number, sill: number, rng: Rng): number {
+  const head = 300
+  const cap = Math.max(rule.heightMm[0], floorHeightMm - sill - head)
+  return Math.round(clamp(lerp(rule.heightMm[0], rule.heightMm[1], rng.next()), rule.heightMm[0], cap))
+}
+
+function mullionsFor(widthMm: number): number {
+  return widthMm > 1650 ? Math.max(1, Math.floor((widthMm - 250) / 1450)) : 0
+}
+
+function placeStrip(
+  wall: WallEdge,
+  roomId: string,
+  cls: RoomClass,
+  level: number,
+  rule: RoomWindowRule,
+  wr: StyleGrammar['window'],
+  floorHeightMm: number,
+  rng: Rng,
+  id: number,
+): WindowSpec | null {
+  const usable = wall.lengthMm - 2 * wr.minCornerOffsetMm
+  if (usable < 1600) return null
+  const sill = Math.round(rule.sillMm + rng.range(-40, 60))
+  const widthMm = Math.round(usable)
+  const centerMm = wr.minCornerOffsetMm + usable / 2
+  return {
+    id: `w${level}-${id}`,
+    roomId,
+    roomClass: cls,
+    level,
+    wall: { a: wall.a, b: wall.b },
+    side: wall.side,
+    centerMm,
+    widthMm,
+    heightMm: windowHeight(rule, floorHeightMm, sill, rng),
+    sillMm: sill,
+    kind: 'strip',
+    mullions: Math.max(2, Math.floor(widthMm / 1500)),
+    facesCourt: wall.facesCourt,
+    facesStreet: wall.facesStreet,
+  }
+}
+
+type PlaceInput = {
+  walls: WallEdge[]
+  want: number
+  roomId: string
+  cls: RoomClass
+  level: number
+  rule: RoomWindowRule
+  wr: StyleGrammar['window']
+  cw: GenerationConstraints['window']
+  floorHeightMm: number
+  doors: Point[]
+  privacy: boolean
+  picture: boolean
+  rng: Rng
+  startUid: number
+}
+
+function placeWindows(p: PlaceInput): WindowSpec[] {
+  const { walls, roomId, cls, level, rule, wr, cw, floorHeightMm, doors, privacy, picture, rng } = p
+  const res: WindowSpec[] = []
+  let remaining = p.want
+  let id = p.startUid
+
+  for (const wall of walls) {
+    if (remaining <= 0) break
+
+    // free intervals on this wall = [cornerOffset, len-cornerOffset] minus door clearances
+    const lo = wr.minCornerOffsetMm
+    const hi = wall.lengthMm - wr.minCornerOffsetMm
+    if (hi - lo < rule.widthMm[0]) continue
+    const blocked: [number, number][] = []
+    for (const at of doors) {
+      const off = doorOnEdge(wall, at)
+      if (off == null) continue
+      blocked.push([off - 600 - wr.minDoorWindowDistanceMm, off + 600 + wr.minDoorWindowDistanceMm])
+    }
+    const intervals = subtract([lo, hi], blocked).filter(([a, b]) => b - a >= rule.widthMm[0])
+    if (intervals.length === 0) continue
+
+    // window-to-wall ratio budget for this wall
+    const wallArea = wall.lengthMm * floorHeightMm
+    let areaBudget = Math.min(wr.maxWindowRatio, cw.maxWindowRatio) * wallArea
+    let usedArea = 0
+
+    for (const [ia, ib] of intervals) {
+      if (remaining <= 0) break
+      const span = ib - ia
+      // how many of this room's windows fit in this interval
+      const wBase = privacy
+        ? rule.widthMm[0]
+        : picture && res.length === 0
+          ? Math.min(rule.widthMm[1] * 1.4, span - 100)
+          : lerp(rule.widthMm[0], rule.widthMm[1], 0.35 + rng.next() * 0.4)
+      const fitCount = Math.max(1, Math.floor((span + wr.minWallBetweenWindowsMm) / (wBase + wr.minWallBetweenWindowsMm)))
+      const n = Math.min(remaining, fitCount, picture ? 1 : rule.max)
+
+      const gap = wr.minWallBetweenWindowsMm
+      const wWidth = Math.min(wBase, (span - (n - 1) * gap) / n)
+      if (wWidth < rule.widthMm[0] * 0.75) continue
+      const total = n * wWidth + (n - 1) * gap
+      let cursor = ia + (span - total) / 2
+
+      for (let k = 0; k < n; k++) {
+        const sill = privacy
+          ? Math.max(rule.sillMm, 1400)
+          : Math.round(rule.sillMm + rng.range(-50, 80))
+        const heightMm = privacy
+          ? Math.round(clamp(rule.heightMm[1], 500, 900))
+          : windowHeight(rule, floorHeightMm, sill, rng)
+        const widthMm = Math.round(wWidth)
+        if (usedArea + widthMm * heightMm > areaBudget && res.length > 0) {
+          remaining = 0
+          break
+        }
+        usedArea += widthMm * heightMm
+        res.push({
+          id: `w${level}-${id++}`,
+          roomId,
+          roomClass: cls,
+          level,
+          wall: { a: wall.a, b: wall.b },
+          side: wall.side,
+          centerMm: Math.round(cursor + widthMm / 2),
+          widthMm,
+          heightMm,
+          sillMm: sill,
+          kind: privacy ? 'privacy' : picture && res.length === 0 ? 'picture' : 'standard',
+          mullions: privacy ? 0 : mullionsFor(widthMm),
+          facesCourt: wall.facesCourt,
+          facesStreet: wall.facesStreet,
+        })
+        cursor += widthMm + gap
+        remaining--
+      }
+      // once a wall carries the room's picture window, cap its remaining budget
+      if (picture) areaBudget = usedArea
+    }
+  }
+  return res
+}
+
+/** [lo,hi] minus a set of blocked intervals → the free intervals */
+function subtract(range: [number, number], blocked: [number, number][]): [number, number][] {
+  let free: [number, number][] = [range]
+  for (const [ba, bb] of blocked) {
+    const next: [number, number][] = []
+    for (const [fa, fb] of free) {
+      if (bb <= fa || ba >= fb) {
+        next.push([fa, fb])
+        continue
+      }
+      if (ba > fa) next.push([fa, Math.min(ba, fb)])
+      if (bb < fb) next.push([Math.max(bb, fa), fb])
+    }
+    free = next
+  }
+  return free
+}

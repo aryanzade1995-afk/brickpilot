@@ -32,3 +32,8 @@ server/.env
 
 # generated contact sheet
 massing-grid.html
+
+# architectural grammar -> Blender bake artifacts (regenerated, not committed)
+blender/specs/
+blender/**/__pycache__/
+public/villas/

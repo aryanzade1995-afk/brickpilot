@@ -1,0 +1,18 @@
+{
+  "_comment": "Blender-only render knobs per style, layered on top of the DesignSpec (which already carries the architecture). Bevel widths, glass roughness fine-tune, exposed-rafter toggles, etc. The generator reads this if present; missing keys fall back to `default`.",
+  "default": {
+    "bevelMm": 12,
+    "glassRoughness": 0.06,
+    "exposedRafters": false,
+    "wallShellThicknessMm": 230,
+    "roofFasciaBevelMm": 8
+  },
+  "modern_indian": { "bevelMm": 6, "exposedRafters": false },
+  "contemporary_indian": { "bevelMm": 8 },
+  "modern_kerala": { "bevelMm": 16, "exposedRafters": true, "roofFasciaBevelMm": 4 },
+  "kerala_contemporary": { "bevelMm": 10 },
+  "luxury_indian_villa": { "bevelMm": 14, "glassRoughness": 0.03, "wallShellThicknessMm": 280 },
+  "tropical_indian_modern": { "bevelMm": 10, "exposedRafters": true },
+  "minimal_indian": { "bevelMm": 4, "roofFasciaBevelMm": 3 },
+  "courtyard_indian_modern": { "bevelMm": 10 }
+}

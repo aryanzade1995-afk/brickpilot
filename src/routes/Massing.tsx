@@ -12,6 +12,8 @@ import { buildMassing } from '@/lib/three/buildMassing.ts'
 import { buildDollhouse } from '@/lib/three/buildDollhouse.ts'
 import { MassingModel, SceneEnv } from '@/lib/three/MassingScene.tsx'
 import { DollhouseModel, DollhouseEnv } from '@/lib/three/DollhouseScene.tsx'
+import { GlbVilla } from '@/lib/three/GlbVilla.tsx'
+import { useVillaMatch } from '@/lib/three/villaCatalog.ts'
 import type { Group } from '@/lib/three/massingGroups.ts'
 import { cx } from '@/lib/cx.ts'
 import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
@@ -38,6 +40,9 @@ export function Massing() {
   }, [result, run])
 
   const massing = useMemo(() => (result ? buildMassing(result.design) : null), [result])
+  // a baked Blender GLB for this design, if the villa catalog has one (else null
+  // → the procedural buildMassing model below is used, exactly as before)
+  const villa = useVillaMatch(result?.design)
   const [mode, setMode] = useState<ViewMode>('study')
   const [floorSel, setFloorSel] = useState<number | 'all'>(0)
   const doll = useMemo(
@@ -111,6 +116,14 @@ export function Massing() {
                 </button>
               ))}
             </div>
+            {villa && mode === 'study' && (
+              <span
+                className="border border-accent/40 bg-accent/10 px-2 py-1 font-mono text-[0.6rem] uppercase tracking-[0.1em] text-accent"
+                title={`Baked villa ${villa.id} (${villa.strategy})`}
+              >
+                Blender GLB
+              </span>
+            )}
             <div className="flex flex-wrap gap-1">
               {(['front', 'rear', 'left', 'right', 'iso', 'top'] as CamKey[]).map((k) => (
                 <button
@@ -178,7 +191,11 @@ export function Massing() {
                       fadeStrength={1.3}
                     />
                   )}
-                  <MassingModel massing={massing} explode={explode} hidden={hidden} character={character} />
+                  {villa && mode === 'study' ? (
+                    <GlbVilla url={`${import.meta.env.BASE_URL}${villa.url}`} hidden={hidden as Set<string>} />
+                  ) : (
+                    <MassingModel massing={massing} explode={explode} hidden={hidden} character={character} />
+                  )}
                 </>
               )}
 
