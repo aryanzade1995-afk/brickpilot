@@ -11,6 +11,7 @@ import { rectBottom, rectRight } from '../geometry.ts'
 
 export type DollMat =
   | 'wall'
+  | 'door' // door leaf + frame — teak, reads as a real opening
   | 'floor'
   | 'rug'
   | 'sage' // upholstery accents — one per room by hash
@@ -119,7 +120,10 @@ export function buildDollhouse(design: Design, only?: number): Dollhouse {
     // ---- doors on this storey, so walls can leave a gap ----
     const doors = floor.openings.filter((o) => o.kind === 'door' || o.kind === 'entry')
 
-    // ---- walls trimmed to CUT, split around door gaps ----
+    // ---- walls trimmed to CUT, split around door gaps + a real frame in each gap ----
+    const JAMB = 0.05 // frame reveal, m
+    const HEAD = 0.14 // lintel depth, m
+    const framedDoors = new Set<string>()
     floor.walls.forEach((w, i) => {
       if (w.kind === 'parapet') return
       const horiz = Math.abs(w.a.y - w.b.y) < 2
@@ -132,9 +136,37 @@ export function buildDollhouse(design: Design, only?: number): Dollhouse {
       for (const d of doors) {
         const dPerp = horiz ? d.at.y : d.at.x
         const dAlong = horiz ? d.at.x : d.at.y
-        if (Math.abs(dPerp - fixed) > 220) continue
-        if (dAlong < a0 || dAlong > a1) continue
+        if (Math.abs(dPerp - fixed) > 240) continue
+        if (dAlong < a0 - 200 || dAlong > a1 + 200) continue
         gaps.push([dAlong - d.width / 2 - 40, dAlong + d.width / 2 + 40])
+        // a slim teak frame + a leaf standing open — draw once per physical door
+        const key = `${Math.round(d.at.x)},${Math.round(d.at.y)}`
+        if (!framedDoors.has(key)) {
+          framedDoors.add(key)
+          const dw = m(d.width)
+          const isEntry = d.kind === 'entry'
+          const hgt = Math.min(CUT, isEntry ? 2.1 : 2.02)
+          const leafT = 0.045
+          const jz = baseY + hgt / 2
+          if (horiz) {
+            const fx = wx(d.at.x)
+            const fy = wz(fixed)
+            push(`door-j0-${key}`, 'door', [fx - dw / 2, jz, fy], [JAMB, hgt, t + 0.03])
+            push(`door-j1-${key}`, 'door', [fx + dw / 2, jz, fy], [JAMB, hgt, t + 0.03])
+            push(`door-hd-${key}`, 'door', [fx, baseY + hgt + HEAD / 2, fy], [dw + 2 * JAMB, HEAD, t + 0.03])
+            push(`door-sill-${key}`, 'door', [fx, baseY + 0.01, fy], [dw, 0.03, t + 0.12])
+            // leaf swung ~70° open, hinged at one jamb
+            push(`door-leaf-${key}`, 'door', [fx - dw / 2 + dw * 0.34, jz, fy + (d.swing ?? 1) * dw * 0.32], [dw * 0.66, hgt - 0.06, leafT])
+          } else {
+            const fx = wx(fixed)
+            const fy = wz(d.at.y)
+            push(`door-j0-${key}`, 'door', [fx, jz, fy - dw / 2], [t + 0.03, hgt, JAMB])
+            push(`door-j1-${key}`, 'door', [fx, jz, fy + dw / 2], [t + 0.03, hgt, JAMB])
+            push(`door-hd-${key}`, 'door', [fx, baseY + hgt + HEAD / 2, fy], [t + 0.03, HEAD, dw + 2 * JAMB])
+            push(`door-sill-${key}`, 'door', [fx, baseY + 0.01, fy], [t + 0.12, 0.03, dw])
+            push(`door-leaf-${key}`, 'door', [fx + (d.swing ?? 1) * dw * 0.32, jz, fy - dw / 2 + dw * 0.34], [leafT, hgt - 0.06, dw * 0.66])
+          }
+        }
       }
       gaps.sort((p, q) => p[0] - q[0])
       let cursor = a0
@@ -257,46 +289,87 @@ function furnishRoom(
   const { door, win } = edgesOf(room, floor)
   const rng = rand(Math.round(r.x * 7 + r.y * 13 + r.w))
 
-  // ---- keep-clear zones in front of every door: no furniture may block a
-  //      doorway or its swing (local metres, room-centre origin) ----
-  const CLEAR = 0.92
+  // ---- keep-clear zones for every door: the threshold (both sides) AND the
+  //      swing arc (inside the room). NOTHING floor-standing may sit in either
+  //      — the bed / sofa / table included (§ "furniture must not block entry")
+  const CLEAR = 1.0 // swing depth, m
+  const THR = 0.34 // threshold keep-clear depth each side, m
   const doorZones: { x0: number; z0: number; x1: number; z1: number }[] = []
+  /** which room-local sides carry a door (so anchors can shorten toward them) */
+  const doorSide: Record<Side, boolean> = { N: false, S: false, E: false, W: false }
   for (const op of floor.openings) {
     if (op.kind === 'window') continue
     const horiz = op.orient === 'h'
     const perp = horiz ? op.at.y : op.at.x
     const along = horiz ? op.at.x : op.at.y
-    const hw = op.width / 2000 + 0.16
+    const hw = op.width / 2000 + 0.2
     if (horiz) {
-      if (along < r.x - 100 || along > rectRight(r) + 100) continue
+      if (along < r.x - 120 || along > rectRight(r) + 120) continue
       const lx = wx(op.at.x) - cx
-      if (Math.abs(perp - r.y) < 260) doorZones.push({ x0: lx - hw, z0: -D / 2, x1: lx + hw, z1: -D / 2 + CLEAR })
-      else if (Math.abs(perp - rectBottom(r)) < 260) doorZones.push({ x0: lx - hw, z0: D / 2 - CLEAR, x1: lx + hw, z1: D / 2 })
+      if (Math.abs(perp - r.y) < 280) {
+        doorSide.N = true
+        doorZones.push({ x0: lx - hw, z0: -D / 2 - THR, x1: lx + hw, z1: -D / 2 + Math.max(CLEAR, THR) })
+      } else if (Math.abs(perp - rectBottom(r)) < 280) {
+        doorSide.S = true
+        doorZones.push({ x0: lx - hw, z0: D / 2 - Math.max(CLEAR, THR), x1: lx + hw, z1: D / 2 + THR })
+      }
     } else {
-      if (along < r.y - 100 || along > rectBottom(r) + 100) continue
+      if (along < r.y - 120 || along > rectBottom(r) + 120) continue
       const lz = wz(op.at.y) - cz
-      if (Math.abs(perp - r.x) < 260) doorZones.push({ x0: -W / 2, z0: lz - hw, x1: -W / 2 + CLEAR, z1: lz + hw })
-      else if (Math.abs(perp - rectRight(r)) < 260) doorZones.push({ x0: W / 2 - CLEAR, z0: lz - hw, x1: W / 2, z1: lz + hw })
+      if (Math.abs(perp - r.x) < 280) {
+        doorSide.W = true
+        doorZones.push({ x0: -W / 2 - THR, z0: lz - hw, x1: -W / 2 + Math.max(CLEAR, THR), z1: lz + hw })
+      } else if (Math.abs(perp - rectRight(r)) < 280) {
+        doorSide.E = true
+        doorZones.push({ x0: W / 2 - Math.max(CLEAR, THR), z0: lz - hw, x1: W / 2 + THR, z1: lz + hw })
+      }
     }
   }
-  /** a floor-standing piece at (lx,lz) of footprint (sw,sd) that intrudes into a doorway */
-  const blocksDoor = (lx: number, lz: number, sw: number, sd: number) =>
+  const hitsDoor = (lx: number, lz: number, sw: number, sd: number) =>
     doorZones.some(
-      (z) =>
-        lx - sw / 2 < z.x1 - 0.06 &&
-        lx + sw / 2 > z.x0 + 0.06 &&
-        lz - sd / 2 < z.z1 - 0.06 &&
-        lz + sd / 2 > z.z0 + 0.06,
+      (z) => lx - sw / 2 < z.x1 - 0.05 && lx + sw / 2 > z.x0 + 0.05 && lz - sd / 2 < z.z1 - 0.05 && lz + sd / 2 > z.z0 + 0.05,
     )
-  // pieces that anchor a room are never dropped (an empty room reads worse than a
-  // tight one); everything else yields to a doorway
-  const ANCHOR = /^(bed-|sofa-|table$|tleg|kb-|kc-|ku-|island|desk$|dleg|vanity|basin|wc|altar|washer|counter$|media$)/
+  /** a spot near (lx,lz) that clears every door zone and stays inside the walls; null if none */
+  const clearSpot = (lx: number, lz: number, sw: number, sd: number): [number, number] | null => {
+    if (!hitsDoor(lx, lz, sw, sd)) return [lx, lz]
+    const mx = W / 2 - sw / 2 - 0.05
+    const mz = D / 2 - sd / 2 - 0.05
+    for (let rad = 0.15; rad <= 1.0; rad += 0.15) {
+      for (const [dx, dz] of [
+        [rad, 0],
+        [-rad, 0],
+        [0, rad],
+        [0, -rad],
+        [rad, rad],
+        [-rad, rad],
+        [rad, -rad],
+        [-rad, -rad],
+      ]) {
+        const nx = clamp(lx + dx, -mx, mx)
+        const nz = clamp(lz + dz, -mz, mz)
+        if (!hitsDoor(nx, nz, sw, sd)) return [nx, nz]
+      }
+    }
+    return null
+  }
+  /** anchors: a bed / sofa / wardrobe that must stay — shifted clear, or shrunk to fit */
+  const ANCHOR = /^(bed-|sofa-|table$|tleg|kb-|kc-|ku-|island|desk$|dleg|vanity|basin|wc|altar|washer|counter$|media$|wardrobe|sideboard|console|shelf$|fridge-)/
 
   let n = 0
   const P = (id: string, mat: DollMat, lx: number, ly: number, lz: number, sw: number, sh: number, sd: number) => {
-    const flat = sh <= 0.06 // rugs, mats, cloths
+    const flat = sh <= 0.06 // rugs, mats, cloths — sit under everything
     const mounted = ly - sh / 2 >= 1.24 // wall art, mirrors, upper cabinets, hoods, pendants
-    if (!flat && !mounted && !ANCHOR.test(id) && blocksDoor(lx, lz, sw, sd)) return
+    if (!flat && !mounted && hitsDoor(lx, lz, sw, sd)) {
+      const spot = clearSpot(lx, lz, sw, sd)
+      if (spot) {
+        lx = spot[0]
+        lz = spot[1]
+      } else if (!ANCHOR.test(id)) {
+        return // a non-anchor piece yields entirely to the doorway
+      }
+      // an anchor with nowhere to go stays put — the room reads worse empty —
+      // but it has already been shrunk toward the door wall by the caller
+    }
     push(`${room.id}-${id}`, mat, [cx + lx, y0 + ly, cz + lz], [sw, sh, sd])
     n++
   }
@@ -327,6 +400,33 @@ function furnishRoom(
   const pendant = (lz = 0, lx = 0) => {
     P('pend-rod', 'metal', lx, CUT + 0.14, lz, 0.04, 0.28, 0.04)
     P('pend', 'lamp', lx, CUT - 0.06, lz, 0.5, 0.28, 0.5)
+  }
+  /** a ceiling fan hung on a short down-rod — the default Indian-home fixture */
+  const ceilingFan = (lx = 0, lz = 0) => {
+    P('fan-rod', 'metal', lx, CUT + 0.1, lz, 0.05, 0.24, 0.05)
+    P('fan-hub', 'metal', lx, CUT - 0.04, lz, 0.22, 0.12, 0.22)
+    for (let k = 0; k < 3; k++) {
+      const a = (k / 3) * Math.PI * 2
+      P(`fan-blade${k}`, 'wood', lx + Math.cos(a) * 0.5, CUT - 0.05, lz + Math.sin(a) * 0.5, 0.66, 0.03, 0.16)
+    }
+  }
+  /** a simple drape at every window on `sides` — a soft box hung to the sill */
+  const curtains = (sides: Side[]) => {
+    for (const s of sides) {
+      if (!win[s]) continue
+      const p = atWall(s, 0.06)
+      const long = p.horiz ? clamp(W * 0.5, 0.6, 1.8) : clamp(D * 0.5, 0.6, 1.8)
+      P(
+        `curtain-${s}`,
+        acc2,
+        p.horiz ? 0 : p.x + (s === 'W' ? 0.05 : -0.05),
+        CUT * 0.62,
+        p.horiz ? p.z + (s === 'N' ? 0.05 : -0.05) : 0,
+        p.horiz ? long : 0.08,
+        CUT * 0.9,
+        p.horiz ? 0.08 : long,
+      )
+    }
   }
   const floorLamp = (sx: number, sz: number) => {
     P('fl-pole', 'metal', sx * (W / 2 - 0.26), 0.68, sz * (D / 2 - 0.26), 0.05, 1.36, 0.05)
@@ -366,8 +466,11 @@ function furnishRoom(
   if (id.startsWith('bed')) {
     const dbl = W * D >= 9.5 // m²
     const bw = clamp(dbl ? 1.6 : 1.05, 0.9, W - 0.85)
-    const bl = clamp(2.04, 1.8, D - 0.7)
     const head = clearWall()
+    const foot: Side = head === 'N' ? 'S' : head === 'S' ? 'N' : head === 'W' ? 'E' : 'W'
+    const roomLen = head === 'N' || head === 'S' ? D : W
+    // shorten the bed so its foot stays clear of a door on the opposite wall
+    const bl = clamp(2.04, 1.65, roomLen - 0.55 - (doorSide[foot] ? CLEAR : 0))
     const hb = atWall(head, 0.14)
     const along = head === 'N' || head === 'S' ? 'x' : 'z'
     const bedX = hb.horiz ? 0 : hb.x + (head === 'W' ? bl / 2 : -bl / 2)
@@ -437,9 +540,19 @@ function furnishRoom(
       const p = atWall(wr, 0.6)
       P('wardrobe', 'panel', p.x, CUT / 2, p.z, p.horiz ? clamp(W - 0.5, 1, 2.6) : 0.6, CUT, p.horiz ? 0.6 : clamp(D - 0.5, 1, 2.6))
     }
+    // a low chest of drawers on the remaining clear wall, with a lamp + a couple of books
+    const chestSide = SIDES.find((s) => s !== head && s !== wr && !door[s])
+    if (chestSide && (chestSide === 'W' || chestSide === 'E' ? D : W) > 1.4) {
+      const p = atWall(chestSide, 0.46)
+      const run = p.horiz ? clamp(W - 0.9, 0.8, 1.5) : clamp(D - 0.9, 0.8, 1.5)
+      P('chest', 'wood', p.x, 0.4, p.z, p.horiz ? run : 0.46, 0.8, p.horiz ? 0.46 : run)
+      P('chest-lamp', 'lamp', p.horiz ? p.x - run * 0.28 : p.x, 0.98, p.horiz ? p.z : p.z - run * 0.28, 0.22, 0.3, 0.22)
+      P('chest-books', 'wood', p.horiz ? p.x + run * 0.2 : p.x, 0.92, p.horiz ? p.z : p.z + run * 0.2, 0.3, 0.2, 0.16)
+    }
     rug(bedW + 1.2, bedD + 1.0)
-    pendant(bedZ * 0.25)
+    ceilingFan(bedX * 0.3, bedZ * 0.2)
     wallArt([head, wr ?? head], 2)
+    curtains(SIDES.filter((s) => win[s]))
     if (Object.values(win).some(Boolean)) plant()
     return n
   }
@@ -531,9 +644,40 @@ function furnishRoom(
       0.84,
       op.horiz ? 0.06 : 1.5,
     )
+    // a side table + reading lamp at the far arm of the sofa
+    P(
+      'side-table',
+      'wood',
+      p.horiz ? p.x + (sofaLen / 2 + 0.32) : p.x,
+      0.24,
+      p.horiz ? p.z : p.z + (sofaLen / 2 + 0.32),
+      0.42,
+      0.48,
+      0.42,
+    )
+    // a tall bookshelf on a clear wall, if one is free
+    const shelfSide = SIDES.find((s) => s !== back && s !== opp && !door[s])
+    if (shelfSide) {
+      const sp = atWall(shelfSide, 0.34)
+      const run = sp.horiz ? clamp(W - 1.0, 0.9, 2.4) : clamp(D - 1.0, 0.9, 2.4)
+      P('bookshelf', 'panel', sp.x, CUT / 2, sp.z, sp.horiz ? run : 0.34, CUT, sp.horiz ? 0.34 : run)
+      for (let k = 0; k < 4; k++) {
+        P(
+          `books${k}`,
+          k % 2 ? 'clay' : 'wood',
+          sp.horiz ? sp.x - run / 2 + run * ((k + 0.5) / 4) : sp.x,
+          0.32 + k * 0.3,
+          sp.horiz ? sp.z : sp.z - run / 2 + run * ((k + 0.5) / 4),
+          sp.horiz ? run * 0.18 : 0.24,
+          0.2,
+          sp.horiz ? 0.24 : run * 0.18,
+        )
+      }
+    }
     rug(sofaLen + 1.0, 2.8)
-    pendant(fwd * 0.5, fwdX * 0.5)
+    ceilingFan(fwdX * 0.2, fwd * 0.2)
     floorLamp(fwdX >= 0 ? 1 : -1, fwd >= 0 ? 1 : -1)
+    curtains(SIDES.filter((s) => win[s]))
     plant()
     return n
   }
@@ -554,13 +698,17 @@ function furnishRoom(
         P(`chairbk-${s > 0 ? 's' : 'n'}${i}`, 'wood', lx, 0.66, s * (td / 2 + 0.28 + (s > 0 ? 0.19 : -0.19)), 0.46, 0.56, 0.06)
       }
     }
-    // a sideboard against a clear wall
+    // a sideboard against a clear wall, with a runner + a vase on top
     const cw = clearWall()
     const sp = atWall(cw, 0.4)
-    P('sideboard', 'wood', sp.x, 0.4, sp.z, sp.horiz ? clamp(W - 0.8, 1.0, 2.2) : 0.4, 0.8, sp.horiz ? 0.4 : clamp(D - 0.8, 1.0, 2.2))
+    const sbRun = sp.horiz ? clamp(W - 0.8, 1.0, 2.2) : clamp(D - 0.8, 1.0, 2.2)
+    P('sideboard', 'wood', sp.x, 0.4, sp.z, sp.horiz ? sbRun : 0.4, 0.8, sp.horiz ? 0.4 : sbRun)
+    P('sb-vase', 'ceramic', sp.x, 0.98, sp.z, 0.16, 0.36, 0.16)
+    P('sb-bowl', 'ceramic', sp.horiz ? sp.x + sbRun * 0.24 : sp.x, 0.86, sp.horiz ? sp.z : sp.z + sbRun * 0.24, 0.3, 0.1, 0.3)
     rug(tw + 1.4, td + 1.4)
-    pendant()
+    ceilingFan(0, 0)
     wallArt([cw], 2)
+    curtains(SIDES.filter((s) => win[s]))
     plant()
     return n
   }
@@ -650,6 +798,18 @@ function furnishRoom(
       P('shower-g2', 'glass', -W / 2 + 0.55, CUT / 2, D / 2 - 1.05, 1.0, CUT, 0.04)
     }
     P('bath-mat', 'rug', vp.horiz ? vp.x : vp.x + (cw === 'W' ? 0.5 : -0.5), 0.03, vp.horiz ? vp.z + (cw === 'N' ? 0.5 : -0.5) : vp.z, 0.7, 0.03, 0.5)
+    // a heated towel rail + a tall storage niche on clear walls
+    const trail = SIDES.find((s) => s !== cw && !door[s])
+    if (trail) {
+      const tp = atWall(trail, 0.06)
+      P('towel-rail', 'metal', tp.horiz ? tp.x : tp.x + (trail === 'W' ? 0.04 : -0.04), 0.95, tp.horiz ? tp.z + (trail === 'N' ? 0.04 : -0.04) : tp.z, tp.horiz ? 0.62 : 0.06, 0.5, tp.horiz ? 0.06 : 0.62)
+      P('towel', acc, tp.horiz ? tp.x : tp.x + (trail === 'W' ? 0.1 : -0.1), 0.9, tp.horiz ? tp.z + (trail === 'N' ? 0.1 : -0.1) : tp.z, tp.horiz ? 0.5 : 0.1, 0.44, tp.horiz ? 0.1 : 0.5)
+    }
+    const store = SIDES.find((s) => s !== cw && s !== trail && !door[s])
+    if (store && (store === 'W' || store === 'E' ? D : W) > 1.2) {
+      const stp = atWall(store, 0.3)
+      P('bath-store', 'panel', stp.x, CUT / 2, stp.z, stp.horiz ? 0.55 : 0.3, CUT, stp.horiz ? 0.3 : 0.55)
+    }
     return n
   }
 
@@ -667,8 +827,17 @@ function furnishRoom(
       const sp = atWall(sw, 0.32)
       P('shelf', 'panel', sp.x, CUT / 2, sp.z, sp.horiz ? clamp(W - 0.7, 0.9, 2.2) : 0.32, CUT, sp.horiz ? 0.32 : clamp(D - 0.7, 0.9, 2.2))
     }
+    // a reading armchair + floor lamp in a free corner, and a filing drawer
+    const rc = SIDES.find((s) => s !== dw && s !== sw && !door[s])
+    if (rc) {
+      const rp = atWall(rc, 0.5)
+      P('read-chair', acc2, rp.x, 0.3, rp.z, 0.62, 0.6, 0.62)
+    }
+    P('file', 'wood', p.horiz ? p.x + (dw === 'W' ? 0 : 0) - clamp(W - 0.7, 1.2, 2.0) / 2 + 0.3 : p.x, 0.28, p.horiz ? p.z : p.z - clamp(D - 0.7, 1.2, 2.0) / 2 + 0.3, 0.42, 0.56, 0.5)
     rug(W - 0.6, D - 0.6)
+    ceilingFan(0, 0)
     wallArt([dw, sw ?? dw], 2)
+    curtains(SIDES.filter((s) => win[s]))
     return n
   }
 
@@ -717,11 +886,22 @@ function furnishRoom(
       0.94,
       p.horiz ? 0.03 : 0.52,
     )
-    // a small bench opposite
+    // a low shoe rack tucked under the console; a bench + coat rail opposite
+    P(
+      'shoe-rack',
+      'wood',
+      p.x,
+      0.16,
+      p.z,
+      p.horiz ? clamp(W - 0.7, 0.6, 1.2) : 0.34,
+      0.28,
+      p.horiz ? 0.34 : clamp(D - 0.7, 0.6, 1.2),
+    )
     const opp: Side = cw === 'N' ? 'S' : cw === 'S' ? 'N' : cw === 'W' ? 'E' : 'W'
     if (!door[opp]) {
       const bp = atWall(opp, 0.34)
       P('bench', acc, bp.x, 0.22, bp.z, bp.horiz ? clamp(W - 0.7, 0.8, 1.4) : 0.34, 0.4, bp.horiz ? 0.34 : clamp(D - 0.7, 0.8, 1.4))
+      P('coat-rail', 'metal', bp.horiz ? bp.x : bp.x + (opp === 'W' ? 0.04 : -0.04), 1.5, bp.horiz ? bp.z + (opp === 'N' ? 0.04 : -0.04) : bp.z, bp.horiz ? 0.9 : 0.05, 0.06, bp.horiz ? 0.05 : 0.9)
     }
     rug(1.1, 1.7)
     return n

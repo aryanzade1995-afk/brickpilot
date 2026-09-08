@@ -34,7 +34,6 @@ type CamKey = 'front' | 'rear' | 'left' | 'right' | 'iso' | 'top'
 export function Massing() {
   const result = useStudio((s) => s.result)
   const run = useStudio((s) => s.run)
-  const reseed = useStudio((s) => s.reseed)
   useEffect(() => {
     if (!result) run()
   }, [result, run])
@@ -293,13 +292,6 @@ export function Massing() {
               />
             )}
             {designSpec && <Stat k="Design seed" v={`${designSpec.seed} · ${designSpec.fingerprint.hash}`} />}
-            <button
-              type="button"
-              onClick={reseed}
-              className="mt-1 flex w-full items-center justify-center gap-1.5 border border-line-strong py-2 font-mono text-[0.65rem] uppercase tracking-[0.12em] text-ink-dim transition-colors hover:border-accent hover:text-ink"
-            >
-              <Grid3x3 size={11} /> Regenerate design
-            </button>
           </Panel>
 
           {!furnished && (

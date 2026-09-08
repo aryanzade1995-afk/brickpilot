@@ -14,6 +14,7 @@ type Mat = { color: string; roughness: number; metalness?: number; emissive?: st
 
 const PALETTE: Record<DollMat, Mat> = {
   wall: { color: '#f0eae0', roughness: 0.96 },
+  door: { color: '#6f4a2e', roughness: 0.55 },
   floor: { color: '#c8a878', roughness: 0.72 },
   rug: { color: '#a9835f', roughness: 1 },
   sage: { color: '#93a878', roughness: 0.92 },
