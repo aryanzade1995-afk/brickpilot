@@ -20,7 +20,7 @@ export {
   styleGrammar,
   grammarForCharacter,
 } from './grammar.ts'
-export { generateDesign, requirementsOf, specFromDesign } from './generateDesign.ts'
+export { generateDesign, requirementsOf, specFromDesign, seedOf } from './generateDesign.ts'
 export { generateWindows } from './generator/windowGenerator.ts'
 export { classifyRoom, roomWalls, planShapeOf } from './generator/classify.ts'
 export { validateSpec } from './generator/validator.ts'

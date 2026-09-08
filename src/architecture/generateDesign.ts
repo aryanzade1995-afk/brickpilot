@@ -48,6 +48,15 @@ import type {
   WindowSpec,
 } from './types.ts'
 
+/** the numeric seed the engine actually generated this design with.
+ *  `design.id` is `${model.seed}-${shape}-${seed}` — the trailing segment is
+ *  it. When a direction is pinned the pinned seed is used here, not
+ *  `brief.variation`, so "Regenerate design" produces a genuinely new genome. */
+export function seedOf(design: Design): number {
+  const tail = Number(design.id.split('-').pop())
+  return Number.isFinite(tail) ? tail : design.model.brief.variation
+}
+
 /** derive the grammar input from an engine Design (mirrors the wire spec) */
 export function requirementsOf(design: Design, styleOverride?: StyleId): DesignRequirements {
   const b = design.model.brief
@@ -63,7 +72,7 @@ export function requirementsOf(design: Design, styleOverride?: StyleId): DesignR
     bedrooms: rooms.bedroomsWithBath + rooms.bedroomsNoBath,
     bathrooms: rooms.bedroomsWithBath + rooms.sharedBaths,
     parking: b.rooms.priorities.coveredParking ? (b.spaces.occupants >= 4 ? 2 : 1) : 0,
-    seed: b.variation,
+    seed: seedOf(design),
     floorPlan: design,
   }
 }
