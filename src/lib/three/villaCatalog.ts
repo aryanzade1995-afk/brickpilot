@@ -36,6 +36,9 @@ type Manifest = { generated: string; mode: string; villas: VillaEntry[] }
 export const GLB_LAYER: Record<string, string> = {
   Massing: 'shell',
   Walls: 'shell',
+  Columns: 'structure',
+  Beams: 'structure',
+  Slabs: 'slabs',
   Windows: 'glazing',
   Doors: 'glazing',
   Floors: 'slabs',

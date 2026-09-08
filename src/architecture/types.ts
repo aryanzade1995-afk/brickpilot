@@ -465,25 +465,97 @@ export type StairSpec = {
   /** direction you climb, plan frame */
   runDir: Direction4
   kind: 'straight' | 'dogleg'
+  /** resolved NBC geometry */
+  treadMm: number
+  riserMm: number
+  widthMm: number
+  flights: number
+  landingMm: number
+  headroomMm: number
 }
 
+/* ================================================================== *
+ *  STRUCTURE — the conceptual frame every 3D element hangs off (§10)
+ * ================================================================== */
+
+/** the structural grid: gridlines the columns + beams snap to */
+export type StructuralGrid = {
+  /** plan-x gridline positions, mm (ascending) */
+  xLines: number[]
+  /** plan-y gridline positions, mm (ascending) */
+  yLines: number[]
+  /** column labels — 'A','B',… for x, '1','2',… for y */
+  labelX: string[]
+  labelY: string[]
+  bayTargetMm: number
+}
+
+export type ColumnSpec = {
+  id: string
+  /** grid reference e.g. "B-2" */
+  gridRef: string
+  /** plan position, mm */
+  at: Point
+  /** storey the segment starts at */
+  level: number
+  sizeMm: [number, number]
+  role: 'frame' | 'corner' | 'porch' | 'verandah' | 'transfer'
+  /** id of the column directly below (within tolerance), else null → needs a transfer beam */
+  alignedBelow: string | null
+}
+
+export type BeamSpec = {
+  id: string
+  /** the slab level this beam supports */
+  level: number
+  a: Point
+  b: Point
+  depthMm: number
+  role: 'edge' | 'internal' | 'transfer' | 'canopy'
+  /** column ids at each end (or null where it dies into a wall) */
+  ends: [string | null, string | null]
+}
+
+export type SlabSpec = {
+  id: string
+  level: number
+  /** slab footprint, mm (plot frame) */
+  rect: Rect
+  thicknessMm: number
+  /** projection past its supporting frame, per side, mm — intentional overhangs only */
+  cantilever: Partial<Record<Direction4, number>>
+  /** what carries it: block id, or 'balcony' / 'canopy' */
+  supports: string
+}
+
+/** every facade element anchors to a real spec element — never a bare world coord (§9) */
+export type FacadeAnchor =
+  | { on: 'block'; id: string; side: Direction4 }
+  | { on: 'window'; id: string }
+  | { on: 'door'; id: string }
+  | { on: 'column'; ids: string[] }
+  | { on: 'stair'; level: number }
+  | { on: 'roof'; blockId: string }
+
 export type FacadeElement =
-  | { kind: 'fins'; level: number; side: Direction4; rect: Rect; count: number; depthMm: number }
-  | { kind: 'jaali'; level: number; side: Direction4; rect: Rect; pattern: 'square' | 'diamond' | 'brick' }
-  | { kind: 'clad'; level: number; side: Direction4; rect: Rect; material: CladMaterial; twoStorey: boolean }
-  | { kind: 'feature_pier'; side: Direction4; at: Point; widthMm: number; depthMm: number; topMm: number; material: CladMaterial }
-  | { kind: 'string_course'; level: number; projMm: number }
-  | { kind: 'chajja'; level: number; overWindow: string; projMm: number }
-  | { kind: 'plinth'; heightMm: number; projMm: number }
-  | { kind: 'base_cladding'; material: CladMaterial; toLevel: number }
-  | { kind: 'canopy'; at: Point; widthMm: number; depthMm: number; heightMm: number }
-  | { kind: 'pergola'; where: 'roof' | 'verandah'; rect: Rect }
-  | { kind: 'feature_tower'; at: Point; footprint: Rect; topMm: number; cladding: CladMaterial }
+  | { kind: 'fins'; level: number; side: Direction4; rect: Rect; count: number; depthMm: number; anchor: FacadeAnchor }
+  | { kind: 'jaali'; level: number; side: Direction4; rect: Rect; pattern: 'square' | 'diamond' | 'brick'; anchor: FacadeAnchor }
+  | { kind: 'clad'; level: number; side: Direction4; rect: Rect; material: CladMaterial; twoStorey: boolean; anchor: FacadeAnchor }
+  | { kind: 'feature_pier'; side: Direction4; at: Point; widthMm: number; depthMm: number; topMm: number; material: CladMaterial; anchor: FacadeAnchor }
+  | { kind: 'string_course'; level: number; projMm: number; anchor: FacadeAnchor }
+  | { kind: 'chajja'; level: number; overWindow: string; projMm: number; anchor: FacadeAnchor }
+  | { kind: 'plinth'; heightMm: number; projMm: number; anchor: FacadeAnchor }
+  | { kind: 'base_cladding'; material: CladMaterial; toLevel: number; anchor: FacadeAnchor }
+  | { kind: 'canopy'; at: Point; widthMm: number; depthMm: number; heightMm: number; anchor: FacadeAnchor }
+  | { kind: 'pergola'; where: 'roof' | 'verandah'; rect: Rect; anchor: FacadeAnchor }
+  | { kind: 'feature_tower'; at: Point; footprint: Rect; topMm: number; cladding: CladMaterial; anchor: FacadeAnchor }
   | {
       kind: 'verandah'
       level: number
       rect: Rect
       columns: { style: 'square' | 'round' | 'tapered'; sizeMm: number; spacingMm: number }
+      /** the structural columns this verandah roof sits on */
+      anchor: FacadeAnchor
     }
 
 export type MaterialSlot = { color: string; roughness: number; metalness: number }
@@ -503,6 +575,10 @@ export type DesignSpecFloor = {
   doors: DoorSpec[]
   balconies: BalconySpec[]
   stairs: StairSpec[]
+  /** structural frame for this storey (§10) */
+  columns: ColumnSpec[]
+  beams: BeamSpec[]
+  slabs: SlabSpec[]
   courtyard: Rect | null
 }
 
@@ -530,6 +606,8 @@ export type DesignSpec = {
     /** overall footprint bbox, mm */
     footprintMm: Rect
   }
+  /** the structural grid the frame snaps to (§10) */
+  grid: StructuralGrid
   /** the composed architectural decision set this spec was resolved from */
   genome: DesignGenome
   /** canonical signature for dedup + architectural-similarity */
@@ -538,5 +616,31 @@ export type DesignSpec = {
   facade: FacadeElement[]
   materials: MaterialSpec
   constraintsUsed: GenerationConstraints
+  /** cheap pre-Blender checks + repairs */
   validation: { ok: boolean; issues: string[]; repaired: string[] }
+  /** the full architectural audit (§14) */
+  audit: ArchitecturalAudit
+}
+
+/* ================================================================== *
+ *  ARCHITECTURAL AUDIT (§14)
+ * ================================================================== */
+
+export type ArchIssue = {
+  code: string
+  severity: 'error' | 'warning'
+  message: string
+  /** the spec element id the issue is about */
+  subject?: string
+}
+
+export type ArchitecturalAudit = {
+  valid: boolean
+  /** 0–100 */
+  score: number
+  errors: ArchIssue[]
+  warnings: ArchIssue[]
+  repairs: string[]
+  /** seeds tried before this one passed (rejection sampling) */
+  attempts: number
 }

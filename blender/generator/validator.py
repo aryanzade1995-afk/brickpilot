@@ -52,7 +52,29 @@ def check_spec(spec: Spec) -> tuple[bool, list[str]]:
     if coverage > 0.7:
         issues.append(f"coverage {coverage * 100:.0f}% too high")
 
-    # trust the TS validator's own verdict too
+    # ---- structural + architectural sanity (mirrors architecturalValidator.ts)
+    ground = next((f for f in spec.floors if f["level"] == 0), None)
+    if ground is not None and not any(d["kind"] == "entry" for d in ground.get("doors", [])):
+        issues.append("no entrance door on the ground floor")
+    for fl in spec.floors:
+        if fl["level"] > 0 and not fl.get("slabs"):
+            issues.append(f"{fl['name']}: no floor slab")
+        for b in fl.get("balconies", []):
+            room_ids = {r["id"] for r in fl["rooms"]}
+            if b["roomId"] not in room_ids:
+                issues.append(f"balcony {b['id']}: no host room")
+    if len(spec.floors) > 1:
+        top = max(f["level"] for f in spec.floors)
+        for fl in spec.floors:
+            if fl["level"] < top and not fl.get("stairs"):
+                issues.append(f"{fl['name']}: no stair to the floor above")
+    for el in spec.facade:
+        if not el.get("anchor"):
+            issues.append(f"facade {el['kind']}: no anchor")
+
+    # the TS audit's own verdict — major errors block the bake
+    for e in spec.audit.get("errors", []):
+        issues.append(f"audit: {e.get('message', e)}")
     for it in spec.validation.get("issues", []):
         issues.append(f"grammar: {it}")
 

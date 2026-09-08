@@ -42,6 +42,8 @@ export type WindowGenInput = {
   entrySide: Direction4
   rng: Rng
   genome: DesignGenome
+  /** resolved doors (entry / internal / balcony) the windows must stay clear of */
+  extraDoors?: { at: Point; width: number }[]
 }
 
 export function generateWindows(input: WindowGenInput): WindowSpec[] {
@@ -64,17 +66,47 @@ export function generateWindows(input: WindowGenInput): WindowSpec[] {
     const rule: RoomWindowRule = wr.byRoom[cls] ?? wr.fallback
 
     // ---- candidate walls: exterior, long enough, not the entry, not doored-out
-    const doors = floor.openings
-      .filter((o) => o.kind === 'door' || o.kind === 'entry')
-      .map((o) => ({ at: o.at, width: o.width }))
-    const walls = roomWalls(room, floor).filter((w) => {
-      if (!w.exterior) return false
+    const doors = [
+      ...floor.openings.filter((o) => o.kind === 'door' || o.kind === 'entry').map((o) => ({ at: o.at, width: o.width })),
+      ...(input.extraDoors ?? []),
+    ]
+    const allExterior = roomWalls(room, floor).filter((w) => w.exterior)
+    const walls = allExterior.filter((w) => {
       if (w.lengthMm < rule.widthMm[0] + 2 * wr.minCornerOffsetMm) return false
       // a wall almost entirely taken by a door is not a window wall
       const doorSpan = doors.reduce((s, d) => s + (doorOnEdge(w, d.at) != null ? d.width : 0), 0)
       return doorSpan < w.lengthMm * 0.7
     })
-    if (walls.length === 0) continue
+    const habitable = cls === 'living' || cls === 'dining' || cls === 'bedroom' || cls === 'master' || cls === 'study' || cls === 'kitchen'
+    if (walls.length === 0) {
+      // §12 — a habitable room MUST get light + ventilation: force one window on
+      // its longest exterior wall (a small ventilator if the wall is short)
+      if (habitable && allExterior.length) {
+        const w = allExterior.sort((a, b) => b.lengthMm - a.lengthMm)[0]
+        const corner = Math.min(wr.minCornerOffsetMm, w.lengthMm * 0.15)
+        const usable = w.lengthMm - 2 * corner
+        if (usable >= 500) {
+          const width = Math.round(Math.min(usable, cls === 'living' || cls === 'dining' ? 2000 : 1400))
+          out.push({
+            id: `w${level}-${uid++}`,
+            roomId: room.id,
+            roomClass: cls,
+            level,
+            wall: { a: w.a, b: w.b },
+            side: w.side,
+            centerMm: w.lengthMm / 2,
+            widthMm: width,
+            heightMm: width < 900 ? 900 : 1350,
+            sillMm: rule.sillMm,
+            kind: width < 900 ? 'ventilator' : 'standard',
+            mullions: 0,
+            facesCourt: w.facesCourt,
+            facesStreet: w.facesStreet,
+          })
+        }
+      }
+      continue
+    }
     const doorsOn = (w: WallEdge) => doors.filter((d) => doorOnEdge(w, d.at) != null)
 
     // ---- rank walls

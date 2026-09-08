@@ -97,18 +97,11 @@ def build(spec: Spec):
             assign(obj, material("trim" if el["cladding"] == "white_fins" else "accent", spec))
 
         elif k == "verandah":
+            # only the roof slab here — the columns are real structural columns
+            # (role="verandah") built by structure.py from the same anchor
             cx, cy, sx, sy = rect_world(el["rect"])
             roof = add_box("verandah-roof", coll, (cx, cy, fh - 0.15), (sx + 0.4, sy + 0.3, 0.22))
             assign(roof, material("roof", spec))
-            cols = el["columns"]
-            step = mm(cols["spacingMm"])
-            cm = mm(cols["sizeMm"])
-            x = cx - sx / 2
-            while x <= cx + sx / 2 + 1:
-                for yy in (cy - sy / 2 + 0.2, cy + sy / 2 - 0.2):
-                    obj = linked_box("col", coll, (x, yy, (fh - 0.3) / 2), (cm, cm, fh - 0.3))
-                    assign(obj, material("wall", spec))
-                x += step
 
         elif k == "canopy":
             at = el["at"]

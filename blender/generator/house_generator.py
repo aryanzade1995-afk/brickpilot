@@ -28,7 +28,7 @@ if _BLENDER not in sys.path:
 
 from generator.context import HAS_BPY, Spec, reset_scene  # noqa: E402
 from generator import (  # noqa: E402
-    massing, floors, walls, windows, doors, roofs, balconies, facade, materials, rooms, stairs, optimize,
+    massing, floors, walls, windows, doors, roofs, balconies, facade, materials, rooms, stairs, structure, optimize,
 )
 from generator import validator  # noqa: E402
 
@@ -53,10 +53,14 @@ def build_scene(spec: Spec, mode: str) -> dict:
 
     if mode == "study":
         massing.build(spec)
+        structure.build(spec)
         roofs.build(spec)
         facade.build(spec)
         balconies.build(spec)
     else:
+        # STRUCTURE first (§10) — columns / beams / slabs are the frame the
+        # walls, openings, balconies and facade all hang off
+        structure.build(spec)
         floors.build(spec)
         _coll, wall_objs = walls.build(spec, detailed=True)
         windows.build(spec, wall_objs)
@@ -87,6 +91,15 @@ def main() -> int:
               f"  court={g.get('courtyard')}  fp={(spec.fingerprint or {}).get('hash', '?')}")
         if g.get("repaired"):
             print(f"  ~ genome repaired: {'; '.join(g['repaired'])}")
+    a = spec.audit or {}
+    if a:
+        struct = sum(len(f.get("columns", [])) for f in spec.floors)
+        beams = sum(len(f.get("beams", [])) for f in spec.floors)
+        slabs = sum(len(f.get("slabs", [])) for f in spec.floors)
+        print(f"  structure: {struct} columns / {beams} beams / {slabs} slabs   "
+              f"audit score={a.get('score')} errors={len(a.get('errors', []))} warnings={len(a.get('warnings', []))}")
+        for e in a.get("errors", []):
+            print(f"  [err] {e.get('message', e)}")
     for it in issues:
         print(f"  ! {it}")
     if spec.validation.get("repaired"):

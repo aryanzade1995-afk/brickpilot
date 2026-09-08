@@ -83,6 +83,10 @@ class Spec:
     # the composed architectural decision set (src/architecture/library/designGenome.ts)
     genome: dict = field(default_factory=dict)
     fingerprint: dict = field(default_factory=dict)
+    # the structural grid (src/architecture/generator/structure.ts)
+    grid: dict = field(default_factory=dict)
+    # the §14 architectural audit
+    audit: dict = field(default_factory=dict)
     # plot-centre offset so the model sits at the world origin
     ox: float = field(default=0.0)
     oy: float = field(default=0.0)
@@ -108,6 +112,8 @@ class Spec:
             validation=raw.get("validation", {"ok": True, "issues": [], "repaired": []}),
             genome=raw.get("genome", {}),
             fingerprint=raw.get("fingerprint", {}),
+            grid=raw.get("grid", {}),
+            audit=raw.get("audit", {}),
         )
         # centre the footprint bbox on the origin (metres)
         s.ox = mm(foot["x"] + foot["w"] / 2)

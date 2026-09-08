@@ -280,6 +280,18 @@ export function Massing() {
             ) : (
               <Stat k="Openings" v={String(massing.stats.openings)} />
             )}
+            {designSpec && (
+              <Stat
+                k="Structure"
+                v={`${designSpec.floors.reduce((n, f) => n + f.columns.length, 0)} col · ${designSpec.floors.reduce((n, f) => n + f.slabs.length, 0)} slab`}
+              />
+            )}
+            {designSpec && (
+              <Stat
+                k="Audit"
+                v={`${designSpec.audit.score}/100${designSpec.audit.warnings.length ? ` · ${designSpec.audit.warnings.length} note${designSpec.audit.warnings.length > 1 ? 's' : ''}` : ' · clean'}`}
+              />
+            )}
             {designSpec && <Stat k="Design seed" v={`${designSpec.seed} · ${designSpec.fingerprint.hash}`} />}
             <button
               type="button"

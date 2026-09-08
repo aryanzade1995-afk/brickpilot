@@ -130,6 +130,18 @@ for (const style of STYLES) {
     // valid geometry
     line(spec.validation.issues.length === 0, `seed ${seed}: ${spec.validation.issues.join('; ')}`)
 
+    // architectural audit (§14) — no major errors, coherent structure
+    line(spec.audit.errors.length === 0, `seed ${seed}: audit errors — ${spec.audit.errors.map((e) => e.code).join(', ')}`)
+    line(spec.audit.score >= 70, `seed ${seed}: audit score ${spec.audit.score} < 70`)
+    line(
+      spec.floors[0].doors.some((d) => d.kind === 'entry'),
+      `seed ${seed}: no entrance door`,
+    )
+    line(
+      spec.floors.every((f) => f.slabs.length > 0),
+      `seed ${seed}: a floor has no slab`,
+    )
+
     fps.push(spec.fingerprint)
     const roofs = spec.floors.flatMap((f) => f.blocks.map((b) => b.roof.kind))
     const facades = [...new Set(spec.facade.map((e) => e.kind))].sort().join('+')

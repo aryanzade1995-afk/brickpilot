@@ -24,6 +24,9 @@ export { generateDesign, requirementsOf, specFromDesign, seedOf } from './genera
 export { generateWindows } from './generator/windowGenerator.ts'
 export { classifyRoom, roomWalls, planShapeOf } from './generator/classify.ts'
 export { validateSpec } from './generator/validator.ts'
+export { auditArchitecture } from './generator/architecturalValidator.ts'
+export { resolveStructure } from './generator/structure.ts'
+export * as DIMS from './dims.ts'
 
 /* ---- the data-driven architectural reference layer (library/) ---- */
 export {

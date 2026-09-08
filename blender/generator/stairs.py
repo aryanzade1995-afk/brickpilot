@@ -32,8 +32,10 @@ def build(spec: Spec):
             n = max(int(st["steps"]), 12)
             per = n // 2
             base = mm(st["fromMm"])
-            flight_w = width / 2 - 0.05
-            going = (depth * 0.86) / per
+            # NBC geometry resolved by generateDesign: tread / riser / width
+            tread = mm(st.get("treadMm", 275))
+            flight_w = min(mm(st.get("widthMm", 900)), width / 2 - 0.05) if st.get("kind") == "dogleg" else min(mm(st.get("widthMm", 900)), width - 0.1)
+            going = max(tread, (depth * 0.86) / per)
             mid_z = base + rise * (per / n)
 
             # shared tread mesh
