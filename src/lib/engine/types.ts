@@ -30,6 +30,14 @@ export type Opening = {
   width: number
   /** door leaf swing direction, for the arc */
   swing?: 1 | -1
+  /** which end of the opening the hinge is at, along the wall */
+  hinge?: 'a' | 'b'
+  /** false = a cased opening with no leaf */
+  leaf?: boolean
+  /** sill height (windows), mm */
+  sill?: number
+  /** the spaces it joins — [from, to]; null = outside */
+  rooms?: [string | null, string | null]
 }
 
 export type StairRun = {

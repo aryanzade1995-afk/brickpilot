@@ -10,6 +10,8 @@ import { useStudio } from '@/state/studio.ts'
 import { MASSING_LABEL } from '@/lib/engine/index.ts'
 import { buildMassing } from '@/lib/three/buildMassing.ts'
 import { MassingModel, SceneEnv } from '@/lib/three/MassingScene.tsx'
+import { buildDollhouse } from '@/lib/three/buildDollhouse.ts'
+import { DollhouseModel, DollhouseEnv } from '@/lib/three/DollhouseScene.tsx'
 import type { Group } from '@/lib/three/massingGroups.ts'
 import { cx } from '@/lib/cx.ts'
 import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
@@ -22,6 +24,8 @@ const LAYER_TOGGLES: { g: Group; label: string }[] = [
   { g: 'partition', label: 'Partitions (explode)' },
   { g: 'stair', label: 'Stair core' },
 ]
+
+type ViewMode = 'study' | 'furnished'
 
 type CamKey = 'front' | 'rear' | 'left' | 'right' | 'iso' | 'top'
 
@@ -39,12 +43,25 @@ export function Massing() {
   const [hidden, setHidden] = useState<Set<Group>>(new Set())
   const [showSite, setShowSite] = useState(true)
   const [pendingView, setPendingView] = useState<CamKey | null>('iso')
+  const [mode, setMode] = useState<ViewMode>('study')
+  const [floorSel, setFloorSel] = useState<number | 'all'>('all')
+  const doll = useMemo(
+    () => (result && mode === 'furnished' ? buildDollhouse(result.design, floorSel === 'all' ? undefined : floorSel) : null),
+    [result, mode, floorSel],
+  )
 
   if (!result || !massing) {
     return <div className="mx-auto max-w-[1400px] px-10 py-24 text-ink-dim">Preparing model…</div>
   }
 
-  const span = Math.max(massing.bounds.w, massing.bounds.d)
+  const furnished = mode === 'furnished' && doll
+  const levels = result.design.floors.map((f) => f.level)
+  const span = furnished ? Math.max(doll.bounds.w, doll.bounds.d) : Math.max(massing.bounds.w, massing.bounds.d)
+  const center = furnished ? doll.center : massing.center
+  const switchMode = (mm: ViewMode) => {
+    setMode(mm)
+    setPendingView('iso')
+  }
   const character = result.model.brief.style.character
 
   const toggle = (g: Group) =>
@@ -65,7 +82,42 @@ export function Massing() {
 
       <div className="mt-5 grid gap-6 lg:grid-cols-[1fr_280px]">
         <div>
-          <div className="mb-3 flex flex-wrap gap-1">
+          <div className="mb-3 flex flex-wrap items-center gap-1">
+            <div className="mr-3 flex border border-line">
+              {(['study', 'furnished'] as ViewMode[]).map((mm) => (
+                <button
+                  key={mm}
+                  type="button"
+                  onClick={() => switchMode(mm)}
+                  className={cx(
+                    'px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.1em]',
+                    mode === mm ? 'bg-accent text-white' : 'text-ink-dim hover:text-ink',
+                  )}
+                >
+                  {mm === 'study' ? 'Study model' : 'Furnished'}
+                </button>
+              ))}
+            </div>
+            {mode === 'furnished' && levels.length > 1 && (
+              <div className="mr-3 flex border border-line">
+                {(['all', ...levels] as (number | 'all')[]).map((l) => (
+                  <button
+                    key={String(l)}
+                    type="button"
+                    onClick={() => {
+                      setFloorSel(l)
+                      setPendingView('iso')
+                    }}
+                    className={cx(
+                      'px-2.5 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.1em]',
+                      floorSel === l ? 'bg-bg-raised text-ink' : 'text-ink-dim hover:text-ink',
+                    )}
+                  >
+                    {l === 'all' ? 'All' : l === 0 ? 'G' : `F${l}`}
+                  </button>
+                ))}
+              </div>
+            )}
             {(['front', 'rear', 'left', 'right', 'iso', 'top'] as CamKey[]).map((k) => (
               <button
                 key={k}
@@ -89,8 +141,8 @@ export function Massing() {
                 gl.toneMappingExposure = 1.5
               }}
             >
-              <SceneEnv massing={massing} />
-              {showSite && (
+              {furnished ? <DollhouseEnv doll={doll} /> : <SceneEnv massing={massing} />}
+              {showSite && !furnished && (
                 <Grid
                   position={[massing.center[0], -0.01, massing.center[2]]}
                   args={[span * 3, span * 3]}
@@ -105,7 +157,11 @@ export function Massing() {
                 />
               )}
 
-              <MassingModel massing={massing} explode={explode} hidden={hidden} character={character} />
+              {furnished ? (
+                <DollhouseModel doll={doll} />
+              ) : (
+                <MassingModel massing={massing} explode={explode} hidden={hidden} character={character} />
+              )}
 
               <EffectComposer enableNormalPass multisampling={4}>
                 <N8AO aoRadius={1.5} intensity={2.7} distanceFalloff={1.1} halfRes />
@@ -114,7 +170,7 @@ export function Massing() {
                 <Vignette eskil={false} offset={0.42} darkness={0.36} />
               </EffectComposer>
 
-              <CameraRig span={span} center={massing.center} pendingView={pendingView} onApplied={() => setPendingView(null)} />
+              <CameraRig span={span} center={center} pendingView={pendingView} onApplied={() => setPendingView(null)} />
             </Canvas>
 
             <div className="pointer-events-none absolute bottom-2 left-3 font-mono text-[0.6rem] uppercase tracking-[0.1em] text-ink-faint">
