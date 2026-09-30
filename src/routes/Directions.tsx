@@ -83,7 +83,7 @@ export function Directions() {
           <div className="flex-1">
             <div className="label">Use an inspiration image</div>
             <p className="mt-2 max-w-2xl text-sm text-ink-dim">
-              An image can guide style, materials and façade rhythm. The verified plan and its doors and windows stay fixed.
+              An image can guide materials and façade details within your chosen style. The verified plan and its doors and windows stay fixed.
             </p>
             {analysisAvailable === false && <p className="mt-2 text-xs text-ink-dim" role="status">
               AI style analysis is offline. You can still select an image as a visual reference.
@@ -119,7 +119,7 @@ export function Directions() {
             </div>}
             {referenceBusy && <p className="mt-3 text-xs text-ink-dim" role="status">Reading architectural style…</p>}
             {referencePreferences?.styleFamily && <p className="mt-3 text-xs text-ok" role="status">
-              Inspired by {referencePreferences.styleFamily.replaceAll('-', ' ')} · {referencePreferences.materialPalette?.replaceAll('-', ' ') ?? 'coordinated materials'}
+              Reference cues: {referencePreferences.styleFamily.replaceAll('-', ' ')} · {referencePreferences.materialPalette?.replaceAll('-', ' ') ?? 'coordinated materials'}
             </p>}
             {referenceError && <p className="mt-3 text-xs text-bad" role="alert">{referenceError} The image stays selected, but automatic style analysis needs the local Gemini Web bridge.</p>}
           </div>

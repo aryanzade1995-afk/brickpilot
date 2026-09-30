@@ -101,6 +101,10 @@ Brief (user inputs, Zod schema)
 The Style step separates **typology** (villa or larger villa), **massing**
 (structural plate choice) and **character** (materials, roof and façade language).
 Character themes live in [`src/lib/model/themes.ts`](src/lib/model/themes.ts).
+New briefs offer Modern Box, Contemporary and Courtyard. Older saved briefs
+retain their original character so they can still be opened and rendered.
+Bold rerolls and inspiration images keep the selected character's 3D style;
+reference images can still guide its materials and façade details.
 `style.diversity` controls exterior variation; it does not authorize changes to
 the pinned room layout. The same brief and seed reproduce the same design.
 

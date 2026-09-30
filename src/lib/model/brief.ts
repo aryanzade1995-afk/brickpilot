@@ -41,6 +41,11 @@ export const characterSchema = z.enum([
 ])
 export type Character = z.infer<typeof characterSchema>
 
+/** Current choices for new designs. Keep the full schema for saved projects. */
+export const SELECTABLE_CHARACTERS = [
+  'modern-box', 'contemporary-indian', 'courtyard-indian',
+] as const satisfies readonly Character[]
+
 /** legacy character ids → the current catalogue */
 export const MIGRATE_CHARACTER: Record<string, Character> = {
   modernist: 'modern-indian',

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { compile } from '@/lib/model/canonical.ts'
-import { defaultBrief, characterSchema, CHARACTER_LABEL, type Character } from '@/lib/model/brief.ts'
+import { defaultBrief, SELECTABLE_CHARACTERS, CHARACTER_LABEL } from '@/lib/model/brief.ts'
 import { generate } from '@/lib/engine/index.ts'
 import { MassingViewport } from '@/lib/render/CaptureCanvas.tsx'
 
@@ -11,7 +11,7 @@ import { MassingViewport } from '@/lib/render/CaptureCanvas.tsx'
  *  PNG posted to /__shot. Not linked from the app.
  * ------------------------------------------------------------------ */
 
-const STYLES = characterSchema.options as readonly Character[]
+const STYLES = SELECTABLE_CHARACTERS
 const CELL_W = 720
 const CELL_H = 470
 const COLS = 2

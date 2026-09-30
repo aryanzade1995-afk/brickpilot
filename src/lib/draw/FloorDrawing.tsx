@@ -119,7 +119,8 @@ export function FloorDrawing({
       {/* ---- presentation furniture (drawing only; never changes the plan) ---- */}
       {pres && (
         <g>
-          {furniture.flatMap((f) => f.items.map((s, i) => <Piece key={`${f.roomId}-${i}`} s={s} />))}
+          {furniture.flatMap((f) => f.items.filter((s) => s.role !== 'plant')
+            .map((s, i) => <Piece key={`${f.roomId}-${i}`} s={s} />))}
         </g>
       )}
 
@@ -486,47 +487,20 @@ function RoomTag({ name, rect, size }: { name: string; rect: Rect; size: number 
   )
 }
 
-/** lawn and shrubs around the ground floor; driveway and entry path kept clear */
+/** Plain site ground and a clear approach path, without tree symbols. */
 function Landscape({ floor, model }: { floor: FloorPlan; model: CanonicalModel }) {
   const garden = model.brief.rooms.priorities.garden
   const W = model.plot.width
   const H = model.plot.depth
-  const taken = floor.rooms.map((r) => r.rect)
   // the road is plan-south: keep a clear strip from parking / verandah to the gate
   // from the FRONT edge of the car porch / verandah / foyer straight to the road
   const approach = floor.rooms.filter((r) => r.id === 'parking' || r.id === 'verandah' || r.id === 'foyer')
     .map((r) => ({ x: r.rect.x - 200, y: rectBottom(r.rect), w: r.rect.w + 400, h: Math.max(0, H - rectBottom(r.rect)) }))
     .filter((a) => a.h > 0)
-  const blocked = [...taken, ...approach]
-  const free = (x: number, y: number, rad: number) =>
-    blocked.every((b) => x + rad + 150 <= b.x || x - rad - 150 >= b.x + b.w || y + rad + 150 <= b.y || y - rad - 150 >= b.y + b.h)
-  const shrubs: { x: number; y: number; r: number }[] = []
-  if (garden) {
-    const inset = 520
-    const step = 1300
-    const ring: [number, number][] = []
-    for (let x = inset; x <= W - inset; x += step) ring.push([x, inset], [x, H - inset])
-    for (let y = inset + step; y <= H - inset - step; y += step) ring.push([inset, y], [W - inset, y])
-    ring.forEach(([x, y], i) => {
-      // a larger tree every few steps, smaller shrubs between; shrink to fit a tight setback
-      for (const r of i % 4 === 0 ? [480, 320, 220] : [320, 220]) {
-        if (free(x, y, r)) {
-          shrubs.push({ x, y, r })
-          break
-        }
-      }
-    })
-  }
   return (
     <g>
       <rect x={0} y={0} width={W} height={H} fill={garden ? '#dfe9d2' : '#ece9e3'} />
       {approach.map((a, i) => <rect key={`path-${i}`} x={a.x} y={a.y} width={a.w} height={a.h} fill="url(#fin-paving)" />)}
-      {shrubs.map((s, i) => (
-        <g key={`shrub-${i}`}>
-          <circle cx={s.x} cy={s.y} r={s.r} fill="#7fae5c" stroke="#56823a" strokeWidth={20} />
-          <circle cx={s.x - s.r * 0.25} cy={s.y - s.r * 0.25} r={s.r * 0.45} fill="#96c270" />
-        </g>
-      ))}
     </g>
   )
 }

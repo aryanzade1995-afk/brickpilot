@@ -1,4 +1,4 @@
-import type { Character, DesignPersonality } from '../model/brief.ts'
+import { SELECTABLE_CHARACTERS, type Character, type DesignPersonality } from '../model/brief.ts'
 import type { MassingType } from './massing/types.ts'
 import { makeRng } from './massing/rng.ts'
 
@@ -173,13 +173,17 @@ export function deriveDesignDNA(briefKey: string, seed: number, character: Chara
   const majorRng = variationLevel === 'subtle'
     ? makeRng(0, `${briefKey}:${character}:subtle`)
     : rng
-  const base = inspiration?.styleFamily ?? FAMILY[character]
+  // The three current 3D styles keep their chosen architectural language.
+  // A reference can still influence features and finishes within that language.
+  // Legacy saved characters retain their original style-selection behavior.
+  const currentStyle = SELECTABLE_CHARACTERS.some((value) => value === character)
+  const base = currentStyle ? FAMILY[character] : inspiration?.styleFamily ?? FAMILY[character]
   const pool: StyleFamily[] = base.includes('kerala')
     ? ['modern-kerala', 'kerala-contemporary', 'tropical-modern']
     : ['modern-indian', 'luxury-modern', 'minimal-modern', 'tropical-modern', 'urban-premium']
   // the modern box is a fixed look: even a bold reroll keeps its family
   const pinned = base === 'modern-box'
-  const styleFamily = !pinned && !inspiration?.styleFamily && variationLevel === 'bold' && rng.chance(0.45) ? rng.pick(pool) : base
+  const styleFamily = !currentStyle && !pinned && !inspiration?.styleFamily && variationLevel === 'bold' && rng.chance(0.45) ? rng.pick(pool) : base
   const preset = STYLE_PRESETS[styleFamily]
   const boost = (c: Composition) => personality === 'minimal'
     ? ['horizontal-stack', 'recessed-core', 'portal-frame'].includes(c) ? 2.5 : 0.6

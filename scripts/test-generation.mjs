@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { CHARACTER_LABEL, defaultBrief } from '../src/lib/model/brief.ts'
+import { CHARACTER_LABEL, SELECTABLE_CHARACTERS, defaultBrief } from '../src/lib/model/brief.ts'
 import { briefSiteIssues, compile } from '../src/lib/model/canonical.ts'
 import { generate, generateDirections } from '../src/lib/engine/generate.ts'
 import { validate } from '../src/lib/rules/index.ts'
@@ -190,8 +190,9 @@ test('exterior roof DNA matches the roof geometry and window surrounds clear the
   }
 })
 
-test('reference style guides DNA without changing the verified plan', () => {
+test('reference cues guide details without changing the chosen style or plan', () => {
   const brief = defaultBrief()
+  brief.style.character = 'courtyard-indian'
   const model = compile(brief)
   const normal = generateDirections(model)
   const preferences = parseInspirationPreferences({
@@ -204,12 +205,26 @@ test('reference style guides DNA without changing the verified plan', () => {
   const inspired = generateDirections(model, preferences)
   assert.equal(inspired.length, 4)
   for (const direction of inspired) {
-    assert.equal(direction.design.dna.styleFamily, 'tropical-modern')
+    assert.equal(direction.design.dna.styleFamily, 'courtyard-modern')
     assert.equal(direction.design.dna.landscapeMood, 'lush-tropical')
     assert.equal(planSignature(direction.design), planSignature(normal[0].design))
     assert.ok(validate(direction.design).hardChecksPass)
   }
   assert.equal(parseInspirationPreferences({ styleFamily: 'invented-style' }), null)
+})
+
+test('new 3D designs stay in the three chosen styles, even with bold variation and a reference', () => {
+  assert.deepEqual([...SELECTABLE_CHARACTERS], ['modern-box', 'contemporary-indian', 'courtyard-indian'])
+  const families = { 'modern-box': 'modern-box', 'contemporary-indian': 'contemporary-indian',
+    'courtyard-indian': 'courtyard-modern' }
+  const reference = parseInspirationPreferences({ styleFamily: 'tropical-modern', materialPalette: 'tropical-cream' })
+  for (const character of SELECTABLE_CHARACTERS) {
+    const brief = defaultBrief()
+    brief.style.character = character
+    const plan = generate(compile(brief))
+    for (let seed = 1; seed <= 8; seed++)
+      assert.equal(varyExterior(plan, seed, 'bold', reference).dna.styleFamily, families[character])
+  }
 })
 
 test('sampled styles and seeds keep every exterior opening on a real wall', () => {
