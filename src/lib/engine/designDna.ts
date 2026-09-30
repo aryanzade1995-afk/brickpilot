@@ -29,6 +29,13 @@ export const PALETTE_MATERIALS: Record<DesignDNA['materialPalette'], string> = {
 
 export type DesignDNA = {
   seed: number
+  /** Seeded, exterior-only roof geometry. The plan and its openings are unchanged. */
+  roofGeometry: {
+    profile: 'slim' | 'deep-eave' | 'raised-edge'
+    ridge: 'long' | 'cross'
+    monoLowSide: 'first' | 'second'
+    pitchBiasDeg: -3 | 0 | 3
+  }
   styleFamily: StyleFamily
   variationLevel: VariationLevel
   designPersonality: DesignPersonality
@@ -173,11 +180,17 @@ export function deriveDesignDNA(briefKey: string, seed: number, character: Chara
   const secondaryFeature = preset.features.find(([f]) => f !== featureElement)?.[0] ?? featureElement
   const materialPalette = rng.weighted(preferred(preset.palettes, inspiration?.materialPalette))
   const roofDesign = featureElement === 'roof-pergola' ? 'pergola-terrace' : majorRng.weighted(preferred(preset.roofs, inspiration?.roofDesign))
+  const roofKey = variationLevel === 'subtle' ? `${briefKey}:${character}:subtle-roof` : `${key}:roof`
+  const profile = (['slim', 'deep-eave', 'raised-edge'] as const)[Math.floor(unit(`${roofKey}:profile`) * 3)]
+  const ridge = unit(`${roofKey}:ridge`) < 0.5 ? 'long' : 'cross'
+  const monoLowSide = unit(`${roofKey}:mono`) < 0.5 ? 'first' : 'second'
+  const pitchBiasDeg = ([-3, 0, 3] as const)[Math.floor(unit(`${roofKey}:pitch`) * 3)]
   const facade: DesignDNA['facade'] = ['vertical-frame', 'portal-frame', 'frame-within-frame', 'double-height-focus'].includes(facadeComposition)
     ? 'framed' : ['horizontal-stack', 'layered-facade', 'stepped-composition'].includes(facadeComposition)
       ? 'layered' : featureElement.includes('fins') || featureElement === 'jaali-panel' ? 'screened' : 'terraced'
   return {
     seed,
+    roofGeometry: { profile, ridge, monoLowSide, pitchBiasDeg },
     styleFamily, variationLevel, facadeComposition, entranceDesign, featureElement, secondaryFeature,
     designPersonality: personality,
     balconyDesign: majorRng.weighted(preferred([

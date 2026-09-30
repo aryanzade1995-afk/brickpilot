@@ -206,8 +206,8 @@ export function SceneEnv({ massing, contact = true }: { massing: Massing; contac
 
   return (
     <>
-      <color attach="background" args={['#1e242c']} />
-      <fog attach="fog" args={['#1e242c', span * 6, span * 18]} />
+      <color attach="background" args={['#303030']} />
+      <fog attach="fog" args={['#303030', span * 6, span * 18]} />
 
       <hemisphereLight args={['#e6ecf4', '#40392e', 0.7]} />
       <ambientLight intensity={0.24} />
@@ -280,7 +280,7 @@ export function SceneEnv({ massing, contact = true }: { massing: Massing; contac
       {/* ground */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[cx, -0.02, cz]} receiveShadow>
         <planeGeometry args={[massing.bounds.w * 12, massing.bounds.d * 12]} />
-        <meshStandardMaterial color="#34302a" roughness={0.98} metalness={0} />
+        <meshStandardMaterial color="#3b3b3b" roughness={0.98} metalness={0} />
       </mesh>
       {contact && (
         <ContactShadows

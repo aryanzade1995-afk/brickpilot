@@ -1,5 +1,5 @@
 /*
- * BrickPilot server — serves the built SPA and proxies the image-model API
+ * Formstead server — serves the built SPA and proxies the image-model API
  * so the key stays server-side. Zero dependencies (Node ≥ 18, global fetch).
  * Loads server/.env itself.
  *
@@ -308,7 +308,7 @@ const server = createServer((req, res) => {
 server.listen(PORT, () => {
   const interior = (process.env.INTERIOR_PROVIDER || 'comfyui').toLowerCase()
   console.log(
-    `[brickpilot] http://localhost:${PORT}  static=${SERVE_STATIC ? 'dist' : 'off'}  ` +
+    `[formstead] http://localhost:${PORT}  static=${SERVE_STATIC ? 'dist' : 'off'}  ` +
       `render=${MOCK ? 'mock' : KEY ? 'gemini' : 'MISSING'}  interior=${interior}`,
   )
 })

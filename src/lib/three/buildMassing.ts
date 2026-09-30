@@ -90,7 +90,6 @@ const RECESS = 0.1 // pane reveal depth behind the outer facade
 const PANE_T = 0.06
 const PANE_SHRINK = 0.006 // pane a hair smaller than the void — avoids an exact coincident plane
 const CANOPY_TOP = 2.75 // carport canopy top, metres above FFL
-const CANOPY_T = 0.26
 const COL = 0.3 // square column
 const HT_MM = (EXT_T * 1000) / 2 // exterior half-thickness, mm
 
@@ -268,6 +267,7 @@ export function buildMassing(design: Design): Massing {
           rk,
           floor.roof?.perBlock?.[bi]?.pitchDeg ?? floor.roof?.pitchDeg ?? T.roof.pitchDeg,
           T,
+          design.dna.roofGeometry,
           push,
           wx,
           wz,
@@ -275,9 +275,9 @@ export function buildMassing(design: Design): Massing {
         )
       } else if (exposed && L !== topLevel && T.roofBias !== 'flat') {
         // a lower wing of a pitched-roof style still gets a small pitched cap
-        buildPitchedRoof(o, wallTop, L, 'hip', T.roof.pitchDeg, T, push, wx, wz, m)
+        buildPitchedRoof(o, wallTop, L, 'hip', T.roof.pitchDeg, T, design.dna.roofGeometry, push, wx, wz, m)
       } else if (L === topLevel) {
-        buildRoof(o, wallTop, L, T, push, wx, wz, m)
+        buildRoof(o, wallTop, L, T, design.dna.roofGeometry, push, wx, wz, m)
       } else if (cover) {
         buildTerrace(o, cover, wallTop, L, T, push, wx, wz, m)
       }
@@ -328,6 +328,7 @@ export function buildMassing(design: Design): Massing {
         y0,
         L,
         'cover',
+        design.dna.roofGeometry,
         push,
         wx,
         wz,
@@ -691,11 +692,14 @@ function guardRail(
   }
 }
 
-function buildRoof(o: Rect, wallTop: number, L: number, T: ThemeDef, push: Push, wx: XF, wz: XF, m: XF) {
+function buildRoof(o: Rect, wallTop: number, L: number, T: ThemeDef,
+  geometry: DesignDNA['roofGeometry'] | undefined, push: Push, wx: XF, wz: XF, m: XF) {
   const cxw = wx(o.x + o.w / 2)
   const czw = wz(o.y + o.h / 2)
   const roofT = T.roof.thickMm / 1000
-  const eave = T.roof.eaveMm / 1000
+  const profile = geometry?.profile ?? 'slim'
+  const eave = Math.min(Math.max(T.roof.eaveMm / 1000, 0.15) *
+    (profile === 'deep-eave' ? 1.35 : profile === 'raised-edge' ? 1.05 : 0.8), 0.95)
   const wallW = m(o.w) + EXT_T
   const wallD = m(o.h) + EXT_T
   const rw = wallW + 2 * eave
@@ -717,7 +721,7 @@ function buildRoof(o: Rect, wallTop: number, L: number, T: ThemeDef, push: Push,
 
   // ---- flat-band: the signature bold white fascia beam wrapping the slab ----
   if (T.roof.style === 'flat-band') {
-    const band = T.roof.bandMm / 1000
+    const band = T.roof.bandMm / 1000 + (profile === 'raised-edge' ? 0.22 : profile === 'deep-eave' ? 0.08 : 0)
     const t = 0.14 // fascia beam thickness (how proud it sits)
     // the band centres on the slab edge, projecting past the wall face
     const by = wallTop - roofT / 2 // vertical centre — straddles the deck
@@ -747,7 +751,7 @@ function buildRoof(o: Rect, wallTop: number, L: number, T: ThemeDef, push: Push,
     push(`fas-${L}-e`, 'roof', L, [wx(o.x + o.w) + EXT_T / 2 + eave - PARAPET_T / 2, fy, czw], [PARAPET_T, fh, rd])
   }
 
-  const parH = T.roof.parapetMm / 1000
+  const parH = T.roof.parapetMm / 1000 + (T.roof.parapetMm > 0 && profile === 'raised-edge' ? 0.22 : 0)
   if (parH < 0.05) return
   const pcy = wallTop + parH / 2
   const vLen = Math.max(wallD - 2 * PARAPET_T, 0.2)
@@ -766,22 +770,28 @@ function buildPitchedRoof(
   kind: 'hip' | 'gable' | 'mono-slope',
   pitchDeg: number,
   T: ThemeDef,
+  geometry: DesignDNA['roofGeometry'] | undefined,
   push: Push,
   wx: XF,
   wz: XF,
   m: XF,
 ) {
-  const eave = Math.max(T.roof.eaveMm, 500) / 1000
+  const profile = geometry?.profile ?? 'slim'
+  const eave = Math.max(T.roof.eaveMm, 500) / 1000 * (profile === 'deep-eave' ? 1.3 : profile === 'raised-edge' ? 1.1 : 0.9)
   const wallW = m(o.w) + EXT_T
   const wallD = m(o.h) + EXT_T
   const rw = wallW + 2 * eave
   const rd = wallD + 2 * eave
   const cxw = wx(o.x + o.w / 2)
   const czw = wz(o.y + o.h / 2)
-  // ridge runs along the longer plan axis
-  const ridge: 'x' | 'z' = o.w >= o.h ? 'x' : 'z'
+  // A cross ridge is used only on near-square blocks; otherwise it would
+  // create an implausibly tall roof across the long side of a narrow wing.
+  const longRidge: 'x' | 'z' = o.w >= o.h ? 'x' : 'z'
+  const ridge: 'x' | 'z' = geometry?.ridge === 'cross' && Math.max(o.w, o.h) / Math.min(o.w, o.h) <= 1.35
+    ? longRidge === 'x' ? 'z' : 'x' : longRidge
   const span = (ridge === 'x' ? rd : rw) / 2
-  const rise = Math.min(span * Math.tan((pitchDeg * Math.PI) / 180), 3.4)
+  const actualPitch = clamp(pitchDeg + (geometry?.pitchBiasDeg ?? 0), 14, 32)
+  const rise = Math.min(span * Math.tan((actualPitch * Math.PI) / 180), 3.4)
   const fasciaT = T.roof.thickMm / 1000
 
   // thin eave fascia sitting on top of the wall, all round
@@ -791,7 +801,9 @@ function buildPitchedRoof(
   push(`eave-${L}-e`, 'roof', L, [wx(o.x + o.w) + EXT_T / 2 + eave - 0.06, wallTop + fasciaT / 2, czw], [0.12, fasciaT, rd])
 
   const form = kind === 'mono-slope' ? 'mono' : kind === 'gable' ? 'gable' : 'hip'
-  const low = form === 'mono' ? (ridge === 'x' ? 'z-' : 'x-') : undefined
+  const low = form === 'mono' ? (ridge === 'x'
+    ? geometry?.monoLowSide === 'second' ? 'z+' : 'z-'
+    : geometry?.monoLowSide === 'second' ? 'x+' : 'x-') : undefined
   push(
     `pitch-${L}`,
     'prism',
@@ -927,6 +939,7 @@ function buildCarport(
   y0: number,
   L: number,
   id: string,
+  geometry: DesignDNA['roofGeometry'] | undefined,
   push: Push,
   wx: XF,
   wz: XF,
@@ -944,8 +957,14 @@ function buildCarport(
   const wM = m(cE - cW)
   const dM = m(cS - cN)
   const topY = y0 + CANOPY_TOP
+  const profile = geometry?.profile ?? 'slim'
+  const canopyT = profile === 'raised-edge' ? 0.38 : profile === 'deep-eave' ? 0.24 : 0.18
+  const edge = profile === 'deep-eave' ? 0.25 : profile === 'raised-edge' ? 0.18 : 0.1
 
-  push(`can-${L}-${id}`, 'canopy', L, [cxm, topY - CANOPY_T / 2, czm], [wM + 0.25, CANOPY_T, dM + 0.25])
+  push(`can-${L}-${id}`, 'canopy', L, [cxm, topY - canopyT / 2, czm], [wM + 2 * edge, canopyT, dM + 2 * edge])
+  if (profile === 'raised-edge')
+    push(`can-fascia-${L}-${id}`, 'band', L,
+      [cxm, topY - canopyT - 0.12, wz(cS) + edge - 0.06], [wM + 2 * edge, 0.24, 0.12])
 
   // a paved parking pad, a touch proud of the lawn, with a low kerb and
   // painted bay lines so it reads as a real parking space
@@ -956,7 +975,7 @@ function buildCarport(
     push(`bay-${L}-${id}-${i}`, 'slab', L, [bx, 0.11, czm], [0.08, 0.02, dM * 0.9])
   }
 
-  const colTop = y0 + CANOPY_TOP - CANOPY_T // canopy soffit
+  const colTop = topY - canopyT // canopy soffit
   const colBot = 0.02
   const colH = colTop - colBot
   const ins = COL / 2 + 0.14

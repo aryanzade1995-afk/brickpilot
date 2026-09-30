@@ -5,21 +5,21 @@ import type { CanonicalModel, Zone } from '../model/canonical.ts'
 
 type Theme = 'dark' | 'paper'
 
-const INK = { dark: '#ece5d7', paper: '#1b1a17' }
-const FAINT = { dark: 'rgba(236,229,215,0.32)', paper: 'rgba(27,26,23,0.4)' }
-const BG = { dark: '#0b0b0c', paper: '#f4f1e8' }
-const ACCENT = '#e0521e'
+const INK = { dark: '#171717', paper: '#1b1b1b' }
+const FAINT = { dark: 'rgba(23,23,23,0.48)', paper: 'rgba(27,27,27,0.4)' }
+const BG = { dark: '#eeeeec', paper: '#ffffff' }
+const ACCENT = '#222222'
 
 const clampN = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
 
 const ZONE_TINT: Record<Zone, string> = {
-  social: 'rgba(224,82,30,0.06)',
-  private: 'rgba(236,229,215,0.05)',
-  service: 'rgba(111,174,127,0.07)',
-  circulation: 'rgba(236,229,215,0.03)',
-  work: 'rgba(217,164,65,0.06)',
-  sacred: 'rgba(224,82,30,0.04)',
-  outdoor: 'rgba(236,229,215,0.02)',
+  social: 'rgba(0,0,0,0.07)',
+  private: 'rgba(0,0,0,0.04)',
+  service: 'rgba(0,0,0,0.09)',
+  circulation: 'rgba(0,0,0,0.025)',
+  work: 'rgba(0,0,0,0.055)',
+  sacred: 'rgba(0,0,0,0.035)',
+  outdoor: 'rgba(0,0,0,0.02)',
 }
 
 export function FloorDrawing({
@@ -117,7 +117,7 @@ export function FloorDrawing({
             y={marked.rect.y}
             width={marked.rect.w}
             height={marked.rect.h}
-            fill="rgba(224,82,30,0.18)"
+            fill="rgba(0,0,0,0.14)"
             stroke={ACCENT}
             strokeWidth={70}
           />

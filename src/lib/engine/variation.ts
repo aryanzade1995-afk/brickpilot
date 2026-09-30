@@ -4,7 +4,10 @@ import { validateVillaVariation } from './facade/grammar.ts'
 
 export type DesignFingerprint = Pick<DesignDNA,
   'styleFamily' | 'facadeComposition' | 'entranceDesign' | 'roofDesign' | 'balconyDesign' |
-  'featureElement' | 'secondaryFeature' | 'materialPalette' | 'shadingSystem' | 'windowTreatment'>
+  'featureElement' | 'secondaryFeature' | 'materialPalette' | 'shadingSystem' | 'windowTreatment'> & {
+  roofProfile: DesignDNA['roofGeometry']['profile']
+  roofRidge: DesignDNA['roofGeometry']['ridge']
+}
 
 export const fingerprint = (dna: DesignDNA): DesignFingerprint => ({
   styleFamily: dna.styleFamily, facadeComposition: dna.facadeComposition,
@@ -12,12 +15,16 @@ export const fingerprint = (dna: DesignDNA): DesignFingerprint => ({
   balconyDesign: dna.balconyDesign, featureElement: dna.featureElement,
   secondaryFeature: dna.secondaryFeature, materialPalette: dna.materialPalette,
   shadingSystem: dna.shadingSystem, windowTreatment: dna.windowTreatment,
+  roofProfile: dna.roofGeometry?.profile ?? 'slim',
+  roofRidge: ['hip', 'gable', 'mono-slope', 'kerala-pitched'].includes(dna.roofDesign)
+    ? dna.roofGeometry?.ridge ?? 'long' : 'long',
 })
 
 const WEIGHTS: Record<keyof DesignFingerprint, number> = {
-  styleFamily: 9, facadeComposition: 22, entranceDesign: 15, roofDesign: 15,
-  featureElement: 12, secondaryFeature: 5, balconyDesign: 10,
+  styleFamily: 8, facadeComposition: 18, entranceDesign: 13, roofDesign: 13,
+  featureElement: 11, secondaryFeature: 4, balconyDesign: 9,
   materialPalette: 5, shadingSystem: 4, windowTreatment: 3,
+  roofProfile: 8, roofRidge: 4,
 }
 
 /** 0–100 architectural distance, independent of landscape/camera/lighting. */

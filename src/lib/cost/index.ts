@@ -82,7 +82,7 @@ export function estimateCost(design: Design): CostEstimate {
     ],
     sources: [
       'CPWD Plinth Area Rates + Cost Index (Govt. of India) — placeholder table',
-      'BrickPilot regional feasibility reference (concept)',
+      'Formstead regional feasibility reference (concept)',
     ],
   }
 }

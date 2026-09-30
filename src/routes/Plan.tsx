@@ -108,7 +108,7 @@ export function Plan() {
             <Row2 k="Theme">
               <Toggle2
                 options={[
-                  { v: 'dark', label: 'CAD dark' },
+                  { v: 'dark', label: 'Studio grey' },
                   { v: 'paper', label: 'Paper' },
                 ]}
                 value={theme}

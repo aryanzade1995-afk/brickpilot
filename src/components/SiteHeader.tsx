@@ -47,7 +47,7 @@ export function SiteHeader({ variant }: { variant: 'marketing' | 'workspace' }) 
     <header className="relative z-20 border-b border-line">
       <div className="mx-auto flex h-16 max-w-[1400px] items-center gap-8 px-6 md:px-10">
         <Link to="/" className="flex items-baseline gap-3">
-          <span className="font-display text-2xl leading-none text-accent">BrickPilot</span>
+          <span className="font-display text-2xl leading-none text-accent">Formstead</span>
           {variant === 'workspace' && (
             <span className="label hidden md:inline">Residential Concept Engineering</span>
           )}

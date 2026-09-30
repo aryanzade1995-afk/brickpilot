@@ -107,6 +107,26 @@ test('110 seeded exterior variants stay valid and retain the same plan', () => {
       assert.ok(noveltyScore(fingerprint(directions[i].design.dna), fingerprint(directions[j].design.dna)) >= 25)
 })
 
+test('seeded roof forms change 3D geometry without moving the verified shell', () => {
+  const plan = generate(compile(defaultBrief()))
+  const shell = (design) => buildMassing(design).boxes
+    .filter((box) => ['wall', 'glass', 'partition', 'slab'].includes(box.kind))
+    .map(({ id, kind, pos, size, level }) => ({ id, kind, pos, size, level }))
+  const expectedShell = shell(plan)
+  const roofShapes = new Set()
+  const signature = planSignature(plan)
+  for (let seed = 1; seed <= 24; seed++) {
+    const design = varyExterior(plan, seed)
+    assert.equal(planSignature(design), signature)
+    assert.deepEqual(shell(design), expectedShell, `shell moved at seed ${seed}`)
+    assert.ok(validate(design).hardChecksPass)
+    roofShapes.add(JSON.stringify(buildMassing(design).boxes
+      .filter((box) => ['roof', 'prism', 'parapet'].includes(box.kind) && box.level === design.floors.at(-1).level)
+      .map(({ kind, pos, size, prism }) => ({ kind, pos, size, prism }))))
+  }
+  assert.ok(roofShapes.size >= 3, `only ${roofShapes.size} distinct roof geometries`)
+})
+
 test('50 Generate Again selections favour new architectural fingerprints', () => {
   const plan = generate(compile(defaultBrief()))
   const history = []

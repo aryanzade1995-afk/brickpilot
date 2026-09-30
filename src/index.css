@@ -1,30 +1,30 @@
 @import 'tailwindcss';
 
 /* ------------------------------------------------------------------ *
- *  BrickPilot theme — dark drafting-studio palette
- *  near-black ground · warm bone ink · vermilion accent
+ *  Formstead theme — monochrome drafting-studio palette
+ *  warm white ground · charcoal ink · black accent
  *  display: Fraunces (high-contrast serif) · ui: Inter · data: IBM Plex Mono
  * ------------------------------------------------------------------ */
 @theme {
-  --color-bg: #0b0b0c;
-  --color-bg-raised: #121110;
-  --color-bg-raised-2: #1a1917;
-  --color-bg-inset: #08080a;
+  --color-bg: #f7f7f5;
+  --color-bg-raised: #ffffff;
+  --color-bg-raised-2: #ebebea;
+  --color-bg-inset: #eeeeec;
 
-  --color-ink: #ece5d7;
-  --color-ink-dim: #a49d90;
-  --color-ink-faint: #6d685f;
+  --color-ink: #171717;
+  --color-ink-dim: #505050;
+  --color-ink-faint: #707070;
 
-  --color-accent: #e0521e;
-  --color-accent-hot: #f4632c;
-  --color-accent-muted: #7c3d24;
+  --color-accent: #222222;
+  --color-accent-hot: #000000;
+  --color-accent-muted: #666666;
 
-  --color-line: rgba(236, 229, 215, 0.1);
-  --color-line-strong: rgba(236, 229, 215, 0.2);
+  --color-line: rgba(23, 23, 23, 0.13);
+  --color-line-strong: rgba(23, 23, 23, 0.28);
 
-  --color-ok: #6fae7f;
-  --color-warn: #d9a441;
-  --color-bad: #d9614a;
+  --color-ok: #484848;
+  --color-warn: #666666;
+  --color-bad: #171717;
 
   --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
   --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -36,7 +36,7 @@
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
-    color-scheme: dark;
+    color-scheme: light;
   }
 
   body {
@@ -50,7 +50,7 @@
     text-rendering: optimizeLegibility;
   }
 
-  /* faint drafting vignette, like the BrickPilot hero */
+  /* restrained neutral vignette behind the studio */
   body::before {
     content: '';
     position: fixed;
@@ -58,8 +58,8 @@
     pointer-events: none;
     z-index: 0;
     background:
-      radial-gradient(120% 80% at 78% 0%, rgba(224, 82, 30, 0.06), transparent 60%),
-      radial-gradient(100% 60% at 0% 100%, rgba(236, 229, 215, 0.03), transparent 55%);
+      radial-gradient(120% 80% at 78% 0%, rgba(0, 0, 0, 0.025), transparent 60%),
+      radial-gradient(100% 60% at 0% 100%, rgba(0, 0, 0, 0.015), transparent 55%);
   }
 
   #root {

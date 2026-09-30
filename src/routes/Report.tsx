@@ -136,7 +136,7 @@ export function Report() {
         massingImages,
         conceptImages,
       })
-      triggerDownload(blob, `brickpilot-${slug(model.brief.project.name)}-report.pdf`)
+      triggerDownload(blob, `formstead-${slug(model.brief.project.name)}-report.pdf`)
     } catch (e) {
       setError(String((e as Error).message || e))
     } finally {

@@ -36,7 +36,7 @@ export async function rasterizeSvg(svg: SVGSVGElement, w = 1200, h = 800): Promi
   canvas.height = h
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('2d context unavailable')
-  ctx.fillStyle = '#0b0b0c'
+  ctx.fillStyle = '#eeeeec'
   ctx.fillRect(0, 0, w, h)
   const scale = Math.min(w / (img.width || w), h / (img.height || h))
   const dw = (img.width || w) * scale

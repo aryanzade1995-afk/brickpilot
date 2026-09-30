@@ -8,7 +8,7 @@ export function InvalidPlanNotice({ report }: { report: ValidationReport }) {
     <WorkspaceTabs />
     <h1 className="mt-8 font-display text-3xl">This brief has no valid plan yet</h1>
     <p className="mt-3 text-sm text-ink-dim">
-      BrickPilot could not fit all requested rooms and circulation safely inside the available building area.
+      Formstead could not fit all requested rooms and circulation safely inside the available building area.
       Revise the plot, setbacks, room count or floor arrangement, then generate again.
     </p>
     <ul className="mt-6 space-y-2 border-y border-line py-4 text-sm text-bad">

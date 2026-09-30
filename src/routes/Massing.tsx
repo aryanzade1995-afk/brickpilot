@@ -152,10 +152,10 @@ export function Massing() {
                   args={[span * 3, span * 3]}
                   cellSize={1}
                   cellThickness={0.5}
-                  cellColor="#343b44"
+                  cellColor="#525252"
                   sectionSize={5}
                   sectionThickness={0.8}
-                  sectionColor="#48515c"
+                  sectionColor="#686868"
                   fadeDistance={span * 3.4}
                   fadeStrength={1.3}
                 />

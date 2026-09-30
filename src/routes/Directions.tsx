@@ -140,7 +140,7 @@ export function Directions() {
                   </div>
                   <p className="mt-1.5 max-w-sm text-sm text-ink-dim">{d.blurb}</p>
                   <p className="mt-2 font-mono text-[0.65rem] uppercase tracking-[0.08em] text-ink-faint">
-                    {d.design.dna.styleFamily.replaceAll('-', ' ')} · {d.design.dna.roofDesign.replaceAll('-', ' ')} roof · novelty {d.novelty}/100
+                    {d.design.dna.styleFamily.replaceAll('-', ' ')} · {d.design.dna.roofDesign.replaceAll('-', ' ')} roof · {d.design.dna.roofGeometry?.profile.replaceAll('-', ' ') ?? 'slim'} profile · novelty {d.novelty}/100
                   </p>
                 </div>
                 <div className="flex-none text-right">
@@ -154,7 +154,7 @@ export function Directions() {
                   position: [camX + span * 1.0, camY + span * 0.65, camZ + span * 1.2],
                   fov: 42, near: 0.1, far: 300,
                 }} onCreated={({ camera }) => camera.lookAt(camX, camY, camZ)}>
-                  <color attach="background" args={['#e9e5dc']} />
+                  <color attach="background" args={['#eeeeec']} />
                   <ambientLight intensity={2.1} />
                   <directionalLight position={[8, 18, 12]} intensity={2.4} />
                   <MassingModel massing={massing} explode={0} hidden={new Set()} character={brief.style.character} />

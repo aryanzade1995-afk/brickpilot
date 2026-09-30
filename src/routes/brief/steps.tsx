@@ -37,7 +37,7 @@ export function ProjectStep() {
         <TextInput value={brief.project.name} onChange={(v) => edit((b) => void (b.project.name = v))} />
       </Field>
       <p className="border-l-2 border-line-strong pl-4 text-sm text-ink-dim">
-        BrickPilot produces a residential concept and feasibility package — a villa or bungalow,
+        Formstead produces a residential concept and feasibility package — a villa or bungalow,
         ground-only through G+3. Pick the typology and character on the Style step. A licensed
         architect and engineers must verify it before permits or construction.
       </p>
@@ -450,7 +450,7 @@ export function ReviewStep() {
       <div className="flex items-start gap-3 text-sm text-ink-dim">
         <span className="label flex-none pt-1">Next</span>
         <p>
-          BrickPilot assigns a variation seed, generates a fixed candidate, normalises shared walls,
+          Formstead assigns a variation seed, generates a fixed candidate, normalises shared walls,
           places doors, windows and stairs, then tests reachability and geometry.
         </p>
       </div>

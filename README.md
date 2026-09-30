@@ -1,6 +1,6 @@
-# BrickPilot
+# Formstead
 
-BrickPilot is a residential **concept and feasibility studio** for villas and
+Formstead is a residential **concept and feasibility studio** for villas and
 bungalows. A user enters plot dimensions, setbacks, rooms, floors and a design
 character; the app creates a deterministic 2D plan, checks it, derives a 3D
 building from that same plan, estimates a cost band and exports a report.
@@ -125,6 +125,16 @@ prisms; [`src/lib/three/MassingScene.tsx`](src/lib/three/MassingScene.tsx)
 renders them. [`src/lib/three/buildDollhouse.ts`](src/lib/three/buildDollhouse.ts)
 and `DollhouseScene.tsx` create a furnished cutaway view. Exterior variation
 can change presentation details, but it must preserve plan openings and rooms.
+
+This experimental branch adds seed-driven roof geometry to `DesignDNA`:
+slim, deep-eave and raised-edge profiles; constrained ridge direction,
+pitch and mono-slope orientation. The roof still caps the verified floor
+footprint. A cross ridge is allowed only on near-square blocks, and all
+variants retain identical room, wall, door, window and stair coordinates.
+The roof variation follows the footprint/roof-form variation ideas in
+[SYNBUILD-3D](https://github.com/kdmayer/SYNBUILD-3D) and its
+[paper](https://arxiv.org/abs/2508.21169). No SYNBUILD dataset or generator
+code is bundled with Formstead.
 
 Validation includes requested-room counts and sizes, room overlap and plate
 coverage, setbacks, door width and placement, room reachability, stair/lift

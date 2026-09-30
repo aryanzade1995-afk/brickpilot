@@ -116,7 +116,7 @@ export async function buildReportPdf(data: ReportData): Promise<Blob> {
       doc.setPage(p)
       doc.setFont('helvetica', 'normal').setFontSize(7).setTextColor(...DIM)
       doc.text(
-        'BrickPilot — concept feasibility only. A licensed architect and engineers must verify before permits.',
+        'Formstead — concept feasibility only. A licensed architect and engineers must verify before permits.',
         M,
         H - 28,
       )
@@ -127,7 +127,7 @@ export async function buildReportPdf(data: ReportData): Promise<Blob> {
   /* ---------------------------------- cover --------------------------------- */
   const { brief, design, report, cost } = data
   doc.setFont('helvetica', 'bold').setFontSize(10).setTextColor(...ACCENT)
-  doc.text('BRICKPILOT', M, y)
+  doc.text('FORMSTEAD', M, y)
   y += 30
   doc.setFont('times', 'normal').setFontSize(30).setTextColor(...INK)
   doc.text(doc.splitTextToSize(data.projectName, contentW), M, y)

@@ -287,7 +287,7 @@ export function InteriorStudio({
           </div>
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             {results.map((r) => {
-              const slug = `brickpilot-${r.styleId}-${r.roomLabel.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`
+              const slug = `formstead-${r.styleId}-${r.roomLabel.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`
               return (
                 <figure key={r.id} className="border border-line">
                   <div className="relative bg-bg-inset">
