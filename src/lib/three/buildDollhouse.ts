@@ -1,5 +1,4 @@
 import type { Design, FloorPlan, PlacedRoom } from '../engine/types.ts'
-import { rectRight } from '../geometry.ts'
 
 /* ------------------------------------------------------------------ *
  *  buildDollhouse — a warm, furnished cut-away model of the whole
@@ -163,7 +162,7 @@ export function buildDollhouse(design: Design, only?: number): Dollhouse {
             push(`door-sill-${key}`, 'door', [fx, baseY + 0.01, fy], [dw, 0.03, t + 0.12])
             // the leaf, hinged at one jamb and swung fully open into the room
             const hingeX = fx + (d.hinge === 'b' ? dw / 2 : -dw / 2)
-            push(`door-leaf-${key}`, 'door', [hingeX, jz, fy + (d.swing ?? 1) * (dw / 2 + leafT)], [leafT, hgt - 0.06, dw])
+            if (d.leaf !== false) push(`door-leaf-${key}`, 'door', [hingeX, jz, fy + (d.swing ?? 1) * (dw / 2 + leafT)], [leafT, hgt - 0.06, dw])
           } else {
             const fx = wx(fixed)
             const fy = wz(d.at.y)
@@ -172,7 +171,7 @@ export function buildDollhouse(design: Design, only?: number): Dollhouse {
             push(`door-hd-${key}`, 'door', [fx, baseY + hgt + HEAD / 2, fy], [t + 0.03, HEAD, dw + 2 * JAMB])
             push(`door-sill-${key}`, 'door', [fx, baseY + 0.01, fy], [t + 0.12, 0.03, dw])
             const hingeZ = fy + (d.hinge === 'b' ? dw / 2 : -dw / 2)
-            push(`door-leaf-${key}`, 'door', [fx + (d.swing ?? 1) * (dw / 2 + leafT), jz, hingeZ], [dw, hgt - 0.06, leafT])
+            if (d.leaf !== false) push(`door-leaf-${key}`, 'door', [fx + (d.swing ?? 1) * (dw / 2 + leafT), jz, hingeZ], [dw, hgt - 0.06, leafT])
           }
         }
       }
@@ -200,32 +199,37 @@ export function buildDollhouse(design: Design, only?: number): Dollhouse {
     //      climbs to the cut line then a landing; only where the design has storeys ----
     if (floor.stair && topLevel > 0) {
       const r = floor.stair.rect
-      const o = floor.outline
       const up = L < topLevel
       const rise = CUT + 0.2
       const steps = 6
-      const tw = Math.min(1.15, m(r.w) * 0.52) // tread width — against one side, not filling the room
-      // hug the exterior wall of the core so the flight never sits across the
-      // door to a neighbouring bath / study
-      const hugRight = Math.abs(rectRight(r) - rectRight(o)) < Math.abs(r.x - o.x)
-      const tx = wx(r.x + r.w / 2) + (hugRight ? 1 : -1) * (m(r.w) / 2 - tw / 2 - 0.12)
-      const from = up ? 0.16 : 0.58
-      const to = up ? 0.58 : 0.16
+      // runs away from the spine edge like the plan's flights: the climbing
+      // flight on one side of the well, the arriving flight on the other
+      const side = floor.stair.startSide ?? 'N'
+      const alongY = side === 'N' || side === 'S'
+      const across = m(alongY ? r.w : r.h)
+      const run = alongY ? r.h : r.w
+      const tw = Math.min(1.15, across * 0.48)
+      const off = (up ? -1 : 1) * (across / 2 - tw / 2 - 0.06)
+      const place = (f: number): [number, number] => {
+        const b = run * f
+        const c = alongY ? wx(r.x + r.w / 2) + off : wz(r.y + r.h / 2) + off
+        if (side === 'N') return [c, wz(r.y + b)]
+        if (side === 'S') return [c, wz(r.y + r.h - b)]
+        if (side === 'W') return [wx(r.x + b), c]
+        return [wx(r.x + r.w - b), c]
+      }
+      const from = up ? 0.08 : 0.58
+      const to = up ? 0.58 : 0.08
+      const dims = (d: number): [number, number, number] => (alongY ? [tw, 0, m(run) * d] : [m(run) * d, 0, tw])
       for (let k = 0; k < steps; k++) {
         const f = k / (steps - 1)
-        push(
-          `stair-${L}-${k}`,
-          'stair',
-          [tx, baseY + rise * ((up ? k + 0.5 : steps - k - 0.5) / steps), wz(r.y + r.h * (from + (to - from) * f))],
-          [tw, rise / steps + 0.02, m(r.h) * 0.11],
-        )
+        const [px, pz] = place(from + (to - from) * f)
+        const [sx, , sz] = dims(0.11)
+        push(`stair-${L}-${k}`, 'stair', [px, baseY + rise * ((up ? k + 0.5 : steps - k - 0.5) / steps), pz], [sx, rise / steps + 0.02, sz])
       }
-      push(
-        `stair-${L}-land`,
-        'stair',
-        [tx, baseY + rise, wz(r.y + r.h * (up ? 0.66 : 0.1))],
-        [tw, 0.08, m(r.h) * 0.16],
-      )
+      const [lx, lz] = place(up ? 0.68 : 0.02)
+      const [sx, , sz] = dims(0.16)
+      push(`stair-${L}-land`, 'stair', [lx, baseY + rise, lz], [sx, 0.08, sz])
     }
 
     // ---- furniture ----

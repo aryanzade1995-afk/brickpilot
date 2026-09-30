@@ -150,9 +150,18 @@ export function FloorDrawing({
         ))}
         {/* erase + draw openings on top */}
         {floor.openings.map((o, i) => (
-          <OpeningMark key={`op-${i}`} o={o} ink={ink} bg={bg} theme={theme} />
+          <OpeningMark key={o.id ?? `op-${i}`} o={o} ink={ink} bg={bg} theme={theme} />
         ))}
       </g>
+
+      {/* ---- structural columns (same grid on every floor) ---- */}
+      {floor.columns && (
+        <g fill={ink}>
+          {floor.columns.map((c) => (
+            <rect key={c.id} x={c.at.x - c.size / 2} y={c.at.y - c.size / 2} width={c.size} height={c.size} />
+          ))}
+        </g>
+      )}
 
       {/* ---- stair ---- */}
       {floor.stair && (
@@ -160,13 +169,24 @@ export function FloorDrawing({
           {floor.stair.treads.map((t, i) => (
             <line key={`tread-${i}`} x1={t[0].x} y1={t[0].y} x2={t[1].x} y2={t[1].y} />
           ))}
-          <line
-            x1={floor.stair.rect.x + floor.stair.rect.w / 2}
-            y1={floor.stair.rect.y}
-            x2={floor.stair.rect.x + floor.stair.rect.w / 2}
-            y2={rectBottom(floor.stair.rect)}
-            stroke={faint}
-          />
+          {/* the well between the two flights, along the run */}
+          {floor.stair.startSide === 'E' || floor.stair.startSide === 'W' ? (
+            <line
+              x1={floor.stair.rect.x}
+              y1={floor.stair.rect.y + floor.stair.rect.h / 2}
+              x2={rectRight(floor.stair.rect)}
+              y2={floor.stair.rect.y + floor.stair.rect.h / 2}
+              stroke={faint}
+            />
+          ) : (
+            <line
+              x1={floor.stair.rect.x + floor.stair.rect.w / 2}
+              y1={floor.stair.rect.y}
+              x2={floor.stair.rect.x + floor.stair.rect.w / 2}
+              y2={rectBottom(floor.stair.rect)}
+              stroke={faint}
+            />
+          )}
         </g>
       )}
 
@@ -234,6 +254,29 @@ function OpeningMark({ o, ink, bg, theme }: { o: Opening; ink: string; bg: strin
   const half = o.width / 2
   const eraseW = o.kind === 'window' ? 260 : 340
   const eraseColor = theme === 'paper' ? bg : bg
+  // a cased opening (no leaf): the wall is simply cut, with jamb ticks
+  if (o.leaf === false) {
+    const [x1, y1, x2, y2] = o.orient === 'h'
+      ? [o.at.x - half, o.at.y, o.at.x + half, o.at.y]
+      : [o.at.x, o.at.y - half, o.at.x, o.at.y + half]
+    const t = 150
+    return (
+      <g>
+        <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={eraseColor} strokeWidth={340} />
+        {o.orient === 'h' ? (
+          <>
+            <line x1={x1} y1={y1 - t} x2={x1} y2={y1 + t} stroke={ink} strokeWidth={30} />
+            <line x1={x2} y1={y2 - t} x2={x2} y2={y2 + t} stroke={ink} strokeWidth={30} />
+          </>
+        ) : (
+          <>
+            <line x1={x1 - t} y1={y1} x2={x1 + t} y2={y1} stroke={ink} strokeWidth={30} />
+            <line x1={x2 - t} y1={y2} x2={x2 + t} y2={y2} stroke={ink} strokeWidth={30} />
+          </>
+        )}
+      </g>
+    )
+  }
   if (o.orient === 'h') {
     const x1 = o.at.x - half
     const x2 = o.at.x + half

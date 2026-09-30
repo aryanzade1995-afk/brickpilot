@@ -119,6 +119,16 @@ export function MassingModel({
   character: Character
 }) {
   const mat = THEMES[character].materials
+  const paletteColor = {
+    'warm-stone': '#b8a993',
+    'lime-plaster': '#e7dfca',
+    earth: '#aa826c',
+    'travertine-bronze': '#c7b9a0',
+    'charcoal-oak': '#55534f',
+    'kerala-laterite': '#a45e43',
+    'tropical-cream': '#d0b991',
+    'classical-stone': '#c9bcaa',
+  }[massing.palette]
   const lift = explode * massing.floorHeight * 1.7
   const cutaway = explode > 0.04
 
@@ -176,7 +186,7 @@ export function MassingModel({
         return (
           <mesh key={g} geometry={geo} castShadow receiveShadow>
             <meshStandardMaterial
-              color={mm.color}
+              color={g === 'feature' || g === 'clad' ? paletteColor : mm.color}
               roughness={mm.roughness}
               metalness={mm.metalness ?? 0}
               envMapIntensity={mm.env ?? 0.4}

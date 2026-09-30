@@ -33,9 +33,24 @@ try {
 const PORT = Number(process.env.PORT || process.env.RENDER_PROXY_PORT || 8787)
 const KEY = process.env.GEMINI_API_KEY || ''
 const MODEL = process.env.RENDER_MODEL || 'gemini-2.5-flash-image'
+const INSPIRATION_MODEL = process.env.INSPIRATION_MODEL || 'gemini-2.5-flash-lite'
 const MOCK = process.env.RENDER_MOCK === '1'
 const ENDPOINT = (key) =>
   `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`
+const INSPIRATION_ENDPOINT = (key) =>
+  `https://generativelanguage.googleapis.com/v1beta/models/${INSPIRATION_MODEL}:generateContent?key=${key}`
+
+const INSPIRATION_PROMPT = `Classify the villa architecture in this reference image. Return only JSON with one value for each key below. Read the image as design inspiration, never as a floor plan or geometry to copy.
+styleFamily: modern-indian, contemporary-indian, luxury-modern, minimal-modern, tropical-modern, modern-kerala, kerala-contemporary, courtyard-modern, resort-luxury, neo-classical, contemporary-classical, urban-premium
+facadeComposition: vertical-frame, horizontal-stack, floating-box, tower-and-wing, central-entry, asymmetric-entry, layered-facade, recessed-core, split-volume, portal-frame, courtyard-front, double-height-focus, corner-feature, stepped-composition, interlocking-volumes, frame-within-frame
+entranceDesign: vertical-portal, horizontal-canopy, stone-pier, timber-screen, recessed-entry, floating-frame, column-portico, deep-shadow-entry
+featureElement: stone-tower, timber-fins, metal-fins, deep-chajja, floating-slab, jaali-panel, planter-band, roof-pergola
+roofDesign: flat, floating-flat, parapet-flat, pergola-terrace, hip, gable, mixed-flat-pitched, kerala-pitched
+materialPalette: warm-stone, lime-plaster, earth, travertine-bronze, charcoal-oak, kerala-laterite, tropical-cream, classical-stone
+windowTreatment: flush-frame, deep-reveal, projecting-frame, timber-surround, stone-surround, sunshade
+balconyDesign: glass-floating, recessed, solid-parapet, metal-rail, timber-screened, planter-balcony
+landscapeMood: minimal, formal, natural, lush-tropical, courtyard
+Choose the closest listed value for every key. If a feature is not visible, choose a style-compatible value.`
 
 const DIST = fileURLToPath(new URL('../dist/', import.meta.url))
 const SERVE_STATIC = existsSync(join(DIST, 'index.html'))
@@ -138,6 +153,37 @@ const server = createServer((req, res) => {
     return send(res, 200, { ok: true, configured: Boolean(KEY), mock: MOCK, model: MODEL })
   }
 
+  if (req.method === 'POST' && req.url === '/api/inspiration') {
+    readJson(req, 12e6).then(async (p) => {
+      const { imageBase64, mimeType } = p || {}
+      if (typeof imageBase64 !== 'string' || !imageBase64 ||
+        !/^image\/(png|jpeg|webp)$/.test(mimeType) || !/^[A-Za-z0-9+/=]+$/.test(imageBase64))
+        return send(res, 400, { error: 'Choose a PNG, JPEG or WebP inspiration image.' })
+      if (MOCK || !KEY) return send(res, 503, { error: 'Image analysis needs a configured Gemini API key.' })
+      try {
+        const response = await fetch(INSPIRATION_ENDPOINT(KEY), {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [
+              { text: INSPIRATION_PROMPT },
+              { inlineData: { mimeType, data: imageBase64 } },
+            ] }],
+            generationConfig: { responseMimeType: 'application/json' },
+          }),
+        })
+        const payload = await response.json()
+        if (!response.ok) return send(res, response.status, { error: payload?.error?.message || 'Image analysis failed.' })
+        const content = payload?.candidates?.[0]?.content?.parts?.find((part) => typeof part.text === 'string')?.text
+        if (!content) return send(res, 502, { error: 'No architectural style analysis was returned.' })
+        return send(res, 200, { preferences: JSON.parse(content) })
+      } catch (error) {
+        return send(res, 502, { error: String(error?.message || error) })
+      }
+    }).catch((error) => send(res, 400, { error: String(error?.message || error) }))
+    return
+  }
+
   if (req.method === 'POST' && req.url === '/api/render') {
     let body = ''
     req.on('data', (c) => {
@@ -151,10 +197,12 @@ const server = createServer((req, res) => {
       } catch {
         return send(res, 400, { error: 'invalid JSON body' })
       }
-      const { imageBase64, mimeType = 'image/png', prompt } = p || {}
+      const { imageBase64, mimeType = 'image/png', prompt, inspirationBase64, inspirationMimeType = 'image/jpeg' } = p || {}
       if (!imageBase64 || !prompt) {
         return send(res, 400, { error: 'imageBase64 and prompt are required' })
       }
+      if (inspirationBase64 && (!/^image\/(png|jpeg|webp)$/.test(inspirationMimeType) || typeof inspirationBase64 !== 'string'))
+        return send(res, 400, { error: 'invalid inspiration image' })
       // mock mode / no key configured → echo the source image so the flow is demoable
       if (MOCK || !KEY) {
         return send(res, MOCK ? 200 : 503, {
@@ -170,7 +218,11 @@ const server = createServer((req, res) => {
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({
             contents: [
-              { parts: [{ text: prompt }, { inlineData: { mimeType, data: imageBase64 } }] },
+              { parts: [
+                { text: prompt },
+                { inlineData: { mimeType, data: imageBase64 } },
+                ...(inspirationBase64 ? [{ inlineData: { mimeType: inspirationMimeType, data: inspirationBase64 } }] : []),
+              ] },
             ],
           }),
         })

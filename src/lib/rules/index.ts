@@ -1,6 +1,8 @@
-import { rectRight, rectBottom, toSqm } from '../geometry.ts'
+import { rectRight, rectBottom, rectUnionArea, rectUnionEdges, toSqm } from '../geometry.ts'
 import type { CanonicalModel, SpaceReq } from '../model/canonical.ts'
 import type { Design } from '../engine/types.ts'
+import { planFindings } from '../engine/planner/validate.ts'
+import { validateVillaVariation } from '../engine/facade/grammar.ts'
 
 export type Severity = 'error' | 'warning' | 'info'
 export type FindingCategory =
@@ -46,7 +48,7 @@ const MIN_DIM: Record<string, number> = {
   outdoor: 1200,
 }
 
-export function validate(design: Design): ValidationReport {
+export function validate(design: Design, options: { checkFacade?: boolean } = {}): ValidationReport {
   const findings: Finding[] = []
   const add = (
     code: string,
@@ -63,6 +65,53 @@ export function validate(design: Design): ValidationReport {
   const large = design.model.brief.project.buildingType === 'large-villa'
 
   for (const floor of design.floors) {
+    const required = design.model.floors[floor.level]?.spaces ?? []
+    for (const req of required) {
+      const found = floor.rooms.filter((room) => room.id === req.id)
+      if (found.length !== 1) add('PROGRAMME_MISMATCH', 'error', 'planning',
+        `${floor.name} requires one ${req.name.toLowerCase()}; the plan contains ${found.length}.`, req.id)
+    }
+    for (let i = 0; i < floor.rooms.length; i++) {
+      const room = floor.rooms[i]
+      if (room.rect.w <= 0 || room.rect.h <= 0 || !Number.isFinite(room.area))
+        add('INVALID_ROOM_GEOMETRY', 'error', 'geometry', `${room.name} has invalid dimensions.`, room.id)
+      if (room.outdoor) continue
+      const pieces = floor.footprint.map((block) => ({
+        x: Math.max(room.rect.x, block.x), y: Math.max(room.rect.y, block.y),
+        w: Math.max(0, Math.min(rectRight(room.rect), rectRight(block)) - Math.max(room.rect.x, block.x)),
+        h: Math.max(0, Math.min(rectBottom(room.rect), rectBottom(block)) - Math.max(room.rect.y, block.y)),
+      })).filter((piece) => piece.w > 0 && piece.h > 0)
+      const covered = pieces.length ? rectUnionArea(pieces) : 0
+      if ((room.rect.w * room.rect.h - covered) > 200_000)
+        add('ROOM_OUTSIDE_FOOTPRINT', 'error', 'geometry', `${room.name} extends beyond the enclosed footprint.`, room.id)
+      for (let j = i + 1; j < floor.rooms.length; j++) {
+        const other = floor.rooms[j]
+        if (other.outdoor) continue
+        const overlap = Math.max(0, Math.min(rectRight(room.rect), rectRight(other.rect)) - Math.max(room.rect.x, other.rect.x)) *
+          Math.max(0, Math.min(rectBottom(room.rect), rectBottom(other.rect)) - Math.max(room.rect.y, other.rect.y))
+        if (overlap > 250_000) add('ROOM_OVERLAP', 'error', 'geometry',
+          `${room.name} overlaps ${other.name} by ${(overlap / 1e6).toFixed(1)} m².`, room.id)
+      }
+    }
+    const boundary = rectUnionEdges(floor.footprint, floor.courtyard)
+    for (const opening of floor.openings) {
+      if (opening.kind === 'door') continue
+      const matches = boundary.some((edge) => {
+        const horizontal = edge.side === 'N' || edge.side === 'S'
+        if ((opening.orient === 'h') !== horizontal) return false
+        const fixed = horizontal ? edge.a.y : edge.a.x
+        const value = horizontal ? opening.at.y : opening.at.x
+        const along = horizontal ? opening.at.x : opening.at.y
+        const lo = horizontal ? edge.a.x : edge.a.y
+        const hi = horizontal ? edge.b.x : edge.b.y
+        // The 3D wall needs an unchanged opening with a 110 mm end pier.
+        // Never certify a window that the mesh builder would need to shrink.
+        return Math.abs(value - fixed) < 2 &&
+          along - opening.width / 2 >= lo + 110 && along + opening.width / 2 <= hi - 110
+      })
+      if (!matches) add('PLAN_3D_OPENING_MISMATCH', 'error', 'geometry',
+        `${floor.name} has a ${opening.kind} that cannot be placed on its 3D exterior wall.`)
+    }
     for (const room of floor.rooms) {
       const req = reqIndex.get(`${floor.level}:${room.id}`)
       const shortSide = Math.min(room.rect.w, room.rect.h)
@@ -103,7 +152,7 @@ export function validate(design: Design): ValidationReport {
         if (room.area < req.min - 0.4) {
           add(
             'AREA_BELOW_MINIMUM',
-            'warning',
+            'error',
             'planning',
             `${room.name} is ${room.area.toFixed(1)} m² — under its ${req.min} m² minimum.`,
             room.id,
@@ -120,27 +169,38 @@ export function validate(design: Design): ValidationReport {
       }
 
       // --- geometry: daylight (habitable rooms on the perimeter only) ---
-      const onExterior =
-        Math.abs(room.rect.x - floor.outline.x) < 3 ||
-        Math.abs(rectRight(room.rect) - rectRight(floor.outline)) < 3 ||
-        Math.abs(room.rect.y - floor.outline.y) < 3 ||
-        Math.abs(rectBottom(room.rect) - rectBottom(floor.outline)) < 3
+      const onExterior = boundary.some((edge) => {
+        const horizontal = edge.side === 'N' || edge.side === 'S'
+        const fixed = horizontal ? edge.a.y : edge.a.x
+        const touches = horizontal
+          ? Math.abs(room.rect.y - fixed) < 3 || Math.abs(rectBottom(room.rect) - fixed) < 3
+          : Math.abs(room.rect.x - fixed) < 3 || Math.abs(rectRight(room.rect) - fixed) < 3
+        const overlap = horizontal
+          ? Math.min(rectRight(room.rect), edge.b.x) - Math.max(room.rect.x, edge.a.x)
+          : Math.min(rectBottom(room.rect), edge.b.y) - Math.max(room.rect.y, edge.a.y)
+        return touches && overlap >= 1200
+      })
       const habitable = room.zone === 'social' || room.zone === 'private' || room.zone === 'work'
-      if (req?.wantsWindow && habitable && !room.outdoor && room.area >= 11 && onExterior) {
+      if (req?.wantsWindow && habitable && !room.outdoor) {
         const hasWindow = floor.openings.some(
           (o) =>
-            o.kind === 'window' &&
+            (o.kind === 'window' || o.kind === 'door') &&
             o.at.x >= room.rect.x - 50 &&
             o.at.x <= rectRight(room.rect) + 50 &&
             o.at.y >= room.rect.y - 50 &&
-            o.at.y <= rectBottom(room.rect) + 50,
+            o.at.y <= rectBottom(room.rect) + 50 &&
+            boundary.some((edge) => {
+              const horizontal = edge.side === 'N' || edge.side === 'S'
+              return (o.orient === 'h') === horizontal &&
+                Math.abs((horizontal ? o.at.y : o.at.x) - (horizontal ? edge.a.y : edge.a.x)) < 450
+            }),
         )
-        if (!hasWindow) {
+        if (!onExterior || !hasWindow) {
           add(
             'NO_DAYLIGHT',
-            'warning',
+            'error',
             'geometry',
-            `${room.name} has no external window — it is landlocked in this scheme.`,
+            `${room.name} needs an exterior wall and glazed opening for daylight.`,
             room.id,
           )
         }
@@ -174,46 +234,33 @@ export function validate(design: Design): ValidationReport {
 
   // --- egress: entry door ---
   const ground = design.floors[0]
+  if (design.model.brief.rooms.priorities.courtyard && !ground.courtyard)
+    add('COURTYARD_MISSING', 'error', 'planning',
+      'A central courtyard was requested, but this footprint has no open central court. Choose a larger plot or remove that priority.')
   if (!ground.openings.some((o) => o.kind === 'entry')) {
     add('NO_ENTRY_DOOR', 'error', 'egress', 'No entry door was placed on the ground floor.')
   }
 
-  // --- vertical: every upper storey must be carried by the one below it ---
-  for (let i = 1; i < design.floors.length; i++) {
-    const upper = design.floors[i].footprint ?? [design.floors[i].outline]
-    const lower = design.floors[i - 1].footprint ?? [design.floors[i - 1].outline]
-    const upArea = upper.reduce((a, b) => a + b.w * b.h, 0)
-    let carried = 0
-    for (const u of upper) {
-      for (const l of lower) {
-        const ox = Math.max(0, Math.min(rectRight(u), rectRight(l)) - Math.max(u.x, l.x))
-        const oy = Math.max(0, Math.min(rectBottom(u), rectBottom(l)) - Math.max(u.y, l.y))
-        carried += ox * oy
-      }
-    }
-    if (upArea > 0 && carried / upArea < 0.55) {
-      add(
-        'FLOOR_STACKING',
-        'error',
-        'vertical',
-        `${design.floors[i].name} is only ${Math.round((carried / upArea) * 100)}% supported by the storey below — an unbuildable overhang.`,
-      )
-    }
-  }
+  // --- mandatory plan validators: tiling, support, columns, beams, openings,
+  //     door swings, privacy, ventilation, stair core, semantic ids ---
+  for (const f of planFindings(design)) add(f.code, 'error', f.category, f.message, f.roomId)
+  if (options.checkFacade !== false)
+    for (const message of validateVillaVariation(design).errors)
+      add('FACADE_COLLISION', 'error', 'geometry', message)
 
   // --- vertical: stair present & aligned ---
   if (design.floors.length > 1) {
     const stairRects = design.floors.map((f) => f.rooms.find((r) => r.id === 'stair')?.rect)
     if (stairRects.some((r) => !r)) {
       add('STAIR_MISSING', 'error', 'vertical', 'A floor is missing its stair core.')
-    } else {
-      const [base, ...rest] = stairRects
-      const aligned = rest.every(
-        (r) => r && base && Math.abs(r.x - base.x) < 150 && Math.abs(r.y - base.y) < 150,
-      )
-      if (!aligned) {
-        add('STAIR_MISALIGNED', 'error', 'vertical', 'The stair core is not vertically aligned across floors.')
-      }
+    }
+    if (design.model.brief.levels.liftProvision) {
+      const lifts = design.floors.map((floor) => floor.rooms.find((room) => room.id === 'lift')?.rect)
+      if (lifts.some((room) => !room))
+        add('LIFT_MISSING', 'error', 'vertical', 'The requested future lift shaft is missing on a floor.')
+      else if (lifts.some((room) => room && lifts[0] &&
+        (room.x !== lifts[0].x || room.y !== lifts[0].y || room.w !== lifts[0].w || room.h !== lifts[0].h)))
+        add('LIFT_MISALIGNED', 'error', 'vertical', 'Future lift shafts do not line up across floors.')
     }
   }
 
@@ -350,7 +397,9 @@ function indexRequirements(model: CanonicalModel): Map<string, SpaceReq> {
 
 /** decorative helper for the review screen's pre-flight bar */
 export function programmeCapacity(model: CanonicalModel): { level: number; name: string; demand: number; usable: number; pct: number }[] {
-  const usable = toSqm(model.envelope.width * model.envelope.depth) * 0.82
+  const groundIds = new Set(model.floors[0].spaces.map((space) => space.id))
+  const frontStrip = groundIds.has('parking') ? 5500 : groundIds.has('verandah') ? 2900 : 0
+  const usable = toSqm(model.envelope.width * Math.max(0, model.envelope.depth - frontStrip)) * 0.82
   return model.floors.map((f) => {
     const demand = f.spaces.filter((s) => !s.outdoor).reduce((a, s) => a + s.min, 0)
     return { level: f.level, name: f.name, demand, usable, pct: Math.round((demand / usable) * 100) }

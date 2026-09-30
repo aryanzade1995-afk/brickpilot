@@ -52,7 +52,7 @@ export type FloorProgram = {
 export type CanonicalModel = {
   seed: string
   brief: Brief
-  /** buildable envelope (plot minus setbacks) in millimetres */
+  /** buildable envelope in plan coordinates: the approach is drawn at the bottom */
   envelope: { width: number; depth: number }
   plot: { width: number; depth: number }
   setbacksMm: Record<Direction, number>
@@ -60,6 +60,16 @@ export type CanonicalModel = {
   entrySide: Direction
   floors: FloorProgram[]
   relationships: Relationship[]
+}
+
+/** Conditions that make even a minimum building footprint impossible. */
+export function briefSiteIssues(brief: Brief): string[] {
+  const usableWidth = brief.site.plotWidth - brief.site.setbacks.E - brief.site.setbacks.W
+  const usableDepth = brief.site.plotDepth - brief.site.setbacks.N - brief.site.setbacks.S
+  const issues: string[] = []
+  if (usableWidth < 6) issues.push(`The east–west buildable width is ${usableWidth.toFixed(1)} m; increase the plot width or reduce the east/west setbacks to leave at least 6 m.`)
+  if (usableDepth < 6) issues.push(`The north–south buildable depth is ${usableDepth.toFixed(1)} m; increase the plot depth or reduce the north/south setbacks to leave at least 6 m.`)
+  return issues
 }
 
 /**
@@ -86,6 +96,7 @@ const AREA: Record<string, [number, number, number]> = {
   study: [6, 10, 16],
   attachedBath: [2.8, 4, 6.5],
   sharedBath: [2.8, 4.5, 7],
+  lift: [2.6, 4, 7],
   balcony: [3, 6, 11],
   coveredParking: [13.5, 18, 26],
   coveredVerandah: [8, 12, 20],
@@ -135,23 +146,29 @@ export function compile(brief: Brief): CanonicalModel {
   const seed = `${hashSeed(brief)}-${brief.variation}`
   const grid = 100
 
-  const setbacksMm: Record<Direction, number> = {
-    N: Math.round(brief.site.setbacks.N * 1000),
-    E: Math.round(brief.site.setbacks.E * 1000),
-    S: Math.round(brief.site.setbacks.S * 1000),
-    W: Math.round(brief.site.setbacks.W * 1000),
+  const entrySide: Direction = brief.entry.primarySide === 'auto'
+    ? (brief.site.roadEdges.includes(brief.site.facing) ? brief.site.facing : brief.site.roadEdges[0])
+    : brief.entry.primarySide
+  const planToCompass: Record<Direction, Record<Direction, Direction>> = {
+    S: { N: 'N', E: 'E', S: 'S', W: 'W' },
+    N: { N: 'S', E: 'W', S: 'N', W: 'E' },
+    E: { N: 'W', E: 'N', S: 'E', W: 'S' },
+    W: { N: 'E', E: 'S', S: 'W', W: 'N' },
   }
+  const oriented = planToCompass[entrySide]
+  const setbacksMm = Object.fromEntries(
+    (['N', 'E', 'S', 'W'] as Direction[]).map((side) =>
+      [side, Math.round(brief.site.setbacks[oriented[side]] * 1000)]),
+  ) as Record<Direction, number>
+  const eastWestApproach = entrySide === 'E' || entrySide === 'W'
   const plot = {
-    width: Math.round(brief.site.plotWidth * 1000),
-    depth: Math.round(brief.site.plotDepth * 1000),
+    width: Math.round((eastWestApproach ? brief.site.plotDepth : brief.site.plotWidth) * 1000),
+    depth: Math.round((eastWestApproach ? brief.site.plotWidth : brief.site.plotDepth) * 1000),
   }
   const envelope = {
     width: plot.width - setbacksMm.E - setbacksMm.W,
     depth: plot.depth - setbacksMm.N - setbacksMm.S,
   }
-
-  const entrySide: Direction =
-    brief.entry.primarySide === 'auto' ? brief.site.roadEdges[0] : brief.entry.primarySide
 
   const storeys = brief.levels.storeys // additional floors above ground
   const hasUpper = storeys > 0
@@ -164,10 +181,12 @@ export function compile(brief: Brief): CanonicalModel {
 
   // --- distribute bedrooms across floors ---
   const totalBeds = brief.rooms.bedroomsWithBath + brief.rooms.bedroomsNoBath
-  const groundBeds = brief.spaces.stepFree && totalBeds > 0 ? 1 : 0
+  const groundBeds = !hasUpper ? totalBeds : brief.spaces.stepFree && totalBeds > 0 ? 1 : 0
   const upperBeds = totalBeds - groundBeds
   const upperFloors = Math.max(1, storeys)
   const bedsPerUpper = hasUpper ? Math.ceil(upperBeds / upperFloors) : 0
+  const groundSharedBaths = !hasUpper ? brief.rooms.sharedBaths : Math.min(1, brief.rooms.sharedBaths)
+  const upperSharedBaths = brief.rooms.sharedBaths - groundSharedBaths
 
   let bedNo = 0
   let bathNo = 0
@@ -224,7 +243,12 @@ export function compile(brief: Brief): CanonicalModel {
       addRel('foyer', 'stair', 'connected')
     }
 
-    if (groundBeds > 0) {
+    if (brief.levels.liftProvision) {
+      spaces.push(mk('lift', 'Future lift shaft', 'circulation', 'lift', { wantsWindow: false }))
+      addRel('foyer', 'lift', 'connected')
+    }
+
+    for (let i = 0; i < groundBeds; i++) {
       const b = nextBed()
       spaces.push(b)
       addRel('foyer', b.id, 'connected')
@@ -232,6 +256,24 @@ export function compile(brief: Brief): CanonicalModel {
       if (bath) {
         spaces.push(bath)
         addRel(b.id, bath.id, 'adjacent')
+      }
+    }
+
+    for (let i = 0; i < groundSharedBaths; i++) {
+      const id = `sharedBath${i + 1}`
+      spaces.push(mk(id, `Shared bath ${i + 1}`, 'service', 'sharedBath', { wet: true, wantsWindow: false }))
+      addRel('foyer', id, 'near')
+    }
+    if (brief.spaces.stepFree && groundBeds > 0 && brief.rooms.bedroomsWithBath === 0 && groundSharedBaths === 0) {
+      spaces.push(mk('accessibleBath', 'Ground-floor accessible bath', 'service', 'sharedBath',
+        { wet: true, wantsWindow: false }))
+      addRel('foyer', 'accessibleBath', 'near')
+    }
+    if (!hasUpper) {
+      for (let i = 0; i < brief.rooms.studies; i++) {
+        const id = `study${i + 1}`
+        spaces.push(mk(id, `Study / office ${i + 1}`, 'work', 'study'))
+        addRel('foyer', id, 'connected')
       }
     }
 
@@ -276,6 +318,10 @@ export function compile(brief: Brief): CanonicalModel {
     spaces.push(lobby)
     spaces.push(mk(`stair`, 'Main stair', 'circulation', 'stair', { wantsWindow: false }))
     addRel(`lobby${level}`, 'stair', 'connected')
+    if (brief.levels.liftProvision) {
+      spaces.push(mk('lift', 'Future lift shaft', 'circulation', 'lift', { wantsWindow: false }))
+      addRel(`lobby${level}`, 'lift', 'connected')
+    }
 
     if (level === 1) {
       const lounge = mk('familyLounge', 'Family lounge', 'social', 'familyLounge')
@@ -296,14 +342,18 @@ export function compile(brief: Brief): CanonicalModel {
     }
     bedsRemaining -= take
 
-    if (level === 1 && brief.rooms.sharedBaths > 0) {
-      spaces.push(
-        mk('sharedBath1', 'Shared bath', 'service', 'sharedBath', { wet: true, wantsWindow: false }),
-      )
+    for (let i = 0; i < upperSharedBaths; i++) {
+      if (1 + (i % storeys) !== level) continue
+      const n = groundSharedBaths + i + 1
+      const id = `sharedBath${n}`
+      spaces.push(mk(id, `Shared bath ${n}`, 'service', 'sharedBath', { wet: true, wantsWindow: false }))
+      addRel(`lobby${level}`, id, 'near')
     }
-    if (brief.rooms.studies > 0 && level === storeys) {
-      spaces.push(mk('study', 'Study / office', 'work', 'study'))
-      addRel(`lobby${level}`, 'study', 'connected')
+    for (let i = 0; i < brief.rooms.studies; i++) {
+      if (1 + (i % storeys) !== level) continue
+      const id = `study${i + 1}`
+      spaces.push(mk(id, `Study / office ${i + 1}`, 'work', 'study'))
+      addRel(`lobby${level}`, id, 'connected')
     }
     if (brief.rooms.balcony) {
       spaces.push(
@@ -314,7 +364,7 @@ export function compile(brief: Brief): CanonicalModel {
     floors.push({ level, name: ordinalFloor(level), spaces })
   }
 
-  // --- "Large villa": inflate the habitable programme so the treemap lays out
+  // --- "Large villa": inflate the habitable programme so the planner lays out
   // genuinely generous rooms. Wet / service rooms stay near normal (a bigger
   // bathroom is wasted); circulation grows modestly to keep proportions. ---
   if (large) {

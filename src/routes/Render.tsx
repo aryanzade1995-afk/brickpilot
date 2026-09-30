@@ -3,12 +3,15 @@ import { Camera, Clock, Eye, RefreshCw, Sparkles } from 'lucide-react'
 import { useStudio } from '@/state/studio.ts'
 import { useRender, REF_KEYS, REF_LABEL, type RefKey } from '@/state/render.ts'
 import { THEMES, VIEW_PROMPT } from '@/lib/model/themes.ts'
+import { PALETTE_MATERIALS } from '@/lib/engine/designDna.ts'
 import { FloorDrawing } from '@/lib/draw/FloorDrawing.tsx'
 import { MassingViewport, MASSING_CANVAS, type CaptureView } from '@/lib/render/CaptureCanvas.tsx'
 import { rasterizeSvg } from '@/lib/render/rasterizeSvg.ts'
 import { InteriorStudio } from '@/components/InteriorStudio.tsx'
 import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
+import { InvalidPlanNotice } from '@/components/InvalidPlanNotice.tsx'
 import { cx } from '@/lib/cx.ts'
+import { prepareInspiration } from '@/lib/render/prepareInspiration.ts'
 
 type Mode = 'building' | 'interior'
 
@@ -33,20 +36,31 @@ export function Render() {
     jobs,
     health,
     error,
+    inspiration,
     interiorRoomKey,
     probeHealth,
     setInteriorRoom,
+    setInspiration,
     beginCapture,
     setRef,
     captureFailed,
     runJobs,
     retry,
+    reset,
   } = useRender()
 
   const svgRef = useRef<SVGSVGElement>(null)
   const capBusy = useRef(false)
   const [view, setView] = useState<CaptureView>('orbit')
   const [mode, setMode] = useState<Mode>('building')
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const lastDesignId = useRef<string | null>(null)
+
+  useEffect(() => {
+    const id = result?.design.id ?? null
+    if (lastDesignId.current && id && lastDesignId.current !== id) reset()
+    lastDesignId.current = id
+  }, [result?.design.id, reset])
 
   useEffect(() => {
     probeHealth()
@@ -74,7 +88,7 @@ export function Render() {
   // when capture starts: drive the viewport through 3 locked poses, read the
   // canvas after each, then rasterize the marked interior plan.
   useEffect(() => {
-    if (phase !== 'capturing' || capBusy.current) return
+    if (phase !== 'capturing' || capBusy.current || !result?.report.hardChecksPass) return
     capBusy.current = true
     let alive = true
     const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
@@ -104,17 +118,29 @@ export function Render() {
     return () => {
       alive = false
     }
-  }, [phase, setRef, captureFailed])
+  }, [phase, setRef, captureFailed, result])
 
   if (!result) {
     return <div className="mx-auto max-w-[1400px] px-10 py-24 text-ink-dim">Preparing model…</div>
   }
+  if (!result.report.hardChecksPass) return <InvalidPlanNotice report={result.report} />
 
   const { design, model } = result
   const character = model.brief.style.character
   const [lvlStr, roomId] = (interiorRoomKey ?? '0:').split(':')
   const interiorFloor = design.floors[Number(lvlStr)] ?? design.floors[0]
-  const promptFor = (k: RefKey) => THEMES[character].renderPrompt + VIEW_PROMPT[k]
+  const promptFor = (k: RefKey) => [
+    VIEW_PROMPT[k],
+    `Architectural facts: ${design.floors.length} storeys, ${design.massingType} footprint, ${design.openingCounts.windows} windows, ${design.openingCounts.doors} doors.`,
+    `Design identity: ${design.dna.styleFamily} style, ${design.dna.facadeComposition} composition, ${design.dna.entranceDesign} entry, ${design.dna.featureElement} feature, ${design.dna.balconyDesign} balcony treatment, ${design.dna.roofDesign} roof treatment, ${design.dna.materialPalette} palette.`,
+    `Use this coordinated material palette on the existing surfaces: ${PALETTE_MATERIALS[design.dna.materialPalette]}.`,
+    `Landscape atmosphere: ${design.dna.landscapeMood.replaceAll('-', ' ')}. Apply this only to planting and site styling outside the building.`,
+    'The first image is the exact verified Three.js geometry. Preserve its building footprint, storey count, proportions, roof form, all door and window positions, balcony position, façade frames, pergola and major architectural volumes exactly. Do not invent or remove any opening, column, balcony, floor, frame or roof element.',
+    k !== 'interior' && inspiration
+      ? 'A second image follows the verified geometry image. Use the SECOND image for color, material mood, landscaping and lighting inspiration only. The FIRST image is the sole source for geometry, roof, floor count, openings, balconies and camera angle. Do not copy the second image building.'
+      : '',
+    'Improve only surface texture, material realism, glass reflections, landscaping, sky, lighting and photographic quality. Preserve the reference camera view.',
+  ].filter(Boolean).join(' ')
 
   const hasRefs = REF_KEYS.every((k) => refs[k])
   const needsCapture = !hasRefs || stale
@@ -182,6 +208,7 @@ export function Render() {
           {error && (
             <p className="mt-4 border-l-2 border-bad/60 bg-bad/5 px-4 py-2.5 text-sm text-ink-dim">{error}</p>
           )}
+          {uploadError && <p className="mt-4 text-sm text-bad">{uploadError}</p>}
 
           <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_340px]">
             {/* live massing — the reference source */}
@@ -236,6 +263,21 @@ export function Render() {
             <div className="label mb-2">Character</div>
             <div className="font-display text-lg">{THEMES[character].label}</div>
             <p className="mt-1 text-xs text-ink-dim">{THEMES[character].blurb}</p>
+          </div>
+          <div className="border border-line p-4">
+            <div className="label mb-2">Reference image inspiration</div>
+            <p className="mb-3 text-xs leading-relaxed text-ink-dim">Add an image for materials, color and atmosphere. Your generated model remains the geometry source.</p>
+            <input type="file" accept="image/png,image/jpeg,image/webp" className="block w-full text-xs text-ink-dim"
+              onChange={async (event) => {
+                const file = event.target.files?.[0]
+                if (!file) return
+                try { setInspiration(await prepareInspiration(file)); setUploadError(null) }
+                catch (e) { setUploadError((e as Error).message) }
+              }} />
+            {inspiration && <div className="mt-3 flex items-center gap-3">
+              <img src={inspiration} alt="Inspiration" className="h-16 w-20 object-cover" />
+              <button type="button" className="text-xs text-ink-dim underline" onClick={() => setInspiration(null)}>Remove image</button>
+            </div>}
           </div>
           <div className="border border-line p-4 text-xs text-ink-dim">
             <div className="label mb-2">Grounded to</div>

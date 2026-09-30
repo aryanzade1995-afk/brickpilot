@@ -1,11 +1,15 @@
 import type { Rect, Point } from '../geometry.ts'
 import type { CanonicalModel, Zone } from '../model/canonical.ts'
 import type { MassingType, RoofSpec } from './massing/types.ts'
+import type { DesignDNA } from './designDna.ts'
+import type { Beam, Column, PlanStructure, Shaft, SupportZone } from './planner/types.ts'
 
 export type { RoofSpec }
 
 export type PlacedRoom = {
   id: string
+  /** stable architectural id, e.g. GF_LIVING, FF_MASTER_BED */
+  semanticId: string
   name: string
   zone: Zone
   rect: Rect
@@ -20,9 +24,17 @@ export type Wall = {
   b: Point
   thickness: number
   kind: 'exterior' | 'interior' | 'parapet'
+  /** semantic id, e.g. GF_WALL_LIVING_CORRIDOR */
+  id?: string
+  /** room ids either side (null = outside) */
+  rooms?: [string, string | null]
+  /** on a structural grid line (carries beams / sits on columns) */
+  structural?: boolean
 }
 
 export type Opening = {
+  /** semantic id, e.g. GF_MAIN_DOOR, GF_LIVING_WINDOW_01 */
+  id?: string
   kind: 'door' | 'window' | 'entry'
   /** midpoint of the opening on the wall centreline */
   at: Point
@@ -45,6 +57,8 @@ export type StairRun = {
   /** polyline of tread nosings for the drawing */
   treads: Point[][]
   direction: 'up'
+  /** plan edge of `rect` where the first flight starts (the landing side of the spine) */
+  startSide?: 'N' | 'S' | 'E' | 'W'
 }
 
 export type FloorPlan = {
@@ -63,6 +77,12 @@ export type FloorPlan = {
   stair?: StairRun
   reachable: boolean
   unreachableRooms: string[]
+  /** GF, FF, SF, TF … */
+  prefix?: string
+  columns?: Column[]
+  beams?: Beam[]
+  shafts?: Shaft[]
+  supportZones?: SupportZone[]
 }
 
 export type Design = {
@@ -71,6 +91,7 @@ export type Design = {
   algorithm: string
   candidate: string
   massingType: MassingType
+  dna: DesignDNA
   model: CanonicalModel
   floors: FloorPlan[]
   /** gross built-up area, m² (enclosed footprint × floors) */
@@ -83,4 +104,6 @@ export type Design = {
   /** covered footprint / plot area */
   coverage: number
   openingCounts: { doors: number; windows: number }
+  /** structural concept shared by every floor (absent on legacy designs) */
+  structure?: PlanStructure
 }

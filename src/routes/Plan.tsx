@@ -7,6 +7,7 @@ import { ZONE_LABEL } from '@/lib/model/canonical.ts'
 import { formatINR, formatINRShort, formatRange } from '@/lib/format.ts'
 import { cx } from '@/lib/cx.ts'
 import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
+import { InvalidPlanNotice } from '@/components/InvalidPlanNotice.tsx'
 import type { Severity } from '@/lib/rules/index.ts'
 
 const SEV_COLOR: Record<Severity, string> = {
@@ -37,6 +38,7 @@ export function Plan() {
   if (!result || !floor) {
     return <div className="mx-auto max-w-[1400px] px-10 py-24 text-ink-dim">Generating…</div>
   }
+  if (!result.report.hardChecksPass) return <InvalidPlanNotice report={result.report} />
 
   const { design, report, cost, model } = result
 

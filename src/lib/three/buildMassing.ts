@@ -1,7 +1,10 @@
 import type { Design, FloorPlan, Opening } from '../engine/types.ts'
 import type { Rect } from '../geometry.ts'
+import { rectUnionEdges } from '../geometry.ts'
 import type { CanonicalModel } from '../model/canonical.ts'
 import { themeOf, type RailStyle, type ThemeDef } from '../model/themes.ts'
+import type { DesignDNA } from '../engine/designDna.ts'
+import { planFacade } from '../engine/facade/grammar.ts'
 
 /* ------------------------------------------------------------------ *
  *  buildMassing — an architect's white-card study model of the house.
@@ -65,6 +68,7 @@ export type MassBox = {
 }
 
 export type Massing = {
+  palette: DesignDNA['materialPalette']
   boxes: MassBox[]
   floors: { level: number; baseY: number }[]
   bounds: { w: number; d: number }
@@ -190,53 +194,42 @@ export function buildMassing(design: Design): Massing {
 
     // ---- classify openings onto facades once for the whole storey ----
     const oFull = floor.outline
-    const face: Record<Side, FaceOp[]> = { N: [], S: [], E: [], W: [] }
+    const boundary = rectUnionEdges(blocks, floor.courtyard)
+    const face: { side: Side; fixed: number; op: FaceOp }[] = []
     const interiorOps: Opening[] = []
-    const TOL = 450
+    const TOL = 2
     for (const op of floor.openings) {
       const band = op.kind === 'window' ? winBand : BAND[op.kind]
       const rec = { width: op.width, sill: band.sill, head: band.head }
-      let placed = false
-      if (op.orient === 'h') {
-        if (Math.abs(op.at.y - oFull.y) < TOL) {
-          face.N.push({ at: op.at.x, ...rec })
-          placed = true
-        } else if (Math.abs(op.at.y - (oFull.y + oFull.h)) < TOL) {
-          face.S.push({ at: op.at.x, ...rec })
-          placed = true
-        }
-      } else if (Math.abs(op.at.x - oFull.x) < TOL) {
-        face.W.push({ at: op.at.y, ...rec })
-        placed = true
-      } else if (Math.abs(op.at.x - (oFull.x + oFull.w)) < TOL) {
-        face.E.push({ at: op.at.y, ...rec })
-        placed = true
-      }
-      if (!placed) interiorOps.push(op)
+      const edge = boundary.find((e) => {
+        const horizontal = e.side === 'N' || e.side === 'S'
+        if ((op.orient === 'h') !== horizontal) return false
+        const fixed = horizontal ? e.a.y : e.a.x
+        const along = horizontal ? op.at.x : op.at.y
+        const lo = horizontal ? e.a.x : e.a.y
+        const hi = horizontal ? e.b.x : e.b.y
+        return Math.abs((horizontal ? op.at.y : op.at.x) - fixed) < TOL &&
+          along - op.width / 2 >= lo + 110 && along + op.width / 2 <= hi - 110
+      })
+      if (edge) face.push({ side: edge.side, fixed: edge.side === 'N' || edge.side === 'S' ? edge.a.y : edge.a.x, op: { at: op.orient === 'h' ? op.at.x : op.at.y, ...rec } })
+      else interiorOps.push(op)
     }
     const gm = T.windows.groupMm
     const cj = T.massing.chajjaMm
 
-    // openings that fall on a given block's edge (so a facade plane only gets
-    // the voids that actually pierce it)
-    const opsOnEdge = (b: Rect, side: Side): FaceOp[] => {
-      const src = face[side]
-      return src.filter((f) =>
-        side === 'N' || side === 'S'
-          ? Math.abs((side === 'N' ? b.y : b.y + b.h) - (side === 'N' ? oFull.y : oFull.y + oFull.h)) < TOL &&
-            f.at >= b.x - 60 &&
-            f.at <= b.x + b.w + 60
-          : Math.abs((side === 'W' ? b.x : b.x + b.w) - (side === 'W' ? oFull.x : oFull.x + oFull.w)) < TOL &&
-            f.at >= b.y - 60 &&
-            f.at <= b.y + b.h + 60,
-      )
-    }
+    // Wall faces follow the union perimeter, including courtyard recesses.
+    // Drawing every block edge would leave solid walls through joined volumes.
+    boundary.forEach((edge, index) => {
+      const horizontal = edge.side === 'N' || edge.side === 'S'
+      const fixed = horizontal ? edge.a.y : edge.a.x
+      const a0 = horizontal ? edge.a.x : edge.a.y
+      const a1 = horizontal ? edge.b.x : edge.b.y
+      const openings = face.filter((f) => f.side === edge.side && Math.abs(f.fixed - fixed) < TOL && f.op.at >= a0 && f.op.at <= a1).map((f) => f.op)
+      addWall(edge.side, a0, a1, fixed, baseY, wallTop, openings, L, gm, cj, design.dna.windowTreatment,
+        `w${L}-${index}`, push, wx, wz, m)
+    })
 
     blocks.forEach((o, bi) => {
-      const ox0 = o.x
-      const ox1 = o.x + o.w
-      const oy0 = o.y
-      const oy1 = o.y + o.h
       const midX = wx(o.x + o.w / 2)
       const midZ = wz(o.y + o.h / 2)
       const bid = `${L}b${bi}`
@@ -250,23 +243,13 @@ export function buildMassing(design: Design): Massing {
         [Math.max(m(o.w) - 2 * EXT_T, 0.4), SLAB_T, Math.max(m(o.h) - 2 * EXT_T, 0.4)],
       )
 
-      // ---- one segmented solid plane per facade ----
-      addWall('W', oy0, oy1, ox0, baseY, wallTop, opsOnEdge(o, 'W'), L, gm, cj, `w${bid}W`, push, wx, wz, m)
-      addWall('E', oy0, oy1, ox1, baseY, wallTop, opsOnEdge(o, 'E'), L, gm, cj, `w${bid}E`, push, wx, wz, m)
-      addWall('N', ox0 + HT_MM, ox1 - HT_MM, oy0, baseY, wallTop, opsOnEdge(o, 'N'), L, gm, cj, `w${bid}N`, push, wx, wz, m)
-      addWall('S', ox0 + HT_MM, ox1 - HT_MM, oy1, baseY, wallTop, opsOnEdge(o, 'S'), L, gm, cj, `w${bid}S`, push, wx, wz, m)
-
-      if (T.massing.stringCourseMm > 0 && L >= 1) {
+      if (T.massing.stringCourseMm > 0 && L >= 1 &&
+        ['horizontal-stack', 'layered-facade', 'stepped-composition'].includes(design.dna.facadeComposition)) {
         stringCourse(o, baseY, L, T.massing.stringCourseMm / 1000, push, wx, wz, m)
       }
-      if (T.accents.cladFacade) {
-        buildCladding(o, opsOnEdge(o, 'S'), baseY, wallTop, L, T.accents.cladWidthMm, push, wx, wz, m)
-      }
-      if (T.modern && L >= 1 && T.modern.cantileverMm > 0) {
+      if (T.modern && L >= 1 && T.modern.cantileverMm > 0 &&
+        ['floating-box', 'interlocking-volumes', 'split-volume'].includes(design.dna.facadeComposition)) {
         cantileverApron(o, baseY, L, T.modern.cantileverMm / 1000, push, wx, wz, m)
-      }
-      if (T.modern?.baffleScreen) {
-        baffleScreen(o, opsOnEdge(o, 'S'), baseY, wallTop, L, push, wx, wz, m)
       }
 
       // ---- roof: a pitched cap where the storey is the last over this block
@@ -310,7 +293,7 @@ export function buildMassing(design: Design): Massing {
     }
 
     // ---- outdoor rooms ----
-    const covers = floor.rooms.filter((r) => r.outdoor && !r.id.startsWith('balcony'))
+    const covers = floor.rooms.filter((r) => r.outdoor && r.id !== 'courtyard' && !r.id.startsWith('balcony'))
     for (const r of floor.rooms) {
       if (r.outdoor && r.id.startsWith('balcony'))
         buildBalcony(
@@ -318,7 +301,10 @@ export function buildMassing(design: Design): Massing {
           baseY,
           L,
           T.massing.balconyDepthMm / 1000,
-          T.accents.railStyle,
+          design.dna.balconyDesign === 'glass-floating' ? 'glass' :
+            design.dna.balconyDesign === 'metal-rail' || design.dna.balconyDesign === 'planter-balcony' ? 'bar' :
+              design.dna.balconyDesign === 'timber-screened' ? 'baluster' : T.accents.railStyle,
+          design.dna.balconyDesign,
           push,
           wx,
           wz,
@@ -349,22 +335,9 @@ export function buildMassing(design: Design): Massing {
       )
     }
 
-    // ---- entry threshold: a colonnaded verandah, a double-height glazed
-    // portal, or a simple portico — whichever the style calls for ----
-    if (L === 0) {
-      const entry = floor.openings.find((op) => op.kind === 'entry')
-      if (T.verandah) {
-        buildVerandah(oFull, entry, floor.courtyard ?? null, y0, H, T, push, wx, wz, m)
-      } else if (T.doubleHeightEntry && entry && topLevel >= 1) {
-        buildDoubleHeightEntry(entry, y0, H, push, wx, wz, m)
-      } else if (entry) {
-        buildPorch(entry, y0, H, push, wx, wz, m)
-      }
-    }
-
     // ---- stair — only the flights that actually go up to a floor above ----
     if (floor.stair && L < topLevel) {
-      for (const s of buildStair(floor.stair.rect, H)) {
+      for (const s of buildStair(floor.stair.rect, H, floor.stair.startSide)) {
         push(`stair-${L}-${s.tag}`, 'stair', L, [wx(s.x), baseY + s.y, wz(s.z)], s.size)
       }
     }
@@ -376,77 +349,33 @@ export function buildMassing(design: Design): Massing {
     }
   }
 
-  // ---- dark riven-stone feature pier framing the entrance ----
-  if (T.accents.featureColumn) {
-    const entry = floors[0].openings.find((op) => op.kind === 'entry')
-    if (entry) {
-      const w = 660
-      const gap = 260
-      // hard against the door, offset toward the building centre so the upper
-      // storeys sit behind it instead of leaving a lone stick at the corner
-      const toCentre = entry.at.x <= g.x + g.w / 2 ? 1 : -1
-      const px = clamp(
-        entry.at.x + toCentre * (entry.width / 2 + gap + w / 2),
-        g.x + 500,
-        g.x + g.w - 500,
-      )
-      // rise only through the storeys whose plan actually covers this x
-      let reached = 1
-      for (const f of floors) {
-        if (px >= f.outline.x - 60 && px <= f.outline.x + f.outline.w + 60) reached = f.level + 1
-        else break
-      }
-      const rise = clamp(reached, Math.min(2, floors.length), floors.length)
-      const pz = wz(g.y + g.h) + EXT_T / 2 + 0.07
-
-      if (T.modern?.featureTower) {
-        // a slender stair/feature tower rising ~1.9 m above the top roofline,
-        // its street face wrapped in vertical baffle fins
-        const tw = 1500 // mm
-        const td = 0.9 // m, depth
-        const top = y0 + floors.length * H + 1.9
-        const twx = wx(px)
-        push('feat-tower', 'feature', 0, [twx, top / 2, pz], [m(tw), top, td])
-        push('feat-tower-cap', 'roof', 0, [twx, top + 0.06, pz], [m(tw) + 0.28, 0.12, td + 0.28])
-        // vertical fins on the south (street) face
-        const finZ = pz + td / 2 + 0.08
-        const finBot = y0 + 1.6
-        const finH = top - finBot - 0.25
-        const fins = Math.max(5, Math.round(tw / 210))
-        for (let i = 0; i <= fins; i++) {
-          const fx = wx(px - tw / 2 + (tw * i) / fins)
-          push(`feat-tower-fin${i}`, 'screen', 0, [fx, finBot + finH / 2, finZ], [0.045, finH, 0.14])
-        }
-      } else {
-        const total = rise * H + 0.14
-        push('feat-pier', 'feature', 0, [wx(px), y0 + total / 2, pz], [m(w), total, 0.24])
-        push('feat-pier-cap', 'roof', 0, [wx(px), y0 + total + 0.05, pz], [m(w) + 0.1, 0.1, 0.32])
-      }
-    }
-  }
-
-  // ---- perforated timber jaali over the entrance ----
-  if (T.accents.jaali) {
-    const entry = floors[0].openings.find((op) => op.kind === 'entry')
-    if (entry) jaaliScreen(entry, g, floors, y0, H, push, wx, wz)
-  }
-
   // ---- roof services: stair mumty + water tank on the top terrace ----
-  if (T.landscape.roofServices) {
+  if (T.landscape.roofServices && ['flat', 'flat-parapet'].includes(floors[floors.length - 1].roof.kind)) {
     const tf = floors[floors.length - 1]
     roofServices(tf, y0 + tf.level * H + H, push, wx, wz, m)
   }
 
   // ---- a slatted pergola + planting over part of the top terrace ----
-  if (T.modern?.roofPergola) {
+  if (design.dna.roofDesign === 'pergola-terrace') {
     const tf = floors[floors.length - 1]
-    roofPergola(tf.outline, y0 + tf.level * H + H - SLAB_T, push, wx, wz, m)
+    if (tf.footprint.length === 1 && (tf.roof.kind === 'flat' || tf.roof.kind === 'flat-parapet')) {
+      const blocked = tf.rooms.filter((r) => r.id === 'stair' || r.id === 'lift').map((r) => r.rect)
+      if (T.landscape.roofServices) {
+        const services = roofServiceLayout(tf)
+        if (services.mumty) blocked.push(services.mumty)
+        blocked.push(services.tank)
+      }
+      roofPergola(tf.outline, blocked, tf.level, y0 + tf.level * H + H - SLAB_T, push, wx, wz, m)
+    }
   }
+
+  buildFacadeGrammar(design, floors, y0, H, push, wx, wz, m)
 
   buildLandscape(model, floors[0], T, push, wx, wz, m)
 
   const storeys = floors.length
   return {
+    palette: design.dna.materialPalette,
     boxes,
     floors: floors.map((f) => ({ level: f.level, baseY: y0 + f.level * H })),
     bounds: { w: plotW / 1000, d: plotD / 1000 },
@@ -463,6 +392,25 @@ export function buildMassing(design: Design): Massing {
   }
 }
 
+/** Seeded details attach to plan walls and openings, never inventing a new void. */
+function buildFacadeGrammar(
+  design: Design, floors: FloorPlan[], y0: number, H: number,
+  push: Push, wx: XF, wz: XF, m: XF,
+) {
+  void floors
+  for (const f of planFacade(design).features) {
+    const level = Number(f.hostFloorId === 'GF' ? 0 : f.hostFloorId === 'FF' ? 1 : f.hostFloorId === 'SF' ? 2 : 3)
+    const outward = f.orient === 'h' ? [0, 1] : [1, 0]
+    const x = wx(f.at.x) + outward[0] * (EXT_T / 2 + m(f.depth) / 2)
+    const z = wz(f.at.y) + outward[1] * (EXT_T / 2 + m(f.depth) / 2)
+    const kind: MassKind = f.type === 'screen-fin' ? 'screen' : f.type === 'horizontal-band' ? 'band' :
+      f.type === 'planter-band' ? 'planter' : f.type === 'canopy' ? 'canopy' : 'feature'
+    push(f.id, kind, level,
+      [x, y0 + level * H + m(f.bottom + f.height / 2), z],
+      f.orient === 'h' ? [m(f.width), m(f.height), m(f.depth)] : [m(f.depth), m(f.height), m(f.width)])
+  }
+}
+
 /* ------------------------------ facade segmentation ------------------------------ */
 
 function addWall(
@@ -476,6 +424,7 @@ function addWall(
   level: number,
   groupMm: number,
   chajjaMm: number,
+  windowTreatment: DesignDNA['windowTreatment'],
   tag: string,
   push: Push,
   wx: XF,
@@ -509,24 +458,12 @@ function addWall(
 
   let cursor = a0
   clean.forEach((o, i) => {
-    // keep the opening exactly where the plan grid put it (so stacked storeys
-    // line up); shrink it symmetrically if it grazes the wall end, and skip it
-    // if it can't fit or overlaps the previous pier
-    let s = o.s
-    let e = o.e
-    const lo = a0 + 110
-    const hi = a1 - 110
-    if (s < lo) {
-      const d = lo - s
-      s += d
-      e -= d
-    }
-    if (e > hi) {
-      const d = e - hi
-      e -= d
-      s += d
-    }
-    if (e - s < 400 || s < cursor + 80) return
+    // The plan is authoritative: refuse an impossible opening rather than
+    // silently shrinking or moving it in the 3D wall.
+    const s = o.s
+    const e = o.e
+    if (e - s < 400 || s < a0 + 110 || e > a1 - 110 || s < cursor + 80)
+      throw new Error(`${tag}: plan opening cannot fit its exterior wall unchanged`)
     const sillY = baseY + o.sill
     const headY = Math.min(baseY + o.head, wallTop - 0.08)
     solid(cursor, s, baseY, wallTop, `p${i}`) // pier
@@ -579,9 +516,29 @@ function addWall(
           along(c - Math.round(fr * 500), c + Math.round(fr * 500), sillY, headY, true, `m${k}`)
         }
 
+        // Treat the verified window opening in place. Surround members sit
+        // outside its clear glass bounds, so every DNA variant keeps the same
+        // width, sill and head as the plan.
+        if (windowTreatment !== 'flush-frame' && windowTreatment !== 'sunshade') {
+          const border = windowTreatment === 'projecting-frame' ? 0.16 :
+            windowTreatment === 'deep-reveal' ? 0.13 : 0.11
+          const depth = windowTreatment === 'projecting-frame' ? 0.3 : 0.18
+          const off = outward * (EXT_T / 2 + depth / 2)
+          const surroundKind: MassKind = windowTreatment === 'stone-surround' ? 'feature' : 'clad'
+          const surround = (sub: string, alongMid: number, yMid: number, alongSize: number, height: number) => {
+            push(`${tag}-sur${i}${sub}`, surroundKind, level,
+              horizontal ? [wx(alongMid), yMid, wz(fixed) + off] : [wx(fixed) + off, yMid, wz(alongMid)],
+              horizontal ? [alongSize, height, depth] : [depth, height, alongSize])
+          }
+          surround('l', s - border * 500, (sillY + headY) / 2, border, headY - sillY + border * 2)
+          surround('r', e + border * 500, (sillY + headY) / 2, border, headY - sillY + border * 2)
+          surround('t', (s + e) / 2, headY + border / 2, m(e - s) + border * 2, border)
+          surround('b', (s + e) / 2, sillY - border / 2, m(e - s) + border * 2, border)
+        }
+
         // ---- cantilevered chajja (weather-hood) over the window ----
-        if (chajjaMm > 200 && headY + 0.2 < wallTop) {
-          const proj = chajjaMm / 1000
+        if ((chajjaMm > 200 || windowTreatment === 'sunshade') && headY + 0.2 < wallTop) {
+          const proj = windowTreatment === 'sunshade' ? Math.max(chajjaMm, 450) / 1000 : chajjaMm / 1000
           const cw = m(e - s) + 0.34
           const cyc = headY + 0.055
           const off = outward * (EXT_T / 2 + proj / 2)
@@ -845,46 +802,6 @@ function buildPitchedRoof(
   )
 }
 
-/** a vertical timber-batten cladding panel on the entry (plan-south) facade,
- *  framed in a slim white L, positioned clear of the door and windows */
-function buildCladding(
-  o: Rect,
-  southOps: FaceOp[],
-  baseY: number,
-  wallTop: number,
-  L: number,
-  widthMm: number,
-  push: Push,
-  wx: XF,
-  wz: XF,
-  m: XF,
-) {
-  const a0 = o.x + HT_MM
-  const a1 = o.x + o.w - HT_MM
-  if (a1 - a0 < widthMm + 800) return
-  // widest clear stretch on the south face, away from any opening
-  const blocked = southOps
-    .map((op) => ({ s: op.at - op.width / 2 - 400, e: op.at + op.width / 2 + 400 }))
-    .sort((p, q) => p.s - q.s)
-  let best = { s: a0, e: a0, len: 0 }
-  let cur = a0
-  for (const b of [...blocked, { s: a1, e: a1 }]) {
-    if (b.s - cur > best.len) best = { s: cur, e: b.s, len: b.s - cur }
-    cur = Math.max(cur, b.e)
-  }
-  if (best.len < widthMm) return
-  const cw = Math.min(widthMm, best.len - 200)
-  const cx = best.s + (best.len - cw) / 2 + cw / 2
-  const z = wz(o.y + o.h) + EXT_T / 2 + 0.02
-  const h = wallTop - baseY - 0.12
-  push(`clad-${L}`, 'clad', L, [wx(cx), baseY + 0.06 + h / 2, z], [m(cw), h, 0.05])
-  // slim white frame: top rail + two jambs
-  const ft = 0.12
-  push(`cladf-${L}-t`, 'roof', L, [wx(cx), baseY + 0.06 + h + ft / 2, z + 0.01], [m(cw) + 2 * ft, ft, 0.09])
-  push(`cladf-${L}-l`, 'roof', L, [wx(cx - cw / 2) - ft / 2, baseY + 0.06 + h / 2, z + 0.01], [ft, h, 0.09])
-  push(`cladf-${L}-r`, 'roof', L, [wx(cx + cw / 2) + ft / 2, baseY + 0.06 + h / 2, z + 0.01], [ft, h, 0.09])
-}
-
 /* ---------------------- contemporary-villa moves (modernist) ---------------------- */
 
 /** an upper storey cantilevering over the recessed ground floor on the street
@@ -909,50 +826,28 @@ function cantileverApron(
   push(`cant-skirt-${L}`, 'band', L, [cxw, baseY - 0.42, southZ + projM - 0.06], [w, 0.78, 0.12])
 }
 
-/** vertical brise-soleil fins over the widest glazed opening on the street
- *  (plan-south) facade of a storey. */
-function baffleScreen(
-  o: Rect,
-  southOps: FaceOp[],
-  baseY: number,
-  wallTop: number,
-  L: number,
-  push: Push,
-  wx: XF,
-  wz: XF,
-  m: XF,
-) {
-  const w0 = southOps.filter((op) => op.head - op.sill > 1.2).sort((a, b) => b.width - a.width)[0]
-  if (!w0 || w0.width < 900) return
-  const sMm = w0.at - w0.width / 2 - 150
-  const spanMm = w0.width + 300
-  const z = wz(o.y + o.h) + EXT_T / 2 + 0.15
-  const yb = baseY + Math.max(0.1, w0.sill - 0.25)
-  const yt = Math.min(wallTop - 0.12, baseY + w0.head + 0.35)
-  const h = yt - yb
-  if (h < 1) return
-  const n = Math.max(4, Math.round(spanMm / 260))
-  for (let i = 0; i <= n; i++) {
-    push(`baf-${L}-${i}`, 'screen', L, [wx(sMm + (spanMm * i) / n), yb + h / 2, z], [0.04, h, 0.16])
-  }
-  push(`baf-${L}-t`, 'screen', L, [wx(sMm + spanMm / 2), yt, z], [m(spanMm) + 0.08, 0.05, 0.16])
-  push(`baf-${L}-b`, 'screen', L, [wx(sMm + spanMm / 2), yb, z], [m(spanMm) + 0.08, 0.05, 0.16])
-}
-
 /** a slatted pergola + a planter run over part of the top terrace */
-function roofPergola(o: Rect, deckY: number, push: Push, wx: XF, wz: XF, m: XF) {
+function roofPergola(o: Rect, blocked: Rect[], level: number, deckY: number, push: Push, wx: XF, wz: XF, m: XF) {
   const pw = Math.min(o.w * 0.55, 4400)
   const pd = Math.min(o.h * 0.45, 3800)
   if (pw < 2200 || pd < 1900) return
-  const px = o.x + 400
-  const pz0 = o.y + o.h - pd - 350 // drawn toward the street edge
+  const candidates: [number, number][] = [
+    [o.x + 400, o.y + o.h - pd - 350],
+    [o.x + o.w - pw - 400, o.y + o.h - pd - 350],
+    [o.x + 400, o.y + 350],
+    [o.x + o.w - pw - 400, o.y + 350],
+  ]
+  const safe = candidates.find(([x, z]) => blocked.every((r) =>
+    x + pw + 300 <= r.x || x - 300 >= r.x + r.w || z + pd + 300 <= r.y || z - 300 >= r.y + r.h))
+  if (!safe) return
+  const [px, pz0] = safe
   const top = deckY + 2.4
   for (const z of [pz0, pz0 + pd]) {
-    push(`perg-b${Math.round(z)}`, 'shade', 0, [wx(px + pw / 2), top, wz(z)], [m(pw) + 0.2, 0.12, 0.1])
+    push(`perg-b${Math.round(z)}`, 'shade', level, [wx(px + pw / 2), top, wz(z)], [m(pw) + 0.2, 0.12, 0.1])
   }
   const n = Math.max(5, Math.round(pw / 430))
   for (let i = 0; i <= n; i++) {
-    push(`perg-s${i}`, 'shade', 0, [wx(px + (pw * i) / n), top + 0.03, wz(pz0 + pd / 2)], [0.09, 0.07, m(pd) + 0.16])
+    push(`perg-s${i}`, 'shade', level, [wx(px + (pw * i) / n), top + 0.03, wz(pz0 + pd / 2)], [0.09, 0.07, m(pd) + 0.16])
   }
   for (const [cx, cz] of [
     [px, pz0],
@@ -960,9 +855,9 @@ function roofPergola(o: Rect, deckY: number, push: Push, wx: XF, wz: XF, m: XF) 
     [px, pz0 + pd],
     [px + pw, pz0 + pd],
   ] as const) {
-    push(`perg-p${Math.round(cx)}-${Math.round(cz)}`, 'railing', 0, [wx(cx), deckY + 1.2, wz(cz)], [0.09, 2.4, 0.09])
+    push(`perg-p${Math.round(cx)}-${Math.round(cz)}`, 'railing', level, [wx(cx), deckY + 1.2, wz(cz)], [0.09, 2.4, 0.09])
   }
-  push('perg-plnt', 'planter', 0, [wx(px + pw / 2), deckY + 0.22, wz(pz0 - 250)], [m(pw), 0.44, 0.7])
+  push('perg-plnt', 'planter', level, [wx(px + pw / 2), deckY + 0.22, wz(pz0 + 450)], [m(pw - 200), 0.44, 0.7])
 }
 
 function buildTerrace(
@@ -1093,6 +988,7 @@ function buildBalcony(
   L: number,
   depthM: number,
   rail: RailStyle,
+  treatment: DesignDNA['balconyDesign'],
   push: Push,
   wx: XF,
   wz: XF,
@@ -1116,6 +1012,15 @@ function buildBalcony(
     { from: [wx(bW), y, wz(rect.y - 100)], to: [wx(bW), y, wz(bS)] }, // west return
     { from: [wx(bE), y, wz(rect.y - 100)], to: [wx(bE), y, wz(bS)] }, // east return
   ]
+  if (treatment === 'solid-parapet') {
+    push(`balc-solid-front-${L}`, 'parapet', L,
+      [cxw, y + rh / 2, wz(bS)], [m(bE - bW), rh, 0.12])
+    push(`balc-solid-left-${L}`, 'parapet', L,
+      [wx(bW), y + rh / 2, wz((bN + bS) / 2)], [0.12, rh, m(bS - bN)])
+    push(`balc-solid-right-${L}`, 'parapet', L,
+      [wx(bE), y + rh / 2, wz((bN + bS) / 2)], [0.12, rh, m(bS - bN)])
+    return
+  }
   edges.forEach((e, ei) => {
     const horiz = Math.abs(e.to[0] - e.from[0]) >= Math.abs(e.to[2] - e.from[2])
     const len = horiz ? Math.abs(e.to[0] - e.from[0]) : Math.abs(e.to[2] - e.from[2])
@@ -1157,147 +1062,17 @@ function buildBalcony(
       }
     }
   })
+  if (treatment === 'planter-balcony')
+    push(`balc-planter-${L}`, 'planter', L,
+      [cxw, y + 0.28, wz(bS + 180)], [Math.min(m(bE - bW) - 0.3, 3.2), 0.45, 0.32])
 }
 
-/** flat-roof entry portico — two columns, a downstand beam, tiered steps */
-function buildPorch(entry: Opening, y0: number, H: number, push: Push, wx: XF, wz: XF, m: XF) {
-  if (entry.orient !== 'h') return // only the plan-south entry gets the porch
-  const cx = entry.at.x
-  const zFace = entry.at.y
-  const w = m(entry.width) + 1.9 // canopy width, metres
-  const projMm = 2450 // how far the portico reaches out from the facade
-  const topY = y0 + Math.min(BAND.entry.head + 0.55, H - 0.12)
-
-  // two-tier threshold steps
-  push('estep0', 'plinth', 0, [wx(cx), y0 - 0.02, wz(zFace + 520)], [w * 0.6, 0.16, 1.0])
-  push('estep1', 'plinth', 0, [wx(cx), y0 - 0.12, wz(zFace + 940)], [w * 0.72, 0.16, 0.58])
-
-  // thin flat canopy slab + a slim downstand edge beam + crisp outer lip
-  push('eporch', 'canopy', 0, [wx(cx), topY - 0.08, wz(zFace + projMm / 2)], [w, 0.16, m(projMm)])
-  push('eporch-beam', 'canopy', 0, [wx(cx), topY - 0.2, wz(zFace + projMm - 130)], [w, 0.18, 0.16])
-  push('eporch-lip', 'roof', 0, [wx(cx), topY + 0.01, wz(zFace + projMm)], [w + 0.08, 0.12, 0.09])
-
-  // two square columns at the outer corners — from the ground, on a base pad
-  const colH = topY - 0.22
-  const half = entry.width / 2 + 520
-  const colZ = zFace + projMm - 320
-  for (const s of [-1, 1] as const) {
-    const px = cx + s * half
-    push(`eporch-col${s < 0 ? 'l' : 'r'}`, 'column', 0, [wx(px), colH / 2, wz(colZ)], [0.26, colH, 0.26])
-    push(`eporch-colbase${s < 0 ? 'l' : 'r'}`, 'plinth', 0, [wx(px), 0.07, wz(colZ)], [0.44, 0.14, 0.44])
-  }
-}
-
-/**
- * A covered verandah / sit-out on a colonnade along the entry (plan-south)
- * facade of the ground floor — the recognisably-Indian shaded threshold. Skips
- * the bay over the entry door. `wrapCourt` extends a matching run along the
- * courtyard's near edge.
- */
-function buildVerandah(
-  g: Rect,
-  entry: Opening | undefined,
-  court: Rect | null,
-  y0: number,
-  H: number,
-  T: ThemeDef,
-  push: Push,
-  wx: XF,
-  wz: XF,
-  m: XF,
-) {
-  const v = T.verandah
-  if (!v) return
-  const col = T.columns ?? { style: 'square' as const, sizeMm: 300 }
-  const depth = Math.max(v.depthMm, 1500) / 1000
-  const headY = y0 + Math.min(BAND.entry.head + 0.35, H - 0.2)
-  const beamT = 0.22
-  const colH = headY - beamT
-
-  const colGeo = (px: number, pz: number, tag: string) => {
-    const s = col.sizeMm / 1000
-    if (col.style === 'round') {
-      // an octagon-ish stack of thin boxes reads round enough at this scale
-      push(`${tag}a`, 'column', 0, [wx(px), colH / 2, wz(pz)], [s, colH, s])
-      push(`${tag}b`, 'column', 0, [wx(px), colH / 2, wz(pz)], [s * 0.72, colH, s * 1.18])
-      push(`${tag}c`, 'column', 0, [wx(px), colH / 2, wz(pz)], [s * 1.18, colH, s * 0.72])
-    } else if (col.style === 'tapered') {
-      push(`${tag}base`, 'column', 0, [wx(px), colH * 0.12, wz(pz)], [s * 1.25, colH * 0.24, s * 1.25])
-      push(`${tag}sh`, 'column', 0, [wx(px), colH * 0.56, wz(pz)], [s, colH * 0.64, s])
-      push(`${tag}cap`, 'column', 0, [wx(px), colH - colH * 0.06, wz(pz)], [s * 1.3, colH * 0.12, s * 1.3])
-    } else {
-      push(`${tag}`, 'column', 0, [wx(px), colH / 2, wz(pz)], [s, colH, s])
-    }
-    push(`${tag}pad`, 'plinth', 0, [wx(px), 0.06, wz(pz)], [s * 1.5, 0.12, s * 1.5])
-  }
-
-  const run = (a: number, b: number, faceZ: number, dir: 1 | -1, key: string) => {
-    const span = b - a
-    if (span < 3200) return
-    const zEdge = faceZ + dir * depth * 1000
-    const cxw = wx((a + b) / 2)
-    // deck at grade + flat canopy slab + edge beam
-    push(`${key}-deck`, 'paving', 0, [cxw, y0 - 0.06, wz((faceZ + zEdge) / 2)], [m(span), 0.12, depth])
-    push(`${key}-slab`, 'canopy', 0, [cxw, headY - 0.08, wz((faceZ + zEdge) / 2)], [m(span) + 0.2, 0.16, depth + 0.1])
-    push(`${key}-beam`, 'canopy', 0, [cxw, headY - 0.24, wz(zEdge)], [m(span) + 0.2, beamT, 0.16])
-    // columns, skipping the entry bay
-    const n = Math.max(2, Math.round(span / 2900))
-    const doorX = entry && entry.orient === 'h' ? entry.at.x : null
-    for (let i = 0; i <= n; i++) {
-      const px = a + (span * i) / n
-      if (doorX != null && Math.abs(px - doorX) < entry!.width / 2 + 700) continue
-      colGeo(px, zEdge - dir * (col.sizeMm / 2), `${key}-c${i}`)
-    }
-  }
-
-  run(g.x + 300, g.x + g.w - 300, g.y + g.h, 1, 'ver-s')
-  if (v.wrapCourt && court) {
-    run(court.x + 200, court.x + court.w - 200, court.y + court.h, 1, 'ver-ct')
-  }
-}
-
-/**
- * A two-storey glazed portal at the entrance: two feature piers rising through
- * the first floor, a tall recessed glass plane between them and a flat lintel
- * across the top. Reads as a double-height entry without voiding the slab.
- */
-function buildDoubleHeightEntry(entry: Opening, y0: number, H: number, push: Push, wx: XF, wz: XF, m: XF) {
-  if (entry.orient !== 'h') return
-  const cx = entry.at.x
-  const zFace = entry.at.y
-  const portalW = m(entry.width) + 2.6
-  const top = y0 + 2 * H - 0.15
-  const pierW = 0.34
-  const proj = 0.9 // how far the portal steps forward of the facade
-
-  // threshold step
-  push('dh-step', 'plinth', 0, [wx(cx), y0 - 0.05, wz(zFace + 420)], [portalW * 0.7, 0.16, 0.9])
-
-  // two full-height piers
-  for (const s of [-1, 1] as const) {
-    const px = cx + s * (portalW / 2 - pierW / 2)
-    push(`dh-pier${s < 0 ? 'l' : 'r'}`, 'feature', 0, [wx(px), top / 2, wz(zFace + proj / 2)], [pierW, top, proj + 0.3])
-  }
-  // recessed tall glass between the piers
-  const gW = portalW - 2 * pierW - 0.1
-  push('dh-glass', 'glass', 0, [wx(cx), y0 + (top - y0) / 2 + 0.1, wz(zFace + 0.16)], [gW, top - y0 - 0.4, 0.08])
-  // slim mullions
-  const mull = Math.max(1, Math.round(gW / 1.3))
-  for (let i = 1; i < mull; i++) {
-    push(`dh-mull${i}`, 'clad', 0, [wx(cx - gW / 2 + (gW * i) / mull), y0 + (top - y0) / 2 + 0.1, wz(zFace + 0.2)], [0.05, top - y0 - 0.5, 0.06])
-  }
-  // lintel beam + a slim projecting hood
-  push('dh-lintel', 'feature', 0, [wx(cx), top + 0.12, wz(zFace + proj / 2)], [portalW, 0.36, proj + 0.3])
-  push('dh-hood', 'roof', 0, [wx(cx), top + 0.02, wz(zFace + proj + 0.35)], [portalW + 0.2, 0.14, 0.7])
-}
-
-/** a stair mumty + a water tank on a stand, on the top terrace */
-function roofServices(tf: FloorPlan, deckY: number, push: Push, wx: XF, wz: XF, m: XF) {
+/** A stair headroom enclosure and water tank only on a usable flat terrace. */
+function roofServiceLayout(tf: FloorPlan): { mumty: Rect | null; tank: Rect } {
   const o = tf.outline
-
-  // --- stair mumty: a small enclosed box giving terrace access ---
   const mw = Math.min(2200, o.w - 1100)
   const md = Math.min(2500, o.h - 1100)
+  let mumty: Rect | null = null
   if (mw > 1400 && md > 1400) {
     const st = tf.stair?.rect
     const mx = st
@@ -1306,62 +1081,44 @@ function roofServices(tf: FloorPlan, deckY: number, push: Push, wx: XF, wz: XF, 
     const mz = st
       ? clamp(st.y + st.h / 2, o.y + md / 2 + 300, o.y + o.h - md / 2 - 300)
       : o.y + md / 2 + 600
-    const mh = 2.35
-    const wt = 0.12
-    push('mumty-n', 'mumty', 0, [wx(mx), deckY + mh / 2, wz(mz - md / 2)], [m(mw), mh, wt])
-    push('mumty-s', 'mumty', 0, [wx(mx), deckY + mh / 2, wz(mz + md / 2)], [m(mw), mh, wt])
-    push('mumty-w', 'mumty', 0, [wx(mx - mw / 2), deckY + mh / 2, wz(mz)], [wt, mh, m(md)])
-    push('mumty-e', 'mumty', 0, [wx(mx + mw / 2), deckY + mh / 2, wz(mz)], [wt, mh, m(md)])
-    // a dark opening on the terrace-facing (south) side
-    push('mumty-door', 'glass', 0, [wx(mx), deckY + 1.05, wz(mz + md / 2)], [Math.min(m(mw) - 0.6, 1.1), 2.0, 0.09])
-    // flat cap + slim projecting lip
-    push('mumty-roof', 'roof', 0, [wx(mx), deckY + mh + 0.06, wz(mz)], [m(mw) + 0.34, 0.12, m(md) + 0.34])
-    push('mumty-lip', 'roof', 0, [wx(mx), deckY + mh + 0.16, wz(mz)], [m(mw) + 0.48, 0.06, m(md) + 0.48])
+    mumty = { x: mx - mw / 2, y: mz - md / 2, w: mw, h: md }
   }
-
-  // --- square water tank on a slim frame, tucked to a rear corner ---
   const near = o.x + o.w - 720
   const nz = o.y + 720
+  return { mumty, tank: { x: near - 550, y: nz - 550, w: 1100, h: 1100 } }
+}
+
+function roofServices(tf: FloorPlan, deckY: number, push: Push, wx: XF, wz: XF, m: XF) {
+  const { mumty, tank } = roofServiceLayout(tf)
+  if (mumty) {
+    const mw = mumty.w
+    const md = mumty.h
+    const mx = mumty.x + mw / 2
+    const mz = mumty.y + md / 2
+    const mh = 2.35
+    const wt = 0.12
+    push('mumty-n', 'mumty', tf.level, [wx(mx), deckY + mh / 2, wz(mz - md / 2)], [m(mw), mh, wt])
+    push('mumty-s', 'mumty', tf.level, [wx(mx), deckY + mh / 2, wz(mz + md / 2)], [m(mw), mh, wt])
+    push('mumty-w', 'mumty', tf.level, [wx(mx - mw / 2), deckY + mh / 2, wz(mz)], [wt, mh, m(md)])
+    push('mumty-e', 'mumty', tf.level, [wx(mx + mw / 2), deckY + mh / 2, wz(mz)], [wt, mh, m(md)])
+    push('mumty-roof', 'roof', tf.level, [wx(mx), deckY + mh + 0.06, wz(mz)], [m(mw) + 0.34, 0.12, m(md) + 0.34])
+    push('mumty-lip', 'roof', tf.level, [wx(mx), deckY + mh + 0.16, wz(mz)], [m(mw) + 0.48, 0.06, m(md) + 0.48])
+  }
+
+  const near = tank.x + tank.w / 2
+  const nz = tank.y + tank.h / 2
   const legH = 0.85
   const tk = 0.9
   const th = 0.95
   const legs: [number, number][] = [
-    [near - tk / 2 + 0.08, nz - tk / 2 + 0.08],
-    [near + tk / 2 - 0.08, nz - tk / 2 + 0.08],
-    [near - tk / 2 + 0.08, nz + tk / 2 - 0.08],
-    [near + tk / 2 - 0.08, nz + tk / 2 - 0.08],
+    [near - 370, nz - 370], [near + 370, nz - 370],
+    [near - 370, nz + 370], [near + 370, nz + 370],
   ]
   legs.forEach(([lx, lz], i) => {
-    push(`tank-leg${i}`, 'railing', 0, [wx(lx), deckY + legH / 2, wz(lz)], [0.07, legH, 0.07])
+    push(`tank-leg${i}`, 'railing', tf.level, [wx(lx), deckY + legH / 2, wz(lz)], [0.07, legH, 0.07])
   })
-  push('tank-frame', 'railing', 0, [wx(near), deckY + legH, wz(nz)], [tk + 0.12, 0.05, tk + 0.12])
-  push('tank', 'tank', 0, [wx(near), deckY + legH + th / 2, wz(nz)], [tk, th, tk])
-}
-
-/** a perforated timber jaali rising over the entrance (stairwell light) */
-function jaaliScreen(entry: Opening, g: Rect, floors: FloorPlan[], y0: number, H: number, push: Push, wx: XF, wz: XF) {
-  if (entry.orient !== 'h') return
-  const storeys = Math.min(2, floors.length)
-  const yb = y0 + 3.0
-  const yt = y0 + storeys * H - 0.35
-  const h = yt - yb
-  if (h < 1.2) return
-  const w = 1.5
-  const cx = clamp(entry.at.x, g.x + w / 2 + 300, g.x + g.w - w / 2 - 300)
-  const z = wz(g.y + g.h) + EXT_T / 2 + 0.05
-  const bar = 0.045
-  push('jaali-t', 'screen', 0, [wx(cx), yt - bar, z], [w + 0.16, bar * 1.7, 0.11])
-  push('jaali-b', 'screen', 0, [wx(cx), yb + bar, z], [w + 0.16, bar * 1.7, 0.11])
-  push('jaali-l', 'screen', 0, [wx(cx - w / 2), yb + h / 2, z], [bar * 1.7, h, 0.11])
-  push('jaali-r', 'screen', 0, [wx(cx + w / 2), yb + h / 2, z], [bar * 1.7, h, 0.11])
-  const cols = Math.max(4, Math.round(w / 0.2))
-  for (let i = 1; i < cols; i++) {
-    push(`jaali-v${i}`, 'screen', 0, [wx(cx - w / 2 + (w * i) / cols), yb + h / 2, z], [bar, h, 0.08])
-  }
-  const rows = Math.max(4, Math.round(h / 0.24))
-  for (let i = 1; i < rows; i++) {
-    push(`jaali-h${i}`, 'screen', 0, [wx(cx), yb + (h * i) / rows, z], [w, bar, 0.08])
-  }
+  push('tank-frame', 'railing', tf.level, [wx(near), deckY + legH, wz(nz)], [tk + 0.12, 0.05, tk + 0.12])
+  push('tank', 'tank', tf.level, [wx(near), deckY + legH + th / 2, wz(nz)], [tk, th, tk])
 }
 
 /* --------------------------------- site / garden -------------------------------- */
@@ -1526,56 +1283,48 @@ function buildTerraceGarden(
 
 /** dog-leg stair: two flights of SOLID steps + a mid landing + a spine wall.
  *  x/z in plan-millimetres; y and size in metres, y relative to the storey base. */
-function buildStair(rect: Rect, H: number) {
+/**
+ * A dog-leg stair in its core rect. `startSide` is the edge the first flight
+ * leaves from (the landing on the spine); flights run away from it, turn at a
+ * landing against the far wall and climb back — the same geometry the plan
+ * draws, so 2D and 3D agree.
+ */
+function buildStair(rect: Rect, H: number, startSide: 'N' | 'S' | 'E' | 'W' = 'N') {
+  const alongY = startSide === 'N' || startSide === 'S'
+  const W = alongY ? rect.w : rect.h // across the flights
+  const R = alongY ? rect.h : rect.w // along the run
+  const at = (a: number, b: number) =>
+    startSide === 'N' ? { x: rect.x + a, z: rect.y + b }
+      : startSide === 'S' ? { x: rect.x + a, z: rect.y + rect.h - b }
+        : startSide === 'W' ? { x: rect.x + b, z: rect.y + a }
+          : { x: rect.x + rect.w - b, z: rect.y + a }
+  const size = (sa: number, sy: number, sb: number): Vec3 => (alongY ? [sa, sy, sb] : [sb, sy, sa])
+
   const risers = Math.max(14, Math.round((H * 1000) / 172))
   const perFlight = Math.ceil(risers / 2)
-  const flightWmm = Math.max((rect.w - 120) / 2, 300)
+  const flightWmm = Math.max((W - 120) / 2, 300)
   const flightW = flightWmm / 1000
-  const runMm = rect.h * 0.84
+  const runMm = R * 0.84
   const goingMm = runMm / perFlight
   const going = goingMm / 1000
   const rise = H / risers
   const landY = perFlight * rise
   const out: { tag: string; x: number; y: number; z: number; size: Vec3 }[] = []
 
-  const xA = rect.x + 60 + flightWmm / 2
-  const xB = rect.x + 60 + flightWmm + 120 + flightWmm / 2
+  const aA = 60 + flightWmm / 2
+  const aB = 60 + flightWmm + 120 + flightWmm / 2
 
   for (let i = 0; i < perFlight; i++) {
     const topA = (i + 1) * rise // solid block: floor of storey up to this tread
-    out.push({
-      tag: `a${i}`,
-      x: xA,
-      y: topA / 2,
-      z: rect.y + goingMm * (i + 0.5),
-      size: [flightW, topA, Math.max(going * 1.02, 0.05)],
-    })
+    out.push({ tag: `a${i}`, ...at(aA, goingMm * (i + 0.5)), y: topA / 2, size: size(flightW, topA, Math.max(going * 1.02, 0.05)) })
     const topB = landY + (i + 1) * rise // second flight climbs off the landing
-    out.push({
-      tag: `b${i}`,
-      x: xB,
-      y: topB / 2,
-      z: rect.y + runMm - goingMm * (i + 0.5),
-      size: [flightW, topB, Math.max(going * 1.02, 0.05)],
-    })
+    out.push({ tag: `b${i}`, ...at(aB, runMm - goingMm * (i + 0.5)), y: topB / 2, size: size(flightW, topB, Math.max(going * 1.02, 0.05)) })
   }
 
   // mid landing slab
-  const landDepth = Math.max((rect.h - runMm) / 1000, 0.6)
-  out.push({
-    tag: 'land',
-    x: rect.x + rect.w / 2,
-    y: landY - 0.09,
-    z: rect.y + runMm + (landDepth * 1000) / 2,
-    size: [Math.max(rect.w / 1000, 0.4), 0.18, landDepth],
-  })
+  const landDepth = Math.max((R - runMm) / 1000, 0.6)
+  out.push({ tag: 'land', ...at(W / 2, runMm + (landDepth * 1000) / 2), y: landY - 0.09, size: size(Math.max(W / 1000, 0.4), 0.18, landDepth) })
   // a spine wall between the two flights
-  out.push({
-    tag: 'spine',
-    x: (xA + xB) / 2,
-    y: H / 2,
-    z: rect.y + runMm / 2,
-    size: [0.12, H, Math.max(runMm / 1000, 0.4)],
-  })
+  out.push({ tag: 'spine', ...at((aA + aB) / 2, runMm / 2), y: H / 2, size: size(0.12, H, Math.max(runMm / 1000, 0.4)) })
   return out
 }

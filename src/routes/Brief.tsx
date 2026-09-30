@@ -5,6 +5,7 @@ import { BRIEF_STEPS } from '@/lib/model/brief.ts'
 import { useStudio } from '@/state/studio.ts'
 import { Button } from '@/components/ui/Button.tsx'
 import { cx } from '@/lib/cx.ts'
+import { briefSiteIssues } from '@/lib/model/canonical.ts'
 import {
   EntryStep,
   LevelsStep,
@@ -42,6 +43,8 @@ export function Brief() {
   const [step, setStep] = useState(0)
   const reset = useStudio((s) => s.reset)
   const explore = useStudio((s) => s.explore)
+  const brief = useStudio((s) => s.brief)
+  const [formError, setFormError] = useState<string | null>(null)
   const navigate = useNavigate()
 
   const last = step === BRIEF_STEPS.length - 1
@@ -49,6 +52,9 @@ export function Brief() {
 
   const next = () => {
     if (last) {
+      const issues = briefSiteIssues(brief)
+      if (issues.length) { setFormError(issues.join(' ')); return }
+      setFormError(null)
       explore()
       navigate('/workspace/directions')
     } else {
@@ -115,6 +121,7 @@ export function Brief() {
 
       {/* step body */}
       <div className="mx-auto max-w-[1400px] px-6 py-12 md:px-10 md:py-16">
+        {formError && <p role="alert" className="mb-6 border-l-2 border-bad bg-bad/5 px-4 py-3 text-sm text-bad">{formError}</p>}
         <p className="label">Step {step + 1} of {BRIEF_STEPS.length}</p>
         <h1 className="mt-3 font-display text-[clamp(2rem,4vw,3rem)]">{STEP_TITLES[step]}</h1>
 

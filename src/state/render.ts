@@ -30,9 +30,11 @@ type RenderState = {
   jobs: Record<RefKey, Job>
   health: Health | null
   error: string | null
+  inspiration: string | null
 
   probeHealth: () => Promise<void>
   setInteriorRoom: (key: string) => void
+  setInspiration: (dataUrl: string | null) => void
   beginCapture: () => void
   setRef: (k: RefKey, dataUrl: string) => void
   captureFailed: (msg: string) => void
@@ -41,11 +43,12 @@ type RenderState = {
   reset: () => void
 }
 
-async function callRender(imageBase64: string, prompt: string): Promise<string> {
+async function callRender(imageBase64: string, prompt: string, inspiration: string | null): Promise<string> {
   const res = await fetch('/api/render', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ imageBase64, mimeType: 'image/png', prompt }),
+    body: JSON.stringify({ imageBase64, mimeType: 'image/png', prompt,
+      inspirationBase64: inspiration?.split(',')[1], inspirationMimeType: inspiration?.match(/^data:([^;]+);/)?.[1] }),
   })
   const j = await res.json().catch(() => ({}))
   if (!res.ok && res.status !== 503) throw new Error(j?.error || `render failed (${res.status})`)
@@ -61,6 +64,7 @@ export const useRender = create<RenderState>((set, get) => ({
   jobs: freshJobs(),
   health: null,
   error: null,
+  inspiration: null,
 
   probeHealth: async () => {
     try {
@@ -78,6 +82,9 @@ export const useRender = create<RenderState>((set, get) => ({
       stale: s.phase === 'ready' || s.phase === 'gallery' ? true : s.stale,
     })),
 
+  setInspiration: (dataUrl) => set((s) => ({ inspiration: dataUrl, jobs: freshJobs(),
+    phase: REF_KEYS.every((k) => s.refs[k]) ? 'ready' : 'idle' })),
+
   beginCapture: () => set({ phase: 'capturing', refs: {}, stale: false, error: null }),
 
   setRef: (k, dataUrl) =>
@@ -90,14 +97,14 @@ export const useRender = create<RenderState>((set, get) => ({
   captureFailed: (msg) => set({ phase: 'idle', error: msg }),
 
   runJobs: async (promptFor) => {
-    const { refs } = get()
+    const { refs, inspiration } = get()
     if (!REF_KEYS.every((k) => refs[k])) return
     set({ phase: 'rendering', jobs: freshJobs(), error: null })
     await Promise.allSettled(
       REF_KEYS.map(async (k) => {
         set((s) => ({ jobs: { ...s.jobs, [k]: { status: 'running' } } }))
         try {
-          const url = await callRender(refs[k]!.split(',')[1], promptFor(k))
+          const url = await callRender(refs[k]!.split(',')[1], promptFor(k), k === 'interior' ? null : inspiration)
           set((s) => ({ jobs: { ...s.jobs, [k]: { status: 'done', url } } }))
         } catch (e) {
           set((s) => ({ jobs: { ...s.jobs, [k]: { status: 'error', error: String((e as Error).message) } } }))
@@ -108,11 +115,11 @@ export const useRender = create<RenderState>((set, get) => ({
   },
 
   retry: async (k, promptFor) => {
-    const { refs } = get()
+    const { refs, inspiration } = get()
     if (!refs[k]) return
     set((s) => ({ jobs: { ...s.jobs, [k]: { status: 'running' } } }))
     try {
-      const url = await callRender(refs[k]!.split(',')[1], promptFor(k))
+      const url = await callRender(refs[k]!.split(',')[1], promptFor(k), k === 'interior' ? null : inspiration)
       set((s) => ({ jobs: { ...s.jobs, [k]: { status: 'done', url } } }))
     } catch (e) {
       set((s) => ({ jobs: { ...s.jobs, [k]: { status: 'error', error: String((e as Error).message) } } }))

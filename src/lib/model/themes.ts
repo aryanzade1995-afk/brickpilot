@@ -350,6 +350,45 @@ export const THEMES: Record<Character, ThemeDef> = {
       materials: { clad: TEAK, feature: { color: '#a24b34', roughness: 0.85 } },
     },
   ),
+  'resort-luxury': theme(
+    'resort-luxury', 'Resort villa', 'Open shaded terraces, warm stone and tropical planting.',
+    'Warm stone, timber, clear glass and tropical landscaping on the exact model.',
+    {
+      roofBias: 'flat', roof: { style: 'flat-eave', eaveMm: 850, thickMm: 180 },
+      massing: { chajjaMm: 650, balconyDepthMm: 1700 },
+      accents: { railStyle: 'glass' },
+      landscape: { tropical: true, shrubs: 8, terraceGarden: true },
+      materials: { shell: { color: '#e9dfcb' }, clad: TEAK, feature: STONE_WARM },
+    },
+  ),
+  'neo-classical': theme(
+    'neo-classical', 'Neo Classical', 'Ordered stone planes, a centered entry and restrained columns.',
+    'Cream stone, restrained classical detailing and clear glazing on the exact model.',
+    {
+      roofBias: 'pitched', roof: { style: 'pitched', eaveMm: 700, pitchDeg: 20 },
+      accents: { railStyle: 'baluster' }, columns: { style: 'square', sizeMm: 340 },
+      massing: { stringCourseMm: 130, plinthProjMm: 280 },
+      materials: { shell: { color: '#e9e2d5' }, feature: STONE_WARM },
+    },
+  ),
+  'contemporary-classical': theme(
+    'contemporary-classical', 'Contemporary Classical', 'Symmetric framing with a modern glass and stone finish.',
+    'Warm limestone, crisp plaster, bronze metal and clear glass on the exact model.',
+    {
+      roofBias: 'flat', roof: { style: 'flat-band', bandMm: 300, eaveMm: 560 },
+      accents: { railStyle: 'glass' }, massing: { stringCourseMm: 110 },
+      materials: { shell: { color: '#f0eade' }, feature: STONE_WARM, metal: { color: '#554b3d' } },
+    },
+  ),
+  'urban-premium': theme(
+    'urban-premium', 'Urban Premium', 'Compact vertical framing, deep reveals and dark stone accents.',
+    'Off-white plaster, dark stone, oak and black metal on the exact model.',
+    {
+      roofBias: 'flat', roof: { style: 'flat-parapet', eaveMm: 280, parapetMm: 380 },
+      accents: { railStyle: 'bar' }, massing: { chajjaMm: 480, stringCourseMm: 70 },
+      materials: { shell: { color: '#e6e1d7' }, feature: STONE_DARK, clad: TEAK },
+    },
+  ),
 }
 
 export const themeOf = (brief: Brief): ThemeDef => THEMES[brief.style.character]

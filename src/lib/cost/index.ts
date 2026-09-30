@@ -27,6 +27,10 @@ const BASE_RATE: Record<Brief['style']['character'], number> = {
   'tropical-indian': 22500,
   'minimal-indian': 19500,
   'courtyard-indian': 21000,
+  'resort-luxury': 28500,
+  'neo-classical': 24500,
+  'contemporary-classical': 25500,
+  'urban-premium': 25500,
 }
 const RATE_SPREAD = 0.14
 

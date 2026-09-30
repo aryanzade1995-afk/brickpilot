@@ -10,11 +10,13 @@ import { useStudio } from '@/state/studio.ts'
 import { MASSING_LABEL } from '@/lib/engine/index.ts'
 import { buildMassing } from '@/lib/three/buildMassing.ts'
 import { MassingModel, SceneEnv } from '@/lib/three/MassingScene.tsx'
+import { ArchitectureDebug } from '@/lib/three/ArchitectureDebug.tsx'
 import { buildDollhouse } from '@/lib/three/buildDollhouse.ts'
 import { DollhouseModel, DollhouseEnv } from '@/lib/three/DollhouseScene.tsx'
 import type { Group } from '@/lib/three/massingGroups.ts'
 import { cx } from '@/lib/cx.ts'
 import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
+import { InvalidPlanNotice } from '@/components/InvalidPlanNotice.tsx'
 
 const LAYER_TOGGLES: { g: Group; label: string }[] = [
   { g: 'shell', label: 'Walls' },
@@ -42,6 +44,7 @@ export function Massing() {
   const [explode, setExplode] = useState(0)
   const [hidden, setHidden] = useState<Set<Group>>(new Set())
   const [showSite, setShowSite] = useState(true)
+  const [showDebug, setShowDebug] = useState(false)
   const [pendingView, setPendingView] = useState<CamKey | null>('iso')
   const [mode, setMode] = useState<ViewMode>('study')
   const [floorSel, setFloorSel] = useState<number | 'all'>('all')
@@ -53,6 +56,7 @@ export function Massing() {
   if (!result || !massing) {
     return <div className="mx-auto max-w-[1400px] px-10 py-24 text-ink-dim">Preparing model…</div>
   }
+  if (!result.report.hardChecksPass) return <InvalidPlanNotice report={result.report} />
 
   const furnished = mode === 'furnished' && doll
   const levels = result.design.floors.map((f) => f.level)
@@ -162,6 +166,7 @@ export function Massing() {
               ) : (
                 <MassingModel massing={massing} explode={explode} hidden={hidden} character={character} />
               )}
+              {import.meta.env.DEV && showDebug && mode === 'study' && <ArchitectureDebug design={result.design} />}
 
               <EffectComposer enableNormalPass multisampling={4}>
                 <N8AO aoRadius={1.5} intensity={2.7} distanceFalloff={1.1} halfRes />
@@ -207,7 +212,7 @@ export function Massing() {
               onClick={reseed}
               className="mt-1 flex w-full items-center justify-center gap-1.5 border border-line-strong py-2 font-mono text-[0.65rem] uppercase tracking-[0.12em] text-ink-dim transition-colors hover:border-accent hover:text-ink"
             >
-              <Grid3x3 size={11} /> Re-roll this massing
+              <Grid3x3 size={11} /> Generate again · exterior
             </button>
           </Panel>
 
@@ -218,8 +223,12 @@ export function Massing() {
                 <LayerRow key={l.g} label={l.label} on={!hidden.has(l.g)} onClick={() => toggle(l.g)} />
               ))}
               <LayerRow label="Site + grid" on={showSite} onClick={() => setShowSite((v) => !v)} />
+              {import.meta.env.DEV && <LayerRow label="Architecture debug" on={showDebug} onClick={() => setShowDebug((v) => !v)} />}
             </div>
           </div>
+          {import.meta.env.DEV && showDebug && <p className="text-[0.65rem] leading-relaxed text-ink-dim">
+            Blue openings · green available walls · yellow clearance · cyan anchors · magenta features · red collisions
+          </p>}
 
           <div className="border border-line">
             <div className="label flex items-center justify-between border-b border-line px-4 py-2.5">

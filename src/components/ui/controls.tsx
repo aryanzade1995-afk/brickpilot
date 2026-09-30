@@ -1,6 +1,8 @@
-import type { KeyboardEvent, ReactNode } from 'react'
+import { createContext, useContext, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { Check } from 'lucide-react'
 import { cx } from '@/lib/cx.ts'
+
+const FieldLabel = createContext<string | null>(null)
 
 export function Field({
   label,
@@ -12,11 +14,11 @@ export function Field({
   children: ReactNode
 }) {
   return (
-    <label className="block">
+    <div role="group" aria-label={label} className="block">
       <span className="label">{label}</span>
-      <div className="mt-2">{children}</div>
+      <FieldLabel.Provider value={label}><div className="mt-2">{children}</div></FieldLabel.Provider>
       {hint && <span className="mt-1.5 block text-xs text-ink-faint">{hint}</span>}
-    </label>
+    </div>
   )
 }
 
@@ -37,8 +39,10 @@ export function TextInput({
   autoFocus?: boolean
   onKeyDown?: (e: KeyboardEvent<HTMLInputElement>) => void
 }) {
+  const fieldLabel = useContext(FieldLabel)
   return (
     <input
+      aria-label={fieldLabel ?? undefined}
       type={type}
       value={value}
       placeholder={placeholder}
@@ -66,18 +70,51 @@ export function NumberInput({
   step?: number
   suffix?: string
 }) {
+  const fieldLabel = useContext(FieldLabel)
+  const [draft, setDraft] = useState(String(value))
+  const [editing, setEditing] = useState(false)
+  const precision = String(step).split('.')[1]?.length ?? 0
+  const changeBy = (delta: number) => {
+    const base = editing && draft.trim() && Number.isFinite(Number(draft)) ? Number(draft) : value
+    const next = clamp(Number((base + delta).toFixed(precision)), min, max)
+    setDraft(String(next))
+    setEditing(false)
+    onChange(next)
+  }
+  const finish = () => {
+    const parsed = Number(draft)
+    const next = draft.trim() && Number.isFinite(parsed) ? clamp(parsed, min, max) : value
+    setDraft(String(next))
+    setEditing(false)
+    if (next !== value) onChange(next)
+  }
   return (
     <div className="flex items-center border border-line-strong bg-bg-inset focus-within:border-accent">
+      <button type="button" aria-label={`Decrease ${fieldLabel ?? 'value'} by ${step}`} disabled={min != null && value <= min}
+        onClick={() => changeBy(-step)}
+        className="border-r border-line-strong px-2.5 py-2.5 text-sm text-ink-dim hover:bg-bg-raised hover:text-ink disabled:opacity-30">−</button>
       <input
-        type="number"
-        value={value}
-        min={min}
-        max={max}
-        step={step}
-        onChange={(e) => onChange(clamp(Number(e.target.value) || 0, min, max))}
-        className="w-full bg-transparent px-3 py-2.5 text-sm text-ink outline-none tnum [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+        aria-label={fieldLabel ?? 'Value'}
+        type="text"
+        inputMode="decimal"
+        value={editing ? draft : String(value)}
+        onFocus={() => { setDraft(String(value)); setEditing(true) }}
+        onChange={(e) => {
+          const raw = e.target.value
+          if (!/^-?\d*\.?\d*$/.test(raw)) return
+          setDraft(raw)
+          const parsed = Number(raw)
+          if (raw.trim() && Number.isFinite(parsed) && (min == null || parsed >= min) && (max == null || parsed <= max))
+            onChange(parsed)
+        }}
+        onBlur={finish}
+        onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
+        className="min-w-0 w-full bg-transparent px-2 py-2.5 text-center text-sm text-ink outline-none tnum"
       />
-      {suffix && <span className="px-3 font-mono text-xs text-ink-faint">{suffix}</span>}
+      {suffix && <span className="pr-1 font-mono text-xs text-ink-faint">{suffix}</span>}
+      <button type="button" aria-label={`Increase ${fieldLabel ?? 'value'} by ${step}`} disabled={max != null && value >= max}
+        onClick={() => changeBy(step)}
+        className="border-l border-line-strong px-2.5 py-2.5 text-sm text-ink-dim hover:bg-bg-raised hover:text-ink disabled:opacity-30">+</button>
     </div>
   )
 }
@@ -99,12 +136,15 @@ export function Stepper({
   min?: number
   max?: number
 }) {
+  const fieldLabel = useContext(FieldLabel)
   return (
     <div className="inline-flex items-stretch border border-line-strong bg-bg-inset">
       <button
         type="button"
+        aria-label={`Decrease ${fieldLabel ?? 'value'}`}
+        disabled={value <= min}
         onClick={() => onChange(Math.max(min, value - 1))}
-        className="px-3.5 py-2 text-ink-dim hover:bg-bg-raised hover:text-ink"
+        className="px-3.5 py-2 text-ink-dim hover:bg-bg-raised hover:text-ink disabled:opacity-30"
       >
         –
       </button>
@@ -113,8 +153,10 @@ export function Stepper({
       </span>
       <button
         type="button"
+        aria-label={`Increase ${fieldLabel ?? 'value'}`}
+        disabled={value >= max}
         onClick={() => onChange(Math.min(max, value + 1))}
-        className="px-3.5 py-2 text-ink-dim hover:bg-bg-raised hover:text-ink"
+        className="px-3.5 py-2 text-ink-dim hover:bg-bg-raised hover:text-ink disabled:opacity-30"
       >
         +
       </button>

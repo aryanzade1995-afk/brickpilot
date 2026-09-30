@@ -7,10 +7,12 @@ import {
   type Direction,
   type MassingChoice,
   type Character,
+  type DesignPersonality,
 } from '@/lib/model/brief.ts'
 import { canonicalSummary, compile } from '@/lib/model/canonical.ts'
 import { programmeCapacity } from '@/lib/rules/index.ts'
 import { useStudio } from '@/state/studio.ts'
+import { FitNotice } from './FitNotice.tsx'
 import {
   CardChoice,
   Field,
@@ -68,6 +70,7 @@ export function SiteStep() {
           <NumberInput value={s.plotDepth} min={6} max={80} step={0.5} suffix="m" onChange={(v) => edit((b) => void (b.site.plotDepth = v))} />
         </Field>
       </div>
+      <FitNotice />
 
       <Field label="Road edges" hint="Which sides face a road — the first is the approach">
         <div className="flex gap-2">
@@ -99,7 +102,7 @@ export function SiteStep() {
 
       <div>
         <span className="label">Setbacks (m)</span>
-        <div className="mt-3 grid grid-cols-4 gap-3">
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {DIRECTIONS.map((d) => (
             <Field key={d} label={DIRECTION_LABEL[d]}>
               <NumberInput
@@ -181,6 +184,7 @@ export function LevelsStep() {
         label="Reserve space for a future lift"
         hint="Conceptual shaft only — lift design stays professional scope"
       />
+      <FitNotice />
     </div>
   )
 }
@@ -228,6 +232,7 @@ export function RoomsStep() {
           <Toggle checked={p.compoundWall} onChange={(v) => edit((b) => void (b.rooms.priorities.compoundWall = v))} label="Compound wall" hint="Boundary wall with a gate" />
         </div>
       </div>
+      <FitNotice />
     </div>
   )
 }
@@ -291,21 +296,31 @@ export function StyleStep() {
           onChange={(v) => edit((b) => void (b.style.massing = v))}
           options={MASSING_CHOICES}
         />
+        <FitNotice />
       </div>
+
+      <Field label="Design personality" hint="Sets the composition bias while preserving the same structural plan">
+        <Segmented
+          value={brief.style.personality}
+          onChange={(v) => edit((b) => void (b.style.personality = v))}
+          options={(['balanced', 'minimal', 'elegant', 'bold', 'dramatic', 'warm', 'luxurious', 'tropical'] as DesignPersonality[])
+            .map((value) => ({ value, label: value[0].toUpperCase() + value.slice(1) }))}
+        />
+      </Field>
 
       <div className="grid gap-8 sm:grid-cols-2">
         <Field
           label="Design variation"
-          hint="How far the massing pushes offsets, cantilevers and asymmetry"
+          hint="How far exterior features and style may vary while the plan stays fixed"
         >
           <Segmented
             value={brief.style.diversity}
             onChange={(v) => edit((b) => void (b.style.diversity = v))}
             options={[
-              { value: 'low' as const, label: 'Low' },
-              { value: 'medium' as const, label: 'Medium' },
-              { value: 'high' as const, label: 'High' },
-              { value: 'extreme' as const, label: 'Extreme' },
+              { value: 'low' as const, label: 'Subtle' },
+              { value: 'medium' as const, label: 'Balanced' },
+              { value: 'high' as const, label: 'Bold' },
+              { value: 'extreme' as const, label: 'Bold +' },
             ]}
           />
         </Field>
@@ -342,6 +357,10 @@ const CHARACTER_CARDS: { value: Character; title: string; body: string }[] = [
   { value: 'tropical-indian', title: CHARACTER_LABEL['tropical-indian'], body: 'Broad low mono-pitch roofs with very deep overhangs, a wrap verandah on slim round columns, jaali and a pergola.' },
   { value: 'minimal-indian', title: CHARACTER_LABEL['minimal-indian'], body: 'Quiet plaster planes, one thin oversailing roof, a few large timber-framed openings, restrained detailing.' },
   { value: 'courtyard-indian', title: CHARACTER_LABEL['courtyard-indian'], body: 'Wings wrapping a planted courtyard behind a columned verandah and street-facing terracotta jaali screens.' },
+  { value: 'resort-luxury', title: CHARACTER_LABEL['resort-luxury'], body: 'Warm stone and timber, generous shade, clear glass and tropical planting.' },
+  { value: 'neo-classical', title: CHARACTER_LABEL['neo-classical'], body: 'A centered entrance, ordered stone composition and restrained columns.' },
+  { value: 'contemporary-classical', title: CHARACTER_LABEL['contemporary-classical'], body: 'Balanced frames with warm limestone, bronze details and contemporary glazing.' },
+  { value: 'urban-premium', title: CHARACTER_LABEL['urban-premium'], body: 'Compact vertical framing, deep reveals and dark stone accents.' },
 ]
 
 const MASSING_CHOICES: { value: MassingChoice; label: string }[] = [
@@ -367,7 +386,7 @@ export function EntryStep() {
   const e = brief.entry
   return (
     <div className="max-w-xl space-y-8">
-      <Field label="Primary entry side" hint="Auto uses the first road edge">
+      <Field label="Primary entry side" hint="Auto uses the main facing when it is a road edge; otherwise the first road edge">
         <Segmented
           value={e.primarySide}
           onChange={(v) => edit((b) => void (b.entry.primarySide = v))}

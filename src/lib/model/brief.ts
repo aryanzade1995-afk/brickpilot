@@ -33,6 +33,10 @@ export const characterSchema = z.enum([
   'tropical-indian',
   'minimal-indian',
   'courtyard-indian',
+  'resort-luxury',
+  'neo-classical',
+  'contemporary-classical',
+  'urban-premium',
 ])
 export type Character = z.infer<typeof characterSchema>
 
@@ -52,6 +56,10 @@ export const CHARACTER_LABEL: Record<Character, string> = {
   'tropical-indian': 'Tropical Indian modern',
   'minimal-indian': 'Minimal Indian',
   'courtyard-indian': 'Courtyard Indian modern',
+  'resort-luxury': 'Resort villa',
+  'neo-classical': 'Neo Classical',
+  'contemporary-classical': 'Contemporary Classical',
+  'urban-premium': 'Urban Premium',
 }
 
 export const massingSchema = z.enum([
@@ -76,6 +84,8 @@ export const massingSchema = z.enum([
 export type MassingChoice = z.infer<typeof massingSchema>
 
 export const diversitySchema = z.enum(['low', 'medium', 'high', 'extreme'])
+export const personalitySchema = z.enum(['balanced', 'minimal', 'elegant', 'bold', 'dramatic', 'warm', 'luxurious', 'tropical'])
+export type DesignPersonality = z.infer<typeof personalitySchema>
 
 /**
  * Raw wizard input. Every leaf has a default so `briefSchema.parse({})`
@@ -152,6 +162,7 @@ export const briefSchema = z
         massing: massingSchema.default('auto'),
         /** how far the massing grammar pushes offsets / cantilevers / asymmetry */
         diversity: diversitySchema.default('medium'),
+        personality: personalitySchema.default('balanced'),
       })
       .prefault({}),
     entry: z
