@@ -1,18 +1,34 @@
-import { Dices } from 'lucide-react'
+import { Dices, Plus, X } from 'lucide-react'
 import {
+  BUDGET_SCOPE_LABEL,
   BUILDING_TYPE_LABEL,
   CHARACTER_LABEL,
   DIRECTIONS,
   DIRECTION_LABEL,
+  FINISH_LABEL,
+  GUESTS_LABEL,
+  KITCHEN_LABEL,
+  MEMBER_ROLE_LABEL,
+  STAFF_LABEL,
+  VASTU_LABEL,
+  occupantCount,
+  type Brief,
   type Direction,
+  type Guests,
   type MassingChoice,
+  type MemberRole,
   type Character,
   type DesignPersonality,
+  type Staff,
+  type VastuPreference,
 } from '@/lib/model/brief.ts'
 import { canonicalSummary, compile } from '@/lib/model/canonical.ts'
 import { programmeCapacity } from '@/lib/rules/index.ts'
 import { useStudio } from '@/state/studio.ts'
 import { FitNotice } from './FitNotice.tsx'
+import { BudgetNotice } from './BudgetNotice.tsx'
+import { assessBudgetFit } from '@/lib/cost/budgetFit.ts'
+import { describeMembers, membersByRole } from '@/lib/model/household.ts'
 import {
   CardChoice,
   Field,
@@ -123,17 +139,199 @@ export function SiteStep() {
 
 /* -------------------------------------------------------------------------- */
 
-export function SpacesStep() {
+export function BudgetStep() {
   const [brief, edit] = useBrief()
-  const s = brief.spaces
+  const g = brief.budget
   return (
-    <div className="max-w-xl space-y-8">
-      <Field label="Household occupants">
-        <Stepper value={s.occupants} min={1} max={20} onChange={(v) => edit((b) => void (b.spaces.occupants = v))} />
+    <div className="max-w-2xl space-y-10">
+      <Field label="Total budget" hint="What you can spend on this house, in lakh (1 lakh = ₹1,00,000)">
+        <div className="flex max-w-xs items-center gap-2">
+          <span className="font-display text-xl text-ink-dim">₹</span>
+          <NumberInput value={g.amountLakh} min={10} max={2000} step={5} suffix="lakh" onChange={(v) => edit((b) => void (b.budget.amountLakh = v))} />
+        </div>
       </Field>
+
+      <div className="space-y-4">
+        <div>
+          <span className="label">What the budget covers</span>
+          <p className="mt-1 text-sm text-ink-dim">So the cost band compares like with like.</p>
+        </div>
+        <CardChoice
+          value={g.scope}
+          onChange={(v) => edit((b) => void (b.budget.scope = v))}
+          options={[
+            { value: 'construction', title: BUDGET_SCOPE_LABEL.construction, body: 'Structure, walls, roof, plumbing, electrical and basic finishes.' },
+            { value: 'withInteriors', title: BUDGET_SCOPE_LABEL.withInteriors, body: 'Adds modular kitchen, wardrobes, false ceilings and lighting.' },
+            { value: 'all', title: BUDGET_SCOPE_LABEL.all, body: 'Includes professional fees, approvals, landscaping and compound wall.' },
+          ]}
+        />
+      </div>
+
+      <div className="space-y-4">
+        <div>
+          <span className="label">Finish level</span>
+          <p className="mt-1 text-sm text-ink-dim">The biggest lever on cost per square metre after size.</p>
+        </div>
+        <CardChoice
+          value={g.finish}
+          onChange={(v) => edit((b) => void (b.budget.finish = v))}
+          options={[
+            { value: 'basic', title: FINISH_LABEL.basic, body: 'Ceramic tiles, standard CP fittings, aluminium windows.' },
+            { value: 'mid', title: FINISH_LABEL.mid, body: 'Vitrified tiles, branded CP fittings, UPVC windows.' },
+            { value: 'premium', title: FINISH_LABEL.premium, body: 'Marble or wood floors, designer fittings, large-format glazing.' },
+          ]}
+        />
+      </div>
+      <BudgetNotice />
+    </div>
+  )
+}
+
+/* -------------------------------------------------------------------------- */
+
+const QUICK_ADD: MemberRole[] = ['adult', 'senior', 'teen', 'child']
+const MAX_MEMBERS = 20
+
+/** member edits keep the legacy occupant count (still read by the engine) in step */
+const syncOccupants = (b: Brief) => void (b.spaces.occupants = Math.min(MAX_MEMBERS, Math.max(1, b.household.members.length)))
+
+export function FamilyStep() {
+  const [brief, edit] = useBrief()
+  const h = brief.household
+  const count = occupantCount(brief)
+  const add = (role: MemberRole) =>
+    edit((b) => {
+      if (b.household.members.length >= MAX_MEMBERS) return
+      b.household.members.push({ role, needsGroundFloor: role === 'senior' })
+      syncOccupants(b)
+    })
+  return (
+    <div className="max-w-2xl space-y-10">
+      <div className="space-y-4">
+        <div className="flex items-baseline justify-between">
+          <span className="label">Household members</span>
+          <span className="font-mono text-xs text-ink-dim tnum">{count} {count === 1 ? 'person' : 'people'}</span>
+        </div>
+        <div className="space-y-2">
+          {h.members.map((m, i) => (
+            <div key={i} className="flex flex-wrap items-center gap-3 border border-line p-3">
+              <span className="w-6 font-mono text-xs text-ink-faint tnum">{String(i + 1).padStart(2, '0')}</span>
+              <Segmented
+                value={m.role}
+                onChange={(v) =>
+                  edit((b) => {
+                    b.household.members[i].role = v
+                    b.household.members[i].needsGroundFloor = v === 'senior'
+                  })}
+                options={(Object.keys(MEMBER_ROLE_LABEL) as MemberRole[]).map((value) => ({ value, label: MEMBER_ROLE_LABEL[value] }))}
+              />
+              <div className="min-w-[12rem] flex-1">
+                <Toggle
+                  checked={m.needsGroundFloor}
+                  onChange={(v) => edit((b) => void (b.household.members[i].needsGroundFloor = v))}
+                  label="Needs ground floor"
+                />
+              </div>
+              <button
+                type="button"
+                aria-label={`Remove member ${i + 1}`}
+                disabled={h.members.length <= 1}
+                onClick={() =>
+                  edit((b) => {
+                    b.household.members.splice(i, 1)
+                    syncOccupants(b)
+                  })}
+                className="flex-none border border-line-strong p-2.5 text-ink-dim transition-colors hover:border-accent hover:text-ink disabled:opacity-30"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={count >= MAX_MEMBERS}
+            onClick={() => add('adult')}
+            className="inline-flex items-center gap-1.5 border border-line-strong px-3 py-2 font-mono text-xs uppercase tracking-[0.1em] text-ink transition-colors hover:border-accent disabled:opacity-30"
+          >
+            <Plus size={12} />
+            Add member
+          </button>
+          {QUICK_ADD.map((role) => (
+            <button
+              key={role}
+              type="button"
+              disabled={count >= MAX_MEMBERS}
+              onClick={() => add(role)}
+              className="border border-line px-3 py-2 font-mono text-xs uppercase tracking-[0.1em] text-ink-dim transition-colors hover:border-line-strong hover:text-ink disabled:opacity-30"
+            >
+              + {MEMBER_ROLE_LABEL[role]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <Toggle
+        checked={brief.spaces.stepFree}
+        onChange={(v) => edit((b) => void (b.spaces.stepFree = v))}
+        label="Step-free / mobility access needed"
+        hint="Places one bedroom and bathroom on the ground floor"
+      />
+
+      <div className="grid gap-8 sm:grid-cols-2">
+        <Field label="Overnight guests">
+          <Segmented
+            value={h.guests}
+            onChange={(v) => edit((b) => void (b.household.guests = v))}
+            options={(Object.keys(GUESTS_LABEL) as Guests[]).map((value) => ({ value, label: GUESTS_LABEL[value] }))}
+          />
+        </Field>
+        <Field label="Household staff">
+          <Segmented
+            value={h.staff}
+            onChange={(v) => edit((b) => void (b.household.staff = v))}
+            options={(Object.keys(STAFF_LABEL) as Staff[]).map((value) => ({ value, label: STAFF_LABEL[value] }))}
+          />
+        </Field>
+      </div>
+      <BudgetNotice />
+    </div>
+  )
+}
+
+/* -------------------------------------------------------------------------- */
+
+export function LifestyleStep() {
+  const [brief, edit] = useBrief()
+  const l = brief.lifestyle
+  return (
+    <div className="max-w-2xl space-y-10">
+      <div className="space-y-4">
+        <div>
+          <span className="label">Kitchen</span>
+          <p className="mt-1 text-sm text-ink-dim">How the kitchen meets the dining area.</p>
+        </div>
+        <CardChoice
+          value={l.kitchen}
+          onChange={(v) => edit((b) => void (b.lifestyle.kitchen = v))}
+          options={[
+            { value: 'open', title: KITCHEN_LABEL.open, body: 'No wall to the dining area.' },
+            { value: 'semi', title: KITCHEN_LABEL.semi, body: 'A glass sliding partition that contains cooking smells.' },
+            { value: 'closed', title: KITCHEN_LABEL.closed, body: 'A separate room with a door.' },
+          ]}
+        />
+        <Toggle
+          checked={l.dryWetSplit}
+          onChange={(v) => edit((b) => void (b.lifestyle.dryWetSplit = v))}
+          label="Separate dry and wet kitchen"
+          hint="A wet kitchen for heavy cooking and washing, beside a clean dry kitchen"
+        />
+      </div>
+
       <Field label="Living &amp; dining">
         <Segmented
-          value={s.livingDining}
+          value={brief.spaces.livingDining}
           onChange={(v) => edit((b) => void (b.spaces.livingDining = v))}
           options={[
             { value: 'separate', label: 'Separate' },
@@ -141,12 +339,37 @@ export function SpacesStep() {
           ]}
         />
       </Field>
-      <Toggle
-        checked={s.stepFree}
-        onChange={(v) => edit((b) => void (b.spaces.stepFree = v))}
-        label="Step-free / mobility access needed"
-        hint="Places one bedroom and bathroom on the ground floor"
-      />
+
+      <div className="space-y-4">
+        <Field label="People working from home">
+          <Stepper
+            value={l.wfhCount}
+            min={0}
+            max={4}
+            onChange={(v) =>
+              edit((b) => {
+                b.lifestyle.wfhCount = v
+                if (v === 0) b.lifestyle.clientVisits = false
+              })}
+          />
+        </Field>
+        {l.wfhCount > 0 && (
+          <Toggle
+            checked={l.clientVisits}
+            onChange={(v) => edit((b) => void (b.lifestyle.clientVisits = v))}
+            label="Clients visit the home office"
+            hint="Keeps the office close to the entrance, away from family rooms"
+          />
+        )}
+      </div>
+
+      <Field label="Vastu" hint="Strict may reduce the number of plans that can be offered">
+        <Segmented
+          value={l.vastu}
+          onChange={(v) => edit((b) => void (b.lifestyle.vastu = v))}
+          options={(Object.keys(VASTU_LABEL) as VastuPreference[]).map((value) => ({ value, label: VASTU_LABEL[value] }))}
+        />
+      </Field>
     </div>
   )
 }
@@ -185,6 +408,7 @@ export function LevelsStep() {
         hint="Conceptual shaft only — lift design stays professional scope"
       />
       <FitNotice />
+      <BudgetNotice />
     </div>
   )
 }
@@ -233,6 +457,7 @@ export function RoomsStep() {
         </div>
       </div>
       <FitNotice />
+      <BudgetNotice />
     </div>
   )
 }
@@ -420,6 +645,8 @@ export function ReviewStep() {
         <Stat k="Min. programme" v={`${summary.minArea} m²`} />
       </div>
 
+      <AnswersSummary brief={brief} />
+
       <div className="border border-line p-5">
         <div className="label text-accent">Programme capacity check</div>
         <p className="mt-2 text-sm text-ink-dim">
@@ -458,6 +685,58 @@ export function ReviewStep() {
   )
 }
 
+/** every Budget / Household / Lifestyle answer, so nothing on a sub-tab is hidden at review */
+function AnswersSummary({ brief }: { brief: Brief }) {
+  const { budget: g, household: h, lifestyle: l } = brief
+  const fit = assessBudgetFit(brief)
+  const ground = h.members.filter((m) => m.needsGroundFloor).length
+  const sections: { title: string; stats: [string, string][]; note?: string }[] = [
+    {
+      title: 'Household',
+      stats: [
+        ...membersByRole(brief).map(([role, n]) => [role === 'child' ? 'Children' : `${MEMBER_ROLE_LABEL[role]}s`, String(n)] as [string, string]),
+        ['Ground floor', ground ? String(ground) : 'None'],
+        ['Guests', GUESTS_LABEL[h.guests]],
+        ['Staff', STAFF_LABEL[h.staff]],
+      ],
+      note: `${occupantCount(brief)} people — ${describeMembers(brief)}${brief.spaces.stepFree ? ' · step-free access' : ''}`,
+    },
+    {
+      title: 'Lifestyle',
+      stats: [
+        ['Kitchen', KITCHEN_LABEL[l.kitchen]],
+        ['Dry / wet', l.dryWetSplit ? 'Split' : 'One kitchen'],
+        ['Work from home', String(l.wfhCount)],
+        ['Clients visit', l.wfhCount > 0 && l.clientVisits ? 'Yes' : 'No'],
+        ['Vastu', VASTU_LABEL[l.vastu]],
+      ],
+      note: `Living & dining: ${brief.spaces.livingDining === 'combined' ? 'combined hall' : 'separate'}`,
+    },
+    {
+      title: 'Budget',
+      stats: [
+        ['Amount', `₹${g.amountLakh} L`],
+        ['Covers', BUDGET_SCOPE_LABEL[g.scope]],
+        ['Finish', FINISH_LABEL[g.finish]],
+        ['Fit', fit.status === 'comfortable' ? 'Comfortable' : fit.status === 'tight' ? 'Tight' : 'Over'],
+      ],
+      note: fit.message,
+    },
+  ]
+  return (
+    <div className="space-y-4">
+      {sections.map((s) => (
+        <div key={s.title} className="border border-line p-5">
+          <div className="label text-accent">{s.title}</div>
+          <div className="mt-3 grid grid-cols-2 gap-x-10 gap-y-5 sm:grid-cols-4">
+            {s.stats.map(([k, v]) => <Stat key={k} k={k} v={v} />)}
+          </div>
+          {s.note && <p className="mt-4 text-sm text-ink-dim">{s.note}</p>}
+        </div>
+      ))}
+    </div>
+  )
+}
 function Stat({ k, v }: { k: string; v: string }) {
   return (
     <div>

@@ -262,6 +262,7 @@ export function placeDoors(
   rooms: PlacedRoom[], spineId: string, prefix: string, columns: Column[], occ: Occupancy,
   kindOf: (id: string) => string, parentOf: (id: string) => string | undefined,
   entry: { width: number } | null, coreTarget: Point,
+  kitchenType: 'open' | 'semi' | 'closed' = 'semi',
 ): { openings: Opening[]; failed: string[] } {
   const openings: Opening[] = []
   const failed: string[] = []
@@ -274,7 +275,7 @@ export function placeDoors(
   }
 
   const put = (served: PlacedRoom, other: PlacedRoom | null, line: Line, width: number, leaf: boolean,
-    kind: Opening['kind'], id: string, target: number): boolean => {
+    kind: Opening['kind'], id: string, target: number, treatment?: Opening['treatment']): boolean => {
     const at = fitOnLine(line, width, target, 250, columns, occ)
     if (at === null) return false
     const c = line.orient === 'h' ? served.rect.y + served.rect.h / 2 : served.rect.x + served.rect.w / 2
@@ -285,8 +286,47 @@ export function placeDoors(
       orient: line.orient,
       at: line.orient === 'h' ? { x: at, y: line.fixed } : { x: line.fixed, y: at },
       rooms: [served.id, other?.id ?? null],
+      ...(treatment ? { treatment } : {}),
     })
     return true
+  }
+  const lineOf = (e: NonNullable<ReturnType<typeof sharedEdge>>): Line => {
+    const h = horizontalSide(e.side)
+    return { orient: h ? 'h' : 'v', fixed: h ? e.seg.a.y : e.seg.a.x, lo: h ? e.seg.a.x : e.seg.a.y, hi: h ? e.seg.b.x : e.seg.b.y }
+  }
+
+  // ---- the kitchen's connection to dining, set by the brief's kitchen type.
+  //      Placed before any other door so it has first claim on the shared
+  //      wall; if the chosen type cannot fit it falls back to the next
+  //      narrower one (open → glazed slide → door). ----
+  const kitchen = rooms.find((x) => !x.outdoor && kindOf(x.id) === 'kitchen')
+  let kitchenSpineDoor: 'keep' | 'replaced' | 'viaDining' = 'keep'
+  let kitchenDining: PlacedRoom | undefined
+  if (kitchen) {
+    kitchenDining = ['dining', 'livingDining'].map((id) => byId.get(id))
+      .find((o): o is PlacedRoom => !!o && (sharedEdge(kitchen.rect, o.rect)?.length ?? 0) >= 1200)
+    const target = kitchenDining ?? byId.get(spineId)
+    const e = target && sharedEdge(kitchen.rect, target.rect)
+    if (target && e) {
+      const line = lineOf(e)
+      const mid = (line.lo + line.hi) / 2
+      const base = `${kitchen.semanticId}_${kitchenDining ? 'DINING' : 'HALL'}`
+      const open = () => {
+        for (let w = Math.floor((line.hi - line.lo - 600) / 100) * 100; w >= 1500; w -= 300)
+          if (put(kitchen, target, line, w, false, 'door', `${base}_OPENING`, mid, 'open')) return true
+        return false
+      }
+      const semi = () => [1800, 1500, 1200].some((w) =>
+        put(kitchen, target, line, w, false, 'door', `${base}_OPENING`, mid, 'glazed-slide'))
+      const closed = () => put(kitchen, target, line, 800, true, 'door', `${base}_DOOR`, mid)
+      const ladder = kitchenType === 'open' ? [open, semi, closed] : kitchenType === 'semi' ? [semi, closed] : [closed]
+      const placed = ladder.findIndex((f) => f())
+      const opened = placed >= 0 && kitchenType === 'open' && placed === 0
+      // on the hall itself the connection IS the kitchen's door; through an
+      // open dining area the kitchen needs no second door
+      if (placed >= 0 && !kitchenDining) kitchenSpineDoor = 'replaced'
+      else if (opened) kitchenSpineDoor = 'viaDining'
+    }
   }
 
   // the main door first: it is the one opening that must not move
@@ -300,6 +340,7 @@ export function placeDoors(
   for (const r of rooms) {
     if (r.outdoor) continue
     for (const spec of doorSpecs(r, rooms, spineId, kindOf, parentOf)) {
+      if (r === kitchen && spec.to === spineId && kitchenSpineDoor !== 'keep') continue
       const to = byId.get(spec.to)
       const e = to && sharedEdge(r.rect, to.rect)
       if (!to || !e) {
@@ -318,6 +359,17 @@ export function placeDoors(
       if (!put(r, to, line, spec.width, spec.leaf, 'door', id, target) &&
         !put(r, to, line, Math.max(700, spec.width - 200), spec.leaf, 'door', id, target))
         failed.push(r.id)
+    }
+  }
+  // an open kitchen dropped its hall door on the strength of the dining room;
+  // if dining itself never got an opening, give the kitchen its door back
+  if (kitchen && kitchenDining && kitchenSpineDoor === 'viaDining') {
+    const diningReached = openings.some((o) => o.rooms?.includes(kitchenDining.id) && !o.rooms.includes(kitchen.id))
+    const hall = byId.get(spineId)
+    const e = hall && sharedEdge(kitchen.rect, hall.rect)
+    if (!diningReached && hall && e) {
+      const line = lineOf(e)
+      if (!put(kitchen, hall, line, 800, true, 'door', `${kitchen.semanticId}_DOOR`, (line.lo + line.hi) / 2)) failed.push(kitchen.id)
     }
   }
   // balconies open off their host room; a court opens off the spine

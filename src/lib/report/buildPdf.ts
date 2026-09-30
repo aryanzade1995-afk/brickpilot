@@ -1,7 +1,13 @@
 import { jsPDF } from 'jspdf'
 import { autoTable } from 'jspdf-autotable'
 import type { Brief } from '@/lib/model/brief.ts'
-import { BUILDING_TYPE_LABEL, CHARACTER_LABEL, DIRECTION_LABEL } from '@/lib/model/brief.ts'
+import {
+  BUDGET_SCOPE_LABEL, BUILDING_TYPE_LABEL, CHARACTER_LABEL, DIRECTION_LABEL, FINISH_LABEL,
+  GUESTS_LABEL, KITCHEN_LABEL, STAFF_LABEL, VASTU_LABEL,
+} from '@/lib/model/brief.ts'
+import { describeMembers } from '@/lib/model/household.ts'
+import { assessBudgetFit } from '@/lib/cost/budgetFit.ts'
+import { preferenceScore } from '@/lib/engine/score.ts'
 import type { Design } from '@/lib/engine/types.ts'
 import type { ValidationReport } from '@/lib/rules/index.ts'
 import type { CostEstimate } from '@/lib/cost/index.ts'
@@ -34,6 +40,9 @@ const ACCENT: [number, number, number] = [224, 82, 30]
 const INK: [number, number, number] = [26, 24, 22]
 const DIM: [number, number, number] = [110, 104, 96]
 const RULE: [number, number, number] = [210, 205, 196]
+const OK: [number, number, number] = [46, 125, 80]
+const WARN: [number, number, number] = [176, 120, 20]
+const BAD: [number, number, number] = [178, 48, 40]
 
 type Doc = jsPDF & { lastAutoTable?: { finalY: number } }
 
@@ -223,12 +232,34 @@ export async function buildReportPdf(data: ReportData): Promise<Blob> {
   doc.setFont('helvetica', 'bold').setFontSize(10).setTextColor(...INK)
   doc.text('Expected total', M, y)
   doc.text(money(cost.expected), W - M, y, { align: 'right' })
+  y += 16
+  // the client's budget against the expected total, with its status
+  const b = cost.budget
+  const status = b.status === 'within' ? 'Within budget' : b.status === 'tight' ? 'Tight' : 'Over budget'
+  const delta = b.deltaInr >= 0 ? `${moneyShort(b.deltaInr)} headroom` : `${moneyShort(-b.deltaInr)} over`
+  ensure(20)
+  doc.setFont('helvetica', 'bold').setFontSize(10).setTextColor(...(b.status === 'over' ? BAD : b.status === 'tight' ? WARN : OK))
+  doc.text('Budget vs estimate', M, y)
+  doc.text(`${moneyShort(b.amountInr)} vs ${moneyShort(b.expected)}  ·  ${status} (${delta})`, W - M, y, { align: 'right' })
   y += 20
   table(
     ['Included', 'Excluded'],
     zip(cost.included, cost.excluded),
   )
-  paragraph(`Sources — ${cost.sources.join(' · ')}`)
+  // Helvetica has no ₹ glyph; any ₹ in free text would garble the whole line
+  paragraph(`Sources — ${cost.sources.join(' · ').replaceAll('₹', 'Rs')}`)
+
+  /* ----------------------------- why this plan ----------------------------- */
+  const why = preferenceScore(design)
+  const whyTerms = why.terms.filter((t) => t.value !== 0)
+  if (whyTerms.length) {
+    heading('Why this plan', 80)
+    paragraph('Among every plan that passed the hard checks, this one scored best against the brief. Each term is small and additive.')
+    table(['Preference', 'Score'], [
+      ...whyTerms.map((t) => [t.name, `${t.value > 0 ? '+' : ''}${t.value}`]),
+      ['Total', String(why.total)],
+    ])
+  }
 
   /* -------------------------------- concepts ------------------------------ */
   if (data.conceptImages.length) {
@@ -245,6 +276,8 @@ export async function buildReportPdf(data: ReportData): Promise<Blob> {
 
 function briefRows(b: Brief): string[][] {
   const p = b.rooms.priorities
+  const l = b.lifestyle
+  const fit = assessBudgetFit(b)
   const on = (v: boolean) => (v ? 'Yes' : 'No')
   const wants = Object.entries({
     'Covered parking': p.coveredParking,
@@ -267,7 +300,8 @@ function briefRows(b: Brief): string[][] {
       'Setbacks (N/E/S/W)',
       `${b.site.setbacks.N} / ${b.site.setbacks.E} / ${b.site.setbacks.S} / ${b.site.setbacks.W} m`,
     ],
-    ['Occupants', String(b.spaces.occupants)],
+    ['Household', `${b.household.members.length} people: ${describeMembers(b)}`],
+    ['Guests / staff', `${GUESTS_LABEL[b.household.guests]} guests · ${STAFF_LABEL[b.household.staff].toLowerCase()}`],
     ['Living / dining', b.spaces.livingDining],
     ['Step-free', on(b.spaces.stepFree)],
     ['Storeys', `Ground + ${b.levels.storeys}`],
@@ -278,6 +312,11 @@ function briefRows(b: Brief): string[][] {
     ['Studies', String(b.rooms.studies)],
     ['Balcony', on(b.rooms.balcony)],
     ['Priorities', wants.join(', ') || '—'],
+    ['Kitchen', `${KITCHEN_LABEL[l.kitchen]}${l.dryWetSplit ? ', separate dry and wet kitchen' : ''}`],
+    ['Work from home', l.wfhCount ? `${l.wfhCount} ${l.wfhCount === 1 ? 'person' : 'people'}${l.clientVisits ? ', clients visit' : ''}` : 'No'],
+    ['Vastu', VASTU_LABEL[l.vastu]],
+    ['Budget', `Rs ${b.budget.amountLakh} lakh · ${BUDGET_SCOPE_LABEL[b.budget.scope].toLowerCase()} · ${FINISH_LABEL[b.budget.finish].toLowerCase()} finish`],
+    ['Budget fit', `${fit.status === 'comfortable' ? 'Comfortable' : fit.status === 'tight' ? 'Tight' : 'Over'}: ${fit.message.replaceAll('₹', 'Rs ')}`],
   ]
 }
 

@@ -7,20 +7,22 @@ import { Button } from '@/components/ui/Button.tsx'
 import { cx } from '@/lib/cx.ts'
 import { briefSiteIssues } from '@/lib/model/canonical.ts'
 import {
+  BudgetStep,
   EntryStep,
+  FamilyStep,
   LevelsStep,
+  LifestyleStep,
   ProjectStep,
   ReviewStep,
   RoomsStep,
   SiteStep,
-  SpacesStep,
   StyleStep,
 } from './brief/steps.tsx'
 
 const STEP_BODIES = [
   ProjectStep,
   SiteStep,
-  SpacesStep,
+  FamilyStep,
   LevelsStep,
   RoomsStep,
   StyleStep,
@@ -39,8 +41,28 @@ const STEP_TITLES = [
   'Review the brief',
 ]
 
+type SubStep = { label: string; title: string; Body: () => React.JSX.Element; isNew?: boolean }
+
+/** sub-tabs inside a top-level step — walked in order by Confirm / Back */
+const SUBSTEPS: Partial<Record<number, SubStep[]>> = {
+  0: [
+    { label: 'Project', title: 'What are we planning?', Body: ProjectStep },
+    { label: 'Budget', title: 'What can you spend?', Body: BudgetStep, isNew: true },
+  ],
+  2: [
+    { label: 'Family', title: 'Who lives here?', Body: FamilyStep },
+    { label: 'Lifestyle', title: 'How do you live day to day?', Body: LifestyleStep, isNew: true },
+  ],
+}
+
 export function Brief() {
-  const [step, setStep] = useState(0)
+  const [step, setStepState] = useState(0)
+  const [sub, setSub] = useState(0)
+  /** changing the top-level step always starts at its first sub-step */
+  const setStep = (s: number, subStep = 0) => {
+    setStepState(s)
+    setSub(subStep)
+  }
   const reset = useStudio((s) => s.reset)
   const explore = useStudio((s) => s.explore)
   const brief = useStudio((s) => s.brief)
@@ -48,18 +70,29 @@ export function Brief() {
   const navigate = useNavigate()
 
   const last = step === BRIEF_STEPS.length - 1
-  const Body = STEP_BODIES[step]
+  const subs = SUBSTEPS[step]
+  const active = subs?.[sub]
+  const Body = active?.Body ?? STEP_BODIES[step]
+  const title = active?.title ?? STEP_TITLES[step]
+  const atStart = step === 0 && sub === 0
 
   const next = () => {
-    if (last) {
+    if (subs && sub < subs.length - 1) {
+      setSub(sub + 1)
+    } else if (last) {
       const issues = briefSiteIssues(brief)
       if (issues.length) { setFormError(issues.join(' ')); return }
       setFormError(null)
       explore()
       navigate('/workspace/directions')
     } else {
-      setStep((s) => s + 1)
+      setStep(step + 1)
     }
+  }
+
+  const back = () => {
+    if (sub > 0) setSub(sub - 1)
+    else if (step > 0) setStep(step - 1, Math.max(0, (SUBSTEPS[step - 1]?.length ?? 1) - 1))
   }
 
   return (
@@ -76,7 +109,7 @@ export function Brief() {
                 type="button"
                 onClick={() => setStep(i)}
                 className={cx(
-                  'flex flex-none items-center gap-2 border px-2.5 py-1.5 font-mono text-[0.7rem] uppercase tracking-[0.1em] transition-colors',
+                  'flex flex-none items-center gap-1.5 border px-2 py-1.5 font-mono text-[0.7rem] uppercase tracking-[0.1em] transition-colors',
                   i === step
                     ? 'border-accent text-accent'
                     : i < step
@@ -123,7 +156,29 @@ export function Brief() {
       <div className="mx-auto max-w-[1400px] px-6 py-12 md:px-10 md:py-16">
         {formError && <p role="alert" className="mb-6 border-l-2 border-bad bg-bad/5 px-4 py-3 text-sm text-bad">{formError}</p>}
         <p className="label">Step {step + 1} of {BRIEF_STEPS.length}</p>
-        <h1 className="mt-3 font-display text-[clamp(2rem,4vw,3rem)]">{STEP_TITLES[step]}</h1>
+        <h1 className="mt-3 font-display text-[clamp(2rem,4vw,3rem)]">{title}</h1>
+
+        {subs && (
+          <div className="mt-6 flex gap-1 overflow-x-auto border-b border-line pb-px">
+            {subs.map((s, i) => (
+              <button
+                key={s.label}
+                type="button"
+                onClick={() => setSub(i)}
+                className={cx(
+                  'flex flex-none items-center gap-2 border-b-2 px-3 py-2.5 font-mono text-[0.7rem] uppercase tracking-[0.1em] transition-colors',
+                  i === sub ? 'border-accent text-accent' : 'border-transparent text-ink-faint hover:text-ink-dim',
+                )}
+              >
+                <span>{String(step + 1).padStart(2, '0')}.{i + 1}</span>
+                {s.label}
+                {s.isNew && (
+                  <span className="border border-accent px-1 py-px text-[0.55rem] leading-none text-accent">New</span>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="mt-10">
           <Body />
@@ -132,8 +187,8 @@ export function Brief() {
         <div className="mt-14 flex items-center justify-between border-t border-line pt-6">
           <button
             type="button"
-            onClick={() => setStep((s) => Math.max(0, s - 1))}
-            disabled={step === 0}
+            onClick={back}
+            disabled={atStart}
             className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.12em] text-ink-dim hover:text-ink disabled:opacity-30"
           >
             <ArrowLeft size={13} />

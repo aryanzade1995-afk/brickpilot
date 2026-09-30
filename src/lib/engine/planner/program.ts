@@ -232,6 +232,11 @@ export function programRequirements(nb: NormalizedBrief, stairSlot: number, sing
     else if (lift) unit('lift', [lift], 'A', true)
 
     unit('foyer', [byId.get('foyer')], 'B', false, true)
+    // a home office clients visit sits directly beside the foyer, pinned there
+    // (anchored, not movable) so balancing never carries it into the house
+    const clientStudy = level === 0 &&
+      nb.relationships.some((r) => r.kind === 'adjacent' && r.a === 'foyer' && r.b === 'study1')
+    if (clientStudy) unit('study1', [byId.get('study1')], 'B', false, true)
     unit('living', [byId.get('livingDining') ?? byId.get('living')], 'B', false)
     unit('lounge', [byId.get('familyLounge')], 'B', false)
     // kitchen suite: dining meets the spine first, utility at the far end

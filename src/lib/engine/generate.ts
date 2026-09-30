@@ -8,6 +8,7 @@ import { selectExteriorDirections } from './variation.ts'
 import type { Design } from './types.ts'
 import { planVilla, type PlateFamily } from './planner/index.ts'
 import { validate } from '../rules/index.ts'
+import { preferenceScore, strictVastuFailures, type PreferenceScore } from './score.ts'
 
 /* ------------------------------------------------------------------ *
  *  generate() — the deterministic rule + constraint planner
@@ -97,9 +98,16 @@ export function generateDirections(model: CanonicalModel, inspiration?: Inspirat
   }))
 }
 
-/** Try deterministic variants until one passes every mandatory validator;
- *  if none does, the least-failing plan is returned and reported as failing. */
-export function generate(model: CanonicalModel, opts: Strategy | GenerateOpts = {}): Design {
+export type Candidate = { design: Design; score: PreferenceScore; strictOk: boolean }
+
+/**
+ * Every deterministic variant that passes every mandatory validator, in
+ * generation order, each with its preference score. Empty when none pass.
+ */
+export function generateCandidates(model: CanonicalModel, opts: Strategy | GenerateOpts = {}): {
+  passing: Candidate[]
+  fallback: Design
+} {
   const o: GenerateOpts = typeof opts === 'string' ? { strategy: opts } : opts
   const requested = o.massing ??
     (o.strategy === 'wing-split' ? 'stepped' : o.strategy === 'orthogonal-core' ? 'rectangular' : model.brief.style.massing)
@@ -116,15 +124,27 @@ export function generate(model: CanonicalModel, opts: Strategy | GenerateOpts = 
     families = [first, ...pool.filter((f) => f !== first)]
   } else families = [FAMILY_OF[requested]]
 
+  // Vastu needs more orientations / mirrors to choose from
+  const attempts = model.brief.lifestyle.vastu === 'ignore' ? 6 : 12
+  const cap = model.brief.lifestyle.vastu === 'strict' ? MAX_CANDIDATES_STRICT : MAX_CANDIDATES
+  const passing: Candidate[] = []
+  const seen = new Set<string>()
   let best: Design | null = null
   let bestErrors = Infinity
   let bestWarnings = Infinity
   for (const family of families) {
-    for (let attempt = 0; attempt < 6; attempt++) {
+    for (let attempt = 0; attempt < attempts && passing.length < cap; attempt++) {
       const d = generateOne(model, family, seed + attempt * 31, briefKey)
       if (!d) continue
       const report = validate(d, { checkFacade: false })
-      if (report.hardChecksPass) return d
+      if (report.hardChecksPass) {
+        // different seeds can land on the same layout; score each layout once
+        const key = layoutKey(d)
+        if (seen.has(key)) continue
+        seen.add(key)
+        passing.push({ design: d, score: preferenceScore(d), strictOk: strictVastuFailures(d).length === 0 })
+        continue
+      }
       if (report.counts.error < bestErrors || (report.counts.error === bestErrors && report.counts.warning < bestWarnings)) {
         best = d
         bestErrors = report.counts.error
@@ -132,7 +152,35 @@ export function generate(model: CanonicalModel, opts: Strategy | GenerateOpts = 
       }
     }
   }
-  return best ?? generateOne(model, 'rectangular', seed, briefKey, true)!
+  return { passing, fallback: best ?? generateOne(model, 'rectangular', seed, briefKey, true)! }
+}
+
+/** rooms and their rectangles — two candidates with the same key are the same plan */
+const layoutKey = (d: Design) =>
+  d.floors.map((f) => f.rooms.map((r) => `${r.id}${r.rect.x},${r.rect.y},${r.rect.w},${r.rect.h}`).join(';')).join('|')
+
+/**
+ * Upper bound on scored candidates, so generation stays fast (Case A: ~0.25 s
+ * at 12, ~0.6 s at 24). Strict Vastu searches further: in Case A the best
+ * strict-compliant plan scored 8.4 within 24 candidates but only 6.6 within 12.
+ */
+export const MAX_CANDIDATES = 12
+export const MAX_CANDIDATES_STRICT = 24
+
+/**
+ * The best-scoring plan among every variant that passes the mandatory
+ * validators (ties go to the earliest, so the result is deterministic).
+ * Strict Vastu first drops candidates with a north-east toilet or a
+ * misplaced kitchen; if that drops all of them the best one is kept and
+ * the validator reports VASTU_STRICT_UNMET. If nothing passes, the
+ * least-failing plan is returned and reported as failing.
+ */
+export function generate(model: CanonicalModel, opts: Strategy | GenerateOpts = {}): Design {
+  const { passing, fallback } = generateCandidates(model, opts)
+  if (!passing.length) return fallback
+  const strict = model.brief.lifestyle.vastu === 'strict'
+  const pool = strict && passing.some((c) => c.strictOk) ? passing.filter((c) => c.strictOk) : passing
+  return pool.reduce((a, b) => (b.score.total > a.score.total ? b : a)).design
 }
 
 function generateOne(model: CanonicalModel, family: PlateFamily, seed: number, briefKey: string, force = false): Design | null {

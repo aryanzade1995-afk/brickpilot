@@ -143,9 +143,12 @@ test('doors sit on the wall two rooms share and swing into the room they serve',
       const e = sharedEdge(a.rect, b.rect)
       assert.ok(e, o.id)
       assert.equal(o.orient, e.side === 'N' || e.side === 'S' ? 'h' : 'v', o.id)
-      assert.ok(o.width <= 1000, `${o.id} is too wide`)
+      // the kitchen type (T5) deliberately joins kitchen and dining through
+      // their partition, wider than a door when it is a glazed slide / open gap
+      const kitchenDining = [a.id, b.id].includes('kitchen') && [a.id, b.id].some((id) => id === 'dining' || id === 'livingDining')
+      assert.ok(o.width <= 1000 || (kitchenDining && o.treatment), `${o.id} is too wide`)
       const attachedBath = (a.zone === 'private' && /bath/i.test(b.id)) || (b.zone === 'private' && /bath/i.test(a.id))
-      assert.ok(o.orient !== 'v' || a.zone === 'circulation' || b.zone === 'circulation' || attachedBath || a.outdoor || b.outdoor,
+      assert.ok(o.orient !== 'v' || a.zone === 'circulation' || b.zone === 'circulation' || attachedBath || kitchenDining || a.outdoor || b.outdoor,
         `${o.id} cuts a vertical room partition`)
       // bedrooms are entered from circulation (or open to their own bath / balcony)
       if (a.zone === 'private') assert.ok(b.zone === 'circulation' || b.outdoor || /bath/.test(b.id), o.id)
@@ -190,7 +193,13 @@ test('mandatory validators reject corrupted plans', () => {
   }
   const door = (d, id) => d.floors[1].openings.find((o) => o.id === id)
   assert.ok(mutate((d) => { d.floors[1].footprint[0].w += 3000 }).has('UPPER_FLOOR_UNSUPPORTED'))
-  assert.ok(mutate((d) => { d.floors[0].rooms.find((r) => r.id === 'kitchen').rect.x -= 1500 }).has('ROOM_OVERLAP'))
+  // push the kitchen into whichever room shares its wall (layout-independent)
+  assert.ok(mutate((d) => {
+    const rooms = d.floors[0].rooms.filter((r) => !r.outdoor)
+    const k = rooms.find((r) => r.id === 'kitchen')
+    const n = rooms.find((r) => r !== k && sharedEdge(k.rect, r.rect))
+    k.rect = { ...k.rect, x: n.rect.x, y: n.rect.y }
+  }).has('ROOM_OVERLAP'))
   assert.ok(mutate((d) => { door(d, 'FF_MASTER_BED_DOOR').at.y += 1000 }).has('DOOR_WRONG_WALL'))
   assert.ok(mutate((d) => {
     const o = door(d, 'FF_MASTER_BED_DOOR')
@@ -235,4 +244,83 @@ test('the 3D model is built from the same semantic plan', () => {
   const spanZ = Math.max(...zs) - Math.min(...zs)
   assert.ok(spanX <= stair.rect.w / 1000 + 1e-6 && spanZ <= stair.rect.h / 1000 + 1e-6)
   assert.equal(validate(d).findings.filter((f) => f.code === 'PLAN_3D_OPENING_MISMATCH').length, 0)
+})
+
+/* T5: the brief's kitchen type sets the kitchen's connection to dining */
+
+const kitchenDesign = (kitchen, patch = {}) => {
+  const b = defaultBrief()
+  b.site.plotWidth = 18
+  b.site.plotDepth = 24
+  b.lifestyle.kitchen = kitchen
+  Object.assign(b.lifestyle, patch)
+  return generate(compile(b))
+}
+const isDining = (id) => id === 'dining' || id === 'livingDining'
+const kitchenLinks = (d) => d.floors[0].openings.filter((o) =>
+  o.kind === 'door' && o.rooms.includes('kitchen') && o.rooms.some(isDining))
+
+test('every kitchen type yields a plan that passes every hard check', () => {
+  for (const kitchen of ['open', 'semi', 'closed']) {
+    const r = validate(kitchenDesign(kitchen))
+    assert.deepEqual(r.findings.filter((f) => f.severity === 'error').map((f) => f.code), [], kitchen)
+    assert.ok(!r.findings.some((f) => f.code === 'KITCHEN_TYPE_DOWNGRADED'), `${kitchen} fits without downgrading`)
+  }
+})
+
+test('semi-open: exactly one glazed sliding opening between kitchen and dining, hall door kept', () => {
+  const d = kitchenDesign('semi')
+  const links = kitchenLinks(d)
+  assert.equal(links.length, 1)
+  assert.equal(links[0].treatment, 'glazed-slide')
+  assert.equal(links[0].leaf, false)
+  assert.ok(links[0].width >= 1200 && links[0].width <= 1800)
+  assert.equal(d.floors[0].openings.filter((o) => o.treatment === 'glazed-slide').length, 1)
+  assert.ok(d.floors[0].openings.some((o) => o.id === 'GF_KITCHEN_DOOR' && o.rooms.includes('corridor')), 'the hall door stays')
+})
+
+test('open: one open gap of at least 1500 mm, no hall door while dining is reachable', () => {
+  const d = kitchenDesign('open')
+  const links = kitchenLinks(d)
+  assert.equal(links.length, 1)
+  assert.equal(links[0].treatment, 'open')
+  assert.ok(links[0].width >= 1500, `${links[0].width} mm`)
+  assert.ok(!d.floors[0].openings.some((o) => o.rooms.includes('kitchen') && o.rooms.includes('corridor')))
+  assert.ok(!d.floors[0].unreachableRooms.includes('kitchen'))
+})
+
+test('closed: an 800 mm door to dining in addition to the hall door', () => {
+  const d = kitchenDesign('closed')
+  const links = kitchenLinks(d)
+  assert.equal(links.length, 1)
+  assert.equal(links[0].width, 800)
+  assert.notEqual(links[0].leaf, false)
+  assert.equal(links[0].treatment, undefined)
+  assert.ok(d.floors[0].openings.some((o) => o.rooms.includes('kitchen') && o.rooms.includes('corridor')))
+})
+
+test('a kitchen built narrower than the brief asked for is reported as downgraded', () => {
+  const d = structuredClone(kitchenDesign('semi'))
+  d.model.brief.lifestyle.kitchen = 'open'
+  const f = validate(d).findings.find((x) => x.code === 'KITCHEN_TYPE_DOWNGRADED')
+  assert.ok(f)
+  assert.equal(f.severity, 'warning')
+})
+
+test('a dry / wet split turns the utility into a larger, windowed wet kitchen', () => {
+  const b = defaultBrief()
+  b.lifestyle.dryWetSplit = true
+  const u = compile(b).floors[0].spaces.find((s) => s.id === 'utility')
+  assert.equal(u.name, 'Wet kitchen / utility')
+  assert.deepEqual([u.min, u.target, u.max], [5, 7, 11])
+  assert.equal(u.wantsWindow, true)
+  const plain = compile(defaultBrief()).floors[0].spaces.find((s) => s.id === 'utility')
+  assert.equal(plain.name, 'Utility')
+  assert.equal(validate(kitchenDesign('semi', { dryWetSplit: true })).hardChecksPass, true)
+})
+
+test('glazed slides become glass in 3D; open kitchens leave the partition gap empty', () => {
+  const glass = (d) => buildMassing(d).boxes.filter((x) => x.kind === 'glass' && x.id.includes('-slide')).length
+  assert.equal(glass(kitchenDesign('semi')), 1)
+  assert.equal(glass(kitchenDesign('open')), 0)
 })

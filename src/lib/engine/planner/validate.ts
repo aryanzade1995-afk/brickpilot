@@ -137,9 +137,13 @@ export function planFindings(design: Design): PlanFinding[] {
           alongOf(o) + o.width / 2 <= (h ? e.seg.b.x : e.seg.b.y) + 1
         if (!fits) add('DOOR_WRONG_WALL', 'topology', `${label} is not on the wall shared by ${a.name} and ${b.name}.`, a.id)
         const attachedBath = (a.zone === 'private' && WET_BATH(b)) || (b.zone === 'private' && WET_BATH(a))
-        if (o.orient === 'v' && !isCirculation(a) && !isCirculation(b) && !attachedBath && !a.outdoor && !b.outdoor)
+        // the brief's kitchen type deliberately joins kitchen and dining through
+        // their shared partition, as a door, a glazed slide or an open gap
+        const ids = [a.id, b.id]
+        const kitchenDining = ids.includes('kitchen') && (ids.includes('dining') || ids.includes('livingDining'))
+        if (o.orient === 'v' && !isCirculation(a) && !isCirculation(b) && !attachedBath && !kitchenDining && !a.outdoor && !b.outdoor)
           add('VERTICAL_ROOM_PARTITION_DOOR', 'topology', `${label} cuts the vertical partition between ${a.name} and ${b.name}.`, a.id)
-        if (o.width > 1000)
+        if (o.width > 1000 && !(o.treatment && ids.includes('kitchen')))
           add('DOOR_TOO_WIDE', 'topology', `${label} is ${o.width} mm wide; internal openings are limited to 1000 mm.`, a.id)
       }
       if ((o.kind === 'window' || o.kind === 'entry') && a) {

@@ -10,7 +10,7 @@
     "build": "tsc -b && vite build",
     "start": "node server/index.mjs",
     "lint": "oxlint",
-    "test": "node --experimental-strip-types --test scripts/test-generation.mjs scripts/test-planner.mjs scripts/test-providers.mjs",
+    "test": "node --experimental-strip-types --test scripts/test-generation.mjs scripts/test-planner.mjs scripts/test-providers.mjs scripts/test-brief-v2.mjs scripts/test-cost.mjs scripts/test-score.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

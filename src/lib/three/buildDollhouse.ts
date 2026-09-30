@@ -146,6 +146,8 @@ export function buildDollhouse(design: Design, only?: number): Dollhouse {
         gaps.push([dAlong - d.width / 2 - 40, dAlong + d.width / 2 + 40])
         // a slim teak frame + a leaf standing open — draw once per physical door
         const key = `${Math.round(d.at.x)},${Math.round(d.at.y)}`
+        // an open kitchen is just a gap in the wall — no frame, no leaf
+        if (d.treatment === 'open') framedDoors.add(key)
         if (!framedDoors.has(key)) {
           framedDoors.add(key)
           const dw = m(d.width)
@@ -163,6 +165,7 @@ export function buildDollhouse(design: Design, only?: number): Dollhouse {
             // the leaf, hinged at one jamb and swung fully open into the room
             const hingeX = fx + (d.hinge === 'b' ? dw / 2 : -dw / 2)
             if (d.leaf !== false) push(`door-leaf-${key}`, 'door', [hingeX, jz, fy + (d.swing ?? 1) * (dw / 2 + leafT)], [leafT, hgt - 0.06, dw])
+            if (d.treatment === 'glazed-slide') push(`door-glass-${key}`, 'glass', [fx, jz, fy], [dw, hgt - 0.06, 0.03])
           } else {
             const fx = wx(fixed)
             const fy = wz(d.at.y)
@@ -172,6 +175,7 @@ export function buildDollhouse(design: Design, only?: number): Dollhouse {
             push(`door-sill-${key}`, 'door', [fx, baseY + 0.01, fy], [t + 0.12, 0.03, dw])
             const hingeZ = fy + (d.hinge === 'b' ? dw / 2 : -dw / 2)
             if (d.leaf !== false) push(`door-leaf-${key}`, 'door', [fx + (d.swing ?? 1) * (dw / 2 + leafT), jz, hingeZ], [dw, hgt - 0.06, leafT])
+            if (d.treatment === 'glazed-slide') push(`door-glass-${key}`, 'glass', [fx, jz, fy], [0.03, hgt - 0.06, dw])
           }
         }
       }

@@ -87,6 +87,86 @@ export const diversitySchema = z.enum(['low', 'medium', 'high', 'extreme'])
 export const personalitySchema = z.enum(['balanced', 'minimal', 'elegant', 'bold', 'dramatic', 'warm', 'luxurious', 'tropical'])
 export type DesignPersonality = z.infer<typeof personalitySchema>
 
+/* ---------------------- household / lifestyle / budget ---------------------- */
+
+export const memberRoleSchema = z.enum(['adult', 'senior', 'teen', 'child', 'infant'])
+export type MemberRole = z.infer<typeof memberRoleSchema>
+export const MEMBER_ROLE_LABEL: Record<MemberRole, string> = {
+  adult: 'Adult',
+  senior: 'Senior',
+  teen: 'Teen',
+  child: 'Child',
+  infant: 'Infant',
+}
+
+/** a senior needs the ground floor unless the brief says otherwise */
+export const memberSchema = z.preprocess(
+  (v) =>
+    v && typeof v === 'object' && !('needsGroundFloor' in v) && (v as { role?: unknown }).role === 'senior'
+      ? { ...v, needsGroundFloor: true }
+      : v,
+  z.object({
+    role: memberRoleSchema.default('adult'),
+    needsGroundFloor: z.boolean().default(false),
+  }),
+)
+export type Member = z.infer<typeof memberSchema>
+
+export const guestsSchema = z.enum(['rare', 'occasional', 'frequent'])
+export type Guests = z.infer<typeof guestsSchema>
+export const GUESTS_LABEL: Record<Guests, string> = {
+  rare: 'Rarely',
+  occasional: 'Occasionally',
+  frequent: 'Frequently',
+}
+
+export const staffSchema = z.enum(['none', 'daily', 'liveIn'])
+export type Staff = z.infer<typeof staffSchema>
+export const STAFF_LABEL: Record<Staff, string> = {
+  none: 'None',
+  daily: 'Daily help',
+  liveIn: 'Live-in staff',
+}
+
+export const kitchenSchema = z.enum(['open', 'semi', 'closed'])
+export type KitchenType = z.infer<typeof kitchenSchema>
+export const KITCHEN_LABEL: Record<KitchenType, string> = {
+  open: 'Open',
+  semi: 'Semi-open',
+  closed: 'Closed',
+}
+
+export const vastuSchema = z.enum(['ignore', 'prefer', 'strict'])
+export type VastuPreference = z.infer<typeof vastuSchema>
+export const VASTU_LABEL: Record<VastuPreference, string> = {
+  ignore: 'Ignore',
+  prefer: 'Prefer',
+  strict: 'Strict',
+}
+
+export const budgetScopeSchema = z.enum(['construction', 'withInteriors', 'all'])
+export type BudgetScope = z.infer<typeof budgetScopeSchema>
+export const BUDGET_SCOPE_LABEL: Record<BudgetScope, string> = {
+  construction: 'Construction only',
+  withInteriors: 'Construction + interiors',
+  all: 'Everything',
+}
+
+export const finishSchema = z.enum(['basic', 'mid', 'premium'])
+export type Finish = z.infer<typeof finishSchema>
+export const FINISH_LABEL: Record<Finish, string> = {
+  basic: 'Basic',
+  mid: 'Mid-range',
+  premium: 'Premium',
+}
+
+const DEFAULT_MEMBERS: Member[] = [
+  { role: 'adult', needsGroundFloor: false },
+  { role: 'adult', needsGroundFloor: false },
+  { role: 'child', needsGroundFloor: false },
+  { role: 'child', needsGroundFloor: false },
+]
+
 /**
  * Raw wizard input. Every leaf has a default so `briefSchema.parse({})`
  * yields a complete, valid brief.
@@ -171,6 +251,29 @@ export const briefSchema = z
         mainDoorWidth: z.number().min(900).max(1500).default(1200),
       })
       .prefault({}),
+    household: z
+      .object({
+        members: z.array(memberSchema).min(1).max(20).default(() => DEFAULT_MEMBERS.map((m) => ({ ...m }))),
+        guests: guestsSchema.default('occasional'),
+        staff: staffSchema.default('none'),
+      })
+      .prefault({}),
+    lifestyle: z
+      .object({
+        kitchen: kitchenSchema.default('semi'),
+        dryWetSplit: z.boolean().default(false),
+        wfhCount: z.number().int().min(0).max(4).default(0),
+        clientVisits: z.boolean().default(false),
+        vastu: vastuSchema.default('prefer'),
+      })
+      .prefault({}),
+    budget: z
+      .object({
+        amountLakh: z.number().min(10).max(2000).default(80),
+        scope: budgetScopeSchema.default('construction'),
+        finish: finishSchema.default('mid'),
+      })
+      .prefault({}),
     /** internal variation index — bumped to reroll geometry from the same brief */
     variation: z.number().int().min(0).default(0),
   })
@@ -180,10 +283,13 @@ export type Brief = z.infer<typeof briefSchema>
 
 export const defaultBrief = (): Brief => briefSchema.parse({})
 
+/** people in the household — `spaces.occupants` is kept only for old briefs */
+export const occupantCount = (brief: Brief): number => brief.household.members.length
+
 export const BRIEF_STEPS = [
   { key: 'project', label: 'Project' },
   { key: 'site', label: 'Site' },
-  { key: 'spaces', label: 'Spaces' },
+  { key: 'spaces', label: 'Household' },
   { key: 'levels', label: 'Levels' },
   { key: 'rooms', label: 'Rooms' },
   { key: 'style', label: 'Style' },

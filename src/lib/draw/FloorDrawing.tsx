@@ -260,9 +260,31 @@ function OpeningMark({ o, ink, bg, theme }: { o: Opening; ink: string; bg: strin
       ? [o.at.x - half, o.at.y, o.at.x + half, o.at.y]
       : [o.at.x, o.at.y - half, o.at.x, o.at.y + half]
     const t = 150
+    // point `along` the opening and `perp` off the wall line, in plan mm
+    const P = (along: number, perp: number) => o.orient === 'h'
+      ? { x: o.at.x + along, y: o.at.y + perp }
+      : { x: o.at.x + perp, y: o.at.y + along }
+    const L = (a: { x: number; y: number }, b: { x: number; y: number }, props: Record<string, string | number>) =>
+      <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} {...props} />
     return (
       <g>
         <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={eraseColor} strokeWidth={340} />
+        {/* glazed sliding screen: two thin overlapping panels + a slide arrow */}
+        {o.treatment === 'glazed-slide' && (
+          <g stroke={ink} strokeWidth={18} fill="none">
+            {L(P(-half, -45), P(half * 0.1, -45), {})}
+            {L(P(-half * 0.1, 45), P(half, 45), {})}
+            {L(P(-half * 0.45, -130), P(half * 0.05, -130), {})}
+            <path d={(() => {
+              const tip = P(half * 0.05, -130)
+              const a = P(half * 0.05 - 110, -190)
+              const b = P(half * 0.05 - 110, -70)
+              return `M ${a.x} ${a.y} L ${tip.x} ${tip.y} L ${b.x} ${b.y}`
+            })()} />
+          </g>
+        )}
+        {/* fully open to the next room: a dashed line where the wall would be */}
+        {o.treatment === 'open' && L(P(-half, 0), P(half, 0), { stroke: ink, strokeWidth: 22, strokeDasharray: '90 70' })}
         {o.orient === 'h' ? (
           <>
             <line x1={x1} y1={y1 - t} x2={x1} y2={y1 + t} stroke={ink} strokeWidth={30} />

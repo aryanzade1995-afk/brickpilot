@@ -9,6 +9,7 @@ import { cx } from '@/lib/cx.ts'
 import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
 import { InvalidPlanNotice } from '@/components/InvalidPlanNotice.tsx'
 import type { Severity } from '@/lib/rules/index.ts'
+import { preferenceScore } from '@/lib/engine/score.ts'
 
 const SEV_COLOR: Record<Severity, string> = {
   error: 'text-bad',
@@ -41,6 +42,9 @@ export function Plan() {
   if (!result.report.hardChecksPass) return <InvalidPlanNotice report={result.report} />
 
   const { design, report, cost, model } = result
+  // cheap to compute; not a hook, so it is fine after the early returns
+  const why = preferenceScore(design)
+  const whyTerms = why.terms.filter((t) => t.value !== 0)
 
   return (
     <div className="mx-auto max-w-[1400px] px-6 py-8 md:px-10">
@@ -58,6 +62,20 @@ export function Plan() {
           {report.hardChecksPass ? '● Hard checks pass' : '● Hard checks fail'}
         </div>
         <Metric k="Cost band" v={formatRange(cost.total.low, cost.total.high, formatINRShort)} />
+        <div>
+          <span className="label">Budget</span>
+          <div className="mt-0.5 flex items-baseline gap-2 font-mono text-sm text-ink tnum">
+            <span>{formatINRShort(cost.budget.amountInr)} vs {formatINRShort(cost.budget.expected)}</span>
+            <span
+              className={cx(
+                'text-xs uppercase tracking-[0.1em]',
+                cost.budget.status === 'within' ? 'text-ok' : cost.budget.status === 'tight' ? 'text-warn' : 'text-bad',
+              )}
+            >
+              ● {cost.budget.status === 'within' ? 'Within' : cost.budget.status === 'tight' ? 'Tight' : 'Over'}
+            </span>
+          </div>
+        </div>
         <Metric k="Built area" v={`${design.builtAreaSqm.toFixed(1)} m²`} />
         <Metric k="Height" v={`${design.heightM} m`} />
         <Metric k="Coverage" v={`${(design.coverage * 100).toFixed(0)} %`} />
@@ -129,6 +147,23 @@ export function Plan() {
             <RecRow k="Footprint" v={`${design.footprintSqm.toFixed(1)} m²`} />
             <RecRow k="Openings" v={`${design.openingCounts.doors} doors · ${design.openingCounts.windows} windows`} />
             <RecRow k="Rooms" v={String(design.floors.reduce((n, f) => n + f.rooms.length, 0))} />
+          </Panel>
+
+          <Panel title="Why this plan">
+            {whyTerms.length === 0 ? (
+              <p className="text-xs text-ink-dim">No orientation or lifestyle preferences changed the choice.</p>
+            ) : (
+              whyTerms.map((t) => (
+                <Row2 key={t.name} k={t.name}>
+                  <span className={cx('font-mono text-xs tnum', t.value > 0 ? 'text-ok' : 'text-bad')}>
+                    {t.value > 0 ? '+' : ''}{t.value}
+                  </span>
+                </Row2>
+              ))
+            )}
+            <Row2 k="Preference score">
+              <span className="font-mono text-xs text-ink tnum">{why.total}</span>
+            </Row2>
           </Panel>
 
           <button

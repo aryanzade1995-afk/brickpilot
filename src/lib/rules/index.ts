@@ -3,6 +3,8 @@ import type { CanonicalModel, SpaceReq } from '../model/canonical.ts'
 import type { Design } from '../engine/types.ts'
 import { planFindings } from '../engine/planner/validate.ts'
 import { validateVillaVariation } from '../engine/facade/grammar.ts'
+import { roomQuadrant } from '../engine/orientation.ts'
+import { strictVastuFailures } from '../engine/score.ts'
 
 export type Severity = 'error' | 'warning' | 'info'
 export type FindingCategory =
@@ -241,6 +243,41 @@ export function validate(design: Design, options: { checkFacade?: boolean } = {}
     add('NO_ENTRY_DOOR', 'error', 'egress', 'No entry door was placed on the ground floor.')
   }
 
+  // --- vastu: strict Vastu could not be met by any valid plan (the generator
+  //     prefers plans that meet it; this reports when none could) ---
+  if (design.model.brief.lifestyle.vastu === 'strict') {
+    const failed = strictVastuFailures(design)
+    if (failed.length)
+      add('VASTU_STRICT_UNMET', 'warning', 'vastu',
+        `Strict Vastu was requested but no valid plan meets it: ${failed.join('; ')}.`)
+  }
+
+  // --- planning: the kitchen's connection is narrower than the brief asked for
+  //     (the planner falls back open → glazed slide → door when a type won't fit) ---
+  const kitchenRank = { closed: 0, semi: 1, open: 2 } as const
+  const wantKitchen = design.model.brief.lifestyle.kitchen
+  if (ground.rooms.some((r) => r.id === 'kitchen') && wantKitchen !== 'closed') {
+    const link = ground.openings.find((o) => o.kind === 'door' && o.rooms?.includes('kitchen') &&
+      (!!o.treatment || o.rooms.some((id) => id === 'dining' || id === 'livingDining')))
+    const got = link?.treatment === 'open' ? 'open' : link?.treatment === 'glazed-slide' ? 'semi' : 'closed'
+    if (kitchenRank[got] < kitchenRank[wantKitchen])
+      add('KITCHEN_TYPE_DOWNGRADED', 'warning', 'planning',
+        `A ${wantKitchen === 'open' ? 'fully open' : 'semi-open'} kitchen could not fit on the shared wall; it was built as ${got === 'semi' ? 'semi-open (glazed slide)' : 'closed (a door)'}.`, 'kitchen')
+  }
+
+  // --- planning: someone who cannot use the stairs needs a ground-floor
+  //     bedroom with its own bathroom ---
+  const needsGround = design.model.brief.household.members.filter((m) => m.needsGroundFloor).length
+  if (needsGround > 0) {
+    const groundIds = new Set(ground.rooms.map((r) => r.id))
+    const groundBedWithBath = ground.rooms.some((r) => r.zone === 'private' && !r.outdoor &&
+      design.model.relationships.some((rel) => rel.kind === 'adjacent' && rel.a === r.id &&
+        groundIds.has(rel.b) && /^bath\d/.test(rel.b)))
+    if (!groundBedWithBath)
+      add('GROUND_FLOOR_BEDROOM_MISSING', 'error', 'planning',
+        `${needsGround} ${needsGround === 1 ? 'member needs' : 'members need'} the ground floor, but no ground-floor bedroom has an attached bath. Add a bedroom with attached bath.`)
+  }
+
   // --- mandatory plan validators: tiling, support, columns, beams, openings,
   //     door swings, privacy, ventilation, stair core, semantic ids ---
   for (const f of planFindings(design)) add(f.code, 'error', f.category, f.message, f.roomId)
@@ -324,66 +361,44 @@ export function validate(design: Design, options: { checkFacade?: boolean } = {}
  *  each room's plan quadrant back to real compass bearings.
  * ------------------------------------------------------------------ */
 
-const ROTATE: Record<string, Record<string, string>> = {
-  S: { N: 'N', E: 'E', S: 'S', W: 'W' },
-  N: { N: 'S', E: 'W', S: 'N', W: 'E' },
-  E: { N: 'W', E: 'N', S: 'E', W: 'S' },
-  W: { N: 'E', E: 'S', S: 'W', W: 'N' },
-}
-
 function vastuNotes(
   design: Design,
   add: (c: string, s: Severity, cat: FindingCategory, m: string, id?: string) => void,
 ) {
   const ground = design.floors[0]
   if (!ground) return
-  const rot = ROTATE[design.model.entrySide] ?? ROTATE.S
-  const o = ground.outline
-  const cx = o.x + o.w / 2
-  const cy = o.y + o.h / 2
 
-  /** real-compass corner of a room's centroid, always ordered N/S then E/W */
-  const corner = (r: { rect: { x: number; y: number; w: number; h: number } }): string => {
-    const rx = r.rect.x + r.rect.w / 2
-    const ry = r.rect.y + r.rect.h / 2
-    const a = rot[ry < cy ? 'N' : 'S']
-    const b = rot[rx < cx ? 'W' : 'E']
-    const ns = a === 'N' || a === 'S' ? a : b === 'N' || b === 'S' ? b : ''
-    const ew = a === 'E' || a === 'W' ? a : b === 'E' || b === 'W' ? b : ''
-    return ns + ew
-  }
-
-  // acceptable = the ideal corner plus its two axis-neighbours; only the
-  // opposite corner trips a note.
+  // acceptable = the ideal corner, its own edges (S / E for SE) and the two
+  // neighbouring corners; anything else — including the centre — trips a note
   const OK: Record<string, string[]> = {
-    SE: ['SE', 'NE', 'SW'],
-    NE: ['NE', 'NW', 'SE'],
-    SW: ['SW', 'SE', 'NW'],
+    SE: ['SE', 'S', 'E', 'NE', 'SW'],
+    NE: ['NE', 'N', 'E', 'NW', 'SE'],
+    SW: ['SW', 'S', 'W', 'SE', 'NW'],
   }
-  const note = (id: string, ideal: keyof typeof OK, label: string, hint: string) => {
-    const room = ground.rooms.find((r) => r.id === id)
-    if (!room) return
-    const c = corner(room)
-    if (OK[ideal].includes(c)) return
+  const note = (id: string, level: number, ideal: keyof typeof OK, label: string, hint: string) => {
+    const c = roomQuadrant(design, id, level)
+    if (!c || OK[ideal].includes(c)) return
     add('VASTU_ORIENTATION', 'info', 'vastu', `${label} sits toward the ${compass(c)} — ${hint}`, id)
   }
 
-  note('kitchen', 'SE', 'Kitchen', 'vastu favours the south-east (agni) corner.')
-  note('pooja', 'NE', 'Pooja room', 'vastu favours the north-east (ishanya) corner.')
-  note('bed1', 'SW', 'Master bedroom', 'vastu favours the south-west (nairitya) corner.')
+  note('kitchen', 0, 'SE', 'Kitchen', 'vastu favours the south-east (agni) corner.')
+  note('pooja', 0, 'NE', 'Pooja room', 'vastu favours the north-east (ishanya) corner.')
+  // a room lives on one floor; the master is usually upstairs
+  const masterFloor = design.model.floors.find((f) => f.spaces.some((s) => s.role === 'master'))
+  const master = masterFloor?.spaces.find((s) => s.role === 'master')
+  if (master && masterFloor) note(master.id, masterFloor.level, 'SW', 'Master bedroom', 'vastu favours the south-west (nairitya) corner.')
 
   // toilets in the north-east are the classic vastu dosha
   for (const r of ground.rooms) {
     const isToilet = r.zone === 'service' && /bath|toilet|wc/i.test(r.id + r.name)
     if (!isToilet) continue
-    if (corner(r) === 'NE') {
+    if (roomQuadrant(design, r.id, 0) === 'NE') {
       add('VASTU_ORIENTATION', 'info', 'vastu', `${r.name} is in the north-east — vastu treats a toilet here as a dosha.`, r.id)
     }
   }
 }
-
 const compass = (c: string): string =>
-  ({ N: 'north', E: 'east', S: 'south', W: 'west', NE: 'north-east', NW: 'north-west', SE: 'south-east', SW: 'south-west' })[c] ?? c
+  ({ N: 'north', E: 'east', S: 'south', W: 'west', NE: 'north-east', NW: 'north-west', SE: 'south-east', SW: 'south-west', C: 'centre' })[c] ?? c
 
 const sev = (s: Severity) => (s === 'error' ? 0 : s === 'warning' ? 1 : 2)
 

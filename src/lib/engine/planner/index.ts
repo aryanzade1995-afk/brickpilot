@@ -207,7 +207,7 @@ export function planVilla(model: CanonicalModel, request: PlanRequest): PlanResu
       ? { x: stairRoom.rect.x + stairRoom.rect.w / 2, y: stairRoom.rect.y + stairRoom.rect.h / 2 }
       : { x: spineRoom.rect.x, y: spineRoom.rect.y }
     const { openings: doors, failed } = placeDoors(rooms, req.spine.id, prefix, columns, occ, kindOf, parentOf,
-      level === 0 ? { width: nb.mainDoorMm } : null, coreTarget)
+      level === 0 ? { width: nb.mainDoorMm } : null, coreTarget, model.brief.lifestyle.kitchen)
     const windows = placeWindows(rooms, walls, columns, occ, kindOf, request.themeWindowMm, request.dna, lowerOpenings)
     const openings = [...doors, ...windows]
     const shafts = planShafts(rooms, walls, openings, kindOf, lowerRooms)

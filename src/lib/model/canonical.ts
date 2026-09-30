@@ -38,6 +38,8 @@ export type SpaceReq = {
   wet: boolean
   /** must sit on the building outline, not landlocked (parking, verandah) */
   outdoor: boolean
+  /** who a bedroom is for — find the master by role, never by id */
+  role?: 'master' | 'parents' | 'child' | 'guest' | 'staff'
 }
 
 export type RelationKind = 'adjacent' | 'near' | 'connected' | 'separated'
@@ -60,6 +62,18 @@ export type CanonicalModel = {
   entrySide: Direction
   floors: FloorProgram[]
   relationships: Relationship[]
+}
+
+/**
+ * The plan is always drawn with the road / entry at plan-south. For the real
+ * entry side, planToCompass[entrySide][planSide] is that plan side's true
+ * compass bearing (plan N on a north-facing plot is really south).
+ */
+export const planToCompass: Record<Direction, Record<Direction, Direction>> = {
+  S: { N: 'N', E: 'E', S: 'S', W: 'W' },
+  N: { N: 'S', E: 'W', S: 'N', W: 'E' },
+  E: { N: 'W', E: 'N', S: 'E', W: 'S' },
+  W: { N: 'E', E: 'S', S: 'W', W: 'N' },
 }
 
 /** Conditions that make even a minimum building footprint impossible. */
@@ -86,6 +100,7 @@ const AREA: Record<string, [number, number, number]> = {
   livingDining: [22, 34, 50],
   kitchen: [7, 11, 18],
   utility: [3, 5.5, 10],
+  wetKitchen: [5, 7, 11],
   pooja: [1.5, 3.5, 7],
   circulation: [4, 8, 16],
   stair: [5.5, 7, 9],
@@ -149,13 +164,8 @@ export function compile(brief: Brief): CanonicalModel {
   const entrySide: Direction = brief.entry.primarySide === 'auto'
     ? (brief.site.roadEdges.includes(brief.site.facing) ? brief.site.facing : brief.site.roadEdges[0])
     : brief.entry.primarySide
-  const planToCompass: Record<Direction, Record<Direction, Direction>> = {
-    S: { N: 'N', E: 'E', S: 'S', W: 'W' },
-    N: { N: 'S', E: 'W', S: 'N', W: 'E' },
-    E: { N: 'W', E: 'N', S: 'E', W: 'S' },
-    W: { N: 'E', E: 'S', S: 'W', W: 'N' },
-  }
   const oriented = planToCompass[entrySide]
+
   const setbacksMm = Object.fromEntries(
     (['N', 'E', 'S', 'W'] as Direction[]).map((side) =>
       [side, Math.round(brief.site.setbacks[oriented[side]] * 1000)]),
@@ -181,7 +191,13 @@ export function compile(brief: Brief): CanonicalModel {
 
   // --- distribute bedrooms across floors ---
   const totalBeds = brief.rooms.bedroomsWithBath + brief.rooms.bedroomsNoBath
-  const groundBeds = !hasUpper ? totalBeds : brief.spaces.stepFree && totalBeds > 0 ? 1 : 0
+  // clients visit the home office: the first study sits on the ground floor
+  // beside the foyer; with no clients, studies stay upstairs where it is quiet
+  const clientStudy = brief.lifestyle.clientVisits && brief.lifestyle.wfhCount > 0 && brief.rooms.studies > 0
+  // members who need the ground floor share rooms two at a time
+  const groundSeniorRooms = Math.ceil(brief.household.members.filter((m) => m.needsGroundFloor).length / 2)
+  const groundBeds = !hasUpper ? totalBeds
+    : Math.min(totalBeds, Math.max(groundSeniorRooms, brief.spaces.stepFree && totalBeds > 0 ? 1 : 0))
   const upperBeds = totalBeds - groundBeds
   const upperFloors = Math.max(1, storeys)
   const bedsPerUpper = hasUpper ? Math.ceil(upperBeds / upperFloors) : 0
@@ -190,10 +206,23 @@ export function compile(brief: Brief): CanonicalModel {
 
   let bedNo = 0
   let bathNo = 0
-  const nextBed = (): SpaceReq => {
+  // ground-floor senior rooms are "Parents' bedroom"; the master is the first
+  // bedroom on an upper floor (or, on a ground-only house, the first that is
+  // not a parents' room). Both get the master-bedroom area preset.
+  let parentsLeft = Math.min(groundSeniorRooms, groundBeds)
+  let masterPlaced = false
+  const nextBed = (onGround: boolean): SpaceReq => {
     bedNo += 1
-    const preset = bedNo === 1 ? 'masterBed' : 'bed'
-    return mk(`bed${bedNo}`, bedNo === 1 ? 'Master bedroom' : `Bedroom ${bedNo}`, 'private', preset)
+    const id = `bed${bedNo}`
+    if (onGround && parentsLeft > 0) {
+      parentsLeft -= 1
+      return { ...mk(id, "Parents' bedroom", 'private', 'masterBed'), role: 'parents' }
+    }
+    if (!masterPlaced && (!onGround || !hasUpper)) {
+      masterPlaced = true
+      return { ...mk(id, 'Master bedroom', 'private', 'masterBed'), role: 'master' }
+    }
+    return mk(id, `Bedroom ${bedNo}`, 'private', 'bed')
   }
   const withBathBudget = { n: brief.rooms.bedroomsWithBath }
   const nextBath = (): SpaceReq | null => {
@@ -230,7 +259,10 @@ export function compile(brief: Brief): CanonicalModel {
     spaces.push(mk('kitchen', 'Kitchen', 'service', 'kitchen', { wet: true }))
 
     if (p.utility) {
-      spaces.push(mk('utility', 'Utility', 'service', 'utility', { wet: true, wantsWindow: false }))
+      // a dry / wet split turns the utility into a real second kitchen
+      spaces.push(brief.lifestyle.dryWetSplit
+        ? mk('utility', 'Wet kitchen / utility', 'service', 'wetKitchen', { wet: true, wantsWindow: true })
+        : mk('utility', 'Utility', 'service', 'utility', { wet: true, wantsWindow: false }))
       addRel('kitchen', 'utility', 'adjacent')
     }
     if (p.pooja) {
@@ -249,7 +281,7 @@ export function compile(brief: Brief): CanonicalModel {
     }
 
     for (let i = 0; i < groundBeds; i++) {
-      const b = nextBed()
+      const b = nextBed(true)
       spaces.push(b)
       addRel('foyer', b.id, 'connected')
       const bath = nextBath()
@@ -275,7 +307,11 @@ export function compile(brief: Brief): CanonicalModel {
         spaces.push(mk(id, `Study / office ${i + 1}`, 'work', 'study'))
         addRel('foyer', id, 'connected')
       }
+    } else if (clientStudy) {
+      // clients reach the home office from the entrance, not through the house
+      spaces.push(mk('study1', 'Study / office 1', 'work', 'study'))
     }
+    if (clientStudy) addRel('foyer', 'study1', 'adjacent')
 
     if (p.pooja) addRel('pooja', 'kitchen', 'separated')
 
@@ -331,7 +367,7 @@ export function compile(brief: Brief): CanonicalModel {
 
     const take = Math.min(bedsPerUpper, bedsRemaining)
     for (let i = 0; i < take; i++) {
-      const b = nextBed()
+      const b = nextBed(false)
       spaces.push(b)
       addRel(`lobby${level}`, b.id, 'connected')
       const bath = nextBath()
@@ -350,6 +386,7 @@ export function compile(brief: Brief): CanonicalModel {
       addRel(`lobby${level}`, id, 'near')
     }
     for (let i = 0; i < brief.rooms.studies; i++) {
+      if (i === 0 && clientStudy) continue // already on the ground floor
       if (1 + (i % storeys) !== level) continue
       const id = `study${i + 1}`
       spaces.push(mk(id, `Study / office ${i + 1}`, 'work', 'study'))

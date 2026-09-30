@@ -46,6 +46,8 @@ export type Opening = {
   hinge?: 'a' | 'b'
   /** false = a cased opening with no leaf */
   leaf?: boolean
+  /** how a leafless opening is finished: a wide open gap, or a glazed sliding screen */
+  treatment?: 'open' | 'glazed-slide'
   /** sill height (windows), mm */
   sill?: number
   /** the spaces it joins — [from, to]; null = outside */

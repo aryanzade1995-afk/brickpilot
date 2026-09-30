@@ -600,10 +600,22 @@ function segmentPartition(
     .filter((d) => Math.abs((horizontal ? d.at.y : d.at.x) - fixed) < 220)
     .map((d) => {
       const c = horizontal ? d.at.x : d.at.y
-      return { s: c - d.width / 2, e: c + d.width / 2 }
+      return { s: c - d.width / 2, e: c + d.width / 2, treatment: d.treatment }
     })
     .filter((d) => d.e > p0 && d.s < p1)
     .sort((a, b) => a.s - b.s)
+
+  // a glazed sliding screen fills its gap with a thin glass panel; an open
+  // kitchen ('open') leaves the gap empty
+  gaps.forEach((d, i) => {
+    if (d.treatment !== 'glazed-slide') return
+    const mid = (d.s + d.e) / 2
+    const len = m(d.e - d.s)
+    const gh = Math.min(2.1, top)
+    push(`${tag}-slide${i}`, 'glass', level,
+      [wx(horizontal ? mid : fixed), baseY + gh / 2, wz(horizontal ? fixed : mid)],
+      horizontal ? [len, gh, 0.03] : [0.03, gh, len])
+  })
 
   const seg = (from: number, to: number, sub: string) => {
     if (to - from < 120) return
