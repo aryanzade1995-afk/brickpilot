@@ -380,6 +380,32 @@ export const THEMES: Record<Character, ThemeDef> = {
       materials: { shell: { color: '#f0eade' }, feature: STONE_WARM, metal: { color: '#554b3d' } },
     },
   ),
+  'modern-box': theme(
+    'modern-box',
+    'Modern box',
+    'Crisp white boxes, the upper floor oversailing full-height glass, glass rails, a roof terrace.',
+    'Photorealistic architectural concept of a contemporary white modern villa. Crisp smooth white rendered boxes, the upper floor a clean white volume oversailing a fully glazed ground floor with slim black aluminium frames, a wrapping corner window with a frameless glass balustrade, a charcoal accent frame and one warm oak-slatted panel, a thin flat roof edge with a roof terrace behind frameless glass guards, a slatted pergola and planting on the terrace, a timber deck, square planters with slim cypress trees, a pale stone-paved plinth. Soft late-afternoon light with warm interior glow.',
+    {
+      roofBias: 'flat',
+      roof: { style: 'flat-band', eaveMm: 240, parapetMm: 0, bandMm: 220, thickMm: 200 },
+      // big floor-to-ceiling panes, grouped behind slim mullions
+      windows: { mullionMm: 3000, widthMm: 3000, minRoomSqm: 9, perFacade: 3, sillMm: 0, headMm: 2700, groupMm: 1500 },
+      // clean planes: no hoods, no string courses
+      massing: { plinthProjMm: 120, balconyDepthMm: 1600, chajjaMm: 0, stringCourseMm: 0 },
+      accents: { cladFacade: true, cladWidthMm: 1400, featureColumn: true, jaali: false, railStyle: 'glass' },
+      modern: { cantileverMm: 1200, featureTower: false, baffleScreen: false, roofPergola: true },
+      landscape: { hedgeMm: 0, shrubs: 6, terraceGarden: true, roofServices: true, boundaryMm: 1200, tropical: false },
+      materials: {
+        shell: { color: '#f6f5f2', roughness: 0.66, env: 0.6 },
+        roof: { color: '#f8f7f4', roughness: 0.6, env: 0.6 },
+        glazing: { color: '#2c363c', roughness: 0.08, metalness: 0.3, env: 1.9 },
+        feature: { color: '#2b2c2f', roughness: 0.7, env: 0.4 },
+        clad: { color: '#b98553', roughness: 0.5, env: 0.7 },
+        metal: { color: '#1d1e21', roughness: 0.32, metalness: 0.9, env: 1.4 },
+        paving: { color: '#dcd8cf', roughness: 0.9, env: 0.4 },
+      },
+    },
+  ),
   'urban-premium': theme(
     'urban-premium', 'Urban Premium', 'Compact vertical framing, deep reveals and dark stone accents.',
     'Off-white plaster, dark stone, oak and black metal on the exact model.',

@@ -586,6 +586,7 @@ const CHARACTER_CARDS: { value: Character; title: string; body: string }[] = [
   { value: 'neo-classical', title: CHARACTER_LABEL['neo-classical'], body: 'A centered entrance, ordered stone composition and restrained columns.' },
   { value: 'contemporary-classical', title: CHARACTER_LABEL['contemporary-classical'], body: 'Balanced frames with warm limestone, bronze details and contemporary glazing.' },
   { value: 'urban-premium', title: CHARACTER_LABEL['urban-premium'], body: 'Compact vertical framing, deep reveals and dark stone accents.' },
+  { value: 'modern-box', title: CHARACTER_LABEL['modern-box'], body: 'Crisp white boxes, the upper floor oversailing full-height glass, glass rails and a roof terrace.' },
 ]
 
 const MASSING_CHOICES: { value: MassingChoice; label: string }[] = [

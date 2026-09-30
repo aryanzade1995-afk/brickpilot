@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Dices, Download } from 'lucide-react'
 import { useStudio } from '@/state/studio.ts'
-import { FloorDrawing } from '@/lib/draw/FloorDrawing.tsx'
+import { FloorDrawing, TerraceDrawing, type Theme } from '@/lib/draw/FloorDrawing.tsx'
 import { ZONE_LABEL } from '@/lib/model/canonical.ts'
 import { formatINR, formatINRShort, formatRange } from '@/lib/format.ts'
 import { cx } from '@/lib/cx.ts'
@@ -27,7 +27,7 @@ export function Plan() {
   }, [result, run])
 
   const [floorIdx, setFloorIdx] = useState(0)
-  const [theme, setTheme] = useState<'dark' | 'paper'>('dark')
+  const [theme, setTheme] = useState<Theme>('presentation')
   const [showLabels, setShowLabels] = useState(true)
   const [showDims, setShowDims] = useState(true)
 
@@ -45,6 +45,8 @@ export function Plan() {
   // cheap to compute; not a hook, so it is fine after the early returns
   const why = preferenceScore(design)
   const whyTerms = why.terms.filter((t) => t.value !== 0)
+  // one tab past the last floor is the roof terrace
+  const onTerrace = floorIdx >= design.floors.length
 
   return (
     <div className="mx-auto max-w-[1400px] px-6 py-8 md:px-10">
@@ -99,6 +101,16 @@ export function Plan() {
                   {f.name}
                 </button>
               ))}
+              <button
+                type="button"
+                onClick={() => setFloorIdx(design.floors.length)}
+                className={cx(
+                  'border px-3 py-2 font-mono text-[0.7rem] uppercase tracking-[0.1em]',
+                  onTerrace ? 'border-accent text-accent' : 'border-line text-ink-dim hover:text-ink',
+                )}
+              >
+                Terrace
+              </button>
             </div>
             <div className="font-mono text-[0.7rem] uppercase tracking-[0.1em] text-ink-faint">
               {design.candidate} · {design.algorithm}
@@ -106,13 +118,17 @@ export function Plan() {
           </div>
 
           <div className="mt-3 aspect-[4/3] w-full border border-line bg-bg-inset">
-            <FloorDrawing
-              floor={floor}
-              model={model}
-              theme={theme}
-              showLabels={showLabels}
-              showDimensions={showDims}
-            />
+            {onTerrace ? (
+              <TerraceDrawing design={design} />
+            ) : (
+              <FloorDrawing
+                floor={floor}
+                model={model}
+                theme={theme}
+                showLabels={showLabels}
+                showDimensions={showDims}
+              />
+            )}
           </div>
 
           <p className="mt-2 font-mono text-[0.65rem] uppercase tracking-[0.1em] text-ink-faint">
@@ -126,6 +142,7 @@ export function Plan() {
             <Row2 k="Theme">
               <Toggle2
                 options={[
+                  { v: 'presentation', label: 'Presentation' },
                   { v: 'dark', label: 'Studio grey' },
                   { v: 'paper', label: 'Paper' },
                 ]}

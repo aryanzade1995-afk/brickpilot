@@ -37,6 +37,7 @@ export const characterSchema = z.enum([
   'neo-classical',
   'contemporary-classical',
   'urban-premium',
+  'modern-box',
 ])
 export type Character = z.infer<typeof characterSchema>
 
@@ -60,6 +61,7 @@ export const CHARACTER_LABEL: Record<Character, string> = {
   'neo-classical': 'Neo Classical',
   'contemporary-classical': 'Contemporary Classical',
   'urban-premium': 'Urban Premium',
+  'modern-box': 'Modern box',
 }
 
 export const massingSchema = z.enum([
@@ -237,7 +239,8 @@ export const briefSchema = z
             (v) => (typeof v === 'string' && v in MIGRATE_CHARACTER ? MIGRATE_CHARACTER[v] : v),
             characterSchema,
           )
-          .default('modern-indian'),
+          // new briefs start as the white modern box; saved briefs keep their style
+          .default('modern-box'),
         /** architectural massing archetype — `auto` picks by fit, `random` re-rolls */
         massing: massingSchema.default('auto'),
         /** how far the massing grammar pushes offsets / cantilevers / asymmetry */

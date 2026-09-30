@@ -11,7 +11,7 @@ export type FeatureType = 'stone-tower' | 'timber-fins' | 'metal-fins' | 'deep-c
   'floating-slab' | 'jaali-panel' | 'planter-band' | 'roof-pergola'
 export type StyleFamily = 'modern-indian' | 'contemporary-indian' | 'luxury-modern' | 'minimal-modern' |
   'tropical-modern' | 'modern-kerala' | 'kerala-contemporary' | 'courtyard-modern' |
-  'resort-luxury' | 'neo-classical' | 'contemporary-classical' | 'urban-premium'
+  'resort-luxury' | 'neo-classical' | 'contemporary-classical' | 'urban-premium' | 'modern-box'
 export type InspirationPreferences = Partial<Pick<DesignDNA,
   'styleFamily' | 'facadeComposition' | 'entranceDesign' | 'featureElement' | 'roofDesign' |
   'materialPalette' | 'windowTreatment' | 'balconyDesign' | 'landscapeMood'>>
@@ -87,6 +87,15 @@ const MODERN: Preset = {
   roofs: [['flat', 3], ['floating-flat', 3], ['parapet-flat', 2], ['pergola-terrace', 2]],
   palettes: [['warm-stone', 3], ['travertine-bronze', 2], ['charcoal-oak', 2]],
 }
+/** the white modern box: one composition, glass and oak — seeds vary detail, not the look */
+const MODERN_BOX: Preset = {
+  compositions: [['floating-box', 5], ['corner-feature', 1]],
+  entrances: [['floating-frame', 3], ['horizontal-canopy', 2]],
+  features: [['floating-slab', 3], ['roof-pergola', 2]],
+  roofs: [['pergola-terrace', 3], ['floating-flat', 1]],
+  // always white-based; the accent material varies
+  palettes: [['charcoal-oak', 4], ['warm-stone', 1], ['lime-plaster', 1]],
+}
 const MINIMAL: Preset = {
   compositions: [['horizontal-stack', 4], ['recessed-core', 3], ['portal-frame', 2], ['frame-within-frame', 1]],
   entrances: [['recessed-entry', 3], ['horizontal-canopy', 3], ['vertical-portal', 1]],
@@ -121,6 +130,7 @@ export const STYLE_PRESETS: Record<StyleFamily, Preset> = {
   'minimal-modern': MINIMAL, 'tropical-modern': TROPICAL, 'modern-kerala': KERALA,
   'kerala-contemporary': KERALA, 'courtyard-modern': TROPICAL, 'resort-luxury': TROPICAL,
   'neo-classical': CLASSICAL, 'contemporary-classical': CLASSICAL, 'urban-premium': MODERN,
+  'modern-box': MODERN_BOX,
 }
 const INSPIRATION_VALUES: Record<keyof InspirationPreferences, readonly string[]> = {
   styleFamily: Object.keys(STYLE_PRESETS),
@@ -150,6 +160,7 @@ const FAMILY: Record<Character, StyleFamily> = {
   'minimal-indian': 'minimal-modern', 'courtyard-indian': 'courtyard-modern',
   'resort-luxury': 'resort-luxury', 'neo-classical': 'neo-classical',
   'contemporary-classical': 'contemporary-classical', 'urban-premium': 'urban-premium',
+  'modern-box': 'modern-box',
 }
 
 export function deriveDesignDNA(briefKey: string, seed: number, character: Character, _massing: MassingType,
@@ -166,7 +177,9 @@ export function deriveDesignDNA(briefKey: string, seed: number, character: Chara
   const pool: StyleFamily[] = base.includes('kerala')
     ? ['modern-kerala', 'kerala-contemporary', 'tropical-modern']
     : ['modern-indian', 'luxury-modern', 'minimal-modern', 'tropical-modern', 'urban-premium']
-  const styleFamily = !inspiration?.styleFamily && variationLevel === 'bold' && rng.chance(0.45) ? rng.pick(pool) : base
+  // the modern box is a fixed look: even a bold reroll keeps its family
+  const pinned = base === 'modern-box'
+  const styleFamily = !pinned && !inspiration?.styleFamily && variationLevel === 'bold' && rng.chance(0.45) ? rng.pick(pool) : base
   const preset = STYLE_PRESETS[styleFamily]
   const boost = (c: Composition) => personality === 'minimal'
     ? ['horizontal-stack', 'recessed-core', 'portal-frame'].includes(c) ? 2.5 : 0.6
@@ -195,19 +208,20 @@ export function deriveDesignDNA(briefKey: string, seed: number, character: Chara
     roofGeometry: { profile, ridge, monoLowSide, pitchBiasDeg, element },
     styleFamily, variationLevel, facadeComposition, entranceDesign, featureElement, secondaryFeature,
     designPersonality: personality,
-    balconyDesign: majorRng.weighted(preferred([
+    balconyDesign: pinned ? 'glass-floating' : majorRng.weighted(preferred([
       ['glass-floating', 1], ['recessed', 1], ['solid-parapet', 1], ['metal-rail', 1],
       ['timber-screened', 1], ['planter-balcony', 1],
     ] as Weighted<DesignDNA['balconyDesign']>, inspiration?.balconyDesign)),
     roofDesign,
-    windowTreatment: rng.weighted(preferred([
+    // the box keeps crisp frames but lets their depth vary between seeds
+    windowTreatment: pinned ? rng.weighted([['flush-frame', 3], ['deep-reveal', 2], ['projecting-frame', 1]] as Weighted<DesignDNA['windowTreatment']>) : rng.weighted(preferred([
       ['flush-frame', 1], ['deep-reveal', 1], ['projecting-frame', 1],
       ['timber-surround', 1], ['stone-surround', 1], ['sunshade', 1],
     ] as Weighted<DesignDNA['windowTreatment']>, inspiration?.windowTreatment)),
-    shadingSystem: featureElement === 'timber-fins' || featureElement === 'metal-fins' ? 'vertical-fins' :
+    shadingSystem: pinned ? 'none' : featureElement === 'timber-fins' || featureElement === 'metal-fins' ? 'vertical-fins' :
       featureElement === 'jaali-panel' ? 'jaali' : featureElement === 'deep-chajja' ? 'deep-overhang' : 'none',
     materialPalette,
-    landscapeMood: inspiration?.landscapeMood ?? (styleFamily.includes('tropical') || styleFamily === 'resort-luxury'
+    landscapeMood: inspiration?.landscapeMood ?? (pinned ? 'minimal' : styleFamily.includes('tropical') || styleFamily === 'resort-luxury'
       ? 'lush-tropical' : styleFamily.includes('classical') ? 'formal' : styleFamily === 'courtyard-modern' ? 'courtyard' : 'natural'),
     frameThicknessMm: rng.int(200, 400), finSpacingMm: rng.int(180, 350), overhangMm: rng.int(450, 900),
     facade, rhythm: rng.pick(['regular', 'paired', 'asymmetric'] as const), accentSide: rng.pick(['left', 'right'] as const),

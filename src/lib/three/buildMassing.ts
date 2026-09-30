@@ -5,6 +5,7 @@ import type { CanonicalModel } from '../model/canonical.ts'
 import { themeOf, type RailStyle, type ThemeDef } from '../model/themes.ts'
 import type { DesignDNA } from '../engine/designDna.ts'
 import { planFacade } from '../engine/facade/grammar.ts'
+import { terraceLayout, type TerraceLayout } from '../engine/terrace.ts'
 
 /* ------------------------------------------------------------------ *
  *  buildMassing — an architect's white-card study model of the house.
@@ -246,14 +247,32 @@ export function buildMassing(design: Design): Massing {
         ['horizontal-stack', 'layered-facade', 'stepped-composition'].includes(design.dna.facadeComposition)) {
         stringCourse(o, baseY, L, T.massing.stringCourseMm / 1000, push, wx, wz, m)
       }
-      if (T.modern && L >= 1 && T.modern.cantileverMm > 0 &&
-        ['floating-box', 'interlocking-volumes', 'split-volume'].includes(design.dna.facadeComposition)) {
-        cantileverApron(o, baseY, L, T.modern.cantileverMm / 1000, push, wx, wz, m)
+      // the oversailing upper box is the modern box's signature, whatever its composition
+      // only a block whose front edge IS the street face oversails it (a block
+      // further back would leave a frame hanging inside the house)
+      const onStreet = Math.abs(o.y + o.h - (oFull.y + oFull.h)) < 2
+      if (T.modern && L >= 1 && T.modern.cantileverMm > 0 && onStreet &&
+        (['floating-box', 'interlocking-volumes', 'split-volume'].includes(design.dna.facadeComposition) ||
+          design.dna.styleFamily === 'modern-box')) {
+        cantileverApron(o, baseY, bid, L, T.modern.cantileverMm / 1000, push, wx, wz, m)
       }
 
       // ---- roof: a pitched cap where the storey is the last over this block
       // (top floor, or a lower wing with nothing standing on it); a flat
       // terrace where a floor above steps back off it ----
+      // every block after the first tags its roof pieces, or ids repeat per block
+      const rpush: Push = bi === 0 ? push : (id, ...rest) => push(`${id}-b${bi}`, ...rest)
+      // a block side on the storey's outer perimeter; sides where blocks join
+      // get no guard rail, fascia or parapet running across the roof
+      const open = Object.fromEntries((['N', 'S', 'W', 'E'] as Side[]).map((side) => {
+        const horizontal = side === 'N' || side === 'S'
+        const fixed = side === 'N' ? o.y : side === 'S' ? o.y + o.h : side === 'W' ? o.x : o.x + o.w
+        const lo = horizontal ? o.x : o.y
+        const hi = horizontal ? o.x + o.w : o.y + o.h
+        return [side, boundary.some((e) => e.side === side &&
+          Math.abs((horizontal ? e.a.y : e.a.x) - fixed) < TOL &&
+          Math.min(hi, horizontal ? e.b.x : e.b.y) - Math.max(lo, horizontal ? e.a.x : e.a.y) > 600)]
+      })) as Record<Side, boolean>
       const cover = L === topLevel ? null : coverAbove(o, above)
       // coverAbove returns a degenerate rect when nothing stands on this block
       const exposed = L === topLevel || !cover || cover.w < 900 || cover.h < 900
@@ -268,21 +287,22 @@ export function buildMassing(design: Design): Massing {
           floor.roof?.perBlock?.[bi]?.pitchDeg ?? floor.roof?.pitchDeg ?? T.roof.pitchDeg,
           T,
           design.dna.roofGeometry,
-          push,
+          rpush,
           wx,
           wz,
           m,
         )
       } else if (exposed && L !== topLevel && T.roofBias !== 'flat') {
         // a lower wing of a pitched-roof style still gets a small pitched cap
-        buildPitchedRoof(o, wallTop, L, 'hip', T.roof.pitchDeg, T, design.dna.roofGeometry, push, wx, wz, m)
+        buildPitchedRoof(o, wallTop, L, 'hip', T.roof.pitchDeg, T, design.dna.roofGeometry, rpush, wx, wz, m)
       } else if (L === topLevel) {
-        buildRoof(o, wallTop, L, T, design.dna.roofGeometry, push, wx, wz, m)
+        buildRoof(o, wallTop, L, T, design.dna.roofGeometry, rpush, wx, wz, m, open)
       } else if (cover) {
-        buildTerrace(o, cover, wallTop, L, T, push, wx, wz, m)
+        buildTerrace(o, cover, wallTop, L, T, rpush, wx, wz, m)
       }
       if (L === topLevel && exposed)
-        buildRoofSignature(o, wallTop, L, bi, pitched, design.dna, push, wx, wz, m)
+        buildRoofSignature(o, wallTop, L, bi, pitched, design.dna, push, wx, wz, m,
+          !pitched && T.accents.railStyle === 'glass')
     })
 
     const o = oFull
@@ -352,24 +372,13 @@ export function buildMassing(design: Design): Massing {
     }
   }
 
-  // ---- roof services: stair mumty + water tank on the top terrace ----
-  if (T.landscape.roofServices && ['flat', 'flat-parapet'].includes(floors[floors.length - 1].roof.kind)) {
-    const tf = floors[floors.length - 1]
-    roofServices(tf, y0 + tf.level * H + H, push, wx, wz, m)
-  }
-
-  // ---- a slatted pergola + planting over part of the top terrace ----
-  if (design.dna.roofDesign === 'pergola-terrace') {
-    const tf = floors[floors.length - 1]
-    if (tf.footprint.length === 1 && (tf.roof.kind === 'flat' || tf.roof.kind === 'flat-parapet')) {
-      const blocked = tf.rooms.filter((r) => r.id === 'stair' || r.id === 'lift').map((r) => r.rect)
-      if (T.landscape.roofServices) {
-        const services = roofServiceLayout(tf)
-        if (services.mumty) blocked.push(services.mumty)
-        blocked.push(services.tank)
-      }
-      roofPergola(tf.outline, blocked, tf.level, y0 + tf.level * H + H - SLAB_T, push, wx, wz, m)
-    }
+  // ---- roof terrace: stair headroom room, water tank, pergola — laid out by
+  //      the engine's terraceLayout(), the same one the 2D terrace sheet draws ----
+  const terrace = terraceLayout(design)
+  if (terrace) {
+    const deckY = y0 + terrace.level * H + H
+    roofServices(terrace, terrace.level, deckY, push, wx, wz, m)
+    if (terrace.pergola) roofPergola(terrace.pergola, terrace.level, deckY - SLAB_T, push, wx, wz, m)
   }
 
   buildFacadeGrammar(design, floors, y0, H, push, wx, wz, m)
@@ -686,7 +695,7 @@ function guardRail(
 
   if (rail === 'glass') {
     // one frameless panel + a slim capping rail
-    const pt = 0.02
+    const pt = 0.03 // > push()'s 0.02 m floor, or the pane is silently dropped
     push(`${tag}-glass`, 'glass', level, [mx, yBase + H / 2 + 0.06, mz], horiz ? [lm, H - 0.12, pt] : [pt, H - 0.12, lm])
     push(`${tag}-cap`, 'railing', level, [mx, yBase + H, mz], horiz ? [lm + 0.05, 0.05, 0.05] : [0.05, 0.05, lm + 0.05])
     for (const t of [0, 1]) {
@@ -707,7 +716,13 @@ function guardRail(
 }
 
 function buildRoof(o: Rect, wallTop: number, L: number, T: ThemeDef,
-  geometry: DesignDNA['roofGeometry'] | undefined, push: Push, wx: XF, wz: XF, m: XF) {
+  geometry: DesignDNA['roofGeometry'] | undefined, allPush: Push, wx: XF, wz: XF, m: XF,
+  open: Record<Side, boolean> = { N: true, S: true, W: true, E: true }) {
+  // pieces tagged -n/-s/-w/-e belong to one side; drop them on a side where blocks join
+  const push: Push = (id, ...rest) => {
+    const side = /-([nswe])(?:-|$)/.exec(id)?.[1]?.toUpperCase() as Side | undefined
+    if (!side || open[side]) allPush(id, ...rest)
+  }
   const cxw = wx(o.x + o.w / 2)
   const czw = wz(o.y + o.h / 2)
   const roofT = T.roof.thickMm / 1000
@@ -832,19 +847,22 @@ function buildPitchedRoof(
  * to the front exterior wall above the highest opening; it changes no plan
  * void, column, floor plate or circulation route. */
 function buildRoofSignature(o: Rect, wallTop: number, level: number, block: number,
-  pitched: boolean, dna: DesignDNA, push: Push, wx: XF, wz: XF, m: XF) {
+  pitched: boolean, dna: DesignDNA, push: Push, wx: XF, wz: XF, m: XF, outsideGlass = false) {
   const width = Math.min(o.w - 900, 4200)
   if (width < 1600) return
   const start = dna.accentSide === 'left' ? o.x + 450 : o.x + o.w - 450 - width
   const x0 = wx(start)
   const run = m(width)
   const z = wz(o.y + o.h) + EXT_T / 2 + 0.06
+  // outer face of the roof guard rail's glass (rail on the wall centreline, 0.03 pane)
+  const glassFace = wz(o.y + o.h + HT_MM) + 0.015
   const base = pitched ? wallTop - 0.5 : wallTop
   const h = pitched ? 0.46 : 1.25
   const tag = `sig-${level}-${block}`
   const box = (name: string, kind: MassKind, x: number, y: number,
     w: number, ht: number, depth: number) =>
-    push(`${tag}-${name}`, kind, level, [x, y, z], [w, ht, depth])
+    // in front of a frameless glass guard rail the element stands just clear of the pane
+    push(`${tag}-${name}`, kind, level, [x, y, outsideGlass ? glassFace + 0.01 + depth / 2 : z], [w, ht, depth])
 
   switch (dna.roofGeometry?.element ?? 'portal') {
     case 'portal': {
@@ -881,6 +899,7 @@ function buildRoofSignature(o: Rect, wallTop: number, level: number, block: numb
 function cantileverApron(
   o: Rect,
   baseY: number,
+  bid: string,
   L: number,
   projM: number,
   push: Push,
@@ -892,26 +911,17 @@ function cantileverApron(
   const w = m(o.w) + EXT_T
   const southZ = wz(o.y + o.h) + EXT_T / 2
   const apronT = 0.42
-  push(`cant-${L}`, 'band', L, [cxw, baseY - apronT / 2 + 0.12, southZ + projM / 2], [w, apronT, projM + 0.12])
+  push(`cant-${bid}`, 'band', L, [cxw, baseY - apronT / 2 + 0.12, southZ + projM / 2], [w, apronT, projM + 0.12])
   // shallow skirt hanging under the front edge so the cantilever reads as mass
-  push(`cant-skirt-${L}`, 'band', L, [cxw, baseY - 0.42, southZ + projM - 0.06], [w, 0.78, 0.12])
+  push(`cant-skirt-${bid}`, 'band', L, [cxw, baseY - 0.42, southZ + projM - 0.06], [w, 0.78, 0.12])
 }
 
 /** a slatted pergola + a planter run over part of the top terrace */
-function roofPergola(o: Rect, blocked: Rect[], level: number, deckY: number, push: Push, wx: XF, wz: XF, m: XF) {
-  const pw = Math.min(o.w * 0.55, 4400)
-  const pd = Math.min(o.h * 0.45, 3800)
-  if (pw < 2200 || pd < 1900) return
-  const candidates: [number, number][] = [
-    [o.x + 400, o.y + o.h - pd - 350],
-    [o.x + o.w - pw - 400, o.y + o.h - pd - 350],
-    [o.x + 400, o.y + 350],
-    [o.x + o.w - pw - 400, o.y + 350],
-  ]
-  const safe = candidates.find(([x, z]) => blocked.every((r) =>
-    x + pw + 300 <= r.x || x - 300 >= r.x + r.w || z + pd + 300 <= r.y || z - 300 >= r.y + r.h))
-  if (!safe) return
-  const [px, pz0] = safe
+function roofPergola(p: Rect, level: number, deckY: number, push: Push, wx: XF, wz: XF, m: XF) {
+  const pw = p.w
+  const pd = p.h
+  const px = p.x
+  const pz0 = p.y
   const top = deckY + 2.4
   for (const z of [pz0, pz0 + pd]) {
     push(`perg-b${Math.round(z)}`, 'shade', level, [wx(px + pw / 2), top, wz(z)], [m(pw) + 0.2, 0.12, 0.1])
@@ -1031,7 +1041,7 @@ function buildCarport(
   const bays = wM > 5 ? 2 : 1
   for (let i = 1; i < bays; i++) {
     const bx = wx(cW) + (wM / bays) * i
-    push(`bay-${L}-${id}-${i}`, 'slab', L, [bx, 0.11, czm], [0.08, 0.02, dM * 0.9])
+    push(`bay-${L}-${id}-${i}`, 'slab', L, [bx, 0.11, czm], [0.08, 0.03, dM * 0.9])
   }
 
   const colTop = topY - canopyT // canopy soffit
@@ -1110,7 +1120,7 @@ function buildBalcony(
     const railSize: Vec3 = horiz ? [len + post, railT, railT] : [railT, railT, len + post]
 
     if (rail === 'glass') {
-      const pt = 0.02
+      const pt = 0.03 // > push()'s 0.02 m floor, or the pane is silently dropped
       push(`balg-${L}-${ei}`, 'glass', L, [mx, y + rh / 2 + 0.06, mz], horiz ? [len, rh - 0.12, pt] : [pt, rh - 0.12, len])
       push(`balc-cap-${L}-${ei}`, 'railing', L, [mx, y + rh, mz], railSize)
       for (const t of [0, 1]) {
@@ -1146,28 +1156,7 @@ function buildBalcony(
 }
 
 /** A stair headroom enclosure and water tank only on a usable flat terrace. */
-function roofServiceLayout(tf: FloorPlan): { mumty: Rect | null; tank: Rect } {
-  const o = tf.outline
-  const mw = Math.min(2200, o.w - 1100)
-  const md = Math.min(2500, o.h - 1100)
-  let mumty: Rect | null = null
-  if (mw > 1400 && md > 1400) {
-    const st = tf.stair?.rect
-    const mx = st
-      ? clamp(st.x + st.w / 2, o.x + mw / 2 + 300, o.x + o.w - mw / 2 - 300)
-      : o.x + o.w - mw / 2 - 600
-    const mz = st
-      ? clamp(st.y + st.h / 2, o.y + md / 2 + 300, o.y + o.h - md / 2 - 300)
-      : o.y + md / 2 + 600
-    mumty = { x: mx - mw / 2, y: mz - md / 2, w: mw, h: md }
-  }
-  const near = o.x + o.w - 720
-  const nz = o.y + 720
-  return { mumty, tank: { x: near - 550, y: nz - 550, w: 1100, h: 1100 } }
-}
-
-function roofServices(tf: FloorPlan, deckY: number, push: Push, wx: XF, wz: XF, m: XF) {
-  const { mumty, tank } = roofServiceLayout(tf)
+function roofServices({ mumty, tank }: TerraceLayout, level: number, deckY: number, push: Push, wx: XF, wz: XF, m: XF) {
   if (mumty) {
     const mw = mumty.w
     const md = mumty.h
@@ -1175,14 +1164,15 @@ function roofServices(tf: FloorPlan, deckY: number, push: Push, wx: XF, wz: XF, 
     const mz = mumty.y + md / 2
     const mh = 2.35
     const wt = 0.12
-    push('mumty-n', 'mumty', tf.level, [wx(mx), deckY + mh / 2, wz(mz - md / 2)], [m(mw), mh, wt])
-    push('mumty-s', 'mumty', tf.level, [wx(mx), deckY + mh / 2, wz(mz + md / 2)], [m(mw), mh, wt])
-    push('mumty-w', 'mumty', tf.level, [wx(mx - mw / 2), deckY + mh / 2, wz(mz)], [wt, mh, m(md)])
-    push('mumty-e', 'mumty', tf.level, [wx(mx + mw / 2), deckY + mh / 2, wz(mz)], [wt, mh, m(md)])
-    push('mumty-roof', 'roof', tf.level, [wx(mx), deckY + mh + 0.06, wz(mz)], [m(mw) + 0.34, 0.12, m(md) + 0.34])
-    push('mumty-lip', 'roof', tf.level, [wx(mx), deckY + mh + 0.16, wz(mz)], [m(mw) + 0.48, 0.06, m(md) + 0.48])
+    push('mumty-n', 'mumty', level, [wx(mx), deckY + mh / 2, wz(mz - md / 2)], [m(mw), mh, wt])
+    push('mumty-s', 'mumty', level, [wx(mx), deckY + mh / 2, wz(mz + md / 2)], [m(mw), mh, wt])
+    push('mumty-w', 'mumty', level, [wx(mx - mw / 2), deckY + mh / 2, wz(mz)], [wt, mh, m(md)])
+    push('mumty-e', 'mumty', level, [wx(mx + mw / 2), deckY + mh / 2, wz(mz)], [wt, mh, m(md)])
+    push('mumty-roof', 'roof', level, [wx(mx), deckY + mh + 0.06, wz(mz)], [m(mw) + 0.34, 0.12, m(md) + 0.34])
+    push('mumty-lip', 'roof', level, [wx(mx), deckY + mh + 0.16, wz(mz)], [m(mw) + 0.48, 0.06, m(md) + 0.48])
   }
 
+  if (!tank) return
   const near = tank.x + tank.w / 2
   const nz = tank.y + tank.h / 2
   const legH = 0.85
@@ -1193,10 +1183,10 @@ function roofServices(tf: FloorPlan, deckY: number, push: Push, wx: XF, wz: XF, 
     [near - 370, nz + 370], [near + 370, nz + 370],
   ]
   legs.forEach(([lx, lz], i) => {
-    push(`tank-leg${i}`, 'railing', tf.level, [wx(lx), deckY + legH / 2, wz(lz)], [0.07, legH, 0.07])
+    push(`tank-leg${i}`, 'railing', level, [wx(lx), deckY + legH / 2, wz(lz)], [0.07, legH, 0.07])
   })
-  push('tank-frame', 'railing', tf.level, [wx(near), deckY + legH, wz(nz)], [tk + 0.12, 0.05, tk + 0.12])
-  push('tank', 'tank', tf.level, [wx(near), deckY + legH + th / 2, wz(nz)], [tk, th, tk])
+  push('tank-frame', 'railing', level, [wx(near), deckY + legH, wz(nz)], [tk + 0.12, 0.05, tk + 0.12])
+  push('tank', 'tank', level, [wx(near), deckY + legH + th / 2, wz(nz)], [tk, th, tk])
 }
 
 /* --------------------------------- site / garden -------------------------------- */

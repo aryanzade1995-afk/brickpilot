@@ -3,7 +3,7 @@ import { Download, FileText, Loader2, Trash2 } from 'lucide-react'
 import { useStudio } from '@/state/studio.ts'
 import { useRender, REF_LABEL, type RefKey } from '@/state/render.ts'
 import { useInterior } from '@/state/interior.ts'
-import { FloorDrawing } from '@/lib/draw/FloorDrawing.tsx'
+import { FloorDrawing, TerraceDrawing } from '@/lib/draw/FloorDrawing.tsx'
 import { MassingViewport, MASSING_CANVAS, type CaptureView } from '@/lib/render/CaptureCanvas.tsx'
 import { rasterizeSvg } from '@/lib/render/rasterizeSvg.ts'
 import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
@@ -123,6 +123,9 @@ export function Report() {
         const svg = svgRefs.current[i]
         if (svg) planImages.push({ label: design.floors[i].name, dataUrl: await rasterizeSvg(svg) })
       }
+      // the roof terrace sheet follows the floors (the PDF gives it a heading, no room table)
+      const terraceSvg = svgRefs.current[design.floors.length]
+      if (terraceSvg) planImages.push({ label: 'Terrace', dataUrl: await rasterizeSvg(terraceSvg) })
 
       setBusy('Building the PDF…')
       const { buildReportPdf } = await import('@/lib/report/buildPdf.ts')
@@ -199,7 +202,7 @@ export function Report() {
               </div>
             </div>
             <div className="mt-3 aspect-[4/3] w-full border border-line-strong bg-bg-inset">
-              <FloorDrawing floor={floor} model={model} theme="dark" showLabels showDimensions={false} />
+              <FloorDrawing floor={floor} model={model} theme="presentation" showLabels showDimensions={false} />
             </div>
             <div className="mt-4 overflow-x-auto border-y border-line">
               <table className="w-full min-w-[480px] text-sm">
@@ -371,11 +374,17 @@ export function Report() {
             }}
             floor={f}
             model={model}
-            theme="dark"
+            theme="presentation"
             showLabels
             showDimensions={false}
           />
         ))}
+        <TerraceDrawing
+          design={design}
+          svgRef={(el) => {
+            svgRefs.current[design.floors.length] = el
+          }}
+        />
       </div>
 
       {/* offscreen 3D massing — mounted only during a PDF capture */}

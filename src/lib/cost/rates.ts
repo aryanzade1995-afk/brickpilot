@@ -35,6 +35,8 @@ const STYLE_BASE_RATE: Record<Character, number> = {
   'neo-classical': 24500,
   'contemporary-classical': 25500,
   'urban-premium': 25500,
+  // the default style is the reference: its factor is exactly 1
+  'modern-box': 22000,
 }
 
 /** style is a modifier on the finish rate, never the rate itself */

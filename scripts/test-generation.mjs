@@ -18,7 +18,10 @@ const planSignature = (design) => JSON.stringify({
 })
 
 test('seeded design identity is repeatable and varies across seeds', () => {
-  const model = compile(defaultBrief())
+  // a free-varying style: the default 'modern-box' deliberately keeps one look
+  const brief = defaultBrief()
+  brief.style.character = 'modern-indian'
+  const model = compile(brief)
   const first = generate(model, { seed: 123 })
   const again = generate(model, { seed: 123 })
   assert.deepEqual(first, again)
