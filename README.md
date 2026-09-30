@@ -128,7 +128,9 @@ can change presentation details, but it must preserve plan openings and rooms.
 
 This experimental branch adds seed-driven roof geometry to `DesignDNA`:
 slim, deep-eave and raised-edge profiles; constrained ridge direction,
-pitch and mono-slope orientation. The roof still caps the verified floor
+pitch and mono-slope orientation. Four roof-edge elements (portal, fins,
+cornice and screen) attach above the existing openings, and Generate Again
+chooses a different element from the previous view. The roof still caps the verified floor
 footprint. A cross ridge is allowed only on near-square blocks, and all
 variants retain identical room, wall, door, window and stair coordinates.
 The roof variation follows the footprint/roof-form variation ideas in
@@ -157,18 +159,32 @@ so verify them against the actual 2D/3D geometry.
 **Inspiration image:** On Directions, a PNG/JPEG/WebP image can be analyzed by
 `POST /api/inspiration` into bounded style preferences. These influence
 `DesignDNA` and may accompany the final building render. The image cannot move
-rooms, doors, windows or structure. Style analysis requires a Gemini key; if it
-fails, the image can still be used as a render reference.
+rooms, doors, windows or structure. Style analysis uses a local
+[gemini-web-to-api](https://github.com/ntthanh2603/gemini-web-to-api) bridge,
+not `GEMINI_API_KEY`. If the bridge is unavailable, the uploaded image remains
+available as a visual reference, but automatic style classification cannot run;
+ComfyUI's installed workflow does not provide image classification.
 
 **Interior concepts:** [`src/components/InteriorStudio.tsx`](src/components/InteriorStudio.tsx)
 captures room views and edge/depth/beauty maps from the generated geometry.
 [`src/lib/render/interiorPrompt.ts`](src/lib/render/interiorPrompt.ts) writes the
 room prompt. `POST /api/interior` streams progress and the output image. The
-default provider is local ComfyUI with an SDXL/Canny workflow at
+default provider is the local Gemini Web bridge. It reads the supplied room
+views and requests a furnished concept image. Its portable image endpoint is
+text-to-image, so exact opening positions are not guaranteed in that output.
+If the bridge is offline or image generation fails, the server switches to
+local ComfyUI with an SDXL/Canny workflow at
 [`server/workflows/interior-sdxl.json`](server/workflows/interior-sdxl.json).
 The provider registry is [`server/providers/index.mjs`](server/providers/index.mjs)
-(`comfyui`, `gemini`, `mock`). An unavailable configured provider falls back to
-the mock result, which returns a reference rather than a generated interior.
+(`gemini-web`, `comfyui`, `gemini`, `mock`). If both real providers are unavailable,
+generation stays unavailable instead of claiming the 3D reference is an AI image.
+`mock` remains an explicit development setting.
+
+To enable the bridge, run the linked project's service locally on port `4981`
+and configure its Gemini Web session in that service only. Formstead never
+stores or receives the Google cookies. The bridge's own documentation explains
+that its models depend on the signed-in account and its image output may vary.
+Keep it bound to localhost; do not commit its cookies or environment file.
 
 The Node API and production static server are in [`server/index.mjs`](server/index.mjs):
 
@@ -177,6 +193,7 @@ The Node API and production static server are in [`server/index.mjs`](server/ind
 | `GET /api/render/health` | Building image-model availability |
 | `POST /api/render` | Building image edit from the captured model and prompt |
 | `POST /api/inspiration` | Classify a reference image into style preferences |
+| `GET /api/inspiration/health` | Local Gemini Web bridge availability |
 | `GET /api/interior/health` | Interior provider availability |
 | `POST /api/interior` | Stream interior render progress and result |
 
@@ -189,16 +206,17 @@ Supabase settings. Copy [`server/.env.example`](server/.env.example) to
 | Variable | Used by | Purpose |
 | --- | --- | --- |
 | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` | Vite client | Optional sign-in and saved designs |
-| `GEMINI_API_KEY` | Node server | Building renders and inspiration analysis; also Gemini interiors if selected |
-| `RENDER_MODEL`, `INSPIRATION_MODEL` | Node server | Optional Gemini model overrides |
+| `GEMINI_API_KEY` | Node server | Optional official Gemini building renders and legacy `gemini` interior provider |
+| `RENDER_MODEL` | Node server | Optional official Gemini building model override |
+| `GEMINI_WEB_URL`, `GEMINI_WEB_MODEL`, `GEMINI_WEB_IMAGE_MODEL` | Node server | Local bridge URL and optional model IDs from its `/openai/v1/models` listing |
 | `RENDER_MOCK=1` | Node server | Return the building reference instead of calling Gemini |
 | `RENDER_PROXY_PORT` | Node server + Vite proxy | Local API port (default `8787`); production uses `PORT` |
-| `INTERIOR_PROVIDER` | Node server | `comfyui` (default), `gemini` or `mock` |
+| `INTERIOR_PROVIDER` | Node server | `gemini-web` (default), `comfyui`, `gemini` or `mock` |
 | `COMFYUI_URL`, `SDXL_CKPT`, `CN_CANNY_MODEL` | ComfyUI provider | Local service URL and installed model filenames |
 | `INTERIOR_*`, `CN_CANNY_*` | ComfyUI provider | Optional sampling and conditioning overrides; see `server/.env.example` |
 
 Only `VITE_*` variables are bundled into the browser. Keep `GEMINI_API_KEY`
-server-side. To use accounts, run [`supabase/schema.sql`](supabase/schema.sql)
+server-side if using official building renders. To use accounts, run [`supabase/schema.sql`](supabase/schema.sql)
 in a Supabase project, set the two `VITE_SUPABASE_*` values and enable Email
 auth. The app remains usable signed out. Supabase saves the brief plus pinned
 direction, then regenerates geometry, validation and cost on load; it does not

@@ -1,40 +1,49 @@
-/* Provider registry for AI interior generation. Add a backend by dropping
- * a sibling module exporting { id, healthy(), generateInterior(job) } and
- * listing it here. Selection: INTERIOR_PROVIDER env (comfyui | gemini |
- * mock), default comfyui, with an automatic fall-back to mock when the
- * chosen provider isn't reachable. */
+/* Gemini Web is the primary interior engine; ComfyUI preserves the rendered
+ * room edges when Gemini Web is unavailable or its generation fails. */
 import * as comfyui from './comfyui.mjs'
+import * as geminiWeb from './gemini-web.mjs'
 import * as gemini from './gemini.mjs'
 import * as mock from './mock.mjs'
 
-const REGISTRY = { comfyui, gemini, mock }
+const REGISTRY = { 'gemini-web': geminiWeb, comfyui, gemini, mock }
 
 export function providerName() {
-  const name = (process.env.INTERIOR_PROVIDER || 'comfyui').toLowerCase()
-  return REGISTRY[name] ? name : 'comfyui'
+  const name = (process.env.INTERIOR_PROVIDER || 'gemini-web').toLowerCase()
+  return REGISTRY[name] ? name : 'gemini-web'
 }
 
-/**
- * Resolve which provider to actually run.
- * @returns {{ id: string, reachable: boolean, note: string, provider: object, usingMock: boolean }}
- *   `id`/`reachable`/`note` describe the *configured* provider; `provider` is
- *   the module to call (mock when the configured one is down).
- */
 export async function resolveProvider() {
-  const name = providerName()
-  const chosen = REGISTRY[name]
-  const health = await chosen.healthy().catch(() => ({ reachable: false, note: 'health check threw' }))
+  const configuredId = providerName()
+  const chosen = REGISTRY[configuredId]
+  const health = await chosen.healthy().catch(() => ({ reachable: false, note: 'health check failed' }))
+  if (health.reachable || configuredId === 'mock')
+    return { configuredId, activeId: configuredId, reachable: !!health.reachable,
+      note: health.note || '', provider: chosen, usingMock: configuredId === 'mock' }
 
-  if (health.reachable || name === 'mock') {
-    return { id: name, reachable: !!health.reachable, note: health.note || '', provider: chosen, usingMock: name === 'mock' }
+  if (configuredId !== 'comfyui') {
+    const fallback = await comfyui.healthy().catch(() => ({ reachable: false, note: 'health check failed' }))
+    if (fallback.reachable)
+      return { configuredId, activeId: 'comfyui', reachable: true,
+        note: `${configuredId} unavailable (${health.note || 'offline'}); using ComfyUI`,
+        provider: comfyui, usingMock: false }
   }
-  return {
-    id: name,
-    reachable: false,
-    note: `${name} unavailable — ${health.note || 'offline'}. Falling back to mock output.`,
-    provider: mock,
-    usingMock: true,
-  }
+  return { configuredId, activeId: 'unavailable', reachable: false,
+    note: `${configuredId} unavailable (${health.note || 'offline'}); ComfyUI also unavailable.`,
+    provider: null, usingMock: false }
 }
 
-export { mock }
+export async function generateInteriorWithFallback(job, onFallback) {
+  const selected = await resolveProvider()
+  if (!selected.reachable || !selected.provider) throw new Error(selected.note)
+  if (selected.activeId !== selected.configuredId) onFallback?.(selected.note)
+  try {
+    return await selected.provider.generateInterior(job)
+  } catch (error) {
+    if (selected.activeId === 'comfyui' || selected.activeId === 'mock') throw error
+    const health = await comfyui.healthy().catch(() => ({ reachable: false }))
+    if (!health.reachable)
+      throw new Error(`${selected.activeId} failed: ${String(error?.message || error)}. ComfyUI is unavailable.`)
+    onFallback?.(`${selected.activeId} failed; switching to ComfyUI`)
+    return comfyui.generateInterior(job)
+  }
+}

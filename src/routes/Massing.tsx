@@ -207,6 +207,7 @@ export function Massing() {
             <Stat k="Height" v={`${massing.stats.heightM} m`} />
             <Stat k="Built area" v={`${massing.stats.builtAreaSqm.toFixed(1)} m²`} />
             <Stat k="Openings" v={String(massing.stats.openings)} />
+            <Stat k="New element" v={result.design.dna.roofGeometry?.element ?? 'portal'} />
             <button
               type="button"
               onClick={reseed}

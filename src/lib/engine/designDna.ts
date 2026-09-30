@@ -35,6 +35,7 @@ export type DesignDNA = {
     ridge: 'long' | 'cross'
     monoLowSide: 'first' | 'second'
     pitchBiasDeg: -3 | 0 | 3
+    element: 'portal' | 'fins' | 'cornice' | 'screen'
   }
   styleFamily: StyleFamily
   variationLevel: VariationLevel
@@ -185,12 +186,13 @@ export function deriveDesignDNA(briefKey: string, seed: number, character: Chara
   const ridge = unit(`${roofKey}:ridge`) < 0.5 ? 'long' : 'cross'
   const monoLowSide = unit(`${roofKey}:mono`) < 0.5 ? 'first' : 'second'
   const pitchBiasDeg = ([-3, 0, 3] as const)[Math.floor(unit(`${roofKey}:pitch`) * 3)]
+  const element = (['portal', 'fins', 'cornice', 'screen'] as const)[Math.floor(unit(`${roofKey}:element`) * 4)]
   const facade: DesignDNA['facade'] = ['vertical-frame', 'portal-frame', 'frame-within-frame', 'double-height-focus'].includes(facadeComposition)
     ? 'framed' : ['horizontal-stack', 'layered-facade', 'stepped-composition'].includes(facadeComposition)
       ? 'layered' : featureElement.includes('fins') || featureElement === 'jaali-panel' ? 'screened' : 'terraced'
   return {
     seed,
-    roofGeometry: { profile, ridge, monoLowSide, pitchBiasDeg },
+    roofGeometry: { profile, ridge, monoLowSide, pitchBiasDeg, element },
     styleFamily, variationLevel, facadeComposition, entranceDesign, featureElement, secondaryFeature,
     designPersonality: personality,
     balconyDesign: majorRng.weighted(preferred([

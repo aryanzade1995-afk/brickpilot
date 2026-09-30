@@ -111,7 +111,9 @@ export function InteriorStudio({
           <span>
             Interior engine: <span className="font-mono text-ink">{health.provider}</span>
             {health.note ? ` — ${health.note}` : ''}
-            {offline && ' · results are placeholder echoes until ComfyUI is set up (see README).'}
+            {offline && ' · start Gemini Web or ComfyUI to generate an interior (see README).'}
+            {offline && <button type="button" onClick={() => void probeHealth()}
+              className="ml-2 font-mono text-xs underline underline-offset-2 hover:text-ink">Check again</button>}
           </span>
         </p>
       )}
@@ -228,10 +230,10 @@ export function InteriorStudio({
           <button
             type="button"
             onClick={run}
-            disabled={busy || !roomModel}
+            disabled={busy || !roomModel || Boolean(offline)}
             className={cx(
               'flex w-full items-center justify-center gap-2 px-5 py-3 font-mono text-xs uppercase tracking-[0.12em] transition-colors',
-              busy || !roomModel
+              busy || !roomModel || offline
                 ? 'border border-line text-ink-faint'
                 : 'bg-accent text-white hover:bg-accent-hot',
             )}
@@ -241,7 +243,7 @@ export function InteriorStudio({
               ? 'Capturing 3D room…'
               : phase === 'generating'
                 ? `Generating… ${progress.pct}%`
-                : 'Generate AI Interior'}
+                : offline ? 'Interior engine offline' : 'Generate AI Interior'}
           </button>
 
           {busy && (
@@ -264,6 +266,7 @@ export function InteriorStudio({
               <button
                 type="button"
                 onClick={run}
+                disabled={Boolean(offline)}
                 className="mt-2 flex items-center gap-1.5 border border-line-strong px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.1em] text-ink-dim hover:text-ink"
               >
                 <RefreshCw size={11} /> Try again
@@ -272,9 +275,10 @@ export function InteriorStudio({
           )}
 
           <p className="text-[0.78rem] leading-relaxed text-ink-faint">
-            The 3D room drives a Canny ControlNet on the edge map, so walls, openings, proportions
-            and the camera stay put — only materials, furniture and light are generated. With the
-            second angle on, each run renders two views of the room.
+            {health?.provider === 'comfyui'
+              ? 'ComfyUI uses the 3D room edge map for Canny conditioning. Check the output against the plan before using it.'
+              : 'Gemini Web reads the 3D room and generates a furnished concept from its layout description. Its image endpoint does not guarantee exact door or window positions; check the output against the plan. ComfyUI is used if Gemini Web fails.'}
+            {' '}With the second angle on, each run renders two views of the room.
           </p>
         </div>
       </div>

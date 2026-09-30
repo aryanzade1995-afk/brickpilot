@@ -26,11 +26,20 @@ export function Directions() {
   const [referenceImage, setReferenceImage] = useState<string | null>(null)
   const [referenceBusy, setReferenceBusy] = useState(false)
   const [referenceError, setReferenceError] = useState<string | null>(null)
+  const [analysisAvailable, setAnalysisAvailable] = useState<boolean | null>(null)
   const navigate = useNavigate()
 
   useEffect(() => {
     if (!directions) explore()
   }, [directions, explore])
+
+  useEffect(() => {
+    let active = true
+    fetch('/api/inspiration/health').then((response) => response.json())
+      .then((health) => { if (active) setAnalysisAvailable(Boolean(health.reachable)) })
+      .catch(() => { if (active) setAnalysisAvailable(false) })
+    return () => { active = false }
+  }, [])
 
   if (!directions) {
     return <div className="mx-auto max-w-[1400px] px-10 py-24 text-ink-dim">Engineering directions…</div>
@@ -76,6 +85,9 @@ export function Directions() {
             <p className="mt-2 max-w-2xl text-sm text-ink-dim">
               An image can guide style, materials and façade rhythm. The verified plan and its doors and windows stay fixed.
             </p>
+            {analysisAvailable === false && <p className="mt-2 text-xs text-ink-dim" role="status">
+              AI style analysis is offline. You can still select an image as a visual reference.
+            </p>}
             <input type="file" accept="image/png,image/jpeg,image/webp" disabled={referenceBusy}
               className="mt-3 block w-full text-xs text-ink-dim"
               onChange={async (event) => {
@@ -109,7 +121,7 @@ export function Directions() {
             {referencePreferences?.styleFamily && <p className="mt-3 text-xs text-ok" role="status">
               Inspired by {referencePreferences.styleFamily.replaceAll('-', ' ')} · {referencePreferences.materialPalette?.replaceAll('-', ' ') ?? 'coordinated materials'}
             </p>}
-            {referenceError && <p className="mt-3 text-xs text-bad" role="alert">{referenceError} The image can still guide the final photo render.</p>}
+            {referenceError && <p className="mt-3 text-xs text-bad" role="alert">{referenceError} The image stays selected, but automatic style analysis needs the local Gemini Web bridge.</p>}
           </div>
         </div>
       </div>
@@ -140,7 +152,7 @@ export function Directions() {
                   </div>
                   <p className="mt-1.5 max-w-sm text-sm text-ink-dim">{d.blurb}</p>
                   <p className="mt-2 font-mono text-[0.65rem] uppercase tracking-[0.08em] text-ink-faint">
-                    {d.design.dna.styleFamily.replaceAll('-', ' ')} · {d.design.dna.roofDesign.replaceAll('-', ' ')} roof · {d.design.dna.roofGeometry?.profile.replaceAll('-', ' ') ?? 'slim'} profile · novelty {d.novelty}/100
+                    {d.design.dna.styleFamily.replaceAll('-', ' ')} · {d.design.dna.roofDesign.replaceAll('-', ' ')} roof · {d.design.dna.roofGeometry?.profile.replaceAll('-', ' ') ?? 'slim'} profile · {d.design.dna.roofGeometry?.element ?? 'portal'} element · novelty {d.novelty}/100
                   </p>
                 </div>
                 <div className="flex-none text-right">

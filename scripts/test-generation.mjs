@@ -36,6 +36,7 @@ test('four exterior directions keep the exact same verified plan', () => {
   assert.equal(directions.length, 4)
   assert.equal(new Set(directions.map((dir) => dir.massing)).size, 1)
   assert.equal(new Set(directions.map((dir) => JSON.stringify(fingerprint(dir.design.dna)))).size, 4)
+  assert.equal(new Set(directions.map((dir) => dir.design.dna.roofGeometry.element)).size, 4)
   for (const dir of directions) {
     assert.ok(validate(dir.design).hardChecksPass)
     assert.ok(dir.novelty > 0)
@@ -78,6 +79,11 @@ test('110 seeded exterior variants stay valid and retain the same plan', () => {
     assert.deepEqual(validateVillaVariation(design).errors, [], `facade collision at seed ${seed}`)
     const massing = buildMassing(design)
     assert.equal(new Set(massing.boxes.map((b) => b.id)).size, massing.boxes.length, `duplicate 3D id at seed ${seed}`)
+    for (const element of massing.boxes.filter((box) => box.id.startsWith('sig-')))
+      for (const glass of massing.boxes.filter((box) => box.kind === 'glass'))
+        assert.ok([0, 1, 2].some((axis) =>
+          Math.abs(element.pos[axis] - glass.pos[axis]) >= (element.size[axis] + glass.size[axis]) / 2 - 0.001),
+        `${element.id} blocks ${glass.id} at seed ${seed}`)
     for (const box of massing.boxes) {
       assert.ok([...box.pos, ...box.size].every(Number.isFinite), `${box.id} is not finite`)
       assert.ok(box.size.every((n) => n > 0), `${box.id} has nonpositive geometry`)
@@ -131,13 +137,19 @@ test('50 Generate Again selections favour new architectural fingerprints', () =>
   const plan = generate(compile(defaultBrief()))
   const history = []
   const prints = new Set()
+  let lastElement = null
   for (let i = 0; i < 50; i++) {
     const next = chooseNextExterior(plan, history, 'balanced')
     assert.ok(validate(next).hardChecksPass)
+    const element = next.dna.roofGeometry.element
+    assert.notEqual(element, lastElement, `roof element repeated at selection ${i}`)
+    assert.ok(buildMassing(next).boxes.some((box) => box.id.includes(`sig-`) && box.id.includes(element === 'portal' ? 'portal' : element === 'fins' ? 'fin-' : element)),
+      `missing ${element} geometry at selection ${i}`)
     const print = JSON.stringify(fingerprint(next.dna))
     assert.ok(!prints.has(print), `near-repeat at selection ${i}`)
     prints.add(print)
     history.push(next.dna.seed)
+    lastElement = element
   }
 })
 

@@ -7,6 +7,7 @@ export type DesignFingerprint = Pick<DesignDNA,
   'featureElement' | 'secondaryFeature' | 'materialPalette' | 'shadingSystem' | 'windowTreatment'> & {
   roofProfile: DesignDNA['roofGeometry']['profile']
   roofRidge: DesignDNA['roofGeometry']['ridge']
+  roofElement: DesignDNA['roofGeometry']['element']
 }
 
 export const fingerprint = (dna: DesignDNA): DesignFingerprint => ({
@@ -18,13 +19,14 @@ export const fingerprint = (dna: DesignDNA): DesignFingerprint => ({
   roofProfile: dna.roofGeometry?.profile ?? 'slim',
   roofRidge: ['hip', 'gable', 'mono-slope', 'kerala-pitched'].includes(dna.roofDesign)
     ? dna.roofGeometry?.ridge ?? 'long' : 'long',
+  roofElement: dna.roofGeometry?.element ?? 'portal',
 })
 
 const WEIGHTS: Record<keyof DesignFingerprint, number> = {
-  styleFamily: 8, facadeComposition: 18, entranceDesign: 13, roofDesign: 13,
-  featureElement: 11, secondaryFeature: 4, balconyDesign: 9,
+  styleFamily: 8, facadeComposition: 14, entranceDesign: 12, roofDesign: 11,
+  featureElement: 10, secondaryFeature: 4, balconyDesign: 9,
   materialPalette: 5, shadingSystem: 4, windowTreatment: 3,
-  roofProfile: 8, roofRidge: 4,
+  roofProfile: 8, roofRidge: 4, roofElement: 8,
 }
 
 /** 0–100 architectural distance, independent of landscape/camera/lighting. */
@@ -76,13 +78,18 @@ export function selectExteriorDirections(plan: Design, count = 4, level: Variati
     .filter((design) => designQuality(design.dna) >= 80 && validateVillaVariation(design).valid)
   const selected: Design[] = []
   while (selected.length < count && candidates.length) {
-    candidates.sort((a, b) => {
+    const unusedElements = candidates.filter((candidate) =>
+      selected.every((design) => design.dna.roofGeometry.element !== candidate.dna.roofGeometry.element))
+    const pool = unusedElements.length ? unusedElements : candidates
+    pool.sort((a, b) => {
       const score = (d: Design) => selected.length
-        ? Math.min(...selected.map((s) => noveltyScore(fingerprint(d.dna), fingerprint(s.dna)))) * 100 + designQuality(d.dna)
+        ? Math.min(...selected.map((s) => noveltyScore(fingerprint(d.dna), fingerprint(s.dna)))) * 100 +
+          designQuality(d.dna)
         : designQuality(d.dna)
       return score(b) - score(a) || a.dna.seed - b.dna.seed
     })
-    const next = candidates.shift()!
+    const next = pool[0]
+    candidates.splice(candidates.indexOf(next), 1)
     if (selected.length && Math.min(...selected.map((s) => noveltyScore(fingerprint(next.dna), fingerprint(s.dna)))) < (level === 'subtle' ? 3 : 25))
       continue
     selected.push(next)
@@ -103,7 +110,10 @@ export function chooseNextExterior(plan: Design, recentSeeds: number[], level: V
   const candidates = Array.from({ length: 32 }, (_, i) => varyExterior(plan, anchor + i * 977, level, inspiration))
     .filter((d) => validateVillaVariation(d).valid)
   const fresh = candidates.filter((d) => !seen.has(JSON.stringify(fingerprint(d.dna))))
-  const pool = fresh.length ? fresh : candidates
+  const previousElement = recentSeeds.length
+    ? varyExterior(plan, recentSeeds.at(-1)!, level, inspiration).dna.roofGeometry.element : null
+  const newElements = fresh.filter((d) => d.dna.roofGeometry.element !== previousElement)
+  const pool = newElements.length ? newElements : fresh.length ? fresh : candidates
   pool.sort((a, b) => {
     const score = (d: Design) => history.length
       ? Math.min(...history.map((h) => noveltyScore(fingerprint(d.dna), h))) * 100 + designQuality(d.dna)

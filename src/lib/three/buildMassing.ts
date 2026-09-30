@@ -281,6 +281,8 @@ export function buildMassing(design: Design): Massing {
       } else if (cover) {
         buildTerrace(o, cover, wallTop, L, T, push, wx, wz, m)
       }
+      if (L === topLevel && exposed)
+        buildRoofSignature(o, wallTop, L, bi, pitched, design.dna, push, wx, wz, m)
     })
 
     const o = oFull
@@ -812,6 +814,51 @@ function buildPitchedRoof(
     [rw, rise, rd],
     { form, ridge, low },
   )
+}
+
+/** One visible roof-edge element per exterior seed. Every element is attached
+ * to the front exterior wall above the highest opening; it changes no plan
+ * void, column, floor plate or circulation route. */
+function buildRoofSignature(o: Rect, wallTop: number, level: number, block: number,
+  pitched: boolean, dna: DesignDNA, push: Push, wx: XF, wz: XF, m: XF) {
+  const width = Math.min(o.w - 900, 4200)
+  if (width < 1600) return
+  const start = dna.accentSide === 'left' ? o.x + 450 : o.x + o.w - 450 - width
+  const x0 = wx(start)
+  const run = m(width)
+  const z = wz(o.y + o.h) + EXT_T / 2 + 0.06
+  const base = pitched ? wallTop - 0.5 : wallTop
+  const h = pitched ? 0.46 : 1.25
+  const tag = `sig-${level}-${block}`
+  const box = (name: string, kind: MassKind, x: number, y: number,
+    w: number, ht: number, depth: number) =>
+    push(`${tag}-${name}`, kind, level, [x, y, z], [w, ht, depth])
+
+  switch (dna.roofGeometry?.element ?? 'portal') {
+    case 'portal': {
+      for (const [index, x] of [x0, x0 + run].entries())
+        box(`portal-post-${index}`, 'feature', x, base + h / 2, 0.16, h, 0.24)
+      box('portal-beam', 'feature', x0 + run / 2, base + h + 0.06, run + 0.24, 0.14, 0.3)
+      break
+    }
+    case 'fins': {
+      for (let i = 0; i < 6; i++)
+        box(`fin-${i}`, 'screen', x0 + run * i / 5, base + h / 2, 0.11, h, 0.36)
+      break
+    }
+    case 'cornice': {
+      for (let i = 0; i < 3; i++)
+        box(`cornice-${i}`, 'railing', x0 + run / 2, base + 0.08 + i * (pitched ? 0.14 : 0.24),
+          run - i * 0.14, 0.07, 0.18 + i * 0.06)
+      break
+    }
+    case 'screen': {
+      for (let i = 0; i < 3; i++)
+        box(`screen-${i}`, 'screen', x0 + run * (i + 0.5) / 3,
+          base + h * 0.42, run / 3 - 0.15, h * 0.84, 0.18)
+      break
+    }
+  }
 }
 
 /* ---------------------- contemporary-villa moves (modernist) ---------------------- */

@@ -14,7 +14,8 @@ import { createServer } from 'node:http'
 import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs'
 import { extname, join, normalize } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { resolveProvider } from './providers/index.mjs'
+import { generateInteriorWithFallback, providerName, resolveProvider } from './providers/index.mjs'
+import { analyzeInspiration, healthy as geminiWebHealth } from './providers/gemini-web.mjs'
 
 // --- load server/.env (no dependency, no --env-file flag needed) ---
 try {
@@ -33,12 +34,9 @@ try {
 const PORT = Number(process.env.PORT || process.env.RENDER_PROXY_PORT || 8787)
 const KEY = process.env.GEMINI_API_KEY || ''
 const MODEL = process.env.RENDER_MODEL || 'gemini-2.5-flash-image'
-const INSPIRATION_MODEL = process.env.INSPIRATION_MODEL || 'gemini-2.5-flash-lite'
 const MOCK = process.env.RENDER_MOCK === '1'
 const ENDPOINT = (key) =>
   `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`
-const INSPIRATION_ENDPOINT = (key) =>
-  `https://generativelanguage.googleapis.com/v1beta/models/${INSPIRATION_MODEL}:generateContent?key=${key}`
 
 const INSPIRATION_PROMPT = `Classify the villa architecture in this reference image. Return only JSON with one value for each key below. Read the image as design inspiration, never as a floor plan or geometry to copy.
 styleFamily: modern-indian, contemporary-indian, luxury-modern, minimal-modern, tropical-modern, modern-kerala, kerala-contemporary, courtyard-modern, resort-luxury, neo-classical, contemporary-classical, urban-premium
@@ -153,30 +151,22 @@ const server = createServer((req, res) => {
     return send(res, 200, { ok: true, configured: Boolean(KEY), mock: MOCK, model: MODEL })
   }
 
+  if (req.method === 'GET' && req.url === '/api/inspiration/health') {
+    geminiWebHealth().then((health) => send(res, 200, { provider: 'gemini-web', ...health }))
+    return
+  }
+
   if (req.method === 'POST' && req.url === '/api/inspiration') {
     readJson(req, 12e6).then(async (p) => {
       const { imageBase64, mimeType } = p || {}
       if (typeof imageBase64 !== 'string' || !imageBase64 ||
         !/^image\/(png|jpeg|webp)$/.test(mimeType) || !/^[A-Za-z0-9+/=]+$/.test(imageBase64))
         return send(res, 400, { error: 'Choose a PNG, JPEG or WebP inspiration image.' })
-      if (MOCK || !KEY) return send(res, 503, { error: 'Image analysis needs a configured Gemini API key.' })
+      const health = await geminiWebHealth()
+      if (!health.reachable) return send(res, 503, { error: `Gemini Web bridge unavailable. ${health.note}` })
       try {
-        const response = await fetch(INSPIRATION_ENDPOINT(KEY), {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [
-              { text: INSPIRATION_PROMPT },
-              { inlineData: { mimeType, data: imageBase64 } },
-            ] }],
-            generationConfig: { responseMimeType: 'application/json' },
-          }),
-        })
-        const payload = await response.json()
-        if (!response.ok) return send(res, response.status, { error: payload?.error?.message || 'Image analysis failed.' })
-        const content = payload?.candidates?.[0]?.content?.parts?.find((part) => typeof part.text === 'string')?.text
-        if (!content) return send(res, 502, { error: 'No architectural style analysis was returned.' })
-        return send(res, 200, { preferences: JSON.parse(content) })
+        const preferences = await analyzeInspiration({ imageBase64, mimeType, prompt: INSPIRATION_PROMPT })
+        return send(res, 200, { preferences })
       } catch (error) {
         return send(res, 502, { error: String(error?.message || error) })
       }
@@ -246,8 +236,8 @@ const server = createServer((req, res) => {
   // ---- AI interior render (SDXL + ControlNet via ComfyUI, modular provider) ----
   if (req.method === 'GET' && req.url === '/api/interior/health') {
     resolveProvider()
-      .then(({ id, reachable, note, usingMock }) =>
-        send(res, 200, { provider: usingMock && id !== 'mock' ? `mock (${id} offline)` : id, reachable, note }),
+      .then(({ activeId, reachable, note }) =>
+        send(res, 200, { provider: activeId, reachable, note }),
       )
       .catch((e) => send(res, 200, { provider: 'error', reachable: false, note: String(e?.message || e) }))
     return
@@ -275,9 +265,7 @@ const server = createServer((req, res) => {
         }
         const ping = setInterval(() => res.write(': keep-alive\n\n'), 15000)
         try {
-          const r = await resolveProvider()
-          if (r.usingMock && r.id !== 'mock') sse('progress', { pct: 2, stage: r.note })
-          const out = await r.provider.generateInterior({
+          const out = await generateInteriorWithFallback({
             beauty,
             depth,
             edge,
@@ -285,7 +273,7 @@ const server = createServer((req, res) => {
             negative,
             params,
             onProgress,
-          })
+          }, (note) => sse('progress', { pct, stage: note }))
           sse('done', { imageBase64: out.imageBase64, mimeType: out.mimeType || 'image/png', meta: out.meta || {} })
         } catch (e) {
           sse('error', { error: String(e?.message || e) })
@@ -306,7 +294,7 @@ const server = createServer((req, res) => {
 })
 
 server.listen(PORT, () => {
-  const interior = (process.env.INTERIOR_PROVIDER || 'comfyui').toLowerCase()
+  const interior = providerName()
   console.log(
     `[formstead] http://localhost:${PORT}  static=${SERVE_STATIC ? 'dist' : 'off'}  ` +
       `render=${MOCK ? 'mock' : KEY ? 'gemini' : 'MISSING'}  interior=${interior}`,
