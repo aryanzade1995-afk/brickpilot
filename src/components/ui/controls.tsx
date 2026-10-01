@@ -130,10 +130,14 @@ export function Stepper({
   onChange,
   min = 0,
   max = 20,
+  increaseDisabled = false,
+  increaseReason,
 }: {
   value: number
   onChange: (v: number) => void
   min?: number
+  increaseDisabled?: boolean
+  increaseReason?: string
   max?: number
 }) {
   const fieldLabel = useContext(FieldLabel)
@@ -154,7 +158,8 @@ export function Stepper({
       <button
         type="button"
         aria-label={`Increase ${fieldLabel ?? 'value'}`}
-        disabled={value >= max}
+        disabled={value >= max || increaseDisabled}
+        title={increaseDisabled ? increaseReason : undefined}
         onClick={() => onChange(Math.min(max, value + 1))}
         className="px-3.5 py-2 text-ink-dim hover:bg-bg-raised hover:text-ink disabled:opacity-30"
       >

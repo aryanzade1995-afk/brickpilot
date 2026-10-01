@@ -1,3 +1,4 @@
+import { canIncreaseBrief, CAPACITY_GUIDANCE } from '@/lib/engine/planner/fit.ts'
 import { resolveOpenSpace, OPEN_SPACE_LABEL } from '@/lib/model/openSpace.ts'
 import { PLANNING_LIMITS } from '@/lib/engine/planner/limits.ts'
 import { Dices, Plus, X } from 'lucide-react'
@@ -169,9 +170,10 @@ export function FamilyStep() {
   const [brief, edit] = useBrief()
   const h = brief.household
   const count = occupantCount(brief)
+  const canAdd = (role: MemberRole) => count < MAX_MEMBERS && canIncreaseBrief(brief, b => { b.household.members.push({ role, needsGroundFloor: role === 'senior' }); syncOccupants(b) })
   const add = (role: MemberRole) =>
     edit((b) => {
-      if (b.household.members.length >= MAX_MEMBERS) return
+      if (!canAdd(role)) return
       b.household.members.push({ role, needsGroundFloor: role === 'senior' })
       syncOccupants(b)
     })
@@ -218,10 +220,11 @@ export function FamilyStep() {
             </div>
           ))}
         </div>
+        {!canAdd('adult') && <p className="text-sm text-bad" role="status">{CAPACITY_GUIDANCE}</p>}
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            disabled={count >= MAX_MEMBERS}
+            disabled={!canAdd('adult')}
             onClick={() => add('adult')}
             className="inline-flex items-center gap-1.5 border border-line-strong px-3 py-2 font-mono text-xs uppercase tracking-[0.1em] text-ink transition-colors hover:border-accent disabled:opacity-30"
           >
@@ -232,7 +235,7 @@ export function FamilyStep() {
             <button
               key={role}
               type="button"
-              disabled={count >= MAX_MEMBERS}
+              disabled={!canAdd(role)}
               onClick={() => add(role)}
               className="border border-line px-3 py-2 font-mono text-xs uppercase tracking-[0.1em] text-ink-dim transition-colors hover:border-line-strong hover:text-ink disabled:opacity-30"
             >
@@ -312,6 +315,8 @@ export function LifestyleStep() {
       <div className="space-y-4">
         <Field label="People working from home">
           <Stepper
+            increaseDisabled={!canIncreaseBrief(brief, b => { b.lifestyle.wfhCount += 1 })}
+            increaseReason={CAPACITY_GUIDANCE}
             value={l.wfhCount}
             min={0}
             max={4}
@@ -391,16 +396,16 @@ export function RoomsStep() {
     <div className="max-w-2xl space-y-8">
       <div className="grid grid-cols-2 gap-x-8 gap-y-6">
         <Field label="Bedrooms with attached bath">
-          <Stepper value={r.bedroomsWithBath} min={0} max={8} onChange={(v) => edit((b) => void (b.rooms.bedroomsWithBath = v))} />
+          <Stepper increaseDisabled={!canIncreaseBrief(brief, b => { b.rooms.bedroomsWithBath += 1 })} increaseReason={CAPACITY_GUIDANCE} value={r.bedroomsWithBath} min={0} max={8} onChange={(v) => edit((b) => void (b.rooms.bedroomsWithBath = v))} />
         </Field>
         <Field label="Bedrooms without attached bath">
-          <Stepper value={r.bedroomsNoBath} min={0} max={8} onChange={(v) => edit((b) => void (b.rooms.bedroomsNoBath = v))} />
+          <Stepper increaseDisabled={!canIncreaseBrief(brief, b => { b.rooms.bedroomsNoBath += 1 })} increaseReason={CAPACITY_GUIDANCE} value={r.bedroomsNoBath} min={0} max={8} onChange={(v) => edit((b) => void (b.rooms.bedroomsNoBath = v))} />
         </Field>
         <Field label="Shared / common bathrooms">
-          <Stepper value={r.sharedBaths} min={0} max={6} onChange={(v) => edit((b) => void (b.rooms.sharedBaths = v))} />
+          <Stepper increaseDisabled={!canIncreaseBrief(brief, b => { b.rooms.sharedBaths += 1 })} increaseReason={CAPACITY_GUIDANCE} value={r.sharedBaths} min={0} max={6} onChange={(v) => edit((b) => void (b.rooms.sharedBaths = v))} />
         </Field>
         <Field label="Studies / offices">
-          <Stepper value={r.studies} min={0} max={4} onChange={(v) => edit((b) => void (b.rooms.studies = v))} />
+          <Stepper increaseDisabled={!canIncreaseBrief(brief, b => { b.rooms.studies += 1 })} increaseReason={CAPACITY_GUIDANCE} value={r.studies} min={0} max={4} onChange={(v) => edit((b) => void (b.rooms.studies = v))} />
         </Field>
       </div>
 
@@ -436,6 +441,7 @@ export function RoomsStep() {
           <Toggle checked={p.compoundWall} onChange={(v) => edit((b) => void (b.rooms.priorities.compoundWall = v))} label="Compound wall" hint="Boundary wall with a gate" />
         </div>
       </div>
+      {(['bedroomsWithBath', 'bedroomsNoBath', 'sharedBaths', 'studies'] as const).some(key => !canIncreaseBrief(brief, b => { b.rooms[key] += 1 })) && <p role="status" className="text-sm text-bad">Add a floor or reduce open space to add another bedroom, bathroom or study.</p>}
       <FitNotice />
     </div>
   )

@@ -58,8 +58,8 @@ export function Directions() {
       .filter((finding) => finding.severity === 'error').map((finding) => finding.message)
     return <div className="mx-auto max-w-3xl px-6 py-12 md:px-10">
       <WorkspaceTabs />
-      <h1 className="mt-8 font-display text-3xl">This brief needs more room</h1>
-      <p className="mt-3 text-sm text-ink-dim">No generated direction passes the plan checks yet. Adjust the plot, setbacks, requested rooms or massing choice, then generate again.</p>
+      <h1 className="mt-8 font-display text-3xl">The saved brief needs adjustment</h1>
+      <p className="mt-3 text-sm text-ink-dim">This safety check protects older saved briefs and direct links. No generated direction passes the plan checks yet. Adjust the plot, setbacks, requested rooms or massing choice, then generate again.</p>
       <ul className="mt-6 space-y-2 border-y border-line py-4 text-sm text-bad">
         {errors.slice(0, 8).map((message, index) => <li key={index}>• {message}</li>)}
       </ul>

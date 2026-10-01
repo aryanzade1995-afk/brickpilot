@@ -406,3 +406,7 @@ block reserved circulation or the pool. The interactive GLB keeps the source
 plot ground and excludes only the oversized presentation context and lights.
 Progress files are replaced atomically with bounded retries for transient
 Windows sharing locks. All existing architecture and similarity gates remain.
+
+### Live brief capacity
+
+Wizard capacity uses the production planner and every hard validator, with a bounded cache for repeated inputs. Room/member/workspace increments are disabled when the proposed brief fails. Generate is disabled for an invalid programme, including old saved briefs. Reducing requirements and enlarging the site remain available.

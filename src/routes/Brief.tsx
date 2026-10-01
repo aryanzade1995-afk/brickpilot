@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, RotateCcw, Sparkles } from 'lucide-react'
 import { BRIEF_STEPS } from '@/lib/model/brief.ts'
 import { useStudio } from '@/state/studio.ts'
 import { Button } from '@/components/ui/Button.tsx'
 import { cx } from '@/lib/cx.ts'
-import { briefSiteIssues } from '@/lib/model/canonical.ts'
+import { assessBriefFit, CAPACITY_GUIDANCE } from '@/lib/engine/planner/fit.ts'
 import {
   EntryStep,
   FamilyStep,
@@ -64,6 +64,7 @@ export function Brief() {
   const [formError, setFormError] = useState<string | null>(null)
   const navigate = useNavigate()
 
+  const fit = useMemo(() => assessBriefFit(brief), [brief])
   const last = step === BRIEF_STEPS.length - 1
   const subs = SUBSTEPS[step]
   const active = subs?.[sub]
@@ -75,7 +76,7 @@ export function Brief() {
     if (subs && sub < subs.length - 1) {
       setSub(sub + 1)
     } else if (last) {
-      const issues = briefSiteIssues(brief)
+      const issues = fit.fits ? [] : [CAPACITY_GUIDANCE, ...fit.issues.slice(0, 2)]
       if (issues.length) { setFormError(issues.join(' ')); return }
       setFormError(null)
       explore()
@@ -130,7 +131,7 @@ export function Brief() {
               <RotateCcw size={12} />
               Reset
             </button>
-            <Button size="sm" onClick={next}>
+            <Button size="sm" onClick={next} disabled={last && !fit.fits}>
               {last ? (
                 <>
                   Generate concept
@@ -149,6 +150,7 @@ export function Brief() {
 
       {/* step body */}
       <div className="mx-auto max-w-[1400px] px-6 py-12 md:px-10 md:py-16">
+        {!fit.fits && <p role="status" aria-live="polite" className="mb-6 border-l-2 border-bad bg-bad/5 px-4 py-3 text-sm text-bad">{CAPACITY_GUIDANCE} {fit.issues.slice(0, 1).join(" ")}</p>}
         {formError && <p role="alert" className="mb-6 border-l-2 border-bad bg-bad/5 px-4 py-3 text-sm text-bad">{formError}</p>}
         <p className="label">Step {step + 1} of {BRIEF_STEPS.length}</p>
         <h1 className="mt-3 font-display text-[clamp(2rem,4vw,3rem)]">{title}</h1>
@@ -189,7 +191,7 @@ export function Brief() {
             <ArrowLeft size={13} />
             Back
           </button>
-          <Button onClick={next}>
+          <Button onClick={next} disabled={last && !fit.fits}>
             {last ? (
               <>
                 Generate verified concept

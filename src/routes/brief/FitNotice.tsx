@@ -6,7 +6,7 @@ export function FitNotice() {
   const brief = useStudio((state) => state.brief)
   const fit = useMemo(() => assessBriefFit(brief), [brief])
   const good = fit.fits && fit.atTarget
-  const title = fit.issues.length ? 'Plot and setbacks leave too little building space' :
+  const title = fit.issues.length ? 'These requirements cannot produce a valid plan yet' :
     !fit.fits ? 'Requested rooms do not fit this plot' :
       good ? 'Required room sizes can fit this plot' : 'Minimum room sizes can fit, but space is tight'
 
@@ -22,7 +22,7 @@ export function FitNotice() {
       ) : !fit.fits ? (
         <p className="mt-2 text-bad">Increase the plot, reduce setbacks or parking, add another floor, or request fewer rooms.</p>
       ) : (
-        <p className="mt-2 text-ink-dim">Final door, access and geometry checks run when the plan is generated.</p>
+        <p className="mt-2 text-ink-dim">The production planner has checked room minimums, doors, access and geometry.</p>
       )}
     </div>
   )

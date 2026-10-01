@@ -154,7 +154,7 @@ test('case A: 1 ground-floor parents bedroom with attached bath, 3 bedrooms upst
   assert.equal(m.floors.flatMap((f) => f.spaces).filter((s) => s.role === 'master').length, 1)
   // the parents room uses the master-bedroom area preset
   assert.deepEqual([parents.min, parents.target, parents.max], [master.min, master.target, master.max])
-  assert.equal(assessBriefFit(b).fits, true)
+  assert.equal(assessBriefFit(b).fits, validate(generate(compile(b))).hardChecksPass, 'packing alone must not approve an invalid plan')
 })
 
 test('case A generates a plan that passes every hard check', () => {

@@ -1,3 +1,5 @@
+import { generate } from '../generate.ts'
+import { validate } from '../../rules/index.ts'
 import type { Brief } from '../../model/brief.ts'
 import { briefSiteIssues, compile } from '../../model/canonical.ts'
 import type { PlateFamily } from './types.ts'
@@ -26,7 +28,7 @@ const FAMILY: Record<string, PlateFamily> = {
 
 /** Quick fit check for the brief form. Uses the same plate sizing as planVilla,
  *  without running door placement, access checks or 3D generation. */
-export function assessBriefFit(brief: Brief): BriefFit {
+function packingFit(brief: Brief): BriefFit {
   const model = compile(brief)
   const busiest = model.floors.map((floor) => ({
     name: floor.name,
@@ -70,4 +72,33 @@ export function assessBriefFit(brief: Brief): BriefFit {
     }
   }
   return result
+}
+
+// Cache identical checks across wizard panels and counter previews. Never persist plans here.
+const capacityCache = new Map<string, BriefFit>()
+export const CAPACITY_GUIDANCE = 'Add a floor, enlarge the plot or reduce open space to add another room or member.'
+/** A brief is allowed only when the SAME production planner passes every hard check. */
+export function assessBriefFit(brief: Brief): BriefFit {
+  const key = JSON.stringify(brief)
+  const cached = capacityCache.get(key)
+  if (cached) return cached
+  const fit = packingFit(brief)
+  if (fit.fits) {
+    try {
+      const report = validate(generate(compile(brief)))
+      fit.fits = report.hardChecksPass
+      if (!fit.fits) fit.issues = report.findings.filter(f => f.severity === 'error').map(f => f.message)
+    } catch (error) {
+      fit.fits = false
+      fit.issues = [error instanceof Error ? error.message : 'No valid layout fits these requirements.']
+    }
+  }
+  if (capacityCache.size >= 64) capacityCache.delete(capacityCache.keys().next().value!)
+  capacityCache.set(key, fit)
+  return fit
+}
+export function canIncreaseBrief(brief: Brief, recipe: (candidate: Brief) => void): boolean {
+  const candidate = structuredClone(brief)
+  recipe(candidate)
+  return assessBriefFit(candidate).fits
 }
