@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createServer } from 'node:http'
@@ -46,16 +47,18 @@ test('rooftop cantilevers report actual projection and require adequate bearing'
   assert.ok(report.issues.some((i) => ['FLOATING_VOLUME', 'CANTILEVER_EXCEEDED', 'SETBACK_BREACH'].includes(i.code)))
 })
 test('exterior canopy piers preserve parking and reject missing bearings and low head clearance', () => {
-  const masses = structuredClone(one.massingModel.masses)
+  const canopyPlan = JSON.parse(readFileSync(new URL('./fixtures/canopy-source.json', import.meta.url), 'utf8'))
+  const sheltered = generateAlternativeDesign(canopyPlan, 6)
+  const masses = structuredClone(sheltered.massingModel.masses)
   const canopy = masses.find((m) => m.usage === 'canopy'); assert.ok(canopy)
-  const parking = one.buildingModel.rooms.find((r) => r.id === 'parking')
+  const parking = sheltered.buildingModel.rooms.find((r) => r.id === 'parking')
   const pier = masses.find((m) => m.usage === 'support'); assert.ok(pier)
   pier.x = parking.rect.x + 500; pier.y = parking.rect.y + 500
-  assert.ok(ArchitectureValidator.validate(one.buildingModel, masses, ENVELOPE_LIMITS).issues.some((i) => i.code === 'CIRCULATION_BLOCKED'))
+  assert.ok(ArchitectureValidator.validate(sheltered.buildingModel, masses, ENVELOPE_LIMITS).issues.some((i) => i.code === 'CIRCULATION_BLOCKED'))
   canopy.bearingSupports = []
-  assert.ok(ArchitectureValidator.validate(one.buildingModel, masses, ENVELOPE_LIMITS).issues.some((i) => i.code === 'CANOPY_SUPPORT_MISSING'))
+  assert.ok(ArchitectureValidator.validate(sheltered.buildingModel, masses, ENVELOPE_LIMITS).issues.some((i) => i.code === 'CANOPY_SUPPORT_MISSING'))
   canopy.elevation = 1800
-  assert.ok(ArchitectureValidator.validate(one.buildingModel, masses, ENVELOPE_LIMITS).issues.some((i) => i.code === 'INVALID_CANOPY'))
+  assert.ok(ArchitectureValidator.validate(sheltered.buildingModel, masses, ENVELOPE_LIMITS).issues.some((i) => i.code === 'INVALID_CANOPY'))
 })
 test('taller source plans only use piers within configured heights', () => {
   const brief = defaultBrief(); brief.levels.count = 4

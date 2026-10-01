@@ -1,8 +1,5 @@
+import { readFileSync } from 'node:fs'
 import assert from 'node:assert/strict'
-import { defaultBrief } from '../../src/lib/model/brief.ts'
-import { compile } from '../../src/lib/model/canonical.ts'
-import { generate } from '../../src/lib/engine/generate.ts'
-import { createBuildingModel } from '../../src/lib/engine/buildingModel.ts'
 import { createVillaDesignDNA } from '../../src/lib/engine/villaDesignDna.ts'
 import { MassingGenerator } from '../../src/lib/engine/massing/MassingGenerator.ts'
 import { ArchitectureValidator } from '../../src/lib/engine/massing/ArchitectureValidator.ts'
@@ -12,9 +9,10 @@ import { DEFAULT_GRAMMAR_LIMITS } from '../../src/lib/engine/facade/specialized/
 // Authored source-plan fixtures: every source coordinate is translated together.
 // Extra site margin allows the recipes to be isolated from a tight property's edges.
 export function sourceFixture(width = 15, depth = 18, seed = 41, court = false) {
-  const brief = defaultBrief(); brief.site.plotWidth = width; brief.site.plotDepth = depth
-  brief.rooms.priorities.courtyard = court
-  const building = createBuildingModel(generate(compile(brief), { seed, ...(court ? { massing: 'courtyard' } : {}) }))
+  // Frozen valid source plans isolate grammar regressions from planner scoring changes.
+  const sources = JSON.parse(readFileSync(new URL('./specialized-source.json', import.meta.url), 'utf8'))
+  const building = structuredClone(sources[[width, depth, seed, court].join('-')])
+  assert.ok(building, 'Missing authored source fixture')
   const movePoint = (p) => { p.x += 1000; p.y += 1000 }
   const moveRect = movePoint
   for (const f of building.floors) { moveRect(f.outline); f.footprint.forEach(moveRect); if (f.courtyard) moveRect(f.courtyard) }

@@ -224,6 +224,8 @@ export const briefSchema = z
         sharedBaths: z.number().int().min(0).max(6).default(1),
         studies: z.number().int().min(0).max(4).default(1),
         balcony: z.boolean().default(true),
+        poojaPreference: z.enum(['compact', 'dedicated', 'large']).default('dedicated'),
+        poojaSide: z.union([directionSchema, z.literal('auto')]).default('auto'),
         priorities: z
           .object({
             coveredParking: z.boolean().default(true),

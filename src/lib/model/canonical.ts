@@ -1,4 +1,5 @@
 import type { Brief, Direction } from './brief.ts'
+import { costPerSqmAllIn } from '../cost/index.ts'
 
 /* ------------------------------------------------------------------ *
  *  Canonical model — the compiled, engine-facing form of the brief.
@@ -30,6 +31,8 @@ export type SpaceReq = {
   zone: Zone
   /** target / min / max floor area in m² */
   target: number
+  /** Unconstrained preferred size, retained for honest early budget feedback. */
+  preferredTarget?: number
   min: number
   max: number
   /** wants at least one exterior wall (for daylight) */
@@ -62,6 +65,8 @@ export type CanonicalModel = {
   entrySide: Direction
   floors: FloorProgram[]
   relationships: Relationship[]
+  /** Outdoor programme, placed against the actual free plot by the planner. */
+  siteRequirements: { garden: boolean; compoundWall: boolean; utilityYard: boolean; sitOut: boolean }
 }
 
 /**
@@ -190,10 +195,19 @@ export function compile(brief: Brief): CanonicalModel {
   const wantsCourtyard = p.courtyard || (large && envelope.depth >= 14000 && envelope.width >= 11000)
 
   // --- distribute bedrooms across floors ---
-  const totalBeds = brief.rooms.bedroomsWithBath + brief.rooms.bedroomsNoBath
+  const members = brief.household.members
+  const countRole = (role: string) => members.filter((m) => m.role === role).length
+  const youngRooms = countRole('teen') + Math.ceil(countRole('child') / 2)
+  const residentBeds = Math.max(1, countRole('adult') > 0 ? Math.max(1, countRole('adult') - 1) : 0) +
+    Math.ceil(countRole('senior') / 2) + youngRooms
+  const requestedBeds = brief.rooms.bedroomsWithBath + brief.rooms.bedroomsNoBath
+  const frequentGuests = brief.household.guests === 'frequent'
+  const totalBeds = requestedBeds + (frequentGuests && requestedBeds <= residentBeds ? 1 : 0)
+  const studyCount = Math.max(brief.rooms.studies, Math.min(2, brief.lifestyle.wfhCount),
+    brief.lifestyle.clientVisits || brief.household.guests === 'occasional' ? 1 : 0)
   // clients visit the home office: the first study sits on the ground floor
   // beside the foyer; with no clients, studies stay upstairs where it is quiet
-  const clientStudy = brief.lifestyle.clientVisits && brief.lifestyle.wfhCount > 0 && brief.rooms.studies > 0
+  const clientStudy = brief.lifestyle.clientVisits && studyCount > 0
   // members who need the ground floor share rooms two at a time
   const groundSeniorRooms = Math.ceil(brief.household.members.filter((m) => m.needsGroundFloor).length / 2)
   const groundBeds = !hasUpper ? totalBeds
@@ -211,6 +225,7 @@ export function compile(brief: Brief): CanonicalModel {
   // not a parents' room). Both get the master-bedroom area preset.
   let parentsLeft = Math.min(groundSeniorRooms, groundBeds)
   let masterPlaced = false
+  let youngLeft = youngRooms
   const nextBed = (onGround: boolean): SpaceReq => {
     bedNo += 1
     const id = `bed${bedNo}`
@@ -222,12 +237,17 @@ export function compile(brief: Brief): CanonicalModel {
       masterPlaced = true
       return { ...mk(id, 'Master bedroom', 'private', 'masterBed'), role: 'master' }
     }
+    if (frequentGuests && bedNo === totalBeds) return { ...mk(id, 'Guest bedroom', 'private', 'bed'), role: 'guest' }
+    if (youngLeft > 0) {
+      youngLeft -= 1
+      return { ...mk(id, 'Child / teen bedroom', 'private', 'bed'), role: 'child' }
+    }
     return mk(id, `Bedroom ${bedNo}`, 'private', 'bed')
   }
   const withBathBudget = { n: brief.rooms.bedroomsWithBath }
-  const nextBath = (): SpaceReq | null => {
-    if (withBathBudget.n <= 0) return null
-    withBathBudget.n -= 1
+  const nextBath = (owner: SpaceReq): SpaceReq | null => {
+    if (withBathBudget.n <= 0 && owner.role !== 'guest') return null
+    if (withBathBudget.n > 0) withBathBudget.n -= 1
     bathNo += 1
     return mk(`bath${bathNo}`, `Attached bath ${bathNo}`, 'service', 'attachedBath', {
       wet: true,
@@ -258,7 +278,7 @@ export function compile(brief: Brief): CanonicalModel {
     }
     spaces.push(mk('kitchen', 'Kitchen', 'service', 'kitchen', { wet: true }))
 
-    if (p.utility) {
+    if (p.utility || brief.lifestyle.dryWetSplit || brief.household.staff !== 'none') {
       // a dry / wet split turns the utility into a real second kitchen
       spaces.push(brief.lifestyle.dryWetSplit
         ? mk('utility', 'Wet kitchen / utility', 'service', 'wetKitchen', { wet: true, wantsWindow: true })
@@ -266,7 +286,10 @@ export function compile(brief: Brief): CanonicalModel {
       addRel('kitchen', 'utility', 'adjacent')
     }
     if (p.pooja) {
-      spaces.push(mk('pooja', 'Pooja room', 'sacred', 'pooja', { wantsWindow: false }))
+      const pooja = mk('pooja', 'Pooja room', 'sacred', 'pooja', { wantsWindow: false })
+      if (brief.rooms.poojaPreference === 'compact') pooja.target = 2
+      if (brief.rooms.poojaPreference === 'large') { pooja.min = 3; pooja.target = 6; pooja.max = 10 }
+      spaces.push(pooja)
       addRel('foyer', 'pooja', 'near')
     }
 
@@ -284,7 +307,7 @@ export function compile(brief: Brief): CanonicalModel {
       const b = nextBed(true)
       spaces.push(b)
       addRel('foyer', b.id, 'connected')
-      const bath = nextBath()
+      const bath = nextBath(b)
       if (bath) {
         spaces.push(bath)
         addRel(b.id, bath.id, 'adjacent')
@@ -302,7 +325,7 @@ export function compile(brief: Brief): CanonicalModel {
       addRel('foyer', 'accessibleBath', 'near')
     }
     if (!hasUpper) {
-      for (let i = 0; i < brief.rooms.studies; i++) {
+      for (let i = 0; i < studyCount; i++) {
         const id = `study${i + 1}`
         spaces.push(mk(id, `Study / office ${i + 1}`, 'work', 'study'))
         addRel('foyer', id, 'connected')
@@ -312,6 +335,16 @@ export function compile(brief: Brief): CanonicalModel {
       spaces.push(mk('study1', 'Study / office 1', 'work', 'study'))
     }
     if (clientStudy) addRel('foyer', 'study1', 'adjacent')
+
+    if (brief.household.staff === 'liveIn') {
+      spaces.push({ ...mk('bedStaff', 'Staff bedroom', 'private', 'bed'), role: 'staff' })
+      spaces.push(mk('staffBath', 'Staff toilet / shower', 'service', 'attachedBath', { wet: true, wantsWindow: false }))
+      addRel('bedStaff', 'staffBath', 'adjacent')
+      addRel('utility', 'bedStaff', 'near')
+    } else if (brief.household.staff === 'daily') {
+      if (groundSharedBaths === 0) spaces.push(mk('staffBath', 'Staff toilet', 'service', 'sharedBath', { wet: true, wantsWindow: false }))
+      addRel('utility', groundSharedBaths ? 'sharedBath1' : 'staffBath', 'near')
+    }
 
     if (p.pooja) addRel('pooja', 'kitchen', 'separated')
 
@@ -365,12 +398,12 @@ export function compile(brief: Brief): CanonicalModel {
       addRel(`lobby1`, 'familyLounge', 'connected')
     }
 
-    const take = Math.min(bedsPerUpper, bedsRemaining)
+    const take = Math.min(level === 1 ? Math.max(bedsPerUpper, 1 + youngRooms) : bedsPerUpper, bedsRemaining)
     for (let i = 0; i < take; i++) {
       const b = nextBed(false)
       spaces.push(b)
       addRel(`lobby${level}`, b.id, 'connected')
-      const bath = nextBath()
+      const bath = nextBath(b)
       if (bath) {
         spaces.push(bath)
         addRel(b.id, bath.id, 'adjacent')
@@ -385,7 +418,7 @@ export function compile(brief: Brief): CanonicalModel {
       spaces.push(mk(id, `Shared bath ${n}`, 'service', 'sharedBath', { wet: true, wantsWindow: false }))
       addRel(`lobby${level}`, id, 'near')
     }
-    for (let i = 0; i < brief.rooms.studies; i++) {
+    for (let i = 0; i < studyCount; i++) {
       if (i === 0 && clientStudy) continue // already on the ground floor
       if (1 + (i % storeys) !== level) continue
       const id = `study${i + 1}`
@@ -399,6 +432,24 @@ export function compile(brief: Brief): CanonicalModel {
     }
 
     floors.push({ level, name: ordinalFloor(level), spaces })
+  }
+
+  // Household and lifestyle requirements affect geometry through room targets
+  // and ordered relationships, independent of their contribution to the seed.
+  const allSpaces = floors.flatMap((f) => f.spaces)
+  const socialScale = 1 + Math.max(0, members.length - 4) * .04 +
+    (brief.household.guests === 'frequent' ? .12 : brief.household.guests === 'occasional' ? .04 : 0)
+  for (const s of allSpaces) {
+    if (s.zone === 'social') { s.target = Math.min(s.max, Math.round(s.target * socialScale * 10) / 10) }
+    if (s.role === 'master' && countRole('infant')) s.target = Math.min(s.max, s.target + countRole('infant') * 2)
+    if (s.zone === 'work') {
+      s.target = Math.min(s.max, s.target + Math.max(0, brief.lifestyle.wfhCount - studyCount) * 2)
+      for (const bed of allSpaces.filter((r) => r.zone === 'private')) addRel(s.id, bed.id, 'separated')
+    }
+    if (s.role === 'child') {
+      const master = allSpaces.find((r) => r.role === 'master')
+      if (master) addRel(master.id, s.id, 'near')
+    }
   }
 
   // --- "Large villa": inflate the habitable programme so the planner lays out
@@ -425,7 +476,20 @@ export function compile(brief: Brief): CanonicalModel {
     }
   }
 
-  return { seed, brief, envelope, plot, setbacksMm, grid, entrySide, floors, relationships: rel }
+  // Keep every requested room and minimum. A tight budget only reduces target
+  // generosity; unaffordable minimum programmes remain visibly over budget.
+  const enclosed = allSpaces.filter((s) => !s.outdoor)
+  const minimum = enclosed.reduce((a, s) => a + s.min, 0)
+  const preferred = enclosed.reduce((a, s) => a + s.target, 0)
+  const affordable = brief.budget.amountLakh * 1e5 / costPerSqmAllIn(brief) / 1.32
+  const generosity = Math.max(0, Math.min(1, (affordable - minimum) / Math.max(1, preferred - minimum)))
+  for (const s of enclosed) {
+    s.preferredTarget = s.target
+    s.target = Math.round((s.min + (s.target - s.min) * generosity) * 10) / 10
+  }
+  return { seed, brief, envelope, plot, setbacksMm, grid, entrySide, floors, relationships: rel,
+    siteRequirements: { garden: p.garden, compoundWall: p.compoundWall,
+      utilityYard: p.utility || brief.lifestyle.dryWetSplit || brief.household.staff !== 'none', sitOut: p.coveredVerandah } }
 }
 
 /** Summary numbers for the review screen. */

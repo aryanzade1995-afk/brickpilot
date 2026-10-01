@@ -37,7 +37,7 @@ export type BudgetCut = {
 /** built-up area the requested rooms need, at minimum and at target sizes */
 export function areaNeeded(brief: Brief): { minSqm: number; targetSqm: number } {
   const spaces = compile(brief).floors.flatMap((f) => f.spaces).filter((s) => !s.outdoor)
-  const sum = (k: 'min' | 'target') => spaces.reduce((a, s) => a + s[k], 0) * GROSS_UP
+  const sum = (k: 'min' | 'target') => spaces.reduce((a, s) => a + (k === 'target' ? s.preferredTarget ?? s.target : s.min), 0) * GROSS_UP
   return { minSqm: Math.round(sum('min')), targetSqm: Math.round(sum('target')) }
 }
 

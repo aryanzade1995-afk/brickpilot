@@ -4,9 +4,6 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { mkdtemp, readFile, writeFile, readdir, unlink, rmdir } from 'node:fs/promises'
 import { resolve, join } from 'node:path'
-import { defaultBrief } from '../src/lib/model/brief.ts'
-import { compile } from '../src/lib/model/canonical.ts'
-import { generate } from '../src/lib/engine/generate.ts'
 
 const execute = promisify(execFile)
 test('CLI persists accepted shapes, retries duplicates, preserves files on exhaustion and supports exact replay', async () => {
@@ -15,7 +12,8 @@ test('CLI persists accepted shapes, retries duplicates, preserves files on exhau
   const command = ['--experimental-strip-types', 'scripts/export-blender-input.mjs', '--design', source,
     '--out', output, '--history', history]
   try {
-    await writeFile(source, JSON.stringify(generate(compile(defaultBrief()))))
+    // Fixed source geometry isolates the CLI history contract from planner scoring.
+    await writeFile(source, await readFile(new URL('./fixtures/fingerprint-source.json', import.meta.url), 'utf8'))
     const first = await execute(process.execPath, [...command, '--seed', '41'])
     assert.match(first.stdout, /seed=41 .*ACCEPTED/)
     const initial = JSON.parse(await readFile(output, 'utf8'))

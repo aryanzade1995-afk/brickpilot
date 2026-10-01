@@ -271,14 +271,16 @@ function reorder(floors: FloorRequirements[], seed: number) {
   if (!seed) return
   const rng = makeRng(seed, 'order')
   for (const f of floors) {
-    const fixed = f.units.filter((u) => u.anchor || u.key === 'living')
+    const fixed = f.units.filter((u) => u.anchor || u.key === 'living' || u.key === 'kitchen' || u.key === 'bedStaff')
     const free = f.units.filter((u) => !fixed.includes(u))
     for (let i = free.length - 1; i > 0; i--) {
       const j = rng.int(0, i)
       ;[free[i], free[j]] = [free[j], free[i]]
     }
     for (const u of free) if (u.rooms.length === 2 && u.rooms[1].kind === 'ensuite' && rng.chance(0.5)) u.rooms.reverse()
-    f.units = [...fixed, ...free]
+    const family = free.filter((u) => u.rooms.some((r) => r.space.role === 'master' || r.space.role === 'child'))
+      .sort((a, b) => Number(b.rooms.some((r) => r.space.role === 'master')) - Number(a.rooms.some((r) => r.space.role === 'master')))
+    f.units = [...fixed, ...family, ...free.filter((u) => !family.includes(u))]
   }
 }
 

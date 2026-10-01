@@ -1,4 +1,5 @@
 import type { Rect } from '../../geometry.ts'
+import { occupantCount } from '../../model/brief.ts'
 import type { CanonicalModel, SpaceReq } from '../../model/canonical.ts'
 import type { FloorRequirements, NormalizedBrief, RoomKind, RoomReq, SiteModel, Unit } from './types.ts'
 
@@ -42,7 +43,7 @@ export function normalizeBrief(model: CanonicalModel): NormalizedBrief {
     lift: b.levels.liftProvision,
     large: b.project.buildingType === 'large-villa',
     mainDoorMm: snap(clamp(b.entry.mainDoorWidth, 900, 1500)),
-    twoCar: b.spaces.occupants >= 4,
+    twoCar: occupantCount(b) >= 4,
     floors: model.floors,
     relationships: model.relationships,
   }
@@ -85,7 +86,7 @@ export function siteModel(model: CanonicalModel, yard: 'front' | 'side' = 'front
   }
   const ground = new Set(model.floors[0].spaces.map((s) => s.id))
   if (yard === 'side') {
-    const carW = ground.has('parking') ? (model.brief.spaces.occupants >= 4 ? 5200 : 3000) + YARD_GAP : 0
+    const carW = ground.has('parking') ? (occupantCount(model.brief) >= 4 ? 5200 : 3000) + YARD_GAP : 0
     return { plot, envelope, frontStripMm: 0, houseZone: { ...envelope, w: Math.max(0, envelope.w - carW) } }
   }
   let frontStripMm = 0
@@ -139,10 +140,10 @@ function semanticName(space: SpaceReq, kind: RoomKind, ownerOf: Map<string, stri
     case 'livingDining': return 'LIVING_DINING'
     case 'lounge': return 'FAMILY_LOUNGE'
     case 'lobby': return 'LOBBY'
-    case 'bed': return id === 'bed1' ? 'MASTER_BED' : `BED_${two(num(/bed(\d+)/))}`
+    case 'bed': return id === 'bedStaff' ? 'STAFF_BED' : space.role === 'master' ? 'MASTER_BED' : `BED_${two(num(/bed(\d+)/))}`
     case 'ensuite': {
       const owner = ownerOf.get(id) ?? ''
-      return owner === 'bed1' ? 'MASTER_BATH' : `BED_${two(Number(owner.replace('bed', '')) || 0)}_BATH`
+      return owner === 'bedStaff' ? 'STAFF_BATH' : owner === 'bed1' ? 'MASTER_BATH' : `BED_${two(Number(owner.replace('bed', '')) || 0)}_BATH`
     }
     case 'bath':
       return id === 'accessibleBath' ? 'ACCESSIBLE_BATH' : `COMMON_BATH_${two(num(/(\d+)$/))}`
@@ -251,6 +252,22 @@ export function programRequirements(nb: NormalizedBrief, stairSlot: number, sing
     for (const r of rooms.filter((x) => x.kind === 'study')) unit(r.id, [r], 'B', true)
     // anything not yet placed (future programme types) still gets a unit
     for (const r of rooms) unit(r.id, [r], 'B', true)
+
+    // Keep staff accommodation together at the utility end of the service wing.
+    const staff = units.find((u) => u.key === 'bedStaff')
+    if (staff) {
+      staff.band = 'A'; staff.movable = false
+      units.splice(units.indexOf(staff), 1)
+      units.splice(units.findIndex((u) => u.key === 'kitchen') + 1, 0, staff)
+    }
+    // Child/teen rooms share a bedroom wing with the master, not a remote floor.
+    const family = units.filter((u) => u.rooms.some((r) => r.space.role === 'master' || r.space.role === 'child'))
+    if (family.length === 2) {
+      const first = Math.min(...family.map((u) => units.indexOf(u)))
+      const cluster: Unit = { key: 'familyBedrooms', rooms: family.flatMap((u) => u.rooms), band: 'A', movable: true, anchor: false }
+      family.forEach((u) => units.splice(units.indexOf(u), 1))
+      units.splice(first, 0, cluster)
+    }
 
     // one band of rooms: everything lines the hall, in programme order
     if (singleLoaded) for (const u of units) {

@@ -439,6 +439,17 @@ export function RoomsStep() {
 
       <Toggle checked={r.balcony} onChange={(v) => edit((b) => void (b.rooms.balcony = v))} label="Balcony on upper floors" />
 
+      {p.pooja && <div className="grid gap-6 sm:grid-cols-2">
+        <Field label="Pooja room size">
+          <Segmented value={r.poojaPreference} onChange={(v) => edit((b) => void (b.rooms.poojaPreference = v))}
+            options={[{ value: 'compact', label: 'Compact' }, { value: 'dedicated', label: 'Dedicated' }, { value: 'large', label: 'Large' }]} />
+        </Field>
+        <Field label="Preferred pooja side" hint="A placement preference; room access and minimum sizes remain mandatory.">
+          <Segmented value={r.poojaSide} onChange={(v) => edit((b) => void (b.rooms.poojaSide = v))}
+            options={['auto', ...DIRECTIONS].map((value) => ({ value: value as typeof r.poojaSide, label: value === 'auto' ? 'Auto' : value }))} />
+        </Field>
+      </div>}
+
       <div>
         <span className="label">Ground-floor priorities</span>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">

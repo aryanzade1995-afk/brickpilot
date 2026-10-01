@@ -44,11 +44,11 @@ test('with Vastu preferred, the chosen plan scores at least as well as every oth
   assert.deepEqual(chosen, passing.find((c) => c.score.total === best).design)
 })
 
-test('with Vastu ignored, the Vastu terms total 0 and only sun terms can move the score', () => {
+test('with Vastu ignored, Vastu contributes zero while sun, lifestyle and budget still rank plans', () => {
   const d = generate(caseA('ignore'))
   const s = preferenceScore(d)
   assert.equal(vastuSum(s), 0)
-  assert.equal(s.total, Math.round(s.terms.filter((t) => t.group === 'sun').reduce((a, t) => a + t.value, 0) * 100) / 100)
+  assert.equal(s.total, Math.round(s.terms.filter((t) => t.group !== 'vastu').reduce((a, t) => a + t.value, 0) * 100) / 100)
   assert.ok(s.terms.every((t) => typeof t.name === 'string' && t.name.length > 0))
 })
 
@@ -143,11 +143,11 @@ test('a study sharing a wall with the living room costs 0.5 when someone works f
   const d = generate(caseA('ignore', { lifestyle: { wfhCount: 1, vastu: 'ignore', clientVisits: true } }))
   const noisy = d.floors.flatMap((f) => f.rooms.filter((r) => r.id.startsWith('study')).map((s) =>
     f.rooms.some((l) => (l.id === 'living' || l.id === 'livingDining') && sharedEdge(s.rect, l.rect))))
-  const terms = preferenceScore(d).terms.filter((t) => t.group === 'lifestyle')
+  const terms = preferenceScore(d).terms.filter((t) => t.name.includes('(noise on calls)'))
   assert.equal(terms.length, noisy.filter(Boolean).length)
   assert.ok(terms.every((t) => t.value === -0.5))
   // no one working from home: no noise term at all
   const quiet = structuredClone(d)
   quiet.model.brief.lifestyle.wfhCount = 0
-  assert.equal(preferenceScore(quiet).terms.filter((t) => t.group === 'lifestyle').length, 0)
+  assert.equal(preferenceScore(quiet).terms.filter((t) => t.name.includes('(noise on calls)')).length, 0)
 })

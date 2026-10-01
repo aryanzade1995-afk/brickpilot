@@ -37,7 +37,7 @@ test('room loss, blocked outdoor circulation and unsupported roof are rejected',
   parking.rect = { ...outside.floors[0].footprint[0] }
   assert.ok(codeSet(outside).has('OUTDOOR_ACCESS_BLOCKED'))
   const roof = candidate.masses.find((m) => m.usage === 'roof')
-  assert.ok(codeSet(building, candidate.masses.map((m) => m === roof ? shiftMass(m, 3000, 0) : m))
+  assert.ok(codeSet(building, candidate.masses.map((m) => m === roof ? shiftMass(m, building.plot.widthMm + roof.width, 0) : m))
     .has('UNSUPPORTED_ROOF'))
 })
 

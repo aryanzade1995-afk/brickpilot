@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { defaultBrief } from '../src/lib/model/brief.ts'
@@ -15,7 +16,8 @@ import { ARCHITECTURAL_FAMILIES } from '../src/lib/engine/facade/architecturalFa
 import { ARCHITECTURAL_FEATURE_TYPES } from '../src/lib/engine/facade/proceduralTypes.ts'
 import { ROOFLINE_TYPES } from '../src/lib/engine/facade/specialized/types.ts'
 
-const plan = generate(compile(defaultBrief()))
+// Fixed geometry makes similarity threshold cases independent of planner preference changes.
+const plan = JSON.parse(readFileSync(new URL('./fixtures/fingerprint-source.json', import.meta.url), 'utf8'))
 const a = createVillaArchitecture(plan, 41)
 const b = createVillaArchitecture(plan, 42)
 const c = createVillaArchitecture(plan, 43)
