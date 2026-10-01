@@ -41,6 +41,7 @@ export type Opening = {
   orient: 'h' | 'v'
   width: number
   /** door leaf swing direction, for the arc */
+  entranceDesign?: 'indian-carved' | 'wide-pivot' | 'framed-portico' | 'stone-surround'
   swing?: 1 | -1
   /** which end of the opening the hinge is at, along the wall */
   hinge?: 'a' | 'b'

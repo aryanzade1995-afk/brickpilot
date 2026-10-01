@@ -282,6 +282,7 @@ export function FloorDrawing({
 }
 
 function OpeningMark({ o, ink, bg, theme }: { o: Opening; ink: string; bg: string; theme: Theme }) {
+  const faint = FAINT[theme]
   const half = o.width / 2
   const eraseW = o.kind === 'window' ? 260 : 340
   const eraseColor = theme === 'paper' ? bg : bg
@@ -330,6 +331,20 @@ function OpeningMark({ o, ink, bg, theme }: { o: Opening; ink: string; bg: strin
       </g>
     )
   }
+  if (o.kind === 'entry') {
+    const leaf = half, sign = o.swing ?? -1
+    return <g data-entry="double-leaf" transform={`translate(${o.at.x} ${o.at.y}) rotate(${o.orient === 'h' ? 0 : 90})`}>
+      <line x1={-half} y1={0} x2={half} y2={0} stroke={eraseColor} strokeWidth={eraseW} />
+      {[-1,1].map(side=><g key={side}>
+        <line x1={side*half} y1={-150} x2={side*half} y2={150} stroke={ink} strokeWidth={65} />
+        <line x1={side*half} y1={0} x2={side*half} y2={sign*leaf} stroke={ink} strokeWidth={45} />
+        <path d={`M ${side*half} ${sign*leaf} A ${leaf} ${leaf} 0 0 ${side*sign<0?0:1} 0 0`} fill="none" stroke={ink} strokeWidth={35} />
+      </g>)}
+      <rect x={-half-160} y={160} width={o.width+320} height={750} fill="none" stroke={faint} strokeWidth={25} strokeDasharray="100 60" />
+      <line x1={-half} y1={100} x2={half} y2={100} stroke={ink} strokeWidth={30} />
+      <text x={0} y={1160} textAnchor="middle" fill={ink} fontSize={220}>MAIN ENTRY · SHADE</text>
+    </g>
+  }
   if (o.orient === 'h') {
     const x1 = o.at.x - half
     const x2 = o.at.x + half
@@ -348,7 +363,7 @@ function OpeningMark({ o, ink, bg, theme }: { o: Opening; ink: string; bg: strin
               d={`M ${x1} ${o.at.y + (o.swing ?? 1) * o.width} A ${o.width} ${o.width} 0 0 ${o.swing === -1 ? 1 : 0} ${x2} ${o.at.y}`}
               fill="none"
               stroke={ink}
-              strokeWidth={o.kind === 'entry' ? 45 : 28}
+              strokeWidth={28}
             />
           </>
         )}
@@ -372,7 +387,7 @@ function OpeningMark({ o, ink, bg, theme }: { o: Opening; ink: string; bg: strin
             d={`M ${o.at.x + (o.swing ?? 1) * o.width} ${y1} A ${o.width} ${o.width} 0 0 ${o.swing === -1 ? 0 : 1} ${o.at.x} ${y2}`}
             fill="none"
             stroke={ink}
-            strokeWidth={o.kind === 'entry' ? 45 : 28}
+            strokeWidth={28}
           />
         </>
       )}

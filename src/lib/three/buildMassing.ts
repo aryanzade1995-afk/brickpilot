@@ -213,6 +213,27 @@ export function buildMassing(design: Design): Massing {
       if (edge) face.push({ side: edge.side, fixed: edge.side === 'N' || edge.side === 'S' ? edge.a.y : edge.a.x, op: { at: op.orient === 'h' ? op.at.x : op.at.y, ...rec } })
       else interiorOps.push(op)
     }
+    for (const entry of floor.openings.filter(o => o.kind === 'entry')) {
+      const w = m(entry.width), head = m(entry.head ?? 2600), x = wx(entry.at.x), z = wz(entry.at.y)
+      const horizontal = entry.orient === 'h'
+      const place = (id: string, along: number, offset: number, bottom: number, width: number, depth: number, height: number, kind: MassKind) =>
+        push(`main-entry-${id}`, kind, L, horizontal ? [x+along,baseY+bottom+height/2,z+offset] : [x+offset,baseY+bottom+height/2,z+along], horizontal ? [width,height,depth] : [depth,height,width])
+      const style = entry.entranceDesign ?? 'stone-surround'
+      const surroundDepth = style === 'framed-portico' ? .55 : style === 'stone-surround' ? .35 : .24
+      for (const side of [-1,1]) {
+        const ratio = style === 'wide-pivot' ? (side===-1 ? .7 : .3) : .5
+        const center = style === 'wide-pivot' ? (side===-1 ? -.15*w : .35*w) : side*w/4
+        place(`leaf-${side}`,center,0,.03,w*ratio-.07,.06,head-.1,'clad')
+        place(`jamb-${side}`,side*(w/2+.06),.05,0,.12,surroundDepth,head+.18,'feature')
+        place(`handle-${side}`,side*.07,.06,.9,.025,.06,.5,'railing')
+        if(style==='indian-carved')for(let row=0;row<4;row++) place(`carving-${side}-${row}`,side*w/4,.065,.22+row*.52,w*.32,.025,.36,'band')
+      }
+      place('surround-head',0,.05,head,w+.24,.3,.16,'feature')
+      place('threshold',0,.12,0,w+.24,.35,.03,'slab')
+      const available = horizontal ? design.model.plot.depth-entry.at.y : design.model.plot.width-entry.at.x
+      const shadeDepth = Math.max(.3,Math.min(.9,m(available)-.12))
+      place('shade',0,shadeDepth/2,head+.24,w+.32,shadeDepth,.12,'canopy')
+    }
     const gm = T.windows.groupMm
     const cj = T.massing.chajjaMm
 
@@ -1274,6 +1295,7 @@ function buildLandscape(
     const gR0 = driveX + gateHalf
     if (gL1 - x0 > 300) push('cw-sl', 'fence', 0, [wx((x0 + gL1) / 2), cy, wz(z1)], [m(gL1 - x0), wallH, t])
     if (x1 - gR0 > 300) push('cw-sr', 'fence', 0, [wx((gR0 + x1) / 2), cy, wz(z1)], [m(x1 - gR0), wallH, t])
+    push('compound-gate-shade', 'canopy', 0, [wx(driveX), 2.95, wz(z1 - 600)], [m(gateHalf * 2 + 300), .18, 1.2])
     const gpH = wallH + 0.35
     push('gp-l', 'fence', 0, [wx(gL1), gpH / 2, wz(z1)], [0.3, gpH, 0.3])
     push('gp-r', 'fence', 0, [wx(gR0), gpH / 2, wz(z1)], [0.3, gpH, 0.3])

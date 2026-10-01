@@ -73,3 +73,17 @@ def create_site(scene, building):
         for index, edge in enumerate(edges):
             scene.rect(f"{name}_Side_{index}", "LANDSCAPE", edge, basin, grade - basin, "secondary_wall", name, bevel=4)
             scene.rect(f"{name}_Coping_{index}", "LANDSCAPE", edge, grade, SITE_LEVELS["copingHeight"], "stone", name, bevel=4)
+
+    if building.get("siteRequirements", {}).get("compoundWall"):
+        pw, pd = plot["w"], plot["h"]
+        driveway = next((f for f in building.get("siteFeatures", []) if f["kind"] == "driveway"), None)
+        center = driveway["rect"]["x"]+driveway["rect"]["w"]/2 if driveway else pw/2
+        half = min(1900, (pw-600)/2)
+        center = min(pw-half-300, max(half+300, center))
+        for name, x, y, w, d in [("North",pw/2,150,pw-150,150),("West",150,pd/2,150,pd-300),("East",pw-150,pd/2,150,pd-300)]:
+            scene.box(f"Compound_{name}","LANDSCAPE",x,y,grade,w,d,1600,"wall",building["planId"])
+        for side, a, b in [("Left",150,center-half),("Right",center+half,pw-150)]:
+            if b>a: scene.box(f"Compound_South_{side}","LANDSCAPE",(a+b)/2,pd-150,grade,b-a,150,1600,"wall",building["planId"])
+        for side in (-1,1):
+            scene.box(f"Gate_Pier_{side}","LANDSCAPE",center+side*half,pd-600,grade,200,1200,3000,"stone",building["planId"])
+        scene.box("CompoundGate_Canopy","LANDSCAPE",center,pd-700,grade+3000,half*2+300,1200,180,"concrete",building["planId"])

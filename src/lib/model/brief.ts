@@ -257,7 +257,8 @@ export const briefSchema = z
     entry: z
       .object({
         primarySide: z.union([directionSchema, z.literal('auto')]).default('auto'),
-        mainDoorWidth: z.number().min(900).max(1500).default(1200),
+        mainDoorWidth: z.number().min(900).max(1800).default(1500).transform(v => Math.max(1200, v)),
+        design: z.enum(['auto', 'indian-carved', 'wide-pivot', 'framed-portico', 'stone-surround']).default('auto'),
       })
       .prefault({}),
     household: z

@@ -184,7 +184,7 @@ test('exterior roof DNA matches the roof geometry and window surrounds clear the
     assert.equal(['hip', 'gable', 'mono-slope'].includes(roof),
       ['hip', 'gable', 'mono-slope', 'kerala-pitched'].includes(design.dna.roofDesign))
     const boxes = buildMassing(design).boxes
-    for (const surround of boxes.filter((box) => box.id.includes('-sur'))) {
+    for (const surround of boxes.filter((box) => /-sur\d+[tblr]$/.test(box.id))) {
       const prefix = surround.id.replace(/-sur(\d+)[tblr]$/, '-gl$1')
       const glass = boxes.find((box) => box.id === prefix)
       assert.ok(glass, surround.id)

@@ -60,6 +60,8 @@ def create_scene(payload, visualization=None):
     for stair in building["stairs"]:
         stair_layout(stair)  # Fail on unsupported stair data before touching the scene.
     scene = SceneBuilder(building["planId"], options["palette"])
+    scene.plot_width = building["plot"]["widthMm"]
+    scene.plot_depth = building["plot"]["depthMm"]
     scene.warnings = []
     create_site(scene, building)
     create_foundation(scene, floors[0], exterior_walls=[wall for wall in building["walls"]

@@ -43,6 +43,7 @@ export type BuildingModel = {
   coordinates: 'plan-x-east-y-south-z-up'
   plot: { widthMm: number; depthMm: number; buildable: Rect }
   siteFeatures?: SiteFeature[]
+  siteRequirements?: { compoundWall: boolean }
   floors: BuildingFloor[]
   rooms: BuildingRoom[]
   walls: BuildingWall[]
@@ -135,6 +136,7 @@ export function createBuildingModel(design: Design): BuildingModel {
         w: model.envelope.width, h: model.envelope.depth,
       },
     },
+    ...(model.brief.rooms.priorities.compoundWall ? { siteRequirements: { compoundWall: true } } : {}),
     ...(design.siteFeatures ? { siteFeatures: design.siteFeatures.map(f => ({ ...f, rect: rect(f.rect) })) } : {}),
     floors, rooms, walls, doors, windows, stairs, columns, beams, slabs, shafts, supportZones,
     orientation: {

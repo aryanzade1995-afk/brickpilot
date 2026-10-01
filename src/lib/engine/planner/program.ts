@@ -43,7 +43,7 @@ export function normalizeBrief(model: CanonicalModel): NormalizedBrief {
     flightWidthMm: snap(clamp(b.levels.stairWidth, 900, 1500)),
     lift: b.levels.liftProvision,
     large: b.project.buildingType === 'large-villa',
-    mainDoorMm: snap(clamp(b.entry.mainDoorWidth, 900, 1500)),
+    mainDoorMm: snap(clamp(b.entry.mainDoorWidth, 1200, 1800)),
     twoCar: occupantCount(b) >= 4,
     floors: model.floors,
     relationships: model.relationships,

@@ -416,3 +416,7 @@ Wizard capacity uses the production planner and every hard validator, with a bou
 Studio direction selection retries deterministic seeds and existing compatible massing/facade recipes. Uniqueness relaxes in explicit 75/82/90/97/100 percent stages and rolling quotas widen; geometric hard checks never relax. Validated candidates are reused between stages. Exact duplicates cannot fill a direction set. Debug reasons explain invalid architecture, similarity, quotas and the accepted adaptive stage. The occupied plan remains fixed; its open-space settings govern available exterior placement.
 
 Directions cards reuse `FloorDrawing` with an independent floor switcher. Selecting a direction preserves the existing pin and navigation flow; drawing controls never mutate the plan.
+
+### Main entrance
+
+Main entries are 1.2–1.8 m wide and at least 2.4 m tall, with a double-leaf drawing symbol. Auto chooses a style-aware Indian carved, wide pivot, framed portico or stone surround; the Entry step can override it. Three.js and Blender build separate leaves, handles, a surround, threshold and shade anchored to the actual opening. Optional compound gates have supported shade. Legacy sub-1.2 m settings are upgraded on schema parsing.

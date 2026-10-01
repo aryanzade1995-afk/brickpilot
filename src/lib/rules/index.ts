@@ -243,6 +243,9 @@ export function validate(design: Design, options: { checkFacade?: boolean } = {}
     add('NO_ENTRY_DOOR', 'error', 'egress', 'No entry door was placed on the ground floor.')
   }
 
+  for (const entry of ground.openings.filter(o => o.kind === 'entry')) if (entry.width < 1200 || entry.width > 1800 || (entry.head ?? 2500) < 2400)
+    add('MAIN_ENTRY_SIZE', 'error', 'egress', 'The main entry must be 1.2–1.8 m wide and at least 2.4 m tall.')
+
   // --- vastu: strict Vastu could not be met by any valid plan (the generator
   //     prefers plans that meet it; this reports when none could) ---
   if (design.model.brief.lifestyle.vastu === 'strict') {

@@ -604,8 +604,15 @@ export function EntryStep() {
           ]}
         />
       </Field>
+      <Field label="Entrance design" hint="A taller main door with a surround and shade; Auto follows the selected style.">
+        <Segmented value={e.design} onChange={v => edit(b => { b.entry.design = v })} options={[
+          {value:'auto',label:'Auto'}, {value:'indian-carved',label:'Indian carved double-door'},
+          {value:'wide-pivot',label:'Wide pivot'}, {value:'framed-portico',label:'Framed portico'},
+          {value:'stone-surround',label:'Stone surround'},
+        ]} />
+      </Field>
       <Field label="Main door clear width (mm)">
-        <NumberInput value={e.mainDoorWidth} min={900} max={1500} step={50} suffix="mm" onChange={(v) => edit((b) => void (b.entry.mainDoorWidth = v))} />
+        <NumberInput value={e.mainDoorWidth} min={1200} max={1800} step={50} suffix="mm" onChange={(v) => edit((b) => void (b.entry.mainDoorWidth = v))} />
       </Field>
     </div>
   )

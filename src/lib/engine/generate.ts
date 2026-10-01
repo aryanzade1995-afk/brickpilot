@@ -210,6 +210,11 @@ function generateOne(model: CanonicalModel, family: PlateFamily, seed: number, b
   if (!force && massingType !== family && !(family === 'stepped' && massingType === 'rectangular')) return null
   const dna = deriveDesignDNA(briefKey, seed, model.brief.style.character, massingType, 'balanced', model.brief.style.personality)
   const floors = plan.floors
+  for (const floor of floors) for (const door of floor.openings.filter(o => o.kind === 'entry')) {
+    const requested = model.brief.entry.design
+    door.entranceDesign = requested && requested !== 'auto' ? requested : model.brief.style.character === 'modern-box' ? 'wide-pivot' : model.brief.style.character === 'contemporary-indian' ? 'framed-portico' : model.brief.style.character === 'courtyard-indian' ? 'indian-carved' : 'stone-surround'
+    door.head = Math.min(2600, Math.round(model.brief.levels.floorToFloor * 1000) - 300)
+  }
 
   const groundMm2 = rectUnionArea(floors[0].footprint)
   const builtMm2 = floors.reduce((a, f) => a + rectUnionArea(f.footprint), 0)
