@@ -1,3 +1,5 @@
+import { validateSiteFeatures } from '../engine/planner/siteFeatures.ts'
+import { PLANNING_LIMITS as PLANNING } from '../engine/planner/limits.ts'
 import { rectRight, rectBottom, rectUnionArea, rectUnionEdges, toSqm } from '../geometry.ts'
 import type { CanonicalModel, SpaceReq } from '../model/canonical.ts'
 import type { Design } from '../engine/types.ts'
@@ -35,10 +37,7 @@ export type ValidationReport = {
 export const RULE_PACK = 'residential-v1'
 
 /** planning limits — placeholder until wired to local development-control rules */
-const PLANNING = {
-  maxCoverage: 0.6,
-  warnCoverage: 0.5,
-}
+
 
 const MIN_DIM: Record<string, number> = {
   private: 2400,
@@ -60,6 +59,7 @@ export function validate(design: Design, options: { checkFacade?: boolean } = {}
     roomId?: string,
   ) => findings.push({ code, severity, category, message, roomId })
 
+  for (const message of validateSiteFeatures(design.model, design.floors[0], design.siteFeatures ?? [])) add('SITE_FEATURE_CONFLICT', 'error', 'geometry', message)
   const reqIndex = indexRequirements(design.model)
   // a large villa is chosen for generous rooms — an over-target room is the
   // point, not a defect, so the "exceeds maximum" advisory is suppressed

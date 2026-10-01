@@ -1,3 +1,4 @@
+import { placeSiteFeatures } from './planner/siteFeatures.ts'
 import { rectArea, rectUnionArea, toSqm } from '../geometry.ts'
 import type { CanonicalModel } from '../model/canonical.ts'
 import { themeOf } from '../model/themes.ts'
@@ -118,9 +119,9 @@ export function generateCandidates(model: CanonicalModel, opts: Strategy | Gener
   if (model.brief.rooms.priorities.courtyard) families = ['courtyard']
   else if (requested === 'auto' || requested === 'random') {
     const rng = makeRng(seed, `${briefKey}|family|${requested}`)
-    const pool = FAMILIES
+    const pool = FAMILIES.filter(f => f !== 'rectangular')
     const first = requested === 'random' ? rng.pick(pool) : rng.weighted(pool.map((f) =>
-      [f, f === 'rectangular' ? 3 : f === 'stepped' ? 2 : 1.5] as [PlateFamily, number]))
+      [f, 2] as [PlateFamily, number]))
     families = [first, ...pool.filter((f) => f !== first)]
   } else families = [FAMILY_OF[requested]]
 
@@ -180,7 +181,7 @@ export function generate(model: CanonicalModel, opts: Strategy | GenerateOpts = 
   if (!passing.length) return fallback
   const strict = model.brief.lifestyle.vastu === 'strict'
   const pool = strict && passing.some((c) => c.strictOk) ? passing.filter((c) => c.strictOk) : passing
-  return pool.reduce((a, b) => (b.score.total > a.score.total ? b : a)).design
+  return pool.reduce((a, b) => ((model.brief.site.openSpace?.mode === 'maxBuild' ? b.design.coveredFootprintSqm > a.design.coveredFootprintSqm : b.score.total > a.score.total) ? b : a)).design
 }
 
 function generateOne(model: CanonicalModel, family: PlateFamily, seed: number, briefKey: string, force = false): Design | null {
@@ -218,7 +219,9 @@ function generateOne(model: CanonicalModel, family: PlateFamily, seed: number, b
   const doors = floors.reduce((n, f) => n + f.openings.filter((op) => op.kind === 'door' || op.kind === 'entry').length, 0)
   const windows = floors.reduce((n, f) => n + f.openings.filter((op) => op.kind === 'window').length, 0)
 
+  const site = placeSiteFeatures(model, floors[0])
   return {
+    siteFeatures: site.features, siteNotes: [...(model.siteNotes ?? []), ...site.notes],
     id: `${model.seed}-${massingType}-${seed}`,
     seed: model.seed,
     algorithm: 'rule-constraint-planner-v1',

@@ -1,3 +1,5 @@
+import { resolveOpenSpace, OPEN_SPACE_LABEL } from '@/lib/model/openSpace.ts'
+import { PLANNING_LIMITS } from '@/lib/engine/planner/limits.ts'
 import { Dices, Plus, X } from 'lucide-react'
 import {
   BUDGET_SCOPE_LABEL,
@@ -67,6 +69,9 @@ export function ProjectStep() {
 export function SiteStep() {
   const [brief, edit] = useBrief()
   const s = brief.site
+  const open = resolveOpenSpace(s)
+  const maxBuildLimit = (s.plotWidth * s.plotDepth * PLANNING_LIMITS.maxCoverage) / Math.max(1, (s.plotWidth - s.setbacks.E - s.setbacks.W) * (s.plotDepth - s.setbacks.N - s.setbacks.S))
+
 
   const toggleRoad = (d: Direction) =>
     edit((b) => {
@@ -133,6 +138,26 @@ export function SiteStep() {
             </Field>
           ))}
         </div>
+      </div>
+      <div className="space-y-4">
+        <Field label="Open space" hint="Clear margins from the property edge. Setbacks are the minimum.">
+          <Segmented value={s.openSpace.mode} onChange={v => edit(b => void (b.site.openSpace.mode = v))}
+            options={Object.entries(OPEN_SPACE_LABEL).map(([value, label]) => ({ value: value as typeof s.openSpace.mode, label }))} />
+        </Field>
+        {s.openSpace.mode === 'perSide' && <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {DIRECTIONS.map(d => <Field key={d} label={`${DIRECTION_LABEL[d]} open (m)`}>
+            <NumberInput value={s.openSpace.metres[d]} min={0} max={30} step={0.1} suffix="m" onChange={v => edit(b => void (b.site.openSpace.metres[d] = v))} />
+          </Field>)}
+        </div>}
+        {s.openSpace.mode === 'chosenSides' && <>
+          <div className="grid grid-cols-2 gap-3">{DIRECTIONS.map(d => <Toggle key={d} label={`Keep ${DIRECTION_LABEL[d]} open`} checked={s.openSpace.sides.includes(d)} onChange={v => edit(b => {
+            b.site.openSpace.sides = v ? [...b.site.openSpace.sides.filter(x => x !== d), d] : b.site.openSpace.sides.filter(x => x !== d)
+          })} />)}</div>
+          <Field label="Open margin on chosen sides (m)"><NumberInput value={s.openSpace.amount} min={0} max={30} step={0.1} suffix="m" onChange={v => edit(b => void (b.site.openSpace.amount = v))} /></Field>
+        </>}
+        <p className="text-xs text-ink-dim" role="status">{s.openSpace.mode === 'auto' ? 'The planner chooses an edge placement and sizes the house to the room programme and budget.' : 'The planner fills the permitted area with connected rectilinear wings, while retaining room access and structure.'}</p>
+        {open.notes.map(note => <p key={note} role="status" className="text-xs text-warn">{note}</p>)}
+        {s.openSpace.mode === 'maxBuild' && maxBuildLimit < 0.85 && <p role="status" className="text-xs text-warn">The existing 60% plot coverage limit prevents 85% buildable-area use on this plot. Max build stops at the coverage limit; parking and room checks still apply.</p>}
       </div>
     </div>
   )
@@ -464,7 +489,8 @@ export function RoomsStep() {
       <div>
         <span className="label">Site</span>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          <Toggle checked={p.garden} onChange={(v) => edit((b) => void (b.rooms.priorities.garden = v))} label="Garden &amp; landscaping" hint="Lawn, trees, hedges, driveway" />
+          <Toggle checked={p.garden} onChange={(v) => edit((b) => void (b.rooms.priorities.garden = v))} label="Garden &amp; landscaping" hint="Lawn, hedges and driveway" />
+          <Toggle checked={r.pool} onChange={v => edit(b => void (b.rooms.pool = v))} label="Swimming pool" hint="A 2.5 × 5 m pool where the open space permits" />
           <Toggle checked={p.compoundWall} onChange={(v) => edit((b) => void (b.rooms.priorities.compoundWall = v))} label="Compound wall" hint="Boundary wall with a gate" />
         </div>
       </div>

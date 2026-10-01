@@ -1,3 +1,4 @@
+import { sourceFixture } from './fixtures/specialized-building.mjs'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { defaultBrief, SELECTABLE_CHARACTERS } from '../src/lib/model/brief.ts'
@@ -25,8 +26,13 @@ const fixture = (plotWidth, plotDepth, massing, seed, courtyard = false) => {
   assert.equal(masses.status, 'valid', JSON.stringify(masses.issues))
   return { building, dna, masses }
 }
-const court = fixture(25, 25, 'courtyard', 41, true)
-const portal = fixture(18, 24, undefined, 2)
+const authored = (building, seed) => {
+  const dna = createVillaDesignDNA(building, seed)
+  return { building, dna, masses: MassingGenerator.generate(building, dna) }
+}
+// Recipe coverage uses authored hosts with enough setback margin for the requested feature.
+const court = authored(sourceFixture(25, 25, 41, true), 41)
+const portal = authored(sourceFixture(18, 24, 2), 2)
 const forced = (source, type) => ArchitecturalFeatureGenerator.generate(
   source.building, source.dna, source.masses, { heroFeature: type, supportingFeatures: [] })
 

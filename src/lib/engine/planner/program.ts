@@ -1,3 +1,4 @@
+import { PLANNING_LIMITS } from './limits.ts'
 import type { Rect } from '../../geometry.ts'
 import { occupantCount } from '../../model/brief.ts'
 import type { CanonicalModel, SpaceReq } from '../../model/canonical.ts'
@@ -85,9 +86,11 @@ export function siteModel(model: CanonicalModel, yard: 'front' | 'side' = 'front
     h: model.envelope.depth,
   }
   const ground = new Set(model.floors[0].spaces.map((s) => s.id))
+  const covered = (ground.has('parking') ? (occupantCount(model.brief) >= 4 ? 5200 : 3000) * PARKING_DEPTH : 0) + (ground.has('verandah') ? 3400 * VERANDAH_DEPTH : 0)
+  const sizing = { fillPlot: !!model.brief.site.openSpace && model.brief.site.openSpace.mode !== 'auto', maxEnclosedMm2: plot.w * plot.h * PLANNING_LIMITS.maxCoverage - covered * 0.5 }
   if (yard === 'side') {
     const carW = ground.has('parking') ? (occupantCount(model.brief) >= 4 ? 5200 : 3000) + YARD_GAP : 0
-    return { plot, envelope, frontStripMm: 0, houseZone: { ...envelope, w: Math.max(0, envelope.w - carW) } }
+    return { plot, envelope, ...sizing, frontStripMm: 0, houseZone: { ...envelope, w: Math.max(0, envelope.w - carW) } }
   }
   let frontStripMm = 0
   if (ground.has('parking')) frontStripMm = PARKING_DEPTH + YARD_GAP
@@ -96,7 +99,7 @@ export function siteModel(model: CanonicalModel, yard: 'front' | 'side' = 'front
   const balcony = model.floors.some((f) => f.spaces.some((s) => s.id.startsWith('balcony')))
   if (balcony) frontStripMm = Math.max(frontStripMm, BALCONY_DEPTH)
   const houseZone: Rect = { ...envelope, h: Math.max(0, envelope.h - frontStripMm) }
-  return { plot, envelope, frontStripMm, houseZone }
+  return { plot, envelope, ...sizing, frontStripMm, houseZone }
 }
 
 /* ---------------------------- ProgramRequirements --------------------------- */
@@ -283,7 +286,7 @@ export function roomWidths(r: RoomReq, d: number): { min: number; target: number
   if (r.fixedWidthMm) return { min: r.fixedWidthMm, target: r.fixedWidthMm, max: r.fixedWidthMm }
   // keep habitable / sacred rooms under a 3.3 : 1 proportion
   const proportion = r.zone === 'service' || r.zone === 'circulation' ? 0 : d / 3.3
-  const min = Math.max(r.minWidthMm, proportion, (r.minSqm * 1e6) / d)
+  const min = snapUp(Math.max(r.minWidthMm, proportion, (r.minSqm * 1e6) / d))
   const target = Math.max(min, (r.targetSqm * 1e6) / d)
   const max = Math.max(target, Math.min((r.maxSqm * 1e6) / d, d * 3.3))
   return { min, target, max }

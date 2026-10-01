@@ -42,6 +42,8 @@ export type SiteModel = {
   plot: Rect
   envelope: Rect
   /** depth reserved at the front (plan-south) for parking / verandah */
+  fillPlot?: boolean
+  maxEnclosedMm2?: number
   frontStripMm: number
   /** where the enclosed plate may go: envelope less the front strip */
   houseZone: Rect

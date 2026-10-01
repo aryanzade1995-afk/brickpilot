@@ -89,7 +89,11 @@ export type FloorPlan = {
   supportZones?: SupportZone[]
 }
 
+export type SiteFeature = { id: string; kind: 'parking' | 'driveway' | 'path' | 'lawn' | 'pool' | 'sitOut' | 'utilityYard'; rect: Rect; covered: boolean; roomId?: string }
+
 export type Design = {
+  siteFeatures?: SiteFeature[]
+  siteNotes?: string[]
   id: string
   seed: string
   algorithm: string

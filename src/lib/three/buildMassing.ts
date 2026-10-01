@@ -177,12 +177,10 @@ export function buildMassing(design: Design): Massing {
   const g = floors[0].outline
 
   // ---- plinth: top == finished floor, projects as a base course ----
-  push(
-    'plinth',
-    'plinth',
-    0,
-    [wx(g.x + g.w / 2), PLINTH_H / 2, wz(g.y + g.h / 2)],
-    [m(g.w) + EXT_T + 2 * plinthProj, PLINTH_H, m(g.h) + EXT_T + 2 * plinthProj],
+  for (const [index, block] of blocksOf(floors[0]).entries()) push(
+    `plinth-${index}`, 'plinth', 0,
+    [wx(block.x + block.w / 2), PLINTH_H / 2, wz(block.y + block.h / 2)],
+    [m(block.w) + EXT_T + 2 * plinthProj, PLINTH_H, m(block.h) + EXT_T + 2 * plinthProj],
   )
 
   for (const floor of floors) {
@@ -384,7 +382,23 @@ export function buildMassing(design: Design): Massing {
 
   buildFacadeGrammar(design, floors, y0, H, push, wx, wz, m)
 
-  buildLandscape(model, floors[0], T, push, wx, wz, m)
+  if (design.siteFeatures) {
+    for (const feature of design.siteFeatures) {
+      if (feature.covered) continue
+      const r = feature.rect
+      const kind: MassKind = feature.kind === 'lawn' ? 'lawn' : feature.kind === 'pool' ? 'glass' : 'paving'
+      push(feature.id, kind, 0, [wx(r.x + r.w / 2), feature.kind === 'pool' ? -0.08 : 0.025, wz(r.y + r.h / 2)], [m(r.w), 0.05, m(r.h)])
+      if (feature.kind === 'pool') {
+        // An actual recessed basin, with four separate coping edges and water below grade.
+        push(`${feature.id}_basin`, 'slab', 0, [wx(r.x + r.w / 2), -0.85, wz(r.y + r.h / 2)], [m(r.w), 0.12, m(r.h)])
+        for (const edge of [{ x: r.x, y: r.y, w: r.w, h: 120 }, { x: r.x, y: r.y + r.h - 120, w: r.w, h: 120 },
+          { x: r.x, y: r.y + 120, w: 120, h: r.h - 240 }, { x: r.x + r.w - 120, y: r.y + 120, w: 120, h: r.h - 240 }])
+          push(`${feature.id}_edge_${edge.x}_${edge.y}`, 'paving', 0, [wx(edge.x + edge.w / 2), 0.05, wz(edge.y + edge.h / 2)], [m(edge.w), 0.1, m(edge.h)])
+      }
+    }
+    // Retain the existing boundary-wall treatment, using no independent lawn or driveway.
+    if (model.brief.rooms.priorities.compoundWall) buildLandscape({ ...model, brief: { ...model.brief, rooms: { ...model.brief.rooms, priorities: { ...model.brief.rooms.priorities, garden: false } } } }, floors[0], T, push, wx, wz, m)
+  } else buildLandscape(model, floors[0], T, push, wx, wz, m)
 
   const storeys = floors.length
   return {

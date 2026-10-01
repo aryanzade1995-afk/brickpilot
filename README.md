@@ -345,3 +345,27 @@ shipped or read by the app.
 Keep the verified `Design.floors` geometry as the common source for drawing,
 Three.js and reporting. When changing the planner, run the geometry and
 validation tests and check that generated directions still pass mandatory rules.
+
+
+## Brief-led site planning and drawing controls
+
+The planner compiles household age groups, guest frequency, staff, lifestyle, pooja preferences,
+work requirements and budget into the canonical room programme. See [the complete field audit](docs/brief-plan-audit.md).
+Requested rooms and minimum sizes are retained even when the budget cannot afford them.
+
+`site.openSpace` supports `auto`, `perSide`, `chosenSides`, and `maxBuild`.
+Margins are measured from property edges in metres, in real compass directions, and rotated
+with the existing entry-facing transform. Entered setbacks are always the minimum.
+The Site step immediately reports conflicting margins and the existing 60% concept coverage cap.
+Auto chooses an edge placement and programme-sized wings; the other modes expand connected
+L/U/stepped plates into the permitted area, retaining the existing support, opening and access checks.
+Max build ranks valid candidates by covered footprint. On feasible sites it uses at least 85%
+of the buildable area (including covered parking and sit-out); room requirements, setbacks,
+parking clearance and the coverage cap can constrain the result. The comparison test also
+checks more than 85% **enclosed** coverage without covered outdoor requests.
+
+`Design.siteFeatures` stores millimetre rectangles for parking, driveway, paths, lawn,
+sit-out, utility yard and the optional `rooms.pool`. Features are allocated in actual remaining
+plot space, with overlap/boundary checks. This same data feeds FloorDrawing, Three.js and
+BuildingModel/Blender. An unavailable pool or parking bay produces a visible fit note.
+The plan is authoritative; changing drawing settings does not regenerate or mutate rooms.

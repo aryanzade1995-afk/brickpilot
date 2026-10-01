@@ -78,7 +78,7 @@ export function planVilla(model: CanonicalModel, request: PlanRequest): PlanResu
   // seed only varies between near-equivalent plates of the best tier
   const tier = all.filter((c) => c.atTarget).length ? all.filter((c) => c.atTarget)
     : all.filter((c) => c.atMin).length ? all.filter((c) => c.atMin) : all
-  const pool = tier.filter((c) => c.score <= tier[0].score * 1.18).slice(0, 4)
+  const pool = tier.filter((c) => c.score <= tier[0].score + Math.abs(tier[0].score) * 0.18).slice(0, 4)
   const cand: PlateCandidate = pool[request.pick % pool.length]
 
   // ---- RoomPlacement (local u/v) + StructuralGrid cross axes ----
@@ -94,7 +94,7 @@ export function planVilla(model: CanonicalModel, request: PlanRequest): PlanResu
   const frame: Frame = {
     orientation: cand.orientation,
     mirror: request.mirror,
-    px: snap(zone.x + Math.max(0, zone.w - pw) / 2),
+    px: zone.x + (request.mirror ? Math.max(0, zone.w - pw) : 0),
     py: zone.y + Math.max(0, zone.h - ph),
     L, V,
   }
@@ -241,7 +241,7 @@ export function planVilla(model: CanonicalModel, request: PlanRequest): PlanResu
   }
 
   const family: PlateFamily = layout.court && request.family === 'courtyard' ? 'courtyard'
-    : layout.notch ? 'l-shape'
+    : layout.notch ? request.family === 'stepped' ? 'stepped' : 'l-shape'
     : layout.plates.some((p) => p.length < L) ? 'stepped' : 'rectangular'
   return {
     floors,
@@ -328,7 +328,7 @@ function frontYard(
   // the car needs the road frontage most; the verandah takes what is left
   // (on a narrow plot it becomes a rear sit-out rather than blocking the gate)
   const order = ['parking', 'verandah', 'courtyard']
-  const verandahW = large ? 4200 : 3400
+  const verandahW = site.fillPlot ? env.w : large ? 4200 : 3400
   const parkingW = twoCar ? 5200 : 3000
   // on a narrow frontage the verandah gives way to the car, down to the foyer width
   const hasParking = outdoor.some((s) => s.kind === 'parking')
@@ -337,7 +337,7 @@ function frontYard(
   for (const s of [...outdoor].sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind))) {
     if (!order.includes(s.kind)) continue
     const widths = s.kind === 'parking' ? [...new Set([parkingW, 3000])] : s.kind === 'verandah' ? [vW] : [large ? 4600 : 3200]
-    const h = s.kind === 'parking' ? PARKING_DEPTH : s.kind === 'verandah' ? (large ? 3200 : VERANDAH_DEPTH) : 3200
+    const h = s.kind === 'parking' ? PARKING_DEPTH : s.kind === 'verandah' ? (site.fillPlot ? 3400 : large ? 3200 : VERANDAH_DEPTH) : 3200
     let rect: Rect | null = null
     for (const w of widths) {
       // the car hugs the envelope edge away from the entrance, leaving the

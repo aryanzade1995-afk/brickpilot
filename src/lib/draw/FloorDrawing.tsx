@@ -1,6 +1,6 @@
 import { Fragment } from 'react'
 import { rectBottom, rectCenter, rectRight, rectUnionEdges, type Rect } from '../geometry.ts'
-import type { Design, FloorPlan, Opening } from '../engine/types.ts'
+import type { Design, FloorPlan, Opening, SiteFeature } from '../engine/types.ts'
 import { terraceLayout } from '../engine/terrace.ts'
 import type { CanonicalModel, Zone } from '../model/canonical.ts'
 import { furnishFloor, type FurnitureShape, type Role } from './furniture.ts'
@@ -32,7 +32,9 @@ export function FloorDrawing({
   showDimensions = true,
   markRoomId,
   svgRef,
+  siteFeatures,
 }: {
+  siteFeatures?: SiteFeature[]
   floor: FloorPlan
   model: CanonicalModel
   theme?: Theme
@@ -71,7 +73,7 @@ export function FloorDrawing({
       style={{ background: theme === 'paper' || pres ? bg : 'transparent' }}
     >
       {pres && <PresentationDefs />}
-      {pres && floor.level === 0 && <Landscape floor={floor} model={model} />}
+      {floor.level === 0 && (siteFeatures ? <SiteFeatureDrawing features={siteFeatures} ink={ink} faint={faint} /> : pres && <Landscape floor={floor} model={model} />)}
       {/* ---- site + setbacks ---- */}
       <g>
         <rect
@@ -569,4 +571,12 @@ export function TerraceDrawing({ design, svgRef }: { design: Design; svgRef?: Re
       )}
     </svg>
   )
+}
+
+export function SiteFeatureDrawing({ features, ink, faint }: { features: SiteFeature[]; ink: string; faint: string }) {
+  return <g data-layer="outdoor">{features.filter(f => !f.covered).map(f => <g key={f.id}>
+    <rect x={f.rect.x} y={f.rect.y} width={f.rect.w} height={f.rect.h} fill={f.kind === 'pool' ? '#b5d5df' : f.kind === 'lawn' ? '#d9dfd4' : '#dddcd8'} fillOpacity={0.65} stroke={faint} strokeWidth={25} />
+    {f.rect.w >= 1400 && f.rect.h >= 1000 && <text x={f.rect.x + f.rect.w / 2} y={f.rect.y + f.rect.h / 2} textAnchor="middle" fill={ink} fontSize={260} fontFamily="monospace">{f.kind === 'lawn' ? 'LAWN' : f.kind === 'utilityYard' ? 'UTILITY YARD' : f.kind === 'sitOut' ? 'SIT-OUT' : f.kind.toUpperCase()}</text>}
+    {f.kind === 'parking' && <rect x={f.rect.x + 500} y={f.rect.y + 400} width={1900} height={4200} rx={240} fill="none" stroke={ink} strokeWidth={35} />}
+  </g>)}</g>
 }

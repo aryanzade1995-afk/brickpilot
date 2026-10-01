@@ -59,7 +59,7 @@ export function generateAlternativeDesign(plan: Design, seed: number) {
   const occupied = base.masses.filter((m) => m.usage !== 'roof')
   const ground = [...buildingModel.floors].sort((a, b) => a.level - b.level)[0]
   const frontY = ground.outline.y + ground.outline.h
-  const protectedOutdoor = buildingModel.rooms.filter((r) => r.floorId === ground.id && r.outdoor).map((r) => r.rect)
+  const protectedOutdoor = [...buildingModel.rooms.filter((r) => r.floorId === ground.id && r.outdoor).map((r) => r.rect), ...(buildingModel.siteFeatures ?? []).filter(f => f.kind !== 'lawn').map(f => f.rect)]
   const xStops = [...new Set([buildingModel.plot.buildable.x, buildingModel.plot.buildable.x + buildingModel.plot.buildable.w,
     ...protectedOutdoor.flatMap((r) => [r.x, r.x + r.w])])].sort((a, b) => a - b)
   const forecourts = xStops.slice(0, -1).map((x, i) => ({ x: x + 300, y: frontY,

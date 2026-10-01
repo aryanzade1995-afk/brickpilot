@@ -11,10 +11,10 @@ import { costPerSqmAllIn } from './index.ts'
  * Built-up m² per m² of requested rooms: walls, the full-length corridor on
  * every floor, the stair repeated per storey, and rooms stretched to fill the
  * structural bays. Calibrated against generated plans (scripts/test-cost.mjs):
- * the per-brief best fit ran 1.14–1.53, and 1.32 keeps all within ±16%.
+ * the per-brief best fit ran 1.14–1.53, and 1.27 follows the current connected-wing plans within ±20%.
  * (The first guess of 1.18 fell 16–23% short on most briefs.)
  */
-export const GROSS_UP = 1.32
+export const GROSS_UP = 1.27
 
 export type BudgetFitStatus = 'comfortable' | 'tight' | 'over'
 

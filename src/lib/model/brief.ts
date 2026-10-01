@@ -192,6 +192,12 @@ export const briefSchema = z
         plotDepth: z.number().min(6).max(80).default(18),
         facing: directionSchema.default('N'),
         roadEdges: z.array(directionSchema).min(1).default(['N']),
+        openSpace: z.object({
+          mode: z.enum(['auto', 'perSide', 'chosenSides', 'maxBuild']).default('auto'),
+          metres: z.object({ N: z.number().min(0).max(30).default(3), E: z.number().min(0).max(30).default(1.2), S: z.number().min(0).max(30).default(2), W: z.number().min(0).max(30).default(1.2) }).prefault({}),
+          sides: z.array(directionSchema).default(['N']),
+          amount: z.number().min(0).max(30).default(3),
+        }).prefault({}),
         setbacks: z
           .object({
             N: z.number().min(0).max(20).default(3),
@@ -224,6 +230,7 @@ export const briefSchema = z
         sharedBaths: z.number().int().min(0).max(6).default(1),
         studies: z.number().int().min(0).max(4).default(1),
         balcony: z.boolean().default(true),
+        pool: z.boolean().default(false),
         poojaPreference: z.enum(['compact', 'dedicated', 'large']).default('dedicated'),
         poojaSide: z.union([directionSchema, z.literal('auto')]).default('auto'),
         priorities: z

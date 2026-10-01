@@ -1,6 +1,6 @@
 import type { Direction } from '../model/brief.ts'
 import type { Point, Rect } from '../geometry.ts'
-import type { Design, Opening, PlacedRoom, Wall } from './types.ts'
+import type { Design, Opening, PlacedRoom, SiteFeature, Wall } from './types.ts'
 import type { Beam, Column, Shaft, SupportZone } from './planner/types.ts'
 import { fnv } from './massing/rng.ts'
 
@@ -42,6 +42,7 @@ export type BuildingModel = {
   /** Plan x grows east, plan y grows south; ground-floor finished level is z = 0. */
   coordinates: 'plan-x-east-y-south-z-up'
   plot: { widthMm: number; depthMm: number; buildable: Rect }
+  siteFeatures?: SiteFeature[]
   floors: BuildingFloor[]
   rooms: BuildingRoom[]
   walls: BuildingWall[]
@@ -134,6 +135,7 @@ export function createBuildingModel(design: Design): BuildingModel {
         w: model.envelope.width, h: model.envelope.depth,
       },
     },
+    ...(design.siteFeatures ? { siteFeatures: design.siteFeatures.map(f => ({ ...f, rect: rect(f.rect) })) } : {}),
     floors, rooms, walls, doors, windows, stairs, columns, beams, slabs, shafts, supportZones,
     orientation: {
       entryCompass: model.entrySide, roadPlanSide: 'S' as const,

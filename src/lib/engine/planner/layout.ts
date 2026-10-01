@@ -96,7 +96,7 @@ function search(input: LayoutInput, relaxed: boolean): PlateCandidate[] {
   // an L-notch cuts the front band — a single-loaded plan has none
   if (single && family === 'l-shape') return []
   const spine = single ? input.hallMm ?? 1800 : large ? 1500 : 1200
-  const dMax = large ? 5400 : 4800
+  const dMax = site.fillPlot ? 5400 : large ? 5400 : 4800
   const bDepths = single ? [0] : Array.from({ length: Math.floor((dMax - MIN_BAND) / 300) + 1 }, (_, i) => MIN_BAND + i * 300)
   const out: PlateCandidate[] = []
   for (const orientation of ['x', 'y'] as Orientation[]) {
@@ -117,10 +117,12 @@ function search(input: LayoutInput, relaxed: boolean): PlateCandidate[] {
         const lt = snapUp(need('target'))
         const lm = snapUp(need('min'))
         if (lm > lMax * 1.25 && !relaxed) continue
-        const length = clamp(lt, Math.min(lm, lMax), lMax)
+        const coverageLength = site.maxEnclosedMm2 ? Math.floor(site.maxEnclosedMm2 / v / 100) * 100 : lMax
+        const length = site.fillPlot ? Math.min(lMax, coverageLength) : clamp(lt, Math.min(lm, lMax), lMax)
+        if (length < lm && !relaxed) continue
         const aspect = Math.max(length, v) / Math.min(length, v)
         // compact plates first; strongly elongated ones and squeezed rooms pay
-        const score = (length * v) / 1e6 * (1 + 0.12 * Math.max(0, aspect - 2)) +
+        const score = (site.fillPlot ? -(length * v) / 1e6 : (length * v) / 1e6) * (1 + 0.12 * Math.max(0, aspect - 2)) +
           (lt <= lMax ? 0 : 400) + (lm <= lMax ? 0 : 4000)
         out.push({ orientation, depthA: dA, depthB: dB, spine, length, atTarget: lt <= lMax, atMin: lm <= lMax, relaxed: relaxed || v > vMax, score })
       }
@@ -308,8 +310,8 @@ export function placeFloors(input: LayoutInput, cand: PlateCandidate): LayoutRes
   const split0 = balance(ground.units, dA, dB, L - gapA0, L)
   const bNeed = sum(split0.B.map((u) => unitLength(u, dB, 'target')))
   let notch: [number, number] | null = null
-  if (family === 'l-shape') {
-    const n = Math.min(notchFor(bNeed), snap(L * 0.4))
+  if (family === 'l-shape' || (family === 'stepped' && !input.singleLoaded)) {
+    const n = family === 'stepped' ? Math.min(1800, snap(L * 0.2)) : Math.min(notchFor(bNeed), snap(L * 0.4))
     notch = [L - n, L]
   }
   let court: [number, number] | null = null

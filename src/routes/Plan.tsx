@@ -54,6 +54,7 @@ export function Plan() {
       <WorkspaceTabs />
       <VillaGenerationNotice />
 
+      {design.siteNotes?.length ? <div className="mt-4 border border-line px-4 py-3 text-xs text-ink-dim" role="status">{design.siteNotes.map(note => <p key={note}>{note}</p>)}</div> : null}
       {/* metric bar */}
       <div className="mt-5 flex flex-wrap items-center gap-x-10 gap-y-3 border-b border-line pb-4">
         <Metric k="Validation" v={`${report.score} / 100`} />
@@ -124,6 +125,7 @@ export function Plan() {
               <TerraceDrawing design={design} />
             ) : (
               <FloorDrawing
+                siteFeatures={design.siteFeatures}
                 floor={floor}
                 model={model}
                 theme={theme}

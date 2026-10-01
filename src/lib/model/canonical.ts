@@ -1,3 +1,4 @@
+import { resolveOpenSpace } from './openSpace.ts'
 import type { Brief, Direction } from './brief.ts'
 import { costPerSqmAllIn } from '../cost/index.ts'
 
@@ -60,6 +61,8 @@ export type CanonicalModel = {
   /** buildable envelope in plan coordinates: the approach is drawn at the bottom */
   envelope: { width: number; depth: number }
   plot: { width: number; depth: number }
+  legalSetbacksMm?: Record<Direction, number>
+  siteNotes?: string[]
   setbacksMm: Record<Direction, number>
   grid: number
   entrySide: Direction
@@ -83,8 +86,9 @@ export const planToCompass: Record<Direction, Record<Direction, Direction>> = {
 
 /** Conditions that make even a minimum building footprint impossible. */
 export function briefSiteIssues(brief: Brief): string[] {
-  const usableWidth = brief.site.plotWidth - brief.site.setbacks.E - brief.site.setbacks.W
-  const usableDepth = brief.site.plotDepth - brief.site.setbacks.N - brief.site.setbacks.S
+  const { margins } = resolveOpenSpace(brief.site)
+  const usableWidth = brief.site.plotWidth - margins.E - margins.W
+  const usableDepth = brief.site.plotDepth - margins.N - margins.S
   const issues: string[] = []
   if (usableWidth < 6) issues.push(`The east–west buildable width is ${usableWidth.toFixed(1)} m; increase the plot width or reduce the east/west setbacks to leave at least 6 m.`)
   if (usableDepth < 6) issues.push(`The north–south buildable depth is ${usableDepth.toFixed(1)} m; increase the plot depth or reduce the north/south setbacks to leave at least 6 m.`)
@@ -171,9 +175,13 @@ export function compile(brief: Brief): CanonicalModel {
     : brief.entry.primarySide
   const oriented = planToCompass[entrySide]
 
-  const setbacksMm = Object.fromEntries(
+  const { margins, notes: siteNotes } = resolveOpenSpace(brief.site)
+  const legalSetbacksMm = Object.fromEntries(
     (['N', 'E', 'S', 'W'] as Direction[]).map((side) =>
       [side, Math.round(brief.site.setbacks[oriented[side]] * 1000)]),
+  ) as Record<Direction, number>
+  const setbacksMm = Object.fromEntries(
+    (['N', 'E', 'S', 'W'] as Direction[]).map(side => [side, Math.round(margins[oriented[side]] * 1000)]),
   ) as Record<Direction, number>
   const eastWestApproach = entrySide === 'E' || entrySide === 'W'
   const plot = {
@@ -487,7 +495,7 @@ export function compile(brief: Brief): CanonicalModel {
     s.preferredTarget = s.target
     s.target = Math.round((s.min + (s.target - s.min) * generosity) * 10) / 10
   }
-  return { seed, brief, envelope, plot, setbacksMm, grid, entrySide, floors, relationships: rel,
+  return { seed, brief, envelope, plot, setbacksMm, legalSetbacksMm, siteNotes, grid, entrySide, floors, relationships: rel,
     siteRequirements: { garden: p.garden, compoundWall: p.compoundWall,
       utilityYard: p.utility || brief.lifestyle.dryWetSplit || brief.household.staff !== 'none', sitOut: p.coveredVerandah } }
 }
