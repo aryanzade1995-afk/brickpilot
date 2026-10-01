@@ -1,6 +1,5 @@
 import { resolveOpenSpace } from './openSpace.ts'
 import type { Brief, Direction } from './brief.ts'
-import { costPerSqmAllIn } from '../cost/index.ts'
 
 /* ------------------------------------------------------------------ *
  *  Canonical model — the compiled, engine-facing form of the brief.
@@ -32,7 +31,7 @@ export type SpaceReq = {
   zone: Zone
   /** target / min / max floor area in m² */
   target: number
-  /** Unconstrained preferred size, retained for honest early budget feedback. */
+  /** Preferred room size before capacity fitting. */
   preferredTarget?: number
   min: number
   max: number
@@ -252,10 +251,10 @@ export function compile(brief: Brief): CanonicalModel {
     }
     return mk(id, `Bedroom ${bedNo}`, 'private', 'bed')
   }
-  const withBathBudget = { n: brief.rooms.bedroomsWithBath }
+  const attachedBathSlots = { n: brief.rooms.bedroomsWithBath }
   const nextBath = (owner: SpaceReq): SpaceReq | null => {
-    if (withBathBudget.n <= 0 && owner.role !== 'guest') return null
-    if (withBathBudget.n > 0) withBathBudget.n -= 1
+    if (attachedBathSlots.n <= 0 && owner.role !== 'guest') return null
+    if (attachedBathSlots.n > 0) attachedBathSlots.n -= 1
     bathNo += 1
     return mk(`bath${bathNo}`, `Attached bath ${bathNo}`, 'service', 'attachedBath', {
       wet: true,
@@ -484,17 +483,6 @@ export function compile(brief: Brief): CanonicalModel {
     }
   }
 
-  // Keep every requested room and minimum. A tight budget only reduces target
-  // generosity; unaffordable minimum programmes remain visibly over budget.
-  const enclosed = allSpaces.filter((s) => !s.outdoor)
-  const minimum = enclosed.reduce((a, s) => a + s.min, 0)
-  const preferred = enclosed.reduce((a, s) => a + s.target, 0)
-  const affordable = brief.budget.amountLakh * 1e5 / costPerSqmAllIn(brief) / 1.32
-  const generosity = Math.max(0, Math.min(1, (affordable - minimum) / Math.max(1, preferred - minimum)))
-  for (const s of enclosed) {
-    s.preferredTarget = s.target
-    s.target = Math.round((s.min + (s.target - s.min) * generosity) * 10) / 10
-  }
   return { seed, brief, envelope, plot, setbacksMm, legalSetbacksMm, siteNotes, grid, entrySide, floors, relationships: rel,
     siteRequirements: { garden: p.garden, compoundWall: p.compoundWall,
       utilityYard: p.utility || brief.lifestyle.dryWetSplit || brief.household.staff !== 'none', sitOut: p.coveredVerandah } }

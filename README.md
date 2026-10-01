@@ -350,8 +350,8 @@ validation tests and check that generated directions still pass mandatory rules.
 ## Brief-led site planning and drawing controls
 
 The planner compiles household age groups, guest frequency, staff, lifestyle, pooja preferences,
-work requirements and budget into the canonical room programme. See [the complete field audit](docs/brief-plan-audit.md).
-Requested rooms and minimum sizes are retained even when the budget cannot afford them.
+work requirements into the canonical room programme. See [the complete field audit](docs/brief-plan-audit.md).
+Requested rooms and minimum sizes are retained. Cost is an independent construction estimate with a mid-range finish assumption. Legacy saved budget fields are silently stripped.
 
 `site.openSpace` supports `auto`, `perSide`, `chosenSides`, and `maxBuild`.
 Margins are measured from property edges in metres, in real compass directions, and rotated

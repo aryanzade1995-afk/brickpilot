@@ -44,7 +44,7 @@ test('with Vastu preferred, the chosen plan scores at least as well as every oth
   assert.deepEqual(chosen, passing.find((c) => c.score.total === best).design)
 })
 
-test('with Vastu ignored, Vastu contributes zero while sun, lifestyle and budget still rank plans', () => {
+test('with Vastu ignored, Vastu contributes zero while sun and lifestyle still rank plans', () => {
   const d = generate(caseA('ignore'))
   const s = preferenceScore(d)
   assert.equal(vastuSum(s), 0)

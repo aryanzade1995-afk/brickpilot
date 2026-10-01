@@ -23,7 +23,7 @@ import designs from './designs.json';
 const labels={auto:'Auto',perSide:'Per side',chosenSides:'Chosen sides',maxBuild:'Max build'};
 function Review(){const [mode,setMode]=useState('auto');const d=designs[mode];return <main style={{maxWidth:1440,margin:'auto',padding:28}}>
 <h1 style={{fontSize:26,marginBottom:8}}>Formstead · Open-space comparison</h1>
-<p style={{fontSize:13,color:'#888',marginBottom:18}}>One 18 × 22 m plot · same household, rooms and budget · all hard checks pass · existing drawing components</p>
+<p style={{fontSize:13,color:'#888',marginBottom:18}}>One 18 × 22 m plot · same household, rooms · all hard checks pass · existing drawing components</p>
 <nav style={{display:'flex',gap:8,marginBottom:20}}>{Object.keys(labels).map(m=><button key={m} onClick={()=>setMode(m)} aria-pressed={mode===m} style={{border:'1px solid '+(mode===m?'#ddd':'#444'),padding:'8px 16px',color:mode===m?'var(--color-ink)':'#777'}}>{labels[m]}</button>)}</nav>
 <p style={{fontSize:13,marginBottom:18}}>{labels[mode]} · {d.candidate} · enclosed footprint {d.footprintSqm.toFixed(1)} m² · {(d.footprintSqm/(d.model.envelope.width*d.model.envelope.depth/1e6)*100).toFixed(1)}% permitted-area use · 0 errors</p>
 <DrawingWorkspace design={d}/></main>};const root=createRoot(document.getElementById('root')); root.render(<Review/>); if(import.meta.hot)import.meta.hot.dispose(()=>root.unmount());`)

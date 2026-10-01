@@ -59,7 +59,7 @@ test('geometry history survives brief edits and reload; invalid persisted record
   reset()
   useStudio.getState().run()
   const history = structuredClone(useStudio.getState().recentVillaFingerprints)
-  useStudio.getState().edit((brief) => { brief.budget.amountInr += 1000 })
+  useStudio.getState().edit((brief) => { brief.project.name += " updated" })
   assert.deepEqual(useStudio.getState().recentVillaFingerprints, history)
   const saved = JSON.parse(storage.get('brickpilot.studio'))
   saved.state.recentVillaFingerprints.push({ schemaVersion: 999, vector: [] })

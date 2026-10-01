@@ -94,7 +94,7 @@ export const diversitySchema = z.enum(['low', 'medium', 'high', 'extreme'])
 export const personalitySchema = z.enum(['balanced', 'minimal', 'elegant', 'bold', 'dramatic', 'warm', 'luxurious', 'tropical'])
 export type DesignPersonality = z.infer<typeof personalitySchema>
 
-/* ---------------------- household / lifestyle / budget ---------------------- */
+/* ---------------------- household / lifestyle ---------------------- */
 
 export const memberRoleSchema = z.enum(['adult', 'senior', 'teen', 'child', 'infant'])
 export type MemberRole = z.infer<typeof memberRoleSchema>
@@ -149,14 +149,6 @@ export const VASTU_LABEL: Record<VastuPreference, string> = {
   ignore: 'Ignore',
   prefer: 'Prefer',
   strict: 'Strict',
-}
-
-export const budgetScopeSchema = z.enum(['construction', 'withInteriors', 'all'])
-export type BudgetScope = z.infer<typeof budgetScopeSchema>
-export const BUDGET_SCOPE_LABEL: Record<BudgetScope, string> = {
-  construction: 'Construction only',
-  withInteriors: 'Construction + interiors',
-  all: 'Everything',
 }
 
 export const finishSchema = z.enum(['basic', 'mid', 'premium'])
@@ -282,13 +274,6 @@ export const briefSchema = z
         wfhCount: z.number().int().min(0).max(4).default(0),
         clientVisits: z.boolean().default(false),
         vastu: vastuSchema.default('prefer'),
-      })
-      .prefault({}),
-    budget: z
-      .object({
-        amountLakh: z.number().min(10).max(2000).default(80),
-        scope: budgetScopeSchema.default('construction'),
-        finish: finishSchema.default('mid'),
       })
       .prefault({}),
     /** internal variation index — bumped to reroll geometry from the same brief */

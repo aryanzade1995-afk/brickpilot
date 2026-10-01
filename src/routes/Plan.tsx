@@ -57,20 +57,6 @@ export function Plan() {
           {report.hardChecksPass ? '● Hard checks pass' : '● Hard checks fail'}
         </div>
         <Metric k="Cost band" v={formatRange(cost.total.low, cost.total.high, formatINRShort)} />
-        <div>
-          <span className="label">Budget</span>
-          <div className="mt-0.5 flex items-baseline gap-2 font-mono text-sm text-ink tnum">
-            <span>{formatINRShort(cost.budget.amountInr)} vs {formatINRShort(cost.budget.expected)}</span>
-            <span
-              className={cx(
-                'text-xs uppercase tracking-[0.1em]',
-                cost.budget.status === 'within' ? 'text-ok' : cost.budget.status === 'tight' ? 'text-warn' : 'text-bad',
-              )}
-            >
-              ● {cost.budget.status === 'within' ? 'Within' : cost.budget.status === 'tight' ? 'Tight' : 'Over'}
-            </span>
-          </div>
-        </div>
         <Metric k="Built area" v={`${design.builtAreaSqm.toFixed(1)} m²`} />
         <Metric k="Height" v={`${design.heightM} m`} />
         <Metric k="Coverage" v={`${(design.coverage * 100).toFixed(0)} %`} />

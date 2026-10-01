@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/Button.tsx'
 import { cx } from '@/lib/cx.ts'
 import { briefSiteIssues } from '@/lib/model/canonical.ts'
 import {
-  BudgetStep,
   EntryStep,
   FamilyStep,
   LevelsStep,
@@ -45,10 +44,6 @@ type SubStep = { label: string; title: string; Body: () => React.JSX.Element; is
 
 /** sub-tabs inside a top-level step — walked in order by Confirm / Back */
 const SUBSTEPS: Partial<Record<number, SubStep[]>> = {
-  0: [
-    { label: 'Project', title: 'What are we planning?', Body: ProjectStep },
-    { label: 'Budget', title: 'What can you spend?', Body: BudgetStep, isNew: true },
-  ],
   2: [
     { label: 'Family', title: 'Who lives here?', Body: FamilyStep },
     { label: 'Lifestyle', title: 'How do you live day to day?', Body: LifestyleStep, isNew: true },

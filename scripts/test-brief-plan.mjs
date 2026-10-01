@@ -7,10 +7,9 @@ import { validate } from '../src/lib/rules/index.ts'
 import { normalizeBrief, programRequirements, stairGeometry } from '../src/lib/engine/planner/program.ts'
 import { preferenceScore } from '../src/lib/engine/score.ts'
 
-const brief = () => { const b = defaultBrief(); b.site.plotWidth = 22; b.site.plotDepth = 26; b.budget.amountLakh = 160; return b }
+const brief = () => { const b = defaultBrief(); b.site.plotWidth = 22; b.site.plotDepth = 26; return b }
 const spaces = (b) => compile(b).floors.flatMap((f) => f.spaces)
 const room = (b, id) => spaces(b).find((s) => s.id === id)
-const target = (b) => spaces(b).filter((s) => !s.outdoor).reduce((n, s) => n + s.target, 0)
 
 test('member count directly enlarges social-room targets, independently of seed', () => {
   const a = brief(), b = brief(); b.household.members.push({role:'adult',needsGroundFloor:false});
@@ -69,14 +68,6 @@ test('pooja size preference changes required area without losing sacred-room min
 test('pooja compass preference is evaluated on actual generated coordinates', () => {
   const b=brief(); b.rooms.poojaSide='E'; const d=generate(compile(b));
   assert.ok(preferenceScore(d).terms.some((t)=>t.name==='Pooja on requested E side'))
-})
-for(const field of ['amountLakh','scope','finish']) test(`budget.${field} changes room targets while all minimums and rooms survive`,()=>{
-  const a=brief(), b=brief(); a.budget.amountLakh=55; b.budget.amountLakh=55;
-  if(field==='amountLakh') b.budget.amountLakh=160;
-  if(field==='scope') b.budget.scope='all';
-  if(field==='finish') b.budget.finish='premium';
-  assert.notEqual(target(a),target(b)); assert.deepEqual(spaces(a).map(s=>[s.id,s.min]),spaces(b).map(s=>[s.id,s.min]));
-  assert.ok(spaces(b).every(s=>s.target>=s.min));
 })
 for(const field of ['garden','compoundWall']) test(`priority ${field} reaches the canonical site programme`,()=>{
   const b=brief(); b.rooms.priorities[field]=true; assert.equal(compile(b).siteRequirements[field],true)

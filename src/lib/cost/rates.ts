@@ -52,7 +52,7 @@ export const RATE_SPREAD = 0.14
 
 /** expected construction rate, INR per m² built-up, before externals / fees */
 export function constructionRate(brief: Brief, family: PlateFamily = 'rectangular'): number {
-  return FINISH_RATE_PER_SQM[brief.budget.finish] *
+  return FINISH_RATE_PER_SQM.mid *
     (STOREY_FACTOR[brief.levels.storeys] ?? 1) *
     FAMILY_FACTOR[family] *
     STYLE_FACTOR[brief.style.character] *

@@ -2,12 +2,10 @@ import { resolveOpenSpace, OPEN_SPACE_LABEL } from '@/lib/model/openSpace.ts'
 import { PLANNING_LIMITS } from '@/lib/engine/planner/limits.ts'
 import { Dices, Plus, X } from 'lucide-react'
 import {
-  BUDGET_SCOPE_LABEL,
   BUILDING_TYPE_LABEL,
   CHARACTER_LABEL,
   DIRECTIONS,
   DIRECTION_LABEL,
-  FINISH_LABEL,
   GUESTS_LABEL,
   KITCHEN_LABEL,
   MEMBER_ROLE_LABEL,
@@ -29,8 +27,6 @@ import { canonicalSummary, compile } from '@/lib/model/canonical.ts'
 import { programmeCapacity } from '@/lib/rules/index.ts'
 import { useStudio } from '@/state/studio.ts'
 import { FitNotice } from './FitNotice.tsx'
-import { BudgetNotice } from './BudgetNotice.tsx'
-import { assessBudgetFit } from '@/lib/cost/budgetFit.ts'
 import { describeMembers, membersByRole } from '@/lib/model/household.ts'
 import {
   CardChoice,
@@ -155,7 +151,7 @@ export function SiteStep() {
           })} />)}</div>
           <Field label="Open margin on chosen sides (m)"><NumberInput value={s.openSpace.amount} min={0} max={30} step={0.1} suffix="m" onChange={v => edit(b => void (b.site.openSpace.amount = v))} /></Field>
         </>}
-        <p className="text-xs text-ink-dim" role="status">{s.openSpace.mode === 'auto' ? 'The planner chooses an edge placement and sizes the house to the room programme and budget.' : 'The planner fills the permitted area with connected rectilinear wings, while retaining room access and structure.'}</p>
+        <p className="text-xs text-ink-dim" role="status">{s.openSpace.mode === 'auto' ? 'The planner chooses an edge placement and sizes the house to the room programme.' : 'The planner fills the permitted area with connected rectilinear wings, while retaining room access and structure.'}</p>
         {open.notes.map(note => <p key={note} role="status" className="text-xs text-warn">{note}</p>)}
         {s.openSpace.mode === 'maxBuild' && maxBuildLimit < 0.85 && <p role="status" className="text-xs text-warn">The existing 60% plot coverage limit prevents 85% buildable-area use on this plot. Max build stops at the coverage limit; parking and room checks still apply.</p>}
       </div>
@@ -165,60 +161,8 @@ export function SiteStep() {
 
 /* -------------------------------------------------------------------------- */
 
-export function BudgetStep() {
-  const [brief, edit] = useBrief()
-  const g = brief.budget
-  return (
-    <div className="max-w-2xl space-y-10">
-      <Field label="Total budget" hint="What you can spend on this house, in lakh (1 lakh = ₹1,00,000)">
-        <div className="flex max-w-xs items-center gap-2">
-          <span className="font-display text-xl text-ink-dim">₹</span>
-          <NumberInput value={g.amountLakh} min={10} max={2000} step={5} suffix="lakh" onChange={(v) => edit((b) => void (b.budget.amountLakh = v))} />
-        </div>
-      </Field>
-
-      <div className="space-y-4">
-        <div>
-          <span className="label">What the budget covers</span>
-          <p className="mt-1 text-sm text-ink-dim">So the cost band compares like with like.</p>
-        </div>
-        <CardChoice
-          value={g.scope}
-          onChange={(v) => edit((b) => void (b.budget.scope = v))}
-          options={[
-            { value: 'construction', title: BUDGET_SCOPE_LABEL.construction, body: 'Structure, walls, roof, plumbing, electrical and basic finishes.' },
-            { value: 'withInteriors', title: BUDGET_SCOPE_LABEL.withInteriors, body: 'Adds modular kitchen, wardrobes, false ceilings and lighting.' },
-            { value: 'all', title: BUDGET_SCOPE_LABEL.all, body: 'Includes professional fees, approvals, landscaping and compound wall.' },
-          ]}
-        />
-      </div>
-
-      <div className="space-y-4">
-        <div>
-          <span className="label">Finish level</span>
-          <p className="mt-1 text-sm text-ink-dim">The biggest lever on cost per square metre after size.</p>
-        </div>
-        <CardChoice
-          value={g.finish}
-          onChange={(v) => edit((b) => void (b.budget.finish = v))}
-          options={[
-            { value: 'basic', title: FINISH_LABEL.basic, body: 'Ceramic tiles, standard CP fittings, aluminium windows.' },
-            { value: 'mid', title: FINISH_LABEL.mid, body: 'Vitrified tiles, branded CP fittings, UPVC windows.' },
-            { value: 'premium', title: FINISH_LABEL.premium, body: 'Marble or wood floors, designer fittings, large-format glazing.' },
-          ]}
-        />
-      </div>
-      <BudgetNotice />
-    </div>
-  )
-}
-
-/* -------------------------------------------------------------------------- */
-
 const QUICK_ADD: MemberRole[] = ['adult', 'senior', 'teen', 'child']
 const MAX_MEMBERS = 20
-
-/** member edits keep the legacy occupant count (still read by the engine) in step */
 const syncOccupants = (b: Brief) => void (b.spaces.occupants = Math.min(MAX_MEMBERS, Math.max(1, b.household.members.length)))
 
 export function FamilyStep() {
@@ -321,7 +265,6 @@ export function FamilyStep() {
           />
         </Field>
       </div>
-      <BudgetNotice />
     </div>
   )
 }
@@ -434,7 +377,6 @@ export function LevelsStep() {
         hint="Conceptual shaft only — lift design stays professional scope"
       />
       <FitNotice />
-      <BudgetNotice />
     </div>
   )
 }
@@ -495,7 +437,6 @@ export function RoomsStep() {
         </div>
       </div>
       <FitNotice />
-      <BudgetNotice />
     </div>
   )
 }
@@ -721,10 +662,9 @@ export function ReviewStep() {
   )
 }
 
-/** every Budget / Household / Lifestyle answer, so nothing on a sub-tab is hidden at review */
+/** every Household / Lifestyle answer, so nothing on a sub-tab is hidden at review */
 function AnswersSummary({ brief }: { brief: Brief }) {
-  const { budget: g, household: h, lifestyle: l } = brief
-  const fit = assessBudgetFit(brief)
+  const { household: h, lifestyle: l } = brief
   const ground = h.members.filter((m) => m.needsGroundFloor).length
   const sections: { title: string; stats: [string, string][]; note?: string }[] = [
     {
@@ -748,16 +688,7 @@ function AnswersSummary({ brief }: { brief: Brief }) {
       ],
       note: `Living & dining: ${brief.spaces.livingDining === 'combined' ? 'combined hall' : 'separate'}`,
     },
-    {
-      title: 'Budget',
-      stats: [
-        ['Amount', `₹${g.amountLakh} L`],
-        ['Covers', BUDGET_SCOPE_LABEL[g.scope]],
-        ['Finish', FINISH_LABEL[g.finish]],
-        ['Fit', fit.status === 'comfortable' ? 'Comfortable' : fit.status === 'tight' ? 'Tight' : 'Over'],
-      ],
-      note: fit.message,
-    },
+
   ]
   return (
     <div className="space-y-4">

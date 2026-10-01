@@ -1,6 +1,5 @@
 import { sharedEdge } from '../geometry.ts'
 import type { Design, PlacedRoom } from './types.ts'
-import { costPerSqmAllIn } from '../cost/index.ts'
 import { entryFacing, roomQuadrant, windowFacings, type Quadrant } from './orientation.ts'
 
 /* ------------------------------------------------------------------ *
@@ -10,7 +9,7 @@ import { entryFacing, roomQuadrant, windowFacings, type Quadrant } from './orien
  *  can say why a plan was chosen.
  * ------------------------------------------------------------------ */
 
-export type ScoreTerm = { name: string; value: number; group: 'vastu' | 'sun' | 'lifestyle' | 'budget' }
+export type ScoreTerm = { name: string; value: number; group: 'vastu' | 'sun' | 'lifestyle' }
 export type PreferenceScore = { total: number; terms: ScoreTerm[] }
 
 /** how much Vastu counts, from the brief's answer */
@@ -104,10 +103,6 @@ export function preferenceScore(design: Design): PreferenceScore {
     const quadrant = roomQuadrant(design, 'pooja', 0)
     terms.push({ name: `Pooja on requested ${poojaSide} side`, group: 'lifestyle', value: quadrant?.includes(poojaSide) ? 2 : -1 })
   }
-  const estimated = design.builtAreaSqm * costPerSqmAllIn(design.model.brief)
-  const amount = design.model.brief.budget.amountLakh * 1e5
-  terms.push({ name: 'Requested budget and finish scope', group: 'budget', value: estimated <= amount ? .5 : -Math.min(8, (estimated / amount - 1) * 4) })
-
   const total = Math.round(terms.reduce((a, t) => a + t.value, 0) * 100) / 100
   return { total, terms }
 }

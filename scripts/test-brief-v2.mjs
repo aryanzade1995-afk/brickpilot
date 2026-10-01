@@ -2,7 +2,6 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   BRIEF_STEPS,
-  BUDGET_SCOPE_LABEL,
   FINISH_LABEL,
   GUESTS_LABEL,
   KITCHEN_LABEL,
@@ -19,7 +18,7 @@ import { assessBriefFit } from '../src/lib/engine/planner/fit.ts'
 import { generate } from '../src/lib/engine/generate.ts'
 import { validate } from '../src/lib/rules/index.ts'
 
-/* Brief v2: household, lifestyle and budget questions (schema only). */
+/* Brief v2: household and lifestyle questions (schema only). */
 
 test('an empty brief parses with every new field at its default', () => {
   const b = briefSchema.parse({})
@@ -34,7 +33,7 @@ test('an empty brief parses with every new field at its default', () => {
     staff: 'none',
   })
   assert.deepEqual(b.lifestyle, { kitchen: 'semi', dryWetSplit: false, wfhCount: 0, clientVisits: false, vastu: 'prefer' })
-  assert.deepEqual(b.budget, { amountLakh: 80, scope: 'construction', finish: 'mid' })
+
   assert.equal(occupantCount(b), 4)
   // default members are fresh objects, never a shared array
   const other = defaultBrief()
@@ -42,7 +41,7 @@ test('an empty brief parses with every new field at its default', () => {
   assert.equal(briefSchema.parse({}).household.members[0].role, 'adult')
 })
 
-test('a brief saved before household / lifestyle / budget existed still loads', () => {
+test('a brief saved before household / lifestyle existed still loads', () => {
   const old = {
     project: { name: 'Old house', buildingType: 'villa' },
     site: { plotWidth: 15, plotDepth: 18, facing: 'N', roadEdges: ['N'], setbacks: { N: 3, E: 1.2, S: 2, W: 1.2 } },
@@ -59,7 +58,7 @@ test('a brief saved before household / lifestyle / budget existed still loads', 
   assert.equal(r.data.rooms.bedroomsWithBath, 3)
   assert.equal(r.data.household.members.length, 4)
   assert.equal(r.data.lifestyle.vastu, 'prefer')
-  assert.equal(r.data.budget.amountLakh, 80)
+
 })
 
 test('a senior defaults to needing the ground floor; an explicit answer wins', () => {
@@ -72,12 +71,12 @@ test('new fields are range-checked', () => {
   assert.ok(!briefSchema.safeParse({ household: { members: [] } }).success, 'at least one member')
   assert.ok(!briefSchema.safeParse({ household: { members: Array(21).fill({ role: 'adult' }) } }).success, 'at most 20')
   assert.ok(!briefSchema.safeParse({ lifestyle: { wfhCount: 5 } }).success)
-  assert.ok(!briefSchema.safeParse({ budget: { amountLakh: 5 } }).success)
-  assert.ok(!briefSchema.safeParse({ budget: { amountLakh: 2500 } }).success)
+
+
 })
 
 test('every new enum has a label map, and the wizard keeps its 8 steps', () => {
-  for (const map of [MEMBER_ROLE_LABEL, GUESTS_LABEL, STAFF_LABEL, KITCHEN_LABEL, VASTU_LABEL, BUDGET_SCOPE_LABEL, FINISH_LABEL])
+  for (const map of [MEMBER_ROLE_LABEL, GUESTS_LABEL, STAFF_LABEL, KITCHEN_LABEL, VASTU_LABEL, FINISH_LABEL])
     assert.ok(Object.values(map).every((v) => typeof v === 'string' && v.length > 0))
   assert.equal(BRIEF_STEPS.length, 8)
   assert.equal(BRIEF_STEPS.find((s) => s.key === 'spaces').label, 'Household')
