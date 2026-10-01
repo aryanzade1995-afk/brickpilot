@@ -410,3 +410,7 @@ Windows sharing locks. All existing architecture and similarity gates remain.
 ### Live brief capacity
 
 Wizard capacity uses the production planner and every hard validator, with a bounded cache for repeated inputs. Room/member/workspace increments are disabled when the proposed brief fails. Generate is disabled for an invalid programme, including old saved briefs. Reducing requirements and enlarging the site remain available.
+
+### Direction search
+
+Studio direction selection retries deterministic seeds and existing compatible massing/facade recipes. Uniqueness relaxes in explicit 75/82/90/97/100 percent stages and rolling quotas widen; geometric hard checks never relax. Validated candidates are reused between stages. Exact duplicates cannot fill a direction set. Debug reasons explain invalid architecture, similarity, quotas and the accepted adaptive stage. The occupied plan remains fixed; its open-space settings govern available exterior placement.

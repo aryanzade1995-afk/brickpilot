@@ -1,3 +1,4 @@
+import { selectAdaptiveVilla } from '@/lib/engine/fingerprint/AdaptiveVillaSearch.ts'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
@@ -19,7 +20,7 @@ import type { MassingModel } from '@/lib/engine/massing/model.ts'
 import type { ProceduralFacadeModel } from '@/lib/engine/facade/proceduralTypes.ts'
 import { createVillaArchitecture } from '@/lib/engine/fingerprint/createVillaArchitecture.ts'
 import { fingerprintRecord, parseFingerprintHistory, type ShapeFingerprintRecord, type VillaShapeFingerprint } from '@/lib/engine/fingerprint/VillaShapeFingerprint.ts'
-import { DEFAULT_DIVERSITY_LIMITS, diversityLimits, formatFingerprintDebug, selectDistinctVilla,
+import { DEFAULT_DIVERSITY_LIMITS, diversityLimits, formatFingerprintDebug,
   type FingerprintDebug, type VillaDiversityLimits } from '@/lib/engine/fingerprint/VillaDiversityGate.ts'
 
 export type Result = {
@@ -130,14 +131,14 @@ function exactResult(plan: Design, seed: number, inspiration: InspirationPrefere
 
 function generateDistinct(plan: Design, seed: number, inspiration: InspirationPreferences | null,
   history: ShapeFingerprintRecord[], limits: VillaDiversityLimits, references: ShapeFingerprintRecord[] = []) {
-  return selectDistinctVilla(seed, history, (candidateSeed) => {
+  return selectAdaptiveVilla(seed, history, (candidateSeed) => {
     const candidate = exactResult(plan, candidateSeed, inspiration, 'accepted')
     return { candidate, fingerprint: candidate.shapeFingerprint! }
-  }, limits, (debug) => console.debug(formatFingerprintDebug(debug)), references)
+  }, limits, references)
 }
 
 const exhaustedNotice = (attempts: number) =>
-  `No sufficiently different valid villa was found in ${attempts} attempts. The current plan is preserved. You can keep an existing direction or change the brief.`
+  `No additional valid architecture could be assembled after ${attempts} attempts. The current valid plan is preserved.`
 
 function replayResult(plan: Design, seed: number, inspiration: InspirationPreferences | null) {
   try { return { result: exactResult(plan, seed, inspiration), debug: [] as FingerprintDebug[], notice: null } }
@@ -161,7 +162,7 @@ function assemble(brief: Brief, pinned: PinnedDir | null, inspiration: Inspirati
   const selected = generateDistinct(plan, brief.variation + 1, inspiration, history, limits)
   return { result: selected.accepted?.candidate ?? { ...resultForPlan(plan), shapeStatus: 'rejected' as const },
     history: selected.history, debug: selected.debug,
-    notice: selected.accepted ? null : exhaustedNotice(selected.debug.length) }
+    notice: selected.accepted ? (selected.debug.at(-1)?.reason.startsWith('Adaptive') ? selected.debug.at(-1)!.reason : null) : exhaustedNotice(selected.debug.length) }
 }
 
 export const useStudio = create<StudioState>()(
@@ -208,7 +209,7 @@ export const useStudio = create<StudioState>()(
 
       loadSaved: (brief, pinned) =>
         set((s) => {
-          s.brief = brief
+          s.brief = briefSchema.parse(brief)
           s.pinned = pinned
           s.referencePreferences = parseInspirationPreferences(pinned?.inspiration)
           s.recentExteriorSeeds = pinned ? [pinned.seed] : []
@@ -295,6 +296,7 @@ export const useStudio = create<StudioState>()(
           if (!selection.accepted) { notice = exhaustedNotice(selection.debug.length); break }
           const r = selection.accepted.candidate
           history = selection.history
+          if (selection.debug.at(-1)?.reason.startsWith('Adaptive')) notice = 'Valid directions are shown. Uniqueness was relaxed because the fixed rooms and site limit architectural variation.'
           dirs.push(option(r, i, 100 - selection.debug.at(-1)!.similarityPercent))
         }
         set((s) => {

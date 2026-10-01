@@ -43,16 +43,14 @@ test('accepted directions are mutually checked, pinning does not count a second 
   assert.equal(useStudio.getState().explore(), dirs)
 })
 
-test('exhausted reseeding keeps the previous villa and history and reports a notice', () => {
+test('tight uniqueness settings progressively relax while returning validated architecture', () => {
   reset()
   const first = useStudio.getState().run()
-  const history = structuredClone(useStudio.getState().recentVillaFingerprints)
   useStudio.getState().setDiversityLimits({ maxAttempts: 2, similarityThreshold: 0 })
-  assert.equal(useStudio.getState().reseed(), first)
-  assert.equal(useStudio.getState().result, first)
-  assert.deepEqual(useStudio.getState().recentVillaFingerprints, history)
-  assert.match(useStudio.getState().generationNotice, /No sufficiently different/)
-  assert.equal(useStudio.getState().shapeDebug.length, 2)
+  const next = useStudio.getState().reseed()
+  assert.ok(next.report.hardChecksPass && next.shapeFingerprint)
+  assert.notEqual(next.design.dna.seed, first.design.dna.seed)
+  assert.ok(useStudio.getState().shapeDebug.some(d=>d.accepted))
 })
 
 test('geometry history survives brief edits and reload; invalid persisted records are discarded', async () => {
@@ -105,4 +103,30 @@ test('a stale invalid saved seed preserves the valid 2D plan and reports rejecti
   assert.equal(result.shapeFingerprint, null)
   assert.equal(useStudio.getState().recentVillaFingerprints.length, 0)
   assert.equal(useStudio.getState().shapeDebug[0].code, 'INVALID_ARCHITECTURE')
+})
+
+test('20 varied feasible briefs return at least one valid direction and target four without changing the source plan', () => {
+ const rows=[]
+ for(let i=0;i<20;i++) {
+  reset()
+  const b=defaultBrief()
+  b.site.plotWidth=22+i%5; b.site.plotDepth=26+i%4
+  b.levels.storeys=1+i%2
+  b.rooms.bedroomsWithBath=2+i%3; b.rooms.bedroomsNoBath=i%2; b.rooms.studies=i%2
+  b.household.guests=i%3===0?'frequent':'occasional'
+  b.household.staff=['none','daily','liveIn'][i%3]
+  b.lifestyle.wfhCount=i%2; b.lifestyle.vastu='ignore'
+  b.site.openSpace.mode=['auto','perSide','chosenSides','maxBuild'][i%4]
+  b.variation=i*113
+  useStudio.setState({brief:b})
+  const before=JSON.stringify(b), dirs=useStudio.getState().explore()
+  assert.ok(dirs.length>=1 && dirs.length<=4, `fixture ${i}: ${useStudio.getState().generationNotice}`)
+  assert.ok(dirs.every(d=>d.report.hardChecksPass && d.massingModel.status==='valid' && d.facadeModel.status==='valid'))
+  assert.equal(JSON.stringify(useStudio.getState().brief),before)
+  assert.ok(dirs.every(d=>d.buildingModel.planId===dirs[0].buildingModel.planId))
+  const counts={};for(const d of useStudio.getState().shapeDebug)counts[d.code]=(counts[d.code]||0)+1
+  rows.push({brief:i,directions:dirs.length,counts})
+ }
+ console.info('20-brief direction search:',JSON.stringify(rows))
+ assert.ok(rows.filter(r=>r.directions===4).length>=16,'target four for most feasible briefs')
 })
