@@ -12,6 +12,7 @@ import { type ArchitecturalFeature, type ArchitecturalFeatureType,
   type FacadeZone, type FeaturePart, type FrameParameters, type ProceduralFacadeModel } from './proceduralTypes.ts'
 
 export type FeatureGenerationOptions = {
+  usableTerrace?: boolean
   architecturalFamily?: ArchitecturalFamily
   heroFeature?: ArchitecturalFeatureType
   supportingFeatures?: ArchitecturalFeatureType[]
@@ -267,7 +268,7 @@ export class ArchitecturalFeatureGenerator {
     for (const family of families) {
       const recipe = ARCHITECTURAL_FAMILY_RECIPES[family]
       for (const type of options.heroFeature ? [options.heroFeature] : recipe.heroes) {
-        const candidates = zones.filter((zone) => eligible(type, zone))
+        const candidates = zones.filter((zone) => eligible(type, zone) && (!options.usableTerrace || zone.kind !== 'ROOFLINE'))
           .map((zone) => ({ zone, key: makeRng(dna.seed, `facade-zone|${family}|${type}|${zone.id}`).next() }))
           .sort((a, b) => b.zone.endMm - b.zone.startMm - (a.zone.endMm - a.zone.startMm) || a.key - b.key)
         for (const { zone } of candidates) {
@@ -281,7 +282,7 @@ export class ArchitecturalFeatureGenerator {
             () => supportRng.pick(recipe.supports))
           for (const supportType of wanted.slice(0, 2)) {
             if (supportType === type || features.some((f) => f.type === supportType)) continue
-            for (const host of zones.filter((z) => eligible(supportType, z) && !features.some((f) => f.zoneIds.includes(z.id)))
+            for (const host of zones.filter((z) => eligible(supportType, z) && (!options.usableTerrace || z.kind !== 'ROOFLINE') && !features.some((f) => f.zoneIds.includes(z.id)))
               .sort((a, b) => area(b) - area(a))) {
               const candidate = makeFeature(supportType, 'support', host, zones, building, dna,
                 makeRng(dna.seed, `${building.planId}|${family}|support|${supportType}|${host.id}`), features.length, recipe)
@@ -292,11 +293,12 @@ export class ArchitecturalFeatureGenerator {
           }
           const result: ProceduralFacadeModel = { ...base, architecturalFamily: family, zones, features, status: 'valid', attemptsTried, issues: [] }
           result.specialized = SpecializedGrammarGenerator.generate(building, dna, massing, result,
-            options.specialized, options.grammarLimits)
+            options.usableTerrace ? { ...options.specialized, ROOFLINE: 'FLAT_PARAPET' } : options.specialized, options.grammarLimits)
           if (result.specialized.status === 'rejected') {
             result.status = 'rejected'
             result.issues = result.specialized.issues.map((issue) => ({ code: issue.code, message: issue.message }))
           }
+          if (result.status === 'rejected') continue
           return result
         }
       }

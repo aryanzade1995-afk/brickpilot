@@ -8,14 +8,14 @@ replaces stairs or relocates doors/windows. `BuildingModel` is identical for all
 architectural seeds on that plan. The adapter returns validated BuildingModel,
 VillaDesignDNA, MassingModel, FacadeGrammar and VillaShapeFingerprint.
 
-Variation changes real unoccupied roof envelopes, roof courts, split/stepped/
-stacked blocks, supported roof cantilevers, forecourt canopies and anchored
-architectural features. Roof shells are hollow editable walls and slabs.
-External piers and canopies occupy clear areas inside setbacks and avoid all
-source rooms, balconies, parking and outdoor circulation. A canopy that collides
-with an upper occupied plate is rejected and omitted on a deterministic retry.
-
-The 15 massing family names describe these exterior compositions. Occupied
+Production variation changes supported forecourt canopies and anchored facade
+features. The top roof is a flat usable terrace with actual stair headroom and
+a corner tank; decorative roof shells, stacked roof boxes and pergolas are
+excluded. A hard check requires at least 80% free roof area, including guards.
+External piers and canopies occupy clear areas inside setbacks and avoid source
+rooms, balconies, parking and outdoor circulation. Invalid additions are omitted
+on deterministic retry. Family names retain seeded recipe intent; they cannot
+make unchanged geometry physically unique. Occupied
 upper-floor coverage/location and the original courtyard remain fixed. Moving
 occupied upper floors, removing rooms to make a new ground courtyard, or changing
 balcony access positions requires a changed authoritative plan. Cost estimates
@@ -28,11 +28,11 @@ This pipeline provides geometric/architectural consistency, not engineering cert
 Existing Design + numeric seed
   -> generateAlternativeDesign (no replanning)
   -> BuildingModel + VillaDesignDNA
-  -> occupied source masses + seeded roof/exterior composition
+  -> occupied source masses + seeded exterior canopies (clear terrace)
   -> ArchitectureValidator
   -> FacadeGrammar + architectural/specialized features
   -> Blender --prepare
-     source slabs/walls with real openings, stairs, piers, roof shells
+     source slabs/walls with real openings, stairs, piers, clear terrace and services
      curated materials, landscaping, lighting and four cameras
      evaluated mesh shape measurement + editable staging .blend
   -> last-ten identity quotas + actual mesh similarity rejection

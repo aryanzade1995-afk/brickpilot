@@ -432,6 +432,13 @@ export function compile(brief: Brief): CanonicalModel {
       spaces.push(mk(id, `Study / office ${i + 1}`, 'work', 'study'))
       addRel(`lobby${level}`, id, 'connected')
     }
+    // A requested floor without occupied rooms still needs a real roof-access
+    // lobby. It remains part of the authoritative plan, not a decorative 3D box.
+    if (!spaces.some(s => !s.outdoor && s.zone !== 'circulation')) {
+      spaces.push(mk(`roofAccess${level}`, 'Roof-access lobby', 'circulation', 'familyLounge', { wantsWindow: false }))
+      addRel(`lobby${level}`, `roofAccess${level}`, 'connected')
+    }
+
     if (brief.rooms.balcony) {
       spaces.push(
         mk(`balcony${level}`, 'Balcony', 'outdoor', 'balcony', { outdoor: true, wantsWindow: false }),

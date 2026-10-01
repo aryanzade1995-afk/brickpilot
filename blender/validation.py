@@ -95,6 +95,8 @@ def validate_payload(payload):
             raise GeometryInputError(f"Invalid mass {mass.get('id')}")
         if rect["x"] < bounds["x"] - 2 or rect["y"] < bounds["y"] - 2 or rect["x"] + rect["w"] > bounds["x"] + bounds["w"] + 2 or rect["y"] + rect["h"] > bounds["y"] + bounds["h"] + 2:
             raise GeometryInputError(f"Mass {mass.get('id')} crosses a setback")
+    from terrace_validation import validate_terrace
+    validate_terrace(payload)
     hosts = opening_hosts(building)
     openings = [*building["doors"], *building["windows"]]
     for opening in openings:

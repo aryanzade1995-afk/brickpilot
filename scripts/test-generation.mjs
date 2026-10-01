@@ -148,8 +148,7 @@ test('50 Generate Again selections favour new architectural fingerprints', () =>
     assert.ok(validate(next).hardChecksPass)
     const element = next.dna.roofGeometry.element
     assert.notEqual(element, lastElement, `roof element repeated at selection ${i}`)
-    assert.ok(buildMassing(next).boxes.some((box) => box.id.includes(`sig-`) && box.id.includes(element === 'portal' ? 'portal' : element === 'fins' ? 'fin-' : element)),
-      `missing ${element} geometry at selection ${i}`)
+    assert.ok(!buildMassing(next).boxes.some(box=>box.id.startsWith('sig-')), 'roof is free of signature decorations')
     const print = JSON.stringify(fingerprint(next.dna))
     assert.ok(!prints.has(print), `near-repeat at selection ${i}`)
     prints.add(print)

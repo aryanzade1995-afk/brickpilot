@@ -18,7 +18,7 @@ import type { BuildingModel } from '@/lib/engine/buildingModel.ts'
 import type { VillaDesignDNA } from '@/lib/engine/villaDesignDna.ts'
 import type { MassingModel } from '@/lib/engine/massing/model.ts'
 import type { ProceduralFacadeModel } from '@/lib/engine/facade/proceduralTypes.ts'
-import { createVillaArchitecture } from '@/lib/engine/fingerprint/createVillaArchitecture.ts'
+import { generateAlternativeDesign } from '@/lib/engine/generateAlternativeDesign.ts'
 import { fingerprintRecord, parseFingerprintHistory, type ShapeFingerprintRecord, type VillaShapeFingerprint } from '@/lib/engine/fingerprint/VillaShapeFingerprint.ts'
 import { DEFAULT_DIVERSITY_LIMITS, diversityLimits, formatFingerprintDebug,
   type FingerprintDebug, type VillaDiversityLimits } from '@/lib/engine/fingerprint/VillaDiversityGate.ts'
@@ -125,7 +125,7 @@ function resultForPlan(design: Design): Result {
 function exactResult(plan: Design, seed: number, inspiration: InspirationPreferences | null,
   shapeStatus: 'accepted' | 'replay' = 'replay'): Result {
   const design = varyExterior(plan, seed, variationLevel(plan.model.brief), inspiration)
-  const architecture = createVillaArchitecture(design, seed)
+  const architecture = generateAlternativeDesign(design, seed)
   return { ...resultForPlan(design), ...architecture, facadeModel: architecture.facadeGrammar, shapeStatus }
 }
 

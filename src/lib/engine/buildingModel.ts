@@ -1,3 +1,4 @@
+import { terraceLayout, terraceFreeRatio, type TerraceLayout } from './terrace.ts'
 import type { Direction } from '../model/brief.ts'
 import type { Point, Rect } from '../geometry.ts'
 import type { Design, Opening, PlacedRoom, SiteFeature, Wall } from './types.ts'
@@ -44,6 +45,7 @@ export type BuildingModel = {
   plot: { widthMm: number; depthMm: number; buildable: Rect }
   siteFeatures?: SiteFeature[]
   siteRequirements?: { compoundWall: boolean }
+  roofTerrace?: TerraceLayout & { freeRatio: number }
   floors: BuildingFloor[]
   rooms: BuildingRoom[]
   walls: BuildingWall[]
@@ -138,6 +140,7 @@ export function createBuildingModel(design: Design): BuildingModel {
     },
     ...(model.brief.rooms.priorities.compoundWall ? { siteRequirements: { compoundWall: true } } : {}),
     ...(design.siteFeatures ? { siteFeatures: design.siteFeatures.map(f => ({ ...f, rect: rect(f.rect) })) } : {}),
+    ...(terraceLayout(design) ? { roofTerrace: { ...terraceLayout(design)!, freeRatio: terraceFreeRatio(terraceLayout(design)!) } } : {}),
     floors, rooms, walls, doors, windows, stairs, columns, beams, slabs, shafts, supportZones,
     orientation: {
       entryCompass: model.entrySide, roadPlanSide: 'S' as const,

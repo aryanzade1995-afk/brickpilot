@@ -94,14 +94,14 @@ export function planFacade(design: Design): FacadePlan {
         Math.abs((entry.orient === 'h' ? c.at.x : c.at.y) - at) < c.size / 2 + thickness / 2))
     const canopy = ['horizontal-canopy', 'deep-shadow-entry', 'recessed-entry'].includes(dna.entranceDesign)
     if (!canopy && jambClear && middle - half - thickness / 2 >= lo && middle + half + thickness / 2 <= hi) {
-      addOnWall(features, ground, host, 'entry-jamb', middle - half, thickness, 0, 2650, 300, 'main-door', 1)
-      addOnWall(features, ground, host, 'entry-jamb', middle + half, thickness, 0, 2650, 300, 'main-door', 2)
-      addOnWall(features, ground, host, 'entry-lintel', middle, 2 * half + thickness, 2650, 180, 300, 'main-door', 1)
+      addOnWall(features, ground, host, 'entry-jamb', middle - half, thickness, 0, 2650, 220 + Math.round(dna.frameDepthM * 500), 'main-door', 1)
+      addOnWall(features, ground, host, 'entry-jamb', middle + half, thickness, 0, 2650, 220 + Math.round(dna.frameDepthM * 500), 'main-door', 2)
+      addOnWall(features, ground, host, 'entry-lintel', middle, 2 * half + thickness, 2650, 180, 220 + Math.round(dna.frameDepthM * 500), 'main-door', 1)
     } else {
       // A light canopy anchors to the same door when the adjacent wall is too
       // narrow or contains structure; it clears the full door head and swing.
       addOnWall(features, ground, host, 'canopy', middle, Math.min(2 * half, hi - lo - 200),
-        2700, 140, Math.max(700, dna.overhangMm), 'main-door', 1)
+        Math.max(2700, (entry.head ?? 2600) + 100), 120 + Math.round(dna.frameThicknessMm / 4), Math.max(700, dna.overhangMm) + Math.round(dna.frameDepthM * 200), 'main-door', 1)
     }
   }
 

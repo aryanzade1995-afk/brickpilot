@@ -1,3 +1,6 @@
+import { roofServiceLayout, terraceFreeRatio, TERRACE_LIMITS } from '../terrace.ts'
+import { rectUnionBBox } from '../../geometry.ts'
+import type { FloorPlan } from '../types.ts'
 import type { Band, FloorPlate, FloorRequirements, LocalRoom, Orientation, PlateFamily, RoomReq, SiteModel, Unit } from './types.ts'
 import { MAX_SPAN, MIN_BAND, MIN_SPAN, clamp, roomWidths, snap, snapUp, unitLength } from './program.ts'
 
@@ -293,6 +296,7 @@ export type LayoutResult = {
   court: [number, number] | null
   notch: [number, number] | null
   uLines: number[]
+  roofFreeRatio: number
 }
 
 /**
@@ -372,6 +376,16 @@ export function placeFloors(input: LayoutInput, cand: PlateCandidate): LayoutRes
       .reduce((a, r) => Math.max(a, r.u1), 0)] : []),
   ])
 
+  const roofRatio = (r: ReturnType<typeof floorRooms>) => {
+    const vs = { A: [0,dA], S: [dA,dA+cand.spine], B: [dA+cand.spine,dA+cand.spine+dB] }
+    const slab = (['A','S','B'] as Band[]).flatMap(b => r.plate.segments[b].map(([a,c]) => ({ x:a,y:vs[b][0],w:c-a,h:vs[b][1]-vs[b][0] }))).filter(p=>p.w>0&&p.h>0)
+    const st = r.rooms.find(x=>x.req.kind==='stair')
+    const stair = st ? {rect:{x:st.u0,y:vs[st.band][0],w:st.u1-st.u0,h:vs[st.band][1]-vs[st.band][0]}} : undefined
+    const outline = rectUnionBBox(slab)
+    const service = roofServiceLayout({outline,footprint:slab,stair} as FloorPlan)
+    return terraceFreeRatio({level:r.plate.level,slab,outline,...service,pergola:null})
+  }
+
   const plates: FloorPlate[] = [g.plate]
   const rooms: LocalRoom[][] = [g.rooms]
   let prev = L
@@ -382,7 +396,7 @@ export function placeFloors(input: LayoutInput, cand: PlateCandidate): LayoutRes
     // programme; only the 'rectangular' family keeps a full-height stack
     if (family !== 'rectangular') {
       const lines = uLines.filter((u) => u >= 4800 && u <= prev)
-      const fit = lines.find((u) => at(u).fitsTarget) ?? lines.find((u) => at(u).fitsMin)
+      const fit = lines.find((u) => at(u).fitsTarget && roofRatio(at(u)) >= TERRACE_LIMITS.minFreeRatio + TERRACE_LIMITS.planningClearanceMargin) ?? lines.find((u) => at(u).fitsMin && roofRatio(at(u)) >= TERRACE_LIMITS.minFreeRatio + TERRACE_LIMITS.planningClearanceMargin)
       if (fit !== undefined) len = fit
     }
     const r = at(len)
@@ -390,7 +404,7 @@ export function placeFloors(input: LayoutInput, cand: PlateCandidate): LayoutRes
     rooms.push(r.rooms)
     prev = r.plate.length
   }
-  return { plates, rooms, court, notch, uLines }
+  return { plates, rooms, court, notch, uLines, roofFreeRatio: roofRatio({plate:plates.at(-1)!,rooms:rooms.at(-1)!,fitsTarget:true,fitsMin:true}) }
 }
 
 const clearOfNarrow = (u: number, rooms: LocalRoom[]) =>

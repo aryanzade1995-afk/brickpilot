@@ -20,7 +20,7 @@ import { ROOFLINE_TYPES } from '../src/lib/engine/facade/specialized/types.ts'
 const plan = JSON.parse(readFileSync(new URL('./fixtures/fingerprint-source.json', import.meta.url), 'utf8'))
 const a = createVillaArchitecture(plan, 41)
 const b = createVillaArchitecture(plan, 42)
-const c = createVillaArchitecture(plan, 43)
+const c = createVillaArchitecture(plan, 117)
 const record = fingerprintRecord(a.shapeFingerprint)
 const fp = a.shapeFingerprint
 const remeasure = (architecture) => createVillaShapeFingerprint(architecture.buildingModel, architecture.villaDesignDNA,

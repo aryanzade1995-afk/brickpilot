@@ -40,6 +40,9 @@ from exporters.shape import measure_shape, clay_materials, lock_gallery_cameras 
 from exporters.glb import export_glb  # noqa: E402
 
 
+from geometry.roof_services import create_roof_services
+
+
 def payload_digest(payload):
     text = 'villa-blender-v2|' + json.dumps(payload, sort_keys=True, separators=(',', ':'))
     return hashlib.sha256(text.encode('utf-8')).hexdigest()
@@ -54,6 +57,8 @@ def create_scene(payload, visualization=None):
     assemblies = specialized["assemblies"] if specialized else []
     hosts = validate_payload(payload)
     options = visualization_options(payload, visualization)
+    if massing.get("architectureLimits", {}).get("minFreeTerraceRatio"):
+        options["landscape"]["terrace"] = False
     floors = sorted(building["floors"], key=lambda floor: floor["level"])
     by_floor = {floor["id"]: floor for floor in floors}
     flat_roof = dna["roofType"] not in ("gable", "hip", "mono-slope")
@@ -104,6 +109,7 @@ def create_scene(payload, visualization=None):
                                  room["semanticId"] in mass["sourceRoomIds"]), None)
             customized = any(unit["category"] == "BALCONY" and room["semanticId"] in unit["sourceRoomIds"] for unit in assemblies)
             create_balcony(scene, room, by_floor[room["floorId"]], terrace_mass, building["doors"], with_railing=not customized)
+    create_roof_services(scene, building)
     top = floors[-1]
     roof_level = top["elevationMm"] + top["heightMm"]
     accessible = create_terrace(scene, top, building["stairs"], building["shafts"]) if flat_roof else False

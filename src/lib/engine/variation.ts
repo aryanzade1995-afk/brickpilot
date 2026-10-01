@@ -56,7 +56,7 @@ export function varyExterior(plan: Design, seed: number, level: VariationLevel =
     ? generated.roofDesign === 'gable' || generated.roofDesign === 'hip' || generated.roofDesign === 'kerala-pitched'
       ? generated.roofDesign
       : baseRoof.kind === 'mono-slope' ? 'mono-slope' : baseRoof.kind === 'gable' ? 'gable' : 'hip'
-    : ['flat', 'floating-flat', 'parapet-flat', 'pergola-terrace'].includes(generated.roofDesign)
+    : ['flat', 'floating-flat', 'parapet-flat'].includes(generated.roofDesign)
       ? generated.roofDesign : baseRoof.kind === 'flat-parapet' ? 'parapet-flat' : 'flat'
   const dna: DesignDNA = {
     ...generated,

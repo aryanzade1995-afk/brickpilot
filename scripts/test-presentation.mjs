@@ -97,12 +97,12 @@ test('the 2D terrace and the 3D model share one stair headroom room', () => {
   const t = terraceLayout(d)
   assert.ok(t?.mumty, 'the default house has a flat roof with a stair room')
   const m = buildMassing(d)
-  const north = m.boxes.find((b) => b.id === 'mumty-n')
-  const west = m.boxes.find((b) => b.id === 'mumty-w')
-  assert.ok(north && west)
+  const north = m.boxes.filter((b) => b.id === 'mumty-n' || b.id.startsWith('mumty-n-'))
+  const west = m.boxes.filter((b) => b.id === 'mumty-w' || b.id.startsWith('mumty-w-'))
+  assert.ok(north.length && west.length)
   // plan mm → world metres is a fixed offset + scale; compare spans, which are offset-free
-  assert.ok(Math.abs(north.size[0] - t.mumty.w / 1000) < 1e-6, 'same width')
-  assert.ok(Math.abs(west.size[2] - t.mumty.h / 1000) < 1e-6, 'same depth')
+  assert.ok(Math.abs(Math.max(...north.map(b=>b.pos[0]+b.size[0]/2))-Math.min(...north.map(b=>b.pos[0]-b.size[0]/2)) - t.mumty.w / 1000) < 1e-6, 'same width')
+  assert.ok(Math.abs(Math.max(...west.map(b=>b.pos[2]+b.size[2]/2))-Math.min(...west.map(b=>b.pos[2]-b.size[2]/2)) - t.mumty.h / 1000) < 1e-6, 'same depth')
 })
 
 test('a pitched top roof has no terrace', () => {

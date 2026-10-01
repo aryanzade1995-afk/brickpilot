@@ -1,3 +1,4 @@
+import { terraceLayout, terraceFreeRatio, TERRACE_LIMITS } from '../engine/terrace.ts'
 import { validateSiteFeatures } from '../engine/planner/siteFeatures.ts'
 import { PLANNING_LIMITS as PLANNING } from '../engine/planner/limits.ts'
 import { rectRight, rectBottom, rectUnionArea, rectUnionEdges, toSqm } from '../geometry.ts'
@@ -245,6 +246,10 @@ export function validate(design: Design, options: { checkFacade?: boolean } = {}
 
   for (const entry of ground.openings.filter(o => o.kind === 'entry')) if (entry.width < 1200 || entry.width > 1800 || (entry.head ?? 2500) < 2400)
     add('MAIN_ENTRY_SIZE', 'error', 'egress', 'The main entry must be 1.2–1.8 m wide and at least 2.4 m tall.')
+
+  const terrace = terraceLayout(design)
+  if (terrace && terraceFreeRatio(terrace) < TERRACE_LIMITS.minFreeRatio)
+    add('TERRACE_FREE_AREA', 'error', 'planning', 'At least 80% of the roof terrace must remain free of headroom, tank and edge guards.')
 
   // --- vastu: strict Vastu could not be met by any valid plan (the generator
   //     prefers plans that meet it; this reports when none could) ---

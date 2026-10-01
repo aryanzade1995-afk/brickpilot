@@ -1,10 +1,10 @@
-import { type Rect, rectBottom, rectRight } from '../geometry.ts'
-import { themeOf } from '../model/themes.ts'
+import { type Rect, rectBottom, rectRight, rectUnionArea, rectUnionEdges } from '../geometry.ts'
+import { uncoveredArea } from './massing/families.ts'
 import type { Design, FloorPlan } from './types.ts'
 
 /* ------------------------------------------------------------------ *
  *  The roof terrace over the top floor: stair headroom room ("mumty"),
- *  water tank and pergola. One layout, read by BOTH the 3D builder and
+ *  water tank. One layout, read by BOTH the 3D builder and
  *  the 2D terrace sheet, so the two can never disagree.
  * ------------------------------------------------------------------ */
 
@@ -25,17 +25,13 @@ const overlaps = (a: Rect, b: Rect, gap = 0) =>
   a.x < rectRight(b) + gap && rectRight(a) + gap > b.x && a.y < rectBottom(b) + gap && rectBottom(a) + gap > b.y
 
 /** stair headroom room + water tank on a flat top roof */
-export function roofServiceLayout(tf: FloorPlan): { mumty: Rect | null; tank: Rect } {
+export function roofServiceLayout(tf: FloorPlan): { mumty: Rect | null; tank: Rect | null } {
   const o = tf.outline
   const st = tf.stair?.rect
   let mumty: Rect | null = null
   if (st) {
     // the headroom room is the stair enclosure itself
     mumty = { ...st }
-  } else {
-    const mw = Math.min(2200, o.w - 1100)
-    const md = Math.min(2500, o.h - 1100)
-    if (mw > 1400 && md > 1400) mumty = { x: rectRight(o) - mw - 600, y: o.y + 600, w: mw, h: md }
   }
   // the tank takes the first roof corner clear of the headroom room
   const T = 1100
@@ -45,7 +41,13 @@ export function roofServiceLayout(tf: FloorPlan): { mumty: Rect | null; tank: Re
     { x: rectRight(o) - 720 - T / 2, y: rectBottom(o) - 720 - T / 2, w: T, h: T },
     { x: o.x + 720 - T / 2, y: rectBottom(o) - 720 - T / 2, w: T, h: T },
   ]
-  const tank = corners.find((c) => !mumty || !overlaps(c, mumty, 300)) ?? corners[0]
+  const allCorners = tf.footprint.flatMap(p => [
+    { x:p.x+180, y:p.y+180, w:T, h:T },
+    { x:p.x+p.w-T-180, y:p.y+180, w:T, h:T },
+    { x:p.x+180, y:p.y+p.h-T-180, w:T, h:T },
+    { x:p.x+p.w-T-180, y:p.y+p.h-T-180, w:T, h:T },
+  ])
+  const tank = [...corners, ...allCorners].find(c => uncoveredArea([c], tf.footprint) <= 1 && (!mumty || !overlaps(c,mumty,300))) ?? null
   return { mumty, tank }
 }
 
@@ -71,16 +73,21 @@ const isFlat = (f: FloorPlan) => f.roof.kind === 'flat' || f.roof.kind === 'flat
 export function terraceLayout(design: Design): TerraceLayout | null {
   const tf = design.floors[design.floors.length - 1]
   if (!tf || !isFlat(tf)) return null
-  const T = themeOf(design.model.brief)
-  const services = T.landscape.roofServices ? roofServiceLayout(tf) : { mumty: null, tank: null }
-  let pergola: Rect | null = null
-  if (design.dna.roofDesign === 'pergola-terrace') {
-    const blocked = tf.rooms.filter((r) => r.id === 'stair' || r.id === 'lift').map((r) => r.rect)
-    if (services.mumty) blocked.push(services.mumty)
-    if (services.tank) blocked.push(services.tank)
-    // a roof of several blocks: the pergola stands wholly on one, largest first
-    const decks = tf.footprint.length === 1 ? [tf.outline] : [...tf.footprint].sort((a, b) => b.w * b.h - a.w * a.h)
-    for (const deck of decks) if (!pergola) pergola = pergolaLayout(deck, blocked)
-  }
-  return { level: tf.level, slab: tf.footprint, outline: tf.outline, mumty: services.mumty, tank: services.tank, pergola }
+  const services = roofServiceLayout(tf)
+  return { level: tf.level, slab: tf.footprint, outline: tf.outline, mumty: services.mumty, tank: services.tank, pergola: null }
+}
+
+export const TERRACE_LIMITS = { minFreeRatio: .8, planningClearanceMargin: .01, parapetThicknessMm: 120, headroomHeightMm: 2200, tankStandHeightMm: 800 } as const
+export function terraceFreeRatio(layout: TerraceLayout, extra: Rect[] = []): number {
+  const guards = rectUnionEdges(layout.slab).map(e => {
+    const horizontal=e.side==='N'||e.side==='S', t=TERRACE_LIMITS.parapetThicknessMm
+    return horizontal ? {x:e.a.x,y:e.a.y-(e.side==='S'?t:0),w:e.b.x-e.a.x,h:t} : {x:e.a.x-(e.side==='E'?t:0),y:e.a.y,w:t,h:e.b.y-e.a.y}
+  })
+  const blocked=[...guards,...extra,...(layout.mumty?[layout.mumty]:[]),...(layout.tank?[layout.tank]:[])]
+  // Clip all obstructions against the actual union rather than its bounding box.
+  const cuts=blocked.flatMap(c=>layout.slab.flatMap(p=>{
+   const x=Math.max(p.x,c.x),y=Math.max(p.y,c.y),w=Math.min(p.x+p.w,c.x+c.w)-x,h=Math.min(p.y+p.h,c.y+c.h)-y
+   return w>0&&h>0?[{x,y,w,h}]:[]
+  }))
+  return 1-rectUnionArea(cuts)/rectUnionArea(layout.slab)
 }

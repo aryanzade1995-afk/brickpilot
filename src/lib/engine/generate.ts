@@ -74,12 +74,7 @@ const FAMILY_OF: Record<MassingType, PlateFamily> = {
 }
 
 /** the top-storey roof for a style's `roofBias` */
-const topRoof = (bias: 'flat' | 'pitched' | 'mixed', rng: Rng): RoofSpec => {
-  const pitchChance = bias === 'pitched' ? 1 : bias === 'mixed' ? 0.5 : 0
-  return pitchChance > 0 && rng.chance(pitchChance)
-    ? { kind: rng.pick(['hip', 'gable', 'mono-slope'] as const), pitchDeg: rng.int(16, 28) }
-    : { kind: rng.chance(0.5) ? 'flat-parapet' : 'flat' }
-}
+const topRoof = (_bias: 'flat' | 'pitched' | 'mixed', _rng: Rng): RoofSpec => ({ kind: 'flat-parapet' })
 
 const FAMILIES: PlateFamily[] = ['rectangular', 'stepped', 'l-shape', 'courtyard']
 

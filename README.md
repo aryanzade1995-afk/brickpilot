@@ -420,3 +420,21 @@ Directions cards reuse `FloorDrawing` with an independent floor switcher. Select
 ### Main entrance
 
 Main entries are 1.2–1.8 m wide and at least 2.4 m tall, with a double-leaf drawing symbol. Auto chooses a style-aware Indian carved, wide pivot, framed portico or stone surround; the Entry step can override it. Three.js and Blender build separate leaves, handles, a surround, threshold and shade anchored to the actual opening. Optional compound gates have supported shade. Legacy sub-1.2 m settings are upgraded on schema parsing.
+
+### Current production roof policy
+
+New plans default to a usable flat terrace. The source planner reserves adequate
+upper-floor area for roof access; a requested floor containing only circulation
+gets a roof-access lobby in its canonical programme. The shared terrace layout
+contains only the actual stair headroom, a corner tank on a slender stand, and
+edge guards. At least 80% of the actual roof union must remain clear, including
+the guard footprint. This is checked by the plan rules, production massing
+validator, and independently in Python before Blender creates meshes.
+
+Production `generateAlternativeDesign` strips decorative roof masses and limits
+the roofline grammar to parapets. Seeded facade features and supported exterior
+canopies remain available; occupied rooms and openings stay authoritative.
+Older roof-volume research recipes remain in the reusable library for legacy
+replay and tests; they are not the production roof policy. Fixed plans naturally
+limit possible silhouette changes, so uniqueness is a preference with staged
+relaxation, while geometric checks remain mandatory.

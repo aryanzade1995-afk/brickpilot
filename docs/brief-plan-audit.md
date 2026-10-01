@@ -48,9 +48,6 @@ minimum requests, with additional household necessities listed in the programme.
 | rooms.priorities.courtyard | Yes | Mandatory open court and existing validity checks |
 | rooms.priorities.garden | No in planner | Canonical outdoor programme, placed in Part 2 |
 | rooms.priorities.compoundWall | No in 2D | Canonical boundary programme, drawn in Part 2 |
-| budget.amountLakh | No | Room generosity within minimums; realized-plan affordability ranking |
-| budget.scope | No | Existing cost rate drives affordable target area |
-| budget.finish | No | Existing cost rate drives affordable target area |
 | style.massing | Yes | Existing valid plate families |
 | style.character | 3D/window treatment | Existing window width and architectural treatment |
 | style.diversity / personality | Exterior | Existing seeded exterior variation, not a new room programme |
@@ -60,8 +57,8 @@ minimum requests, with additional household necessities listed in the programme.
 
 Implementation: `canonical.ts` derives requirements, `planner/program.ts`
 preserves suites/bedroom wings and `score.ts` evaluates actual relationships and
-budget. Early budget feedback uses preferred sizes, so target compression cannot
-hide an unaffordable programme. Minimum widths, area, egress, opening, support and
+room placement. Construction cost is an independent estimate; spending constraints
+do not change the programme. Minimum widths, area, egress, opening, support and
 setback hard checks remain mandatory. An oversized household on a small plot is
 reported as infeasible rather than removing rooms or weakening checks.
 

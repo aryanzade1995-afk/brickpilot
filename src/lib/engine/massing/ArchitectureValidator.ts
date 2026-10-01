@@ -1,3 +1,4 @@
+import { terraceFreeRatio } from '../terrace.ts'
 import { rectUnionEdges, sharedEdge, type Rect } from '../../geometry.ts'
 import type { BuildingModel } from '../buildingModel.ts'
 import { MAX_BEAM_SPAN, MAX_CANTILEVER } from '../planner/program.ts'
@@ -19,6 +20,7 @@ export type ArchitectureIssue = {
 export type ArchitectureReport = { valid: boolean; issues: ArchitectureIssue[] }
 export type ArchitectureLimits = {
   /** Concept geometry limit, in millimetres. Defaults to the existing planner limit. */
+  minFreeTerraceRatio?: number
   maxCantileverMm?: number
   /** Small fragments left by cutting roofs/volumes are rejected. */
   minRoofWidthMm?: number
@@ -74,6 +76,12 @@ export class ArchitectureValidator {
     if (!building.rooms.some((r) => !r.outdoor)) add('rooms', 'NO_ROOMS', 'Candidate has no source occupied rooms.')
     if (!masses.length) add('masses', 'NO_MASSES', 'Candidate has no architectural volumes.')
 
+    if (limits.minFreeTerraceRatio && building.roofTerrace) {
+      const blockers = masses.filter(m=>m.usage==='roof').map(massRect)
+      if (blockers.length) add('floors', 'TERRACE_SOLID_MASS', 'The usable top terrace cannot contain decorative roof volumes.')
+      if (terraceFreeRatio(building.roofTerrace, blockers) < limits.minFreeTerraceRatio)
+        add('floors', 'TERRACE_FREE_AREA', 'The usable terrace must remain at least 80% free.')
+    }
     const roofSupport = limits.minRoofSupportRatio ?? 1
     if (!Number.isFinite(roofSupport) || roofSupport < 0.7 || roofSupport > 1 ||
       !Number.isFinite(limits.maxRoofHeightMm ?? 2000) || (limits.maxRoofHeightMm ?? 2000) < 1 ||

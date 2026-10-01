@@ -13,7 +13,7 @@ import { handleVillaRequest } from '../server/villa-jobs.mjs'
 const plan = generate(compile(defaultBrief()), { seed: 41 })
 const one = generateAlternativeDesign(plan, 6)
 
-test('50 architectural seeds preserve one complete authoritative plan and vary real mass silhouettes', () => {
+test('50 architectural seeds preserve one plan and a clear terrace while varying facade solids', () => {
   const original = JSON.stringify(plan), building = JSON.stringify(one.buildingModel)
   const signatures = new Set(), families = new Set()
   for (let seed = 1; seed <= 50; seed++) {
@@ -23,11 +23,13 @@ test('50 architectural seeds preserve one complete authoritative plan and vary r
     assert.equal(alternative.massingModel.status, 'valid')
     assert.equal(alternative.facadeGrammar.status, 'valid')
     ArchitectureValidator.assertReadyForGeometry(alternative.buildingModel, alternative.massingModel)
-    signatures.add(alternative.massingModel.silhouetteSignature)
+    assert.ok(!alternative.massingModel.masses.some(m=>m.usage==='roof'))
+    assert.ok(alternative.buildingModel.roofTerrace.freeRatio>=.8)
+    signatures.add(JSON.stringify(alternative.facadeGrammar.features.flatMap(f=>f.parts.map(p=>p.world))))
     families.add(alternative.massingModel.family)
   }
   assert.equal(JSON.stringify(plan), original)
-  assert.equal(signatures.size, 50)
+  assert.ok(signatures.size >= 30, `${signatures.size} unique actual facade geometries`)
   assert.equal(families.size, 15)
 })
 test('same plan and exact seed reproduce all architectural inputs without mutating the plan', () => {
@@ -36,16 +38,14 @@ test('same plan and exact seed reproduce all architectural inputs without mutati
   const broken = structuredClone(plan); broken.floors[0].rooms[0].rect.w = 1
   assert.throws(() => generateAlternativeDesign(broken, 6), /validation/)
 })
-test('rooftop cantilevers report actual projection and require adequate bearing', () => {
-  const model = generateAlternativeDesign(plan, 8)
-  assert.ok(model.shapeFingerprint.cantileverAmount > 0)
-  const masses = structuredClone(model.massingModel.masses)
-  const upper = masses.find((m) => m.shell && m.elevation > model.buildingModel.floors.at(-1).elevationMm + model.buildingModel.floors.at(-1).heightMm)
-  assert.ok(upper)
-  upper.x += 2500
-  const report = ArchitectureValidator.validate(model.buildingModel, masses, ENVELOPE_LIMITS)
-  assert.ok(report.issues.some((i) => ['FLOATING_VOLUME', 'CANTILEVER_EXCEEDED', 'SETBACK_BREACH'].includes(i.code)))
+test('solid roof additions are rejected before geometry even when they have adequate support',()=>{
+ const model=generateAlternativeDesign(plan,8),top=model.buildingModel.floors.at(-1)
+ const host=model.massingModel.masses.find(m=>m.sourceFloorId===top.id&&m.usage==='enclosed')
+ const block={...host,id:'forbidden-roof-box',usage:'roof',elevation:top.elevationMm+top.heightMm,height:800,parentId:host.id}
+ const report=ArchitectureValidator.validate(model.buildingModel,[...model.massingModel.masses,block],ENVELOPE_LIMITS)
+ assert.ok(report.issues.some(i=>i.code==='TERRACE_SOLID_MASS'))
 })
+
 test('exterior canopy piers preserve parking and reject missing bearings and low head clearance', () => {
   const canopyPlan = JSON.parse(readFileSync(new URL('./fixtures/canopy-source.json', import.meta.url), 'utf8'))
   const sheltered = generateAlternativeDesign(canopyPlan, 6)

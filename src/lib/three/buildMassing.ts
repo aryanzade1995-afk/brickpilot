@@ -397,7 +397,7 @@ export function buildMassing(design: Design): Massing {
   const terrace = terraceLayout(design)
   if (terrace) {
     const deckY = y0 + terrace.level * H + H
-    roofServices(terrace, terrace.level, deckY, push, wx, wz, m)
+    roofServices(terrace, terrace.level, deckY, push, wx, wz, m, design.floors.at(-1)?.stair?.startSide ?? 'N')
     if (terrace.pergola) roofPergola(terrace.pergola, terrace.level, deckY - SLAB_T, push, wx, wz, m)
   }
 
@@ -424,7 +424,12 @@ export function buildMassing(design: Design): Massing {
   const storeys = floors.length
   return {
     palette: design.dna.materialPalette,
-    boxes,
+    boxes: boxes.filter(box => {
+      if (box.id.startsWith('sig-') || box.id.startsWith('roof-perg')) return false
+      const roofY = y0 + floors.length * H
+      if (box.pos[1]-box.size[1]/2 >= roofY-.01 && ['feature','screen','clad','planter','band','canopy','shade'].includes(box.kind)) return false
+      return true
+    }),
     floors: floors.map((f) => ({ level: f.level, baseY: y0 + f.level * H })),
     bounds: { w: plotW / 1000, d: plotD / 1000 },
     /** ground-storey building extent (metres) — for framing the camera */
@@ -1192,18 +1197,27 @@ function buildBalcony(
 }
 
 /** A stair headroom enclosure and water tank only on a usable flat terrace. */
-function roofServices({ mumty, tank }: TerraceLayout, level: number, deckY: number, push: Push, wx: XF, wz: XF, m: XF) {
+function roofServices({ mumty, tank }: TerraceLayout, level: number, deckY: number, push: Push, wx: XF, wz: XF, m: XF, exitSide: 'N' | 'S' | 'E' | 'W') {
   if (mumty) {
     const mw = mumty.w
     const md = mumty.h
     const mx = mumty.x + mw / 2
     const mz = mumty.y + md / 2
-    const mh = 2.35
-    const wt = 0.12
-    push('mumty-n', 'mumty', level, [wx(mx), deckY + mh / 2, wz(mz - md / 2)], [m(mw), mh, wt])
-    push('mumty-s', 'mumty', level, [wx(mx), deckY + mh / 2, wz(mz + md / 2)], [m(mw), mh, wt])
-    push('mumty-w', 'mumty', level, [wx(mx - mw / 2), deckY + mh / 2, wz(mz)], [wt, mh, m(md)])
-    push('mumty-e', 'mumty', level, [wx(mx + mw / 2), deckY + mh / 2, wz(mz)], [wt, mh, m(md)])
+    const mh = 2.2, wt = .12, exitWidth = .9
+    for (const [side,horizontal,fixed,length] of [
+      ['N',true,mz-md/2,m(mw)],['S',true,mz+md/2,m(mw)],
+      ['W',false,mx-mw/2,m(md)],['E',false,mx+mw/2,m(md)],
+    ] as const) {
+      const pos = (offset:number,y:number):[number,number,number] => horizontal ? [wx(mx)+offset,y,wz(fixed)] : [wx(fixed),y,wz(mz)+offset]
+      const size = (span:number,h:number):[number,number,number] => horizontal ? [span,h,wt] : [wt,h,span]
+      const id = `mumty-${side.toLowerCase()}`
+      if(side !== exitSide) push(id,'mumty',level,pos(0,deckY+mh/2),size(length,mh))
+      else {
+        const pier=(length-exitWidth)/2
+        for(const sign of [-1,1]) push(`${id}-${sign}`,'mumty',level,pos(sign*(exitWidth/2+pier/2),deckY+mh/2),size(pier,mh))
+        push(`${id}-header`,'mumty',level,pos(0,deckY+2.1+(mh-2.1)/2),size(exitWidth,mh-2.1))
+      }
+    }
     push('mumty-roof', 'roof', level, [wx(mx), deckY + mh + 0.06, wz(mz)], [m(mw) + 0.34, 0.12, m(md) + 0.34])
     push('mumty-lip', 'roof', level, [wx(mx), deckY + mh + 0.16, wz(mz)], [m(mw) + 0.48, 0.06, m(md) + 0.48])
   }
@@ -1403,7 +1417,7 @@ function buildStair(rect: Rect, H: number, startSide: 'N' | 'S' | 'E' | 'W' = 'N
       : startSide === 'S' ? { x: rect.x + a, z: rect.y + rect.h - b }
         : startSide === 'W' ? { x: rect.x + b, z: rect.y + a }
           : { x: rect.x + rect.w - b, z: rect.y + a }
-  const size = (sa: number, sy: number, sb: number): Vec3 => (alongY ? [sa, sy, sb] : [sb, sy, sa])
+  const size = (sa: number, sy: number, sb: number): [number,number,number] => (alongY ? [sa, sy, sb] : [sb, sy, sa])
 
   const risers = Math.max(14, Math.round((H * 1000) / 172))
   const perFlight = Math.ceil(risers / 2)

@@ -4,6 +4,7 @@ import type { DesignDNA } from '../designDna.ts'
 import type { FloorPlan, Opening, PlacedRoom } from '../types.ts'
 import type { RoofSpec } from '../massing/types.ts'
 import type { Column, FloorRequirements, LocalRoom, PlanStructure, PlateFamily, RoomReq, SiteModel } from './types.ts'
+import { TERRACE_LIMITS } from '../terrace.ts'
 import { makeRng } from '../massing/rng.ts'
 import {
   BALCONY_DEPTH, COLUMN, VERANDAH_DEPTH, PARKING_DEPTH,
@@ -78,7 +79,9 @@ export function planVilla(model: CanonicalModel, request: PlanRequest): PlanResu
   // seed only varies between near-equivalent plates of the best tier
   const tier = all.filter((c) => c.atTarget).length ? all.filter((c) => c.atTarget)
     : all.filter((c) => c.atMin).length ? all.filter((c) => c.atMin) : all
-  const pool = tier.filter((c) => c.score <= tier[0].score + Math.abs(tier[0].score) * 0.18).slice(0, 4)
+  const roofReady = tier.filter(c => placeFloors(input,c).roofFreeRatio >= TERRACE_LIMITS.minFreeRatio + TERRACE_LIMITS.planningClearanceMargin)
+  const eligible = roofReady.length ? roofReady : tier
+  const pool = eligible.filter((c) => c.score <= eligible[0].score + Math.abs(eligible[0].score) * 0.18).slice(0, 4)
   const cand: PlateCandidate = pool[request.pick % pool.length]
 
   // ---- RoomPlacement (local u/v) + StructuralGrid cross axes ----
