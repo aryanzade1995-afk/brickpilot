@@ -1,0 +1,16 @@
+{
+  "sourcePlanId": "plan-0b357a7e555db10c",
+  "geometryDigest": "3b0223371908bdbc85d037848a2435c3e8a18f7d0a66a96a12e9d1a752769849",
+  "reviewedOn": "2026-10-01",
+  "reviewer": "agent inspection of all 50 white clay hero previews, with front/aerial spot checks",
+  "ambiguousEndingSeeds": [
+    2,
+    15,
+    17,
+    30,
+    32,
+    45,
+    47
+  ],
+  "scope": "Exterior envelope and roof composition; occupied floors, rooms, stairs and openings remain fixed."
+}

@@ -7,6 +7,7 @@ import { ZONE_LABEL } from '@/lib/model/canonical.ts'
 import { formatINR, formatINRShort, formatRange } from '@/lib/format.ts'
 import { cx } from '@/lib/cx.ts'
 import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
+import { VillaGenerationNotice } from '@/components/VillaGenerationNotice.tsx'
 import { InvalidPlanNotice } from '@/components/InvalidPlanNotice.tsx'
 import type { Severity } from '@/lib/rules/index.ts'
 import { preferenceScore } from '@/lib/engine/score.ts'
@@ -51,6 +52,7 @@ export function Plan() {
   return (
     <div className="mx-auto max-w-[1400px] px-6 py-8 md:px-10">
       <WorkspaceTabs />
+      <VillaGenerationNotice />
 
       {/* metric bar */}
       <div className="mt-5 flex flex-wrap items-center gap-x-10 gap-y-3 border-b border-line pb-4">

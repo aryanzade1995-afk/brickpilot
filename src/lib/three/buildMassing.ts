@@ -200,7 +200,8 @@ export function buildMassing(design: Design): Massing {
     const TOL = 2
     for (const op of floor.openings) {
       const band = op.kind === 'window' ? winBand : BAND[op.kind]
-      const rec = { width: op.width, sill: band.sill, head: band.head }
+      const rec = { width: op.width, sill: op.kind === 'window' && op.sill !== undefined ? op.sill / 1000 : band.sill,
+        head: op.head !== undefined ? Math.min(op.head / 1000, H - 0.12) : band.head }
       const edge = boundary.find((e) => {
         const horizontal = e.side === 'N' || e.side === 'S'
         if ((op.orient === 'h') !== horizontal) return false

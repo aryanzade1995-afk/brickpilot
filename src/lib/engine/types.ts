@@ -50,6 +50,8 @@ export type Opening = {
   treatment?: 'open' | 'glazed-slide'
   /** sill height (windows), mm */
   sill?: number
+  /** Optional explicit opening head height, mm above its source floor. */
+  head?: number
   /** the spaces it joins — [from, to]; null = outside */
   rooms?: [string | null, string | null]
 }

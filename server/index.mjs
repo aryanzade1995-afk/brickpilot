@@ -16,6 +16,7 @@ import { extname, join, normalize } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { generateInteriorWithFallback, providerName, resolveProvider } from './providers/index.mjs'
 import { analyzeInspiration, healthy as geminiWebHealth } from './providers/gemini-web.mjs'
+import { handleVillaRequest } from './villa-jobs.mjs'
 
 // --- load server/.env (no dependency, no --env-file flag needed) ---
 try {
@@ -137,7 +138,7 @@ function serveStatic(req, res) {
   createReadStream(filePath).pipe(res)
 }
 
-const server = createServer((req, res) => {
+const server = createServer(async (req, res) => {
   if (req.method === 'OPTIONS') {
     res.writeHead(204, {
       'access-control-allow-origin': '*',
@@ -146,6 +147,8 @@ const server = createServer((req, res) => {
     })
     return res.end()
   }
+
+  if (await handleVillaRequest(req, res, readJson)) return
 
   if (req.method === 'GET' && req.url === '/api/render/health') {
     return send(res, 200, { ok: true, configured: Boolean(KEY), mock: MOCK, model: MODEL })

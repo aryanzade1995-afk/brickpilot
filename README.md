@@ -13,7 +13,7 @@ and engineers must verify them before use.
 
 ## Start here
 
-Requirements: Node.js 22 or newer and npm. The app works without AI keys or a
+Requirements: Node.js 24 or newer and npm. The app works without AI keys or a
 Supabase account; those integrations are optional.
 
 ```bash
@@ -60,6 +60,43 @@ The brief editor is [`src/routes/Brief.tsx`](src/routes/Brief.tsx) with step
 controls in [`src/routes/brief/steps.tsx`](src/routes/brief/steps.tsx).
 
 ## How a design is made
+
+The additional `BuildingModel -> VillaDesignDNA -> MassingModel` data pipeline
+is documented in [Procedural massing](docs/procedural-massing.md). It preserves
+the verified 2D plan, supports 15 conditional massing families and generates
+seeded roof-volume variations. The integrated [production Blender pipeline](docs/blender-integration.md)
+adds larger unoccupied envelope compositions and supported forecourt canopies.
+Its accepted GLB is displayed interactively in the existing Massing and Render
+pages. The original Three.js study, furnished views and floor-plan logic remain available.
+An `ArchitectureValidator` checks each candidate and rejects invalid variations
+before they can be used for later geometry export.
+The [Procedural facade grammar](docs/procedural-facade.md) classifies real
+exterior faces into nine zones and builds one seeded hero feature with up to
+two supporting features from anchored, checked geometry. Eleven internal
+architectural composition families now select substantially different feature
+geometry while the UI retains its three existing style choices.
+The [Blender geometry pipeline](docs/blender-pipeline.md) exports validated
+models to an editable `.blend` scene and GLB through a headless Python builder.
+The [Specialized architectural grammars](docs/specialized-grammars.md) add 40
+seeded balcony, entrance, window, roofline and facade-depth recipes to this
+export pipeline. They create real solids and wall cuts anchored to source
+geometry, with door/window access checks and conditional fallbacks. They are
+included in `FacadeGrammar.specialized` and appear in the accepted Blender GLB.
+The [Blender visualization layer](docs/blender-visualization.md) adds seven
+curated PBR palettes, physical stone/wood/fluted finishes, access-aware greenery,
+sun/sky or packed HDRI, warm fixtures and four automatically framed cameras.
+It supports fast EEVEE previews and denoised Cycles finals through the existing
+headless exporter.
+
+**Generate another design** sends the current `Design` and a new numeric seed to
+the existing backend. It does not call the floor-plan generator. Blender builds
+an editable scene, measures evaluated meshes, compares their shape with recent
+accepted villas, then exports/renders only a sufficiently distinct candidate.
+The occupied floor positions, room rectangles, stairs and openings stay fixed.
+L/U/courtyard labels in this mode describe the exterior/roof composition; they
+do not claim that a rectangular occupied plan became a courtyard floor plan.
+See [the integrated pipeline and same-plan gallery](docs/blender-integration.md)
+for operation, outputs, limits and reproducible verification.
 
 ```text
 Brief (user inputs, Zod schema)
@@ -153,7 +190,8 @@ doors may not. The key checks are in `planner/validate.ts` and `rules/index.ts`.
 There are two different image flows. Neither supplies the source geometry.
 
 **Building concepts:** [`src/routes/Render.tsx`](src/routes/Render.tsx) captures
-fixed views of the Three.js model and a plan reference, then builds prompts from
+the accepted Blender front/hero/aerial images when available, or fixed views of
+the Three.js study model, plus a plan reference, then builds prompts from
 the brief, theme, `DesignDNA` and selected view. [`src/state/render.ts`](src/state/render.ts)
 sends the reference and prompt to `POST /api/render`; the Node server calls
 Gemini when `GEMINI_API_KEY` is configured. Without the key, it returns the
@@ -200,6 +238,11 @@ The Node API and production static server are in [`server/index.mjs`](server/ind
 | `GET /api/inspiration/health` | Local Gemini Web bridge availability |
 | `GET /api/interior/health` | Interior provider availability |
 | `POST /api/interior` | Stream interior render progress and result |
+| `GET /api/villas/health` | Local Blender availability |
+| `POST /api/villas` | Queue `{ plan: Design, seed: number, quality: "preview" or "final" }` |
+| `GET /api/villas/:id` | Generation progress, similarity decisions and accepted artifacts |
+| `GET /api/villas/:id/files/:filename` | Serve accepted `.blend`, `.glb` and PNG outputs |
+| `GET /api/villas/gallery/` | Locally generated same-plan seeds 1–50 clay gallery |
 
 ## Configuration
 
@@ -218,6 +261,10 @@ Supabase settings. Copy [`server/.env.example`](server/.env.example) to
 | `INTERIOR_PROVIDER` | Node server | `gemini-web` (default), `comfyui`, `gemini` or `mock` |
 | `COMFYUI_URL`, `SDXL_CKPT`, `CN_CANNY_MODEL` | ComfyUI provider | Local service URL and installed model filenames |
 | `INTERIOR_*`, `CN_CANNY_*` | ComfyUI provider | Optional sampling and conditioning overrides; see `server/.env.example` |
+| `BLENDER_BIN` | Blender worker | Full Blender executable path; bundled `output/tools/blender-*` is found automatically |
+| `VILLA_MAX_ATTEMPTS`, `VILLA_BLENDER_THREADS` | Blender worker | Bounded candidate attempts (default 32, maximum 64) and CPU threads (default 4) |
+| `VILLA_CYCLES_DEVICE` | Blender | `AUTO` (default), `CPU`, or a supported GPU backend such as `OPTIX` |
+| `VILLA_SIMILARITY_THRESHOLD` | Blender worker | Maximum accepted measured shape similarity, default `0.75` |
 
 Only `VITE_*` variables are bundled into the browser. Keep `GEMINI_API_KEY`
 server-side if using official building renders. To use accounts, run [`supabase/schema.sql`](supabase/schema.sql)
@@ -250,6 +297,20 @@ optional Supabase values in the hosting environment, not in committed files.
 
 ## Tests and source data
 
+New exterior candidates also pass the geometry-based
+[`VillaShapeFingerprint` diversity gate](docs/villa-shape-fingerprint.md).
+It compares realized footprints, silhouettes, roof heights and architectural
+geometry with recent villas, excludes colors/materials, retries seeded
+candidates above 75% similarity and enforces rolling family/hero/roofline quotas.
+Browser history persists across reloads; Blender input generation has its own
+local history file. Saved/pinned seeds replay exactly. A fixed plan may have
+fewer than four distinct valid directions under these limits.
+The production Blender worker has a separate measured-mesh history in
+`output/villa-production-history.json`. It compares 32×32 front/side and
+roof/envelope projections from evaluated meshes, with no material inputs, and
+applies the same last-ten identity quotas. Accepted job references persist in
+`brickpilot.blender-v1`; large assets remain in `output/villa-jobs/` on disk.
+
 `npm test` runs [`scripts/test-planner.mjs`](scripts/test-planner.mjs) and
 [`scripts/test-generation.mjs`](scripts/test-generation.mjs). They exercise
 determinism, requested-room preservation, openings, access and structural
@@ -276,6 +337,10 @@ shipped or read by the app.
 | Change 2D drawing or 3D geometry | `src/lib/draw/FloorDrawing.tsx`, `src/lib/three/buildMassing.ts`, `MassingScene.tsx` |
 | Change prompts or image providers | `src/routes/Render.tsx`, `src/lib/render/`, `server/index.mjs`, `server/providers/` |
 | Change saved designs | `src/state/studio.ts`, `src/state/designs.ts`, `supabase/schema.sql` |
+| Change production architectural composition | `src/lib/engine/generateAlternativeDesign.ts`, `massing/envelopeLimits.ts` |
+| Change Blender generation/render/export | `blender/generator.py`, `blender/geometry/`, `blender/visualization/`, `blender/exporters/` |
+| Change Blender job integration or similarity | `server/villa-jobs.mjs`, `scripts/villa-worker.mjs`, `server/villa-shape.mjs` |
+| Change accepted GLB viewer or generation action | `src/components/BlenderVillaPanel.tsx`, `src/state/blender.ts` |
 
 Keep the verified `Design.floors` geometry as the common source for drawing,
 Three.js and reporting. When changing the planner, run the geometry and

@@ -29,6 +29,9 @@ dist-ssr
 *.sw?
 .shots/
 server/.env
+output/
+__pycache__/
+*.pyc
 
 # generated contact sheet
 massing-grid.html

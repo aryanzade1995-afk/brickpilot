@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "palette": "WHITE_STONE_WOOD",
+  "composition": { "primary": 0.65, "secondary": 0.25, "accent": 0.10 },
+  "render": {
+    "quality": "preview",
+    "camera": "HeroPerspectiveCamera",
+    "renderAll": false
+  },
+  "surfaces": {
+    "stoneCladding": true,
+    "woodSlats": true,
+    "flutedPanels": true,
+    "stoneTileWidthMm": 600,
+    "stoneTileHeightMm": 300,
+    "jointMm": 4,
+    "slatPitchMm": 65,
+    "fluteDepthMm": 12
+  },
+  "landscape": {
+    "enabled": true,
+    "balcony": true,
+    "entry": true,
+    "side": true,
+    "terrace": true,
+    "maxPlanters": 14,
+    "leavesPerPlant": 36,
+    "clearanceMm": 1000
+  },
+  "lighting": {
+    "preset": "DAY",
+    "hdriPath": null,
+    "hdriRotationDeg": 0,
+    "fixtures": true,
+    "interiorEmission": true
+  }
+}

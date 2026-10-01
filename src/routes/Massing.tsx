@@ -17,6 +17,7 @@ import type { Group } from '@/lib/three/massingGroups.ts'
 import { cx } from '@/lib/cx.ts'
 import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
 import { InvalidPlanNotice } from '@/components/InvalidPlanNotice.tsx'
+import { BlenderVillaPanel } from '@/components/BlenderVillaPanel.tsx'
 
 const LAYER_TOGGLES: { g: Group; label: string }[] = [
   { g: 'shell', label: 'Walls' },
@@ -34,12 +35,11 @@ type CamKey = 'front' | 'rear' | 'left' | 'right' | 'iso' | 'top'
 export function Massing() {
   const result = useStudio((s) => s.result)
   const run = useStudio((s) => s.run)
-  const reseed = useStudio((s) => s.reseed)
   useEffect(() => {
     if (!result) run()
   }, [result, run])
 
-  const massing = useMemo(() => (result ? buildMassing(result.design) : null), [result])
+  const massing = useMemo(() => (result?.shapeFingerprint ? buildMassing(result.design) : null), [result])
 
   const [explode, setExplode] = useState(0)
   const [hidden, setHidden] = useState<Set<Group>>(new Set())
@@ -49,14 +49,21 @@ export function Massing() {
   const [mode, setMode] = useState<ViewMode>('study')
   const [floorSel, setFloorSel] = useState<number | 'all'>('all')
   const doll = useMemo(
-    () => (result && mode === 'furnished' ? buildDollhouse(result.design, floorSel === 'all' ? undefined : floorSel) : null),
+    () => (result?.shapeFingerprint && mode === 'furnished' ? buildDollhouse(result.design, floorSel === 'all' ? undefined : floorSel) : null),
     [result, mode, floorSel],
   )
 
+  if (result && !result.report.hardChecksPass) return <InvalidPlanNotice report={result.report} />
+  if (result && !result.shapeFingerprint) return <div className="mx-auto max-w-[1400px] px-6 py-12 md:px-10">
+    <WorkspaceTabs /><BlenderVillaPanel plan={result.design} />
+    <div className="mt-6 flex gap-6 text-sm">
+      <Link to="/workspace/plan" className="underline underline-offset-4">View the 2D plan</Link>
+      <Link to="/workspace/render" className="underline underline-offset-4">Continue to renders</Link>
+    </div>
+  </div>
   if (!result || !massing) {
     return <div className="mx-auto max-w-[1400px] px-10 py-24 text-ink-dim">Preparing model…</div>
   }
-  if (!result.report.hardChecksPass) return <InvalidPlanNotice report={result.report} />
 
   const furnished = mode === 'furnished' && doll
   const levels = result.design.floors.map((f) => f.level)
@@ -79,8 +86,9 @@ export function Massing() {
   return (
     <div className="mx-auto max-w-[1400px] px-6 py-8 md:px-10">
       <WorkspaceTabs />
+      <BlenderVillaPanel plan={result.design} />
       <div className="mt-4 flex items-center justify-between">
-        <h1 className="font-display text-2xl">{result.model.brief.project.name}</h1>
+        <h1 className="font-display text-2xl">Floor-plan study · {result.model.brief.project.name}</h1>
         <div className="font-mono text-[0.7rem] uppercase tracking-[0.1em] text-ok">● Geometry verified</div>
       </div>
 
@@ -208,13 +216,6 @@ export function Massing() {
             <Stat k="Built area" v={`${massing.stats.builtAreaSqm.toFixed(1)} m²`} />
             <Stat k="Openings" v={String(massing.stats.openings)} />
             <Stat k="New element" v={result.design.dna.roofGeometry?.element ?? 'portal'} />
-            <button
-              type="button"
-              onClick={reseed}
-              className="mt-1 flex w-full items-center justify-center gap-1.5 border border-line-strong py-2 font-mono text-[0.65rem] uppercase tracking-[0.12em] text-ink-dim transition-colors hover:border-accent hover:text-ink"
-            >
-              <Grid3x3 size={11} /> Generate again · exterior
-            </button>
           </Panel>
 
           <div className="border border-line">
@@ -238,7 +239,7 @@ export function Massing() {
             </div>
             <div className="space-y-3 p-4">
               <p className="text-[0.8rem] leading-relaxed text-ink-dim">
-                The verified massing is the reference the concept renders are grounded to.
+                Your accepted architectural design provides the render references. This study view follows the floor plan.
               </p>
               <Link
                 to="/workspace/render"

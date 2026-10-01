@@ -1,0 +1,117 @@
+"""Blender-side checks for the four immutable procedural inputs.
+
+This is a geometric consistency gate, not a structural engineering analysis.
+It imports no Blender modules so the handoff can be tested before launching Blender.
+"""
+
+from __future__ import annotations
+
+import math
+from geometry.massing import mass_rect
+
+
+class GeometryInputError(ValueError):
+    pass
+
+
+OPENING_LIMITS = {"windowHeadMm": 2200, "doorHeadMm": 2300, "entryHeadMm": 2500,
+                  "defaultSillMm": 850, "lintelClearanceMm": 120,
+                  "minWindowHeightMm": 150, "minDoorHeightMm": 1800}
+
+
+def opening_vertical_span(opening, floor, limits=OPENING_LIMITS):
+    kind = opening["kind"]
+    sill = opening.get("sill", limits["defaultSillMm"]) if kind == "window" else 0
+    head = min(opening.get("head", limits[f"{kind}HeadMm"]), floor["heightMm"] - limits["lintelClearanceMm"])
+    minimum = limits["minWindowHeightMm"] if kind == "window" else limits["minDoorHeightMm"]
+    if not math.isfinite(sill) or not math.isfinite(head) or sill < 0 or head - sill < minimum:
+        raise GeometryInputError(f"Opening {opening['id']} has no usable height")
+    return sill, head
+
+
+def _rect(rect):
+    return all(math.isfinite(rect[k]) for k in ("x", "y", "w", "h")) and rect["w"] > 0 and rect["h"] > 0
+
+
+def _wall_axis(wall):
+    a, b = wall["a"], wall["b"]
+    if abs(a["y"] - b["y"]) <= 2:
+        return "h", a["y"], sorted((a["x"], b["x"]))
+    if abs(a["x"] - b["x"]) <= 2:
+        return "v", a["x"], sorted((a["y"], b["y"]))
+    raise GeometryInputError(f"Wall {wall.get('id')} is not axis-aligned")
+
+
+def opening_hosts(building):
+    """Map each source opening to its real wall; fail rather than invent a host."""
+    hosts = {}
+    walls = building["walls"]
+    for opening in [*building["doors"], *building["windows"]]:
+        width = opening["width"]
+        if not math.isfinite(width) or width < 400:
+            raise GeometryInputError(f"Opening {opening.get('id')} has invalid width")
+        along = opening["at"]["x" if opening["orient"] == "h" else "y"]
+        fixed = opening["at"]["y" if opening["orient"] == "h" else "x"]
+        matches = []
+        for wall in walls:
+            if wall["floorId"] != opening["floorId"]:
+                continue
+            axis, line, (lo, hi) = _wall_axis(wall)
+            if axis == opening["orient"] and abs(line - fixed) <= 2 and along - width / 2 >= lo - 2 and along + width / 2 <= hi + 2:
+                matches.append(wall)
+        if len(matches) != 1:
+            raise GeometryInputError(f"Opening {opening.get('id')} must have exactly one source wall; found {len(matches)}")
+        hosts[opening["id"]] = matches[0]["id"]
+    return hosts
+
+
+def validate_payload(payload):
+    building = payload["buildingModel"]
+    massing = payload["massingModel"]
+    dna = payload["villaDesignDNA"]
+    facade = payload["facadeGrammar"]
+    plan_id = building["planId"]
+    if building["units"] != "mm" or building["coordinates"] != "plan-x-east-y-south-z-up":
+        raise GeometryInputError("Unsupported source coordinate system")
+    if any(item["sourcePlanId"] != plan_id for item in (massing, dna, facade)):
+        raise GeometryInputError("The four inputs do not describe the same plan")
+    if massing["status"] != "valid" or facade["status"] != "valid" or not (massing.get("architectureReport") or {}).get("valid") or massing.get("issues") or facade.get("issues"):
+        raise GeometryInputError("Rejected massing or facade cannot be exported")
+    if massing["seed"] != dna["seed"] or facade["massingSeed"] != dna["seed"]:
+        raise GeometryInputError("Design seeds do not match")
+    floors = {floor["id"]: floor for floor in building["floors"]}
+    if not floors or len(floors) != len(building["floors"]):
+        raise GeometryInputError("Source floors are missing or duplicated")
+    if any(not _rect(rect) for floor in floors.values() for rect in floor["footprint"]):
+        raise GeometryInputError("Invalid source floor plate")
+    bounds = building["plot"]["buildable"]
+    if not _rect(bounds):
+        raise GeometryInputError("Invalid setback envelope")
+    for mass in massing["masses"]:
+        rect = mass_rect(mass)
+        if not _rect(rect) or mass["height"] <= 0 or mass["sourceFloorId"] not in floors:
+            raise GeometryInputError(f"Invalid mass {mass.get('id')}")
+        if rect["x"] < bounds["x"] - 2 or rect["y"] < bounds["y"] - 2 or rect["x"] + rect["w"] > bounds["x"] + bounds["w"] + 2 or rect["y"] + rect["h"] > bounds["y"] + bounds["h"] + 2:
+            raise GeometryInputError(f"Mass {mass.get('id')} crosses a setback")
+    hosts = opening_hosts(building)
+    openings = [*building["doors"], *building["windows"]]
+    for opening in openings:
+        opening_vertical_span(opening, floors[opening["floorId"]])
+    for index, first in enumerate(openings):
+        for second in openings[index + 1:]:
+            if hosts[first["id"]] != hosts[second["id"]]:
+                continue
+            axis = "x" if first["orient"] == "h" else "y"
+            gap = abs(first["at"][axis] - second["at"][axis]) - (first["width"] + second["width"]) / 2
+            if gap < -2:
+                raise GeometryInputError(f"Openings {first['id']} and {second['id']} overlap")
+    zone_ids = {zone["id"] for zone in facade["zones"]}
+    for feature in facade["features"]:
+        if not feature["parts"] or not set(feature["zoneIds"]).issubset(zone_ids):
+            raise GeometryInputError(f"Facade feature {feature['id']} lacks a real host")
+        for part in feature["parts"]:
+            if part["zoneId"] not in zone_ids or not _rect(part["world"]) or part["world"]["height"] <= 0:
+                raise GeometryInputError(f"Invalid facade part {part['id']}")
+    from specialized_validation import validate_specialized
+    validate_specialized(payload, hosts)
+    return hosts

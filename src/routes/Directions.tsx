@@ -6,6 +6,7 @@ import { useStudio } from '@/state/studio.ts'
 import { buildMassing } from '@/lib/three/buildMassing.ts'
 import { MassingModel } from '@/lib/three/MassingScene.tsx'
 import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
+import { VillaGenerationNotice } from '@/components/VillaGenerationNotice.tsx'
 import { cx } from '@/lib/cx.ts'
 import { briefSiteIssues, compile } from '@/lib/model/canonical.ts'
 import { generate } from '@/lib/engine/generate.ts'
@@ -20,6 +21,7 @@ export function Directions() {
   const pin = useStudio((s) => s.pin)
   const pinned = useStudio((s) => s.pinned)
   const brief = useStudio((s) => s.brief)
+  const generationNotice = useStudio((s) => s.generationNotice)
   const referencePreferences = useStudio((s) => s.referencePreferences)
   const setReferencePreferences = useStudio((s) => s.setReferencePreferences)
   const setRenderInspiration = useRender((s) => s.setInspiration)
@@ -46,6 +48,11 @@ export function Directions() {
   }
 
   if (directions.length === 0) {
+    if (generationNotice) return <div className="mx-auto max-w-3xl px-6 py-12 md:px-10">
+      <WorkspaceTabs /><h1 className="mt-8 font-display text-3xl">No new distinct direction</h1>
+      <VillaGenerationNotice blocked />
+      <Link to="/workspace" className="text-sm text-ink underline">Edit brief</Link>
+    </div>
     const siteIssues = briefSiteIssues(brief)
     const errors = siteIssues.length ? siteIssues : validate(generate(compile(brief))).findings
       .filter((finding) => finding.severity === 'error').map((finding) => finding.message)
@@ -72,10 +79,12 @@ export function Directions() {
       <div className="mt-6 max-w-2xl">
         <h1 className="font-display text-[clamp(1.8rem,3.5vw,2.6rem)]">Choose an exterior direction</h1>
         <p className="mt-3 text-ink-dim">
-          All four use the same verified rooms, walls, doors, windows, stairs, columns and floor plates.
+          All directions use the same verified rooms, walls, doors, windows, stairs, columns and floor plates.
           Pin the architectural expression you prefer.
         </p>
       </div>
+
+      <VillaGenerationNotice />
 
       <div className="mt-7 border border-line p-5">
         <div className="flex items-start gap-3">

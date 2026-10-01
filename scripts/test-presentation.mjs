@@ -115,7 +115,7 @@ test('a pitched top roof has no terrace', () => {
 
 import { defaultBrief as freshBrief } from '../src/lib/model/brief.ts'
 import { THEMES } from '../src/lib/model/themes.ts'
-import { varyExterior, selectExteriorDirections } from '../src/lib/engine/variation.ts'
+import { varyExterior, selectExteriorDirections, fingerprint } from '../src/lib/engine/variation.ts'
 import { STYLE_FACTOR } from '../src/lib/cost/rates.ts'
 
 test('new briefs default to the modern box; saved briefs keep their style', () => {
@@ -144,9 +144,14 @@ test('the modern box keeps its look on every seed and every reroll', () => {
   }
 })
 
-test('the modern box still offers four distinct directions, even on subtle', () => {
+test('the modern box offers available recipe directions without counting palette-only variations', () => {
   const plan = generate(compile(freshBrief()))
-  for (const level of ['subtle', 'balanced', 'bold']) assert.equal(selectExteriorDirections(plan, 4, level).length, 4, level)
+  for (const level of ['subtle', 'balanced', 'bold']) {
+    const dirs = selectExteriorDirections(plan, 4, level)
+    assert.ok(dirs.length > 0 && dirs.length <= 4, level)
+    assert.equal(new Set(dirs.map(({ design }) => JSON.stringify(fingerprint(design.dna)))).size, dirs.length)
+    if (level === 'subtle') assert.ok(dirs.length <= 3, 'subtle has only three permitted window-treatment recipes')
+  }
 })
 
 test('the modern box 3D model has glass rails, the oversailing frame and a roof pergola, and no fins', () => {

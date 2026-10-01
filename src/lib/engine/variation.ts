@@ -4,7 +4,7 @@ import { validateVillaVariation } from './facade/grammar.ts'
 
 export type DesignFingerprint = Pick<DesignDNA,
   'styleFamily' | 'facadeComposition' | 'entranceDesign' | 'roofDesign' | 'balconyDesign' |
-  'featureElement' | 'secondaryFeature' | 'materialPalette' | 'shadingSystem' | 'windowTreatment'> & {
+  'featureElement' | 'secondaryFeature' | 'shadingSystem' | 'windowTreatment'> & {
   roofProfile: DesignDNA['roofGeometry']['profile']
   roofRidge: DesignDNA['roofGeometry']['ridge']
   roofElement: DesignDNA['roofGeometry']['element']
@@ -14,7 +14,7 @@ export const fingerprint = (dna: DesignDNA): DesignFingerprint => ({
   styleFamily: dna.styleFamily, facadeComposition: dna.facadeComposition,
   entranceDesign: dna.entranceDesign, roofDesign: dna.roofDesign,
   balconyDesign: dna.balconyDesign, featureElement: dna.featureElement,
-  secondaryFeature: dna.secondaryFeature, materialPalette: dna.materialPalette,
+  secondaryFeature: dna.secondaryFeature,
   shadingSystem: dna.shadingSystem, windowTreatment: dna.windowTreatment,
   roofProfile: dna.roofGeometry?.profile ?? 'slim',
   roofRidge: ['hip', 'gable', 'mono-slope', 'kerala-pitched'].includes(dna.roofDesign)
@@ -25,11 +25,12 @@ export const fingerprint = (dna: DesignDNA): DesignFingerprint => ({
 const WEIGHTS: Record<keyof DesignFingerprint, number> = {
   styleFamily: 8, facadeComposition: 14, entranceDesign: 12, roofDesign: 11,
   featureElement: 10, secondaryFeature: 4, balconyDesign: 9,
-  materialPalette: 5, shadingSystem: 4, windowTreatment: 3,
-  roofProfile: 8, roofRidge: 4, roofElement: 8,
+  shadingSystem: 4, windowTreatment: 3,
+  roofProfile: 8, roofRidge: 4, roofElement: 13,
 }
 
-/** 0–100 architectural distance, independent of landscape/camera/lighting. */
+/** Legacy recipe-ranking heuristic, independent of materials/landscape/camera.
+ * Final new-villa acceptance uses the realized VillaShapeFingerprint instead. */
 export function noveltyScore(a: DesignFingerprint, b: DesignFingerprint): number {
   return (Object.keys(WEIGHTS) as (keyof DesignFingerprint)[])
     .reduce((score, key) => score + (a[key] === b[key] ? 0 : WEIGHTS[key]), 0)

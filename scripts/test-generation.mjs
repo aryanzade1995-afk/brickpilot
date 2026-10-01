@@ -74,7 +74,7 @@ test('110 seeded exterior variants stay valid and retain the same plan', () => {
   const plan = generate(compile(defaultBrief()))
   assert.ok(validate(plan).hardChecksPass)
   const signature = planSignature(plan)
-  const prints = new Set()
+  const geometrySignatures = new Set()
   for (let seed = 1; seed <= 110; seed++) {
     const design = varyExterior(plan, seed)
     assert.equal(planSignature(design), signature, `plan changed at seed ${seed}`)
@@ -107,9 +107,11 @@ test('110 seeded exterior variants stay valid and retain the same plan', () => {
         assert.ok(!overlapsX || !overlapsZ, `${post.id} crosses ${service.id}`)
       }
     }
-    prints.add(JSON.stringify(fingerprint(design.dna)))
+    // Count actual exterior mesh geometry, excluding IDs, material and color.
+    // Raw variation is not acceptance by the stricter VillaShapeFingerprint gate.
+    geometrySignatures.add(JSON.stringify(massing.boxes.map(({ kind, pos, size, level, prism }) => ({ kind, pos, size, level, prism }))))
   }
-  assert.ok(prints.size >= 95, `only ${prints.size} distinct fingerprints`)
+  assert.ok(geometrySignatures.size >= 95, `only ${geometrySignatures.size} distinct exterior geometries`)
   const directions = generateDirections(plan.model)
   for (let i = 0; i < directions.length; i++)
     for (let j = i + 1; j < directions.length; j++)
@@ -167,7 +169,11 @@ test('subtle rerolls preserve composition while changing detailing', () => {
     assert.equal(a.dna[trait], b.dna[trait], trait)
   assert.ok(a.dna.frameThicknessMm !== b.dna.frameThicknessMm ||
     a.dna.materialPalette !== b.dna.materialPalette || a.dna.windowTreatment !== b.dna.windowTreatment)
-  assert.equal(generateDirections(compile(brief)).length, 4)
+  const directions = generateDirections(compile(brief))
+  assert.ok(directions.length > 0 && directions.length <= 4)
+  // Material-only alternatives no longer fill a fourth direction.
+  for (let i = 0; i < directions.length; i++) for (let j = i + 1; j < directions.length; j++)
+    assert.ok(noveltyScore(fingerprint(directions[i].design.dna), fingerprint(directions[j].design.dna)) >= 3)
 })
 
 test('exterior roof DNA matches the roof geometry and window surrounds clear the glass', () => {

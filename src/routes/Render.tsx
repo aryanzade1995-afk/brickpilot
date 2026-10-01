@@ -9,9 +9,13 @@ import { MassingViewport, MASSING_CANVAS, type CaptureView } from '@/lib/render/
 import { rasterizeSvg } from '@/lib/render/rasterizeSvg.ts'
 import { InteriorStudio } from '@/components/InteriorStudio.tsx'
 import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
+import { VillaGenerationNotice } from '@/components/VillaGenerationNotice.tsx'
 import { InvalidPlanNotice } from '@/components/InvalidPlanNotice.tsx'
+import { BlenderVillaPanel } from '@/components/BlenderVillaPanel.tsx'
 import { cx } from '@/lib/cx.ts'
 import { prepareInspiration } from '@/lib/render/prepareInspiration.ts'
+import { useBlender } from '@/state/blender.ts'
+import { createBuildingModel } from '@/lib/engine/buildingModel.ts'
 
 type Mode = 'building' | 'interior'
 
@@ -24,6 +28,8 @@ const CONCEPT_LABEL: Record<RefKey, string> = {
 
 export function Render() {
   const result = useStudio((s) => s.result)
+  const planId = useMemo(() => result ? createBuildingModel(result.design).planId : null, [result])
+  const blenderResult = useBlender((s) => planId ? s.accepted[planId] : undefined)
   const run = useStudio((s) => s.run)
   useEffect(() => {
     if (!result) run()
@@ -57,10 +63,10 @@ export function Render() {
   const lastDesignId = useRef<string | null>(null)
 
   useEffect(() => {
-    const id = result?.design.id ?? null
+    const id = result ? `${result.design.id}:${blenderResult?.seed ?? 'study'}` : null
     if (lastDesignId.current && id && lastDesignId.current !== id) reset()
     lastDesignId.current = id
-  }, [result?.design.id, reset])
+  }, [result, blenderResult?.seed, reset])
 
   useEffect(() => {
     probeHealth()
@@ -88,7 +94,7 @@ export function Render() {
   // when capture starts: drive the viewport through 3 locked poses, read the
   // canvas after each, then rasterize the marked interior plan.
   useEffect(() => {
-    if (phase !== 'capturing' || capBusy.current || !result?.report.hardChecksPass) return
+    if (phase !== 'capturing' || capBusy.current || !result?.report.hardChecksPass || (!result.shapeFingerprint && !blenderResult)) return
     capBusy.current = true
     let alive = true
     const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
@@ -96,6 +102,20 @@ export function Render() {
 
     ;(async () => {
       try {
+        if (blenderResult) {
+          for (const [key, file] of [['front', 'front'], ['collage', 'hero'], ['top', 'aerial']] as const) {
+            const response = await fetch(blenderResult.files[file])
+            if (!response.ok) throw new Error('Could not load the accepted Blender reference')
+            const blob = await response.blob()
+            const data = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = reject; reader.readAsDataURL(blob)
+            })
+            if (!alive) return
+            setRef(key, data)
+          }
+          if (alive && svgRef.current) setRef('interior', await rasterizeSvg(svgRef.current))
+          return
+        }
         // the 3D canvas may still be initialising when capture is requested
         for (let i = 0; i < 40 && alive && !(canvas()?.width ?? 0); i++) await wait(150)
         for (const key of ['front', 'collage', 'top'] as const) {
@@ -118,7 +138,7 @@ export function Render() {
     return () => {
       alive = false
     }
-  }, [phase, setRef, captureFailed, result])
+  }, [phase, setRef, captureFailed, result, blenderResult])
 
   if (!result) {
     return <div className="mx-auto max-w-[1400px] px-10 py-24 text-ink-dim">Preparing model…</div>
@@ -130,12 +150,16 @@ export function Render() {
   const [lvlStr, roomId] = (interiorRoomKey ?? '0:').split(':')
   const interiorFloor = design.floors[Number(lvlStr)] ?? design.floors[0]
   const promptFor = (k: RefKey) => [
-    VIEW_PROMPT[k],
-    `Architectural facts: ${design.floors.length} storeys, ${design.massingType} footprint, ${design.openingCounts.windows} windows, ${design.openingCounts.doors} doors.`,
-    `Design identity: ${design.dna.styleFamily} style, ${design.dna.facadeComposition} composition, ${design.dna.entranceDesign} entry, ${design.dna.featureElement} feature, ${design.dna.balconyDesign} balcony treatment, ${design.dna.roofDesign} roof treatment, ${design.dna.materialPalette} palette.`,
-    `Use this coordinated material palette on the existing surfaces: ${PALETTE_MATERIALS[design.dna.materialPalette]}.`,
+    blenderResult && k === 'top' ? 'Photorealistic aerial architectural photograph from the exact reference camera.' : VIEW_PROMPT[k],
+    `Source-plan facts: ${design.floors.length} occupied storeys, ${design.openingCounts.windows} windows, ${design.openingCounts.doors} doors. Preserve the occupied footprint shown in the reference.`,
+    blenderResult ? `Accepted architectural design: seed ${blenderResult.seed}, ${blenderResult.family} exterior composition, ${blenderResult.hero} hero and ${blenderResult.roofline} roofline. The source occupied rooms and floors are fixed.` :
+      `Design identity: ${design.dna.styleFamily} style, ${design.dna.facadeComposition} composition, ${design.dna.entranceDesign} entry, ${design.dna.featureElement} feature, ${design.dna.balconyDesign} balcony treatment, ${design.dna.roofDesign} roof treatment, ${design.dna.materialPalette} palette.`,
+    blenderResult && k !== 'interior'
+      ? 'Preserve the accepted reference palette, material placement and primary/secondary/accent proportions. Improve their physical texture and reflections.'
+      : `Use this coordinated material palette on the existing surfaces: ${PALETTE_MATERIALS[design.dna.materialPalette]}.`,
     `Landscape atmosphere: ${design.dna.landscapeMood.replaceAll('-', ' ')}. Apply this only to planting and site styling outside the building.`,
-    'The first image is the exact verified Three.js geometry. Preserve its building footprint, storey count, proportions, roof form, all door and window positions, balcony position, façade frames, pergola and major architectural volumes exactly. Do not invent or remove any opening, column, balcony, floor, frame or roof element.',
+    k === 'interior' ? 'The first image is the existing room plan. Preserve the room boundary, door/window positions and circulation.' :
+      'The first image is the accepted building geometry. Preserve its footprint, storey count, proportions, roof form, all door and window positions, balcony position, facade frames, pergola, canopies and major architectural volumes exactly. Do not invent or remove any opening, column, balcony, floor, frame or roof element.',
     k !== 'interior' && inspiration
       ? 'A second image follows the verified geometry image. Use the SECOND image for color, material mood, landscaping and lighting inspiration only. The FIRST image is the sole source for geometry, roof, floor count, openings, balconies and camera angle. Do not copy the second image building.'
       : '',
@@ -172,6 +196,7 @@ export function Render() {
   return (
     <div className="mx-auto max-w-[1400px] px-6 py-8 md:px-10">
       <WorkspaceTabs />
+      {mode === 'building' && result?.report.hardChecksPass && <BlenderVillaPanel plan={result.design} />}
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-2xl">{model.brief.project.name}</h1>
@@ -198,7 +223,9 @@ export function Render() {
 
       {mode === 'interior' && <InteriorStudio design={design} character={character} />}
 
-      {mode === 'building' && (
+      {mode === 'building' && !result.shapeFingerprint && !blenderResult && <VillaGenerationNotice blocked />}
+
+      {mode === 'building' && (result.shapeFingerprint || blenderResult) && (
         <>
           {configuredNote && (
             <p className="mt-4 border-l-2 border-warn/60 bg-warn/5 px-4 py-2.5 text-sm text-ink-dim">
@@ -213,7 +240,7 @@ export function Render() {
           <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_340px]">
             {/* live massing — the reference source */}
         <div>
-          <MassingViewport design={design} character={character} view={view} />
+          {blenderResult ? <img src={blenderResult.files.hero} alt="Accepted architectural design used for image references" className="w-full border border-line" /> : <MassingViewport design={design} character={character} view={view} />}
           <div className="mt-3 grid grid-cols-4 gap-3">
             {REF_KEYS.map((k) => (
               <figure key={k} className="space-y-1.5">

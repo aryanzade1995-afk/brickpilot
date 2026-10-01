@@ -5,20 +5,33 @@ import { compile, type CanonicalModel } from '@/lib/model/canonical.ts'
 import { briefSchema, defaultBrief, type Brief } from '@/lib/model/brief.ts'
 import {
   generate,
-  generateDirections,
   MASSING_TYPES,
   type Design,
   type MassingType,
 } from '@/lib/engine/index.ts'
 import { validate, type ValidationReport } from '@/lib/rules/index.ts'
 import { estimateCost, type CostEstimate } from '@/lib/cost/index.ts'
-import { chooseNextExterior, selectExteriorDirections, varyExterior } from '@/lib/engine/variation.ts'
+import { varyExterior } from '@/lib/engine/variation.ts'
 import { parseInspirationPreferences, type InspirationPreferences } from '@/lib/engine/designDna.ts'
+import type { BuildingModel } from '@/lib/engine/buildingModel.ts'
+import type { VillaDesignDNA } from '@/lib/engine/villaDesignDna.ts'
+import type { MassingModel } from '@/lib/engine/massing/model.ts'
+import type { ProceduralFacadeModel } from '@/lib/engine/facade/proceduralTypes.ts'
+import { createVillaArchitecture } from '@/lib/engine/fingerprint/createVillaArchitecture.ts'
+import { fingerprintRecord, parseFingerprintHistory, type ShapeFingerprintRecord, type VillaShapeFingerprint } from '@/lib/engine/fingerprint/VillaShapeFingerprint.ts'
+import { DEFAULT_DIVERSITY_LIMITS, diversityLimits, formatFingerprintDebug, selectDistinctVilla,
+  type FingerprintDebug, type VillaDiversityLimits } from '@/lib/engine/fingerprint/VillaDiversityGate.ts'
 
 export type Result = {
   model: CanonicalModel
   design: Design
   report: ValidationReport
+  buildingModel: BuildingModel | null
+  villaDesignDNA: VillaDesignDNA | null
+  massingModel: MassingModel | null
+  facadeModel: ProceduralFacadeModel | null
+  shapeFingerprint: VillaShapeFingerprint | null
+  shapeStatus: 'accepted' | 'replay' | 'rejected' | 'invalid-plan'
   cost: CostEstimate
   generatedAt: number
 }
@@ -40,6 +53,11 @@ export type DirectionOption = {
   novelty: number
   design: Design
   report: ValidationReport
+  buildingModel: BuildingModel
+  villaDesignDNA: VillaDesignDNA
+  massingModel: MassingModel
+  facadeModel: ProceduralFacadeModel
+  shapeFingerprint: VillaShapeFingerprint
 }
 
 /** Read legacy `massing:seed` and newer pinned records with image preferences. */
@@ -73,6 +91,11 @@ type StudioState = {
   pinned: PinnedDir | null
   referencePreferences: InspirationPreferences | null
   recentExteriorSeeds: number[]
+  recentVillaFingerprints: ShapeFingerprintRecord[]
+  diversityLimits: VillaDiversityLimits
+  shapeDebug: FingerprintDebug[]
+  generationNotice: string | null
+  setDiversityLimits: (limits: Partial<VillaDiversityLimits>) => void
   result: Result | null
   edit: (recipe: (b: Brief) => void) => void
   reset: () => void
@@ -87,20 +110,58 @@ type StudioState = {
   run: () => Result
 }
 
-function assemble(brief: Brief, pinned: PinnedDir | null, inspiration: InspirationPreferences | null): Result {
-  const model = compile(brief)
-  const plan = generate(model)
-  const level = brief.style.diversity === 'low' ? 'subtle' :
+function variationLevel(brief: Brief) {
+  return brief.style.diversity === 'low' ? 'subtle' :
     brief.style.diversity === 'high' || brief.style.diversity === 'extreme' ? 'bold' : 'balanced'
-  const design = pinned ? varyExterior(plan, pinned.seed, level, inspiration) :
-    selectExteriorDirections(plan, 1, level, inspiration)[0]?.design ?? plan
-  return {
-    model,
-    design,
-    report: validate(design),
-    cost: estimateCost(design),
-    generatedAt: Date.now(),
+}
+
+function resultForPlan(design: Design): Result {
+  return { model: design.model, design, report: validate(design), buildingModel: null, villaDesignDNA: null,
+    massingModel: null, facadeModel: null, shapeFingerprint: null, shapeStatus: 'invalid-plan',
+    cost: estimateCost(design), generatedAt: Date.now() }
+}
+
+function exactResult(plan: Design, seed: number, inspiration: InspirationPreferences | null,
+  shapeStatus: 'accepted' | 'replay' = 'replay'): Result {
+  const design = varyExterior(plan, seed, variationLevel(plan.model.brief), inspiration)
+  const architecture = createVillaArchitecture(design, seed)
+  return { ...resultForPlan(design), ...architecture, facadeModel: architecture.facadeGrammar, shapeStatus }
+}
+
+function generateDistinct(plan: Design, seed: number, inspiration: InspirationPreferences | null,
+  history: ShapeFingerprintRecord[], limits: VillaDiversityLimits, references: ShapeFingerprintRecord[] = []) {
+  return selectDistinctVilla(seed, history, (candidateSeed) => {
+    const candidate = exactResult(plan, candidateSeed, inspiration, 'accepted')
+    return { candidate, fingerprint: candidate.shapeFingerprint! }
+  }, limits, (debug) => console.debug(formatFingerprintDebug(debug)), references)
+}
+
+const exhaustedNotice = (attempts: number) =>
+  `No sufficiently different valid villa was found in ${attempts} attempts. The current plan is preserved. You can keep an existing direction or change the brief.`
+
+function replayResult(plan: Design, seed: number, inspiration: InspirationPreferences | null) {
+  try { return { result: exactResult(plan, seed, inspiration), debug: [] as FingerprintDebug[], notice: null } }
+  catch (error) {
+    const decision: FingerprintDebug = { seed, family: 'unknown', nearestPreviousSeed: null, similarityPercent: 0,
+      accepted: false, code: 'INVALID_ARCHITECTURE', reason: error instanceof Error ? error.message : 'Architecture validation failed.' }
+    console.debug(formatFingerprintDebug(decision))
+    return { result: { ...resultForPlan(plan), shapeStatus: 'rejected' as const }, debug: [decision],
+      notice: 'The saved villa does not pass the current architecture checks. The 2D plan is preserved. Choose a new direction.' }
   }
+}
+
+function assemble(brief: Brief, pinned: PinnedDir | null, inspiration: InspirationPreferences | null,
+  history: ShapeFingerprintRecord[], limits: VillaDiversityLimits) {
+  const plan = generate(compile(brief))
+  if (!validate(plan).hardChecksPass) return { result: resultForPlan(plan), history, debug: [], notice: null }
+  if (pinned) {
+    // Loading/pinning/navigation is an exact replay, not another new candidate.
+    return { ...replayResult(plan, pinned.seed, inspiration), history }
+  }
+  const selected = generateDistinct(plan, brief.variation + 1, inspiration, history, limits)
+  return { result: selected.accepted?.candidate ?? { ...resultForPlan(plan), shapeStatus: 'rejected' as const },
+    history: selected.history, debug: selected.debug,
+    notice: selected.accepted ? null : exhaustedNotice(selected.debug.length) }
 }
 
 export const useStudio = create<StudioState>()(
@@ -111,7 +172,15 @@ export const useStudio = create<StudioState>()(
       pinned: null,
       referencePreferences: null,
       recentExteriorSeeds: [],
+      recentVillaFingerprints: [],
+      diversityLimits: { ...DEFAULT_DIVERSITY_LIMITS },
+      shapeDebug: [],
+      generationNotice: null,
       result: null,
+      setDiversityLimits: (options) => {
+        const limits = diversityLimits({ ...get().diversityLimits, ...options })
+        set((s) => { s.diversityLimits = limits })
+      },
 
       edit: (recipe) =>
         set((s) => {
@@ -121,6 +190,8 @@ export const useStudio = create<StudioState>()(
           s.pinned = null
           s.recentExteriorSeeds = []
           s.result = null
+          s.generationNotice = null
+          s.shapeDebug = []
         }),
 
       reset: () =>
@@ -131,6 +202,8 @@ export const useStudio = create<StudioState>()(
           s.referencePreferences = null
           s.recentExteriorSeeds = []
           s.result = null
+          s.generationNotice = null
+          s.shapeDebug = []
         }),
 
       loadSaved: (brief, pinned) =>
@@ -141,6 +214,8 @@ export const useStudio = create<StudioState>()(
           s.recentExteriorSeeds = pinned ? [pinned.seed] : []
           s.directions = null
           s.result = null
+          s.generationNotice = null
+          s.shapeDebug = []
         }),
 
       setReferencePreferences: (preferences) => set((s) => {
@@ -149,89 +224,133 @@ export const useStudio = create<StudioState>()(
         s.pinned = null
         s.recentExteriorSeeds = []
         s.result = null
+        s.generationNotice = null
+        s.shapeDebug = []
       }),
 
       reroll: () => {
         const current = get()
         const brief = structuredClone(current.brief)
         brief.variation += 1
-        const result = assemble(brief, null, current.referencePreferences)
+        const assembled = assemble(brief, null, current.referencePreferences, current.recentVillaFingerprints, current.diversityLimits)
         set((s) => {
           s.brief = brief
-          s.pinned = null
+          s.pinned = assembled.result.shapeStatus === 'accepted'
+            ? { massing: assembled.result.design.massingType, seed: assembled.result.design.dna.seed, inspiration: current.referencePreferences } : null
           s.recentExteriorSeeds = []
           s.directions = null
-          s.result = result
+          s.result = assembled.result
+          s.recentVillaFingerprints = assembled.history
+          s.shapeDebug = assembled.debug
+          s.generationNotice = assembled.notice
         })
       },
 
       reseed: () => {
         const cur = get()
         const base = cur.result?.design ?? generate(compile(cur.brief))
-        const level = cur.brief.style.diversity === 'low' ? 'subtle' :
-          cur.brief.style.diversity === 'high' || cur.brief.style.diversity === 'extreme' ? 'bold' : 'balanced'
-        const next = chooseNextExterior(base, cur.recentExteriorSeeds, level, cur.referencePreferences)
-        const pinned: PinnedDir = { massing: base.massingType, seed: next.dna.seed,
+        const selection = generateDistinct(base, (cur.result?.design.dna.seed ?? cur.brief.variation) + 1,
+          cur.referencePreferences, cur.recentVillaFingerprints, cur.diversityLimits,
+          cur.result?.shapeFingerprint ? [fingerprintRecord(cur.result.shapeFingerprint)] : [])
+        if (!selection.accepted) {
+          set((s) => { s.shapeDebug = selection.debug; s.generationNotice = exhaustedNotice(selection.debug.length) })
+          // Retain the displayed accepted villa after an exhausted retry search.
+          return cur.result ?? { ...resultForPlan(base), shapeStatus: 'rejected' }
+        }
+        const result = selection.accepted.candidate
+        const pinned: PinnedDir = { massing: base.massingType, seed: result.design.dna.seed,
           inspiration: cur.referencePreferences }
-        const brief: Brief = cur.brief
-        const result = assemble(brief, pinned, cur.referencePreferences)
         set((s) => {
           s.pinned = pinned
           s.recentExteriorSeeds = [...s.recentExteriorSeeds, pinned.seed].slice(-50)
           s.directions = null
           s.result = result
+          s.recentVillaFingerprints = selection.history
+          s.shapeDebug = selection.debug
+          s.generationNotice = null
         })
         return result
       },
 
       explore: () => {
-        const model = compile(get().brief)
-        const dirs: DirectionOption[] = generateDirections(model, get().referencePreferences).map((d) => ({
-          massing: d.massing,
-          seed: d.seed,
-          label: d.label,
-          blurb: d.blurb,
-          novelty: d.novelty,
-          design: d.design,
-          report: validate(d.design),
-        }))
+        const cur = get()
+        if (cur.directions !== null) return cur.directions
+        const plan = generate(compile(cur.brief)), dirs: DirectionOption[] = [], debug: FingerprintDebug[] = []
+        let history = cur.recentVillaFingerprints, notice: string | null = null
+        const option = (r: Result, index: number, novelty: number): DirectionOption => ({
+          massing: r.design.massingType, seed: r.design.dna.seed,
+          label: `Direction ${'ABCD'[index]} — ${r.shapeFingerprint!.massingFamily.replaceAll('_', ' ').toLowerCase()}`,
+          blurb: `${r.shapeFingerprint!.heroFeature.replaceAll('_', ' ').toLowerCase()} · ${r.shapeFingerprint!.rooflineType.replaceAll('_', ' ').toLowerCase()}`,
+          novelty, design: r.design, report: r.report, buildingModel: r.buildingModel!, villaDesignDNA: r.villaDesignDNA!,
+          massingModel: r.massingModel!, facadeModel: r.facadeModel!, shapeFingerprint: r.shapeFingerprint! })
+        if (validate(plan).hardChecksPass && cur.pinned) {
+          const replay = replayResult(plan, cur.pinned.seed, cur.referencePreferences)
+          if (replay.result.shapeFingerprint) dirs.push(option(replay.result, 0, 0))
+          else debug.push(...replay.debug)
+        }
+        if (validate(plan).hardChecksPass) for (let i = dirs.length; i < 4; i++) {
+          const selection = generateDistinct(plan, cur.brief.variation + 1 + i * 977, cur.referencePreferences, history, cur.diversityLimits,
+            dirs.map((d) => fingerprintRecord(d.shapeFingerprint)))
+          debug.push(...selection.debug)
+          if (!selection.accepted) { notice = exhaustedNotice(selection.debug.length); break }
+          const r = selection.accepted.candidate
+          history = selection.history
+          dirs.push(option(r, i, 100 - selection.debug.at(-1)!.similarityPercent))
+        }
         set((s) => {
           s.directions = dirs
+          s.recentVillaFingerprints = history
+          s.shapeDebug = debug
+          s.generationNotice = notice
         })
         return dirs
       },
 
       pin: (dir) => {
         const pinned = { ...dir, inspiration: get().referencePreferences }
-        const result = assemble(get().brief, pinned, get().referencePreferences)
+        const cur = get()
+        const assembled = assemble(cur.brief, pinned, cur.referencePreferences, cur.recentVillaFingerprints, cur.diversityLimits)
+        const result = assembled.result
         set((s) => {
           s.pinned = pinned
           s.recentExteriorSeeds = [...s.recentExteriorSeeds, pinned.seed].slice(-50)
           s.result = result
+          s.generationNotice = assembled.notice
+          if (assembled.debug.length) s.shapeDebug = assembled.debug
         })
         return result
       },
 
       run: () => {
-        const result = assemble(get().brief, get().pinned, get().referencePreferences)
+        const cur = get()
+        if (cur.result) return cur.result
+        const assembled = assemble(cur.brief, cur.pinned, cur.referencePreferences, cur.recentVillaFingerprints, cur.diversityLimits)
         set((s) => {
-          s.result = result
+          s.result = assembled.result
+          s.recentVillaFingerprints = assembled.history
+          s.shapeDebug = assembled.debug
+          s.generationNotice = assembled.notice
+          if (assembled.result.shapeStatus === 'accepted') s.pinned = { massing: assembled.result.design.massingType,
+            seed: assembled.result.design.dna.seed, inspiration: cur.referencePreferences }
         })
-        return result
+        return assembled.result
       },
     })),
     {
       name: 'brickpilot.studio',
       partialize: (s) => ({ brief: s.brief, pinned: s.pinned,
-        referencePreferences: s.referencePreferences, recentExteriorSeeds: s.recentExteriorSeeds }),
+        referencePreferences: s.referencePreferences, recentExteriorSeeds: s.recentExteriorSeeds,
+        recentVillaFingerprints: s.recentVillaFingerprints, diversityLimits: s.diversityLimits }),
       // re-parse the persisted brief through the schema on every rehydrate, so a
       // partial or stale payload is completed with defaults rather than
       // white-screening the app at compile(). Schema-repair, not versioning —
       // add `version` + `migrate` only for a real breaking change.
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<{ brief: unknown; pinned: unknown;
-          referencePreferences: unknown; recentExteriorSeeds: unknown }>
+          referencePreferences: unknown; recentExteriorSeeds: unknown; recentVillaFingerprints: unknown; diversityLimits: unknown }>
         const parsed = briefSchema.safeParse(p.brief)
+        let limits = { ...DEFAULT_DIVERSITY_LIMITS }
+        try { if (p.diversityLimits && typeof p.diversityLimits === 'object') limits = diversityLimits(p.diversityLimits as Partial<VillaDiversityLimits>) } catch { /* Repair stale configuration. */ }
         return {
           ...current,
           brief: parsed.success ? parsed.data : defaultBrief(),
@@ -240,6 +359,8 @@ export const useStudio = create<StudioState>()(
             parseInspirationPreferences(parsePinned(p.pinned)?.inspiration),
           recentExteriorSeeds: Array.isArray(p.recentExteriorSeeds)
             ? p.recentExteriorSeeds.filter((x): x is number => Number.isSafeInteger(x)).slice(-50) : [],
+          recentVillaFingerprints: parseFingerprintHistory(p.recentVillaFingerprints, limits.recentLimit),
+          diversityLimits: limits,
         }
       },
     },
