@@ -387,3 +387,22 @@ Reproduce the four-mode visual review with
 `/output/planning-review/index.html` on the existing Vite server. It uses the production drawing
 components and a shared test brief, writes only ignored output files, and does not change
 saved projects or the user's current brief.
+
+### Blender in 3D Massing
+
+The Massing page opens in **Blender design** mode. It checks the local generation
+service and starts one fast preview for a verified plan, including its actual
+open-space footprint and `Design.siteFeatures`. Returning to an accepted plan
+reuses its GLB and images; navigation never changes the exterior seed or the 2D
+plan. **Generate another design** selects the next numeric architectural seed.
+An interrupted or failed job requires an explicit retry. Floor-plan Study and
+Furnished views remain available as separate tabs using the existing renderer.
+
+Blender reads the same parking, driveway, paths, lawn, sit-out, utility yard and
+pool rectangles as the drawing. Pool cut-outs remove both ground surfaces;
+water is below site grade, with editable basin, side walls and coping. Source
+site geometry is independent of the optional greenery setting. Planters cannot
+block reserved circulation or the pool. The interactive GLB keeps the source
+plot ground and excludes only the oversized presentation context and lights.
+Progress files are replaced atomically with bounded retries for transient
+Windows sharing locks. All existing architecture and similarity gates remain.

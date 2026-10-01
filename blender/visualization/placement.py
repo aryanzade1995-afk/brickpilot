@@ -77,6 +77,8 @@ def planting_layout(payload, options):
         if any(overlaps(envelope, leg) for leg in routes) or any(overlaps(envelope, p["envelope"], 100) and z < p["z"] + 1100 and z + 1100 > p["z"] for p in plans):
             return False
         if category in ("entry", "side"):
+            if any(overlaps(envelope, f["rect"]) for f in b.get("siteFeatures", []) if f["kind"] != "lawn"):
+                return False  # Keep the planner's driveway, paths, pool and yards clear.
             if any(overlaps(envelope, room["rect"], 100) for room in b["rooms"] if room["floorId"] == ground["id"]):
                 return False  # Includes parking and planned outdoor circulation.
             if any(overlaps(envelope, opening_box(o, config["clearanceMm"])) for o in [*b["doors"], *b["windows"]] if o["floorId"] == ground["id"]):

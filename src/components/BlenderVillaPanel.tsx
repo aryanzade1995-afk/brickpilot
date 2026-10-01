@@ -11,7 +11,7 @@ function Villa({ url }: { url: string }) {
     const clone = gltf.scene.clone(true)
     const remove: typeof clone.children = []
     clone.traverse((object) => { if (object.userData.presentation_only || object.name.startsWith('Ground_Context') ||
-      object.name.startsWith('Site_Ground') || 'isLight' in object || 'isCamera' in object) remove.push(object) })
+      'isLight' in object || 'isCamera' in object) remove.push(object) })
     remove.forEach((object) => object.removeFromParent())
     return clone
   }, [gltf.scene])
@@ -23,7 +23,7 @@ class ModelBoundary extends Component<{ children: ReactNode }, { failed: boolean
   render() { return this.state.failed ? <p className="p-6 text-sm text-ink-dim">The interactive model could not load. The images and downloads below are still available.</p> : this.props.children }
 }
 
-export function BlenderVillaPanel({ plan }: { plan: Design }) {
+export function BlenderVillaPanel({ plan, autoGenerate = false }: { plan: Design; autoGenerate?: boolean }) {
   const id = useMemo(() => createBuildingModel(plan).planId, [plan])
   const result = useBlender((s) => s.accepted[id])
   const job = useBlender((s) => s.job)
@@ -31,16 +31,18 @@ export function BlenderVillaPanel({ plan }: { plan: Design }) {
   const error = useBlender((s) => s.error)
   const generate = useBlender((s) => s.generate)
   const resume = useBlender((s) => s.resume)
+  const ensureForPlan = useBlender((s) => s.ensureForPlan)
   const [quality, setQuality] = useState<'preview' | 'final'>('preview')
   const [view, setView] = useState<'hero' | 'front' | 'aerial'>('hero')
   const busy = Boolean(job && !['complete', 'failed'].includes(job.status))
   const currentJob = sourcePlanId === id ? job : null
   useEffect(() => { void resume() }, [resume])
+  useEffect(() => { if (autoGenerate) void ensureForPlan(plan) }, [autoGenerate, plan, ensureForPlan, busy])
   const seed = result ? (result.seed + 1) % 0xffffffff : plan.dna.seed
   return <section className="mt-5 border border-line p-4 md:p-6">
     <div className="flex flex-wrap items-center justify-between gap-4">
-      <div><h2 className="font-display text-xl">Architectural design</h2>
-        <p className="mt-1 text-sm text-ink-dim">New building composition using your current floor plan.</p></div>
+      <div><h2 className="font-display text-xl">Blender architectural design</h2>
+        <p className="mt-1 text-sm text-ink-dim">Your current rooms, footprint and planned outdoor spaces become one editable 3D villa.</p></div>
       <div className="flex flex-wrap items-center gap-2">
         <select aria-label="Render quality" className="border border-line bg-bg px-3 py-2 text-sm" value={quality}
           disabled={busy} onChange={(e) => setQuality(e.target.value as 'preview' | 'final')}>
@@ -53,6 +55,10 @@ export function BlenderVillaPanel({ plan }: { plan: Design }) {
       </div>
     </div>
     {currentJob && busy && <p role="status" className="mt-4 text-sm text-ink-dim">{currentJob.phase}{currentJob.attempt ? ` · candidate ${currentJob.attempt}` : ''}. Rendering can take a few minutes.</p>}
+    {busy && !currentJob && <p role="status" className="mt-4 text-sm text-ink-dim">Another plan is being generated. This plan will start when it finishes.</p>}
+    {!result && <div className="mt-4 flex aspect-[4/3] items-center justify-center border border-line bg-bg-inset p-8 text-center text-sm text-ink-dim">
+      {busy ? 'Building and rendering your villa…' : 'The interactive Blender model and three rendered views will appear here.'}
+    </div>}
     {sourcePlanId === id && error && <p role="alert" className="mt-4 text-sm text-bad">{error}</p>}
     {result && <>
       <p className="mt-4 font-mono text-xs text-ink-dim">Seed {result.seed} · {result.family.replaceAll('_', ' ')} · {result.quality === 'final' ? 'Final render' : 'Preview'}</p>

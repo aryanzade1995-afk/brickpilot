@@ -1,6 +1,6 @@
-import { readFile, writeFile, mkdir, open, unlink, rename, stat } from 'node:fs/promises'
+import { readFile, writeFile, mkdir, open, unlink, stat } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import { writeFileSync, renameSync } from 'node:fs'
+import { writeAtomicJson } from '../server/atomic-json.mjs'
 import { generateAlternativeDesign } from '../src/lib/engine/generateAlternativeDesign.ts'
 import { makeRng } from '../src/lib/engine/massing/rng.ts'
 import { fingerprintRecord, parseFingerprintHistory } from '../src/lib/engine/fingerprint/VillaShapeFingerprint.ts'
@@ -11,11 +11,10 @@ import { PROJECT_ROOT, runBlender } from '../server/blender-process.mjs'
 const directory = resolve(process.argv[2])
 const progress = { id: directory.split(/[\\/]/).at(-1), status: 'generating', phase: 'Starting', debug: [] }
 process.stdout.on('error', (error) => { if (error.code !== 'EPIPE') throw error })
-const emit = (event) => {
+const emit = async (event) => {
   if (event.debug) progress.debug = [...progress.debug, event.debug].slice(-64)
   else Object.assign(progress, event)
-  writeFileSync(resolve(directory, 'status.json.tmp'), JSON.stringify(progress))
-  renameSync(resolve(directory, 'status.json.tmp'), resolve(directory, 'status.json'))
+  await writeAtomicJson(resolve(directory, 'status.json'), progress)
   process.stdout.write(JSON.stringify(event) + '\n')
 }
 const historyPath = resolve(PROJECT_ROOT, 'output/villa-production-history.json')
@@ -49,48 +48,47 @@ try {
   const threshold = Number(process.env.VILLA_SIMILARITY_THRESHOLD || .75)
   for (let attempt = 0; attempt < attempts; attempt++) {
     seen.add(seed)
-    emit({ status: 'generating', phase: 'Checking architecture', seed, attempt: attempt + 1 })
+    await emit({ status: 'generating', phase: 'Checking architecture', seed, attempt: attempt + 1 })
     try {
       const payload = generateAlternativeDesign(request.plan, seed)
       const quota = evaluateVillaFingerprint(payload.shapeFingerprint, history.map((h) => h.fingerprint), { similarityThreshold: 1 })
-      if (!quota.accepted) { emit({ debug: quota }); throw new Error('Diversity quota retry') }
+      if (!quota.accepted) { await emit({ debug: quota }); throw new Error('Diversity quota retry') }
       const stage = resolve(directory, 'candidates', String(seed))
       await mkdir(stage, { recursive: true })
       const input = resolve(stage, 'input.json'), name = `villa_${seed}`
       await writeFile(input, JSON.stringify(payload))
       const options = ['--input', input, '--out-dir', stage, '--name', name, '--production-names', '--quality', request.quality]
-      emit({ status: 'generating', phase: 'Building and measuring the Blender scene', seed, attempt: attempt + 1 })
+      await emit({ status: 'generating', phase: 'Building and measuring the Blender scene', seed, attempt: attempt + 1 })
       await runBlender([...options, '--prepare'], resolve(directory, 'blender.log'))
       const manifest = JSON.parse(await readFile(resolve(stage, name + '.json'), 'utf8'))
       const decision = evaluateRealizedVilla(payload, manifest.realizedGeometry, history, threshold)
-      emit({ debug: decision })
+      await emit({ debug: decision })
       if (!decision.accepted) throw new Error('Similar shape retry')
-      emit({ status: 'rendering', phase: 'Rendering front, hero and aerial views', seed, attempt: attempt + 1 })
+      await emit({ status: 'rendering', phase: 'Rendering front, hero and aerial views', seed, attempt: attempt + 1 })
       await runBlender([...options, '--resume', '--render-all'], resolve(directory, 'blender.log'))
       const final = JSON.parse(await readFile(resolve(stage, name + '.json'), 'utf8'))
       const files = [name + '.blend', name + '.glb', name + '_hero.png', name + '_front.png', name + '_aerial.png']
       for (const file of files) if (!(await stat(resolve(stage, file))).size) throw new Error('An output file is empty')
       history = [...history, { fingerprint: fingerprintRecord(payload.shapeFingerprint), geometry: final.realizedGeometry }].slice(-50)
-      await writeFile(historyPath + '.tmp', JSON.stringify(history))
-      await rename(historyPath + '.tmp', historyPath)
+      await writeAtomicJson(historyPath, history)
       accepted = { seed, requestedSeed: request.seed, planId: payload.buildingModel.planId, family: payload.massingModel.family,
         hero: payload.shapeFingerprint.heroFeature, facadeFamily: payload.shapeFingerprint.facadeFamily,
         roofline: payload.shapeFingerprint.rooflineType, files, directory: stage, quality: request.quality,
         shapeFingerprint: payload.shapeFingerprint, realizedGeometry: final.realizedGeometry, warnings: final.warnings }
       await writeFile(resolve(directory, 'accepted.json'), JSON.stringify(accepted))
-      emit({ status: 'complete', phase: 'Ready', result: accepted })
+      await emit({ status: 'complete', phase: 'Ready', result: accepted })
       break
     } catch (error) {
       if (!['Diversity quota retry', 'Similar shape retry'].includes(error.message)) {
         if (/Blender/.test(error.message)) throw error
-        emit({ debug: { seed, family: 'unknown', accepted: false, reason: error.message, code: 'INVALID_ARCHITECTURE' } })
+        await emit({ debug: { seed, family: 'unknown', accepted: false, reason: error.message, code: 'INVALID_ARCHITECTURE' } })
       }
     }
     do { seed = rng.int(0, 0xffffffff) } while (seen.has(seed))
   }
   if (!accepted) throw new Error('No sufficiently different valid villa found within the attempt limit. Your current plan and design are retained.')
 } catch (error) {
-  emit({ status: 'failed', phase: 'Generation stopped', error: error.message })
+  await emit({ status: 'failed', phase: 'Generation stopped', error: error.message })
   process.exitCode = 1
 } finally {
   if (lock) { await lock.close(); await unlink(historyPath + '.lock').catch(() => {}) }

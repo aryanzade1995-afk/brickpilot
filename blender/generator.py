@@ -19,6 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from validation import validate_payload  # noqa: E402
 from geometry.common import SceneBuilder, MM  # noqa: E402
+from geometry.site import create_site  # noqa: E402
 from geometry.structure import (create_foundation, create_slab, create_wall, create_column,
                                 create_beam, create_staircase, create_massing_volume,
                                 create_roof_slab)  # noqa: E402
@@ -60,14 +61,7 @@ def create_scene(payload, visualization=None):
         stair_layout(stair)  # Fail on unsupported stair data before touching the scene.
     scene = SceneBuilder(building["planId"], options["palette"])
     scene.warnings = []
-    scene.rect("Site_Ground_01", "LANDSCAPE", {"x": 0, "y": 0,
-               "w": building["plot"]["widthMm"], "h": building["plot"]["depthMm"]},
-               floors[0]["elevationMm"] - 450, 50, "landscape", building["planId"], bevel=0)
-    context_span = max(building["plot"]["widthMm"], building["plot"]["depthMm"]) * 6
-    context_ground = scene.box("Ground_Context", "LANDSCAPE", building["plot"]["widthMm"] / 2,
-                               building["plot"]["depthMm"] / 2, floors[0]["elevationMm"] - 505,
-                               context_span, context_span, 50, "paving", building["planId"], bevel=0)
-    context_ground["presentation_only"] = True
+    create_site(scene, building)
     create_foundation(scene, floors[0], exterior_walls=[wall for wall in building["walls"]
                       if wall["floorId"] == floors[0]["id"] and wall["kind"] == "exterior"])
     for slab in building["slabs"]:

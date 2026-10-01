@@ -84,6 +84,8 @@ def validate_payload(payload):
         raise GeometryInputError("Source floors are missing or duplicated")
     if any(not _rect(rect) for floor in floors.values() for rect in floor["footprint"]):
         raise GeometryInputError("Invalid source floor plate")
+    from geometry.site import validate_site_features
+    validate_site_features(building)
     bounds = building["plot"]["buildable"]
     if not _rect(bounds):
         raise GeometryInputError("Invalid setback envelope")

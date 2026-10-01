@@ -125,22 +125,7 @@ def create_landscape(scene, payload, options):
             if min(inset["w"], inset["h"]) > 80:
                 foliage(scene, f"{obj.name}_Foliage", inset, r["z"] + r["height"], seed, options["landscape"]["leavesPerPlant"])
     building = payload["buildingModel"]
-    if "siteFeatures" in building:
-        for feature in building["siteFeatures"]:
-            if feature["covered"]:
-                continue
-            r, name, kind = feature["rect"], feature["id"], feature["kind"]
-            material = "landscape" if kind == "lawn" else "glass" if kind == "pool" else "paving"
-            scene.rect(name, "LANDSCAPE", r, -80 if kind == "pool" else -390, 40, material, name, bevel=3)
-            if kind == "pool":
-                scene.rect(f"{name}_Basin", "LANDSCAPE", r, -1400, 120, "secondary_wall", name, bevel=4)
-                for index, edge in enumerate([
-                    {"x": r["x"], "y": r["y"], "w": r["w"], "h": 120},
-                    {"x": r["x"], "y": r["y"] + r["h"] - 120, "w": r["w"], "h": 120},
-                    {"x": r["x"], "y": r["y"] + 120, "w": 120, "h": r["h"] - 240},
-                    {"x": r["x"] + r["w"] - 120, "y": r["y"] + 120, "w": 120, "h": r["h"] - 240}]):
-                    scene.rect(f"{name}_Coping_{index}", "LANDSCAPE", edge, -400, 100, "stone", name, bevel=4)
-    else:
+    if "siteFeatures" not in building:
         _entry_paving(scene, building)
     scene.warnings.extend(layout["omissions"])
     return layout

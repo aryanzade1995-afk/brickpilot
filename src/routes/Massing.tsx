@@ -28,7 +28,7 @@ const LAYER_TOGGLES: { g: Group; label: string }[] = [
   { g: 'stair', label: 'Stair core' },
 ]
 
-type ViewMode = 'study' | 'furnished'
+type ViewMode = 'architecture' | 'study' | 'furnished'
 
 type CamKey = 'front' | 'rear' | 'left' | 'right' | 'iso' | 'top'
 
@@ -39,14 +39,14 @@ export function Massing() {
     if (!result) run()
   }, [result, run])
 
-  const massing = useMemo(() => (result?.shapeFingerprint ? buildMassing(result.design) : null), [result])
+  const [mode, setMode] = useState<ViewMode>('architecture')
+  const massing = useMemo(() => (result?.shapeFingerprint && mode !== 'architecture' ? buildMassing(result.design) : null), [result, mode])
 
   const [explode, setExplode] = useState(0)
   const [hidden, setHidden] = useState<Set<Group>>(new Set())
   const [showSite, setShowSite] = useState(true)
   const [showDebug, setShowDebug] = useState(false)
   const [pendingView, setPendingView] = useState<CamKey | null>('iso')
-  const [mode, setMode] = useState<ViewMode>('study')
   const [floorSel, setFloorSel] = useState<number | 'all'>('all')
   const doll = useMemo(
     () => (result?.shapeFingerprint && mode === 'furnished' ? buildDollhouse(result.design, floorSel === 'all' ? undefined : floorSel) : null),
@@ -54,8 +54,11 @@ export function Massing() {
   )
 
   if (result && !result.report.hardChecksPass) return <InvalidPlanNotice report={result.report} />
-  if (result && !result.shapeFingerprint) return <div className="mx-auto max-w-[1400px] px-6 py-12 md:px-10">
-    <WorkspaceTabs /><BlenderVillaPanel plan={result.design} />
+  if (result && (mode === 'architecture' || !result.shapeFingerprint)) return <div className="mx-auto max-w-[1400px] px-6 py-8 md:px-10">
+    <WorkspaceTabs />
+    <h1 className="mt-5 font-display text-2xl">3D massing · {result.model.brief.project.name}</h1>
+    <MassingViewTabs mode="architecture" onChange={setMode} studyAvailable={Boolean(result.shapeFingerprint)} />
+    <BlenderVillaPanel plan={result.design} autoGenerate />
     <div className="mt-6 flex gap-6 text-sm">
       <Link to="/workspace/plan" className="underline underline-offset-4">View the 2D plan</Link>
       <Link to="/workspace/render" className="underline underline-offset-4">Continue to renders</Link>
@@ -86,7 +89,7 @@ export function Massing() {
   return (
     <div className="mx-auto max-w-[1400px] px-6 py-8 md:px-10">
       <WorkspaceTabs />
-      <BlenderVillaPanel plan={result.design} />
+      <MassingViewTabs mode={mode} onChange={switchMode} studyAvailable />
       <div className="mt-4 flex items-center justify-between">
         <h1 className="font-display text-2xl">Floor-plan study · {result.model.brief.project.name}</h1>
         <div className="font-mono text-[0.7rem] uppercase tracking-[0.1em] text-ok">● Geometry verified</div>
@@ -95,21 +98,6 @@ export function Massing() {
       <div className="mt-5 grid gap-6 lg:grid-cols-[1fr_280px]">
         <div>
           <div className="mb-3 flex flex-wrap items-center gap-1">
-            <div className="mr-3 flex border border-line">
-              {(['study', 'furnished'] as ViewMode[]).map((mm) => (
-                <button
-                  key={mm}
-                  type="button"
-                  onClick={() => switchMode(mm)}
-                  className={cx(
-                    'px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.1em]',
-                    mode === mm ? 'bg-accent text-white' : 'text-ink-dim hover:text-ink',
-                  )}
-                >
-                  {mm === 'study' ? 'Study model' : 'Furnished'}
-                </button>
-              ))}
-            </div>
             {mode === 'furnished' && levels.length > 1 && (
               <div className="mr-3 flex border border-line">
                 {(['all', ...levels] as (number | 'all')[]).map((l) => (
@@ -254,6 +242,15 @@ export function Massing() {
       </div>
     </div>
   )
+}
+
+function MassingViewTabs({ mode, onChange, studyAvailable }: { mode: ViewMode; onChange: (mode: ViewMode) => void; studyAvailable: boolean }) {
+  return <div className="mt-5 flex flex-wrap gap-1" role="tablist" aria-label="3D views">
+    {([['architecture', 'Blender design'], ['study', 'Floor-plan study'], ['furnished', 'Furnished']] as const).map(([key, label]) =>
+      <button key={key} type="button" role="tab" aria-selected={mode === key} disabled={key !== 'architecture' && !studyAvailable}
+        onClick={() => onChange(key)} className={cx('border border-line px-3 py-2 text-xs disabled:opacity-40',
+          mode === key ? 'border-ink text-ink' : 'text-ink-dim hover:text-ink')}>{label}</button>)}
+  </div>
 }
 
 function CameraRig({
