@@ -369,3 +369,21 @@ sit-out, utility yard and the optional `rooms.pool`. Features are allocated in a
 plot space, with overlap/boundary checks. This same data feeds FloorDrawing, Three.js and
 BuildingModel/Blender. An unavailable pool or parking bay produces a visible fit note.
 The plan is authoritative; changing drawing settings does not regenerate or mutate rooms.
+
+
+### Drawing layers
+
+The existing Plan page uses `DrawingWorkspace` and `FloorDrawing`. CAD dark and Paper light
+are sheet themes; the application theme stays monochrome. Presentation, Architectural,
+Validation and Print presets select combinations of site/setbacks, zones, circulation/access,
+walls/columns, openings, beams/pillars, dimensions, labels and furniture. Counts come from
+the current floor. Settings apply across floor tabs, including the roof terrace. Wall gaps
+remain visible when opening symbols are hidden. Zoom and Fit change the viewport only.
+SVG preserves vector linework; drawing PDF captures the selected sheet on A3; Print uses
+the same displayed sheet. The project report PDF remains available separately.
+
+Reproduce the four-mode visual review with
+`node --experimental-strip-types scripts/review-planning.mjs`, then open
+`/output/planning-review/index.html` on the existing Vite server. It uses the production drawing
+components and a shared test brief, writes only ignored output files, and does not change
+saved projects or the user's current brief.

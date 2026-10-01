@@ -64,3 +64,9 @@ budget. Early budget feedback uses preferred sizes, so target compression cannot
 hide an unaffordable programme. Minimum widths, area, egress, opening, support and
 setback hard checks remain mandatory. An oversized household on a small plot is
 reported as infeasible rather than removing rooms or weakening checks.
+
+
+Part 2 completion: garden, compound wall, sit-out and utility yard now read the
+actual available plot geometry. `site.openSpace` changes the effective envelope
+and edge placement; `rooms.pool` adds a checked outdoor pool without changing the
+room programme. Parts 2 and 3 keep seeded generation and all hard checks.

@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Dices, Download } from 'lucide-react'
 import { useStudio } from '@/state/studio.ts'
-import { FloorDrawing, TerraceDrawing, type Theme } from '@/lib/draw/FloorDrawing.tsx'
+import { DrawingWorkspace } from '@/components/DrawingWorkspace.tsx'
 import { ZONE_LABEL } from '@/lib/model/canonical.ts'
 import { formatINR, formatINRShort, formatRange } from '@/lib/format.ts'
 import { cx } from '@/lib/cx.ts'
@@ -19,6 +19,7 @@ const SEV_COLOR: Record<Severity, string> = {
 }
 
 export function Plan() {
+  const [floorIdx, setFloorIdx] = useState(0)
   const result = useStudio((s) => s.result)
   const run = useStudio((s) => s.run)
   const reroll = useStudio((s) => s.reroll)
@@ -27,27 +28,16 @@ export function Plan() {
     if (!result) run()
   }, [result, run])
 
-  const [floorIdx, setFloorIdx] = useState(0)
-  const [theme, setTheme] = useState<Theme>('presentation')
-  const [showLabels, setShowLabels] = useState(true)
-  const [showDims, setShowDims] = useState(true)
-
-  const floor = useMemo(
-    () => (result ? result.design.floors[Math.min(floorIdx, result.design.floors.length - 1)] : null),
-    [result, floorIdx],
-  )
-
-  if (!result || !floor) {
+  if (!result) {
     return <div className="mx-auto max-w-[1400px] px-10 py-24 text-ink-dim">Generating…</div>
   }
   if (!result.report.hardChecksPass) return <InvalidPlanNotice report={result.report} />
 
-  const { design, report, cost, model } = result
+  const { design, report, cost } = result
+  const floor = design.floors[Math.min(floorIdx, design.floors.length - 1)]
   // cheap to compute; not a hook, so it is fine after the early returns
   const why = preferenceScore(design)
   const whyTerms = why.terms.filter((t) => t.value !== 0)
-  // one tab past the last floor is the roof terrace
-  const onTerrace = floorIdx >= design.floors.length
 
   return (
     <div className="mx-auto max-w-[1400px] px-6 py-8 md:px-10">
@@ -86,82 +76,8 @@ export function Plan() {
         <Metric k="Coverage" v={`${(design.coverage * 100).toFixed(0)} %`} />
       </div>
 
-      <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_300px]">
-        {/* drawing */}
-        <div>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex gap-1">
-              {design.floors.map((f, i) => (
-                <button
-                  key={f.level}
-                  type="button"
-                  onClick={() => setFloorIdx(i)}
-                  className={cx(
-                    'border px-3 py-2 font-mono text-[0.7rem] uppercase tracking-[0.1em]',
-                    i === floorIdx ? 'border-accent text-accent' : 'border-line text-ink-dim hover:text-ink',
-                  )}
-                >
-                  {f.name}
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => setFloorIdx(design.floors.length)}
-                className={cx(
-                  'border px-3 py-2 font-mono text-[0.7rem] uppercase tracking-[0.1em]',
-                  onTerrace ? 'border-accent text-accent' : 'border-line text-ink-dim hover:text-ink',
-                )}
-              >
-                Terrace
-              </button>
-            </div>
-            <div className="font-mono text-[0.7rem] uppercase tracking-[0.1em] text-ink-faint">
-              {design.candidate} · {design.algorithm}
-            </div>
-          </div>
-
-          <div className="mt-3 aspect-[4/3] w-full border border-line bg-bg-inset">
-            {onTerrace ? (
-              <TerraceDrawing design={design} />
-            ) : (
-              <FloorDrawing
-                siteFeatures={design.siteFeatures}
-                floor={floor}
-                model={model}
-                theme={theme}
-                showLabels={showLabels}
-                showDimensions={showDims}
-              />
-            )}
-          </div>
-
-          <p className="mt-2 font-mono text-[0.65rem] uppercase tracking-[0.1em] text-ink-faint">
-            1 unit = 1 mm · concept feasibility output · professional verification required
-          </p>
-        </div>
-
-        {/* controls + record */}
-        <div className="space-y-6">
-          <Panel title="Sheet">
-            <Row2 k="Theme">
-              <Toggle2
-                options={[
-                  { v: 'presentation', label: 'Presentation' },
-                  { v: 'dark', label: 'Studio grey' },
-                  { v: 'paper', label: 'Paper' },
-                ]}
-                value={theme}
-                onChange={setTheme}
-              />
-            </Row2>
-            <Row2 k="Labels">
-              <Check2 checked={showLabels} onChange={setShowLabels} />
-            </Row2>
-            <Row2 k="Dimensions">
-              <Check2 checked={showDims} onChange={setShowDims} />
-            </Row2>
-          </Panel>
-
+      <div className="mt-6"><DrawingWorkspace design={design} onFloorChange={setFloorIdx} /></div>
+      <div className="mt-6 grid gap-6 md:grid-cols-3">
           <Panel title="Study record">
             <RecRow k="Seed" v={design.seed} />
             <RecRow k="Candidate" v={design.candidate} />
@@ -202,7 +118,6 @@ export function Plan() {
             <Download size={13} />
             Project report · PDF
           </Link>
-        </div>
       </div>
 
       {/* validation findings */}
@@ -354,54 +269,5 @@ function RecRow({ k, v }: { k: string; v: string }) {
       <span className="text-xs text-ink-dim">{k}</span>
       <span className="truncate font-mono text-[0.7rem] text-ink tnum">{v}</span>
     </div>
-  )
-}
-
-function Toggle2<T extends string>({
-  options,
-  value,
-  onChange,
-}: {
-  options: { v: T; label: string }[]
-  value: T
-  onChange: (v: T) => void
-}) {
-  return (
-    <div className="flex border border-line-strong">
-      {options.map((o, i) => (
-        <button
-          key={o.v}
-          type="button"
-          onClick={() => onChange(o.v)}
-          className={cx(
-            'px-2.5 py-1 font-mono text-[0.65rem] uppercase tracking-[0.08em]',
-            i > 0 && 'border-l border-line-strong',
-            value === o.v ? 'bg-accent text-white' : 'text-ink-dim hover:text-ink',
-          )}
-        >
-          {o.label}
-        </button>
-      ))}
-    </div>
-  )
-}
-
-function Check2({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <button
-      type="button"
-      onClick={() => onChange(!checked)}
-      className={cx(
-        'h-4 w-8 border transition-colors',
-        checked ? 'border-accent bg-accent/30' : 'border-line-strong',
-      )}
-    >
-      <span
-        className={cx(
-          'block h-3 w-3 bg-ink-dim transition-transform',
-          checked ? 'translate-x-4 bg-accent' : 'translate-x-0.5',
-        )}
-      />
-    </button>
   )
 }

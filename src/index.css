@@ -134,3 +134,14 @@
     color: var(--color-ink-faint);
   }
 }
+
+@media print {
+  body:has(.drawing-sheet) { page: plan-sheet; }
+  body:has(.drawing-sheet) *:not(:has(.drawing-sheet)):not(.drawing-sheet):not(.drawing-sheet *) { display: none !important; }
+  body:has(.drawing-sheet) *:has(.drawing-sheet) { margin: 0 !important; padding: 0 !important; border: 0 !important; min-height: 0 !important; }
+  .drawing-workspace { display: block !important; }
+  .drawing-viewport { overflow: visible !important; aspect-ratio: auto !important; }
+  .drawing-sheet { width: 100% !important; height: 277mm !important; margin: 0 !important; }
+  .drawing-sheet svg { width: 100%; height: 277mm; print-color-adjust: exact; }
+  @page plan-sheet { size: A3 landscape; margin: 10mm; }
+}

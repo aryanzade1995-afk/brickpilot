@@ -1,3 +1,4 @@
+import { DRAWING_PRESETS, type DrawingLayers } from './layers.ts'
 import { Fragment } from 'react'
 import { rectBottom, rectCenter, rectRight, rectUnionEdges, type Rect } from '../geometry.ts'
 import type { Design, FloorPlan, Opening, SiteFeature } from '../engine/types.ts'
@@ -5,23 +6,18 @@ import { terraceLayout } from '../engine/terrace.ts'
 import type { CanonicalModel, Zone } from '../model/canonical.ts'
 import { furnishFloor, type FurnitureShape, type Role } from './furniture.ts'
 
-export type Theme = 'dark' | 'paper' | 'presentation'
+export type Theme = 'dark' | 'paper' | 'presentation' | 'cad'
 
-const INK = { dark: '#171717', paper: '#1b1b1b', presentation: '#141414' }
-const FAINT = { dark: 'rgba(23,23,23,0.48)', paper: 'rgba(27,27,27,0.4)', presentation: 'rgba(20,20,20,0.45)' }
-const BG = { dark: '#eeeeec', paper: '#ffffff', presentation: '#ffffff' }
+const INK = { cad: '#e5eaf0', dark: '#171717', paper: '#1b1b1b', presentation: '#141414' }
+const FAINT = { cad: '#8b98a8', dark: 'rgba(23,23,23,0.48)', paper: 'rgba(27,27,27,0.4)', presentation: 'rgba(20,20,20,0.45)' }
+const BG = { cad: '#11161c', dark: '#eeeeec', paper: '#ffffff', presentation: '#ffffff' }
 const ACCENT = '#222222'
 
 const clampN = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
 
-const ZONE_TINT: Record<Zone, string> = {
-  social: 'rgba(0,0,0,0.07)',
-  private: 'rgba(0,0,0,0.04)',
-  service: 'rgba(0,0,0,0.09)',
-  circulation: 'rgba(0,0,0,0.025)',
-  work: 'rgba(0,0,0,0.055)',
-  sacred: 'rgba(0,0,0,0.035)',
-  outdoor: 'rgba(0,0,0,0.02)',
+const ZONE_COLOR: Record<Zone, string> = {
+  social: '#789daf', private: '#bb997b', service: '#82968d', circulation: '#b7bfc7',
+  work: '#9b8cb3', sacred: '#bcac79', outdoor: '#829c7d',
 }
 
 export function FloorDrawing({
@@ -33,7 +29,11 @@ export function FloorDrawing({
   markRoomId,
   svgRef,
   siteFeatures,
+  layers,
+  presentation,
 }: {
+  layers?: Partial<DrawingLayers>
+  presentation?: boolean
   siteFeatures?: SiteFeature[]
   floor: FloorPlan
   model: CanonicalModel
@@ -48,8 +48,9 @@ export function FloorDrawing({
   const faint = FAINT[theme]
   const bg = BG[theme]
   const marked = markRoomId ? floor.rooms.find((r) => r.id === markRoomId) : undefined
-  const pres = theme === 'presentation'
-  const furniture = pres ? furnishFloor(floor) : []
+  const pres = (presentation ?? theme === 'presentation') && theme !== 'cad'
+  const active: DrawingLayers = { site: true, zoning: true, circulation: false, walls: true, openings: true, supports: false, dimensions: showDimensions, labels: showLabels, furniture: pres, ...layers }
+  const furniture = active.furniture ? furnishFloor(floor) : []
   const finishOf = new Map(furniture.map((f) => [f.roomId, f.finish]))
 
   const padL = 3400
@@ -70,12 +71,13 @@ export function FloorDrawing({
       ref={svgRef}
       viewBox={vb}
       className="h-full w-full"
-      style={{ background: theme === 'paper' || pres ? bg : 'transparent' }}
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ background: bg }}
     >
       {pres && <PresentationDefs />}
-      {floor.level === 0 && (siteFeatures ? <SiteFeatureDrawing features={siteFeatures} ink={ink} faint={faint} /> : pres && <Landscape floor={floor} model={model} />)}
+      {active.site && floor.level === 0 && (siteFeatures ? <SiteFeatureDrawing features={siteFeatures} ink={ink} faint={faint} showLabels={active.labels} showFurniture={active.furniture} dark={theme === 'cad'} /> : pres && <Landscape floor={floor} model={model} />)}
       {/* ---- site + setbacks ---- */}
-      <g>
+      {active.site && <g data-layer="site">
         <rect
           x={0}
           y={0}
@@ -101,8 +103,9 @@ export function FloorDrawing({
         <NorthArrow x={model.plot.width + 500} y={900} entrySide={model.entrySide} ink={faint} />
       </g>
 
+      }
       {/* ---- zone fills ---- */}
-      <g>
+      {(active.zoning || pres) && <g data-layer="zoning">
         {floor.rooms.map((r) => (
           <rect
             key={`fill-${r.id}`}
@@ -110,7 +113,7 @@ export function FloorDrawing({
             y={r.rect.y}
             width={r.rect.w}
             height={r.rect.h}
-            fill={pres ? `url(#fin-${finishOf.get(r.id) ?? 'tile'})` : r.outdoor ? 'none' : ZONE_TINT[r.zone]}
+            fill={active.zoning ? r.outdoor ? 'none' : ZONE_COLOR[r.zone] : pres ? `url(#fin-${finishOf.get(r.id) ?? 'tile'})` : 'none'} fillOpacity={active.zoning ? theme === 'cad' ? 0.25 : 0.16 : 1}
             stroke={r.outdoor ? faint : 'none'}
             strokeWidth={r.outdoor ? 22 : 0}
             strokeDasharray={r.outdoor ? '80 60' : undefined}
@@ -118,9 +121,10 @@ export function FloorDrawing({
         ))}
       </g>
 
+      }
       {/* ---- presentation furniture (drawing only; never changes the plan) ---- */}
-      {pres && (
-        <g>
+      {active.furniture && (
+        <g data-layer="furniture">
           {furniture.flatMap((f) => f.items.filter((s) => s.role !== 'plant')
             .map((s, i) => <Piece key={`${f.roomId}-${i}`} s={s} />))}
         </g>
@@ -153,7 +157,7 @@ export function FloorDrawing({
       )}
 
       {/* ---- walls ---- */}
-      <g strokeLinecap="square">
+      {active.walls && <g data-layer="walls" strokeLinecap="square">
         {floor.walls.map((w, i) => (
           <line
             key={`wall-${i}`}
@@ -165,15 +169,24 @@ export function FloorDrawing({
             strokeWidth={w.thickness}
           />
         ))}
-        {/* erase + draw openings on top */}
-        {floor.openings.map((o, i) => (
-          <OpeningMark key={o.id ?? `op-${i}`} o={o} ink={ink} bg={bg} theme={theme} />
-        ))}
-      </g>
+        {/* Preserve real wall gaps when opening symbols are hidden. */}
+        {floor.openings.map((o, i) => <line key={`gap-${i}`}
+          x1={o.at.x - (o.orient === 'h' ? o.width / 2 : 0)} y1={o.at.y - (o.orient === 'v' ? o.width / 2 : 0)}
+          x2={o.at.x + (o.orient === 'h' ? o.width / 2 : 0)} y2={o.at.y + (o.orient === 'v' ? o.width / 2 : 0)} stroke={bg} strokeWidth={340} />)}
+      </g>}
+      {active.openings && <g data-layer="openings">{floor.openings.map((o, i) => <OpeningMark key={o.id ?? `op-${i}`} o={o} ink={ink} bg={bg} theme={theme} />)}</g>}
+      {active.supports && <g data-layer="supports" stroke={faint} strokeWidth={80} strokeDasharray="180 90">{floor.beams?.map(b => <line key={b.id} x1={b.a.x} y1={b.a.y} x2={b.b.x} y2={b.b.y} />)}</g>}
+      {active.circulation && <g data-layer="circulation" fill="none" stroke={theme === 'cad' ? '#c5e2f0' : '#546c7b'} strokeWidth={50} strokeDasharray="140 90">
+        {floor.rooms.filter(r => r.zone === 'circulation').map(r => <rect key={r.id} x={r.rect.x + 100} y={r.rect.y + 100} width={Math.max(0, r.rect.w - 200)} height={Math.max(0, r.rect.h - 200)} />)}
+        {floor.openings.filter(o => o.kind !== 'window').map((o, i) => <g key={i}><circle cx={o.at.x} cy={o.at.y} r={140} />{o.rooms?.filter(Boolean).map(id => {
+          const r = floor.rooms.find(r => r.id === id); if (!r) return null; const c = rectCenter(r.rect)
+          return <line key={id} x1={c.x} y1={c.y} x2={o.at.x} y2={o.at.y} />
+        })}</g>)}
+      </g>}
 
       {/* ---- structural columns (same grid on every floor) ---- */}
-      {floor.columns && (
-        <g fill={ink}>
+      {(active.walls || active.supports) && floor.columns && (
+        <g data-layer="columns" fill={ink}>
           {floor.columns.map((c) => (
             <rect key={c.id} x={c.at.x - c.size / 2} y={c.at.y - c.size / 2} width={c.size} height={c.size} />
           ))}
@@ -181,7 +194,7 @@ export function FloorDrawing({
       )}
 
       {/* ---- stair ---- */}
-      {floor.stair && (
+      {(active.walls || active.circulation) && floor.stair && (
         <g stroke={ink} strokeWidth={30} fill="none">
           {floor.stair.treads.map((t, i) => (
             <line key={`tread-${i}`} x1={t[0].x} y1={t[0].y} x2={t[1].x} y2={t[1].y} />
@@ -208,8 +221,8 @@ export function FloorDrawing({
       )}
 
       {/* ---- labels ---- */}
-      {showLabels && (
-        <g textAnchor="middle">
+      {active.labels && (
+        <g data-layer="labels" textAnchor="middle">
           {floor.rooms.map((r) => {
             const c = rectCenter(r.rect)
             const short = Math.min(r.rect.w, r.rect.h)
@@ -252,8 +265,8 @@ export function FloorDrawing({
       )}
 
       {/* ---- dimensions ---- */}
-      {showDimensions && (
-        <g stroke={faint} strokeWidth={22} fill={faint} fontFamily="'IBM Plex Mono', monospace">
+      {active.dimensions && (
+        <g data-layer="dimensions" stroke={faint} strokeWidth={22} fill={faint} fontFamily="'IBM Plex Mono', monospace">
           <DimH y={model.plot.depth + 1500} x1={0} x2={model.plot.width} label={`${(model.plot.width / 1000).toFixed(2)} m`} />
           <DimV x={-1500} y1={0} y2={model.plot.depth} label={`${(model.plot.depth / 1000).toFixed(2)} m`} />
           <DimH
@@ -334,7 +347,7 @@ function OpeningMark({ o, ink, bg, theme }: { o: Opening; ink: string; bg: strin
             <path
               d={`M ${x1} ${o.at.y + (o.swing ?? 1) * o.width} A ${o.width} ${o.width} 0 0 ${o.swing === -1 ? 1 : 0} ${x2} ${o.at.y}`}
               fill="none"
-              stroke={o.kind === 'entry' ? ACCENT : ink}
+              stroke={ink}
               strokeWidth={o.kind === 'entry' ? 45 : 28}
             />
           </>
@@ -358,7 +371,7 @@ function OpeningMark({ o, ink, bg, theme }: { o: Opening; ink: string; bg: strin
           <path
             d={`M ${o.at.x + (o.swing ?? 1) * o.width} ${y1} A ${o.width} ${o.width} 0 0 ${o.swing === -1 ? 0 : 1} ${o.at.x} ${y2}`}
             fill="none"
-            stroke={o.kind === 'entry' ? ACCENT : ink}
+            stroke={ink}
             strokeWidth={o.kind === 'entry' ? 45 : 28}
           />
         </>
@@ -477,14 +490,14 @@ function Piece({ s }: { s: FurnitureShape }) {
 }
 
 /** "BEDROOM 2" over "3.6 X 4.0 m", the way a presentation plan names a room */
-function RoomTag({ name, rect, size }: { name: string; rect: Rect; size: number }) {
+function RoomTag({ name, rect, size, ink = '#1a1a1a', bg = '#ffffff' }: { name: string; rect: Rect; size: number; ink?: string; bg?: string }) {
   const c = rectCenter(rect)
   const dims = `${(rect.w / 1000).toFixed(1)} X ${(rect.h / 1000).toFixed(1)} m`
-  const halo = { stroke: '#ffffff', strokeWidth: size / 4, paintOrder: 'stroke' as const }
+  const halo = { stroke: bg, strokeWidth: size / 4, paintOrder: 'stroke' as const }
   return (
     <g fontFamily="'Inter', sans-serif" textAnchor="middle">
-      <text x={c.x} y={c.y - size * 0.15} fontSize={size} fontWeight={600} fill="#1a1a1a" {...halo}>{name.toUpperCase()}</text>
-      <text x={c.x} y={c.y + size * 1.05} fontSize={size * 0.82} fill="#3d3d3d" {...halo}>{dims}</text>
+      <text x={c.x} y={c.y - size * 0.15} fontSize={size} fontWeight={600} fill={ink} {...halo}>{name.toUpperCase()}</text>
+      <text x={c.x} y={c.y + size * 1.05} fontSize={size * 0.82} fill={ink} {...halo}>{dims}</text>
     </g>
   )
 }
@@ -511,32 +524,41 @@ function Landscape({ floor, model }: { floor: FloorPlan; model: CanonicalModel }
  * The roof terrace over the top floor, from terraceLayout() — the same
  * stair headroom room, water tank and pergola the 3D model builds.
  */
-export function TerraceDrawing({ design, svgRef }: { design: Design; svgRef?: React.Ref<SVGSVGElement> }) {
+export function TerraceDrawing({ design, svgRef, theme = 'presentation', layers }: { design: Design; svgRef?: React.Ref<SVGSVGElement>; theme?: Theme; layers?: Partial<DrawingLayers> }) {
   const model = design.model
   const layout = terraceLayout(design)
   const top = design.floors[design.floors.length - 1]
   const padL = 3400
   const padT = 1800
   const vb = `${-padL} ${-padT} ${model.plot.width + padL + 1800} ${model.plot.depth + padT + 3400}`
-  const ink = INK.presentation
-  const faint = FAINT.presentation
+  const ink = INK[theme]
+  const faint = FAINT[theme]
+  const active = { ...DRAWING_PRESETS.Presentation, ...layers }
   const o = layout?.outline ?? top.outline
   // same slat count as the 3D pergola
   const slats = layout?.pergola ? Math.max(5, Math.round(layout.pergola.w / 430)) : 0
   return (
-    <svg ref={svgRef} viewBox={vb} className="h-full w-full" style={{ background: '#ffffff' }}>
+    <svg ref={svgRef} viewBox={vb} className="h-full w-full" xmlns="http://www.w3.org/2000/svg" style={{ background: BG[theme] }}>
       <PresentationDefs />
-      <rect x={0} y={0} width={model.plot.width} height={model.plot.depth} fill="none" stroke={faint} strokeWidth={40} />
-      <NorthArrow x={model.plot.width + 500} y={900} entrySide={model.entrySide} ink={faint} />
+      {active.site && <g data-layer="site"><rect x={0} y={0} width={model.plot.width} height={model.plot.depth} fill="none" stroke={faint} strokeWidth={40} /><rect x={model.setbacksMm.W} y={model.setbacksMm.N} width={model.envelope.width} height={model.envelope.depth} fill="none" stroke={faint} strokeWidth={25} strokeDasharray="120 90" /></g>}
+      {active.supports && <g data-layer="supports" stroke={faint} strokeWidth={80} strokeDasharray="180 90">{top.beams?.map(b => <line key={b.id} x1={b.a.x} y1={b.a.y} x2={b.b.x} y2={b.b.y} />)}{top.columns?.map(c => <rect key={c.id} x={c.at.x - c.size / 2} y={c.at.y - c.size / 2} width={c.size} height={c.size} fill={ink} />)}</g>}
+      {active.circulation && top.stair && <rect data-layer="circulation" x={top.stair.rect.x} y={top.stair.rect.y} width={top.stair.rect.w} height={top.stair.rect.h} fill="none" stroke={faint} strokeWidth={60} strokeDasharray="120 90" />}
+      {active.dimensions && <g data-layer="dimensions" fill={faint} stroke={faint} strokeWidth={22} fontFamily="monospace">
+        <DimH y={model.plot.depth + 1500} x1={0} x2={model.plot.width} label={`${(model.plot.width / 1000).toFixed(2)} m`} />
+        <DimV x={-1500} y1={0} y2={model.plot.depth} label={`${(model.plot.depth / 1000).toFixed(2)} m`} />
+        <DimH y={o.y - 900} x1={o.x} x2={rectRight(o)} label={`${(o.w / 1000).toFixed(2)} m`} />
+        <DimV x={o.x - 900} y1={o.y} y2={rectBottom(o)} label={`${(o.h / 1000).toFixed(2)} m`} />
+      </g>}
+      {active.site && <NorthArrow x={model.plot.width + 500} y={900} entrySide={model.entrySide} ink={faint} />}
       {!layout ? (
         <g>
-          {top.footprint.map((r, i) => <rect key={i} x={r.x} y={r.y} width={r.w} height={r.h} fill="#e6e1d8" stroke={ink} strokeWidth={60} />)}
-          <RoomTag name="Pitched roof" rect={o} size={420} />
+          {(active.zoning || active.walls) && top.footprint.map((r, i) => <rect key={i} x={r.x} y={r.y} width={r.w} height={r.h} fill={active.zoning ? '#e6e1d8' : BG[theme]} stroke={active.walls ? ink : 'none'} strokeWidth={60} />)}
+          {active.labels && <RoomTag ink={ink} bg={BG[theme]} name="Pitched roof" rect={o} size={420} />}
         </g>
       ) : (
         <g>
-          {layout.slab.map((r, i) => <rect key={`slab-${i}`} x={r.x} y={r.y} width={r.w} height={r.h} fill="url(#fin-paving)" />)}
-          {layout.pergola && (
+          {active.zoning && layout.slab.map((r, i) => <rect key={`slab-${i}`} x={r.x} y={r.y} width={r.w} height={r.h} fill={theme === 'cad' ? '#25313c' : 'url(#fin-paving)'} fillOpacity={0.35} />)}
+          {active.furniture && layout.pergola && (
             <g>
               <rect x={layout.pergola.x} y={layout.pergola.y} width={layout.pergola.w} height={layout.pergola.h} fill="url(#fin-wood)" stroke="#86673f" strokeWidth={30} />
               {Array.from({ length: slats + 1 }, (_, i) => {
@@ -546,37 +568,37 @@ export function TerraceDrawing({ design, svgRef }: { design: Design; svgRef?: Re
             </g>
           )}
           {/* parapet with a glass guard rail, on the terrace edge */}
-          {rectUnionEdges(layout.slab).map((e, i) => (
+          {active.walls && rectUnionEdges(layout.slab).map((e, i) => (
             <g key={`rail-${i}`}>
               <line x1={e.a.x} y1={e.a.y} x2={e.b.x} y2={e.b.y} stroke={ink} strokeWidth={200} />
               <line x1={e.a.x} y1={e.a.y} x2={e.b.x} y2={e.b.y} stroke={GLASS} strokeWidth={70} />
             </g>
           ))}
-          {layout.mumty && (
+          {active.walls && layout.mumty && (
             <g>
               <rect x={layout.mumty.x} y={layout.mumty.y} width={layout.mumty.w} height={layout.mumty.h} fill="url(#fin-wood)" stroke={ink} strokeWidth={230} />
               {top.stair?.treads.map((t, i) => <line key={`tr-${i}`} x1={t[0].x} y1={t[0].y} x2={t[1].x} y2={t[1].y} stroke={ink} strokeWidth={28} />)}
-              <RoomTag name="Stair (DN)" rect={layout.mumty} size={300} />
+              {active.labels && <RoomTag ink={ink} bg={BG[theme]} name="Stair (DN)" rect={layout.mumty} size={300} />}
             </g>
           )}
-          {layout.tank && (
+          {active.furniture && layout.tank && (
             <g>
               <rect x={layout.tank.x} y={layout.tank.y} width={layout.tank.w} height={layout.tank.h} fill="#ffffff" stroke={ink} strokeWidth={40} />
               <circle cx={layout.tank.x + layout.tank.w / 2} cy={layout.tank.y + layout.tank.h / 2} r={layout.tank.w * 0.38} fill="#d9d9d9" stroke={ink} strokeWidth={25} />
             </g>
           )}
-          <RoomTag name="Open terrace" rect={o} size={440} />
-          {layout.pergola && <RoomTag name="Pergola deck" rect={layout.pergola} size={300} />}
+          {active.labels && <RoomTag ink={ink} bg={BG[theme]} name="Open terrace" rect={o} size={440} />}
+          {active.labels && active.furniture && layout.pergola && <RoomTag ink={ink} bg={BG[theme]} name="Pergola deck" rect={layout.pergola} size={300} />}
         </g>
       )}
     </svg>
   )
 }
 
-export function SiteFeatureDrawing({ features, ink, faint }: { features: SiteFeature[]; ink: string; faint: string }) {
-  return <g data-layer="outdoor">{features.filter(f => !f.covered).map(f => <g key={f.id}>
-    <rect x={f.rect.x} y={f.rect.y} width={f.rect.w} height={f.rect.h} fill={f.kind === 'pool' ? '#b5d5df' : f.kind === 'lawn' ? '#d9dfd4' : '#dddcd8'} fillOpacity={0.65} stroke={faint} strokeWidth={25} />
-    {f.rect.w >= 1400 && f.rect.h >= 1000 && <text x={f.rect.x + f.rect.w / 2} y={f.rect.y + f.rect.h / 2} textAnchor="middle" fill={ink} fontSize={260} fontFamily="monospace">{f.kind === 'lawn' ? 'LAWN' : f.kind === 'utilityYard' ? 'UTILITY YARD' : f.kind === 'sitOut' ? 'SIT-OUT' : f.kind.toUpperCase()}</text>}
-    {f.kind === 'parking' && <rect x={f.rect.x + 500} y={f.rect.y + 400} width={1900} height={4200} rx={240} fill="none" stroke={ink} strokeWidth={35} />}
+export function SiteFeatureDrawing({ features, ink, faint, showLabels = true, showFurniture = true, dark = false }: { features: SiteFeature[]; ink: string; faint: string; showLabels?: boolean; showFurniture?: boolean; dark?: boolean }) {
+  return <g data-layer="outdoor">{features.map(f => <g key={f.id}>
+    <rect x={f.rect.x} y={f.rect.y} width={f.rect.w} height={f.rect.h} fill={dark ? f.kind === 'pool' ? '#254452' : f.kind === 'lawn' ? '#29382e' : '#3a424a' : f.kind === 'pool' ? '#b5d5df' : f.kind === 'lawn' ? '#d9dfd4' : '#dddcd8'} fillOpacity={0.65} stroke={faint} strokeWidth={25} />
+    {showLabels && !f.covered && f.rect.w >= 1400 && f.rect.h >= 1000 && <text x={f.rect.x + f.rect.w / 2} y={f.rect.y + f.rect.h / 2} textAnchor="middle" fill={ink} fontSize={260} fontFamily="monospace">{f.kind === 'lawn' ? 'LAWN' : f.kind === 'utilityYard' ? 'UTILITY YARD' : f.kind === 'sitOut' ? 'SIT-OUT' : f.kind.toUpperCase()}</text>}
+    {showFurniture && !f.covered && f.kind === 'parking' && <rect x={f.rect.x + 500} y={f.rect.y + 400} width={1900} height={4200} rx={240} fill="none" stroke={ink} strokeWidth={35} />}
   </g>)}</g>
 }
