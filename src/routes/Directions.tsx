@@ -1,10 +1,9 @@
+import { FloorDrawing } from '@/lib/draw/FloorDrawing.tsx'
+import type { Design } from '@/lib/engine/types.ts'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, Check, ImagePlus, Pin } from 'lucide-react'
-import { Canvas } from '@react-three/fiber'
 import { useStudio } from '@/state/studio.ts'
-import { buildMassing } from '@/lib/three/buildMassing.ts'
-import { MassingModel } from '@/lib/three/MassingScene.tsx'
 import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
 import { VillaGenerationNotice } from '@/components/VillaGenerationNotice.tsx'
 import { cx } from '@/lib/cx.ts'
@@ -77,7 +76,7 @@ export function Directions() {
       <WorkspaceTabs />
 
       <div className="mt-6 max-w-2xl">
-        <h1 className="font-display text-[clamp(1.8rem,3.5vw,2.6rem)]">Choose an exterior direction</h1>
+        <h1 className="font-display text-[clamp(1.8rem,3.5vw,2.6rem)]">Choose a design direction</h1>
         <p className="mt-3 text-ink-dim">
           All directions use the same verified rooms, walls, doors, windows, stairs, columns and floor plates.
           Pin the architectural expression you prefer.
@@ -138,9 +137,6 @@ export function Directions() {
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
         {directions.map((d) => {
           const isPinned = pinned?.massing === d.massing && pinned?.seed === d.seed
-          const massing = buildMassing(d.design)
-          const span = Math.max(massing.bounds.w, massing.bounds.d)
-          const [camX, camY, camZ] = massing.center
           return (
             <div
               key={`${d.massing}:${d.seed}`}
@@ -170,17 +166,7 @@ export function Directions() {
                 </div>
               </div>
 
-              <div className="aspect-[3/2] w-full border-b border-line bg-bg-inset" aria-label={`${d.label} 3D preview`}>
-                <Canvas frameloop="demand" dpr={[1, 1.5]} camera={{
-                  position: [camX + span * 1.0, camY + span * 0.65, camZ + span * 1.2],
-                  fov: 42, near: 0.1, far: 300,
-                }} onCreated={({ camera }) => camera.lookAt(camX, camY, camZ)}>
-                  <color attach="background" args={['#eeeeec']} />
-                  <ambientLight intensity={2.1} />
-                  <directionalLight position={[8, 18, 12]} intensity={2.4} />
-                  <MassingModel massing={massing} explode={0} hidden={new Set()} character={brief.style.character} />
-                </Canvas>
-              </div>
+              <DirectionPlanPreview design={d.design} label={d.label} />
 
               <div className="flex flex-wrap items-center gap-x-6 gap-y-2 p-5 font-mono text-[0.7rem] uppercase tracking-[0.08em]">
                 <span className={d.report.hardChecksPass ? 'text-ok' : 'text-bad'}>
@@ -222,4 +208,20 @@ export function Directions() {
       </div>
     </div>
   )
+}
+
+export function DirectionPlanPreview({ design, label }: { design: Design; label: string }) {
+ const [level, setLevel] = useState(0)
+ const floor = design.floors[Math.min(level, design.floors.length - 1)]
+ return <div className="border-b border-line">
+  <div className="flex flex-wrap gap-1 bg-bg-inset p-2" role="tablist" aria-label={`${label} floors`}>
+   {design.floors.map((f,i)=><button key={f.level} type="button" role="tab" aria-selected={i===level}
+    onClick={()=>setLevel(i)} className={cx('border px-3 py-2 font-mono text-xs',i===level?'border-accent bg-accent text-white':'border-line text-ink-dim')}>
+    {f.level===0?'Ground':`Floor ${f.level}`}
+   </button>)}
+  </div>
+  <div className="aspect-[3/2] w-full" aria-label={`${label} ${floor.name} 2D plan`}>
+   <FloorDrawing floor={floor} model={design.model} siteFeatures={design.siteFeatures} theme="paper" showDimensions={false} />
+  </div>
+ </div>
 }

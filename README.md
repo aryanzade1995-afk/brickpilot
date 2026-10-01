@@ -47,7 +47,7 @@ separately. [`vite.config.ts`](vite.config.ts) proxies `/api` to the Node server
 | --- | --- |
 | `/` | Landing page |
 | `/workspace` | Eight-step brief: project, site, household, levels, rooms, style, entry, review |
-| `/workspace/directions` | Choose from up to four validated exterior directions and optionally upload a reference image |
+| `/workspace/directions` | Choose from up to four validated directions, preview their 2D floors and optionally upload a reference image |
 | `/workspace/plan` | Per-floor SVG drawing, room schedule, validation and cost summary |
 | `/workspace/massing` | Interactive Three.js building, layer controls and furnished dollhouse view |
 | `/workspace/render` | Geometry-conditioned building concepts and room interior renders |
@@ -414,3 +414,5 @@ Wizard capacity uses the production planner and every hard validator, with a bou
 ### Direction search
 
 Studio direction selection retries deterministic seeds and existing compatible massing/facade recipes. Uniqueness relaxes in explicit 75/82/90/97/100 percent stages and rolling quotas widen; geometric hard checks never relax. Validated candidates are reused between stages. Exact duplicates cannot fill a direction set. Debug reasons explain invalid architecture, similarity, quotas and the accepted adaptive stage. The occupied plan remains fixed; its open-space settings govern available exterior placement.
+
+Directions cards reuse `FloorDrawing` with an independent floor switcher. Selecting a direction preserves the existing pin and navigation flow; drawing controls never mutate the plan.
