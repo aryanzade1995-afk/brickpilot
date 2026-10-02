@@ -1,0 +1,6 @@
+# CC0 originals are reproducibly installed with fetch_assets.py and manifest.json.
+# Highest-quality .blend files and their textures exceed GitHub's file limit.
+textures/
+hdri/
+models/
+*.partial
