@@ -1,3 +1,4 @@
+import { buildingEdgeMap } from '@/lib/render/edgeMap.ts'
 import { create } from 'zustand'
 
 /* ------------------------------------------------------------------ *
@@ -16,8 +17,8 @@ export const REF_LABEL: Record<RefKey, string> = {
 }
 
 export type Phase = 'idle' | 'capturing' | 'ready' | 'rendering' | 'gallery'
-export type Job = { status: 'pending' | 'running' | 'done' | 'error'; url?: string; error?: string }
-export type Health = { configured: boolean; mock: boolean; reachable: boolean }
+export type Job = { status: 'pending' | 'running' | 'done' | 'error'; url?: string; error?: string; provider?: string; mock?: boolean; note?: string }
+export type Health = { configured: boolean; mock: boolean; reachable: boolean; provider?: string; note?: string }
 
 const freshJobs = (): Record<RefKey, Job> =>
   Object.fromEntries(REF_KEYS.map((k) => [k, { status: 'pending' as const }])) as Record<RefKey, Job>
@@ -43,17 +44,20 @@ type RenderState = {
   reset: () => void
 }
 
-async function callRender(imageBase64: string, prompt: string, inspiration: string | null): Promise<string> {
+async function callRender(imageBase64: string, prompt: string, inspiration: string | null): Promise<Pick<Job, 'url' | 'provider' | 'mock' | 'note'>> {
+  const edgeBase64 = await buildingEdgeMap(imageBase64)
+  let seed = 2166136261
+  for (const char of prompt) seed = Math.imul(seed ^ char.charCodeAt(0), 16777619) >>> 0
   const res = await fetch('/api/render', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ imageBase64, mimeType: 'image/png', prompt,
+    body: JSON.stringify({ imageBase64, edgeBase64, seed, mimeType: 'image/png', prompt,
       inspirationBase64: inspiration?.split(',')[1], inspirationMimeType: inspiration?.match(/^data:([^;]+);/)?.[1] }),
   })
   const j = await res.json().catch(() => ({}))
-  if (!res.ok && res.status !== 503) throw new Error(j?.error || `render failed (${res.status})`)
+  if (!res.ok) throw new Error(j?.error || `render failed (${res.status})`)
   if (!j?.imageBase64) throw new Error(j?.error || 'no image returned')
-  return `data:${j.mimeType || 'image/png'};base64,${j.imageBase64}`
+  return {url:`data:${j.mimeType || 'image/png'};base64,${j.imageBase64}`,provider:j.provider || j.meta?.provider || 'unknown',mock:!!j.mock,note:j.meta?.note || j.note}
 }
 
 export const useRender = create<RenderState>((set, get) => ({
@@ -70,7 +74,7 @@ export const useRender = create<RenderState>((set, get) => ({
     try {
       const res = await fetch('/api/render/health')
       const j = await res.json()
-      set({ health: { configured: !!j.configured, mock: !!j.mock, reachable: true } })
+      set({ health: { configured: !!j.configured, mock: !!j.mock, reachable: !!j.reachable, provider:j.provider, note:j.note } })
     } catch {
       set({ health: { configured: false, mock: false, reachable: false } })
     }
@@ -100,17 +104,16 @@ export const useRender = create<RenderState>((set, get) => ({
     const { refs, inspiration } = get()
     if (!REF_KEYS.every((k) => refs[k])) return
     set({ phase: 'rendering', jobs: freshJobs(), error: null })
-    await Promise.allSettled(
-      REF_KEYS.map(async (k) => {
+    // The local bridge is session based: queue concepts rather than burst four image jobs.
+    for (const k of REF_KEYS) {
         set((s) => ({ jobs: { ...s.jobs, [k]: { status: 'running' } } }))
         try {
-          const url = await callRender(refs[k]!.split(',')[1], promptFor(k), k === 'interior' ? null : inspiration)
-          set((s) => ({ jobs: { ...s.jobs, [k]: { status: 'done', url } } }))
+          const rendered = await callRender(refs[k]!.split(',')[1], promptFor(k), k === 'interior' ? null : inspiration)
+          set((s) => ({ jobs: { ...s.jobs, [k]: { status: 'done', ...rendered } } }))
         } catch (e) {
           set((s) => ({ jobs: { ...s.jobs, [k]: { status: 'error', error: String((e as Error).message) } } }))
         }
-      }),
-    )
+    }
     set({ phase: 'gallery' })
   },
 
@@ -119,8 +122,8 @@ export const useRender = create<RenderState>((set, get) => ({
     if (!refs[k]) return
     set((s) => ({ jobs: { ...s.jobs, [k]: { status: 'running' } } }))
     try {
-      const url = await callRender(refs[k]!.split(',')[1], promptFor(k), k === 'interior' ? null : inspiration)
-      set((s) => ({ jobs: { ...s.jobs, [k]: { status: 'done', url } } }))
+      const rendered = await callRender(refs[k]!.split(',')[1], promptFor(k), k === 'interior' ? null : inspiration)
+      set((s) => ({ jobs: { ...s.jobs, [k]: { status: 'done', ...rendered } } }))
     } catch (e) {
       set((s) => ({ jobs: { ...s.jobs, [k]: { status: 'error', error: String((e as Error).message) } } }))
     }

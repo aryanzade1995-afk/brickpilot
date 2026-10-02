@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
 import test from 'node:test'
-import { analyzeInspiration, generateInterior, healthy } from '../server/providers/gemini-web.mjs'
-import { generateInteriorWithFallback, resolveProvider } from '../server/providers/index.mjs'
+import { analyzeInspiration, generateInterior, generateBuilding, healthy } from '../server/providers/gemini-web.mjs'
+import { generateInteriorWithFallback, generateBuildingWithFallback, resolveProvider } from '../server/providers/index.mjs'
 
 async function localServer(handler) {
   const server = createServer(handler)
@@ -43,6 +43,12 @@ test('Gemini Web bridge analyzes an image and creates an interior with portable 
     assert.equal(chat.length, 2)
     assert.ok(chat[0].input.messages[0].content[1].image_url.url.startsWith('data:image/png;base64,'))
     assert.ok(requests.at(-1).input.prompt.includes('Two windows on the left wall'))
+    const building = await generateBuilding({beauty:'aW1hZ2U=',edge:'ZWRnZQ==',positive:'Photoreal villa',params:{seed:117}})
+    assert.equal(building.meta.provider,'gemini-web')
+    assert.equal(building.meta.seed,117)
+    assert.match(requests.at(-1).input.prompt,/Keep the roof terrace clear/)
+    assert.match(requests.at(-1).input.prompt,/Two windows on the left wall/)
+
   } finally {
     if (old === undefined) delete process.env.GEMINI_WEB_URL
     else process.env.GEMINI_WEB_URL = old
@@ -142,3 +148,24 @@ test('an offline setup does not label the 3D reference as an AI interior', async
     }
   }
 })
+
+for (const scenario of ['primary','primary-error','offline','both-error','empty-image']) {
+  test(`building provider order and truthful provenance: ${scenario}`,async()=>{
+    const calls = []
+    const registry = Object.fromEntries(['gemini-web','comfyui','mock'].map(id=>[id,{
+      healthy:async()=>{calls.push(id+':health');return {reachable:scenario !== 'offline' || id==='mock',note:'offline'}},
+      generateBuilding:async(job)=>{calls.push(id+':image');assert.equal(job.params.seed,117)
+        if((id==='gemini-web'&&['primary-error','both-error'].includes(scenario)) || (id==='comfyui'&&scenario==='both-error')) throw new Error('image failed')
+        return {imageBase64:scenario==='empty-image'&&id!=='mock'?'':job.beauty,mimeType:'image/png',meta:{provider:'wrong'}}
+      }
+    }]))
+    const result = await generateBuildingWithFallback({beauty:'aW1hZ2U=',params:{seed:117}},registry)
+    const provider = scenario==='primary'?'gemini-web':scenario==='primary-error'?'comfyui':'mock'
+    assert.equal(result.provider,provider)
+    assert.equal(result.meta.provider,provider)
+    assert.equal(result.mock,provider==='mock')
+    assert.equal(result.imageBase64,'aW1hZ2U=')
+    assert.deepEqual(calls.filter(c=>c.endsWith(':health')),['gemini-web','comfyui','mock'].slice(0,['gemini-web','comfyui','mock'].indexOf(provider)+1).map(x=>x+':health'))
+    assert.equal(result.meta.attempts.length,['gemini-web','comfyui','mock'].indexOf(provider))
+  })
+}

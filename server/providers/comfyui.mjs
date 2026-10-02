@@ -200,3 +200,8 @@ export async function generateInterior({ edge, positive, negative, params = {}, 
   const img = await fetchImage(ref)
   return { ...img, meta: { provider: 'comfyui', seed, promptId } }
 }
+
+export async function generateBuilding(job) {
+  if (!job.edge) throw new Error('The building reference edge map is required for ComfyUI')
+  return generateInterior({...job, negative:job.negative || 'changed footprint, extra floors, extra windows, blocked doors, solid rooftop blocks, distorted architecture',params:{...job.params,cnCanny:job.params?.cnCanny ?? .85}})
+}

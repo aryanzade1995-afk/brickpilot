@@ -300,10 +300,9 @@ export function compile(brief: Brief): CanonicalModel {
       addRel('foyer', 'pooja', 'near')
     }
 
-    if (hasUpper) {
-      spaces.push(mk('stair', 'Main stair', 'circulation', 'stair', { wantsWindow: false }))
-      addRel('foyer', 'stair', 'connected')
-    }
+    // A usable roof terrace needs source-plan stair access even on a bungalow.
+    spaces.push(mk('stair', 'Main stair', 'circulation', 'stair', { wantsWindow: false }))
+    addRel('foyer', 'stair', 'connected')
 
     if (brief.levels.liftProvision) {
       spaces.push(mk('lift', 'Future lift shaft', 'circulation', 'lift', { wantsWindow: false }))

@@ -171,8 +171,8 @@ export function Render() {
   const configuredNote =
     health && !health.reachable
       ? 'Render proxy offline — run `npm run dev` (or `npm run dev:proxy`).'
-      : health && !health.configured && !health.mock
-        ? 'No image-model key configured — add GEMINI_API_KEY to server/.env. Concepts will echo the reference until then.'
+      : health && health.mock
+        ? 'AI image providers are offline. Results will be labelled as source previews.'
         : null
 
   const primary = () => {
@@ -385,7 +385,7 @@ export function Render() {
                   </div>
                   <figcaption className="flex items-center justify-between border-t border-line px-3 py-2 font-mono text-[0.65rem] uppercase tracking-[0.08em] text-ink-faint">
                     <span>{CONCEPT_LABEL[k]}</span>
-                    {job.status === 'done' && <Eye size={11} className="text-ok" />}
+                    {job.status === 'done' && <span title={job.note} className="flex items-center gap-2">{job.mock ? 'Mock · source preview' : job.provider === 'gemini-web' ? 'Gemini Web' : job.provider === 'comfyui' ? 'ComfyUI' : job.provider}<Eye size={11} className="text-ok" /></span>}
                   </figcaption>
                 </figure>
               )

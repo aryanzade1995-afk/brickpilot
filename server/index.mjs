@@ -14,7 +14,7 @@ import { createServer } from 'node:http'
 import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs'
 import { extname, join, normalize } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { generateInteriorWithFallback, providerName, resolveProvider } from './providers/index.mjs'
+import { generateInteriorWithFallback, generateBuildingWithFallback, buildingRenderHealth, providerName, resolveProvider } from './providers/index.mjs'
 import { analyzeInspiration, healthy as geminiWebHealth } from './providers/gemini-web.mjs'
 import { handleVillaRequest } from './villa-jobs.mjs'
 
@@ -33,11 +33,6 @@ try {
 
 // Render injects PORT; keep the old var as a local fallback.
 const PORT = Number(process.env.PORT || process.env.RENDER_PROXY_PORT || 8787)
-const KEY = process.env.GEMINI_API_KEY || ''
-const MODEL = process.env.RENDER_MODEL || 'gemini-2.5-flash-image'
-const MOCK = process.env.RENDER_MOCK === '1'
-const ENDPOINT = (key) =>
-  `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`
 
 const INSPIRATION_PROMPT = `Classify the villa architecture in this reference image. Return only JSON with one value for each key below. Read the image as design inspiration, never as a floor plan or geometry to copy.
 styleFamily: modern-indian, contemporary-indian, luxury-modern, minimal-modern, tropical-modern, modern-kerala, kerala-contemporary, courtyard-modern, resort-luxury, neo-classical, contemporary-classical, urban-premium
@@ -151,7 +146,7 @@ const server = createServer(async (req, res) => {
   if (await handleVillaRequest(req, res, readJson)) return
 
   if (req.method === 'GET' && req.url === '/api/render/health') {
-    return send(res, 200, { ok: true, configured: Boolean(KEY), mock: MOCK, model: MODEL })
+    return send(res, 200, await buildingRenderHealth())
   }
 
   if (req.method === 'GET' && req.url === '/api/inspiration/health') {
@@ -178,62 +173,21 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === 'POST' && req.url === '/api/render') {
-    let body = ''
-    req.on('data', (c) => {
-      body += c
-      if (body.length > 16e6) req.destroy()
-    })
-    req.on('end', async () => {
-      let p
-      try {
-        p = JSON.parse(body)
-      } catch {
-        return send(res, 400, { error: 'invalid JSON body' })
-      }
-      const { imageBase64, mimeType = 'image/png', prompt, inspirationBase64, inspirationMimeType = 'image/jpeg' } = p || {}
-      if (!imageBase64 || !prompt) {
-        return send(res, 400, { error: 'imageBase64 and prompt are required' })
-      }
-      if (inspirationBase64 && (!/^image\/(png|jpeg|webp)$/.test(inspirationMimeType) || typeof inspirationBase64 !== 'string'))
-        return send(res, 400, { error: 'invalid inspiration image' })
-      // mock mode / no key configured → echo the source image so the flow is demoable
-      if (MOCK || !KEY) {
-        return send(res, MOCK ? 200 : 503, {
-          imageBase64,
-          mimeType,
-          mock: true,
-          note: KEY ? 'mock mode' : 'RENDER: API key not configured — showing the source reference',
-        })
-      }
-      try {
-        const r = await fetch(ENDPOINT(KEY), {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({
-            contents: [
-              { parts: [
-                { text: prompt },
-                { inlineData: { mimeType, data: imageBase64 } },
-                ...(inspirationBase64 ? [{ inlineData: { mimeType: inspirationMimeType, data: inspirationBase64 } }] : []),
-              ] },
-            ],
-          }),
-        })
-        const j = await r.json()
-        if (!r.ok) {
-          return send(res, r.status, { error: j?.error?.message || `image model error (${r.status})` })
-        }
-        const part = j?.candidates?.[0]?.content?.parts?.find((x) => x.inlineData)
-        if (!part) return send(res, 502, { error: 'no image in model response' })
-        return send(res, 200, {
-          imageBase64: part.inlineData.data,
-          mimeType: part.inlineData.mimeType || 'image/png',
-        })
-      } catch (e) {
-        return send(res, 502, { error: String(e?.message || e) })
-      }
-    })
-    return
+    try {
+      const p = await readJson(req,16e6)
+      const validImage = x => typeof x === 'string' && x.length > 0 && /^[A-Za-z0-9+/=]+$/.test(x)
+      if (!validImage(p.imageBase64) || typeof p.prompt !== 'string' || !p.prompt.trim())
+        return send(res,400,{error:'imageBase64 and prompt are required'})
+      if (p.mimeType && p.mimeType !== 'image/png') return send(res,400,{error:'Reference must be PNG'})
+      if (p.edgeBase64 && !validImage(p.edgeBase64)) return send(res,400,{error:'Invalid edge map'})
+      if (p.inspirationBase64 && (!validImage(p.inspirationBase64) || !/^image\/(png|jpeg|webp)$/.test(p.inspirationMimeType)))
+        return send(res,400,{error:'Invalid inspiration image'})
+      const seed = Number.isSafeInteger(p.seed) ? p.seed : 0
+      const result = await generateBuildingWithFallback({beauty:p.imageBase64,edge:p.edgeBase64,
+        positive:p.prompt,negative:'changed silhouette, extra floors, relocated doors or windows, solid rooftop blocks',
+        params:{seed},inspiration:p.inspirationBase64 ? {data:p.inspirationBase64,mimeType:p.inspirationMimeType}:null})
+      return send(res,200,result)
+    } catch(error) {return send(res,400,{error:String(error?.message || error)})}
   }
 
   // ---- AI interior render (SDXL + ControlNet via ComfyUI, modular provider) ----
@@ -300,6 +254,6 @@ server.listen(PORT, () => {
   const interior = providerName()
   console.log(
     `[formstead] http://localhost:${PORT}  static=${SERVE_STATIC ? 'dist' : 'off'}  ` +
-      `render=${MOCK ? 'mock' : KEY ? 'gemini' : 'MISSING'}  interior=${interior}`,
+      `render=gemini-web/comfyui/mock  interior=${interior}`,
   )
 })

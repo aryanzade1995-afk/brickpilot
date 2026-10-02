@@ -193,8 +193,9 @@ There are two different image flows. Neither supplies the source geometry.
 the accepted Blender front/hero/aerial images when available, or fixed views of
 the Three.js study model, plus a plan reference, then builds prompts from
 the brief, theme, `DesignDNA` and selected view. [`src/state/render.ts`](src/state/render.ts)
-sends the reference and prompt to `POST /api/render`; the Node server calls
-Gemini when `GEMINI_API_KEY` is configured. Without the key, it returns the
+sends the reference and prompt to `POST /api/render`; the Node server tries
+Gemini Web, then ComfyUI using a Sobel edge map of the actual reference. If both
+fail, a clearly labelled mock returns the
 source reference image as a fallback. Image outputs are presentation concepts,
 so verify them against the actual 2D/3D geometry.
 
@@ -253,10 +254,8 @@ Supabase settings. Copy [`server/.env.example`](server/.env.example) to
 | Variable | Used by | Purpose |
 | --- | --- | --- |
 | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` | Vite client | Optional sign-in and saved designs |
-| `GEMINI_API_KEY` | Node server | Optional official Gemini building renders and legacy `gemini` interior provider |
-| `RENDER_MODEL` | Node server | Optional official Gemini building model override |
+| `GEMINI_API_KEY` | Node server | Optional legacy `gemini` interior provider only |
 | `GEMINI_WEB_URL`, `GEMINI_WEB_MODEL`, `GEMINI_WEB_IMAGE_MODEL` | Node server | Local bridge URL and optional model IDs from its `/openai/v1/models` listing |
-| `RENDER_MOCK=1` | Node server | Return the building reference instead of calling Gemini |
 | `RENDER_PROXY_PORT` | Node server + Vite proxy | Local API port (default `8787`); production uses `PORT` |
 | `INTERIOR_PROVIDER` | Node server | `gemini-web` (default), `comfyui`, `gemini` or `mock` |
 | `COMFYUI_URL`, `SDXL_CKPT`, `CN_CANNY_MODEL` | ComfyUI provider | Local service URL and installed model filenames |
@@ -438,3 +437,21 @@ Older roof-volume research recipes remain in the reusable library for legacy
 replay and tests; they are not the production roof policy. Fixed plans naturally
 limit possible silhouette changes, so uniqueness is a preference with staged
 relaxation, while geometric checks remain mandatory.
+
+### Building concept providers
+
+`POST /api/render` reuses the existing image providers in this order:
+**gemini-web → comfyui → mock**. Generation errors as well as unavailable health
+checks trigger fallback. Each response and gallery card names its actual provider;
+mock means a source preview, not an AI-generated image. Gemini Web receives a
+visual description of the source (a soft geometry constraint). ComfyUI receives
+an edge map computed from the captured Blender/Three.js image, using the existing
+SDXL Canny ControlNet workflow. Provider outputs do not modify the source plan or
+3D model. Rendering jobs are queued to avoid bursting the local bridge. Its own
+cookie settings stay outside this repository. Architecture remains seed deterministic;
+AI image services may produce different pixels on replay.
+
+Production Blender jobs also relax similarity and identity quotas in stages when
+fixed plans or the flat-terrace policy constrain choices. A previously validated,
+measured candidate is retained as the final fallback. Its manifest and UI warnings
+say when uniqueness was relaxed; invalid geometry is never used as a fallback.

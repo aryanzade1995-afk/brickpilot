@@ -157,7 +157,7 @@ export function Directions() {
                   </div>
                   <p className="mt-1.5 max-w-sm text-sm text-ink-dim">{d.blurb}</p>
                   <p className="mt-2 font-mono text-[0.65rem] uppercase tracking-[0.08em] text-ink-faint">
-                    {d.design.dna.styleFamily.replaceAll('-', ' ')} · {d.design.dna.roofDesign.replaceAll('-', ' ')} roof · {d.design.dna.roofGeometry?.profile.replaceAll('-', ' ') ?? 'slim'} profile · {d.design.dna.roofGeometry?.element ?? 'portal'} element · novelty {d.novelty}/100
+                    {d.design.dna.styleFamily.replaceAll('-', ' ')} · {d.design.dna.roofDesign.replaceAll('-', ' ')} roof · novelty {Math.round(d.novelty)}/100
                   </p>
                 </div>
                 <div className="flex-none text-right">

@@ -5,7 +5,7 @@ import { generateAlternativeDesign } from '../src/lib/engine/generateAlternative
 import { makeRng } from '../src/lib/engine/massing/rng.ts'
 import { fingerprintRecord, parseFingerprintHistory } from '../src/lib/engine/fingerprint/VillaShapeFingerprint.ts'
 import { evaluateVillaFingerprint } from '../src/lib/engine/fingerprint/VillaDiversityGate.ts'
-import { evaluateRealizedVilla, validRealizedShape } from '../server/villa-shape.mjs'
+import { evaluateRealizedVilla, productionDiversityPolicy, validRealizedShape } from '../server/villa-shape.mjs'
 import { PROJECT_ROOT, runBlender } from '../server/blender-process.mjs'
 
 const directory = resolve(process.argv[2])
@@ -42,29 +42,14 @@ try {
     history = items.slice(-50).filter((h) => parseFingerprintHistory([h.fingerprint], 1).length && validRealizedShape(h.geometry))
   } catch (error) { if (error.code !== 'ENOENT') throw error }
   const rng = makeRng(request.seed, 'villa-production-retry-v1'), seen = new Set()
-  let seed = request.seed, accepted = null
+  let seed = request.seed, accepted = null, validFallback = null
   const attempts = Number(process.env.VILLA_MAX_ATTEMPTS || 32)
   if (!Number.isInteger(attempts) || attempts < 1 || attempts > 64) throw new Error('VILLA_MAX_ATTEMPTS must be an integer from 1 to 64')
   const threshold = Number(process.env.VILLA_SIMILARITY_THRESHOLD || .75)
-  for (let attempt = 0; attempt < attempts; attempt++) {
-    seen.add(seed)
-    await emit({ status: 'generating', phase: 'Checking architecture', seed, attempt: attempt + 1 })
-    try {
-      const payload = generateAlternativeDesign(request.plan, seed)
-      const quota = evaluateVillaFingerprint(payload.shapeFingerprint, history.map((h) => h.fingerprint), { similarityThreshold: 1 })
-      if (!quota.accepted) { await emit({ debug: quota }); throw new Error('Diversity quota retry') }
-      const stage = resolve(directory, 'candidates', String(seed))
-      await mkdir(stage, { recursive: true })
-      const input = resolve(stage, 'input.json'), name = `villa_${seed}`
-      await writeFile(input, JSON.stringify(payload))
-      const options = ['--input', input, '--out-dir', stage, '--name', name, '--production-names', '--quality', request.quality]
-      await emit({ status: 'generating', phase: 'Building and measuring the Blender scene', seed, attempt: attempt + 1 })
-      await runBlender([...options, '--prepare'], resolve(directory, 'blender.log'))
-      const manifest = JSON.parse(await readFile(resolve(stage, name + '.json'), 'utf8'))
-      const decision = evaluateRealizedVilla(payload, manifest.realizedGeometry, history, threshold)
-      await emit({ debug: decision })
-      if (!decision.accepted) throw new Error('Similar shape retry')
-      await emit({ status: 'rendering', phase: 'Rendering front, hero and aerial views', seed, attempt: attempt + 1 })
+  const finish = async (candidate, decision) => {
+    const {payload,stage,name,options,seed} = candidate
+    await emit({debug:decision})
+      await emit({ status: 'rendering', phase: 'Rendering front, hero and aerial views', seed, attempt: candidate.attempt })
       await runBlender([...options, '--resume', '--render-all'], resolve(directory, 'blender.log'))
       const final = JSON.parse(await readFile(resolve(stage, name + '.json'), 'utf8'))
       const files = [name + '.blend', name + '.glb', name + '_hero.png', name + '_front.png', name + '_aerial.png']
@@ -74,9 +59,35 @@ try {
       accepted = { seed, requestedSeed: request.seed, planId: payload.buildingModel.planId, family: payload.massingModel.family,
         hero: payload.shapeFingerprint.heroFeature, facadeFamily: payload.shapeFingerprint.facadeFamily,
         roofline: payload.shapeFingerprint.rooflineType, files, directory: stage, quality: request.quality,
-        shapeFingerprint: payload.shapeFingerprint, realizedGeometry: final.realizedGeometry, warnings: final.warnings }
+        shapeFingerprint: payload.shapeFingerprint, realizedGeometry: final.realizedGeometry, warnings: [...(final.warnings ?? []), ...(decision.relaxed ? [decision.reason] : [])] }
       await writeFile(resolve(directory, 'accepted.json'), JSON.stringify(accepted))
       await emit({ status: 'complete', phase: 'Ready', result: accepted })
+  }
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    seen.add(seed)
+    await emit({ status: 'generating', phase: 'Checking architecture', seed, attempt: attempt + 1 })
+    try {
+      const payload = generateAlternativeDesign(request.plan, seed)
+      const policy = productionDiversityPolicy(attempt,attempts,threshold)
+      const quota = evaluateVillaFingerprint(payload.shapeFingerprint, history.map((h) => h.fingerprint), { ...policy.limits, similarityThreshold: 1 })
+      if (!quota.accepted && validFallback) { await emit({ debug: quota }); throw new Error('Diversity quota retry') }
+      const stage = resolve(directory, 'candidates', String(seed))
+      await mkdir(stage, { recursive: true })
+      const input = resolve(stage, 'input.json'), name = `villa_${seed}`
+      await writeFile(input, JSON.stringify(payload))
+      const options = ['--input', input, '--out-dir', stage, '--name', name, '--production-names', '--quality', request.quality]
+      await emit({ status: 'generating', phase: 'Building and measuring the Blender scene', seed, attempt: attempt + 1 })
+      await runBlender([...options, '--prepare'], resolve(directory, 'blender.log'))
+      const manifest = JSON.parse(await readFile(resolve(stage, name + '.json'), 'utf8'))
+      // Identity, mesh validity and all geometry checks must pass before retaining a fallback.
+      evaluateRealizedVilla(payload,manifest.realizedGeometry,[],1)
+      const candidate = {payload,stage,name,options,seed,manifest,attempt:attempt+1}
+      let decision = evaluateRealizedVilla(payload, manifest.realizedGeometry, history, policy.threshold, policy.limits)
+      if (!validFallback || decision.similarityPercent < validFallback.similarity) validFallback={...candidate,similarity:decision.similarityPercent}
+      if (policy.stage > 0 && decision.accepted) decision={...decision,relaxed:true,reason:`Valid architecture accepted after relaxing uniqueness to ${Math.round(policy.threshold*100)}%. Fixed rooms and a clear terrace constrain variation.`}
+      await emit({ debug: decision })
+      if (!decision.accepted) throw new Error('Similar shape retry')
+      await finish(candidate,decision)
       break
     } catch (error) {
       if (!['Diversity quota retry', 'Similar shape retry'].includes(error.message)) {
@@ -86,7 +97,12 @@ try {
     }
     do { seed = rng.int(0, 0xffffffff) } while (seen.has(seed))
   }
-  if (!accepted) throw new Error('No sufficiently different valid villa found within the attempt limit. Your current plan and design are retained.')
+  if (!accepted && validFallback) {
+    const policy=productionDiversityPolicy(attempts,attempts,threshold)
+    const decision=evaluateRealizedVilla(validFallback.payload,validFallback.manifest.realizedGeometry,history,1,policy.limits)
+    if(decision.accepted) await finish(validFallback,{...decision,relaxed:true,reason:'Returning the best geometrically valid candidate. Uniqueness preferences were exhausted; the source plan and clear-terrace checks remain mandatory.'})
+  }
+  if (!accepted) throw new Error('No valid Blender scene could be produced. Your current plan and design are retained.')
 } catch (error) {
   await emit({ status: 'failed', phase: 'Generation stopped', error: error.message })
   process.exitCode = 1

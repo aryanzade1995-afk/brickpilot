@@ -21,11 +21,11 @@ export function realizedSimilarity(a, b) {
   }
   return score
 }
-export function evaluateRealizedVilla(payload, geometry, history, threshold = .75) {
+export function evaluateRealizedVilla(payload, geometry, history, threshold = .75, limits = {}) {
   if (!Number.isFinite(threshold) || threshold < 0 || threshold > 1) throw new RangeError('Similarity threshold must be in [0,1]')
   if (!validRealizedShape(geometry) || geometry.planId !== payload.buildingModel.planId || geometry.seed !== payload.villaDesignDNA.seed)
     throw new Error('Blender geometry does not match the requested plan and seed')
-  const quota = evaluateVillaFingerprint(payload.shapeFingerprint, history.map((h) => h.fingerprint), { similarityThreshold: 1 })
+  const quota = evaluateVillaFingerprint(payload.shapeFingerprint, history.map((h) => h.fingerprint), { ...limits, similarityThreshold: 1 })
   const nearest = history.filter((h) => h.geometry.schemaVersion === geometry.schemaVersion)
     .map((h) => ({ seed: h.geometry.seed, similarity: realizedSimilarity(geometry, h.geometry) }))
     .sort((a, b) => b.similarity - a.similarity || a.seed - b.seed)[0]
@@ -33,4 +33,13 @@ export function evaluateRealizedVilla(payload, geometry, history, threshold = .7
   if (nearest && nearest.similarity > threshold) return { ...base, accepted: false, code: 'SIMILAR_SHAPE',
     reason: `Evaluated mesh shape is ${base.similarityPercent}% similar; limit is ${threshold * 100}%.` }
   return quota.accepted ? { ...base, reason: 'Evaluated mesh similarity and rolling diversity checks passed.' } : base
+}
+
+/** Only uniqueness preferences are relaxed. This never changes architectural limits. */
+export function productionDiversityPolicy(attempt, attempts, threshold = .75) {
+  if (!Number.isFinite(threshold) || threshold<0 || threshold>1) throw new RangeError('Similarity threshold must be in [0,1]')
+  const stage = Math.min(4,Math.floor(attempt * 5 / Math.max(1,attempts)))
+  const thresholds = [threshold,Math.max(threshold,.82),Math.max(threshold,.90),Math.max(threshold,.97),1]
+  return {stage,threshold:thresholds[stage],limits:{maxSameMassingFamily:stage===4?10:2+stage,
+    maxSameHero:stage===4?10:2+stage,maxSameFacadeFamily:stage===4?10:2+stage,maxSameRoofline:stage===4?10:3+stage}}
 }

@@ -24,3 +24,11 @@ test('terrace free-area hard check rejects oversize headroom',()=>{
  top.stair.rect={...top.outline}
  assert.ok(validate(d).findings.some(f=>f.code==='TERRACE_FREE_AREA'))
 })
+
+test('ground-only villas still have a real stair to the usable terrace',()=>{
+ const b=defaultBrief();b.levels.storeys=0;b.site.plotWidth=24;b.site.plotDepth=28
+ const d=generate(compile(b));assert.ok(validate(d).hardChecksPass)
+ assert.ok(d.floors[0].stair);assert.ok(terraceLayout(d).mumty)
+ const altered=structuredClone(d);delete altered.floors[0].stair
+ assert.ok(validate(altered).findings.some(f=>f.code==='TERRACE_ACCESS'))
+})

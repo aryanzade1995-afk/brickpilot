@@ -47,3 +47,31 @@ export async function generateInteriorWithFallback(job, onFallback) {
     return comfyui.generateInterior(job)
   }
 }
+
+/** The Render page always tries this order. InteriorStudio retains its own policy. */
+export async function generateBuildingWithFallback(job, registry = REGISTRY) {
+  const attempts = []
+  for (const activeId of ['gemini-web','comfyui','mock']) {
+    const provider = registry[activeId]
+    try {
+      const health = await provider.healthy()
+      if (!health.reachable) throw new Error(health.note || 'offline')
+      const result = await provider.generateBuilding(job)
+      if (typeof result.imageBase64 !== 'string' || !result.imageBase64) throw new Error('No image returned')
+      return {...result, provider:activeId, mock:activeId==='mock',
+        meta:{...result.meta,provider:activeId,attempts}}
+    } catch(error) {
+      attempts.push({provider:activeId,reason:String(error?.message || error)})
+    }
+  }
+  throw new Error('No building image or source preview available')
+}
+
+export async function buildingRenderHealth() {
+  for (const provider of [geminiWeb,comfyui]) {
+    const health = await provider.healthy().catch(()=>({reachable:false}))
+    if (health.reachable) return {ok:true,reachable:true,configured:true,mock:false,provider:provider.id,note:''}
+  }
+  return {ok:true,reachable:true,configured:false,mock:true,provider:'mock',
+    note:'AI image providers are offline. Source previews remain available.'}
+}

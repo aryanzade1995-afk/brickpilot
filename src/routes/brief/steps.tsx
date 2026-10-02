@@ -640,8 +640,7 @@ export function ReviewStep() {
       <div className="border border-line p-5">
         <div className="label text-accent">Programme capacity check</div>
         <p className="mt-2 text-sm text-ink-dim">
-          Minimum requested room area against usable floor area. Topology and geometry are verified
-          after generation.
+          Minimum room sizes, topology and geometry are checked live against the production planner.
         </p>
         <div className="mt-4 space-y-3">
           {capacity.map((c) => (

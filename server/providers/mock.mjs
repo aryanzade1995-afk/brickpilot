@@ -28,3 +28,8 @@ export async function generateInterior({ beauty, onProgress }) {
     meta: { provider: 'mock', seed: Math.floor(Math.random() * 1e9) },
   }
 }
+
+export async function generateBuilding({ beauty, params = {} }) {
+  return {imageBase64:beauty,mimeType:'image/png',meta:{provider:id,mock:true,seed:params.seed ?? 0,
+    note:'Source preview — neither AI image provider could produce an image.'}}
+}

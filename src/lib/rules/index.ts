@@ -250,6 +250,7 @@ export function validate(design: Design, options: { checkFacade?: boolean } = {}
   const terrace = terraceLayout(design)
   if (terrace && terraceFreeRatio(terrace) < TERRACE_LIMITS.minFreeRatio)
     add('TERRACE_FREE_AREA', 'error', 'planning', 'At least 80% of the roof terrace must remain free of headroom, tank and edge guards.')
+  if (terrace && !design.floors.at(-1)?.stair) add('TERRACE_ACCESS', 'error', 'planning', 'The usable roof terrace requires a source-plan stair connection.')
 
   // --- vastu: strict Vastu could not be met by any valid plan (the generator
   //     prefers plans that meet it; this reports when none could) ---

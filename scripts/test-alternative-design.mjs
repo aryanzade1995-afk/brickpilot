@@ -7,7 +7,7 @@ import { compile } from '../src/lib/model/canonical.ts'
 import { generate } from '../src/lib/engine/generate.ts'
 import { generateAlternativeDesign, ENVELOPE_LIMITS } from '../src/lib/engine/generateAlternativeDesign.ts'
 import { ArchitectureValidator } from '../src/lib/engine/massing/ArchitectureValidator.ts'
-import { validRealizedShape, realizedSimilarity, evaluateRealizedVilla } from '../server/villa-shape.mjs'
+import { validRealizedShape, realizedSimilarity, evaluateRealizedVilla, productionDiversityPolicy } from '../server/villa-shape.mjs'
 import { handleVillaRequest } from '../server/villa-jobs.mjs'
 
 const plan = generate(compile(defaultBrief()), { seed: 41 })
@@ -103,4 +103,16 @@ test('villa routes reject unsafe requests and never serve unaccepted candidate f
     assert.equal((await fetch(url + '/api/villas/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/files/input.json')).status, 404)
     assert.equal((await fetch(url + '/api/villas/../../server/.env')).status, 404)
   } finally { await new Promise((resolve) => server.close(resolve)) }
+})
+
+test('production uniqueness relaxes progressively without allowing invalid measured scenes',()=>{
+ const history=Array.from({length:10},(_,i)=>({geometry:shape(100+i),fingerprint:one.shapeFingerprint}))
+ const policies=Array.from({length:32},(_,i)=>productionDiversityPolicy(i,32))
+ assert.equal(policies[0].threshold,.75)
+ assert.equal(policies.at(-1).threshold,1)
+ assert.ok(policies.every((p,i)=>i===0 || p.threshold>=policies[i-1].threshold))
+ assert.equal(evaluateRealizedVilla(one,shape(),history,policies[0].threshold,policies[0].limits).accepted,false)
+ assert.equal(evaluateRealizedVilla(one,shape(),history,policies.at(-1).threshold,policies.at(-1).limits).accepted,true)
+ assert.throws(()=>evaluateRealizedVilla(one,{...shape(),planId:'wrong'},history,1,policies.at(-1).limits),/match/)
+ assert.throws(()=>productionDiversityPolicy(0,32,NaN),RangeError)
 })

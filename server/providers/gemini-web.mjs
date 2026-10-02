@@ -100,3 +100,21 @@ export async function generateInterior({ beauty, edge, positive, negative = '', 
   return { imageBase64, mimeType: 'image/png',
     meta: { provider: id, geometryGrounding: 'reference description' } }
 }
+
+/** Building concepts use the same bridge as InteriorStudio. Reference description
+ * is a soft constraint; ComfyUI uses the actual reference edge map. */
+export async function generateBuilding({ beauty, edge, positive, negative = '', inspiration, params = {} }) {
+  const images = [{ data: beauty, mimeType: 'image/png' }]
+  if (edge) images.push({ data: edge, mimeType: 'image/png' })
+  if (inspiration) images.push({data: inspiration.data, mimeType: inspiration.mimeType})
+  const reference = await chat(
+    'Describe the exact building or plan geometry in the FIRST image: floor count, footprint, silhouette, stair headroom, clear flat terrace, entrance and opening positions, balconies and camera. Do not invent volumes or openings. The edge map confirms geometry. Any final inspiration photo guides finishes only; never copy its structure. Keep this under 160 words.', images)
+  const selected = await model(process.env.GEMINI_WEB_IMAGE_MODEL || process.env.GEMINI_WEB_MODEL || '', true)
+  const body = await request('/openai/v1/images/generations', {
+    method:'POST', headers:{'content-type':'application/json'},
+    body:JSON.stringify({model:selected, prompt:`${positive}\nAuthoritative reference: ${reference}\nAvoid: ${negative}. Preserve silhouette, floor count, openings, entrance and camera. Keep the roof terrace clear except for stair headroom and a corner tank. Output one architectural visualization.`,size:'1024x1024',n:1,response_format:'b64_json'})
+  },360000)
+  const imageBase64 = body?.data?.[0]?.b64_json
+  if (typeof imageBase64 !== 'string' || !imageBase64) throw new Error('Gemini Web returned no portable building image')
+  return {imageBase64,mimeType:'image/png',meta:{provider:id,seed:params.seed,geometryGrounding:'reference description'}}
+}

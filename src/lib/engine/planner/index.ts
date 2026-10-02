@@ -79,7 +79,14 @@ export function planVilla(model: CanonicalModel, request: PlanRequest): PlanResu
   // seed only varies between near-equivalent plates of the best tier
   const tier = all.filter((c) => c.atTarget).length ? all.filter((c) => c.atTarget)
     : all.filter((c) => c.atMin).length ? all.filter((c) => c.atMin) : all
-  const roofReady = tier.filter(c => placeFloors(input,c).roofFreeRatio >= TERRACE_LIMITS.minFreeRatio + TERRACE_LIMITS.planningClearanceMargin)
+  const roofReady: PlateCandidate[] = []
+  // Candidates are already ranked: only the first four in the same score band
+  // can enter the pool. Avoid checking hundreds of unused plates on every keypress.
+  for (const c of tier) {
+    if (roofReady.length && c.score > roofReady[0].score + Math.abs(roofReady[0].score) * .18) break
+    if (placeFloors(input,c).roofFreeRatio >= TERRACE_LIMITS.minFreeRatio + TERRACE_LIMITS.planningClearanceMargin) roofReady.push(c)
+    if (roofReady.length === 4) break
+  }
   const eligible = roofReady.length ? roofReady : tier
   const pool = eligible.filter((c) => c.score <= eligible[0].score + Math.abs(eligible[0].score) * 0.18).slice(0, 4)
   const cand: PlateCandidate = pool[request.pick % pool.length]
