@@ -105,7 +105,7 @@ test('a stale invalid saved seed preserves the valid 2D plan and reports rejecti
   assert.equal(useStudio.getState().shapeDebug[0].code, 'INVALID_ARCHITECTURE')
 })
 
-test('20 varied feasible briefs return at least one valid direction and target four without changing the source plan', () => {
+test('20 varied feasible briefs return at least one valid direction and target four, each replayed exactly when pinned', () => {
  const rows=[]
  for(let i=0;i<20;i++) {
   reset()
@@ -123,8 +123,13 @@ test('20 varied feasible briefs return at least one valid direction and target f
   assert.ok(dirs.length>=1 && dirs.length<=4, `fixture ${i}: ${useStudio.getState().generationNotice}`)
   assert.ok(dirs.every(d=>d.report.hardChecksPass && d.massingModel.status==='valid' && d.facadeModel.status==='valid'))
   assert.equal(JSON.stringify(useStudio.getState().brief),before)
-  assert.ok(dirs.every(d=>d.buildingModel.planId===dirs[0].buildingModel.planId))
+  // directions now stand on different plan shapes; each must replay exactly
   const counts={};for(const d of useStudio.getState().shapeDebug)counts[d.code]=(counts[d.code]||0)+1
+  for(const d of dirs){
+   const r=useStudio.getState().pin({massing:d.massing,seed:d.seed,...(d.planSeed!==undefined?{planSeed:d.planSeed}:{})})
+   assert.equal(r.buildingModel.planId,d.buildingModel.planId,`fixture ${i}: pinned plan differs`)
+   assert.equal(r.facadeModel.architecturalFamily,d.facadeModel.architecturalFamily)
+  }
   rows.push({brief:i,directions:dirs.length,counts})
  }
  console.info('20-brief direction search:',JSON.stringify(rows))

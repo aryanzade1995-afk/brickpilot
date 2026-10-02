@@ -1,4 +1,5 @@
-import { canIncreaseBrief, CAPACITY_GUIDANCE } from '@/lib/engine/planner/fit.ts'
+import { useMemo } from 'react'
+import { assessShape, canIncreaseBrief, CAPACITY_GUIDANCE, SHAPE_CHOICES } from '@/lib/engine/planner/fit.ts'
 import { resolveOpenSpace, OPEN_SPACE_LABEL } from '@/lib/model/openSpace.ts'
 import { PLANNING_LIMITS } from '@/lib/engine/planner/limits.ts'
 import { Plus, X } from 'lucide-react'
@@ -451,6 +452,13 @@ export function RoomsStep() {
 
 export function StyleStep() {
   const [brief, edit] = useBrief()
+  // each shape is built by the production planner for this exact brief: one
+  // the plot cannot take is shown, but cannot be chosen
+  const shapeKey = JSON.stringify({ ...brief, style: { ...brief.style, massing: 'auto' } })
+  const shapeChecks = useMemo(() => Object.fromEntries(SHAPE_CHOICES.map((shape) => [shape, assessShape(brief, shape)])) as
+    Record<ShapeChoiceValue, ReturnType<typeof assessShape>>,
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [shapeKey])
   return (
     <div className="max-w-2xl space-y-10">
       <div className="space-y-4">
@@ -509,8 +517,21 @@ export function StyleStep() {
         <Segmented
           value={brief.style.massing}
           onChange={(v) => edit((b) => void (b.style.massing = v))}
-          options={MASSING_CHOICES}
+          options={MASSING_CHOICES.map((o) => o.value === 'auto' || !shapeChecks[o.value as ShapeChoiceValue]?.ok ? o.value === 'auto' ? o
+            : { ...o, disabled: true, title: shapeChecks[o.value as ShapeChoiceValue]?.reason } : { ...o, title: shapeChecks[o.value as ShapeChoiceValue].reason })}
         />
+        <ul className="space-y-1 text-xs" role="status" aria-label="Shape checks">
+          {SHAPE_CHOICES.map((shape) => (
+            <li key={shape} className={shapeChecks[shape].ok ? 'text-ok' : 'text-ink-faint'}>
+              {shapeChecks[shape].ok ? '✓' : '✕'} {SHAPE_LABEL[shape]} — {shapeChecks[shape].reason}
+            </li>
+          ))}
+        </ul>
+        {!['auto', ...SHAPE_CHOICES].includes(brief.style.massing) && (
+          <p className="text-sm text-ink-dim" role="status">
+            This saved brief uses an older massing choice ({brief.style.massing.replaceAll('-', ' ')}). Choose Auto or one of the three shapes above.
+          </p>
+        )}
         <FitNotice />
       </div>
 
@@ -553,20 +574,13 @@ const CHARACTER_DETAILS: Record<typeof SELECTABLE_CHARACTERS[number], { title: s
 const CHARACTER_CARDS: { value: Character; title: string; body: string }[] =
   SELECTABLE_CHARACTERS.map((value) => ({ value, ...CHARACTER_DETAILS[value] }))
 
+/* Only shapes that build a genuinely different plan are offered (the others
+ * mapped onto these same plates). Older briefs keep their value and still load. */
+type ShapeChoiceValue = (typeof SHAPE_CHOICES)[number]
+const SHAPE_LABEL: Record<ShapeChoiceValue, string> = { rectangular: 'Rectangular', 'l-shape': 'L-shaped', courtyard: 'Courtyard' }
 const MASSING_CHOICES: { value: MassingChoice; label: string }[] = [
   { value: 'auto', label: 'Auto' },
-  { value: 'rectangular', label: 'Rectangular' },
-  { value: 'l-shape', label: 'L-shaped' },
-  { value: 'u-shape', label: 'U-shaped' },
-  { value: 'courtyard', label: 'Courtyard' },
-  { value: 'split-volume', label: 'Split volume' },
-  { value: 'cantilever', label: 'Cantilever' },
-  { value: 'stepped', label: 'Stepped' },
-  { value: 'interlocking', label: 'Interlocking' },
-  { value: 'side-wing', label: 'Side wing' },
-  { value: 'front-projection', label: 'Front projection' },
-  { value: 'asymmetric', label: 'Asymmetric' },
-  { value: 'random', label: 'Random' },
+  ...SHAPE_CHOICES.map((value) => ({ value, label: SHAPE_LABEL[value] })),
 ]
 
 /* -------------------------------------------------------------------------- */

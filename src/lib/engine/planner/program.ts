@@ -87,7 +87,12 @@ export function siteModel(model: CanonicalModel, yard: 'front' | 'side' = 'front
   }
   const ground = new Set(model.floors[0].spaces.map((s) => s.id))
   const covered = (ground.has('parking') ? (occupantCount(model.brief) >= 4 ? 5200 : 3000) * PARKING_DEPTH : 0) + (ground.has('verandah') ? 3400 * VERANDAH_DEPTH : 0)
-  const sizing = { fillPlot: !!model.brief.site.openSpace && model.brief.site.openSpace.mode !== 'auto', maxEnclosedMm2: plot.w * plot.h * PLANNING_LIMITS.maxCoverage - covered * 0.5 }
+  // a large villa's house always grows to fill its buildable area (up to the
+  // coverage limit); a villa / bungalow fills it only when the open-space
+  // choice asks, and only that choice changes the front yard
+  const sizing = { fillPlot: !!model.brief.site.openSpace && model.brief.site.openSpace.mode !== 'auto',
+    growPlate: model.brief.project.buildingType === 'large-villa',
+    maxEnclosedMm2: plot.w * plot.h * PLANNING_LIMITS.maxCoverage - covered * 0.5 }
   if (yard === 'side') {
     const carW = ground.has('parking') ? (occupantCount(model.brief) >= 4 ? 5200 : 3000) + YARD_GAP : 0
     return { plot, envelope, ...sizing, frontStripMm: 0, houseZone: { ...envelope, w: Math.max(0, envelope.w - carW) } }

@@ -30,6 +30,8 @@ export type VillaDesignDNA = {
   cantileverAmount: number
   facadeFamily: 'vertical' | 'horizontal' | 'layered' | 'screened' | 'framed'
   architecturalFamily: ArchitecturalFamily
+  /** the brief's style; a family that cannot fit falls back within this style first */
+  character?: Character
   heroFeature: 'entry-portal' | 'roof-frame' | 'screen-tower' | 'deep-canopy' | 'terrace-pergola'
   secondaryFeature: 'corner-frame' | 'planter-band' | 'shade-fins' | 'clerestory' | 'parapet-step'
   balconyType: 'none' | DesignDNA['balconyDesign']
@@ -105,6 +107,7 @@ export function createVillaDesignDNA(building: BuildingModel, seed: number, char
     cantileverAmount: hasUpper ? rng.int(0, 900) : 0,
     facadeFamily: rng.pick(['vertical', 'horizontal', 'layered', 'screened', 'framed'] as const),
     architecturalFamily: chooseArchitecturalFamily(building, seed, character),
+    ...(character ? { character } : {}),
     heroFeature: rng.pick(['entry-portal', 'roof-frame', 'screen-tower', 'deep-canopy', 'terrace-pergola'] as const),
     secondaryFeature: rng.pick(['corner-frame', 'planter-band', 'shade-fins', 'clerestory', 'parapet-step'] as const),
     balconyType: hasBalcony ? rng.pick([

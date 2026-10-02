@@ -71,10 +71,18 @@ export function placeSiteFeatures(model: CanonicalModel, ground: FloorPlan): { f
   else allocate('sitOut', 2000, 1600)
   const utility = ground.rooms.find(r => r.id === 'utility')
   if (utility) allocate('utilityYard', 1500, 1800, utility.rect)
+  const large = model.brief.project.buildingType === 'large-villa'
   if (model.brief.rooms.pool) {
     if (!allocate('pool', SITE_LIMITS.poolWidthMm, SITE_LIMITS.poolDepthMm)) notes.push('The selected open space cannot fit a 2.5 × 5 m pool. Increase an open margin.')
   }
-  if (model.brief.rooms.priorities.garden) for (const r of available()) if (r.w >= 500 && r.h >= 500) add('lawn', r)
+  // a large villa holds its whole site: a paved garden terrace off the house,
+  // and every remaining open area becomes lawn — no leftover land
+  if (large) {
+    const living = ground.rooms.find((r) => r.id === 'living' || r.id === 'livingDining')
+    const deck = allocate('sitOut', 4800, 3600, living?.rect) ?? allocate('sitOut', 3600, 2400, living?.rect)
+    if (!deck) notes.push('No open area left for a garden terrace; the house fills the buildable area.')
+  }
+  if (large || model.brief.rooms.priorities.garden) for (const r of available()) if (r.w >= 500 && r.h >= 500) add('lawn', r)
   return { features, notes }
 }
 

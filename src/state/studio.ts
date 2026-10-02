@@ -11,12 +11,13 @@ import {
   type Design,
   type MassingType,
 } from '@/lib/engine/index.ts'
+import { directionPlans } from '@/lib/engine/generate.ts'
 import { validate, type ValidationReport } from '@/lib/rules/index.ts'
 import { estimateCost, type CostEstimate } from '@/lib/cost/index.ts'
 import { varyExterior } from '@/lib/engine/variation.ts'
 import { parseInspirationPreferences, type InspirationPreferences } from '@/lib/engine/designDna.ts'
 import type { BuildingModel } from '@/lib/engine/buildingModel.ts'
-import type { VillaDesignDNA } from '@/lib/engine/villaDesignDna.ts'
+import { createVillaDesignDNA, type VillaDesignDNA } from '@/lib/engine/villaDesignDna.ts'
 import type { MassingModel } from '@/lib/engine/massing/model.ts'
 import type { ProceduralFacadeModel } from '@/lib/engine/facade/proceduralTypes.ts'
 import { generateAlternativeDesign } from '@/lib/engine/generateAlternativeDesign.ts'
@@ -44,12 +45,16 @@ export type Result = {
 export type PinnedDir = {
   massing: MassingType
   seed: number
+  /** the plan seed of a direction explored with its own plan shape; absent =
+   *  the brief's own plan (older pins, Generate again) */
+  planSeed?: number
   inspiration?: InspirationPreferences | null
 }
 
 export type DirectionOption = {
   massing: MassingType
   seed: number
+  planSeed?: number
   label: string
   blurb: string
   novelty: number
@@ -70,6 +75,7 @@ export function parsePinned(v: unknown): PinnedDir | null {
       typeof o.seed === 'number' && Number.isFinite(o.seed)) {
       const inspiration = parseInspirationPreferences(o.inspiration)
       return { massing: o.massing as MassingType, seed: o.seed,
+        ...(Number.isSafeInteger(o.planSeed) ? { planSeed: o.planSeed as number } : {}),
         ...(inspiration ? { inspiration } : {}) }
     }
     return null
@@ -85,7 +91,15 @@ export function parsePinned(v: unknown): PinnedDir | null {
 }
 
 export const serializePinned = (p: PinnedDir | null): string | null =>
-  p ? p.inspiration ? JSON.stringify(p) : `${p.massing}:${p.seed}` : null
+  p ? p.inspiration || p.planSeed !== undefined ? JSON.stringify(p) : `${p.massing}:${p.seed}` : null
+
+/** the 2D plan a pin stands on: a direction's own plan shape and seed, or the
+ *  brief's plan (an older pin of another shape regenerates that shape) */
+function pinnedPlan(model: CanonicalModel, pinned: PinnedDir): Design {
+  if (pinned.planSeed !== undefined) return generate(model, { massing: pinned.massing, seed: pinned.planSeed })
+  const plan = generate(model)
+  return plan.massingType === pinned.massing ? plan : generate(model, { massing: pinned.massing })
+}
 
 type StudioState = {
   brief: Brief
@@ -154,7 +168,8 @@ function replayResult(plan: Design, seed: number, inspiration: InspirationPrefer
 
 function assemble(brief: Brief, pinned: PinnedDir | null, inspiration: InspirationPreferences | null,
   history: ShapeFingerprintRecord[], limits: VillaDiversityLimits) {
-  const plan = generate(compile(brief))
+  const model = compile(brief)
+  const plan = pinned ? pinnedPlan(model, pinned) : generate(model)
   if (!validate(plan).hardChecksPass) return { result: resultForPlan(plan), history, debug: [], notice: null }
   if (pinned) {
     // Loading/pinning/navigation is an exact replay, not another new candidate.
@@ -260,7 +275,9 @@ export const useStudio = create<StudioState>()(
           return cur.result ?? { ...resultForPlan(base), shapeStatus: 'rejected' }
         }
         const result = selection.accepted.candidate
+        // a new exterior on the same plan keeps that plan's own seed
         const pinned: PinnedDir = { massing: base.massingType, seed: result.design.dna.seed,
+          ...(cur.pinned?.planSeed !== undefined && cur.pinned.massing === base.massingType ? { planSeed: cur.pinned.planSeed } : {}),
           inspiration: cur.referencePreferences }
         set((s) => {
           s.pinned = pinned
@@ -277,28 +294,69 @@ export const useStudio = create<StudioState>()(
       explore: () => {
         const cur = get()
         if (cur.directions !== null) return cur.directions
-        const plan = generate(compile(cur.brief)), dirs: DirectionOption[] = [], debug: FingerprintDebug[] = []
+        const model = compile(cur.brief)
+        const plan = generate(model), dirs: DirectionOption[] = [], debug: FingerprintDebug[] = []
         let history = cur.recentVillaFingerprints, notice: string | null = null
-        const option = (r: Result, index: number, novelty: number): DirectionOption => ({
-          massing: r.design.massingType, seed: r.design.dna.seed,
+        // every direction stands on its own plan shape, so the four houses differ
+        // in form, not only in trim; a shape the plot cannot take falls back to
+        // the brief's own plan
+        const plans: { plan: Design; massing: MassingType; planSeed?: number }[] = []
+        const seen = new Set<string>()
+        for (const want of directionPlans(model)) {
+          const candidate = generate(model, { massing: want.family, seed: want.seed })
+          const key = candidate.floors.map((f) => f.rooms.map((r) => `${r.id}${r.rect.x},${r.rect.y},${r.rect.w},${r.rect.h}`).join(';')).join('|')
+          if (seen.has(key) || !validate(candidate).hardChecksPass) continue
+          seen.add(key)
+          plans.push({ plan: candidate, massing: want.family, planSeed: want.seed })
+        }
+        while (plans.length < 4) plans.push({ plan, massing: plan.massingType })
+        const option = (r: Result, index: number, novelty: number, source?: (typeof plans)[number]): DirectionOption => ({
+          massing: source?.massing ?? r.design.massingType, seed: r.design.dna.seed,
+          ...(source?.planSeed !== undefined ? { planSeed: source.planSeed } : {}),
           label: `Direction ${'ABCD'[index]} — ${r.shapeFingerprint!.massingFamily.replaceAll('_', ' ').toLowerCase()}`,
           blurb: `${r.shapeFingerprint!.heroFeature.replaceAll('_', ' ').toLowerCase()} · ${r.shapeFingerprint!.rooflineType.replaceAll('_', ' ').toLowerCase()}`,
           novelty, design: r.design, report: r.report, buildingModel: r.buildingModel!, villaDesignDNA: r.villaDesignDNA!,
           massingModel: r.massingModel!, facadeModel: r.facadeModel!, shapeFingerprint: r.shapeFingerprint! })
-        if (validate(plan).hardChecksPass && cur.pinned) {
-          const replay = replayResult(plan, cur.pinned.seed, cur.referencePreferences)
-          if (replay.result.shapeFingerprint) dirs.push(option(replay.result, 0, 0))
-          else debug.push(...replay.debug)
+        if (cur.pinned) {
+          const pinnedSource = { plan: pinnedPlan(model, cur.pinned), massing: cur.pinned.massing, planSeed: cur.pinned.planSeed }
+          if (validate(pinnedSource.plan).hardChecksPass) {
+            const replay = replayResult(pinnedSource.plan, cur.pinned.seed, cur.referencePreferences)
+            if (replay.result.shapeFingerprint) {
+              dirs.push(option(replay.result, 0, 0, pinnedSource))
+              // the pinned plan takes the first slot; drop the same plan from the rest
+              const same = plans.findIndex((p) => p.massing === pinnedSource.massing && p.planSeed === pinnedSource.planSeed)
+              plans.splice(same >= 0 ? same : plans.length - 1, 1)
+            } else debug.push(...replay.debug)
+          }
         }
-        if (validate(plan).hardChecksPass) for (let i = dirs.length; i < 4; i++) {
-          const selection = generateDistinct(plan, cur.brief.variation + 1 + i * 977, cur.referencePreferences, history, cur.diversityLimits,
+        if (validate(plan).hardChecksPass || plans.some((p) => p.planSeed !== undefined)) for (let i = dirs.length; i < 4; i++) {
+          const source = plans[i - (4 - plans.length)] ?? plans.at(-1)!
+          const usedFamilies = new Set(dirs.map((d) => d.facadeModel.architecturalFamily))
+          const selection = generateDistinct(source.plan, cur.brief.variation + 1 + i * 977, cur.referencePreferences, history, cur.diversityLimits,
             dirs.map((d) => fingerprintRecord(d.shapeFingerprint)))
+          // each direction leads with its own composition where one fits: when
+          // the search lands on a family already shown, a few further seeds are
+          // tried directly (one candidate each — cheap), else the first stands
+          let swap: Result | null = null
+          if (selection.accepted && usedFamilies.has(selection.accepted.candidate.facadeModel!.architecturalFamily)) {
+            const building = selection.accepted.candidate.buildingModel!
+            // the seed's family is known from its design record alone, so only
+            // seeds that would lead with a new family are built in full
+            const seeds = Array.from({ length: 24 }, (_, k) => cur.brief.variation + 1 + i * 977 + (k + 1) * 131)
+              .filter((s) => !usedFamilies.has(createVillaDesignDNA(building, s, cur.brief.style.character).architecturalFamily))
+            for (const s of seeds.slice(0, 3)) {
+              try {
+                const c = exactResult(source.plan, s, cur.referencePreferences, 'accepted')
+                if (c.facadeModel && !usedFamilies.has(c.facadeModel.architecturalFamily)) { swap = c; break }
+              } catch { /* an invalid candidate is simply skipped */ }
+            }
+          }
           debug.push(...selection.debug)
           if (!selection.accepted) { notice = exhaustedNotice(selection.debug.length); break }
-          const r = selection.accepted.candidate
-          history = selection.history
+          const r = swap ?? selection.accepted.candidate
+          history = swap ? [...selection.history.slice(0, -1), fingerprintRecord(swap.shapeFingerprint!)] : selection.history
           if (selection.debug.at(-1)?.reason.startsWith('Adaptive')) notice = 'Valid directions are shown. Uniqueness was relaxed because the fixed rooms and site limit architectural variation.'
-          dirs.push(option(r, i, 100 - selection.debug.at(-1)!.similarityPercent))
+          dirs.push(option(r, i, 100 - selection.debug.at(-1)!.similarityPercent, source))
         }
         set((s) => {
           s.directions = dirs

@@ -9,6 +9,10 @@ export const ARCHITECTURAL_FAMILIES = [
   'WARM_CONTEMPORARY', 'TROPICAL_MODERN', 'SCREEN_HOUSE',
   'INDIAN_CONTEMPORARY', 'VERTICAL_MONOLITH', 'HORIZONTAL_LAYERED',
   'COURTYARD_MODERN', 'LAYERED_PORTICO', 'DEEP_REVEAL', 'FINNED_PAVILION', 'SCULPTED_CORNER',
+  // compositions drawn from the reference photo set (docs/villa-precedents.md)
+  'GLASS_PAVILION', 'STEEL_FRAME_GRID', 'RAISED_BAR',
+  'STEPPED_WHITE', 'FREE_CANOPY',
+  'STONE_COLONNADE', 'TIMBER_PORTICO',
 ] as const
 export type ArchitecturalFamily = (typeof ARCHITECTURAL_FAMILIES)[number]
 
@@ -37,12 +41,39 @@ export const ARCHITECTURAL_FAMILY_RECIPES: Record<ArchitecturalFamily, Architect
   FINNED_PAVILION: { heroes: ['VERTICAL_FIN_SCREEN', 'DEEP_OVERHANG'], supports: ['WOOD_SPINE', 'HORIZONTAL_LOUVER'], spanRatio: [0.78, 0.96], projectionScale: 1.35 },
   SCULPTED_CORNER: { heroes: ['CORNER_WRAP_FRAME', 'INTERLOCKING_BOX'], supports: ['FLOATING_FRAME', 'DEEP_OVERHANG'], spanRatio: [0.6, 0.84], projectionScale: 1.3 },
   COURTYARD_MODERN: { heroes: ['COURTYARD_SCREEN'], supports: ['PERGOLA_FRAME', 'WOOD_SPINE'], spanRatio: [0.65, 0.88], projectionScale: 0.9, requiresCourtyard: true },
+  /* Farnsworth / Stahl: a deep thin roof slab on slim posts, a solid base */
+  GLASS_PAVILION: { heroes: ['FREEFORM_CANOPY', 'DEEP_OVERHANG'], supports: ['STONE_PLINTH', 'HORIZONTAL_LOUVER'], spanRatio: [0.78, 0.96], projectionScale: 1.3 },
+  /* Eames: a black steel grid of mullions and transoms over the walls */
+  STEEL_FRAME_GRID: { heroes: ['STEEL_GRID'], supports: ['PROJECTED_BOX', 'DEEP_OVERHANG'], spanRatio: [0.62, 0.92], projectionScale: 1 },
+  /* Kogelhof / Tugendhat: a long bar lifted over a stone plinth */
+  RAISED_BAR: { heroes: ['FLOATING_BOX', 'FLOATING_FRAME'], supports: ['STONE_PLINTH', 'DEEP_OVERHANG'], spanRatio: [0.8, 0.96], projectionScale: 1.4 },
+  /* Maison Louis Carré: stepped white volumes, timber in the openings */
+  STEPPED_WHITE: { heroes: ['TIMBER_BATTEN', 'RECESSED_BOX'], supports: ['DEEP_OVERHANG', 'STONE_PLINTH'], spanRatio: [0.55, 0.8], projectionScale: 1 },
+  /* Casa das Canoas: a free-standing canopy over the living terrace */
+  FREE_CANOPY: { heroes: ['FREEFORM_CANOPY'], supports: ['VERTICAL_FIN_SCREEN', 'WOOD_SPINE'], spanRatio: [0.7, 0.95], projectionScale: 1.3 },
+  /* Can Lis: a stone colonnade round an outdoor room */
+  STONE_COLONNADE: { heroes: ['COLONNADE'], supports: ['STONE_PLINTH', 'PERGOLA_FRAME'], spanRatio: [0.75, 0.95], projectionScale: 1.2 },
+  /* Villa Mairea: a timber porte-cochère, battened upper walls, a stone base */
+  TIMBER_PORTICO: { heroes: ['FREEFORM_CANOPY', 'ENTRY_PORTAL'], supports: ['TIMBER_BATTEN', 'STONE_PLINTH'], spanRatio: [0.6, 0.85], projectionScale: 1.15 },
 }
 
 const UI_FAMILY_POOL: Partial<Record<Character, readonly ArchitecturalFamily[]>> = {
-  'modern-box': ['FRAMED_MODERN', 'FLOATING_BOX', 'INTERLOCKING_MODERN', 'MINIMAL_LUXURY', 'VERTICAL_MONOLITH', 'HORIZONTAL_LAYERED', 'DEEP_REVEAL', 'SCULPTED_CORNER'],
-  'contemporary-indian': ['WARM_CONTEMPORARY', 'TROPICAL_MODERN', 'SCREEN_HOUSE', 'INDIAN_CONTEMPORARY', 'VERTICAL_MONOLITH', 'LAYERED_PORTICO', 'FINNED_PAVILION'],
-  'courtyard-indian': ['COURTYARD_MODERN', 'TROPICAL_MODERN', 'SCREEN_HOUSE', 'INDIAN_CONTEMPORARY', 'WARM_CONTEMPORARY', 'LAYERED_PORTICO', 'FINNED_PAVILION'],
+  'modern-box': ['FRAMED_MODERN', 'FLOATING_BOX', 'INTERLOCKING_MODERN', 'MINIMAL_LUXURY', 'VERTICAL_MONOLITH', 'HORIZONTAL_LAYERED', 'DEEP_REVEAL', 'SCULPTED_CORNER',
+    'GLASS_PAVILION', 'STEEL_FRAME_GRID', 'RAISED_BAR'],
+  'contemporary-indian': ['WARM_CONTEMPORARY', 'TROPICAL_MODERN', 'SCREEN_HOUSE', 'INDIAN_CONTEMPORARY', 'VERTICAL_MONOLITH', 'LAYERED_PORTICO', 'FINNED_PAVILION',
+    'STEPPED_WHITE', 'FREE_CANOPY'],
+  'courtyard-indian': ['COURTYARD_MODERN', 'TROPICAL_MODERN', 'SCREEN_HOUSE', 'INDIAN_CONTEMPORARY', 'WARM_CONTEMPORARY', 'LAYERED_PORTICO', 'FINNED_PAVILION',
+    'STONE_COLONNADE', 'TIMBER_PORTICO'],
+}
+
+/** the families a style draws from (every family when the style has no pool) */
+export const styleFamilyPool = (character?: Character): readonly ArchitecturalFamily[] =>
+  (character && UI_FAMILY_POOL[character]) || ARCHITECTURAL_FAMILIES
+
+/** the families that define a style; chosen three times as often as the rest */
+const SIGNATURE: Partial<Record<Character, readonly ArchitecturalFamily[]>> = {
+  'contemporary-indian': ['STEPPED_WHITE', 'FREE_CANOPY', 'LAYERED_PORTICO'],
+  'courtyard-indian': ['COURTYARD_MODERN', 'STONE_COLONNADE', 'TIMBER_PORTICO'],
 }
 
 export const architecturalFamilyFitsPlan = (building: BuildingModel, family: ArchitecturalFamily): boolean =>
@@ -53,5 +84,9 @@ export function chooseArchitecturalFamily(building: BuildingModel, seed: number,
   const pool = (character && UI_FAMILY_POOL[character]) || ARCHITECTURAL_FAMILIES
   const compatible = pool.filter((family) => architecturalFamilyFitsPlan(building, family))
   if (!compatible.length) throw new Error('No architectural composition fits the source plan')
-  return makeRng(seed, `${building.planId}|architectural-family-v1|${character ?? 'any'}`).pick(compatible)
+  const signature = (character && SIGNATURE[character]) ?? []
+  const rng = makeRng(seed, `${building.planId}|architectural-family-v1|${character ?? 'any'}`)
+  return signature.length
+    ? rng.weighted(compatible.map((family) => [family, signature.includes(family) ? 3 : 1] as [ArchitecturalFamily, number]))
+    : rng.pick(compatible)
 }

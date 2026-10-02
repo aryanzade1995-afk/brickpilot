@@ -41,6 +41,7 @@ from exporters.glb import export_glb  # noqa: E402
 
 
 from geometry.roof_services import create_roof_services
+from geometry.covered import create_covered_outdoor, create_exposed_roofs, create_pool_deck
 
 
 def payload_digest(payload):
@@ -110,6 +111,11 @@ def create_scene(payload, visualization=None):
             customized = any(unit["category"] == "BALCONY" and room["semanticId"] in unit["sourceRoomIds"] for unit in assemblies)
             create_balcony(scene, room, by_floor[room["floorId"]], terrace_mass, building["doors"], with_railing=not customized)
     create_roof_services(scene, building)
+    # car porch / verandah roofs (a balcony where the upper floor opens onto
+    # them), the parked car and a deck round the pool
+    covered = create_covered_outdoor(scene, building, massing, facade)
+    covered.update(create_exposed_roofs(scene, building))
+    covered["poolDeck"] = create_pool_deck(scene, building)
     top = floors[-1]
     roof_level = top["elevationMm"] + top["heightMm"]
     accessible = create_terrace(scene, top, building["stairs"], building["shafts"]) if flat_roof else False
@@ -139,7 +145,7 @@ def create_scene(payload, visualization=None):
     cameras = create_cameras(scene, building, options)
     scene.visualization_report = {"palette": options["palette"], "options": options, "composition": composition,
                                   "surfaces": surfaces, "landscape": landscape, "lighting": lighting,
-                                  "render": render, "cameras": cameras}
+                                  "render": render, "cameras": cameras, "outdoor": covered}
     bpy.context.scene["visualization_settings"] = json.dumps(options)
     return scene
 
