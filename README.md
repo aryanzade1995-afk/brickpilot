@@ -556,3 +556,26 @@ The review includes all four wing families, floor tabs, both drawing themes and
 an overview of the 50 source plans. JSON metrics are in
 `output/wing-review/summary.json`. Local editable double-height and wrap-verandah
 Blender/GLB checks are in `output/wing-family-review/`.
+
+### Wing choice reliability
+
+The Style step now offers **Auto, Twin wings, U wings, Courtyard wings and
+Pavilion**. Courtyard wings uses the `courtyard-ring` planner family. Legacy
+rectangle/L/courtyard saved briefs still load. Buttons are enabled only after
+the exact requested family passes the production planner and every hard check.
+An unavailable explicit wing request produces a hard diagnostic; it cannot
+silently become an accepted rectangular plan.
+
+Wing junctions use 1.5 m halls on both typologies. Pavilion filler galleries
+preserve required room width even when the side block ends off the gallery
+grid. Overflow can redistribute complete movable room groups and optional
+extras between bars without moving fixed entry, stair, living or utility
+relationships. A failed local seed search retries a deterministic shared range
+of the same family and saves its passing seed for exact replay.
+
+`scripts/test-wing-reliability.mjs` checks 288 exact-family layouts (ordinary
+and large villas, 24×30 / 30×40 / 40×60 m, Ground through G+3, three seeds),
+blocked compact requests, saved legacy values and four open-space modes.
+[The availability audit](docs/wing-availability.md) records a wider 576-request
+matrix: 489 valid exact-family plans, 87 blocked requests, zero accepted
+wrong-family substitutes. This does not guarantee arbitrary programmes fit.

@@ -513,7 +513,7 @@ export function StyleStep() {
         <div>
           <span className="label">Massing</span>
           <p className="mt-1 text-sm text-ink-dim">
-            The architectural structure — footprint, floor offsets, courtyard, cantilevers.{' '}
+            Choose connected twin wings, U wings, a courtyard ring or a pavilion.{' '}
             <span className="text-ink-faint">Auto</span> chooses one that fits the plot and brief.
           </p>
         </div>
@@ -532,7 +532,7 @@ export function StyleStep() {
         </ul>
         {!['auto', ...SHAPE_CHOICES].includes(brief.style.massing) && (
           <p className="text-sm text-ink-dim" role="status">
-            This saved brief uses an older massing choice ({brief.style.massing.replaceAll('-', ' ')}). Choose Auto or one of the three shapes above.
+            This saved brief uses an older massing choice ({brief.style.massing.replaceAll('-', ' ')}). It still loads; choose Auto or one of the four wing designs above to change it.
           </p>
         )}
         <FitNotice />
@@ -580,8 +580,8 @@ const CHARACTER_CARDS: { value: Character; title: string; body: string }[] =
 /* Only shapes that build a genuinely different plan are offered (the others
  * mapped onto these same plates). Older briefs keep their value and still load. */
 type ShapeChoiceValue = (typeof SHAPE_CHOICES)[number]
-const SHAPE_LABEL: Record<ShapeChoiceValue, string> = { rectangular: 'Rectangular', 'l-shape': 'L-shaped', courtyard: 'Courtyard',
-  'twin-wing':'Twin wings','u-wing':'U wings','courtyard-ring':'Courtyard ring',pavilion:'Pavilion' }
+const SHAPE_LABEL: Record<ShapeChoiceValue, string> = {
+  'twin-wing':'Twin wings','u-wing':'U wings','courtyard-ring':'Courtyard wings',pavilion:'Pavilion' }
 const MASSING_CHOICES: { value: MassingChoice; label: string }[] = [
   { value: 'auto', label: 'Auto' },
   ...SHAPE_CHOICES.map((value) => ({ value, label: SHAPE_LABEL[value] })),

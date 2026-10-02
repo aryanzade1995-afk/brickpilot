@@ -11,7 +11,7 @@ import type { Column, LocalRoom, RoomReq, Unit } from './types.ts'
 import { PLANNING_LIMITS } from './limits.ts'
 import { createDoubleHeightGallery, DOUBLE_HEIGHT_LIMITS } from './doubleHeight.ts'
 
-export const WING_LIMITS = { linkWidthMm: 1800, courtWidthMm: 3000, maximumDepthMm: 5400,
+export const WING_LIMITS = { linkWidthMm: 1800, hallWidthMm: 1500, courtWidthMm: 3000, maximumDepthMm: 5400,
   maximumRoomGrowth: 1.5, minimumBarLengthMm: 6000 } as const
 
 const placed = (r: RoomReq, rect: Rect): PlacedRoom => ({ id:r.id,semanticId:r.semanticId,name:r.name,
@@ -22,6 +22,26 @@ const hallReq = (id: string, prefix: string, name: string): RoomReq => {
   minSqm:0,targetSqm:8,maxSqm:999,minWidthMm:0,wet:false,habitable:false,outdoor:false,space}
 }
 
+/** Rebalance complete room groups only when the preferred wing overflows.
+ * Fixed entry, stair, living and utility relationships keep their chosen wing. */
+function balanceWings(north: Unit[], south: Unit[], depth: number, length: number): {north:Unit[];south:Unit[]} | null {
+ const size=(us:Unit[])=>us.reduce((sum,u)=>sum+unitLength(u,depth,'min'),0)
+ if(size(north)<=length&&size(south)<=length)return {north,south}
+ const flexible=(u:Unit)=>!u.anchor&&u.key!=='bedStaff'&&(u.movable||u.rooms.every(r=>r.space.autoExtra))
+ const entries=[...north.map(u=>({u,original:0})),...south.map(u=>({u,original:1}))]
+ let best:{north:Unit[];south:Unit[]}|null=null,changes=Infinity
+ const visit=(i:number,n:Unit[],s:Unit[],nl:number,sl:number,moves:number)=>{
+  if(nl>length||sl>length||moves>=changes)return
+  if(i===entries.length){best={north:n,south:s};changes=moves;return}
+  const {u,original}=entries[i],width=unitLength(u,depth,'min')
+  for(const band of flexible(u)?[original,1-original]:[original]){
+   visit(i+1,band===0?[...n,u]:n,band===1?[...s,u]:s,nl+(band===0?width:0),sl+(band===1?width:0),moves+Number(band!==original))
+  }
+ }
+ visit(0,[],[],0,0,0)
+ return best
+}
+
 /** Two independently sized single-loaded bars, joined at their spines. Groups
  * remain intact; no room coordinate or source opening is copied from a 3D mass. */
 export function planWings(model: CanonicalModel, request: PlanRequest): PlanResult | null {
@@ -29,14 +49,16 @@ export function planWings(model: CanonicalModel, request: PlanRequest): PlanResu
  // Covered outdoor rooms may abut a wing: they need their depth, no spare yard gap.
  if (site.frontStripMm >= 5300) site.houseZone.h += 300
  const reqs=programRequirements(nb,stair.slotWidth), zone=site.houseZone
- const s=nb.large?1500:1200, linkW=WING_LIMITS.linkWidthMm
+ // Two end columns and the opening placer's jamb clearance need more than a
+ // 1.2 m shared edge. Use the same accessible gallery junction for both sizes.
+ const s=WING_LIMITS.hallWidthMm, linkW=WING_LIMITS.linkWidthMm
  const third=request.family!=='twin-wing', ring=request.family==='courtyard-ring'
  const choices=request.layoutChoices
  const sideDepth=third?(zone.w>=24000?3900:3000):0, rightWidth=ring?linkW:0
  const length=snap(zone.w-linkW-sideDepth-rightWidth)
  if(length<WING_LIMITS.minimumBarLengthMm) return null
  const rng=makeRng(request.order,`${model.seed.split('-')[0]}|wing-units`)
- const groups=reqs.map(f=>{
+ const preferredGroups=reqs.map(f=>{
   const sideUnits=third?f.units.filter(u=>u.key!=='core' && !u.anchor && u.key!=='kitchen' &&
     ((u.key==='living'&&choices?.living==='side') || u.key==='pooja' || u.rooms.every(r=>r.kind==='study'||r.kind==='bath'))):[]
   const available=f.units.filter(u=>!sideUnits.includes(u))
@@ -52,12 +74,14 @@ export function planWings(model: CanonicalModel, request: PlanRequest): PlanResu
   return {north:publicUnits,south:[...fixed,...free],side:sideUnits}
  })
  const depths=Array.from({length:Math.floor((WING_LIMITS.maximumDepthMm-stair.depth)/300)+1},(_,i)=>stair.depth+i*300)
- const candidates=depths.filter(d=>zone.h-2*(d+s)>=WING_LIMITS.courtWidthMm &&
-  (request.family!=='pavilion'||zone.h-2*d>=12000) && groups.every(g=>
-  [g.north,g.south].every(us=>us.reduce((sum,u)=>sum+unitLength(u,d,'min'),0)<=length)))
+ const candidates=depths.flatMap(d=>{
+  if(zone.h-2*(d+s)<WING_LIMITS.courtWidthMm || (request.family==='pavilion'&&zone.h-2*d<12000))return []
+  const groups=preferredGroups.map(g=>{const balanced=balanceWings(g.north,g.south,d,length);return balanced?{...balanced,side:g.side}:null})
+  return groups.every(g=>g!==null)?[{depth:d,groups:groups.filter(g=>g!==null)}]:[]
+ })
  if(!candidates.length)return null
  const depthPool = nb.large ? [...candidates].reverse().slice(0,4) : candidates
- const d=depthPool[request.pick%depthPool.length]
+ const {depth:d,groups}=depthPool[request.pick%depthPool.length]
  const courtH=snap(zone.h-2*(d+s)), x=zone.x+sideDepth+linkW, y=zone.y
  const southY=y+d+s+courtH
  const court:Rect={x,y:y+d+s,w:length,h:courtH}
@@ -100,7 +124,11 @@ export function planWings(model: CanonicalModel, request: PlanRequest): PlanResu
     const list=[...us],extra=span-maxLength
     if(extra>0 || !rs.length){
      const filler=hallReq(`wingGallery${wi}${serial}`,f.prefix,'Daylit wing gallery')
-     const start=runAxes.filter(a=>a>=lo&&a<=hi-Math.max(2200,extra)).at(-1)??lo
+     const minimum=rs.reduce((sum,r)=>sum+roomWidths(r,runDepth).min,0)
+     // Pavilion ends need not coincide with the connecting gallery grid.
+     // Snapping its filler backwards can consume the required wet-room width.
+     const preferred=runAxes.filter(a=>a>=lo+minimum&&a<=hi-Math.max(2200,extra)).at(-1)
+     const start=preferred??Math.floor((hi-Math.max(2200,extra))/100)*100
      filler.fixedWidthMm=hi-start
      if(rs.reduce((sum,r)=>sum+roomWidths(r,runDepth).min,0)+filler.fixedWidthMm>span)return []
      list.push({key:filler.id,rooms:[filler],band:'A',movable:false,anchor:false});kinds.set(filler.id,'lounge')

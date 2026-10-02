@@ -183,8 +183,14 @@ export function generateCandidates(model: CanonicalModel, opts: Strategy | Gener
   let bestErrors = Infinity
   let bestWarnings = Infinity
   for (const family of families) {
-    for (let attempt = 0; attempt < attempts && passing.length < cap; attempt++) {
-      const d = generateOne(model, family, seed + attempt * 31, briefKey)
+    // If a seed's local wing search fails, try a shared deterministic range
+    // of the SAME family. Record its actual seed so pinning still replays it.
+    const wing=WING_FAMILIES.includes(family)
+    const searchCount=attempts+(wing&&seed!==0?attempts:0)
+    for (let attempt = 0; attempt < searchCount && passing.length < cap; attempt++) {
+      if(attempt>=attempts&&passing.length)break
+      const trialSeed=attempt<attempts?seed+attempt*31:(attempt-attempts)*31
+      const d = generateOne(model, family, trialSeed, briefKey)
       if (!d) continue
       // Bar plans choose the best scored candidate across a search. Their pin
       // must retain that search's starting seed; wings take the first passing
@@ -206,7 +212,10 @@ export function generateCandidates(model: CanonicalModel, opts: Strategy | Gener
       }
     }
   }
-  return { passing, fallback: best ?? generateOne(model, 'rectangular', seed, briefKey, true)! }
+  const fallback=best ?? generateOne(model, 'rectangular', seed, briefKey, true)!
+  if(WING_FAMILIES.includes(requested as PlateFamily)&&fallback.massingType!==requested)
+    fallback.requestedMassing=requested as MassingType
+  return { passing, fallback }
 }
 
 /** rooms and their rectangles — two candidates with the same key are the same plan */

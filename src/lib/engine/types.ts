@@ -105,6 +105,9 @@ export type Design = {
   algorithm: string
   candidate: string
   massingType: MassingType
+  /** Diagnostic fallback only: an unavailable explicit shape must never be
+   * accepted as a valid plan of another family. */
+  requestedMassing?: MassingType
   dna: DesignDNA
   model: CanonicalModel
   floors: FloorPlan[]

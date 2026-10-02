@@ -60,6 +60,10 @@ export function validate(design: Design, options: { checkFacade?: boolean } = {}
     roomId?: string,
   ) => findings.push({ code, severity, category, message, roomId })
 
+  if(design.requestedMassing&&design.requestedMassing!==design.massingType)
+    add('REQUESTED_MASSING_UNAVAILABLE','error','planning',
+      `No valid ${design.requestedMassing.replaceAll('-', ' ')} plan fits these requirements. Enlarge the plot, reduce rooms or choose Auto.`)
+
   for (const message of validateSiteFeatures(design.model, design.floors[0], design.siteFeatures ?? [])) add('SITE_FEATURE_CONFLICT', 'error', 'geometry', message)
   const reqIndex = indexRequirements(design.model)
   // a large villa is chosen for generous rooms — an over-target room is the
