@@ -25,11 +25,13 @@ export const MASSING_TYPES = [
   'front-projection',
   'asymmetric',
   'twin-wing',
+  'u-wing', 'courtyard-ring', 'pavilion',
 ] as const
 export type MassingType = (typeof MASSING_TYPES)[number]
 
 export const MASSING_LABEL: Record<MassingType, string> = {
   'twin-wing': 'Twin wings with garden court',
+  'u-wing': 'U-shaped wings', 'courtyard-ring': 'Courtyard ring', pavilion: 'Linked pavilions',
   rectangular: 'Rectangular',
   'l-shape': 'L-shaped',
   't-shape': 'T-shaped',

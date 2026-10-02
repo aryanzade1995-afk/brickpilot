@@ -580,7 +580,8 @@ const CHARACTER_CARDS: { value: Character; title: string; body: string }[] =
 /* Only shapes that build a genuinely different plan are offered (the others
  * mapped onto these same plates). Older briefs keep their value and still load. */
 type ShapeChoiceValue = (typeof SHAPE_CHOICES)[number]
-const SHAPE_LABEL: Record<ShapeChoiceValue, string> = { rectangular: 'Rectangular', 'l-shape': 'L-shaped', courtyard: 'Courtyard' }
+const SHAPE_LABEL: Record<ShapeChoiceValue, string> = { rectangular: 'Rectangular', 'l-shape': 'L-shaped', courtyard: 'Courtyard',
+  'twin-wing':'Twin wings','u-wing':'U wings','courtyard-ring':'Courtyard ring',pavilion:'Pavilion' }
 const MASSING_CHOICES: { value: MassingChoice; label: string }[] = [
   { value: 'auto', label: 'Auto' },
   ...SHAPE_CHOICES.map((value) => ({ value, label: SHAPE_LABEL[value] })),

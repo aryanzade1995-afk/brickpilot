@@ -71,6 +71,7 @@ export const CHARACTER_LABEL: Record<Character, string> = {
 
 export const massingSchema = z.enum([
   'twin-wing',
+  'u-wing', 'courtyard-ring', 'pavilion',
   'auto',
   'random',
   'rectangular',

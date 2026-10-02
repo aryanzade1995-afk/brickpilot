@@ -62,7 +62,7 @@ export type BuildingModel = {
     roadPlanSide: 'S'
     plateAxis: 'x' | 'y' | null
     mirrored: boolean
-    plateFamily: 'rectangular' | 'stepped' | 'l-shape' | 'courtyard' | 'twin-wing' | null
+    plateFamily: 'rectangular' | 'stepped' | 'l-shape' | 'courtyard' | 'twin-wing' | 'u-wing' | 'courtyard-ring' | 'pavilion' | null
   }
   setbacks: Record<Direction, number>
 }

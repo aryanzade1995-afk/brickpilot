@@ -117,7 +117,7 @@ test('choosing a direction replays exactly its own plan and exterior', async () 
 import { assessShape, SHAPE_CHOICES } from '../src/lib/engine/planner/fit.ts'
 
 test('each offered shape is checked by really building it; a chosen shape is kept on Directions', () => {
-  assert.deepEqual([...SHAPE_CHOICES], ['rectangular', 'l-shape', 'courtyard'])
+  assert.deepEqual([...SHAPE_CHOICES], ['rectangular', 'l-shape', 'courtyard', 'twin-wing', 'u-wing', 'courtyard-ring', 'pavilion'])
   for (const site of [{}, PLOT]) {
     for (const shape of SHAPE_CHOICES) {
       const check = assessShape(briefSchema.parse({ site }), shape)

@@ -19,6 +19,7 @@ export type BriefFit = {
 
 const FAMILY: Record<string, PlateFamily> = {
   'twin-wing': 'twin-wing',
+  'u-wing':'u-wing','courtyard-ring':'courtyard-ring',pavilion:'pavilion',
   rectangular: 'rectangular', 'central-core': 'rectangular',
   stepped: 'stepped', 'offset-box': 'stepped', cantilever: 'stepped',
   'split-volume': 'stepped', 'side-wing': 'stepped',
@@ -46,7 +47,7 @@ function packingFit(brief: Brief): BriefFit {
     issues: briefSiteIssues(brief),
   }
   if (result.issues.length) return result
-  if (brief.style.massing === 'twin-wing') {
+  if (['twin-wing','u-wing','courtyard-ring','pavilion'].includes(brief.style.massing)) {
     // Multi-wing capacity is proved by the production planner below, not the bar packer.
     result.fits = true
     return result
@@ -105,7 +106,7 @@ export function assessBriefFit(brief: Brief): BriefFit {
 }
 /** The plan shapes the Style step offers (besides Auto): each a really
  *  different plate, not another label for the same one. */
-export const SHAPE_CHOICES = ['rectangular', 'l-shape', 'courtyard'] as const
+export const SHAPE_CHOICES = ['rectangular', 'l-shape', 'courtyard','twin-wing','u-wing','courtyard-ring','pavilion'] as const
 export type ShapeChoice = (typeof SHAPE_CHOICES)[number]
 export type ShapeCheck = { ok: boolean; reason: string }
 
@@ -121,7 +122,7 @@ export function assessShape(brief: Brief, shape: ShapeChoice): ShapeCheck {
     const trial = structuredClone(brief)
     trial.style.massing = shape
     const plan = generate(compile(trial), { massing: shape })
-    check = brief.rooms.priorities.courtyard && shape !== 'courtyard'
+    check = brief.rooms.priorities.courtyard && !['courtyard','twin-wing','u-wing','courtyard-ring','pavilion'].includes(shape)
       ? { ok: false, reason: 'Your courtyard priority (Rooms step) asks for a courtyard plan.' }
       : !validate(plan).hardChecksPass
       ? { ok: false, reason: 'No valid plan of this shape fits the plot and rooms.' }

@@ -57,6 +57,7 @@ export type DirectionResult = {
 /** every massing request maps onto a plate family the planner can prove valid */
 const FAMILY_OF: Record<MassingType, PlateFamily> = {
   'twin-wing': 'twin-wing',
+  'u-wing':'u-wing','courtyard-ring':'courtyard-ring',pavilion:'pavilion',
   rectangular: 'rectangular',
   'central-core': 'rectangular',
   stepped: 'stepped',
@@ -78,6 +79,8 @@ const FAMILY_OF: Record<MassingType, PlateFamily> = {
 const topRoof = (_bias: 'flat' | 'pitched' | 'mixed', _rng: Rng): RoofSpec => ({ kind: 'flat-parapet' })
 
 const FAMILIES: PlateFamily[] = ['rectangular', 'stepped', 'l-shape', 'courtyard']
+export const WING_FAMILIES: PlateFamily[] = ['twin-wing','u-wing','courtyard-ring','pavilion']
+const largeWings = (model:CanonicalModel) => model.brief.project.buildingType==='large-villa' && model.envelope.width*model.envelope.depth>=600e6
 
 /** The plan shapes a style is built from, most characteristic first. A style
  *  listed here always gets one of these when one fits the plot: a courtyard
@@ -96,6 +99,7 @@ export function directionPlans(model: CanonicalModel, count = 4): { family: Plat
   const chosen = model.brief.style.massing
   // a shape the user chose is kept: four directions of that shape, each its own plan seed
   const order = chosen !== 'auto' && chosen !== 'random' ? [FAMILY_OF[chosen]]
+    : largeWings(model) ? ['u-wing','courtyard-ring','pavilion','twin-wing'] as PlateFamily[]
     : model.brief.style.character === 'courtyard-indian' ? style!
     : [...(style ?? ['rectangular', 'stepped', 'l-shape']), ...FAMILIES.filter((f) => !(style ?? ['rectangular', 'stepped', 'l-shape']).includes(f))]
   return Array.from({ length: count }, (_, i) => ({
@@ -138,7 +142,8 @@ export function generateCandidates(model: CanonicalModel, opts: Strategy | Gener
 
   let families: PlateFamily[]
   const styleFamilies = STYLE_PLAN_FAMILIES[model.brief.style.character]
-  if (requested === 'twin-wing') families = ['twin-wing']
+  if (WING_FAMILIES.includes(requested as PlateFamily)) families = [requested as PlateFamily]
+  else if ((requested==='auto'||requested==='random') && largeWings(model)) families = ['u-wing','courtyard-ring','pavilion','twin-wing',...(styleFamilies??FAMILIES)]
   else if (model.brief.rooms.priorities.courtyard) families = ['courtyard']
   else if ((requested === 'auto' || requested === 'random') && styleFamilies) {
     // the style's own shapes first; the others stay as a fallback for plots
@@ -206,7 +211,11 @@ export const MAX_CANDIDATES_STRICT = 24
 export function generate(model: CanonicalModel, opts: Strategy | GenerateOpts = {}): Design {
   const { passing, fallback } = generateCandidates(model, opts)
   if (!passing.length) return fallback
-  if ((typeof opts !== 'string' && opts.massing === 'twin-wing') || model.brief.style.massing === 'twin-wing') return passing[0].design
+  if ((typeof opts !== 'string' && WING_FAMILIES.includes(opts.massing as PlateFamily)) || WING_FAMILIES.includes(model.brief.style.massing as PlateFamily)) return passing[0].design
+  if (largeWings(model) && (typeof opts === 'string' || !opts.massing || opts.massing==='auto'||opts.massing==='random')) {
+    const wings=passing.find(c=>WING_FAMILIES.includes(c.design.massingType as PlateFamily))
+    if(wings)return wings.design
+  }
   const strict = model.brief.lifestyle.vastu === 'strict'
   // a style with characteristic plan shapes keeps them whenever one passed:
   // a better-scoring bar must not turn a courtyard house into a box

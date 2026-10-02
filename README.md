@@ -498,3 +498,24 @@ Verification: `scripts/test-elements.mjs`, `scripts/test-wings.mjs`; `scripts/ex
 `project.autoExtras` defaults to true for saved/new briefs and is ignored for ordinary villas, including in the geometric seed. On large buildable envelopes (at least 600 m²), `canonical.ts` adds optional family lounge, guest suite with ensuite, media room, gym, garden/pool cabana, and staff quarters where staff are requested. Each gets a real SpaceReq with finite minimum/target/maximum and unique semantics. The ordered additions are bounded by plot coverage and existing bar packing capacity. The larger verandah remains a covered outdoor room. The Style/Typology panel exposes the switch.
 
 Growth is deliberately bounded: it does not promise every optional room on a tight site or 60% coverage on every brief. A new hard check prevents rooms exceeding 1.5× their programme maximum whenever automatic extras are present. Wing placement applies this cap during distribution and axis alignment. Required rooms and existing minimum dimensions still pass the original validators. `scripts/test-programme-growth.mjs` verifies legacy loading, opt-out, unchanged villa floors/seeds, finite optional requirements and checked large plots.
+
+### Multi-wing plan families
+
+`planner/wings.ts` also supports `u-wing` (occupied west side wing),
+`courtyard-ring` (second accessible connecting gallery) and `pavilion` (a side
+block separated from both main room bars, joined by a covered gallery). Rooms
+are distributed through the existing unit placer; walls, openings, shafts,
+stairs and beams use the existing helpers. Stair cores stack and galleries
+connect all occupied wings on every floor. An upper wing with no extra room
+requirements becomes circulation/gallery space rather than invented bedrooms.
+
+Large-villa Auto and Directions prefer these families above 600 m² of buildable
+area. The Style step checks each new choice by generating and validating that
+exact family; unsuitable plots keep it disabled. Examples with two bedrooms
+pass on 24×30, 30×40 and 40×60 m plots with G+1/G+2. The compact 18×24 m example
+supports U wings but cannot fit the ring or pavilion programme. Large 30×40 and
+40×60 examples spread their outline across at least 85% of the envelope while
+all roofed rooms and galleries remain below 60% plot coverage.
+
+The production handoffs and editable Blender/GLB scenes for all three families
+are in `output/wing-family-review/` (local generated artifacts, ignored by Git).

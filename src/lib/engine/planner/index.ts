@@ -43,7 +43,7 @@ const n2 = (i: number) => String(i).padStart(2, '0')
 
 /** Every stage, in order. Deterministic: the same brief + request ⇒ the same plan. */
 export function planVilla(model: CanonicalModel, request: PlanRequest): PlanResult | null {
-  if (request.family === 'twin-wing') return planWings(model, request)
+  if (['twin-wing','u-wing','courtyard-ring','pavilion'].includes(request.family)) return planWings(model, request)
   // ---- NormalizedBrief → StairCore sizing → SiteModel × ProgramRequirements ----
   const nb = normalizeBrief(model)
   const stair = stairGeometry(nb)
