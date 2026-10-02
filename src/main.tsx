@@ -11,6 +11,7 @@ import { Massing } from './routes/Massing.tsx'
 import { Render } from './routes/Render.tsx'
 import { Report } from './routes/Report.tsx'
 import { Designs } from './routes/Designs.tsx'
+import { VillaDataset } from './routes/VillaDataset.tsx'
 import { StyleSheet } from './routes/StyleSheet.tsx'
 
 const router = createBrowserRouter([
@@ -24,6 +25,7 @@ const router = createBrowserRouter([
       { path: 'workspace/plan', element: <Plan /> },
       { path: 'workspace/massing', element: <Massing /> },
       { path: 'workspace/render', element: <Render /> },
+      { path: 'workspace/dataset', element: <VillaDataset /> },
       { path: 'workspace/report', element: <Report /> },
       { path: 'designs', element: <Designs /> },
     ],
