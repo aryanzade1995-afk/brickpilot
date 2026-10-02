@@ -19,7 +19,7 @@ export const INTERIOR_AREA_SHARE = 0.8
 export const STOREY_FACTOR: Record<number, number> = { 0: 1.0, 1: 1.0, 2: 1.04, 3: 1.08 }
 
 /** more external wall and corners per m² as the plate gets less compact */
-export const FAMILY_FACTOR: Record<PlateFamily, number> = { rectangular: 1.0, stepped: 1.03, 'l-shape': 1.04, courtyard: 1.06 }
+export const FAMILY_FACTOR: Record<PlateFamily, number> = { rectangular: 1.0, stepped: 1.03, 'l-shape': 1.04, courtyard: 1.06, 'twin-wing': 1.08 }
 
 /** reference ₹/m² by design character — used only to derive a small style modifier */
 const STYLE_BASE_RATE: Record<Character, number> = {

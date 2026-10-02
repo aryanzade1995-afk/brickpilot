@@ -18,6 +18,7 @@ export type BriefFit = {
 }
 
 const FAMILY: Record<string, PlateFamily> = {
+  'twin-wing': 'twin-wing',
   rectangular: 'rectangular', 'central-core': 'rectangular',
   stepped: 'stepped', 'offset-box': 'stepped', cantilever: 'stepped',
   'split-volume': 'stepped', 'side-wing': 'stepped',
@@ -45,6 +46,11 @@ function packingFit(brief: Brief): BriefFit {
     issues: briefSiteIssues(brief),
   }
   if (result.issues.length) return result
+  if (brief.style.massing === 'twin-wing') {
+    // Multi-wing capacity is proved by the production planner below, not the bar packer.
+    result.fits = true
+    return result
+  }
 
   const nb = normalizeBrief(model)
   const stair = stairGeometry(nb)

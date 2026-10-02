@@ -484,3 +484,11 @@ finned pavilions and sculpted corners, with up to two checked supporting element
 The expanded fingerprint schema clears incompatible older comparison records.
 Interior results use full-width cards with click-to-enlarge viewing, Escape/close
 controls and image downloads. Enlarging an image does not change its source resolution.
+
+### Procedural elements and opt-in twin wings
+
+`facade/elementRecipes.ts` extends the facade engine to 38 types and 30 composition families. Each new feature uses a real wall, court, roof slab or site anchor; integer-mm parameters and material hints pass to editable Blender parts. Fingerprint history schema 4 migrates the geometry prefix from schema 3 and records optional hero parameter/palette diagnostics. Materials never reduce shape similarity. Default rolling hero/family limits are one in ten, with bounded adaptive relaxation.
+
+`planner/wings.ts` builds two single-loaded room bars around a garden court, joined by a circulation gallery at least 1.8 m wide. It reuses programme Units, distribution/axis alignment, walls, doors, windows, shafts, stairs, beams and hard validation. Upper wings are connected and directly supported by the same ground footprint. The `twin-wing` shape is opt-in in this step; ordinary villa automatic selection remains unchanged. Shape capacity is checked by actual production generation. Suitable test briefs cover 18×24 through 40×60 m with one or two upper floors.
+
+Verification: `scripts/test-elements.mjs`, `scripts/test-wings.mjs`; `scripts/export-element-fixtures.mjs` plus `blender/test_elements.py` build the ten new types and eight families under `output/element-review/`. These checks provide architectural/geometric consistency, not structural certification.

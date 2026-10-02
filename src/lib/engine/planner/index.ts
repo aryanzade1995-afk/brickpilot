@@ -15,6 +15,7 @@ import {
   type Frame, type Occupancy, beamsFor, onPlate, placeDoors, placeWindows, planShafts, plateRects,
   stairRun, supportZonesFor, toPlanPoint, toPlanRect, wallGraph,
 } from './elements.ts'
+import { planWings } from './wings.ts'
 
 export type { PlateFamily } from './types.ts'
 
@@ -42,6 +43,7 @@ const n2 = (i: number) => String(i).padStart(2, '0')
 
 /** Every stage, in order. Deterministic: the same brief + request ⇒ the same plan. */
 export function planVilla(model: CanonicalModel, request: PlanRequest): PlanResult | null {
+  if (request.family === 'twin-wing') return planWings(model, request)
   // ---- NormalizedBrief → StairCore sizing → SiteModel × ProgramRequirements ----
   const nb = normalizeBrief(model)
   const stair = stairGeometry(nb)
@@ -307,7 +309,7 @@ function covered(r: Rect, plate: Rect[]): boolean {
 }
 
 /** parking / verandah / forecourt in the front strip; a spare court goes to the rear garden */
-function frontYard(
+export function frontYard(
   rooms: PlacedRoom[], outdoor: RoomReq[], house: Rect, site: SiteModel, twoCar: boolean, large: boolean,
   make: (r: RoomReq, rect: Rect) => PlacedRoom,
 ) {
@@ -372,7 +374,7 @@ function frontYard(
  * roof of the floor below (fully supported), then any other face (a declared
  * cantilever). Habitable rooms host first; a lobby only when nothing else can.
  */
-function placeBalcony(rooms: PlacedRoom[], house: Rect, site: SiteModel, kindOf: (id: string) => string, lowerPlate: Rect[]): Rect | null {
+export function placeBalcony(rooms: PlacedRoom[], house: Rect, site: SiteModel, kindOf: (id: string) => string, lowerPlate: Rect[]): Rect | null {
   const enclosed = rooms.filter((r) => !r.outdoor)
   const clear = (b: Rect) => rooms.every((o) => {
     const ox = Math.min(rectRight(b), rectRight(o.rect)) - Math.max(b.x, o.rect.x)

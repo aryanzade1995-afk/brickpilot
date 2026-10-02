@@ -67,7 +67,7 @@ export function buildFacadeZones(building: BuildingModel, massing: MassingModel)
     if (!roofs.length) for (const edge of rectUnionEdges(top.footprint, top.courtyard)) {
       const h = edge.side === 'N' || edge.side === 'S'
       const lo = h ? edge.a.x : edge.a.y, hi = h ? edge.b.x : edge.b.y
-      zones.push({ id: `slab-edge:${top.id}:${edge.side}:${lo}:${hi}`, kind: 'ROOFLINE',
+      zones.push({ id: `slab-edge:${top.id}:${edge.side}:${h ? edge.a.y : edge.a.x}:${lo}:${hi}`, kind: 'ROOFLINE',
         floorId: top.id, wallId: null, hostMassIds: building.slabs.filter(s => s.floorId === top.id).map(s => `slab:${s.id}`),
         roomId: null, side: edge.side, fixedMm: h ? edge.a.y : edge.a.x, startMm: lo, endMm: hi,
         elevationMm: top.elevationMm + top.heightMm, heightMm: 1800, openingIds: [] })

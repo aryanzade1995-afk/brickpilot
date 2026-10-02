@@ -19,7 +19,7 @@ export type Orientation = 'x' | 'y'
 /** A = back band, S = circulation spine, B = front band */
 export type Band = 'A' | 'S' | 'B'
 /** the plate families the planner can build and prove valid */
-export type PlateFamily = 'rectangular' | 'stepped' | 'l-shape' | 'courtyard'
+export type PlateFamily = 'rectangular' | 'stepped' | 'l-shape' | 'courtyard' | 'twin-wing'
 
 export type RoomKind =
   | 'foyer' | 'living' | 'dining' | 'livingDining' | 'kitchen' | 'utility' | 'pooja'

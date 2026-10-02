@@ -184,7 +184,7 @@ export function distribute(rooms: RoomReq[], len: number, d: number): number[] {
   return rounded
 }
 
-function placeUnits(units: Unit[], segs: [number, number][], d: number, band: Band, axes: number[] = []): { rooms: LocalRoom[]; used: [number, number][] } {
+export function placeUnits(units: Unit[], segs: [number, number][], d: number, band: Band, axes: number[] = []): { rooms: LocalRoom[]; used: [number, number][] } {
   const rooms: LocalRoom[] = []
   const used: [number, number][] = []
   if (!units.length || !segs.length) return { rooms, used }
