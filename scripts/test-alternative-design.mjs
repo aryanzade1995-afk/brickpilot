@@ -5,7 +5,7 @@ import { createServer } from 'node:http'
 import { defaultBrief } from '../src/lib/model/brief.ts'
 import { compile } from '../src/lib/model/canonical.ts'
 import { generate } from '../src/lib/engine/generate.ts'
-import { generateAlternativeDesign, ENVELOPE_LIMITS } from '../src/lib/engine/generateAlternativeDesign.ts'
+import { generateAlternativeDesign, ENVELOPE_LIMITS, productionMassingFamily } from '../src/lib/engine/generateAlternativeDesign.ts'
 import { ArchitectureValidator } from '../src/lib/engine/massing/ArchitectureValidator.ts'
 import { validRealizedShape, realizedSimilarity, evaluateRealizedVilla, productionDiversityPolicy } from '../server/villa-shape.mjs'
 import { handleVillaRequest } from '../server/villa-jobs.mjs'
@@ -30,7 +30,7 @@ test('50 architectural seeds preserve one plan and a clear terrace while varying
   }
   assert.equal(JSON.stringify(plan), original)
   assert.ok(signatures.size >= 30, `${signatures.size} unique actual facade geometries`)
-  assert.equal(families.size, 15)
+  assert.deepEqual([...families], [productionMassingFamily(one.buildingModel)])
 })
 test('same plan and exact seed reproduce all architectural inputs without mutating the plan', () => {
   assert.equal(JSON.stringify(generateAlternativeDesign(plan, 6)), JSON.stringify(one))

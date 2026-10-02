@@ -5,6 +5,31 @@ import {compile} from '../src/lib/model/canonical.ts'
 import {generate} from '../src/lib/engine/generate.ts'
 import {validate} from '../src/lib/rules/index.ts'
 import {assessBriefFit,assessShape,SHAPE_CHOICES} from '../src/lib/engine/planner/fit.ts'
+import {generateAlternativeDesign} from '../src/lib/engine/generateAlternativeDesign.ts'
+import {createBuildingModel} from '../src/lib/engine/buildingModel.ts'
+import {massingSilhouetteSignature} from '../src/lib/engine/massing/validate.ts'
+
+test('brief wing choices reach production 3D as four different occupied shapes, with exact plan geometry',()=>{
+ const familyNames={'twin-wing':'TWIN_WING','u-wing':'U_SHAPED','courtyard-ring':'COURTYARD',pavilion:'PAVILION'}
+ for(const seed of [1,41,100]){
+  const shapes=new Set()
+  for(const family of SHAPE_CHOICES){
+   const brief=defaultBrief();brief.site.plotWidth=24;brief.site.plotDepth=30;brief.style.massing=family
+   const plan=generate(compile(brief),{seed}),model=createBuildingModel(plan)
+   const exterior=generateAlternativeDesign(plan,seed)
+   assert.ok(validate(plan).hardChecksPass)
+   assert.equal(plan.massingType,family)
+   assert.deepEqual(exterior.buildingModel,model)
+   assert.equal(exterior.massingModel.family,familyNames[family])
+   assert.equal(exterior.villaDesignDNA.massingFamily,familyNames[family])
+   shapes.add(massingSilhouetteSignature(exterior.massingModel.masses.filter(m=>m.usage==='enclosed')))
+   const another=generateAlternativeDesign(plan,seed+1)
+   assert.equal(another.massingModel.family,exterior.massingModel.family)
+   assert.deepEqual(another.buildingModel,model)
+  }
+  assert.equal(shapes.size,4,`seed ${seed}: family selections must change actual occupied geometry`)
+ }
+})
 
 test('four wing choices build their exact family for ordinary and large villas, G through G+3 and different seeds',()=>{
  for(const type of ['villa','large-villa'])for(const [w,h] of [[24,30],[30,40],[40,60]])for(const storeys of [0,1,2,3]){

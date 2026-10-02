@@ -511,18 +511,19 @@ export function StyleStep() {
 
       <div className="space-y-4">
         <div>
-          <span className="label">Massing</span>
+          <span className="label">Villa layout</span>
           <p className="mt-1 text-sm text-ink-dim">
-            Choose connected twin wings, U wings, a courtyard ring or a pavilion.{' '}
-            <span className="text-ink-faint">Auto</span> chooses one that fits the plot and brief.
+            Choose the building shape for both your 2D plan and 3D villa. Auto chooses a layout that fits your rooms and plot.
           </p>
         </div>
-        <Segmented
+        <CardChoice
           value={brief.style.massing}
           onChange={(v) => edit((b) => void (b.style.massing = v))}
-          options={MASSING_CHOICES.map((o) => o.value === 'auto' || !shapeChecks[o.value as ShapeChoiceValue]?.ok ? o.value === 'auto' ? o
-            : { ...o, disabled: true, title: shapeChecks[o.value as ShapeChoiceValue]?.reason } : { ...o, title: shapeChecks[o.value as ShapeChoiceValue].reason })}
+          options={MASSING_CHOICES.map((o) => o.value === 'auto' ? o : { ...o,
+            disabled: !shapeChecks[o.value as ShapeChoiceValue].ok,
+            disabledReason: !shapeChecks[o.value as ShapeChoiceValue].ok ? shapeChecks[o.value as ShapeChoiceValue].reason : undefined })}
         />
+        <p className="text-xs text-ink-dim">Changing this layout creates a new floor plan. Generate another 3D design keeps your selected plan and varies its exterior.</p>
         <ul className="space-y-1 text-xs" role="status" aria-label="Shape checks">
           {SHAPE_CHOICES.map((shape) => (
             <li key={shape} className={shapeChecks[shape].ok ? 'text-ok' : 'text-ink-faint'}>
@@ -582,9 +583,12 @@ const CHARACTER_CARDS: { value: Character; title: string; body: string }[] =
 type ShapeChoiceValue = (typeof SHAPE_CHOICES)[number]
 const SHAPE_LABEL: Record<ShapeChoiceValue, string> = {
   'twin-wing':'Twin wings','u-wing':'U wings','courtyard-ring':'Courtyard wings',pavilion:'Pavilion' }
-const MASSING_CHOICES: { value: MassingChoice; label: string }[] = [
-  { value: 'auto', label: 'Auto' },
-  ...SHAPE_CHOICES.map((value) => ({ value, label: SHAPE_LABEL[value] })),
+const MASSING_CHOICES: { value: MassingChoice; title: string; body: string }[] = [
+  { value: 'auto', title: 'Auto', body: 'Choose a validated layout that fits your plot, rooms and open space.' },
+  { value: 'twin-wing', title: SHAPE_LABEL['twin-wing'], body: 'Two parallel room wings joined by a connecting gallery, with open space between them.' },
+  { value: 'u-wing', title: SHAPE_LABEL['u-wing'], body: 'Three connected wings around a court that stays open on one side.' },
+  { value: 'courtyard-ring', title: SHAPE_LABEL['courtyard-ring'], body: 'Room wings and a fourth connecting gallery enclose a central courtyard.' },
+  { value: 'pavilion', title: SHAPE_LABEL.pavilion, body: 'Two main wings with a shorter side pavilion, linked by an accessible gallery.' },
 ]
 
 /* -------------------------------------------------------------------------- */

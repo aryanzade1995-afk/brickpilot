@@ -255,7 +255,7 @@ The Node API and production static server are in [`server/index.mjs`](server/ind
 | `POST /api/villas` | Queue `{ plan: Design, seed: number, quality: "preview" or "final" }` |
 | `GET /api/villas/:id` | Generation progress, similarity decisions and accepted artifacts |
 | `GET /api/villas/:id/files/:filename` | Serve accepted `.blend`, `.glb` and PNG outputs |
-| `GET /api/villas/gallery/` | Locally generated same-plan seeds 1–50 clay gallery |
+| `GET /api/villas/gallery/` | Completed local 100-seed clay gallery, or the historical 50-seed gallery |
 
 ## Configuration
 
@@ -584,6 +584,14 @@ matrix: 489 valid exact-family plans, 87 blocked requests, zero accepted
 wrong-family substitutes. This does not guarantee arbitrary programmes fit.
 
 ### 100-seed exterior batches
+
+**Villa layout** cards live in Brief → Style and drive both the plan and 3D
+footprint. Production family labels now reflect that source shape, rather than
+cycling labels with an exterior seed. [The actual Blender shape audit](docs/wing-availability.md#brief-to-3d-shape-check)
+records four clay-rendered family fixtures, two fixed-plan exterior variants,
+and the 100-plan gallery's distinct occupied outlines. The latter are only
+8/4/3/3 per family; 100 different room layouts do not mean 100 different
+building silhouettes. Exterior-only regeneration still preserves the rooms.
 
 `npm run blender:gallery -- --plan path/to/saved-design.json` now defaults to
 100 exterior seeds of exactly one saved source plan, exported under

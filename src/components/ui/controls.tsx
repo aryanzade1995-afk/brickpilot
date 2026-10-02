@@ -244,7 +244,7 @@ export function CardChoice<T extends string>({
 }: {
   value: T
   onChange: (v: T) => void
-  options: { value: T; title: string; body: string; soon?: boolean }[]
+  options: { value: T; title: string; body: string; soon?: boolean; disabled?: boolean; disabledReason?: string }[]
 }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -254,11 +254,13 @@ export function CardChoice<T extends string>({
           <button
             key={o.value}
             type="button"
-            disabled={o.soon}
+            disabled={o.soon || o.disabled}
+            title={o.disabledReason}
+            aria-pressed={active}
             onClick={() => onChange(o.value)}
             className={cx(
               'relative border p-4 text-left transition-colors',
-              o.soon && 'cursor-not-allowed opacity-45',
+              (o.soon || o.disabled) && 'cursor-not-allowed opacity-45',
               active ? 'border-accent bg-accent/5' : 'border-line hover:border-line-strong',
             )}
           >
@@ -274,6 +276,7 @@ export function CardChoice<T extends string>({
             )}
             <div className="font-display text-lg">{o.title}</div>
             <p className="mt-1.5 text-xs leading-relaxed text-ink-dim">{o.body}</p>
+            {o.disabledReason && <p className="mt-2 text-xs leading-relaxed text-ink-faint">{o.disabledReason}</p>}
           </button>
         )
       })}

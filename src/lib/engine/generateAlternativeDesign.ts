@@ -4,7 +4,8 @@ import { createBuildingModel } from './buildingModel.ts'
 import { createVillaDesignDNA } from './villaDesignDna.ts'
 import { MassingGenerator } from './massing/MassingGenerator.ts'
 import { ArchitectureValidator, type ArchitectureLimits } from './massing/ArchitectureValidator.ts'
-import { MASSING_FAMILIES, type Mass } from './massing/model.ts'
+import type { Mass, MassingFamily } from './massing/model.ts'
+import type { BuildingModel } from './buildingModel.ts'
 import { makeRng } from './massing/rng.ts'
 import { massRect } from './massing/transforms.ts'
 import { intersectRects } from './massing/families.ts'
@@ -16,6 +17,19 @@ import { DEFAULT_ENVELOPE_LIMITS } from './massing/envelopeLimits.ts'
 
 /** Central concept limits. These are geometric checks, not engineering certification. */
 export const ENVELOPE_LIMITS: ArchitectureLimits = { ...DEFAULT_ENVELOPE_LIMITS }
+/** Production preserves the occupied plan. A new seed must not rename a U-shaped
+ * building as a pavilion when only its facade has changed. */
+export function productionMassingFamily(building: BuildingModel): MassingFamily {
+  switch (building.orientation.plateFamily) {
+    case 'twin-wing': return 'TWIN_WING'
+    case 'u-wing': return 'U_SHAPED'
+    case 'courtyard': case 'courtyard-ring': return 'COURTYARD'
+    case 'pavilion': return 'PAVILION'
+    case 'l-shape': return 'L_SHAPED'
+    case 'stepped': return 'STEPPED'
+    default: return building.floors.length > 1 ? 'STACKED_VOLUMES' : 'LINEAR'
+  }
+}
 /** Exact-seed production adapter. No call to the floor-plan generator is made.
  * Occupied plates, rooms, walls, stairs and openings remain byte-for-byte fixed. */
 export function generateAlternativeDesign(plan: Design, seed: number) {
@@ -27,9 +41,9 @@ export function generateAlternativeDesign(plan: Design, seed: number) {
   ArchitectureValidator.assertReadyForGeometry(buildingModel, base)
   const top = buildingModel.floors.at(-1)!
   const rng = makeRng(seed, `${buildingModel.planId}|plan-envelope-v1`)
-  // A numeric seed selects composition; separate seeded draws determine orientation,
-  // proportion, height and position. No material choice drives geometry.
-  const family = MASSING_FAMILIES[((seed % MASSING_FAMILIES.length) + MASSING_FAMILIES.length) % MASSING_FAMILIES.length]
+  // The source plan determines the occupied composition. Seeded draws vary
+  // permitted canopies and facade geometry without inventing another footprint.
+  const family = productionMassingFamily(buildingModel)
   const occupied = base.masses.filter((m) => m.usage !== 'roof')
   const ground = [...buildingModel.floors].sort((a, b) => a.level - b.level)[0]
   const frontY = ground.outline.y + ground.outline.h

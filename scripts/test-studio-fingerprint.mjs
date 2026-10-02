@@ -3,6 +3,7 @@ import test, { mock } from 'node:test'
 import { registerHooks } from 'node:module'
 import { defaultBrief } from '../src/lib/model/brief.ts'
 import { DEFAULT_DIVERSITY_LIMITS } from '../src/lib/engine/fingerprint/VillaDiversityGate.ts'
+import { massingSilhouetteSignature } from '../src/lib/engine/massing/validate.ts'
 
 registerHooks({ resolve(specifier, context, nextResolve) {
   if (specifier.startsWith('@/')) return { url: new URL(`../src/${specifier.slice(2)}`, import.meta.url).href, shortCircuit: true }
@@ -17,6 +18,25 @@ const { useStudio } = await import('../src/state/studio.ts')
 const reset = () => useStudio.setState({ brief: defaultBrief(), directions: null, pinned: null, result: null,
   referencePreferences: null, recentExteriorSeeds: [], recentVillaFingerprints: [],
   diversityLimits: { ...DEFAULT_DIVERSITY_LIMITS }, shapeDebug: [], generationNotice: null })
+
+test('changing Villa layout in the brief clears the old pin and changes the actual 3D building',()=>{
+ reset()
+ useStudio.getState().edit(b=>{b.site.plotWidth=24;b.site.plotDepth=30})
+ const shapes=new Set()
+ for(const [layout,family] of [['twin-wing','TWIN_WING'],['u-wing','U_SHAPED'],['courtyard-ring','COURTYARD'],['pavilion','PAVILION']]){
+  useStudio.getState().edit(b=>{b.style.massing=layout})
+  assert.equal(useStudio.getState().result,null)
+  assert.equal(useStudio.getState().pinned,null)
+  const result=useStudio.getState().run()
+  assert.ok(result.report.hardChecksPass)
+  assert.equal(result.design.massingType,layout)
+  assert.equal(result.buildingModel.orientation.plateFamily,layout)
+  assert.equal(result.massingModel.family,family)
+  shapes.add(massingSilhouetteSignature(result.massingModel.masses.filter(m=>m.usage==='enclosed')))
+  assert.equal(useStudio.getState().run(),result)
+ }
+ assert.equal(shapes.size,4)
+})
 
 test('new studio generation stores a shape record; repeated navigation is an exact replay', () => {
   reset()
