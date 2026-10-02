@@ -8,6 +8,7 @@ import { ARCHITECTURAL_FAMILIES, ARCHITECTURAL_FAMILY_RECIPES, architecturalFami
   type ArchitecturalFamily, type ArchitecturalFamilyRecipe } from './architecturalFamilies.ts'
 import { SpecializedGrammarGenerator } from './specialized/SpecializedGrammarGenerator.ts'
 import type { GrammarLimits, GrammarOptions } from './specialized/types.ts'
+import { NEW_ELEMENTS, elementFits, makeElement } from './elementRecipes.ts'
 import { type ArchitecturalFeature, type ArchitecturalFeatureType,
   type FacadeZone, type FeaturePart, type FrameParameters, type ProceduralFacadeModel } from './proceduralTypes.ts'
 
@@ -28,6 +29,8 @@ const near = (a: number, b: number) => Math.abs(a - b) <= 2
 const GROUNDED: readonly ArchitecturalFeatureType[] = ['COLONNADE', 'FREEFORM_CANOPY', 'STONE_PLINTH']
 
 function fits(type: ArchitecturalFeatureType, zone: FacadeZone, groundMm: number): boolean {
+  if (NEW_ELEMENTS.includes(type)) return elementFits(type, zone, groundMm)
+  if (zone.anchorKind) return false
   // a colonnade may also line the courtyard (Can Lis); the others face the garden
   if (GROUNDED.includes(type)) return Math.abs(zone.elevationMm - groundMm) <= 2 &&
     ['PRIMARY', 'SECONDARY', 'ENTRANCE', ...(type === 'COLONNADE' ? ['VOID'] : [])].includes(zone.kind)
@@ -63,6 +66,7 @@ function outwardRoom(zone: FacadeZone, building: BuildingModel, zones: FacadeZon
 export function makeFeature(type: ArchitecturalFeatureType, importance: 'hero' | 'support',
   zone: FacadeZone, zones: FacadeZone[], building: BuildingModel, dna: VillaDesignDNA,
   rng: Rng, serial: number, recipe: ArchitecturalFamilyRecipe): ArchitecturalFeature | null {
+  if (NEW_ELEMENTS.includes(type)) return makeElement(type, importance, zone, building, rng, serial, outwardRoom(zone, building, zones))
   const id = `${importance}:${serial}:${type}`
   const parts: FeaturePart[] = []
   const used = new Set([zone.id])
@@ -316,7 +320,20 @@ export function makeFeature(type: ArchitecturalFeatureType, importance: 'hero' |
     }
   }
   if (!parts.length) return null
-  return { id, type, importance, zoneIds: [...used], parameters: params, parts }
+  const posts = parts.filter(p => p.role === 'post' || p.role === 'screen')
+  const width = Math.max(...parts.map(p => p.u1Mm)) - Math.min(...parts.map(p => p.u0Mm))
+  const defaultMaterial = ['WOOD_SPINE', 'TIMBER_BATTEN'].includes(type) ? 'wood' :
+    ['STEEL_GRID', 'VERTICAL_FIN_SCREEN', 'HORIZONTAL_LOUVER'].includes(type) ? 'metal' :
+      ['PROJECTED_BOX', 'FLOATING_BOX', 'INTERLOCKING_BOX', 'VERTICAL_TOWER', 'DEEP_OVERHANG', 'BRIDGE_VOLUME'].includes(type) ? 'wall' : 'stone'
+  for (const part of parts) part.materialHint = defaultMaterial
+  return { id, type, importance, zoneIds: [...used], parameters: {
+    widthRatio: width / area(zone), ...params,
+    projectionMm: Math.max(...parts.map(p => p.offsetMm + p.depthMm)),
+    rhythmCount: posts.length, pitchMm: posts.length > 1 ? Math.round(width / posts.length) : 0,
+    profile: posts.some(p => p.u1Mm - p.u0Mm > 140) ? 'square' : 'slim',
+    slabEdge: parts.some(p => p.role === 'slab' && p.z1Mm - p.z0Mm > 200) ? 'upstand' : 'flat',
+    materialHint: defaultMaterial,
+  }, parts }
 }
 
 export class ArchitecturalFeatureGenerator {
@@ -356,7 +373,7 @@ export class ArchitecturalFeatureGenerator {
     for (const family of families) {
       const recipe = ARCHITECTURAL_FAMILY_RECIPES[family]
       for (const type of options.heroFeature ? [options.heroFeature] : recipe.heroes) {
-        const candidates = zones.filter((zone) => eligible(type, zone) && (!options.usableTerrace || zone.kind !== 'ROOFLINE'))
+        const candidates = zones.filter((zone) => eligible(type, zone) && (!options.usableTerrace || zone.kind !== 'ROOFLINE' || zone.anchorKind === 'roof-interior'))
           .map((zone) => ({ zone, key: makeRng(dna.seed, `facade-zone|${family}|${type}|${zone.id}`).next() }))
           .sort((a, b) => b.zone.endMm - b.zone.startMm - (a.zone.endMm - a.zone.startMm) || a.key - b.key)
         for (const { zone } of candidates) {
@@ -370,7 +387,7 @@ export class ArchitecturalFeatureGenerator {
             .filter(() => supportRng.range(0, 1) < 0.85)
           for (const supportType of wanted.slice(0, 2)) {
             if (supportType === type || features.some((f) => f.type === supportType)) continue
-            for (const host of zones.filter((z) => eligible(supportType, z) && (!options.usableTerrace || z.kind !== 'ROOFLINE') && !features.some((f) => f.zoneIds.includes(z.id)))
+            for (const host of zones.filter((z) => eligible(supportType, z) && (!options.usableTerrace || z.kind !== 'ROOFLINE' || z.anchorKind === 'roof-interior') && !features.some((f) => f.zoneIds.includes(z.id)))
               .sort((a, b) => area(b) - area(a))) {
               const candidate = makeFeature(supportType, 'support', host, zones, building, dna,
                 makeRng(dna.seed, `${building.planId}|${family}|support|${supportType}|${host.id}`), features.length, recipe)

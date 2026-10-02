@@ -221,6 +221,10 @@ export function Directions() {
 
 /** plain names for the architectural elements a direction is built from */
 const FEATURE_LABEL: Partial<Record<string, string>> = {
+  PERGOLA_COURT: 'courtyard pergola', FOLDED_CANOPY: 'folded canopy', PERFORATED_BRICK_WALL: 'brick veil',
+  BAY_WINDOW: 'glazed bay', CANTILEVER_STAIR_TOWER: 'stair frame', ROOF_GARDEN_EDGE: 'roof planter edge',
+  SOLAR_SHADE_ROOF: 'slatted solar shade', GATE_PORTAL: 'garden gate portal',
+  CHIMNEY_TOWER: 'sculpted tower', POOL_PAVILION: 'pool pavilion',
   COLONNADE: 'stone colonnade', FREEFORM_CANOPY: 'free-standing canopy', STEEL_GRID: 'steel frame grid',
   TIMBER_BATTEN: 'timber battens', STONE_PLINTH: 'stone plinth', COURTYARD_SCREEN: 'courtyard screen',
   JALI_SCREEN: 'jaali screen', DEEP_OVERHANG: 'deep overhang', FLOATING_BOX: 'floating box',

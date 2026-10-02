@@ -1,4 +1,5 @@
 import { sourceFixture } from './fixtures/specialized-building.mjs'
+import { elementFixture } from './fixtures/element-building.mjs'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { defaultBrief, SELECTABLE_CHARACTERS } from '../src/lib/model/brief.ts'
@@ -31,7 +32,7 @@ const authored = (building, seed) => {
   return { building, dna, masses: MassingGenerator.generate(building, dna) }
 }
 // Recipe coverage uses authored hosts with enough setback margin for the requested feature.
-const court = authored(sourceFixture(25, 25, 41, true), 41)
+const court = authored(elementFixture(), 41)
 const portal = authored(sourceFixture(18, 24, 2), 2)
 const forced = (source, type) => ArchitecturalFeatureGenerator.generate(
   source.building, source.dna, source.masses, { heroFeature: type, supportingFeatures: [] })
@@ -54,7 +55,7 @@ test('all real exterior walls and roof edges are classified into facade zones', 
 })
 
 test('every requested hero recipe yields anchored solids on a suitable real plan', () => {
-  assert.equal(ARCHITECTURAL_FEATURE_TYPES.length, 28)
+  assert.equal(ARCHITECTURAL_FEATURE_TYPES.length, 38)
   for (const type of ARCHITECTURAL_FEATURE_TYPES) {
     const source = type === 'DOUBLE_HEIGHT_PORTAL' ? portal : court
     const model = forced(source, type)
@@ -99,8 +100,8 @@ test('stone and wood spines have different procedural geometry', () => {
   assert.ok(wood.parts.every((part) => part.role === 'screen'))
 })
 
-test('twenty-two architectural families create distinct validated solids on one source plan', () => {
-  assert.equal(ARCHITECTURAL_FAMILIES.length, 22)
+test('thirty architectural families create distinct validated solids on one source plan', () => {
+  assert.equal(ARCHITECTURAL_FAMILIES.length, 30)
   const geometry = new Set()
   const before = JSON.stringify(court.building)
   for (const family of ARCHITECTURAL_FAMILIES) {
@@ -130,11 +131,11 @@ test('courtyard composition requires a plan courtyard; the three UI styles selec
   assert.deepEqual(SELECTABLE_CHARACTERS, ['modern-box', 'contemporary-indian', 'courtyard-indian'])
   const styleFamilies = {
     'modern-box': ['FRAMED_MODERN', 'FLOATING_BOX', 'INTERLOCKING_MODERN', 'MINIMAL_LUXURY', 'VERTICAL_MONOLITH', 'HORIZONTAL_LAYERED', 'DEEP_REVEAL', 'SCULPTED_CORNER',
-      'GLASS_PAVILION', 'STEEL_FRAME_GRID', 'RAISED_BAR'],
+      'GLASS_PAVILION', 'STEEL_FRAME_GRID', 'RAISED_BAR', 'FOLDED_PAVILION', 'GLAZED_BAY', 'SOLAR_TERRACE'],
     'contemporary-indian': ['WARM_CONTEMPORARY', 'TROPICAL_MODERN', 'SCREEN_HOUSE', 'INDIAN_CONTEMPORARY', 'VERTICAL_MONOLITH', 'LAYERED_PORTICO', 'FINNED_PAVILION',
-      'STEPPED_WHITE', 'FREE_CANOPY'],
+      'STEPPED_WHITE', 'FREE_CANOPY', 'BRICK_VEIL', 'SCULPTED_TOWER', 'GARDEN_GATE'],
     'courtyard-indian': ['COURTYARD_MODERN', 'TROPICAL_MODERN', 'SCREEN_HOUSE', 'INDIAN_CONTEMPORARY', 'WARM_CONTEMPORARY', 'LAYERED_PORTICO', 'FINNED_PAVILION',
-      'STONE_COLONNADE', 'TIMBER_PORTICO'],
+      'STONE_COLONNADE', 'TIMBER_PORTICO', 'COURT_PERGOLA', 'POOL_RETREAT'],
   }
   for (const character of SELECTABLE_CHARACTERS) for (let seed = 1; seed <= 12; seed++) {
     const dna = createVillaDesignDNA(rectangle.building, seed, character)

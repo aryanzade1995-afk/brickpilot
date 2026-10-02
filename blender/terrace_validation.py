@@ -26,6 +26,10 @@ def validate_terrace(payload):
             a,b=tank,stair["rect"]
             if min(a["x"]+a["w"],b["x"]+b["w"])>max(a["x"],b["x"]) and min(a["y"]+a["h"],b["y"]+b["h"])>max(a["y"],b["y"]): raise ValueError("Tank intersects headroom")
     blocked=[terrace[k] for k in ("mumty","tank") if terrace.get(k)]
+    zones={z['id']:z for z in payload['facadeGrammar']['zones']}
+    roof_height=top['elevationMm']+top['heightMm']
+    blocked.extend(p['world'] for f in payload['facadeGrammar']['features'] for p in f['parts']
+                   if zones[p['zoneId']].get('anchorKind')=='roof-interior' and p['world']['z']<roof_height+2400)
     # Edge guards take 120 mm inward. Exact union removes duplicated shared edges.
     xs=sorted({x for r in plates for x in (r["x"],r["x"]+r["w"])})
     ys=sorted({y for r in plates for y in (r["y"],r["y"]+r["h"])})

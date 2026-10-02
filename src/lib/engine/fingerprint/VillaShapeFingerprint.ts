@@ -9,7 +9,7 @@ import { ROOFLINE_TYPES } from '../facade/specialized/types.ts'
 
 /** Schema constants belong to the fingerprint, never to architectural limits.
  * Changing the sampling/layout requires a new schema version and fresh history. */
-export const FINGERPRINT_SCHEMA_VERSION = 3 as const
+export const FINGERPRINT_SCHEMA_VERSION = 4 as const
 const GRID = 16, MAX_FLOORS = 8, MAX_BLOCKS = 64
 const MAX_HEIGHT_MM = 30000, MAX_SPAN_MM = 60000, ROOF_RANGE_MM = 5000
 const HERO_TYPES = [...ARCHITECTURAL_FEATURE_TYPES, 'NONE']
@@ -21,7 +21,8 @@ type Block = { ratio: number; position: [number, number, number]; dimensions: [n
 type OutdoorTopology = { count: number; accessCount: number; footprint: number[]; floorFootprints: number[][]; accessPoints: number[][] }
 
 export type VillaShapeFingerprint = {
-  schemaVersion: 3; sourcePlanId: string; seed: number
+  schemaVersion: 4; sourcePlanId: string; seed: number
+  heroParameterBucket?: string; palette?: string
   massingFamily: string; blockCount: number; blockRatios: number[]; blockPositions: number[][]
   floorFootprints: number[][]; upperFloorCoverage: number; upperFloorOffsets: number[][]
   frontSilhouette: number[]; sideSilhouette: number[]
@@ -33,7 +34,7 @@ export type VillaShapeFingerprint = {
   vector: number[]
 }
 export type ShapeFingerprintRecord = Pick<VillaShapeFingerprint,
-  'schemaVersion' | 'sourcePlanId' | 'seed' | 'massingFamily' | 'heroFeature' | 'facadeFamily' | 'rooflineType' | 'vector'>
+  'schemaVersion' | 'sourcePlanId' | 'seed' | 'massingFamily' | 'heroFeature' | 'facadeFamily' | 'rooflineType' | 'vector' | 'heroParameterBucket' | 'palette'>
 
 /** Each group is compared separately, so padding/empty cells cannot swamp shape.
  * 94% of the score measures realized geometry; labels contribute at most 6%. */
@@ -212,6 +213,10 @@ export function createVillaShapeFingerprint(building: BuildingModel, dna: VillaD
   if (vector.length !== FINGERPRINT_VECTOR_LENGTH || vector.some((n) => !Number.isFinite(n)))
     throw new Error('Geometry could not be normalized into a valid fingerprint')
   return { schemaVersion: FINGERPRINT_SCHEMA_VERSION, sourcePlanId: building.planId, seed: dna.seed,
+    heroParameterBucket: hero?.parameters ? [Math.floor(hero.parameters.widthRatio*4),
+      Math.floor(hero.parameters.projectionMm/400), 'rhythmCount' in hero.parameters ? Math.floor(hero.parameters.rhythmCount/3) : 0,
+      'profile' in hero.parameters ? hero.parameters.profile : 'square'].join(':') : 'legacy',
+    palette: dna.materialPalette,
     massingFamily: massing.family, blockCount: blocks.length, blockRatios: blocks.map((b) => normalized(b.ratio)),
     blockPositions: blocks.map((b) => b.position.map(normalized)), floorFootprints,
     upperFloorCoverage: upper.at(-1)?.[0] ?? 0, upperFloorOffsets: upper.map((u) => u.slice(1).map(normalized)),
@@ -223,7 +228,8 @@ export function createVillaShapeFingerprint(building: BuildingModel, dna: VillaD
 export function fingerprintRecord(f: VillaShapeFingerprint): ShapeFingerprintRecord {
   return { schemaVersion: f.schemaVersion, sourcePlanId: f.sourcePlanId, seed: f.seed,
     massingFamily: f.massingFamily, heroFeature: f.heroFeature, facadeFamily: f.facadeFamily,
-    rooflineType: f.rooflineType, vector: [...f.vector] }
+    rooflineType: f.rooflineType, ...(f.heroParameterBucket ? { heroParameterBucket: f.heroParameterBucket } : {}),
+    ...(f.palette ? { palette: f.palette } : {}), vector: [...f.vector] }
 }
 
 /** Weighted fractional intersection/union for occupancy maps, absolute distance
@@ -262,14 +268,20 @@ export function parseFingerprintHistory(value: unknown, limit = 50): ShapeFinger
   return value.slice(-limit).flatMap((item) => {
     if (!item || typeof item !== 'object') return []
     const f = item as ShapeFingerprintRecord
-    if (f.schemaVersion !== FINGERPRINT_SCHEMA_VERSION || !Number.isSafeInteger(f.seed) ||
+    const legacy = (item as { schemaVersion: number }).schemaVersion === 3
+    if ((!legacy && f.schemaVersion !== FINGERPRINT_SCHEMA_VERSION) || !Number.isSafeInteger(f.seed) ||
       typeof f.sourcePlanId !== 'string' || !f.sourcePlanId.length || f.sourcePlanId.length > 128 ||
       !MASSING_FAMILIES.some((v) => v === f.massingFamily) || !ARCHITECTURAL_FAMILIES.some((v) => v === f.facadeFamily) ||
       !HERO_TYPES.some((v) => v === f.heroFeature) || !ROOFS.some((v) => v === f.rooflineType) ||
-      !Array.isArray(f.vector) || f.vector.length !== FINGERPRINT_VECTOR_LENGTH ||
+      !Array.isArray(f.vector) || f.vector.length !== FINGERPRINT_VECTOR_LENGTH - (legacy ? 18 : 0) ||
       f.vector.some((n) => typeof n !== 'number' || !Number.isFinite(n) || n < 0 || n > 1)) return []
+    const geometryLength = FINGERPRINT_VECTOR_LENGTH - FINGERPRINT_GROUPS.at(-1)!.size
+    const vector = legacy ? [...f.vector.slice(0, geometryLength), ...oneHot(f.massingFamily, MASSING_FAMILIES),
+      ...oneHot(f.facadeFamily, ARCHITECTURAL_FAMILIES), ...oneHot(f.heroFeature, HERO_TYPES), ...oneHot(f.rooflineType, ROOFS)] : [...f.vector]
     return [{ schemaVersion: FINGERPRINT_SCHEMA_VERSION, sourcePlanId: f.sourcePlanId, seed: f.seed,
       massingFamily: f.massingFamily, heroFeature: f.heroFeature, facadeFamily: f.facadeFamily,
-      rooflineType: f.rooflineType, vector: [...f.vector] }]
+      rooflineType: f.rooflineType,
+      ...(typeof f.heroParameterBucket === 'string' && f.heroParameterBucket.length <= 80 ? {heroParameterBucket:f.heroParameterBucket} : {}),
+      ...(typeof f.palette === 'string' && f.palette.length <= 80 ? {palette:f.palette} : {}), vector }]
   })
 }

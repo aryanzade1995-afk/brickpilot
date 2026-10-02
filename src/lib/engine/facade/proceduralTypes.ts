@@ -18,12 +18,18 @@ export const ARCHITECTURAL_FEATURE_TYPES = [
   'BRIDGE_VOLUME', 'COURTYARD_SCREEN',
   // precedent elements from the reference photo set (docs/villa-precedents.md)
   'COLONNADE', 'FREEFORM_CANOPY', 'STEEL_GRID', 'TIMBER_BATTEN', 'STONE_PLINTH',
+  'PERGOLA_COURT', 'FOLDED_CANOPY', 'PERFORATED_BRICK_WALL', 'BAY_WINDOW',
+  'CANTILEVER_STAIR_TOWER', 'ROOF_GARDEN_EDGE', 'SOLAR_SHADE_ROOF',
+  'GATE_PORTAL', 'CHIMNEY_TOWER', 'POOL_PAVILION',
 ] as const
 export type ArchitecturalFeatureType = (typeof ARCHITECTURAL_FEATURE_TYPES)[number]
 export type FacadeSide = 'N' | 'E' | 'S' | 'W'
 
 /** A real exterior wall face, or an exposed edge of a real roof mass. */
 export type FacadeZone = {
+  /** Optional site anchors retain the old exterior-wall/roof representation. */
+  anchorKind?: 'gate' | 'pool-sitout' | 'roof-interior'
+  sourceSiteId?: string
   id: string
   kind: FacadeZoneKind
   floorId: string
@@ -43,7 +49,8 @@ export type FacadeZone = {
 export type FeaturePart = {
   id: string
   zoneId: string
-  role: 'beam' | 'post' | 'panel' | 'screen' | 'slab' | 'box'
+  role: 'beam' | 'post' | 'panel' | 'screen' | 'slab' | 'box' | 'glass'
+  materialHint?: 'stone' | 'wood' | 'metal' | 'wall' | 'glass'
   u0Mm: number
   u1Mm: number
   z0Mm: number
@@ -63,12 +70,22 @@ export type FrameParameters = {
   openSide: 'LEFT' | 'RIGHT'
 }
 
+export type ElementParameters = Partial<FrameParameters> & {
+  widthRatio: number
+  projectionMm: number
+  rhythmCount: number
+  pitchMm: number
+  profile: 'square' | 'slim' | 'paired'
+  slabEdge: 'flat' | 'upstand'
+  materialHint: 'stone' | 'wood' | 'metal' | 'wall' | 'glass'
+}
+
 export type ArchitecturalFeature = {
   id: string
   type: ArchitecturalFeatureType
   importance: 'hero' | 'support'
   zoneIds: string[]
-  parameters: FrameParameters | null
+  parameters: FrameParameters | ElementParameters | null
   parts: FeaturePart[]
 }
 

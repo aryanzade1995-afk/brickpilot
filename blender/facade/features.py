@@ -11,6 +11,7 @@ def _name(feature, index):
 
 
 def _part(scene, feature, part, name, material="stone"):
+    material = {"wood": "timber"}.get(part.get("materialHint"), part.get("materialHint", material))
     world = part["world"]
     obj = scene.box(name, "FACADE", world["x"] + world["w"] / 2,
                      world["y"] + world["h"] / 2, world["z"],
@@ -127,7 +128,10 @@ def create_facade(scene, facade, building, finish=True):
     frame_types = {"C_FRAME", "L_FRAME", "RECTANGLE_FRAME", "DOUBLE_HEIGHT_FRAME",
                    "FLOATING_FRAME", "CORNER_WRAP_FRAME", "ENTRY_PORTAL",
                    "DOUBLE_HEIGHT_PORTAL", "ROOF_FRAME", "PERGOLA_FRAME",
-                   "COLONNADE", "FREEFORM_CANOPY", "STONE_PLINTH"}
+                   "COLONNADE", "FREEFORM_CANOPY", "STONE_PLINTH",
+                   "PERGOLA_COURT", "FOLDED_CANOPY", "BAY_WINDOW",
+                   "CANTILEVER_STAIR_TOWER", "ROOF_GARDEN_EDGE", "SOLAR_SHADE_ROOF",
+                   "GATE_PORTAL", "POOL_PAVILION", "CHIMNEY_TOWER"}
     box_types = {"PROJECTED_BOX", "FLOATING_BOX", "INTERLOCKING_BOX", "STONE_SPINE",
                  "VERTICAL_TOWER", "DEEP_OVERHANG", "BRIDGE_VOLUME"}
     for index, feature in enumerate(facade["features"], 1):
@@ -135,7 +139,7 @@ def create_facade(scene, facade, building, finish=True):
         kind = feature["type"]
         if kind == "RECESSED_BOX":
             create_recessed_volume(scene, feature, name, zones, walls)
-        elif kind in ("JALI_SCREEN", "COURTYARD_SCREEN"):
+        elif kind in ("JALI_SCREEN", "COURTYARD_SCREEN", "PERFORATED_BRICK_WALL"):
             create_jali(scene, feature, name)
         elif kind in ("VERTICAL_FIN_SCREEN", "HORIZONTAL_LOUVER", "WOOD_SPINE",
                       "STEEL_GRID", "TIMBER_BATTEN"):

@@ -115,7 +115,8 @@ test('last-ten quotas drop the outgoing oldest villa before accepting the next o
   const history = [record, ...Array.from({ length: 8 }, (_, i) => ({ ...fingerprintRecord(c.shapeFingerprint),
     massingFamily: families[i], heroFeature: heroes[i], facadeFamily: facades[i], rooflineType: roofs[i], seed: i + 100 })),
     { ...record, seed: 301 }]
-  assert.equal(evaluateVillaFingerprint(fp, history, { similarityThreshold: 1 }).accepted, true)
+  // Preserve the original configurable two-use quota case; defaults now forbid hero/family repeats.
+  assert.equal(evaluateVillaFingerprint(fp, history, { similarityThreshold: 1, maxSameHero: 2, maxSameFacadeFamily: 2 }).accepted, true)
   assert.equal(evaluateVillaFingerprint(fp, [record], { similarityThreshold: 1, windowSize: 1 }).accepted, true)
 })
 

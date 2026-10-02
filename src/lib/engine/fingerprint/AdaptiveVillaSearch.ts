@@ -21,8 +21,8 @@ export function selectAdaptiveVilla<T>(seed: number, recent: ShapeFingerprintRec
   const threshold=stages[stage], final=threshold===1
   const stageLimits={...limits,similarityThreshold:threshold,
    maxSameMassingFamily:final?limits.windowSize:Math.max(limits.maxSameMassingFamily,2+stage),
-   maxSameHero:final?limits.windowSize:Math.max(limits.maxSameHero,2+stage),
-   maxSameFacadeFamily:final?limits.windowSize:Math.max(limits.maxSameFacadeFamily,2+stage),
+   maxSameHero:stage===0?limits.maxSameHero:final?limits.windowSize:Math.max(limits.maxSameHero,1+stage),
+   maxSameFacadeFamily:stage===0?limits.maxSameFacadeFamily:final?limits.windowSize:Math.max(limits.maxSameFacadeFamily,1+stage),
    maxSameRoofline:final?limits.windowSize:Math.max(limits.maxSameRoofline,3+stage)}
   const evaluate=(item:ReturnType<typeof createCandidate>)=>{
    const decision=evaluateVillaFingerprint(item.fingerprint,history,stageLimits,references)
@@ -31,7 +31,12 @@ export function selectAdaptiveVilla<T>(seed: number, recent: ShapeFingerprintRec
    return decision
   }
   // Reconsider validated candidates before doing any more expensive assembly.
-  for(const item of candidates) {const d=evaluate(item);if(d.accepted)return accept(item,d,stage)}
+  const previousHero=history.at(-1)?.heroFeature
+  const repeatCandidates:ReturnType<typeof createCandidate>[]=[]
+  for(const item of candidates) {
+   if(item.fingerprint.heroFeature===previousHero){repeatCandidates.push(item);continue}
+   const d=evaluate(item);if(d.accepted)return accept(item,d,stage)
+  }
   for(let i=0;i<Math.min(limits.maxAttempts,16);i++) {
    let next=stage===0&&i===0?seed:rng.int(0,0xffffffff)
    while(seen.has(next))next=rng.int(0,0xffffffff)
@@ -40,10 +45,12 @@ export function selectAdaptiveVilla<T>(seed: number, recent: ShapeFingerprintRec
     const item=createCandidate(next); if(item.fingerprint.seed!==next)throw new Error('Candidate seed mismatch')
     candidates.push(item)
     const decision=evaluate(item)
-    if(decision.accepted)return accept(item,decision,stage)
+    if(decision.accepted && item.fingerprint.heroFeature!==previousHero)return accept(item,decision,stage)
     debug.push({...decision,reason:`Stage ${stage+1}, threshold ${Math.round(threshold*100)}%: ${decision.reason}`})
    } catch(error) {debug.push({seed:next,family:'unknown',nearestPreviousSeed:null,similarityPercent:0,accepted:false,code:'INVALID_ARCHITECTURE',reason:error instanceof Error?error.message:'Architecture failed validation'})}
   }
+  // Exhaust the bounded alternative search before allowing a consecutive repeat.
+  if(final)for(const item of [...repeatCandidates,...candidates]){const d=evaluate(item);if(d.accepted)return accept(item,d,stage)}
  }
  return {accepted:null,history,debug}
 }

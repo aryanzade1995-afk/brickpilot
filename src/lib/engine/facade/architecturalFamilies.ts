@@ -13,6 +13,9 @@ export const ARCHITECTURAL_FAMILIES = [
   'GLASS_PAVILION', 'STEEL_FRAME_GRID', 'RAISED_BAR',
   'STEPPED_WHITE', 'FREE_CANOPY',
   'STONE_COLONNADE', 'TIMBER_PORTICO',
+  'FOLDED_PAVILION', 'GLAZED_BAY', 'SOLAR_TERRACE',
+  'BRICK_VEIL', 'SCULPTED_TOWER', 'GARDEN_GATE',
+  'COURT_PERGOLA', 'POOL_RETREAT',
 ] as const
 export type ArchitecturalFamily = (typeof ARCHITECTURAL_FAMILIES)[number]
 
@@ -26,6 +29,14 @@ export type ArchitecturalFamilyRecipe = {
 }
 
 export const ARCHITECTURAL_FAMILY_RECIPES: Record<ArchitecturalFamily, ArchitecturalFamilyRecipe> = {
+  FOLDED_PAVILION: { heroes: ['FOLDED_CANOPY'], supports: ['STEEL_GRID'], spanRatio: [.7,.95], projectionScale: 1.2 },
+  GLAZED_BAY: { heroes: ['BAY_WINDOW', 'CANTILEVER_STAIR_TOWER'], supports: ['STONE_PLINTH'], spanRatio: [.6,.85], projectionScale: 1 },
+  SOLAR_TERRACE: { heroes: ['SOLAR_SHADE_ROOF', 'ROOF_GARDEN_EDGE'], supports: ['DEEP_OVERHANG'], spanRatio: [.7,.95], projectionScale: 1 },
+  BRICK_VEIL: { heroes: ['PERFORATED_BRICK_WALL'], supports: ['WOOD_SPINE'], spanRatio: [.65,.9], projectionScale: 1 },
+  SCULPTED_TOWER: { heroes: ['CHIMNEY_TOWER', 'CANTILEVER_STAIR_TOWER'], supports: ['TIMBER_BATTEN'], spanRatio: [.5,.75], projectionScale: 1 },
+  GARDEN_GATE: { heroes: ['GATE_PORTAL'], supports: ['ROOF_GARDEN_EDGE'], spanRatio: [.75,.95], projectionScale: 1 },
+  COURT_PERGOLA: { heroes: ['PERGOLA_COURT'], supports: ['PERFORATED_BRICK_WALL'], spanRatio: [.6,.9], projectionScale: 1, requiresCourtyard: true },
+  POOL_RETREAT: { heroes: ['POOL_PAVILION'], supports: ['ROOF_GARDEN_EDGE'], spanRatio: [.7,.95], projectionScale: 1 },
   FRAMED_MODERN: { heroes: ['C_FRAME', 'RECTANGLE_FRAME'], supports: ['L_FRAME', 'ENTRY_PORTAL'], spanRatio: [0.72, 0.91], projectionScale: 1.05 },
   FLOATING_BOX: { heroes: ['FLOATING_BOX', 'FLOATING_FRAME'], supports: ['DEEP_OVERHANG', 'STONE_SPINE'], spanRatio: [0.68, 0.87], projectionScale: 1.35 },
   INTERLOCKING_MODERN: { heroes: ['INTERLOCKING_BOX', 'CORNER_WRAP_FRAME'], supports: ['PROJECTED_BOX', 'L_FRAME'], spanRatio: [0.67, 0.89], projectionScale: 1.15 },
@@ -59,11 +70,11 @@ export const ARCHITECTURAL_FAMILY_RECIPES: Record<ArchitecturalFamily, Architect
 
 const UI_FAMILY_POOL: Partial<Record<Character, readonly ArchitecturalFamily[]>> = {
   'modern-box': ['FRAMED_MODERN', 'FLOATING_BOX', 'INTERLOCKING_MODERN', 'MINIMAL_LUXURY', 'VERTICAL_MONOLITH', 'HORIZONTAL_LAYERED', 'DEEP_REVEAL', 'SCULPTED_CORNER',
-    'GLASS_PAVILION', 'STEEL_FRAME_GRID', 'RAISED_BAR'],
+    'GLASS_PAVILION', 'STEEL_FRAME_GRID', 'RAISED_BAR', 'FOLDED_PAVILION', 'GLAZED_BAY', 'SOLAR_TERRACE'],
   'contemporary-indian': ['WARM_CONTEMPORARY', 'TROPICAL_MODERN', 'SCREEN_HOUSE', 'INDIAN_CONTEMPORARY', 'VERTICAL_MONOLITH', 'LAYERED_PORTICO', 'FINNED_PAVILION',
-    'STEPPED_WHITE', 'FREE_CANOPY'],
+    'STEPPED_WHITE', 'FREE_CANOPY', 'BRICK_VEIL', 'SCULPTED_TOWER', 'GARDEN_GATE'],
   'courtyard-indian': ['COURTYARD_MODERN', 'TROPICAL_MODERN', 'SCREEN_HOUSE', 'INDIAN_CONTEMPORARY', 'WARM_CONTEMPORARY', 'LAYERED_PORTICO', 'FINNED_PAVILION',
-    'STONE_COLONNADE', 'TIMBER_PORTICO'],
+    'STONE_COLONNADE', 'TIMBER_PORTICO', 'COURT_PERGOLA', 'POOL_RETREAT'],
 }
 
 /** the families a style draws from (every family when the style has no pool) */

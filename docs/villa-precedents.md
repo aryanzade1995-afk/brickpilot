@@ -45,3 +45,11 @@ and a family that cannot fit the plan falls back inside the same style first.
   takes one; the Directions page explores only these shapes.
 - **Contemporary** — stepped, L-shaped or courtyard plans before a plain bar.
 - **Modern box** — unchanged: bar and stepped plates.
+
+## Seeded element extension
+
+The 38 element recipes include court pergolas, stepped folded canopies, sparse staggered brick veils, projecting glazed bays around source windows, stair frames, roof planter edges, stepped solar shade slats, road-edge gate portals, sculpted chimney towers and pool-adjacent pavilions. These are procedural interpretations, not copied building models. Each part has an exact source anchor and optional material role.
+
+Eight additional internal compositions extend the existing three UI styles: Folded Pavilion, Glazed Bay, Solar Terrace; Brick Veil, Sculpted Tower, Garden Gate; Court Pergola, Pool Retreat. Pool/gate/court elements require their real source site feature. Roof elements remain on the slab, clear of stair headroom and tank, with at least 80% usable terrace. No facade feature changes a source room or aperture.
+
+Feature parameters record realized proportions, projection, rhythm, profile and slab edges. Shape history schema 4 migrates schema 3 geometry vectors; optional parameter buckets and palette labels are diagnostic. Palette has zero similarity weight. Default rolling quotas allow one hero/facade family in the ten-villa window. Adaptive stages may relax uniqueness after checking alternative seeds; hard geometry checks never relax.

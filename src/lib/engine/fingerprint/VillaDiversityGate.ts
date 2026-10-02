@@ -9,7 +9,7 @@ export type VillaDiversityLimits = {
 }
 export const DEFAULT_DIVERSITY_LIMITS: VillaDiversityLimits = {
   similarityThreshold: 0.75, recentLimit: 50, windowSize: 10,
-  maxSameMassingFamily: 2, maxSameHero: 2, maxSameFacadeFamily: 2, maxSameRoofline: 3, maxAttempts: 32,
+  maxSameMassingFamily: 2, maxSameHero: 1, maxSameFacadeFamily: 1, maxSameRoofline: 3, maxAttempts: 32,
 }
 export type FingerprintDebug = {
   seed: number; family: string; nearestPreviousSeed: number | null; similarityPercent: number

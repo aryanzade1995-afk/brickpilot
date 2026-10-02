@@ -2,6 +2,10 @@ import { rectUnionEdges, sharedEdge, type Rect } from '../../geometry.ts'
 import type { BuildingModel } from '../buildingModel.ts'
 import type { MassingModel } from '../massing/model.ts'
 import { massRect } from '../massing/transforms.ts'
+import { siteFacadeZones, interiorRoofZones } from './siteZones.ts'
+import { ELEMENT_LIMITS } from './elementLimits.ts'
+import { terraceFreeRatio, TERRACE_LIMITS } from '../terrace.ts'
+import { uncoveredArea } from '../massing/families.ts'
 import type { ArchitecturalFeature, FacadeIssue, FacadeSide, FacadeZone, FeaturePart } from './proceduralTypes.ts'
 
 const center = (a: number, b: number) => (a + b) / 2
@@ -60,6 +64,14 @@ export function buildFacadeZones(building: BuildingModel, massing: MassingModel)
   const top = [...building.floors].sort((a, b) => a.level - b.level).at(-1)
   if (top) {
     const roofs = massing.masses.filter((m) => m.usage === 'roof' && m.sourceFloorId === top.id)
+    if (!roofs.length) for (const edge of rectUnionEdges(top.footprint, top.courtyard)) {
+      const h = edge.side === 'N' || edge.side === 'S'
+      const lo = h ? edge.a.x : edge.a.y, hi = h ? edge.b.x : edge.b.y
+      zones.push({ id: `slab-edge:${top.id}:${edge.side}:${lo}:${hi}`, kind: 'ROOFLINE',
+        floorId: top.id, wallId: null, hostMassIds: building.slabs.filter(s => s.floorId === top.id).map(s => `slab:${s.id}`),
+        roomId: null, side: edge.side, fixedMm: h ? edge.a.y : edge.a.x, startMm: lo, endMm: hi,
+        elevationMm: top.elevationMm + top.heightMm, heightMm: 1800, openingIds: [] })
+    }
     for (const edge of rectUnionEdges(roofs.map(massRect))) {
       const side = edge.side
       const h = side === 'N' || side === 'S'
@@ -77,7 +89,7 @@ export function buildFacadeZones(building: BuildingModel, massing: MassingModel)
       }
     }
   }
-  return zones
+  return [...zones, ...interiorRoofZones(zones), ...siteFacadeZones(building)]
 }
 
 /** Every absolute box is derived from local face coordinates and an outward normal. */
@@ -120,10 +132,16 @@ export function validateProceduralFeatures(building: BuildingModel, massing: Mas
   const zoneIds = new Set(zones.map((z) => z.id))
   if (zoneIds.size !== zones.length) add('DUPLICATE_ZONE', 'Exterior zone IDs must be unique.')
   for (const z of zones) {
-    const host = z.wallId ? building.walls.some((w) => w.id === z.wallId && w.floorId === z.floorId && w.kind === 'exterior') :
-      z.hostMassIds.some((id) => massing.masses.some((m) => m.id === id && m.usage === 'roof'))
+    const siteHost = z.anchorKind === 'gate' || z.anchorKind === 'pool-sitout'
+      ? siteFacadeZones(building).some(expected => JSON.stringify(expected) === JSON.stringify(z)) : false
+    const host = siteHost || (z.wallId ? building.walls.some((w) => w.id === z.wallId && w.floorId === z.floorId && w.kind === 'exterior') :
+      z.hostMassIds.some((id) => massing.masses.some((m) => m.id === id && m.usage === 'roof') ||
+        building.slabs.some(s => `slab:${s.id}` === id && s.floorId === z.floorId))
+    )
     if (!host || z.endMm <= z.startMm || z.heightMm <= 0)
       add('INVALID_ZONE_HOST', 'Facade zone lacks real exterior geometry.', undefined, z.id)
+    if (z.anchorKind === 'roof-interior' && !interiorRoofZones(zones).some(expected => JSON.stringify(expected) === JSON.stringify(z)))
+      add('INVALID_ZONE_HOST', 'Inward roof anchor must derive from a real roof edge.', undefined, z.id)
   }
   const ground = [...building.floors].sort((a, b) => a.level - b.level)[0]
   const porches = ground ? building.rooms.filter((room) => room.floorId === ground.id && room.outdoor &&
@@ -166,7 +184,7 @@ export function validateProceduralFeatures(building: BuildingModel, massing: Mas
       if ((['x', 'y', 'z', 'w', 'h', 'height'] as const).some((key) => derived.world[key] !== part.world[key]))
         add('ARBITRARY_COORDINATES', 'World geometry does not derive from the declared facade anchor.', feature.id, zone.id)
       const r = part.world
-      const env = building.plot.buildable
+      const env = zone.anchorKind === 'gate' ? { x: 0, y: 0, w: building.plot.widthMm, h: building.plot.depthMm } : building.plot.buildable
       if (r.x < env.x - 1 || r.y < env.y - 1 || r.x + r.w > env.x + env.w + 1 ||
         r.y + r.h > env.y + env.h + 1)
         add('FEATURE_SETBACK', 'Projected feature crosses the source setback envelope.', feature.id, zone.id)
@@ -204,11 +222,46 @@ export function validateProceduralFeatures(building: BuildingModel, massing: Mas
         const at = h ? opening.at.x : opening.at.y
         const low = floor.elevationMm + (opening.kind === 'window' ? opening.sill ?? 850 : 0)
         const high = floor.elevationMm + Math.min(opening.head ?? (opening.kind === 'window' ? 2600 : 2500), floor.heightMm - 120)
-        if (overlap(part.u0Mm, part.u1Mm, at - opening.width / 2, at + opening.width / 2) > 1 &&
+        const glazing = opening.kind === 'window' && part.role === 'glass' && feature.type === 'BAY_WINDOW' &&
+          zone.openingIds.includes(opening.id!) && part.u0Mm >= at-opening.width/2 && part.u1Mm <= at+opening.width/2 &&
+          part.z0Mm >= low && part.z1Mm <= high && part.materialHint === 'glass'
+        const screen = opening.kind === 'window' && feature.type === 'PERFORATED_BRICK_WALL' &&
+          part.role === 'screen' && part.offsetMm >= ELEMENT_LIMITS.screenOffsetMm
+        if (!glazing && !screen && overlap(part.u0Mm, part.u1Mm, at - opening.width / 2, at + opening.width / 2) > 1 &&
           overlap(part.z0Mm, part.z1Mm, low, high) > 1)
           add('FEATURE_OPENING_COLLISION', 'Feature intersects a door or window opening.', feature.id, zone.id)
       }
+      if (zone.anchorKind === 'roof-interior' && uncoveredArea([r], building.floors.find(f => f.id === zone.floorId)!.footprint) > 1)
+        add('ROOF_SUPPORT', 'Roof element must remain on the actual walkable slab.', feature.id, zone.id)
+      if (zone.anchorKind === 'pool-sitout') {
+        const sit = building.siteFeatures?.find(f => f.id === zone.sourceSiteId)
+        if (!sit || uncoveredArea([r],[sit.rect]) > 1)
+          add('PAVILION_HOST', 'Pool pavilion must stay on its source sit-out.', feature.id, zone.id)
+      }
     }
+  }
+  const screenFeatures = features.filter(f => f.type === 'PERFORATED_BRICK_WALL')
+  for (const feature of screenFeatures) for (const id of feature.zoneIds) {
+    const zone = zones.find(z => z.id === id)
+    if (!zone) continue
+    for (const opening of building.windows.filter(w => zone.openingIds.includes(w.id!))) {
+      const floor = building.floors.find(f => f.id === opening.floorId)!
+      const at = zone.side === 'N' || zone.side === 'S' ? opening.at.x : opening.at.y
+      const low = floor.elevationMm + (opening.sill ?? 850), high = floor.elevationMm + (opening.head ?? 2600)
+      const occlusion = feature.parts.reduce((sum,p) => sum + Math.max(0,overlap(p.u0Mm,p.u1Mm,at-opening.width/2,at+opening.width/2)) * Math.max(0,overlap(p.z0Mm,p.z1Mm,low,high)),0)
+      if (occlusion / (opening.width * (high-low)) > ELEMENT_LIMITS.maximumScreenOcclusion)
+        add('SCREEN_OCCLUSION', 'Brick screen obscures too much of the source window.', feature.id, zone.id)
+    }
+  }
+  if (building.roofTerrace) {
+    const parts = features.flatMap(f => f.parts).filter(p => zones.find(z => z.id === p.zoneId)?.anchorKind === 'roof-interior')
+    const floorLevel = [...building.floors].sort((a,b) => a.level-b.level).at(-1)!
+    const top = floorLevel.elevationMm + floorLevel.heightMm
+    const services = [building.roofTerrace.mumty,building.roofTerrace.tank].filter(r => r !== null)
+    for (const p of parts) if (services.some(r => overlap(p.world.x,p.world.x+p.world.w,r.x-300,r.x+r.w+300)>0 && overlap(p.world.y,p.world.y+p.world.h,r.y-300,r.y+r.h+300)>0))
+      add('TERRACE_SERVICE_COLLISION','Roof element blocks the stair enclosure or tank.',undefined,p.zoneId)
+    if (terraceFreeRatio(building.roofTerrace,parts.filter(p => p.world.z < top + ELEMENT_LIMITS.roofHeadroomMm).map(p=>p.world)) < TERRACE_LIMITS.minFreeRatio)
+      add('TERRACE_FREE_AREA','Roof elements leave less than 80% usable terrace.')
   }
   for (let i = 0; i < features.length; i++) for (let j = i + 1; j < features.length; j++) {
     for (const a of features[i].parts) for (const b of features[j].parts) {

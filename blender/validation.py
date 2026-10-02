@@ -117,5 +117,7 @@ def validate_payload(payload):
             if part["zoneId"] not in zone_ids or not _rect(part["world"]) or part["world"]["height"] <= 0:
                 raise GeometryInputError(f"Invalid facade part {part['id']}")
     from specialized_validation import validate_specialized
+    from element_validation import validate_elements
+    validate_elements(payload)
     validate_specialized(payload, hosts)
     return hosts

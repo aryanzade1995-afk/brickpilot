@@ -80,10 +80,16 @@ def create_site(scene, building):
         center = driveway["rect"]["x"]+driveway["rect"]["w"]/2 if driveway else pw/2
         half = min(1900, (pw-600)/2)
         center = min(pw-half-300, max(half+300, center))
+        portal = next((z for z in scene.facade['zones'] if z.get('anchorKind') == 'gate'), None) if hasattr(scene, 'facade') else None
+        # The geometry generator stores facade data before creating the site.
+        if portal and any(f['type'] == 'GATE_PORTAL' for f in scene.facade['features']):
+            center = (portal['startMm']+portal['endMm'])/2
+            half = (portal['endMm']-portal['startMm']-560)/2
         for name, x, y, w, d in [("North",pw/2,150,pw-150,150),("West",150,pd/2,150,pd-300),("East",pw-150,pd/2,150,pd-300)]:
             scene.box(f"Compound_{name}","LANDSCAPE",x,y,grade,w,d,1600,"wall",building["planId"])
         for side, a, b in [("Left",150,center-half),("Right",center+half,pw-150)]:
             if b>a: scene.box(f"Compound_South_{side}","LANDSCAPE",(a+b)/2,pd-150,grade,b-a,150,1600,"wall",building["planId"])
-        for side in (-1,1):
-            scene.box(f"Gate_Pier_{side}","LANDSCAPE",center+side*half,pd-600,grade,200,1200,3000,"stone",building["planId"])
-        scene.box("CompoundGate_Canopy","LANDSCAPE",center,pd-700,grade+3000,half*2+300,1200,180,"concrete",building["planId"])
+        if not (portal and any(f['type'] == 'GATE_PORTAL' for f in scene.facade['features'])):
+            for side in (-1,1):
+                scene.box(f"Gate_Pier_{side}","LANDSCAPE",center+side*half,pd-600,grade,200,1200,3000,"stone",building["planId"])
+            scene.box("CompoundGate_Canopy","LANDSCAPE",center,pd-700,grade+3000,half*2+300,1200,180,"concrete",building["planId"])
