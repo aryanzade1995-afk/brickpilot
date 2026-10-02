@@ -125,6 +125,12 @@ export function validateProceduralFeatures(building: BuildingModel, massing: Mas
     if (!host || z.endMm <= z.startMm || z.heightMm <= 0)
       add('INVALID_ZONE_HOST', 'Facade zone lacks real exterior geometry.', undefined, z.id)
   }
+  const ground = [...building.floors].sort((a, b) => a.level - b.level)[0]
+  const porches = ground ? building.rooms.filter((room) => room.floorId === ground.id && room.outdoor &&
+    (room.id === 'parking' || room.id === 'verandah'))
+    // the roof slab (200 mm under the first floor level) and the rail above it;
+    // a portal or screen standing under the porch roof is fine
+    .map((room) => ({ rect: room.rect, z0: ground.elevationMm + ground.heightMm - 220, z1: ground.elevationMm + ground.heightMm + 1100 })) : []
   const heroes = features.filter((f) => f.importance === 'hero')
   if (heroes.length !== 1 || features.length > 3 || features.some((f) => f.importance === 'support' && f.parts.length === 0))
     add('FEATURE_BUDGET', 'A facade needs one hero and at most two supporting features.')
@@ -170,6 +176,16 @@ export function validateProceduralFeatures(building: BuildingModel, massing: Mas
           overlap(r.y, r.y + r.h, mr.y, mr.y + mr.h) > 1 &&
           overlap(r.z, r.z + r.height, mass.elevation, mass.elevation + mass.height) > 1)
           add('FEATURE_MASS_COLLISION', 'Projected feature intersects an existing building volume.', feature.id, zone.id)
+      }
+      // a covered car porch / verandah gets a roof on posts (with a balcony
+      // rail on top) in the 3D model: its storey and the rail above stay clear
+      // (a double-height entrance frame rises through the porch roof, which
+      // the 3D model cuts around it)
+      for (const porch of feature.type === 'DOUBLE_HEIGHT_PORTAL' ? [] : porches) {
+        if (overlap(r.x, r.x + r.w, porch.rect.x, porch.rect.x + porch.rect.w) > 1 &&
+          overlap(r.y, r.y + r.h, porch.rect.y, porch.rect.y + porch.rect.h) > 1 &&
+          overlap(r.z, r.z + r.height, porch.z0, porch.z1) > 1)
+          add('FEATURE_PORCH_COLLISION', 'Feature intersects a covered porch roof or its rail.', feature.id, zone.id)
       }
       for (const column of building.columns) {
         const floor = building.floors.find((f) => f.id === column.floorId)

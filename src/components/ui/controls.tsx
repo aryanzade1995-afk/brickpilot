@@ -175,7 +175,8 @@ export function Segmented<T extends string | number>({
   onChange,
 }: {
   value: T
-  options: { value: T; label: string }[]
+  /** a disabled option cannot be chosen; `title` says why */
+  options: { value: T; label: string; disabled?: boolean; title?: string }[]
   onChange: (v: T) => void
 }) {
   return (
@@ -184,11 +185,13 @@ export function Segmented<T extends string | number>({
         <button
           key={String(o.value)}
           type="button"
+          disabled={o.disabled}
+          title={o.title}
           onClick={() => onChange(o.value)}
           className={cx(
             'px-3.5 py-2 font-mono text-xs uppercase tracking-[0.1em] transition-colors',
             i > 0 && 'border-l border-line-strong',
-            value === o.value ? 'bg-accent text-white' : 'text-ink-dim hover:bg-bg-raised hover:text-ink',
+            value === o.value ? 'bg-accent text-white' : o.disabled ? 'cursor-not-allowed text-ink-faint line-through' : 'text-ink-dim hover:bg-bg-raised hover:text-ink',
           )}
         >
           {o.label}

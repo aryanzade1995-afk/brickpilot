@@ -92,7 +92,10 @@ export const STYLE_PLAN_FAMILIES: Partial<Record<CanonicalModel['brief']['style'
  *  house only ever explores its own shapes, each again with a fresh plan seed. */
 export function directionPlans(model: CanonicalModel, count = 4): { family: PlateFamily; seed: number }[] {
   const style = STYLE_PLAN_FAMILIES[model.brief.style.character]
-  const order = model.brief.style.character === 'courtyard-indian' ? style!
+  const chosen = model.brief.style.massing
+  // a shape the user chose is kept: four directions of that shape, each its own plan seed
+  const order = chosen !== 'auto' && chosen !== 'random' ? [FAMILY_OF[chosen]]
+    : model.brief.style.character === 'courtyard-indian' ? style!
     : [...(style ?? ['rectangular', 'stepped', 'l-shape']), ...FAMILIES.filter((f) => !(style ?? ['rectangular', 'stepped', 'l-shape']).includes(f))]
   return Array.from({ length: count }, (_, i) => ({
     family: order[i % order.length],

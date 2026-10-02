@@ -97,6 +97,39 @@ export function assessBriefFit(brief: Brief): BriefFit {
   capacityCache.set(key, fit)
   return fit
 }
+/** The plan shapes the Style step offers (besides Auto): each a really
+ *  different plate, not another label for the same one. */
+export const SHAPE_CHOICES = ['rectangular', 'l-shape', 'courtyard'] as const
+export type ShapeChoice = (typeof SHAPE_CHOICES)[number]
+export type ShapeCheck = { ok: boolean; reason: string }
+
+const shapeCache = new Map<string, ShapeCheck>()
+/** Does the production planner really build this shape for this brief? The
+ *  plan must pass every hard check AND come out as the asked-for shape. */
+export function assessShape(brief: Brief, shape: ShapeChoice): ShapeCheck {
+  const key = shape + JSON.stringify(brief)
+  const cached = shapeCache.get(key)
+  if (cached) return cached
+  let check: ShapeCheck
+  try {
+    const trial = structuredClone(brief)
+    trial.style.massing = shape
+    const plan = generate(compile(trial), { massing: shape })
+    check = brief.rooms.priorities.courtyard && shape !== 'courtyard'
+      ? { ok: false, reason: 'Your courtyard priority (Rooms step) asks for a courtyard plan.' }
+      : !validate(plan).hardChecksPass
+      ? { ok: false, reason: 'No valid plan of this shape fits the plot and rooms.' }
+      : plan.massingType !== shape
+        ? { ok: false, reason: `The plot only takes a ${plan.massingType.replace('-', ' ')} plan.` }
+        : { ok: true, reason: 'Checked: builds a valid plan of this shape.' }
+  } catch (error) {
+    check = { ok: false, reason: error instanceof Error ? error.message : 'No valid plan of this shape.' }
+  }
+  if (shapeCache.size >= 96) shapeCache.delete(shapeCache.keys().next().value!)
+  shapeCache.set(key, check)
+  return check
+}
+
 export function canIncreaseBrief(brief: Brief, recipe: (candidate: Brief) => void): boolean {
   const candidate = structuredClone(brief)
   recipe(candidate)

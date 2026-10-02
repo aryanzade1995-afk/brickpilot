@@ -113,3 +113,20 @@ test('choosing a direction replays exactly its own plan and exterior', async () 
     assert.deepEqual(r.facadeModel.features.map((f) => f.type), d.facadeModel.features.map((f) => f.type))
   }
 })
+
+import { assessShape, SHAPE_CHOICES } from '../src/lib/engine/planner/fit.ts'
+
+test('each offered shape is checked by really building it; a chosen shape is kept on Directions', () => {
+  assert.deepEqual([...SHAPE_CHOICES], ['rectangular', 'l-shape', 'courtyard'])
+  for (const site of [{}, PLOT]) {
+    for (const shape of SHAPE_CHOICES) {
+      const check = assessShape(briefSchema.parse({ site }), shape)
+      const built = plan({ site, style: { massing: shape } })
+      assert.equal(check.ok, validate(built).hardChecksPass && built.massingType === shape, `${JSON.stringify(site)} ${shape}: ${check.reason}`)
+    }
+  }
+  assert.equal(assessShape(briefSchema.parse({}), 'courtyard').ok, false, 'the small default plot cannot take a courtyard')
+  const chosen = directionPlans(compile(briefSchema.parse({ site: PLOT, style: { massing: 'l-shape' } })))
+  assert.ok(chosen.every((w) => w.family === 'l-shape'))
+  assert.equal(new Set(chosen.map((w) => w.seed)).size, 4, 'four plans of the chosen shape')
+})

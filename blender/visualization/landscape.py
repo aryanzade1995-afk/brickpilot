@@ -127,5 +127,7 @@ def create_landscape(scene, payload, options):
     building = payload["buildingModel"]
     if "siteFeatures" not in building:
         _entry_paving(scene, building)
+    from geometry.covered import create_garden_trees
+    layout["trees"] = create_garden_trees(scene, building, seed, SeedStream)
     scene.warnings.extend(layout["omissions"])
     return layout
