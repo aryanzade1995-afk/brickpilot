@@ -549,11 +549,14 @@ source plan; changing exterior seed never reruns room layout.
 
 `node --experimental-strip-types scripts/review-wings.mjs` creates a local
 review at `/output/wing-review/index.html`, using the existing DrawingWorkspace
-and FloorDrawing. One 40×60 m brief, 50 seed requests: 39 distinct valid U-wing
-plans in the checked fixture. A constrained brief can resolve several requested
-seeds to the same passing alternative; invalid candidates remain rejected.
-The review includes all four wing families, floor tabs, both drawing themes and
-an overview of the 50 source plans. JSON metrics are in
+and FloorDrawing. One 40×60 m brief, **100 distinct valid plans per family**:
+twin wings, U wings, courtyard wings and pavilion (400 reviewed plans total).
+Duplicate source fingerprints trigger deterministic seed retries; the displayed
+passing plan seed replays exactly. This measures different room geometry and
+access, not 100 fundamentally different silhouettes within one wing family.
+The review includes family selection, 100-card overviews, floor tabs, both
+drawing themes, the existing interactive Three.js study and an optional
+Blender exterior panel. Family data loads separately. JSON metrics are in
 `output/wing-review/summary.json`. Local editable double-height and wrap-verandah
 Blender/GLB checks are in `output/wing-family-review/`.
 
@@ -579,3 +582,22 @@ blocked compact requests, saved legacy values and four open-space modes.
 [The availability audit](docs/wing-availability.md) records a wider 576-request
 matrix: 489 valid exact-family plans, 87 blocked requests, zero accepted
 wrong-family substitutes. This does not guarantee arbitrary programmes fit.
+
+### 100-seed exterior batches
+
+`npm run blender:gallery -- --plan path/to/saved-design.json` now defaults to
+100 exterior seeds of exactly one saved source plan, exported under
+`output/gallery-100-integrated/`. `--count 50` retains the older batch size.
+The Blender loop, HTML seed selector, pair counts and measured-shape report
+use the selected count. Existing 50-seed visual-review annotations are never
+reused for a different count. The server serves a completed 100-seed clay
+gallery when present and retains the previous archive otherwise.
+
+The generated wing review is already available locally with 400 validated
+plans and 3D studies. Full editable scenes and clay renders are produced by
+the separate Blender batch or the selected design's Blender panel; the
+100-seed batch configuration does not imply 400 pre-rendered Blender scenes.
+`scripts/test-plan-variety.mjs` checks all 400 distinct gallery plans, finite
+positive Three.js solids, the requested family and exact passing-seed replay.
+Four ordinary 24×30 m repaired wing fixtures have checked editable Blender/GLB
+exports under `output/wing-reliability-blender/`.

@@ -83,6 +83,9 @@ export function BlenderVillaPanel({ plan, autoGenerate = false }: { plan: Design
       <ul className="mt-2 space-y-1">{currentJob.debug.map((entry, index) => <li key={index}>Seed {entry.seed} · {entry.family} · nearest seed {entry.nearestPreviousSeed ?? 'none'} · {entry.similarityPercent ?? 0}% similar · {entry.accepted ? 'Accepted' : 'Retried'}: {entry.reason}</li>)}</ul>
     </details> : null}
     <p className="mt-3 text-xs text-ink-faint">Geometry and architectural consistency checks; structural engineering review is still required.</p>
-    <a href="/api/villas/gallery/" target="_blank" rel="noreferrer" className="mt-3 inline-block text-xs underline underline-offset-4">View the 50-seed clay gallery</a>
+    <div className="mt-3 flex flex-wrap gap-4 text-xs">
+      <a href="/output/wing-review/index.html" target="_blank" rel="noreferrer" className="underline underline-offset-4">View 100 designs per wing</a>
+      <a href="/api/villas/gallery/" target="_blank" rel="noreferrer" className="underline underline-offset-4">Clay render gallery</a>
+    </div>
   </section>
 }

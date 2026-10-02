@@ -57,7 +57,9 @@ export async function handleVillaRequest(req, res, readJson) {
       const allowed = ['index.html', 'report.json', 'contact-sheet-1-25.jpg', 'contact-sheet-26-50.jpg'].includes(relative) ||
         (match && match[1] === match[2] && Number(match[1]) >= 1 && Number(match[1]) <= 50)
       if (!allowed) { json(res, 404, { error: 'Gallery artifact not found' }); return true }
-      const file = resolve(PROJECT_ROOT, 'output/gallery-50-integrated', relative)
+      const gallery=existsSync(resolve(PROJECT_ROOT,'output/gallery-100-integrated/index.html'))
+        ? 'output/gallery-100-integrated' : 'output/gallery-50-integrated'
+      const file = resolve(PROJECT_ROOT, gallery, relative)
       if (!existsSync(file)) { json(res, 404, { error: 'Gallery has not been generated on this computer' }); return true }
       const types = { '.html': 'text/html; charset=utf-8', '.json': 'application/json', '.jpg': 'image/jpeg', '.png': 'image/png', '.glb': 'model/gltf-binary' }
       res.writeHead(200, { 'content-type': types[extname(file)] || 'application/octet-stream', 'cache-control': 'no-cache' })

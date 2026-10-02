@@ -10,6 +10,27 @@ import {buildMassing} from '../src/lib/three/buildMassing.ts'
 const brief=()=>{const b=defaultBrief();b.project.buildingType='large-villa';b.site.plotWidth=40;b.site.plotDepth=60;
  b.rooms.bedroomsWithBath=2;b.rooms.bedroomsNoBath=0;return b}
 const overlap=(a,b)=>Math.min(a.x+a.w,b.x+b.w)>Math.max(a.x,b.x)&&Math.min(a.y+a.h,b.y+b.h)>Math.max(a.y,b.y)
+import {buildWingGallery,WING_GALLERY_SEEDS} from './wing-gallery-data.mjs'
+import {VILLA_GALLERY_SEEDS} from './villa-gallery-config.mjs'
+
+test('the 100-seed gallery contains distinct exact-family plans for all four wings and builds finite 3D geometry',()=>{
+ assert.equal(WING_GALLERY_SEEDS,100);assert.equal(VILLA_GALLERY_SEEDS,100)
+ const groups=buildWingGallery(brief())
+ assert.equal(groups.length,4)
+ for(const group of groups){
+  assert.equal(group.designs.length,100);assert.equal(group.unique,100)
+  assert.equal(new Set(group.summary.map(s=>s.fingerprint)).size,100)
+  for(const [i,plan] of group.designs.entries()){
+   assert.equal(plan.massingType,group.family)
+   assert.ok(validate(plan).hardChecksPass)
+   assert.equal(group.summary[i].requestedSeed,i+1)
+   const geometry=buildMassing(plan)
+   assert.ok(geometry.boxes.length>0)
+   assert.ok(geometry.boxes.every(b=>b.pos.every(Number.isFinite)&&b.size.every(n=>Number.isFinite(n)&&n>0)))
+  }
+  for(const index of [0,49,99])assert.deepEqual(generate(compile(brief()),{massing:group.family,seed:group.designs[index].planSeed}),group.designs[index])
+ }
+})
 
 test('fifty seeded wing layouts vary real living, stair, master, kitchen and verandah decisions with all hard checks',()=>{
  const model=compile(brief()),keys=new Set(),seen={living:new Set(),stair:new Set(),master:new Set(),kitchen:new Set(),verandah:new Set(),doubleHeight:new Set()}
