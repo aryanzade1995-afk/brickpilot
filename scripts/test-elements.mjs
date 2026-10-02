@@ -8,6 +8,7 @@ import {validateProceduralFeatures} from '../src/lib/engine/facade/FacadeGrammar
 import {createVillaShapeFingerprint,fingerprintRecord,parseFingerprintHistory,FINGERPRINT_GROUPS} from '../src/lib/engine/fingerprint/VillaShapeFingerprint.ts'
 import {evaluateVillaFingerprint} from '../src/lib/engine/fingerprint/VillaDiversityGate.ts'
 import {selectAdaptiveVilla} from '../src/lib/engine/fingerprint/AdaptiveVillaSearch.ts'
+import {NEW_ELEMENTS} from '../src/lib/engine/facade/elementRecipes.ts'
 const b=elementFixture()
 const make=(seed,options={})=>{
  const dna=createVillaDesignDNA(b,seed), massing=MassingGenerator.generate(b,dna)
@@ -61,4 +62,24 @@ test('new anchors cannot be forged; roof support, source windows and screen occl
   modified.features[0].parts[0].world.x+=100
   assert.ok(validateProceduralFeatures(b,x.candidate.massing,modified.zones,modified.features).some(i=>i.code==='ARBITRARY_COORDINATES'))
  }
+})
+
+test('new element profile and slab-edge diagnostics describe real paired posts and physical upstands',()=>{
+ let paired=0,upstands=0
+ for(const type of NEW_ELEMENTS){
+  const feature=make(41,{heroFeature:type,supportingFeatures:[]}).candidate.facade.features[0]
+  const p=feature.parameters,posts=feature.parts.filter(part=>part.role==='post')
+  if(!posts.length)assert.equal(p.profile,'square')
+  if(p.profile==='paired'){
+   paired++;assert.ok(posts.length>=2)
+   assert.ok(posts.every(post=>post.u1Mm-post.u0Mm<=60),'paired profile has separated thin posts')
+  }
+  if(p.slabEdge==='upstand'){
+   upstands++
+   const slabs=feature.parts.filter(part=>part.role==='slab');assert.ok(slabs.length)
+   for(const slab of slabs)assert.ok(feature.parts.some(part=>part.role==='beam'&&part.z0Mm===slab.z1Mm&&
+    part.u0Mm===slab.u0Mm&&part.u1Mm===slab.u1Mm&&part.depthMm===80))
+  }
+ }
+ assert.ok(paired>0);assert.ok(upstands>0)
 })

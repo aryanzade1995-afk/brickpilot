@@ -29,6 +29,12 @@ export function makeElement(type: ArchitecturalFeatureType, importance: 'hero' |
     slabEdge: rng.pick(['flat','upstand']), materialHint: rng.pick(['stone','wood','metal','wall']) }
   const add = (role: FeaturePart['role'], a: number, b: number, low: number, high: number,
     depth: number, offset: number = L.clearOffsetMm, material = p.materialHint) => {
+    if(role==='post'&&p.profile==='paired'&&b-a>=100){
+      const width=Math.floor((b-a)/3)
+      for(const u of [a,b-width])parts.push({...worldPart(z,`${id}:part:${parts.length}`,role,
+        Math.round(u),Math.round(u+width),Math.round(low),Math.round(high),Math.round(offset),Math.round(depth)),materialHint:material})
+      return
+    }
     parts.push({ ...worldPart(z, `${id}:part:${parts.length}`, role, Math.round(a), Math.round(b),
       Math.round(low), Math.round(high), Math.round(offset), Math.round(depth)), materialHint: material })
   }
@@ -75,12 +81,12 @@ export function makeElement(type: ArchitecturalFeatureType, importance: 'hero' |
     const at = z.side==='N'||z.side==='S'?window.at.x:window.at.y
     a=at-window.width/2; b=at+window.width/2
     const lo=base+(window.sill??850), hi=base+(window.head??2600)
-    if(a-100<z.startMm || b+100>z.endMm || hi+100>top) return null
+    if(a-Math.max(100,t)<z.startMm || b+Math.max(100,t)>z.endMm || hi+100>top) return null
     if(type==='BAY_WINDOW') {
-      add('beam',a-100,b+100,lo-100,lo,reach-180,180,'wall')
-      add('beam',a-100,b+100,hi,hi+100,reach-180,180,'wall')
-      add('post',a-100,a,lo,hi,reach-180,180,'metal')
-      add('post',b,b+100,lo,hi,reach-180,180,'metal')
+      add('beam',a-t,b+t,lo-100,lo,reach-180,180,'wall')
+      add('beam',a-t,b+t,hi,hi+100,reach-180,180,'wall')
+      add('post',a-t,a,lo,hi,reach-180,180,'metal')
+      add('post',b,b+t,lo,hi,reach-180,180,'metal')
       add('glass',a,b,lo,hi,24,reach-24,'glass')
     } else {
       // Sparse staggered masonry: at most 25% aperture coverage before validation.
@@ -112,9 +118,19 @@ export function makeElement(type: ArchitecturalFeatureType, importance: 'hero' |
     }
   }
   if(!parts.length) return null
+  const slabs=parts.filter(part=>part.role==='slab')
+  if(p.slabEdge==='upstand'&&slabs.length){
+    // A physical rim on each slab's outer edge, touching its upper surface.
+    for(const slab of slabs)add('beam',slab.u0Mm,slab.u1Mm,slab.z1Mm,slab.z1Mm+100,
+      80,slab.offsetMm+slab.depthMm-80,slab.materialHint)
+  }else p.slabEdge='flat'
+  const posts=parts.filter(part=>part.role==='post')
+  if(!posts.length)p.profile='square'
+  if(type==='FOLDED_CANOPY')p.rhythmCount=6
+  else if(!['PERFORATED_BRICK_WALL','PERGOLA_COURT','SOLAR_SHADE_ROOF'].includes(type))p.rhythmCount=Math.max(1,posts.length)
   p.widthRatio=(Math.max(...parts.map(x=>x.u1Mm))-Math.min(...parts.map(x=>x.u0Mm)))/(z.endMm-z.startMm)
   p.projectionMm=Math.max(...parts.map(x=>x.offsetMm+x.depthMm))
-  p.pitchMm=Math.round((b-a)/p.rhythmCount)
+  p.pitchMm=p.rhythmCount>1?Math.round((b-a)/p.rhythmCount):0
   p.materialHint=parts[0].materialHint!
   return {id,type,importance,zoneIds:[z.id],parameters:p,parts}
 }
