@@ -88,12 +88,6 @@ sun/sky or packed HDRI, warm fixtures and four automatically framed cameras.
 It supports fast EEVEE previews and denoised Cycles finals through the existing
 headless exporter.
 
-The [local CC0 asset library](blender/assets/README.md) supplies twelve 4K/1K
-PBR texture sets, three 4K HDRIs and eight maximum-quality Poly Haven models.
-Original binaries are restored by `python blender/assets/fetch_assets.py` and
-remain under `blender/assets/`; the locked manifest, per-file licenses and
-integrity inventory are committed. Powered by [Poly Haven](https://polyhaven.com).
-
 **Generate another design** sends the current `Design` and a new numeric seed to
 the existing backend. It does not call the floor-plan generator. Blender builds
 an editable scene, measures evaluated meshes, compares their shape with recent
