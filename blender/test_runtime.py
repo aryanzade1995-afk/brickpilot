@@ -68,6 +68,19 @@ def main(argv):
             slabs = [obj for obj in bpy.data.collections["STRUCTURE"].objects if obj.get("source_id") == slab["id"]]
             assert not any(hit(obj, point, (0, 0, -1), 2) for obj in slabs), "Slab seals the stair core"
     for floor in building["floors"]:
+        for void in floor.get("doubleHeightVoids", []):
+            r = void["rect"]
+            point = [(r["x"] + r["w"] / 2) / 1000, (r["y"] + r["h"] / 2) / 1000,
+                     floor["elevationMm"] / 1000 + .4]
+            plates = [obj for collection in ("STRUCTURE", "ROOF") for obj in bpy.data.collections[collection].objects]
+            assert not any(hit(obj, point, (0, 0, -1), .8) for obj in plates), "Intermediate plate seals the living void"
+            point[2] = (floor["elevationMm"] + floor["heightMm"] - 500) / 1000
+            ceilings = [obj for obj in plates if "DoubleHeight_Ceiling" in obj.name]
+            assert any(hit(obj, point, (0, 0, 1), 1) for obj in ceilings), "Double-height living space is open to the sky"
+            guard_ids = {w["id"] for w in building["walls"] if w["floorId"] == floor["id"] and w["kind"] == "parapet"
+                         and void["roomId"] in w.get("rooms", [])}
+            guards = [obj for obj in bpy.data.collections["WALLS"].objects if obj.get("source_id") in guard_ids]
+            assert guards and all(abs(obj.dimensions.z - building["doubleHeightLimits"]["guardHeightMm"] / 1000) < .002 for obj in guards)
         court = floor.get("courtyard")
         if court:
             point = [(court["x"] + court["w"] / 2) / 1000,

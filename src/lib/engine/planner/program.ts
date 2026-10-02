@@ -130,7 +130,7 @@ function kindOf(space: SpaceReq, ensuites: Set<string>): RoomKind {
   if (id.startsWith('familyLounge') || id === 'poolHouse') return 'lounge'
   if (id.startsWith('study')) return 'study'
   if (id === 'parking') return 'parking'
-  if (id === 'verandah') return 'verandah'
+  if (id.startsWith('verandah')) return 'verandah'
   if (id === 'courtyard') return 'courtyard'
   if (id.startsWith('balcony')) return 'balcony'
   if (ensuites.has(id)) return 'ensuite'
@@ -142,7 +142,7 @@ function kindOf(space: SpaceReq, ensuites: Set<string>): RoomKind {
 const two = (n: number) => String(n).padStart(2, '0')
 
 function semanticName(space: SpaceReq, kind: RoomKind, ownerOf: Map<string, string>): string {
-  if (space.autoExtra) return space.id.replace(/([a-z])([A-Z])/g,'$1_$2').toUpperCase()
+  if (space.autoExtra || space.id.startsWith('verandahWing')) return space.id.replace(/([a-z])([A-Z])/g,'$1_$2').toUpperCase()
   const id = space.id
   const num = (re: RegExp) => Number(id.match(re)?.[1] ?? 1)
   switch (kind) {

@@ -2,6 +2,7 @@ import { type Rect, rectArea, rectBottom, rectRight, sharedEdge } from '../../ge
 import type { Design, FloorPlan, Opening, PlacedRoom } from '../types.ts'
 import { COLUMN, MAX_BEAM_SPAN, MAX_CANTILEVER, normalizeBrief, stairGeometry } from './program.ts'
 import { reachability } from './index.ts'
+import { DOUBLE_HEIGHT_LIMITS } from './doubleHeight.ts'
 
 /* ------------------------------------------------------------------ *
  *  Mandatory plan validators. Any finding here is an `error`: the plan
@@ -50,6 +51,17 @@ export function planFindings(design: Design): PlanFinding[] {
 
   design.floors.forEach((floor, fi) => {
     const lower: FloorPlan | undefined = design.floors[fi - 1]
+    for(const voidSpace of floor.doubleHeightVoids??[]){
+      const r=voidSpace.rect,host=lower?.rooms.find(room=>room.semanticId===voidSpace.sourceRoomId)
+      if(!host||!['living','livingDining'].includes(host.id)||overlapArea(r,host.rect)!==rectArea(r)||
+        Math.min(r.w,r.h)<DOUBLE_HEIGHT_LIMITS.minimumMm||Math.max(r.w,r.h)>DOUBLE_HEIGHT_LIMITS.maximumSpanMm||
+        floor.rooms.some(room=>!room.outdoor&&overlapArea(r,room.rect)>0)||
+        floor.footprint.some(block=>overlapArea(r,block)>0))
+        add('DOUBLE_HEIGHT_INVALID','vertical','Living void must preserve rooms, span limits and its source living space.')
+      const guards=floor.walls.filter(w=>w.rooms?.includes(voidSpace.roomId)&&w.kind==='parapet')
+      if(!guards.length||guards.some(w=>(w.heightMm??0)<DOUBLE_HEIGHT_LIMITS.guardHeightMm))
+        add('DOUBLE_HEIGHT_UNGUARDED','vertical','Upper gallery beside the living void needs a full-height guard.')
+    }
     const byId = new Map(floor.rooms.map((r) => [r.id, r]))
     const enclosed = floor.rooms.filter((r) => !r.outdoor)
     if (design.model.floors.some(f=>f.spaces.some(s=>s.autoExtra))) for (const room of enclosed.filter(r=>r.zone!=='circulation')) {

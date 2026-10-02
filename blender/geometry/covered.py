@@ -182,7 +182,7 @@ def create_covered_outdoor(scene, building, massing, facade=None):
     report = {"roofs": 0, "balconies": 0, "cars": 0}
     roofed = []
     for room in building["rooms"]:
-        if room["floorId"] != ground["id"] or not room["outdoor"] or room["id"] not in COVERED_ROOMS:
+        if room["floorId"] != ground["id"] or not room["outdoor"] or not (room["id"] in COVERED_ROOMS or room["id"].startswith("verandahWing")):
             continue
         r = room["rect"]
         # the floor of the porch: paving, level with the approach
@@ -262,7 +262,8 @@ def create_exposed_roofs(scene, building):
     report = {"exposedRoofs": 0, "terraces": 0}
     for floor, above in zip(floors, floors[1:]):
         top = floor["elevationMm"] + floor["heightMm"]
-        pieces = [p for rect in floor["footprint"] for p in subtract_rectangles(rect, above["footprint"])
+        cutters = [*above["footprint"], *[void["rect"] for void in above.get("doubleHeightVoids", [])]]
+        pieces = [p for rect in floor["footprint"] for p in subtract_rectangles(rect, cutters)
                   if p["w"] >= 300 and p["h"] >= 300]
         if not pieces:
             continue

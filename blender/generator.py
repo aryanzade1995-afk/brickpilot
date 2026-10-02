@@ -122,6 +122,12 @@ def create_scene(payload, visualization=None):
     accessible = create_terrace(scene, top, building["stairs"], building["shafts"]) if flat_roof else False
     if not accessible:
         create_roof_slab(scene, top, [shaft["rect"] for shaft in building["shafts"] if shaft["floorId"] == top["id"]])
+    # Interior voids omit the intermediate floor, but retain their actual upper
+    # ceiling. These caps are sourced by the plan, not decorative roof blocks.
+    for floor in floors:
+        for index, void in enumerate(floor.get("doubleHeightVoids", []), 1):
+            scene.rect(f"{floor['id']}_DoubleHeight_Ceiling_{index}", "ROOF", void["rect"],
+                       floor["elevationMm"] + floor["heightMm"] - 180, 180, "concrete", void["sourceRoomId"])
     custom_parapet = any(unit["category"] == "ROOFLINE" and unit["type"] in ("FLAT_PARAPET", "STEPPED_PARAPET", "OFFSET_PARAPET", "PLANTER_PARAPET") for unit in assemblies)
     if flat_roof and not custom_parapet:
         create_parapet(scene, top, roof_level, massing["masses"])

@@ -7,8 +7,9 @@ import { placeUnits } from './layout.ts'
 import { COLUMN, GOING, MAX_SPAN, normalizeBrief, programRequirements, roomWidths, siteModel, snap,
   stairGeometry, unitLength } from './program.ts'
 import { beamsFor, occupy, placeDoors, placeWindows, planShafts, stairRun, supportZonesFor, wallGraph, type Occupancy } from './elements.ts'
-import type { Column, RoomReq, Unit } from './types.ts'
+import type { Column, LocalRoom, RoomReq, Unit } from './types.ts'
 import { PLANNING_LIMITS } from './limits.ts'
+import { createDoubleHeightGallery, DOUBLE_HEIGHT_LIMITS } from './doubleHeight.ts'
 
 export const WING_LIMITS = { linkWidthMm: 1800, courtWidthMm: 3000, maximumDepthMm: 5400,
   maximumRoomGrowth: 1.5, minimumBarLengthMm: 6000 } as const
@@ -30,20 +31,23 @@ export function planWings(model: CanonicalModel, request: PlanRequest): PlanResu
  const reqs=programRequirements(nb,stair.slotWidth), zone=site.houseZone
  const s=nb.large?1500:1200, linkW=WING_LIMITS.linkWidthMm
  const third=request.family!=='twin-wing', ring=request.family==='courtyard-ring'
+ const choices=request.layoutChoices
  const sideDepth=third?(zone.w>=24000?3900:3000):0, rightWidth=ring?linkW:0
  const length=snap(zone.w-linkW-sideDepth-rightWidth)
  if(length<WING_LIMITS.minimumBarLengthMm) return null
  const rng=makeRng(request.order,`${model.seed.split('-')[0]}|wing-units`)
  const groups=reqs.map(f=>{
-  const sideUnits=third?f.units.filter(u=>u.key!=='core' && u.key!=='foyer' && u.key!=='living' && u.key!=='kitchen' &&
-    (u.key==='pooja' || u.rooms.every(r=>r.kind==='study'||r.kind==='bath'))):[]
+  const sideUnits=third?f.units.filter(u=>u.key!=='core' && !u.anchor && u.key!=='kitchen' &&
+    ((u.key==='living'&&choices?.living==='side') || u.key==='pooja' || u.rooms.every(r=>r.kind==='study'||r.kind==='bath'))):[]
   const available=f.units.filter(u=>!sideUnits.includes(u))
-  const publicUnits=available.filter(u=>u.key==='core'||u.key==='kitchen'||u.key==='pooja'||u.key==='bedStaff'||
+  const publicUnits=available.filter(u=>u.key==='core'?choices?.stair!=='front':u.key==='kitchen'||u.key==='pooja'||u.key==='bedStaff'||
+    (u.key==='living'&&choices?.living==='back') ||
     u.rooms.some(r=>r.space.autoExtra && r.zone!=='private' && r.kind!=='ensuite') ||
     (f.level>0&&!u.rooms.some(r=>r.kind==='bed'||r.kind==='ensuite')))
   const privateUnits=available.filter(u=>!publicUnits.includes(u))
   // Keep foyer/client office and family bedroom groups contiguous.
-  const fixed=privateUnits.filter(u=>u.anchor||u.key==='living'||u.key==='lounge')
+  const fixed=privateUnits.filter(u=>u.anchor||u.key==='living'||u.key==='lounge').sort((a,b)=>Number(b.key==='core')-Number(a.key==='core'))
+  publicUnits.sort((a,b)=>choices?.kitchen==='service'?Number(a.key==='kitchen')-Number(b.key==='kitchen'):0)
   const free=privateUnits.filter(u=>!fixed.includes(u)).map(u=>({u,key:rng.next()})).sort((a,b)=>a.key-b.key).map(x=>x.u)
   return {north:publicUnits,south:[...fixed,...free],side:sideUnits}
  })
@@ -63,9 +67,13 @@ export function planWings(model: CanonicalModel, request: PlanRequest): PlanResu
  const sideLength = request.family==='pavilion' ? Math.min(22000,linkRect.h-6000) : linkRect.h
  const sideStart = linkRect.y + (request.family==='pavilion' ? snap((linkRect.h-sideLength)/2) : 0)
  if(third && (sideLength<6000 || groups.some(g=>g.side.reduce((n,u)=>n+unitLength(u,sideDepth,'min'),0)>sideLength)))return null
- const localAxes=[0,stair.slotWidth]
- const bays=Math.ceil((length-stair.slotWidth)/MAX_SPAN)
- for(let i=1;i<=bays;i++)localAxes.push(i===bays?length:stair.slotWidth+snap((length-stair.slotWidth)*i/bays))
+ const coreWidth=stair.slotWidth+(nb.lift?1800:0)
+ const coreStart=choices?.stair==='centre'?snap((length-coreWidth)/2):0
+ const stops=[...new Set([0,coreStart,coreStart+coreWidth,length])].sort((a,b)=>a-b),localAxes=[0]
+ for(let j=1;j<stops.length;j++){
+  const begin=stops[j-1],end=stops[j],bays=Math.ceil((end-begin)/MAX_SPAN)
+  for(let i=1;i<=bays;i++)localAxes.push(i===bays?end:begin+snap((end-begin)*i/bays))
+ }
  const ys=[y,y+d,y+d+s,southY,southY+s,southY+s+d]
  const galleryYs=[northHall.y]
  while(galleryYs.at(-1)!<southY+s)galleryYs.push(Math.min(southY+s,galleryYs.at(-1)!+MAX_SPAN))
@@ -85,20 +93,33 @@ export function planWings(model: CanonicalModel, request: PlanRequest): PlanResu
   const rooms:PlacedRoom[]=[], subsets:PlacedRoom[][]=[]
   for(const [wi,units] of [groups[fi].north,groups[fi].south,...(third?[groups[fi].side]:[])].entries()){
    const runLength=wi===2?sideLength:length, runDepth=wi===2?sideDepth:d, runAxes=wi===2?sideAxes:localAxes
-   const rs=units.flatMap(u=>u.rooms)
-   const maxLength=rs.reduce((sum,r)=>sum+(r.fixedWidthMm??Math.max(roomWidths(r,runDepth).min,Math.min(r.maxSqm*1e6/runDepth*WING_LIMITS.maximumRoomGrowth,runDepth*3.3))),0)
-   const filler=hallReq(`wingGallery${wi}`,f.prefix,'Daylit wing gallery')
-   const extra=runLength-maxLength
-   const list:Unit[]=[...units]
-   if(extra>0 || !rs.length){
-    const start=runAxes.filter(a=>a<=runLength-Math.max(2200,extra)).at(-1)??0
-    filler.fixedWidthMm=runLength-start
-    if(rs.reduce((sum,r)=>sum+roomWidths(r,runDepth).min,0)+filler.fixedWidthMm>runLength)return null
-    list.push({key:filler.id,rooms:[filler],band:'A',movable:false,anchor:false});kinds.set(filler.id,'lounge')
+   const fill=(us:Unit[],lo:number,hi:number,serial:string):LocalRoom[]=>{
+    const rs=us.flatMap(u=>u.rooms),span=hi-lo
+    if(span<=0)return []
+    const maxLength=rs.reduce((sum,r)=>sum+(r.fixedWidthMm??Math.max(roomWidths(r,runDepth).min,Math.min(r.maxSqm*1e6/runDepth*WING_LIMITS.maximumRoomGrowth,runDepth*3.3))),0)
+    const list=[...us],extra=span-maxLength
+    if(extra>0 || !rs.length){
+     const filler=hallReq(`wingGallery${wi}${serial}`,f.prefix,'Daylit wing gallery')
+     const start=runAxes.filter(a=>a>=lo&&a<=hi-Math.max(2200,extra)).at(-1)??lo
+     filler.fixedWidthMm=hi-start
+     if(rs.reduce((sum,r)=>sum+roomWidths(r,runDepth).min,0)+filler.fixedWidthMm>span)return []
+     list.push({key:filler.id,rooms:[filler],band:'A',movable:false,anchor:false});kinds.set(filler.id,'lounge')
+    }
+    return placeUnits(list,[[lo,hi]],runDepth,'A',runAxes,WING_LIMITS.maximumRoomGrowth).rooms
    }
-   // Reuse distribution and narrow-room/column alignment from the bar planner.
-   const local=placeUnits(list,[[0,runLength]],runDepth,'A',runAxes,WING_LIMITS.maximumRoomGrowth).rooms
-   if (!local.length || local.at(-1)!.u1 !== runLength) return null
+   const coreUnit=units.find(u=>u.key==='core'),other=units.filter(u=>u!==coreUnit)
+   let local:LocalRoom[]
+   if(coreUnit&&coreStart>0){
+    const candidates=Array.from({length:other.length+1},(_,k)=>k).filter(k=>
+     other.slice(0,k).reduce((n,u)=>n+unitLength(u,runDepth,'min'),0)<=coreStart &&
+     other.slice(k).reduce((n,u)=>n+unitLength(u,runDepth,'min'),0)<=runLength-coreStart-coreWidth)
+    const k=candidates.sort((a,b)=>Math.abs(a-other.length/2)-Math.abs(b-other.length/2))[0]
+    if(k===undefined)return null
+    local=[...fill(other.slice(0,k),0,coreStart,'L'),
+     ...placeUnits([coreUnit],[[coreStart,coreStart+coreWidth]],runDepth,'A',runAxes,WING_LIMITS.maximumRoomGrowth).rooms,
+     ...fill(other.slice(k),coreStart+coreWidth,runLength,'R')]
+   }else local=fill(coreUnit?[coreUnit,...other]:units,0,runLength,'')
+   if(!local.length || local.reduce((n,r)=>n+r.u1-r.u0,0)!==runLength)return null
    const subset=local.map(lr=>placed(lr.req,wi===2?{x:zone.x,y:sideStart+lr.u0,w:sideDepth,h:lr.u1-lr.u0}:
     {x:x+lr.u0,y:wi===0?y:southY+s,w:lr.u1-lr.u0,h:d}))
    const hall=wi===0?f.spine:hallReq(wi===1?'privateHall':'link',f.prefix,wi===1?'Private wing hall':'Connecting gallery')
@@ -117,12 +138,24 @@ export function planWings(model: CanonicalModel, request: PlanRequest): PlanResu
     const req=f.rooms.find(r=>r.id===room.id)
     return req && req.zone !== 'circulation' && room.area > req.maxSqm * WING_LIMITS.maximumRoomGrowth + .05
   })) return null
-  const footprint=rooms.map(r=>r.rect), outline=rectUnionBBox(footprint)
+  const doubleHeight=fi===1&&reqs.length===2&&choices?.doubleHeight?
+   createDoubleHeightGallery(rooms,floors[0].rooms,uniquePoints.map((at,i)=>({id:String(i),at,size:COLUMN,grid:''})),f.prefix):null
+  if(fi===1&&choices?.doubleHeight&&!doubleHeight)choices.doubleHeight=false
+  if(fi===2&&choices?.doubleHeight)choices.doubleHeight=false
+  const footprint=rooms.filter(r=>!r.outdoor).map(r=>r.rect), outline=rectUnionBBox(footprint)
   const outdoor=(r:RoomReq,rect:Rect)=>placed(r,rect)
   if(fi===0){
+   if(choices?.verandah==='wrap'){
+    const depth=1800
+    if(court.w-depth<3000||court.h-depth<3000)return null
+    const north=f.outdoor.find(r=>r.id==='verandahWingN')!,west=f.outdoor.find(r=>r.id==='verandahWingW')!
+    rooms.push(outdoor(north,{x:court.x,y:court.y,w:court.w,h:depth}),
+     outdoor(west,{x:court.x,y:court.y+depth,w:depth,h:court.h-depth}))
+    court.x+=depth;court.y+=depth;court.w-=depth;court.h-=depth
+   }
    const courtReq=f.outdoor.find(r=>r.kind==='courtyard')
    if(courtReq)rooms.push(outdoor(courtReq,court))
-   frontYard(rooms,f.outdoor.filter(r=>r.kind!=='courtyard'),outline,site,nb.twoCar,nb.large,outdoor)
+   frontYard(rooms,f.outdoor.filter(r=>r.kind!=='courtyard'&&!r.id.startsWith('verandahWing')),outline,site,nb.twoCar,nb.large,outdoor)
   }else for(const r of f.outdoor.filter(r=>r.kind==='balcony')){
    const rect=placeBalcony(rooms,outline,site,id=>kinds.get(id)??'',floors[fi-1].footprint)
    if(rect)rooms.push(outdoor(r,rect))
@@ -132,7 +165,12 @@ export function planWings(model: CanonicalModel, request: PlanRequest): PlanResu
   const onPlate=(p:Point)=>footprint.some(r=>p.x>=r.x&&p.x<=r.x+r.w&&p.y>=r.y&&p.y<=r.y+r.h)
   const columns:Column[]=uniquePoints.filter(onPlate).map((at,i)=>({id:`${f.prefix}_COLUMN_C${String(i+1).padStart(2,'0')}`,at,size:COLUMN,grid:`WING_${i}`}))
   const beams=beamsFor(columns,onPlate,f.prefix);maxSpan=Math.max(maxSpan,...beams.map(b=>b.span))
-  const walls=wallGraph(rooms,f.prefix,axes.map(a=>({orient:a.orient,fixed:a.at,lo:-Infinity,hi:Infinity})))
+  const walls=wallGraph(rooms.map(r=>r.id===doubleHeight?.roomId?{...r,outdoor:false}:r),f.prefix,axes.map(a=>({orient:a.orient,fixed:a.at,lo:-Infinity,hi:Infinity})))
+  if(doubleHeight)for(const wall of walls){
+   if(wall.kind==='interior'&&wall.rooms?.includes(doubleHeight.roomId)){
+    wall.kind='parapet';wall.heightMm=DOUBLE_HEIGHT_LIMITS.guardHeightMm
+   }
+  }
   const occ:Occupancy=new Map(),doors:Opening[]=[],failed:string[]=[]
   const core=rooms.find(r=>r.id==='stair')!
   const target={x:core.rect.x+core.rect.w/2,y:core.rect.y+core.rect.h/2}
@@ -155,6 +193,9 @@ export function planWings(model: CanonicalModel, request: PlanRequest): PlanResu
   // Outdoor access reuses the same placer with only its adjacent host and spine.
   for(const out of rooms.filter(r=>r.outdoor&&(r.id==='courtyard'||r.id.startsWith('balcony')))){
    const subset=out.id==='courtyard'?subsets[0]:rooms.filter(r=>!r.outdoor)
+   // A wrap verandah occupies the hall edge; the open court remains a garden,
+   // reached through that verandah rather than an invented wall aperture.
+   if(out.id==='courtyard'&&choices?.verandah==='wrap')continue
    const result=placeDoors([...subset,out],out.id==='courtyard'?f.spine.id:'privateHall',f.prefix,columns,occ,
     ()=>'',()=>undefined,null,target)
    for(const o of result.openings){if(!doors.some(d=>d.id===o.id)){doors.push(o);occupy(occ,o.orient,o.orient==='h'?o.at.y:o.at.x,o.orient==='h'?o.at.x:o.at.y,o.width)}}
@@ -162,9 +203,10 @@ export function planWings(model: CanonicalModel, request: PlanRequest): PlanResu
   const windows=placeWindows(rooms,walls,columns,occ,id=>kinds.get(id)??'',request.themeWindowMm,request.dna,floors.at(-1)?.openings??[])
   const openings=[...doors,...windows],unreachable=reachability(rooms,openings,fi)
   floors.push({level:fi,name:model.floors[fi].name,prefix:f.prefix,outline,footprint,rooms,walls,openings,
+   ...(doubleHeight?{doubleHeightVoids:[doubleHeight]}:{}),
    courtyard:fi===0&&rooms.some(r=>r.id==='courtyard')?court:null,roof:request.roofFor(fi,fi===reqs.length-1),
    columns,beams,shafts:planShafts(rooms,walls,openings,id=>kinds.get(id)??'',floors.at(-1)?.rooms??[]),
-   supportZones:supportZonesFor(footprint,f.prefix,[]),stair:stairRun(core.rect,'S',stair.perFlight,GOING),
+   supportZones:supportZonesFor(footprint,f.prefix,[]),stair:stairRun(core.rect,choices?.stair==='front'?'N':'S',stair.perFlight,GOING),
    reachable:!failed.length&&!unreachable.length,unreachableRooms:[...new Set([...failed,...unreachable])]})
  }
  return {floors,site,candidates:candidates.length,structure:{orientation:'x',mirror:false,family:request.family,axes,maxBeamSpanMm:maxSpan}}

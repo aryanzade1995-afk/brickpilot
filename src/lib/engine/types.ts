@@ -3,6 +3,7 @@ import type { CanonicalModel, Zone } from '../model/canonical.ts'
 import type { MassingType, RoofSpec } from './massing/types.ts'
 import type { DesignDNA } from './designDna.ts'
 import type { Beam, Column, PlanStructure, Shaft, SupportZone } from './planner/types.ts'
+import type { LayoutChoices } from './planner/layoutChoices.ts'
 
 export type { RoofSpec }
 
@@ -20,6 +21,7 @@ export type PlacedRoom = {
 }
 
 export type Wall = {
+  heightMm?: number
   a: Point
   b: Point
   thickness: number
@@ -67,6 +69,7 @@ export type StairRun = {
 }
 
 export type FloorPlan = {
+  doubleHeightVoids?: import('./planner/doubleHeight.ts').DoubleHeightVoid[]
   level: number
   name: string
   /** bounding box of the floor footprint (mm) — camera framing / cost / coverage */
@@ -93,6 +96,8 @@ export type FloorPlan = {
 export type SiteFeature = { id: string; kind: 'parking' | 'driveway' | 'path' | 'lawn' | 'pool' | 'sitOut' | 'utilityYard'; rect: Rect; covered: boolean; roomId?: string }
 
 export type Design = {
+  planSeed?: number
+  layoutChoices?: LayoutChoices
   siteFeatures?: SiteFeature[]
   siteNotes?: string[]
   id: string

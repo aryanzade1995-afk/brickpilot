@@ -4,9 +4,11 @@ import type { Point, Rect } from '../geometry.ts'
 import type { Design, Opening, PlacedRoom, SiteFeature, Wall } from './types.ts'
 import type { Beam, Column, Shaft, SupportZone } from './planner/types.ts'
 import { fnv } from './massing/rng.ts'
+import { DOUBLE_HEIGHT_LIMITS } from './planner/doubleHeight.ts'
 
 /** A serialized view of the verified 2D plan. All plan coordinates are millimetres. */
 export type BuildingFloor = {
+  doubleHeightVoids?: import('./planner/doubleHeight.ts').DoubleHeightVoid[]
   id: string
   level: number
   name: string
@@ -36,6 +38,7 @@ export type BuildingSupportZone = SupportZone & { floorId: string }
 export type BuildingSlab = { id: string; floorId: string; rect: Rect; topMm: number; thicknessMm: number }
 
 export type BuildingModel = {
+  doubleHeightLimits?: typeof DOUBLE_HEIGHT_LIMITS
   schemaVersion: 1
   /** Content identity of the plan geometry, independent of exterior-design seeds. */
   planId: string
@@ -91,6 +94,7 @@ export function createBuildingModel(design: Design): BuildingModel {
     const floorId = floor.prefix ?? `L${floor.level}`
     const elevationMm = floor.level * heightMm
     floors.push({
+      ...(floor.doubleHeightVoids ? {doubleHeightVoids:structuredClone(floor.doubleHeightVoids)}:{}),
       id: floorId, level: floor.level, name: floor.name, elevationMm, heightMm,
       outline: rect(floor.outline), footprint: floor.footprint.map(rect),
       courtyard: floor.courtyard ? rect(floor.courtyard) : null,
@@ -128,6 +132,7 @@ export function createBuildingModel(design: Design): BuildingModel {
 
   const setbacks: Record<Direction, number> = { ...model.setbacksMm }
   const base = {
+    ...(floors.some(f=>f.doubleHeightVoids?.length)?{doubleHeightLimits:{...DOUBLE_HEIGHT_LIMITS}}:{}),
     schemaVersion: 1 as const,
     units: 'mm' as const,
     coordinates: 'plan-x-east-y-south-z-up' as const,

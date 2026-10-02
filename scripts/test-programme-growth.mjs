@@ -36,7 +36,7 @@ test('grown programme generates checked rooms within 1.5 times their maxima on l
   assert.equal(plan.massingType,'twin-wing')
   const report=validate(plan);assert.ok(report.hardChecksPass,JSON.stringify(report.findings.filter(f=>f.severity==='error')))
   assert.ok(validate(generate(model,{seed:41})).hardChecksPass)
-  for(const floor of plan.floors)for(const req of model.floors[floor.level].spaces.filter(s=>!s.outdoor&&s.zone!=='circulation')){
+  for(const floor of plan.floors)for(const req of plan.model.floors[floor.level].spaces.filter(s=>!s.outdoor&&s.zone!=='circulation')){
    const room=floor.rooms.find(r=>r.id===req.id)
    assert.ok(room.area>=req.min-.05,req.id)
    assert.ok(room.area<=req.max*1.5+.05,`${req.id}: ${room.area} > ${req.max*1.5}`)

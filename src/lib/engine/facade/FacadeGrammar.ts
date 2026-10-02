@@ -30,7 +30,7 @@ export function buildFacadeZones(building: BuildingModel, massing: MassingModel)
   const zones: FacadeZone[] = []
   const rooms = building.rooms
   for (const floor of building.floors) {
-    const boundary = rectUnionEdges(floor.footprint, floor.courtyard)
+    const boundary = rectUnionEdges([...floor.footprint,...(floor.doubleHeightVoids??[]).map(v=>v.rect)], floor.courtyard)
     for (const wall of building.walls.filter((w) => w.floorId === floor.id && w.kind === 'exterior')) {
       const side = sideOfWall(wall, boundary)
       if (!side) continue
@@ -64,7 +64,7 @@ export function buildFacadeZones(building: BuildingModel, massing: MassingModel)
   const top = [...building.floors].sort((a, b) => a.level - b.level).at(-1)
   if (top) {
     const roofs = massing.masses.filter((m) => m.usage === 'roof' && m.sourceFloorId === top.id)
-    if (!roofs.length) for (const edge of rectUnionEdges(top.footprint, top.courtyard)) {
+    if (!roofs.length) for (const edge of rectUnionEdges([...top.footprint,...(top.doubleHeightVoids??[]).map(v=>v.rect)], top.courtyard)) {
       const h = edge.side === 'N' || edge.side === 'S'
       const lo = h ? edge.a.x : edge.a.y, hi = h ? edge.b.x : edge.b.y
       zones.push({ id: `slab-edge:${top.id}:${edge.side}:${h ? edge.a.y : edge.a.x}:${lo}:${hi}`, kind: 'ROOFLINE',

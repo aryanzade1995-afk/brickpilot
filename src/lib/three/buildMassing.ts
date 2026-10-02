@@ -6,6 +6,7 @@ import { themeOf, type RailStyle, type ThemeDef } from '../model/themes.ts'
 import type { DesignDNA } from '../engine/designDna.ts'
 import { planFacade } from '../engine/facade/grammar.ts'
 import { terraceLayout, type TerraceLayout } from '../engine/terrace.ts'
+import { freeSiteRects } from '../engine/planner/siteFeatures.ts'
 
 /* ------------------------------------------------------------------ *
  *  buildMassing — an architect's white-card study model of the house.
@@ -168,6 +169,14 @@ export function buildMassing(design: Design): Massing {
 
   const boxes: MassBox[] = []
   const push: Push = (id, kind, level, pos, size, prism) => {
+    const voids=design.floors.find(f=>f.level===level+1)?.doubleHeightVoids??[]
+    if(voids.length && ['roof','slab','parapet'].includes(kind) && Math.abs(pos[1]-(y0+(level+1)*H))<.6 && !prism){
+      const r={x:Math.round(pos[0]*1000+plotW/2-size[0]*500),y:Math.round(pos[2]*1000+plotD/2-size[2]*500),
+        w:Math.round(size[0]*1000),h:Math.round(size[2]*1000)}
+      for(const [i,piece] of freeSiteRects(r,voids.map(v=>v.rect)).entries())
+        boxes.push({id:`${id}-voidcut-${i}`,kind,level,pos:[wx(piece.x+piece.w/2),pos[1],wz(piece.y+piece.h/2)],size:[m(piece.w),size[1],m(piece.h)]})
+      return
+    }
     if (size[0] > 0.02 && size[1] > 0.02 && size[2] > 0.02)
       boxes.push({ id, kind, pos, size, level, prism })
   }
@@ -192,7 +201,7 @@ export function buildMassing(design: Design): Massing {
 
     // ---- classify openings onto facades once for the whole storey ----
     const oFull = floor.outline
-    const boundary = rectUnionEdges(blocks, floor.courtyard)
+    const boundary = rectUnionEdges([...blocks,...(floor.doubleHeightVoids??[]).map(v=>v.rect)], floor.courtyard)
     const face: { side: Side; fixed: number; op: FaceOp }[] = []
     const interiorOps: Opening[] = []
     const TOL = 2
@@ -326,6 +335,16 @@ export function buildMassing(design: Design): Massing {
     })
 
     const o = oFull
+    for(const voidSpace of floor.doubleHeightVoids??[]){
+      const r=voidSpace.rect
+      push(`double-height-ceiling-${L}-${voidSpace.roomId}`,'roof',L,
+        [wx(r.x+r.w/2),wallTop-.09,wz(r.y+r.h/2)],[m(r.w),.18,m(r.h)])
+    }
+    for(const wall of floor.walls.filter(w=>w.kind==='parapet'&&w.heightMm)){
+      const h=m(wall.heightMm!),horizontal=Math.abs(wall.a.y-wall.b.y)<2
+      push(`gallery-guard-${wall.id}`,'railing',L,[wx((wall.a.x+wall.b.x)/2),baseY+h/2,wz((wall.a.y+wall.b.y)/2)],
+        [horizontal?m(Math.abs(wall.b.x-wall.a.x)):m(wall.thickness),h,horizontal?m(wall.thickness):m(Math.abs(wall.b.y-wall.a.y))])
+    }
 
     // ---- interior partitions — own group, hidden until exploded ----
     for (let i = 0; i < floor.walls.length; i++) {
@@ -335,7 +354,9 @@ export function buildMassing(design: Design): Massing {
     }
 
     // ---- outdoor rooms ----
-    const covers = floor.rooms.filter((r) => r.outdoor && r.id !== 'courtyard' && !r.id.startsWith('balcony'))
+    const covers = floor.rooms.filter((r) => r.outdoor && ['parking','verandah'].includes(r.id))
+    for(const room of floor.rooms.filter(r=>r.outdoor&&r.id.startsWith('verandahWing')))
+      buildCarport(room.rect,g,y0,L,`cover-${room.id}`,design.dna.roofGeometry,push,wx,wz,m)
     for (const r of floor.rooms) {
       if (r.outdoor && r.id.startsWith('balcony'))
         buildBalcony(

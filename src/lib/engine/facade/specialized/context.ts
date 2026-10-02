@@ -16,7 +16,7 @@ export function wallSide(building: BuildingModel, wall: BuildingWall) {
   const floor = building.floors.find((f) => f.id === wall.floorId)!
   const h = near(wall.a.y, wall.b.y)
   const mid = h ? (wall.a.x + wall.b.x) / 2 : (wall.a.y + wall.b.y) / 2
-  const edge = rectUnionEdges(floor.footprint, floor.courtyard).find((e) =>
+  const edge = rectUnionEdges([...floor.footprint,...(floor.doubleHeightVoids??[]).map(v=>v.rect)], floor.courtyard).find((e) =>
     (e.side === 'N' || e.side === 'S') === h && near(h ? e.a.y : e.a.x, h ? wall.a.y : wall.a.x) &&
     mid >= (h ? e.a.x : e.a.y) && mid <= (h ? e.b.x : e.b.y))
   if (!edge) throw new Error(`Wall ${wall.id} is not a real exterior face`)
@@ -62,7 +62,7 @@ export function resolveAnchor(ctx: GrammarContext, anchor: GrammarAnchor) {
   const r = mass ? massRect(mass) : floor.outline
   return { x: r.x, y: r.y, z: mass ? mass.elevation + mass.height : floor.elevationMm + floor.heightMm,
     side: 'S' as const, w: r.w, d: r.h, h: ctx.limits.maxRoofFeatureHeightMm,
-    rects: mass ? [r] : floor.footprint, mass }
+    rects: mass ? [r] : [...floor.footprint,...(floor.doubleHeightVoids??[]).map(v=>v.rect)], mass }
 }
 export function deriveWorld(ctx: GrammarContext, anchor: GrammarAnchor, b: GrammarLocalBox): GrammarPart['world'] {
   const a = resolveAnchor(ctx, anchor), horizontal = a.side === 'N' || a.side === 'S'

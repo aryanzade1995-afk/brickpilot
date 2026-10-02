@@ -18,7 +18,8 @@ def wall_side(building, wall):
     horizontal = abs(wall["a"]["y"] - wall["b"]["y"]) <= 2
     x, y = (wall["a"]["x"] + wall["b"]["x"]) / 2, (wall["a"]["y"] + wall["b"]["y"]) / 2
     def inside(px, py):
-        return any(r["x"] < px < r["x"] + r["w"] and r["y"] < py < r["y"] + r["h"] for r in floor["footprint"]) and not (
+        shell = [*floor["footprint"], *[void["rect"] for void in floor.get("doubleHeightVoids", [])]]
+        return any(r["x"] < px < r["x"] + r["w"] and r["y"] < py < r["y"] + r["h"] for r in shell) and not (
             floor.get("courtyard") and floor["courtyard"]["x"] < px < floor["courtyard"]["x"] + floor["courtyard"]["w"] and
             floor["courtyard"]["y"] < py < floor["courtyard"]["y"] + floor["courtyard"]["h"])
     before, after = (inside(x, y - 1), inside(x, y + 1)) if horizontal else (inside(x - 1, y), inside(x + 1, y))
@@ -59,7 +60,8 @@ def resolve_anchor(building, massing, anchor):
         raise ValueError("Invalid roof source")
     r = mass_rect(mass) if mass else floor["outline"]
     return {"x": r["x"], "y": r["y"], "z": mass["elevation"] + mass["height"] if mass else floor["elevationMm"] + floor["heightMm"],
-            "side": "S", "w": r["w"], "d": r["h"], "h": 2400, "rects": [r] if mass else floor["footprint"]}
+            "side": "S", "w": r["w"], "d": r["h"], "h": 2400,
+            "rects": [r] if mass else [*floor["footprint"], *[void["rect"] for void in floor.get("doubleHeightVoids", [])]]}
 
 
 def derive_world(a, b):

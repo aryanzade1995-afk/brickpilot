@@ -519,3 +519,40 @@ all roofed rooms and galleries remain below 60% plot coverage.
 
 The production handoffs and editable Blender/GLB scenes for all three families
 are in `output/wing-family-review/` (local generated artifacts, ignored by Git).
+
+### Seeded wing layouts and plan fingerprints
+
+Wing plans use the independent `makeRng(seed, briefKey + '|layout-choices')`
+stream in `planner/layoutChoices.ts`. Choices change the authoritative programme
+and room positions: living front/back/side, fixed stacked stair front/centre/side,
+master + child rooms ground/upper, kitchen garden/service end, and none/front/wrap
+verandahs. Requested covered verandahs are retained; None is available only when
+no verandah was requested. Senior accommodation stays on the ground floor.
+Compact envelopes below 600 m² use the conservative wing arrangement; ordinary
+villa bar plans retain their previous geometry. Every alternative still passes
+all production validators before it is offered.
+
+An optional double-height living cut is allowed only above living space in an
+unrequired upper gallery. It removes the intermediate footprint/slab, keeps a
+rectangular accessible gallery, adds 1.1 m guards and retains an upper ceiling.
+It never cuts a requested room or stair. `FloorPlan.doubleHeightVoids` is carried
+into BuildingModel; Three.js and Blender read the same cuts. Checks reject cuts
+outside living space, excessive spans, occupied room/slab intersections or
+missing guards. This is concept geometry validation, not engineering approval.
+
+`planFingerprint(design)` records wing count, family, normalized living/stair/
+master positions, door adjacency and real footprint/void/verandah signatures.
+Colours, facade materials and exterior seeds do not affect it. Studio Directions
+tries additional plan seeds before repeating a plan and stores the original bar
+search seed or the passing wing seed as `planSeed`. Pin/reload/reseed keep that
+source plan; changing exterior seed never reruns room layout.
+
+`node --experimental-strip-types scripts/review-wings.mjs` creates a local
+review at `/output/wing-review/index.html`, using the existing DrawingWorkspace
+and FloorDrawing. One 40×60 m brief, 50 seed requests: 39 distinct valid U-wing
+plans in the checked fixture. A constrained brief can resolve several requested
+seeds to the same passing alternative; invalid candidates remain rejected.
+The review includes all four wing families, floor tabs, both drawing themes and
+an overview of the 50 source plans. JSON metrics are in
+`output/wing-review/summary.json`. Local editable double-height and wrap-verandah
+Blender/GLB checks are in `output/wing-family-review/`.

@@ -144,7 +144,8 @@ def create_terrace(scene, floor, stairs, shafts=()):
 
 
 def create_parapet(scene, floor, top, masses=(), height_mm=900):
-    for index, (axis, fixed, lo, hi, _outward) in enumerate(boundary_edges(floor["footprint"]), 1):
+    shell = [*floor["footprint"], *[void["rect"] for void in floor.get("doubleHeightVoids", [])]]
+    for index, (axis, fixed, lo, hi, _outward) in enumerate(boundary_edges(shell), 1):
         inside = fixed - _outward if axis == "h" else fixed - _outward
         edge_strip = ({"x": lo, "y": inside - 1, "w": hi - lo, "h": 2} if axis == "h" else
                       {"x": inside - 1, "y": lo, "w": 2, "h": hi - lo})

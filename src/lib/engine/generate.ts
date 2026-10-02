@@ -8,8 +8,10 @@ import { deriveDesignDNA, type InspirationPreferences } from './designDna.ts'
 import { selectExteriorDirections } from './variation.ts'
 import type { Design } from './types.ts'
 import { planVilla, type PlateFamily } from './planner/index.ts'
+import { layoutChoices, layoutProgramme } from './planner/layoutChoices.ts'
 import { validate } from '../rules/index.ts'
 import { preferenceScore, strictVastuFailures, type PreferenceScore } from './score.ts'
+import { planFingerprint } from './planner/planFingerprint.ts'
 
 /* ------------------------------------------------------------------ *
  *  generate() — the deterministic rule + constraint planner
@@ -124,6 +126,21 @@ export function generateDirections(model: CanonicalModel, inspiration?: Inspirat
   }))
 }
 
+/** Explore plan variety before exterior novelty. The recorded seed is the
+ * actual passing plan seed, so pinning never re-runs a different search. */
+export function distinctDirectionPlans(model:CanonicalModel,count=4):{plan:Design;massing:MassingType;planSeed:number}[]{
+  const plans:{plan:Design;massing:MassingType;planSeed:number}[]=[],seen=new Set<string>()
+  for(const want of directionPlans(model,count*4)){
+    const plan=generate(model,{massing:want.family,seed:want.seed})
+    if(!validate(plan).hardChecksPass)continue
+    const fingerprint=planFingerprint(plan)
+    if(seen.has(fingerprint.key))continue
+    seen.add(fingerprint.key);plans.push({plan,massing:plan.massingType,planSeed:plan.planSeed??plan.dna.seed})
+    if(plans.length===count)break
+  }
+  return plans
+}
+
 export type Candidate = { design: Design; score: PreferenceScore; strictOk: boolean }
 
 /**
@@ -158,7 +175,7 @@ export function generateCandidates(model: CanonicalModel, opts: Strategy | Gener
   } else families = [FAMILY_OF[requested]]
 
   // Vastu needs more orientations / mirrors to choose from
-  const attempts = model.brief.lifestyle.vastu === 'ignore' ? 6 : 12
+  const attempts = families.some(f=>WING_FAMILIES.includes(f)) ? 24 : model.brief.lifestyle.vastu === 'ignore' ? 6 : 12
   const cap = model.brief.lifestyle.vastu === 'strict' ? MAX_CANDIDATES_STRICT : MAX_CANDIDATES
   const passing: Candidate[] = []
   const seen = new Set<string>()
@@ -169,6 +186,10 @@ export function generateCandidates(model: CanonicalModel, opts: Strategy | Gener
     for (let attempt = 0; attempt < attempts && passing.length < cap; attempt++) {
       const d = generateOne(model, family, seed + attempt * 31, briefKey)
       if (!d) continue
+      // Bar plans choose the best scored candidate across a search. Their pin
+      // must retain that search's starting seed; wings take the first passing
+      // candidate and can replay its actual passing seed directly.
+      if(!WING_FAMILIES.includes(d.massingType as PlateFamily))d.planSeed=seed
       const report = validate(d, { checkFacade: false })
       if (report.hardChecksPass) {
         // different seeds can land on the same layout; score each layout once
@@ -229,6 +250,8 @@ export function generate(model: CanonicalModel, opts: Strategy | GenerateOpts = 
 }
 
 function generateOne(model: CanonicalModel, family: PlateFamily, seed: number, briefKey: string, force = false): Design | null {
+  const choices = WING_FAMILIES.includes(family) ? layoutChoices(model, seed, family!=='twin-wing') : undefined
+  if (choices) model = layoutProgramme(model,choices)
   const theme = themeOf(model.brief)
   const rng = makeRng(seed, `${briefKey}|plan`)
   const pick = rng.int(0, 3)
@@ -240,6 +263,7 @@ function generateOne(model: CanonicalModel, family: PlateFamily, seed: number, b
   const provisional = deriveDesignDNA(briefKey, seed, model.brief.style.character, 'rectangular', 'balanced', model.brief.style.personality)
 
   const plan = planVilla(model, {
+    ...(choices ? {layoutChoices:choices}:{}),
     family: force ? 'rectangular' : family,
     pick, mirror,
     order: rng.int(1, 1_000_000),
@@ -270,6 +294,8 @@ function generateOne(model: CanonicalModel, family: PlateFamily, seed: number, b
 
   const site = placeSiteFeatures(model, floors[0])
   return {
+    planSeed:seed,
+    ...(choices ? {layoutChoices:choices}:{}),
     siteFeatures: site.features, siteNotes: [...(model.siteNotes ?? []), ...site.notes],
     id: `${model.seed}-${massingType}-${seed}`,
     seed: model.seed,

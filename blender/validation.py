@@ -84,6 +84,27 @@ def validate_payload(payload):
         raise GeometryInputError("Source floors are missing or duplicated")
     if any(not _rect(rect) for floor in floors.values() for rect in floor["footprint"]):
         raise GeometryInputError("Invalid source floor plate")
+    for floor in floors.values():
+        for void in floor.get("doubleHeightVoids", []):
+            limits = building.get("doubleHeightLimits", {})
+            r = void["rect"]
+            host = next((room for room in building["rooms"] if room["semanticId"] == void["sourceRoomId"]
+                         and floors[room["floorId"]]["level"] == floor["level"] - 1), None)
+            if not limits or not _rect(r) or not host or host["id"] not in ("living", "livingDining"):
+                raise GeometryInputError("Invalid double-height source room or limits")
+            h = host["rect"]
+            if min(r["w"], r["h"]) < limits["minimumMm"] or max(r["w"], r["h"]) > limits["maximumSpanMm"] or \
+                    r["x"] < h["x"] or r["y"] < h["y"] or r["x"] + r["w"] > h["x"] + h["w"] or r["y"] + r["h"] > h["y"] + h["h"]:
+                raise GeometryInputError("Double-height cut crosses its living room or span limits")
+            def overlaps_void(p):
+                return min(r["x"] + r["w"], p["x"] + p["w"]) > max(r["x"], p["x"]) and \
+                    min(r["y"] + r["h"], p["y"] + p["h"]) > max(r["y"], p["y"])
+            if any(overlaps_void(p) for p in floor["footprint"]):
+                raise GeometryInputError("Double-height cut contains a slab")
+            guards = [w for w in building["walls"] if w["floorId"] == floor["id"] and w["kind"] == "parapet"
+                      and void["roomId"] in w.get("rooms", [])]
+            if not guards or any(w.get("heightMm", 0) < limits["guardHeightMm"] for w in guards):
+                raise GeometryInputError("Double-height gallery lacks its guard")
     from geometry.site import validate_site_features
     validate_site_features(building)
     bounds = building["plot"]["buildable"]

@@ -16,10 +16,12 @@ import {
   stairRun, supportZonesFor, toPlanPoint, toPlanRect, wallGraph,
 } from './elements.ts'
 import { planWings } from './wings.ts'
+import type { LayoutChoices } from './layoutChoices.ts'
 
 export type { PlateFamily } from './types.ts'
 
 export type PlanRequest = {
+  layoutChoices?: LayoutChoices
   family: PlateFamily
   /** which of the ranked plate candidates to take (seed-driven variety) */
   pick: number

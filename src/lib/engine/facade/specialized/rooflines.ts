@@ -81,7 +81,7 @@ export function makeRoofline(ctx: GrammarContext, type: string) {
     blockers.push(...ctx.building.shafts.filter((s) => s.floorId === top.id).map((s) => s.rect))
     blockers.push(...ctx.building.stairs.filter((s) => s.floorId === top.id).map((s) => s.rect))
     let index = 0
-    for (const edge of rectUnionEdges(top.footprint, top.courtyard)) {
+    for (const edge of rectUnionEdges([...top.footprint,...(top.doubleHeightVoids??[]).map(v=>v.rect)], top.courtyard)) {
       const h = edge.side === 'N' || edge.side === 'S', positive = edge.side === 'S' || edge.side === 'E'
       const fixed = h ? edge.a.y : edge.a.x, start = h ? edge.a.x : edge.a.y, end = h ? edge.b.x : edge.b.y
       const thickness = type === 'PLANTER_PARAPET' ? 260 : 120

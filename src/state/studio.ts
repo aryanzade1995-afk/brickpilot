@@ -11,7 +11,8 @@ import {
   type Design,
   type MassingType,
 } from '@/lib/engine/index.ts'
-import { directionPlans } from '@/lib/engine/generate.ts'
+import { distinctDirectionPlans } from '@/lib/engine/generate.ts'
+import { planFingerprint, type PlanFingerprint } from '@/lib/engine/planner/planFingerprint.ts'
 import { validate, type ValidationReport } from '@/lib/rules/index.ts'
 import { estimateCost, type CostEstimate } from '@/lib/cost/index.ts'
 import { varyExterior } from '@/lib/engine/variation.ts'
@@ -52,6 +53,7 @@ export type PinnedDir = {
 }
 
 export type DirectionOption = {
+  planFingerprint: PlanFingerprint
   massing: MassingType
   seed: number
   planSeed?: number
@@ -253,7 +255,8 @@ export const useStudio = create<StudioState>()(
         set((s) => {
           s.brief = brief
           s.pinned = assembled.result.shapeStatus === 'accepted'
-            ? { massing: assembled.result.design.massingType, seed: assembled.result.design.dna.seed, inspiration: current.referencePreferences } : null
+            ? { massing: assembled.result.design.massingType, seed: assembled.result.design.dna.seed,
+              planSeed:assembled.result.design.planSeed, inspiration: current.referencePreferences } : null
           s.recentExteriorSeeds = []
           s.directions = null
           s.result = assembled.result
@@ -277,7 +280,7 @@ export const useStudio = create<StudioState>()(
         const result = selection.accepted.candidate
         // a new exterior on the same plan keeps that plan's own seed
         const pinned: PinnedDir = { massing: base.massingType, seed: result.design.dna.seed,
-          ...(cur.pinned?.planSeed !== undefined && cur.pinned.massing === base.massingType ? { planSeed: cur.pinned.planSeed } : {}),
+          planSeed:cur.pinned?.planSeed??base.planSeed,
           inspiration: cur.referencePreferences }
         set((s) => {
           s.pinned = pinned
@@ -300,17 +303,10 @@ export const useStudio = create<StudioState>()(
         // every direction stands on its own plan shape, so the four houses differ
         // in form, not only in trim; a shape the plot cannot take falls back to
         // the brief's own plan
-        const plans: { plan: Design; massing: MassingType; planSeed?: number }[] = []
-        const seen = new Set<string>()
-        for (const want of directionPlans(model)) {
-          const candidate = generate(model, { massing: want.family, seed: want.seed })
-          const key = candidate.floors.map((f) => f.rooms.map((r) => `${r.id}${r.rect.x},${r.rect.y},${r.rect.w},${r.rect.h}`).join(';')).join('|')
-          if (seen.has(key) || !validate(candidate).hardChecksPass) continue
-          seen.add(key)
-          plans.push({ plan: candidate, massing: want.family, planSeed: want.seed })
-        }
-        while (plans.length < 4) plans.push({ plan, massing: plan.massingType })
+        const plans: { plan: Design; massing: MassingType; planSeed?: number }[] = distinctDirectionPlans(model)
+        while (plans.length < 4) plans.push({ plan, massing: plan.massingType,planSeed:plan.planSeed })
         const option = (r: Result, index: number, novelty: number, source?: (typeof plans)[number]): DirectionOption => ({
+          planFingerprint:planFingerprint(r.design),
           massing: source?.massing ?? r.design.massingType, seed: r.design.dna.seed,
           ...(source?.planSeed !== undefined ? { planSeed: source.planSeed } : {}),
           label: `Direction ${'ABCD'[index]} — ${r.shapeFingerprint!.massingFamily.replaceAll('_', ' ').toLowerCase()}`,
@@ -392,7 +388,7 @@ export const useStudio = create<StudioState>()(
           s.shapeDebug = assembled.debug
           s.generationNotice = assembled.notice
           if (assembled.result.shapeStatus === 'accepted') s.pinned = { massing: assembled.result.design.massingType,
-            seed: assembled.result.design.dna.seed, inspiration: cur.referencePreferences }
+            seed: assembled.result.design.dna.seed,planSeed:assembled.result.design.planSeed, inspiration: cur.referencePreferences }
         })
         return assembled.result
       },

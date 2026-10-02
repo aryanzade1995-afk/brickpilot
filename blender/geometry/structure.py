@@ -62,7 +62,7 @@ def create_wall(scene, wall, floor, hosted_openings, serial_start):
     axis = "h" if abs(a["y"] - b["y"]) <= 2 else "v"
     fixed = a["y"] if axis == "h" else a["x"]
     lo, hi = sorted((a["x"], b["x"]) if axis == "h" else (a["y"], b["y"]))
-    base, top = floor["elevationMm"], floor["elevationMm"] + floor["heightMm"]
+    base, top = floor["elevationMm"], floor["elevationMm"] + wall.get("heightMm", floor["heightMm"])
     openings = sorted(hosted_openings, key=lambda item: item["at"]["x" if axis == "h" else "y"])
     serial = serial_start
     cursor = lo
