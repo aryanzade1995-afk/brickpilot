@@ -348,7 +348,8 @@ export function frontYard(
   const vW = Math.max(2400, Math.min(verandahW, snap(room - 200)))
   for (const s of [...outdoor].sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind))) {
     if (!order.includes(s.kind)) continue
-    const widths = s.kind === 'parking' ? [...new Set([parkingW, 3000])] : s.kind === 'verandah' ? [vW] : [large ? 4600 : 3200]
+    const grownVerandahW = large && s.targetSqm >= 28 ? Math.min(snap(env.w-parkingW-200), Math.max(vW,snap(s.targetSqm*1e6/3200))) : vW
+    const widths = s.kind === 'parking' ? [...new Set([parkingW, 3000])] : s.kind === 'verandah' ? [grownVerandahW, vW] : [large ? 4600 : 3200]
     const h = s.kind === 'parking' ? PARKING_DEPTH : s.kind === 'verandah' ? (site.fillPlot ? 3400 : large ? 3200 : VERANDAH_DEPTH) : 3200
     let rect: Rect | null = null
     for (const w of widths) {

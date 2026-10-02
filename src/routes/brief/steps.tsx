@@ -484,6 +484,9 @@ export function StyleStep() {
             },
           ]}
         />
+        {brief.project.buildingType === 'large-villa' && <Toggle checked={brief.project.autoExtras}
+          onChange={v => edit(b => void (b.project.autoExtras = v))}
+          label="Add optional lounges, guest suites and leisure rooms when the plot has space" />}
       </div>
 
       <div className="space-y-4">

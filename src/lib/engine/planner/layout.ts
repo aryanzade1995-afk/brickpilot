@@ -184,7 +184,7 @@ export function distribute(rooms: RoomReq[], len: number, d: number): number[] {
   return rounded
 }
 
-export function placeUnits(units: Unit[], segs: [number, number][], d: number, band: Band, axes: number[] = []): { rooms: LocalRoom[]; used: [number, number][] } {
+export function placeUnits(units: Unit[], segs: [number, number][], d: number, band: Band, axes: number[] = [], maximumGrowth?: number): { rooms: LocalRoom[]; used: [number, number][] } {
   const rooms: LocalRoom[] = []
   const used: [number, number][] = []
   if (!units.length || !segs.length) return { rooms, used }
@@ -197,9 +197,18 @@ export function placeUnits(units: Unit[], segs: [number, number][], d: number, b
     const fixedLen = sum(list.map((r) => r.fixedWidthMm ?? 0))
     if (fixed && fixedLen < seg[1] - seg[0]) seg = [seg[0], seg[0] + fixedLen]
     const ws = distribute(list, seg[1] - seg[0], d)
+    if (maximumGrowth) {
+      const caps = list.map(r => r.fixedWidthMm ?? Math.max(roomWidths(r,d).min, Math.floor(r.maxSqm*maximumGrowth*1e6/d/100)*100))
+      ws.forEach((width,i) => { ws[i] = Math.min(width,caps[i]) })
+      let spare = seg[1]-seg[0]-sum(ws)
+      for (let i=0;i<ws.length && spare>0;i++) {
+        const add=Math.min(spare,caps[i]-ws[i]);ws[i]+=add;spare-=add
+      }
+      if (spare>0) return
+    }
     const cuts = [seg[0]]
     ws.forEach((w) => cuts.push(cuts[cuts.length - 1] + w))
-    if (axes.length) alignToAxes(list, cuts, d, axes)
+    if (axes.length) alignToAxes(list, cuts, d, axes, maximumGrowth)
     list.forEach((r, i) => rooms.push({ req: r, band, u0: cuts[i], u1: cuts[i + 1] }))
     used.push(seg)
   }
@@ -242,11 +251,13 @@ export function placeUnits(units: Unit[], segs: [number, number][], d: number, b
  * land in wall junctions, not in the middle of a 1.5 m bathroom wall.
  * Every room keeps at least its minimum width; fixed slots never move.
  */
-function alignToAxes(rooms: RoomReq[], cuts: number[], d: number, axes: number[]) {
+function alignToAxes(rooms: RoomReq[], cuts: number[], d: number, axes: number[], maximumGrowth?: number) {
   const mins = rooms.map((r) => roomWidths(r, d).min)
+  const maxs = rooms.map(r => maximumGrowth && r.zone!=='circulation' ? r.maxSqm*maximumGrowth*1e6/d : Infinity)
   const movable = (i: number) => !rooms[i - 1]?.fixedWidthMm && !rooms[i]?.fixedWidthMm
   const ok = (i: number, at: number) =>
-    at - cuts[i - 1] >= mins[i - 1] - 1 && cuts[i + 1] - at >= mins[i] - 1
+    at - cuts[i - 1] >= mins[i - 1] - 1 && cuts[i + 1] - at >= mins[i] - 1 &&
+    at-cuts[i-1]<=maxs[i-1]+1 && cuts[i+1]-at<=maxs[i]+1
   for (let i = 1; i < cuts.length - 1; i++) {
     if (!movable(i)) continue
     const near = axes.filter((a) => Math.abs(a - cuts[i]) <= 900 && a > cuts[i - 1] && a < cuts[i + 1])
@@ -277,7 +288,7 @@ function alignToAxes(rooms: RoomReq[], cuts: number[], d: number, axes: number[]
           if (next[i] - next[i - 1] < mins[i - 1]) next[i] = next[i - 1] + mins[i - 1]
         for (let i = lo - 1; i > 0; i--)
           if (next[i + 1] - next[i] < mins[i]) next[i] = next[i + 1] - mins[i]
-        const valid = next.every((c, i) => i === 0 || c - next[i - 1] >= mins[i - 1] - 1) &&
+        const valid = next.every((c, i) => i === 0 || (c - next[i - 1] >= mins[i - 1] - 1 && c-next[i-1]<=maxs[i-1]+1)) &&
           rooms.every((r, i) => !r.fixedWidthMm || next[i + 1] - next[i] === cuts[i + 1] - cuts[i]) &&
           next.every((c, i) => c === cuts[i] || (i > 0 && i < cuts.length - 1))
         if (!valid) continue

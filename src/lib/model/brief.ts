@@ -177,6 +177,7 @@ export const briefSchema = z
       .object({
         name: z.string().min(1).max(80).default('My family home'),
         buildingType: buildingTypeSchema.default('villa'),
+        autoExtras: z.boolean().default(true),
       })
       .prefault({}),
     site: z

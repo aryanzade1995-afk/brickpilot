@@ -52,6 +52,11 @@ export function planFindings(design: Design): PlanFinding[] {
     const lower: FloorPlan | undefined = design.floors[fi - 1]
     const byId = new Map(floor.rooms.map((r) => [r.id, r]))
     const enclosed = floor.rooms.filter((r) => !r.outdoor)
+    if (design.model.floors.some(f=>f.spaces.some(s=>s.autoExtra))) for (const room of enclosed.filter(r=>r.zone!=='circulation')) {
+      const req=design.model.floors[floor.level].spaces.find(s=>s.id===room.id)
+      if (req && room.area > req.max * 1.5 + .05)
+        add('ROOM_OVER_GROWTH_LIMIT','planning',`${room.name} exceeds 1.5 times its maximum programme size.`,room.id)
+    }
     const count = (id: string | undefined) => id && ids.set(id, (ids.get(id) ?? 0) + 1)
 
     // ---- semantic identity ----

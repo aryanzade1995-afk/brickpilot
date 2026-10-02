@@ -34,6 +34,7 @@ export function planWings(model: CanonicalModel, request: PlanRequest): PlanResu
  const rng=makeRng(request.order,`${model.seed.split('-')[0]}|wing-units`)
  const groups=reqs.map(f=>{
   const publicUnits=f.units.filter(u=>u.key==='core'||u.key==='kitchen'||u.key==='pooja'||u.key==='bedStaff'||
+    u.rooms.some(r=>r.space.autoExtra && r.zone!=='private' && r.kind!=='ensuite') ||
     (f.level>0&&!u.rooms.some(r=>r.kind==='bed'||r.kind==='ensuite')))
   const privateUnits=f.units.filter(u=>!publicUnits.includes(u))
   // Keep foyer/client office and family bedroom groups contiguous.
@@ -83,7 +84,8 @@ export function planWings(model: CanonicalModel, request: PlanRequest): PlanResu
     list.push({key:filler.id,rooms:[filler],band:'A',movable:false,anchor:false});kinds.set(filler.id,'lounge')
    }
    // Reuse distribution and narrow-room/column alignment from the bar planner.
-   const local=placeUnits(list,[[0,length]],d,'A',localAxes).rooms
+   const local=placeUnits(list,[[0,length]],d,'A',localAxes,WING_LIMITS.maximumRoomGrowth).rooms
+   if (!local.length || local.at(-1)!.u1 !== length) return null
    const subset=local.map(lr=>placed(lr.req,{x:x+lr.u0,y:wi===0?y:southY+s,w:lr.u1-lr.u0,h:d}))
    const hall=wi===0?f.spine:hallReq('privateHall',f.prefix,'Private wing hall')
    kinds.set(hall.id,hall.kind)
@@ -91,6 +93,12 @@ export function planWings(model: CanonicalModel, request: PlanRequest): PlanResu
   }
   const link=placed(hallReq('link',f.prefix,'Connecting gallery'),linkRect)
   kinds.set(link.id,'corridor');rooms.push(link)
+  // Axis alignment may widen a small wet room: reject that plate rather than
+  // allowing programme growth to inflate an existing room beyond its limit.
+  if (rooms.some(room => {
+    const req=f.rooms.find(r=>r.id===room.id)
+    return req && req.zone !== 'circulation' && room.area > req.maxSqm * WING_LIMITS.maximumRoomGrowth + .05
+  })) return null
   const footprint=rooms.map(r=>r.rect), outline=rectUnionBBox(footprint)
   const outdoor=(r:RoomReq,rect:Rect)=>placed(r,rect)
   if(fi===0){

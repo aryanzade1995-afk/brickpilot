@@ -43,6 +43,8 @@ export type SpaceReq = {
   outdoor: boolean
   /** who a bedroom is for — find the master by role, never by id */
   role?: 'master' | 'parents' | 'child' | 'guest' | 'staff'
+  /** Optional programme growth, never a substitute for a requested room. */
+  autoExtra?: boolean
 }
 
 export type RelationKind = 'adjacent' | 'near' | 'connected' | 'separated'
@@ -153,7 +155,9 @@ function mk(
  *  the `variation` nonce so the massing grammar's brief-key stays stable across
  *  re-rolls (the seed integer is what varies). */
 function hashSeed(brief: Brief): string {
-  const s = JSON.stringify({ ...brief, variation: 0 })
+  const { autoExtras, ...legacyProject } = brief.project
+  const project = brief.project.buildingType === 'villa' ? legacyProject : { ...legacyProject, autoExtras: autoExtras ?? true }
+  const s = JSON.stringify({ ...brief, project, variation: 0 })
   let h = 0x811c9dc5
   for (let i = 0; i < s.length; i++) {
     h ^= s.charCodeAt(i)
@@ -164,6 +168,9 @@ function hashSeed(brief: Brief): string {
 
 const ordinalFloor = (level: number): string =>
   level === 0 ? 'Ground floor' : `Floor ${level}`
+
+export const PROGRAMME_GROWTH_LIMITS = { minimumEnvelopeSqm: 600, targetPlotRatio: .43,
+  maximumBarLengthMm: 32000, maximumRoomBandDepthMm: 10800, packingRatio: .78 } as const
 
 export function compile(brief: Brief): CanonicalModel {
   const seed = `${hashSeed(brief)}-${brief.variation}`
@@ -485,6 +492,48 @@ export function compile(brief: Brief): CanonicalModel {
         s.min = r1(s.min * k)
         s.target = r1(s.target * k)
         s.max = r1(s.max * k)
+      }
+    }
+  }
+
+  if (large && brief.project.autoExtras !== false && envelope.width * envelope.depth >= PROGRAMME_GROWTH_LIMITS.minimumEnvelopeSqm * 1e6) {
+    // Bound optional room demand by the proven bar capacity as well as the
+    // coverage envelope. Wings can use the remaining capacity without forcing
+    // tiny rooms onto a previously feasible brief.
+    const limits=PROGRAMME_GROWTH_LIMITS
+    const roomBudget = Math.min(plot.width * plot.depth / 1e6 * limits.targetPlotRatio,
+      Math.min(limits.maximumBarLengthMm, Math.max(envelope.width, envelope.depth)) * limits.maximumRoomBandDepthMm / 1e6 * limits.packingRatio)
+    for (const f of floors) {
+      let total = f.spaces.filter(s => !s.outdoor).reduce((n,s) => n+s.target,0)
+      const extra = (id: string, name: string, zone: Zone, min: number, target: number, max: number,
+        opts: Partial<SpaceReq> = {}): SpaceReq => ({id,name,zone,min,target,max,
+          wantsWindow: true,wet: false,outdoor: false,autoExtra: true,...opts})
+      const suffix = f.level === 0 ? 'GF' : `F${f.level}`
+      const candidates: SpaceReq[][] = [
+        [extra(`familyLoungeExtra${suffix}`,'Second family lounge','social',18,30,45)],
+        [extra(`bedGuestExtra${suffix}`,'Guest suite','private',14,22,32,{role:'guest'}),
+          extra(`bathGuestExtra${suffix}`,'Guest ensuite','service',3,5,8,{wet:true,wantsWindow:false})],
+        [extra(`studyMedia${suffix}`,'Home theatre / media room','work',14,28,42)],
+        [extra(`studyGym${suffix}`,'Gym','work',12,24,36)],
+        ...(f.level === 0 ? [[extra('poolHouse','Pool house / garden cabana','social',10,20,30)]] : []),
+        ...(f.level === 0 && brief.household.staff !== 'none' && !f.spaces.some(s=>s.id==='bedStaff') ? [[
+          extra('bedStaff','Staff quarters','private',10,14,20,{role:'staff'}),
+          extra('staffSuiteBath','Staff ensuite','service',3,4,7,{wet:true,wantsWindow:false})]] : []),
+      ]
+      for (const group of candidates) {
+        const area=group.reduce((n,s)=>n+s.target,0)
+        if (total + area > roomBudget) continue
+        f.spaces.push(...group); total += area
+        if (group[0].zone === 'private') {
+          addRel(group[0].id,group[1].id,'adjacent')
+          addRel(group[0].id,f.level===0?'foyer':`lobby${f.level}`,'connected')
+        }
+        if (group[0].id==='poolHouse') addRel('verandah','poolHouse','near')
+        if (group[0].id==='bedStaff') addRel('utility','bedStaff','near')
+      }
+      if (f.level === 0) {
+        const verandah=f.spaces.find(s=>s.id==='verandah')
+        if (verandah) {verandah.target=Math.max(verandah.target,28);verandah.max=Math.max(verandah.max,48)}
       }
     }
   }
