@@ -455,3 +455,16 @@ Production Blender jobs also relax similarity and identity quotas in stages when
 fixed plans or the flat-terrace policy constrain choices. A previously validated,
 measured candidate is retained as the final fallback. Its manifest and UI warnings
 say when uniqueness was relaxed; invalid geometry is never used as a fallback.
+
+
+### Automatic exterior variations and larger interiors
+
+The brief no longer exposes a seed picker. New Blender designs receive a fresh
+browser-generated numeric seed; the saved seed still reproduces all geometry.
+Returning to a saved design reuses it. Generate another design preserves the
+source plan and passes the existing architectural and diversity checks.
+Fifteen facade composition recipes include layered porticos, deep reveals,
+finned pavilions and sculpted corners, with up to two checked supporting elements.
+The expanded fingerprint schema clears incompatible older comparison records.
+Interior results use full-width cards with click-to-enlarge viewing, Escape/close
+controls and image downloads. Enlarging an image does not change its source resolution.

@@ -36,7 +36,8 @@ test('default Massing generation submits the exact verified plan and numeric see
     assert.equal(calls.filter(([url]) => url === '/api/villas').length, 1)
     const body = JSON.parse(calls.find(([, o]) => o?.method === 'POST')[1].body)
     assert.deepEqual(body.plan, plan)
-    assert.equal(body.seed, plan.dna.seed)
+    assert.ok(Number.isSafeInteger(body.seed))
+    assert.notEqual(body.seed, plan.dna.seed)
     assert.deepEqual(body.plan.siteFeatures, plan.siteFeatures)
     assert.equal(body.quality, 'preview')
     assert.equal(JSON.stringify(plan), before)
@@ -102,4 +103,17 @@ test('a damaged source plan cannot launch Blender or replace a prior accepted mo
     assert.match(useBlender.getState().error, /2D plan checks/)
     assert.equal(useBlender.getState().accepted[id], result)
   } finally { globalThis.fetch = original }
+})
+
+
+test('automatic seeds avoid the previous seed even when entropy repeats', async () => {
+  const { newDesignSeed } = await import('../src/lib/newDesignSeed.ts')
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'crypto')
+  Object.defineProperty(globalThis, 'crypto', { configurable: true, value: {
+    getRandomValues: (values) => { values[0] = 4294967295; return values },
+  } })
+  try {
+    assert.equal(newDesignSeed(4294967295), 0)
+    assert.equal(newDesignSeed(12), 4294967295)
+  } finally { Object.defineProperty(globalThis, 'crypto', descriptor) }
 })

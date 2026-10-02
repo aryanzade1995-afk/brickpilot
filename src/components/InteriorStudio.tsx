@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, Download, RefreshCw, Sparkles, X } from 'lucide-react'
+import { AlertTriangle, Download, RefreshCw, Sparkles, Maximize2, X } from 'lucide-react'
 import type { Design } from '@/lib/engine/types.ts'
 import type { Character } from '@/lib/model/themes.ts'
 import type { RoomModel } from '@/lib/three/buildRoom.ts'
@@ -42,6 +42,12 @@ export function InteriorStudio({
     removeResult,
   } = useInterior()
 
+  const viewerRef = useRef<HTMLDialogElement | null>(null)
+  const [expanded, setExpanded] = useState<{ url: string; label: string } | null>(null)
+  const openImage = (url: string, label: string) => {
+    setExpanded({ url, label })
+    viewerRef.current?.showModal()
+  }
   const capRef = useRef<RoomCaptureHandle | null>(null)
   const [roomModel, setRoomModel] = useState<RoomModel | null>(null)
   const [lastMaps, setLastMaps] = useState<CaptureMaps[] | null>(null)
@@ -100,6 +106,20 @@ export function InteriorStudio({
 
   return (
     <div className="mt-6 space-y-6">
+      <dialog ref={viewerRef} aria-label="Expanded interior image"
+        className="fixed inset-0 m-auto h-[94dvh] w-[96vw] max-w-none border border-line bg-bg p-4 text-ink backdrop:bg-black/85"
+        onClick={(event) => { if (event.target === event.currentTarget) viewerRef.current?.close() }}>
+        <div className="flex h-full flex-col gap-3">
+          <div className="flex items-center justify-between gap-4">
+            <p className="text-sm">{expanded?.label}</p>
+            <button type="button" autoFocus onClick={() => viewerRef.current?.close()} aria-label="Close expanded image"
+              className="border border-line p-3"><X size={20} /></button>
+          </div>
+          {expanded && <img src={expanded.url} alt={expanded.label} className="min-h-0 w-full flex-1 object-contain" />}
+          {expanded && <button type="button" onClick={() => download(expanded.url, 'interior.png')}
+            className="self-end border border-line px-4 py-2 text-sm">Download image</button>}
+        </div>
+      </dialog>
       {health && (
         <p
           className={cx(
@@ -134,7 +154,7 @@ export function InteriorStudio({
               <figure key={k} className="space-y-1.5">
                 <div className="flex aspect-[4/3] items-center justify-center overflow-hidden border border-line-strong bg-bg-inset">
                   {maps?.[k] ? (
-                    <img src={maps[k]} alt={k} className="h-full w-full object-cover" />
+                    <img src={maps[k]} alt={k} className="h-full w-full object-contain" />
                   ) : (
                     <span className="font-mono text-[0.6rem] uppercase tracking-[0.1em] text-ink-faint">{k}</span>
                   )}
@@ -289,26 +309,28 @@ export function InteriorStudio({
             <h2 className="font-display text-2xl">Generated interiors</h2>
             <span className="label">Session only · {results.length}</span>
           </div>
-          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          <div className="mt-6 grid gap-8">
             {results.map((r) => {
               const slug = `formstead-${r.styleId}-${r.roomLabel.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`
               return (
                 <figure key={r.id} className="border border-line">
                   <div className="relative bg-bg-inset">
-                    <div className={cx('grid gap-px', r.urls.length > 1 && 'grid-cols-2')}>
+                    <div className={cx('grid gap-px', r.urls.length > 1 && 'xl:grid-cols-2')}>
                       {r.urls.map((u, i) => (
-                        <div key={i} className="relative aspect-[4/3] overflow-hidden">
+                        <button type="button" key={i} onClick={() => openImage(u, `${r.roomLabel} — view ${i + 1}`)}
+                          aria-label={`Enlarge ${r.roomLabel}, view ${i + 1}`} className="relative aspect-[4/3] w-full overflow-hidden cursor-zoom-in">
+                          <span className="absolute bottom-3 right-3 flex items-center gap-2 bg-bg/90 px-3 py-2 text-xs"><Maximize2 size={16} /> Enlarge</span>
                           <img
                             src={u}
                             alt={`${r.roomLabel} — view ${i + 1}`}
-                            className="h-full w-full object-cover"
+                            className="h-full w-full object-contain"
                           />
                           {r.urls.length > 1 && (
                             <span className="absolute left-1.5 top-1.5 bg-bg/80 px-1.5 py-0.5 font-mono text-[0.55rem] uppercase tracking-[0.08em] text-ink-dim">
                               View {i + 1}
                             </span>
                           )}
-                        </div>
+                        </button>
                       ))}
                     </div>
                     <button

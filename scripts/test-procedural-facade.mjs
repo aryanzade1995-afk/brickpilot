@@ -99,8 +99,8 @@ test('stone and wood spines have different procedural geometry', () => {
   assert.ok(wood.parts.every((part) => part.role === 'screen'))
 })
 
-test('eleven architectural families create distinct validated solids on one source plan', () => {
-  assert.equal(ARCHITECTURAL_FAMILIES.length, 11)
+test('fifteen architectural families create distinct validated solids on one source plan', () => {
+  assert.equal(ARCHITECTURAL_FAMILIES.length, 15)
   const geometry = new Set()
   const before = JSON.stringify(court.building)
   for (const family of ARCHITECTURAL_FAMILIES) {
@@ -129,9 +129,9 @@ test('courtyard composition requires a plan courtyard; the three UI styles selec
   assert.equal(rejected.issues[0].code, 'FAMILY_INCOMPATIBLE')
   assert.deepEqual(SELECTABLE_CHARACTERS, ['modern-box', 'contemporary-indian', 'courtyard-indian'])
   const styleFamilies = {
-    'modern-box': ['FRAMED_MODERN', 'FLOATING_BOX', 'INTERLOCKING_MODERN', 'MINIMAL_LUXURY', 'VERTICAL_MONOLITH', 'HORIZONTAL_LAYERED'],
-    'contemporary-indian': ['WARM_CONTEMPORARY', 'TROPICAL_MODERN', 'SCREEN_HOUSE', 'INDIAN_CONTEMPORARY', 'VERTICAL_MONOLITH'],
-    'courtyard-indian': ['COURTYARD_MODERN', 'TROPICAL_MODERN', 'SCREEN_HOUSE', 'INDIAN_CONTEMPORARY', 'WARM_CONTEMPORARY'],
+    'modern-box': ['FRAMED_MODERN', 'FLOATING_BOX', 'INTERLOCKING_MODERN', 'MINIMAL_LUXURY', 'VERTICAL_MONOLITH', 'HORIZONTAL_LAYERED', 'DEEP_REVEAL', 'SCULPTED_CORNER'],
+    'contemporary-indian': ['WARM_CONTEMPORARY', 'TROPICAL_MODERN', 'SCREEN_HOUSE', 'INDIAN_CONTEMPORARY', 'VERTICAL_MONOLITH', 'LAYERED_PORTICO', 'FINNED_PAVILION'],
+    'courtyard-indian': ['COURTYARD_MODERN', 'TROPICAL_MODERN', 'SCREEN_HOUSE', 'INDIAN_CONTEMPORARY', 'WARM_CONTEMPORARY', 'LAYERED_PORTICO', 'FINNED_PAVILION'],
   }
   for (const character of SELECTABLE_CHARACTERS) for (let seed = 1; seed <= 12; seed++) {
     const dna = createVillaDesignDNA(rectangle.building, seed, character)

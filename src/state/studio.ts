@@ -1,3 +1,4 @@
+import { newDesignSeed } from '@/lib/newDesignSeed.ts'
 import { selectAdaptiveVilla } from '@/lib/engine/fingerprint/AdaptiveVillaSearch.ts'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
@@ -232,7 +233,7 @@ export const useStudio = create<StudioState>()(
       reroll: () => {
         const current = get()
         const brief = structuredClone(current.brief)
-        brief.variation += 1
+        brief.variation = newDesignSeed(brief.variation)
         const assembled = assemble(brief, null, current.referencePreferences, current.recentVillaFingerprints, current.diversityLimits)
         set((s) => {
           s.brief = brief
@@ -250,7 +251,7 @@ export const useStudio = create<StudioState>()(
       reseed: () => {
         const cur = get()
         const base = cur.result?.design ?? generate(compile(cur.brief))
-        const selection = generateDistinct(base, (cur.result?.design.dna.seed ?? cur.brief.variation) + 1,
+        const selection = generateDistinct(base, newDesignSeed(cur.result?.design.dna.seed ?? cur.brief.variation),
           cur.referencePreferences, cur.recentVillaFingerprints, cur.diversityLimits,
           cur.result?.shapeFingerprint ? [fingerprintRecord(cur.result.shapeFingerprint)] : [])
         if (!selection.accepted) {

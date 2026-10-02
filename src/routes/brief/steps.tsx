@@ -1,7 +1,7 @@
 import { canIncreaseBrief, CAPACITY_GUIDANCE } from '@/lib/engine/planner/fit.ts'
 import { resolveOpenSpace, OPEN_SPACE_LABEL } from '@/lib/model/openSpace.ts'
 import { PLANNING_LIMITS } from '@/lib/engine/planner/limits.ts'
-import { Dices, Plus, X } from 'lucide-react'
+import { Plus, X } from 'lucide-react'
 import {
   BUILDING_TYPE_LABEL,
   CHARACTER_LABEL,
@@ -539,25 +539,7 @@ export function StyleStep() {
             ]}
           />
         </Field>
-        <Field label="Seed" hint="Same seed + brief → the same house; change it for a new one">
-          <div className="flex items-center gap-2">
-            <NumberInput
-              value={brief.variation}
-              min={0}
-              max={999999}
-              step={1}
-              onChange={(v) => edit((b) => void (b.variation = Math.max(0, Math.round(v))))}
-            />
-            <button
-              type="button"
-              aria-label="Random seed"
-              onClick={() => edit((b) => void (b.variation = Math.floor(Math.random() * 100000)))}
-              className="flex-none border border-line-strong p-2.5 text-ink-dim transition-colors hover:border-accent hover:text-ink"
-            >
-              <Dices size={16} />
-            </button>
-          </div>
-        </Field>
+        <p className="text-sm text-ink-dim">Every new 3D design gets an automatic variation. Your floor plan stays fixed.</p>
       </div>
     </div>
   )

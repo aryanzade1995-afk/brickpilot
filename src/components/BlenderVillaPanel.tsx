@@ -1,3 +1,4 @@
+import { newDesignSeed } from '@/lib/newDesignSeed.ts'
 import { Component, Suspense, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { Bounds, OrbitControls, useGLTF } from '@react-three/drei'
@@ -38,7 +39,6 @@ export function BlenderVillaPanel({ plan, autoGenerate = false }: { plan: Design
   const currentJob = sourcePlanId === id ? job : null
   useEffect(() => { void resume() }, [resume])
   useEffect(() => { if (autoGenerate) void ensureForPlan(plan) }, [autoGenerate, plan, ensureForPlan, busy])
-  const seed = result ? (result.seed + 1) % 0xffffffff : plan.dna.seed
   return <section className="mt-5 border border-line p-4 md:p-6">
     <div className="flex flex-wrap items-center justify-between gap-4">
       <div><h2 className="font-display text-xl">Blender architectural design</h2>
@@ -48,7 +48,7 @@ export function BlenderVillaPanel({ plan, autoGenerate = false }: { plan: Design
           disabled={busy} onChange={(e) => setQuality(e.target.value as 'preview' | 'final')}>
           <option value="preview">Fast preview</option><option value="final">High quality</option>
         </select>
-        <button type="button" disabled={busy} onClick={() => void generate(plan, seed, quality)}
+        <button type="button" disabled={busy} onClick={() => void generate(plan, newDesignSeed(result?.seed ?? plan.dna.seed), quality)}
           className="border border-line-strong px-4 py-2 text-sm uppercase tracking-wide disabled:opacity-50">
           {busy ? 'Generating…' : result ? 'Generate another design' : 'Generate architectural design'}
         </button>

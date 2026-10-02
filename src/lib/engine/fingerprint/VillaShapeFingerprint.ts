@@ -9,7 +9,7 @@ import { ROOFLINE_TYPES } from '../facade/specialized/types.ts'
 
 /** Schema constants belong to the fingerprint, never to architectural limits.
  * Changing the sampling/layout requires a new schema version and fresh history. */
-export const FINGERPRINT_SCHEMA_VERSION = 2 as const
+export const FINGERPRINT_SCHEMA_VERSION = 3 as const
 const GRID = 16, MAX_FLOORS = 8, MAX_BLOCKS = 64
 const MAX_HEIGHT_MM = 30000, MAX_SPAN_MM = 60000, ROOF_RANGE_MM = 5000
 const HERO_TYPES = [...ARCHITECTURAL_FEATURE_TYPES, 'NONE']
@@ -21,7 +21,7 @@ type Block = { ratio: number; position: [number, number, number]; dimensions: [n
 type OutdoorTopology = { count: number; accessCount: number; footprint: number[]; floorFootprints: number[][]; accessPoints: number[][] }
 
 export type VillaShapeFingerprint = {
-  schemaVersion: 2; sourcePlanId: string; seed: number
+  schemaVersion: 3; sourcePlanId: string; seed: number
   massingFamily: string; blockCount: number; blockRatios: number[]; blockPositions: number[][]
   floorFootprints: number[][]; upperFloorCoverage: number; upperFloorOffsets: number[][]
   frontSilhouette: number[]; sideSilhouette: number[]

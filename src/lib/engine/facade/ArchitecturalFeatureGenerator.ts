@@ -278,8 +278,8 @@ export class ArchitecturalFeatureGenerator {
           if (!hero || validateProceduralFeatures(building, massing, zones, [hero]).length) continue
           const features = [hero]
           const supportRng = makeRng(dna.seed, `${building.planId}|${family}|supports`)
-          const wanted = options.supportingFeatures ?? Array.from({ length: supportRng.int(0, 2) },
-            () => supportRng.pick(recipe.supports))
+          const wanted = options.supportingFeatures ?? [...recipe.supports]
+            .filter(() => supportRng.range(0, 1) < 0.85)
           for (const supportType of wanted.slice(0, 2)) {
             if (supportType === type || features.some((f) => f.type === supportType)) continue
             for (const host of zones.filter((z) => eligible(supportType, z) && (!options.usableTerrace || z.kind !== 'ROOFLINE') && !features.some((f) => f.zoneIds.includes(z.id)))

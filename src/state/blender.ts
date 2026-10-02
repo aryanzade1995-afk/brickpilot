@@ -1,3 +1,4 @@
+import { newDesignSeed } from '@/lib/newDesignSeed.ts'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Design } from '@/lib/engine/types.ts'
@@ -62,7 +63,7 @@ export const useBlender = create<State>()(persist((set, get) => {
         if (!health.available) throw new Error(health.note || 'Blender is unavailable on this computer.')
         // Recheck after the asynchronous availability request: another view may have started it.
         if (!get().accepted[id] && !active(get().job) && !(get().sourcePlanId === id && get().job)) {
-          await get().generate(plan, plan.dna.seed, 'preview')
+          await get().generate(plan, newDesignSeed(plan.dna.seed), 'preview')
         }
       } catch (error) {
         if (!active(get().job)) set({ sourcePlanId: id, error: error instanceof Error ? error.message : 'Could not start Blender',

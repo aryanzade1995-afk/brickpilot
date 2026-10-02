@@ -8,7 +8,7 @@ export const ARCHITECTURAL_FAMILIES = [
   'FRAMED_MODERN', 'FLOATING_BOX', 'INTERLOCKING_MODERN', 'MINIMAL_LUXURY',
   'WARM_CONTEMPORARY', 'TROPICAL_MODERN', 'SCREEN_HOUSE',
   'INDIAN_CONTEMPORARY', 'VERTICAL_MONOLITH', 'HORIZONTAL_LAYERED',
-  'COURTYARD_MODERN',
+  'COURTYARD_MODERN', 'LAYERED_PORTICO', 'DEEP_REVEAL', 'FINNED_PAVILION', 'SCULPTED_CORNER',
 ] as const
 export type ArchitecturalFamily = (typeof ARCHITECTURAL_FAMILIES)[number]
 
@@ -32,13 +32,17 @@ export const ARCHITECTURAL_FAMILY_RECIPES: Record<ArchitecturalFamily, Architect
   INDIAN_CONTEMPORARY: { heroes: ['ENTRY_PORTAL', 'DOUBLE_HEIGHT_PORTAL'], supports: ['JALI_SCREEN', 'STONE_SPINE'], spanRatio: [0.63, 0.83], projectionScale: 1 },
   VERTICAL_MONOLITH: { heroes: ['VERTICAL_TOWER', 'STONE_SPINE'], supports: ['VERTICAL_FIN_SCREEN', 'ENTRY_PORTAL'], spanRatio: [0.48, 0.68], projectionScale: 1.2 },
   HORIZONTAL_LAYERED: { heroes: ['HORIZONTAL_LOUVER', 'DEEP_OVERHANG'], supports: ['ROOF_FRAME', 'PROJECTED_BOX'], spanRatio: [0.79, 0.95], projectionScale: 1.15 },
+  LAYERED_PORTICO: { heroes: ['DOUBLE_HEIGHT_PORTAL', 'ENTRY_PORTAL'], supports: ['HORIZONTAL_LOUVER', 'L_FRAME'], spanRatio: [0.72, 0.94], projectionScale: 1.4 },
+  DEEP_REVEAL: { heroes: ['RECESSED_BOX', 'C_FRAME'], supports: ['STONE_SPINE', 'VERTICAL_FIN_SCREEN'], spanRatio: [0.65, 0.88], projectionScale: 1.25 },
+  FINNED_PAVILION: { heroes: ['VERTICAL_FIN_SCREEN', 'DEEP_OVERHANG'], supports: ['WOOD_SPINE', 'HORIZONTAL_LOUVER'], spanRatio: [0.78, 0.96], projectionScale: 1.35 },
+  SCULPTED_CORNER: { heroes: ['CORNER_WRAP_FRAME', 'INTERLOCKING_BOX'], supports: ['FLOATING_FRAME', 'DEEP_OVERHANG'], spanRatio: [0.6, 0.84], projectionScale: 1.3 },
   COURTYARD_MODERN: { heroes: ['COURTYARD_SCREEN'], supports: ['PERGOLA_FRAME', 'WOOD_SPINE'], spanRatio: [0.65, 0.88], projectionScale: 0.9, requiresCourtyard: true },
 }
 
 const UI_FAMILY_POOL: Partial<Record<Character, readonly ArchitecturalFamily[]>> = {
-  'modern-box': ['FRAMED_MODERN', 'FLOATING_BOX', 'INTERLOCKING_MODERN', 'MINIMAL_LUXURY', 'VERTICAL_MONOLITH', 'HORIZONTAL_LAYERED'],
-  'contemporary-indian': ['WARM_CONTEMPORARY', 'TROPICAL_MODERN', 'SCREEN_HOUSE', 'INDIAN_CONTEMPORARY', 'VERTICAL_MONOLITH'],
-  'courtyard-indian': ['COURTYARD_MODERN', 'TROPICAL_MODERN', 'SCREEN_HOUSE', 'INDIAN_CONTEMPORARY', 'WARM_CONTEMPORARY'],
+  'modern-box': ['FRAMED_MODERN', 'FLOATING_BOX', 'INTERLOCKING_MODERN', 'MINIMAL_LUXURY', 'VERTICAL_MONOLITH', 'HORIZONTAL_LAYERED', 'DEEP_REVEAL', 'SCULPTED_CORNER'],
+  'contemporary-indian': ['WARM_CONTEMPORARY', 'TROPICAL_MODERN', 'SCREEN_HOUSE', 'INDIAN_CONTEMPORARY', 'VERTICAL_MONOLITH', 'LAYERED_PORTICO', 'FINNED_PAVILION'],
+  'courtyard-indian': ['COURTYARD_MODERN', 'TROPICAL_MODERN', 'SCREEN_HOUSE', 'INDIAN_CONTEMPORARY', 'WARM_CONTEMPORARY', 'LAYERED_PORTICO', 'FINNED_PAVILION'],
 }
 
 export const architecturalFamilyFitsPlan = (building: BuildingModel, family: ArchitecturalFamily): boolean =>
