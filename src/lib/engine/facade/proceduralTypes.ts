@@ -16,6 +16,8 @@ export const ARCHITECTURAL_FEATURE_TYPES = [
   'JALI_SCREEN', 'VERTICAL_FIN_SCREEN', 'HORIZONTAL_LOUVER',
   'DEEP_OVERHANG', 'PERGOLA_FRAME', 'ROOF_FRAME',
   'BRIDGE_VOLUME', 'COURTYARD_SCREEN',
+  // precedent elements from the reference photo set (docs/villa-precedents.md)
+  'COLONNADE', 'FREEFORM_CANOPY', 'STEEL_GRID', 'TIMBER_BATTEN', 'STONE_PLINTH',
 ] as const
 export type ArchitecturalFeatureType = (typeof ARCHITECTURAL_FEATURE_TYPES)[number]
 export type FacadeSide = 'N' | 'E' | 'S' | 'W'

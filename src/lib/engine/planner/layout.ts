@@ -121,11 +121,15 @@ function search(input: LayoutInput, relaxed: boolean): PlateCandidate[] {
         const lm = snapUp(need('min'))
         if (lm > lMax * 1.25 && !relaxed) continue
         const coverageLength = site.maxEnclosedMm2 ? Math.floor(site.maxEnclosedMm2 / v / 100) * 100 : lMax
-        const length = site.fillPlot ? Math.min(lMax, coverageLength) : clamp(lt, Math.min(lm, lMax), lMax)
+        const fill = site.fillPlot || site.growPlate
+        const normal = clamp(lt, Math.min(lm, lMax), lMax)
+        // a large villa grows from its normal length up to the coverage limit
+        const length = site.fillPlot ? Math.min(lMax, coverageLength)
+          : site.growPlate ? Math.max(normal, Math.min(lMax, coverageLength)) : normal
         if (length < lm && !relaxed) continue
         const aspect = Math.max(length, v) / Math.min(length, v)
         // compact plates first; strongly elongated ones and squeezed rooms pay
-        const score = (site.fillPlot ? -(length * v) / 1e6 : (length * v) / 1e6) * (1 + 0.12 * Math.max(0, aspect - 2)) +
+        const score = (fill ? -(length * v) / 1e6 : (length * v) / 1e6) * (1 + 0.12 * Math.max(0, aspect - 2)) +
           (lt <= lMax ? 0 : 400) + (lm <= lMax ? 0 : 4000)
         out.push({ orientation, depthA: dA, depthB: dB, spine, length, atTarget: lt <= lMax, atMin: lm <= lMax, relaxed: relaxed || v > vMax, score })
       }

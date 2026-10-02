@@ -78,6 +78,28 @@ const topRoof = (_bias: 'flat' | 'pitched' | 'mixed', _rng: Rng): RoofSpec => ({
 
 const FAMILIES: PlateFamily[] = ['rectangular', 'stepped', 'l-shape', 'courtyard']
 
+/** The plan shapes a style is built from, most characteristic first. A style
+ *  listed here always gets one of these when one fits the plot: a courtyard
+ *  house has a real court, a contemporary house steps or wings. Modern box is
+ *  absent on purpose — it keeps its free choice of bar and stepped plates. */
+export const STYLE_PLAN_FAMILIES: Partial<Record<CanonicalModel['brief']['style']['character'], PlateFamily[]>> = {
+  'courtyard-indian': ['courtyard', 'l-shape'],
+  'contemporary-indian': ['stepped', 'l-shape', 'courtyard'],
+}
+
+/** The four plans the Directions page explores: a different plan shape for
+ *  each where the style allows it, style-characteristic first. A courtyard
+ *  house only ever explores its own shapes, each again with a fresh plan seed. */
+export function directionPlans(model: CanonicalModel, count = 4): { family: PlateFamily; seed: number }[] {
+  const style = STYLE_PLAN_FAMILIES[model.brief.style.character]
+  const order = model.brief.style.character === 'courtyard-indian' ? style!
+    : [...(style ?? ['rectangular', 'stepped', 'l-shape']), ...FAMILIES.filter((f) => !(style ?? ['rectangular', 'stepped', 'l-shape']).includes(f))]
+  return Array.from({ length: count }, (_, i) => ({
+    family: order[i % order.length],
+    seed: model.brief.variation + Math.floor(i / order.length) * 7919,
+  }))
+}
+
 export function generateDirections(model: CanonicalModel, inspiration?: InspirationPreferences | null): DirectionResult[] {
   if (model.envelope.width < 6000 || model.envelope.depth < 6000) return []
   const plan = generate(model)
@@ -111,8 +133,13 @@ export function generateCandidates(model: CanonicalModel, opts: Strategy | Gener
   const briefKey = model.seed.split('-')[0]
 
   let families: PlateFamily[]
+  const styleFamilies = STYLE_PLAN_FAMILIES[model.brief.style.character]
   if (model.brief.rooms.priorities.courtyard) families = ['courtyard']
-  else if (requested === 'auto' || requested === 'random') {
+  else if ((requested === 'auto' || requested === 'random') && styleFamilies) {
+    // the style's own shapes first; the others stay as a fallback for plots
+    // where none of them fits
+    families = [...styleFamilies, ...FAMILIES.filter((f) => f !== 'rectangular' && !styleFamilies.includes(f))]
+  } else if (requested === 'auto' || requested === 'random') {
     const rng = makeRng(seed, `${briefKey}|family|${requested}`)
     const pool = FAMILIES.filter(f => f !== 'rectangular')
     const first = requested === 'random' ? rng.pick(pool) : rng.weighted(pool.map((f) =>
@@ -175,7 +202,14 @@ export function generate(model: CanonicalModel, opts: Strategy | GenerateOpts = 
   const { passing, fallback } = generateCandidates(model, opts)
   if (!passing.length) return fallback
   const strict = model.brief.lifestyle.vastu === 'strict'
-  const pool = strict && passing.some((c) => c.strictOk) ? passing.filter((c) => c.strictOk) : passing
+  // a style with characteristic plan shapes keeps them whenever one passed:
+  // a better-scoring bar must not turn a courtyard house into a box
+  const o = typeof opts === 'string' ? { strategy: opts } : opts
+  const styleFamilies = (o.massing ?? model.brief.style.massing) === 'auto' && !o.strategy
+    ? STYLE_PLAN_FAMILIES[model.brief.style.character] : undefined
+  const styled = styleFamilies ? passing.filter((c) => (styleFamilies as string[]).includes(c.design.massingType)) : []
+  const shaped = styled.length ? styled : passing
+  const pool = strict && shaped.some((c) => c.strictOk) ? shaped.filter((c) => c.strictOk) : shaped
   return pool.reduce((a, b) => ((model.brief.site.openSpace?.mode === 'maxBuild' ? b.design.coveredFootprintSqm > a.design.coveredFootprintSqm : b.score.total > a.score.total) ? b : a)).design
 }
 

@@ -4,7 +4,7 @@ import { ArchitectureValidator } from '../massing/ArchitectureValidator.ts'
 import type { MassingModel } from '../massing/model.ts'
 import { makeRng, type Rng } from '../massing/rng.ts'
 import { buildFacadeZones, freeFacadeSpans, validateProceduralFeatures, worldPart } from './FacadeGrammar.ts'
-import { ARCHITECTURAL_FAMILIES, ARCHITECTURAL_FAMILY_RECIPES, architecturalFamilyFitsPlan,
+import { ARCHITECTURAL_FAMILIES, ARCHITECTURAL_FAMILY_RECIPES, architecturalFamilyFitsPlan, styleFamilyPool,
   type ArchitecturalFamily, type ArchitecturalFamilyRecipe } from './architecturalFamilies.ts'
 import { SpecializedGrammarGenerator } from './specialized/SpecializedGrammarGenerator.ts'
 import type { GrammarLimits, GrammarOptions } from './specialized/types.ts'
@@ -24,7 +24,13 @@ const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n
 const area = (z: FacadeZone) => z.endMm - z.startMm
 const near = (a: number, b: number) => Math.abs(a - b) <= 2
 
-function eligible(type: ArchitecturalFeatureType, zone: FacadeZone): boolean {
+/** elements that stand on the ground: only a ground-floor wall can host them */
+const GROUNDED: readonly ArchitecturalFeatureType[] = ['COLONNADE', 'FREEFORM_CANOPY', 'STONE_PLINTH']
+
+function fits(type: ArchitecturalFeatureType, zone: FacadeZone, groundMm: number): boolean {
+  // a colonnade may also line the courtyard (Can Lis); the others face the garden
+  if (GROUNDED.includes(type)) return Math.abs(zone.elevationMm - groundMm) <= 2 &&
+    ['PRIMARY', 'SECONDARY', 'ENTRANCE', ...(type === 'COLONNADE' ? ['VOID'] : [])].includes(zone.kind)
   if (type === 'ENTRY_PORTAL' || type === 'DOUBLE_HEIGHT_PORTAL') return zone.kind === 'ENTRANCE'
   if (type === 'COURTYARD_SCREEN') return zone.kind === 'VOID'
   if (type === 'BRIDGE_VOLUME' || type === 'ROOF_FRAME') return zone.kind === 'ROOFLINE'
@@ -38,8 +44,23 @@ function eligible(type: ArchitecturalFeatureType, zone: FacadeZone): boolean {
   return ['PRIMARY', 'SECONDARY', 'UPPER', 'STAIR_TOWER'].includes(zone.kind)
 }
 
+/** clear distance from a wall line out to the setback envelope on its side */
+function outwardRoom(zone: FacadeZone, building: BuildingModel, zones: FacadeZone[]): number {
+  const env = building.plot.buildable
+  const toSetback = zone.side === 'S' ? env.y + env.h - zone.fixedMm : zone.side === 'N' ? zone.fixedMm - env.y :
+    zone.side === 'E' ? env.x + env.w - zone.fixedMm : zone.fixedMm - env.x
+  if (zone.kind !== 'VOID') return toSetback
+  // inside a courtyard: the facing court wall is the limit, and the court
+  // must stay open — a loggia takes at most 40% of its width
+  const facing = { N: 'S', S: 'N', E: 'W', W: 'E' }[zone.side]
+  const across = zones.filter((z) => z.kind === 'VOID' && z.side === facing && z.floorId === zone.floorId &&
+    Math.min(z.endMm, zone.endMm) - Math.max(z.startMm, zone.startMm) > 0)
+    .map((z) => Math.abs(z.fixedMm - zone.fixedMm))
+  return across.length ? Math.min(toSetback, Math.round(Math.min(...across) * 0.4) + 300) : 0
+}
+
 /** Each recipe receives an actual wall/roof zone and emits local face solids. */
-function makeFeature(type: ArchitecturalFeatureType, importance: 'hero' | 'support',
+export function makeFeature(type: ArchitecturalFeatureType, importance: 'hero' | 'support',
   zone: FacadeZone, zones: FacadeZone[], building: BuildingModel, dna: VillaDesignDNA,
   rng: Rng, serial: number, recipe: ArchitecturalFamilyRecipe): ArchitecturalFeature | null {
   const id = `${importance}:${serial}:${type}`
@@ -166,6 +187,68 @@ function makeFeature(type: ArchitecturalFeatureType, importance: 'hero' | 'suppo
     add(zone, 'post', zone.endMm - 280, zone.endMm, zone.elevationMm, z0, depth)
     add(other, 'post', other.startMm, other.startMm + 280, other.elevationMm, z0, depth)
     add(zone, 'box', zone.endMm - 280, other.startMm + 280, z0, z0 + 420, depth)
+  } else if (type === 'COLONNADE' || type === 'FREEFORM_CANOPY') {
+    // a loggia (stone piers carrying a roof slab) or a thin canopy on slim
+    // posts. The roof passes above every door and window head; a pier or post
+    // never stands in front of an opening.
+    const room = outwardRoom(zone, building, zones) - 300
+    const colonnade = type === 'COLONNADE'
+    const reach = Math.min(colonnade ? clamp(Math.round(depth * 1.6), 1500, 2400) : clamp(Math.round(depth * 1.8), 1200, 2600), room)
+    if (reach < (colonnade ? 1200 : 900)) return null
+    const blocked = zone.openingIds.flatMap((id) => {
+      const o = [...building.doors, ...building.windows].find((x) => x.id === id)
+      if (!o) return []
+      const at = zone.side === 'N' || zone.side === 'S' ? o.at.x : o.at.y
+      return [[at - o.width / 2 - 60, at + o.width / 2 + 60] as [number, number]]
+    })
+    const clear = (u0: number, u1: number) => blocked.every(([a, b]) => u1 <= a || u0 >= b)
+    // a colonnade runs the whole wall; a canopy covers part of it, often over
+    // the glazing — only its two posts need a clear spot
+    const span = zone.endMm - zone.startMm - 300
+    const width = colonnade ? span : Math.max(2400, Math.round(span * rng.range(...recipe.spanRatio)))
+    if (width < (colonnade ? 3600 : 2400) || width > span) return null
+    const start = zone.startMm + 150 + Math.round((span - width) * rng.range(0, 1))
+    const run = { u0: start, u1: start + width }
+    const post = colonnade ? 300 : 160
+    const roofZ = zTop - (colonnade ? 280 : 320)
+    // slide each pier to the nearest clear spot, at most 700 mm either way
+    const at = (u: number) => [0, 100, -100, 200, -200, 350, -350, 500, -500, 700, -700]
+      .map((d) => clamp(Math.round(u + d), run.u0, run.u1 - post)).find((x) => clear(x, x + post))
+    const n = colonnade ? Math.max(2, Math.round((run.u1 - run.u0 - post) / rng.range(2200, 2800)) + 1) : 2
+    const posts = [...new Set(Array.from({ length: n }, (_, i) => at(run.u0 + (run.u1 - run.u0 - post) * i / (n - 1)))
+      .filter((u): u is number => u !== undefined))].sort((a, b) => a - b)
+    if (posts.length < 2 || posts.some((u, i) => i > 0 && u - posts[i - 1] < post + 400)) return null
+    // offsets run from the wall centreline: the roof starts just past the
+    // structural columns (300 mm square on that line)
+    add(zone, 'slab', posts[0], posts.at(-1)! + post, roofZ, roofZ + (colonnade ? 240 : 170), reach - 170, 170)
+    for (const u of posts) add(zone, 'post', u, u + post, zBase, roofZ, post, reach - post)
+  } else if (type === 'STEEL_GRID' || type === 'TIMBER_BATTEN' || type === 'STONE_PLINTH') {
+    const selected = band(type === 'STEEL_GRID' ? 1800 : 1500, type === 'STONE_PLINTH' ? rng.range(0.85, 1) : undefined)
+    if (!selected) return null
+    const { u0, u1 } = selected
+    if (type === 'STONE_PLINTH') {
+      // a dark stone base, kept below every window sill on the wall
+      add(zone, 'panel', u0, u1, zBase, zBase + 650, 320)
+    } else if (type === 'STEEL_GRID') {
+      // black mullions and transoms over the wall, an open steel frame
+      const bays = clamp(Math.round((u1 - u0) / 1100), 2, 9)
+      for (let i = 0; i <= bays; i++) {
+        const u = Math.round(u0 + (u1 - u0 - 70) * i / bays)
+        add(zone, 'screen', u, u + 70, zBase + 120, zTop - 160, 320)
+      }
+      for (const f of [0.34, 0.67]) {
+        const z = Math.round(zBase + zone.heightMm * f)
+        add(zone, 'screen', u0, u1, z, z + 60, 300, 20)
+      }
+    } else {
+      // horizontal timber battens across the upper wall
+      const z0 = zBase + Math.round(zone.heightMm * 0.1), z1 = zTop - 200
+      const n = clamp(Math.round((z1 - z0) / 260), 6, 11)
+      for (let i = 0; i < n; i++) {
+        const z = Math.round(z0 + (z1 - z0 - 90) * i / (n - 1))
+        add(zone, 'screen', u0, u1, z, z + 90, 320)
+      }
+    }
   } else {
     const selected = band(type === 'JALI_SCREEN' ? 1500 : 1050)
     if (!selected) return null
@@ -255,12 +338,17 @@ export class ArchitecturalFeatureGenerator {
     catch (error) { return { ...base, status: 'rejected', attemptsTried: 0,
       issues: [{ code: 'INVALID_MASSING', message: error instanceof Error ? error.message : 'Massing failed validation.' }] } }
     const zones = buildFacadeZones(building, massing)
+    const groundMm = Math.min(...building.floors.map((f) => f.elevationMm))
+    const eligible = (type: ArchitecturalFeatureType, zone: FacadeZone) => fits(type, zone, groundMm)
     const seedRng = makeRng(dna.seed, `${building.planId}|facade-features-v2`)
     // Automatic fallback changes the reported family too; a label is never kept
     // when its defining host geometry cannot fit the actual plan.
+    // ...and it stays inside the brief's style before it tries any other: a
+    // courtyard house must not quietly become a steel-grid box
+    const pool = styleFamilyPool(dna.character)
     const fallbackFamilies = ARCHITECTURAL_FAMILIES.filter((family) =>
       family !== selectedFamily && architecturalFamilyFitsPlan(building, family))
-      .map((family) => ({ family, key: seedRng.next() }))
+      .map((family) => ({ family, key: seedRng.next() + (pool.includes(family) ? 0 : 1) }))
       .sort((a, b) => a.key - b.key).map(({ family }) => family)
     const families = options.architecturalFamily || options.heroFeature
       ? [selectedFamily] : [selectedFamily, ...fallbackFamilies]

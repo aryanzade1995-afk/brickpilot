@@ -1,6 +1,6 @@
 import { spawn, spawnSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
-import { existsSync, createReadStream } from 'node:fs'
+import { existsSync, createReadStream, statSync } from 'node:fs'
 import { mkdir, writeFile, readFile, stat } from 'node:fs/promises'
 import { resolve, basename, extname } from 'node:path'
 import { PROJECT_ROOT, blenderExecutable } from './blender-process.mjs'
@@ -67,7 +67,10 @@ export async function handleVillaRequest(req, res, readJson) {
     if (req.method === 'GET' && path === '/api/villas/health') {
       const supported = Number(process.versions.node.split('.')[0]) >= 24
       const executable = blenderExecutable()
-      const installed = existsSync(executable) || spawnSync(executable, ['--version'], { windowsHide: true, timeout: 3000 }).status === 0
+      // a file, not a folder: the project's own blender/ scripts directory must
+      // not pass for an installed `blender` executable
+      const installed = (existsSync(executable) && statSync(executable).isFile()) ||
+        spawnSync(executable, ['--version'], { windowsHide: true, timeout: 3000 }).status === 0
       json(res, 200, { available: supported && installed,
         note: !supported ? 'Blender generation requires Node.js 24 or newer' : installed ? 'Local Blender procedural generation' : 'Set BLENDER_BIN to your Blender executable' })
       return true
@@ -80,7 +83,10 @@ export async function handleVillaRequest(req, res, readJson) {
       if (Number(process.versions.node.split('.')[0]) < 24) throw new Error('Blender generation requires Node.js 24 or newer')
       const id = randomUUID(), directory = resolve(ROOT, id)
       await mkdir(directory, { recursive: true })
-      await writeFile(resolve(directory, 'request.json'), JSON.stringify({ plan: request.plan, seed: request.seed, quality: request.quality ?? 'preview' }))
+      // exact: render this seed as given (a Directions preview must show the
+      // direction the user sees, not a retried look-alike)
+      await writeFile(resolve(directory, 'request.json'), JSON.stringify({ plan: request.plan, seed: request.seed, quality: request.quality ?? 'preview',
+        ...(request.exact === true ? { exact: true } : {}) }))
       const job = { id, directory, status: 'queued', phase: 'Waiting to generate', seed: request.seed, debug: [] }
       await writeFile(resolve(directory, 'status.json'), JSON.stringify(job))
       jobs.set(id, job); queue.push(job); void drain()

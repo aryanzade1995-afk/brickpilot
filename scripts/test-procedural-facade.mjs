@@ -54,7 +54,7 @@ test('all real exterior walls and roof edges are classified into facade zones', 
 })
 
 test('every requested hero recipe yields anchored solids on a suitable real plan', () => {
-  assert.equal(ARCHITECTURAL_FEATURE_TYPES.length, 23)
+  assert.equal(ARCHITECTURAL_FEATURE_TYPES.length, 28)
   for (const type of ARCHITECTURAL_FEATURE_TYPES) {
     const source = type === 'DOUBLE_HEIGHT_PORTAL' ? portal : court
     const model = forced(source, type)
@@ -99,8 +99,8 @@ test('stone and wood spines have different procedural geometry', () => {
   assert.ok(wood.parts.every((part) => part.role === 'screen'))
 })
 
-test('fifteen architectural families create distinct validated solids on one source plan', () => {
-  assert.equal(ARCHITECTURAL_FAMILIES.length, 15)
+test('twenty-two architectural families create distinct validated solids on one source plan', () => {
+  assert.equal(ARCHITECTURAL_FAMILIES.length, 22)
   const geometry = new Set()
   const before = JSON.stringify(court.building)
   for (const family of ARCHITECTURAL_FAMILIES) {
@@ -129,9 +129,12 @@ test('courtyard composition requires a plan courtyard; the three UI styles selec
   assert.equal(rejected.issues[0].code, 'FAMILY_INCOMPATIBLE')
   assert.deepEqual(SELECTABLE_CHARACTERS, ['modern-box', 'contemporary-indian', 'courtyard-indian'])
   const styleFamilies = {
-    'modern-box': ['FRAMED_MODERN', 'FLOATING_BOX', 'INTERLOCKING_MODERN', 'MINIMAL_LUXURY', 'VERTICAL_MONOLITH', 'HORIZONTAL_LAYERED', 'DEEP_REVEAL', 'SCULPTED_CORNER'],
-    'contemporary-indian': ['WARM_CONTEMPORARY', 'TROPICAL_MODERN', 'SCREEN_HOUSE', 'INDIAN_CONTEMPORARY', 'VERTICAL_MONOLITH', 'LAYERED_PORTICO', 'FINNED_PAVILION'],
-    'courtyard-indian': ['COURTYARD_MODERN', 'TROPICAL_MODERN', 'SCREEN_HOUSE', 'INDIAN_CONTEMPORARY', 'WARM_CONTEMPORARY', 'LAYERED_PORTICO', 'FINNED_PAVILION'],
+    'modern-box': ['FRAMED_MODERN', 'FLOATING_BOX', 'INTERLOCKING_MODERN', 'MINIMAL_LUXURY', 'VERTICAL_MONOLITH', 'HORIZONTAL_LAYERED', 'DEEP_REVEAL', 'SCULPTED_CORNER',
+      'GLASS_PAVILION', 'STEEL_FRAME_GRID', 'RAISED_BAR'],
+    'contemporary-indian': ['WARM_CONTEMPORARY', 'TROPICAL_MODERN', 'SCREEN_HOUSE', 'INDIAN_CONTEMPORARY', 'VERTICAL_MONOLITH', 'LAYERED_PORTICO', 'FINNED_PAVILION',
+      'STEPPED_WHITE', 'FREE_CANOPY'],
+    'courtyard-indian': ['COURTYARD_MODERN', 'TROPICAL_MODERN', 'SCREEN_HOUSE', 'INDIAN_CONTEMPORARY', 'WARM_CONTEMPORARY', 'LAYERED_PORTICO', 'FINNED_PAVILION',
+      'STONE_COLONNADE', 'TIMBER_PORTICO'],
   }
   for (const character of SELECTABLE_CHARACTERS) for (let seed = 1; seed <= 12; seed++) {
     const dna = createVillaDesignDNA(rectangle.building, seed, character)

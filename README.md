@@ -261,7 +261,7 @@ Supabase settings. Copy [`server/.env.example`](server/.env.example) to
 | `COMFYUI_URL`, `SDXL_CKPT`, `CN_CANNY_MODEL` | ComfyUI provider | Local service URL and installed model filenames |
 | `INTERIOR_*`, `CN_CANNY_*` | ComfyUI provider | Optional sampling and conditioning overrides; see `server/.env.example` |
 | `BLENDER_BIN` | Blender worker | Full Blender executable path; bundled `output/tools/blender-*` is found automatically |
-| `VILLA_MAX_ATTEMPTS`, `VILLA_BLENDER_THREADS` | Blender worker | Bounded candidate attempts (default 32, maximum 64) and CPU threads (default 4) |
+| `VILLA_MAX_ATTEMPTS`, `VILLA_BLENDER_THREADS`, `VILLA_PARALLEL` | Blender worker | Bounded candidate attempts (default 32, maximum 64), CPU threads per Blender process (default every core) and candidates built at once (default cores ÷ 3, maximum 8; judged in attempt order, so the accepted villa is the same as a one-at-a-time search) |
 | `VILLA_CYCLES_DEVICE` | Blender | `AUTO` (default), `CPU`, or a supported GPU backend such as `OPTIX` |
 | `VILLA_SIMILARITY_THRESHOLD` | Blender worker | Maximum accepted measured shape similarity, default `0.75` |
 

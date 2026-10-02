@@ -43,6 +43,8 @@ export type SiteModel = {
   envelope: Rect
   /** depth reserved at the front (plan-south) for parking / verandah */
   fillPlot?: boolean
+  /** the house plate grows to fill the buildable area (large villa) */
+  growPlate?: boolean
   maxEnclosedMm2?: number
   frontStripMm: number
   /** where the enclosed plate may go: envelope less the front strip */
