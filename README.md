@@ -47,7 +47,7 @@ separately. [`vite.config.ts`](vite.config.ts) proxies `/api` to the Node server
 | --- | --- |
 | `/` | Landing page |
 | `/workspace` | Eight-step brief: project, site, household, levels, rooms, style, entry, review |
-| `/workspace/directions` | Choose from up to four validated directions, preview their 2D floors and optionally upload a reference image |
+| `/workspace/directions` | Choose from four validated directions — each its own plan shape and composition, rendered in Blender — preview their 2D floors and optionally upload a reference image |
 | `/workspace/plan` | Per-floor SVG drawing, room schedule, validation and cost summary |
 | `/workspace/massing` | Interactive Three.js building, layer controls and furnished dollhouse view |
 | `/workspace/render` | Geometry-conditioned building concepts and room interior renders |
@@ -131,7 +131,8 @@ Brief (user inputs, Zod schema)
 5. [`src/lib/engine/designDna.ts`](src/lib/engine/designDna.ts) derives seeded
    exterior traits such as composition, entrance, roof, balcony, window treatment
    and materials. [`src/lib/engine/variation.ts`](src/lib/engine/variation.ts)
-   scores novelty and picks different-looking directions over the **same plan**.
+   scores novelty and picks different-looking exteriors for a plan; the Directions page
+   explores a different plan shape per direction (see *Direction search*).
    [`src/lib/engine/facade/grammar.ts`](src/lib/engine/facade/grammar.ts) anchors
    decorative features to real building faces and checks their placement.
 
@@ -140,10 +141,21 @@ The Style step separates **typology** (villa or larger villa), **massing**
 Character themes live in [`src/lib/model/themes.ts`](src/lib/model/themes.ts).
 New briefs offer Modern Box, Contemporary and Courtyard. Older saved briefs
 retain their original character so they can still be opened and rendered.
+Each style has its own plan shapes and façade families: **Courtyard** gets a real
+courtyard (or L-shaped) plan whenever the plot takes one, **Contemporary** prefers
+stepped or L-shaped plans, **Modern Box** keeps its bar and stepped plates. A family
+that cannot fit the plan falls back inside the same style first. Seven families and
+five elements (colonnade, free-standing canopy, steel grid, timber battens, stone
+plinth) are drawn from a reference photo set — see [Villa precedents](docs/villa-precedents.md).
 Bold rerolls and inspiration images keep the selected character's 3D style;
 reference images can still guide its materials and façade details.
 `style.diversity` controls exterior variation; it does not authorize changes to
 the pinned room layout. The same brief and seed reproduce the same design.
+
+**Large villa** grows its house to fill the buildable area up to the coverage
+limit (60% of the plot), and plans the rest of the site — garden terrace, lawns,
+pool if chosen — so no land is left unplanned. A villa / bungalow is sized to
+its programme as before.
 
 ### Early plot fit feedback
 
@@ -260,7 +272,7 @@ Supabase settings. Copy [`server/.env.example`](server/.env.example) to
 | `INTERIOR_PROVIDER` | Node server | `gemini-web` (default), `comfyui`, `gemini` or `mock` |
 | `COMFYUI_URL`, `SDXL_CKPT`, `CN_CANNY_MODEL` | ComfyUI provider | Local service URL and installed model filenames |
 | `INTERIOR_*`, `CN_CANNY_*` | ComfyUI provider | Optional sampling and conditioning overrides; see `server/.env.example` |
-| `BLENDER_BIN` | Blender worker | Full Blender executable path; bundled `output/tools/blender-*` is found automatically |
+| `BLENDER_BIN` | Blender worker | Full Blender executable path; a portable Blender 4.5 LTS unzipped to `output/tools/blender-*` is found automatically |
 | `VILLA_MAX_ATTEMPTS`, `VILLA_BLENDER_THREADS`, `VILLA_PARALLEL` | Blender worker | Bounded candidate attempts (default 32, maximum 64), CPU threads per Blender process (default every core) and candidates built at once (default cores ÷ 3, maximum 8; judged in attempt order, so the accepted villa is the same as a one-at-a-time search) |
 | `VILLA_CYCLES_DEVICE` | Blender | `AUTO` (default), `CPU`, or a supported GPU backend such as `OPTIX` |
 | `VILLA_SIMILARITY_THRESHOLD` | Blender worker | Maximum accepted measured shape similarity, default `0.75` |
@@ -412,9 +424,13 @@ Wizard capacity uses the production planner and every hard validator, with a bou
 
 ### Direction search
 
-Studio direction selection retries deterministic seeds and existing compatible massing/facade recipes. Uniqueness relaxes in explicit 75/82/90/97/100 percent stages and rolling quotas widen; geometric hard checks never relax. Validated candidates are reused between stages. Exact duplicates cannot fill a direction set. Debug reasons explain invalid architecture, similarity, quotas and the accepted adaptive stage. The occupied plan remains fixed; its open-space settings govern available exterior placement.
+Studio direction selection retries deterministic seeds and existing compatible massing/facade recipes. Uniqueness relaxes in explicit 75/82/90/97/100 percent stages and rolling quotas widen; geometric hard checks never relax. Validated candidates are reused between stages. Exact duplicates cannot fill a direction set. Debug reasons explain invalid architecture, similarity, quotas and the accepted adaptive stage.
 
-Directions cards reuse `FloorDrawing` with an independent floor switcher. Selecting a direction preserves the existing pin and navigation flow; drawing controls never mutate the plan.
+Each of the four directions stands on its own plan shape where the plot allows (`directionPlans()` in `generate.ts`, style-characteristic shapes first) and leads with a composition family not used by the others. A pin stores the plan shape and plan seed (`planSeed`), so choosing a direction replays exactly that plan and exterior.
+
+Each card queues an exact Blender preview (`exact: true` — that seed only, no look-alike retries); the pinned direction's 3D page reuses it. Without Blender the card says why.
+
+Directions cards show the Blender hero render and reuse `FloorDrawing` with an independent floor switcher. Selecting a direction preserves the existing pin and navigation flow; drawing controls never mutate the plan.
 
 ### Main entrance
 
