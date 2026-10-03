@@ -369,7 +369,7 @@
       "scope": "house",
       "level": "technical",
       "control": "dropdown",
-      "note": "Record only; foundation design needs a soil report. No structural inference.",
+      "note": "Adjusts the approximate footing allowance. A geotechnical report and structural design are required.",
       "options": [
         {
           "id": "unknown",
@@ -416,7 +416,7 @@
       "scope": "house",
       "level": "technical",
       "control": "dropdown",
-      "note": "Proposal only; confirm road and flood levels. Does not alter the plan.",
+      "note": "Sets the approximate ground-floor height above site grade in Supports and Blender. Confirm drainage and access with your architect.",
       "options": [
         {
           "id": "standard",

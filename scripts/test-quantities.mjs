@@ -33,7 +33,7 @@ test('hand take-off: 4m square, four corner columns, four beams, one wall and tw
  close(i['concrete.lintels'].NetVolume,.08625)
  close(i['concrete.chajjas'].NetVolume,.078)
  close(i['masonry.230'].NetVolume,1.674285)
- close(i['plaster.walls'].NetSideArea,17.82)
+ close(i['plaster.walls'].NetSideArea,17.82+16*.9*2) // wall faces + roof parapet faces
  close(i['flooring'].NetArea,16);close(i['skirting'].Length,15.1)
  close(i['doors.900x2100'].NetArea,1.89);close(i['windows.1000x1200'].NetArea,1.2)
  close(i['glazing'].NetArea,1.02);assert.equal(i['electrical.points'].Count,6)
@@ -80,6 +80,8 @@ test('sizing grows with storeys/span and soil/plinth selections are explicit, no
  d.model.brief.specs.overrides['concrete-grade']='m30';assert.equal(measureDesign(d).concreteMaterials.cementBags,null)
  const damaged=structuredClone(quantityRules);damaged.beam.spanDepthRatio=0
  assert.throws(()=>quantityRulesSchema.parse(damaged))
+ const legacy=simpleQuantityPlan();delete legacy.model.brief.specs;delete legacy.model.brief.finish
+ assert.equal(sizeStructure(legacy).plinthHeightMm,450)
 })
 test('site/room quantities and tank sizing respond to source geometry and household count',()=>{
  const d=simpleQuantityPlan(),r={x:0,y:0,w:1000,h:2000}

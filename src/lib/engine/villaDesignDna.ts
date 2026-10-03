@@ -52,7 +52,7 @@ export function createVillaDesignDNA(building: BuildingModel, seed: number, char
   if (!Number.isSafeInteger(seed)) throw new RangeError('VillaDesignDNA seed must be a safe integer')
   if (!building.floors.length) throw new Error('VillaDesignDNA requires at least one plan floor')
 
-  const rng = makeRng(seed, `${building.planId}|villa-design-dna-v1`)
+  const rng = makeRng(seed, `${building.compositionId ?? building.planId}|villa-design-dna-v1`)
   const families = assessMassingFamilies(building).filter((f) => f.compatible)
   if (!families.length) throw new Error('No massing family is compatible with this floor plan')
   const floors = [...building.floors].sort((a, b) => a.level - b.level)
@@ -92,7 +92,7 @@ export function createVillaDesignDNA(building: BuildingModel, seed: number, char
     schemaVersion: 3,
     sourcePlanId: building.planId,
     seed,
-    massingFamily: makeRng(seed, `${building.planId}|massing-family-v1`).pick(families).family,
+    massingFamily: makeRng(seed, `${building.compositionId ?? building.planId}|massing-family-v1`).pick(families).family,
     sourcePlateFamily: building.orientation.plateFamily,
     compositionType,
     blockCount,

@@ -1,6 +1,7 @@
 """Plan-anchored balconies, accessible terraces, parapets, railings and planters."""
 
 from .common import floor_prefix
+from .sizing import slab_thickness
 from .plates import create_plate
 from .stairs import stair_opening
 from .massing import mass_rect
@@ -133,7 +134,7 @@ def create_terrace(scene, floor, stairs, shafts=()):
     voids = [opening, *[shaft["rect"] for shaft in shafts if shaft["floorId"] == floor["id"]]]
     for index, rect in enumerate(floor["footprint"], 1):
         create_plate(scene, f"{floor_prefix(floor)}_Terrace_Deck_{index:03d}", "ROOF",
-                     rect, top - 180, 180, floor["id"], voids)
+                     rect, top - slab_thickness(floor), slab_thickness(floor), floor["id"], voids)
     exit_side = stair.get("startSide", "N")
     for index, edge in enumerate(boundary_edges([opening]), 1):
         axis, fixed, _lo, _hi, outward = edge

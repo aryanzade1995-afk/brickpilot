@@ -13,12 +13,13 @@ export function specificationRate(id: string) {
 }
 
 /** A retired/unknown saved option falls back; automatic items ignore overrides. */
-export function resolveSpecification(brief: Pick<Brief, 'finish' | 'specs'>, itemId: string, roomId?: string) {
+export function resolveSpecification(brief: Partial<Pick<Brief, 'finish' | 'specs'>>, itemId: string, roomId?: string) {
   const item = specsCatalogue.items.find(i => i.id === itemId)
   if (!item) throw new Error(`Unknown specification item: ${itemId}`)
-  const preset = finishPresets.presets.find(p => p.id === brief.finish)!
+  const preset = finishPresets.presets.find(p => p.id === (brief.finish??'mid')) ?? finishPresets.presets.find(p=>p.id==='mid')!
+  const overrides=brief.specs?.overrides??{}
   const override = item.level === 'auto' ? undefined :
-    (item.scope === 'perRoom' && roomId ? brief.specs.overrides[`${item.id}@${roomId}`] : undefined) ?? brief.specs.overrides[item.id]
+    (item.scope === 'perRoom' && roomId ? overrides[`${item.id}@${roomId}`] : undefined) ?? overrides[item.id]
   return item.options.find(o => o.id === override) ?? item.options.find(o => o.id === preset.options[item.id])!
 }
 export function resolveSpecifications(brief: Pick<Brief, 'finish' | 'specs'>) {

@@ -16,6 +16,7 @@ from .common import MM
 from .outdoor import boundary_edges, create_railing
 from .plates import subtract_rectangles
 from .site import SITE_LEVELS
+from .sizing import slab_thickness
 
 COVERED_ROOMS = ("parking", "verandah")
 SLAB = 200
@@ -173,7 +174,7 @@ def create_covered_outdoor(scene, building, massing, facade=None):
     floors = sorted(building["floors"], key=lambda f: f["level"])
     ground = floors[0]
     upper = floors[1] if len(floors) > 1 else None
-    grade = ground["elevationMm"] + SITE_LEVELS["grade"]
+    grade = ground["elevationMm"] - building.get("structuralSizing", {}).get("plinthHeightMm", -SITE_LEVELS["grade"])
     top = ground["elevationMm"] + ground["heightMm"]
     house = ground["footprint"]
     sheltering = [*(upper["footprint"] if upper else []),
@@ -269,7 +270,8 @@ def create_exposed_roofs(scene, building):
             continue
         name = f"{floor['id']}_ExposedRoof"
         for index, piece in enumerate(pieces, 1):
-            scene.rect(f"{name}_Slab_{index:02d}", "ROOF", piece, top - SLAB, SLAB, "concrete", floor["id"])
+            thickness = slab_thickness(floor, SLAB)
+            scene.rect(f"{name}_Slab_{index:02d}", "ROOF", piece, top - thickness, thickness, "concrete", floor["id"])
         report["exposedRoofs"] += len(pieces)
         # usable when the upper floor runs alongside it for at least 1.2 m
         terrace = any(_touch_length(p, above["footprint"]) >= 1200 for p in pieces)
@@ -293,7 +295,7 @@ def create_exposed_roofs(scene, building):
 def create_pool_deck(scene, building):
     """A stone deck round the pool, clipped to the plot and clear of the house."""
     ground = min(building["floors"], key=lambda f: f["level"])
-    grade = ground["elevationMm"] + SITE_LEVELS["grade"]
+    grade = ground["elevationMm"] - building.get("structuralSizing", {}).get("plinthHeightMm", -SITE_LEVELS["grade"])
     plot = {"x": 0, "y": 0, "w": building["plot"]["widthMm"], "h": building["plot"]["depthMm"]}
     blocked = [room["rect"] for room in building["rooms"] if room["floorId"] == ground["id"]]
     blocked += [f["rect"] for f in building.get("siteFeatures", []) if f["kind"] in ("parking", "driveway", "path", "pool")]
@@ -313,7 +315,7 @@ def create_pool_deck(scene, building):
 def create_garden_trees(scene, building, seed, stream_class, limit=10):
     """Shade trees on the open lawns, clear of the house, paths and boundary."""
     ground = min(building["floors"], key=lambda f: f["level"])
-    grade = ground["elevationMm"] + SITE_LEVELS["grade"]
+    grade = ground["elevationMm"] - building.get("structuralSizing", {}).get("plinthHeightMm", -SITE_LEVELS["grade"])
     house = [room["rect"] for room in building["rooms"] if room["floorId"] == ground["id"]]
     # the road is plan south (+y): no tree stands in front of the facade line,
     # so the street view of the villa stays clear

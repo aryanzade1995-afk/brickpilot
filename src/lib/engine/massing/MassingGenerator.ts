@@ -73,7 +73,7 @@ export class MassingGenerator {
     if (!building.floors.length) throw new Error('Massing requires an existing floor plan')
     const familyAssessments = assessMassingFamilies(building)
     const compatible = familyAssessments.filter((f) => f.compatible)
-    const rng = makeRng(dna.seed, `${building.planId}|massing-v1`)
+    const rng = makeRng(dna.seed, `${building.compositionId ?? building.planId}|massing-v1`)
     const family = options.family === 'auto'
       ? compatible.length ? rng.pick(compatible).family : dna.massingFamily
       : options.family ?? dna.massingFamily
@@ -104,7 +104,7 @@ export class MassingGenerator {
     }))
 
     const candidate = (attempt: number): Mass[] => {
-      const attemptRng = attempt === 0 ? rng : makeRng(dna.seed, `${building.planId}|massing-v1|retry-${attempt}`)
+      const attemptRng = attempt === 0 ? rng : makeRng(dna.seed, `${building.compositionId ?? building.planId}|massing-v1|retry-${attempt}`)
       // Upper room coordinates stay fixed. Exposed roof envelopes change heights
       // across whole program wings, producing real elevation silhouettes.
       const groups = dna.blockCount

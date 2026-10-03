@@ -20,6 +20,7 @@ OPENING_LIMITS = {"windowHeadMm": 2200, "doorHeadMm": 2300, "entryHeadMm": 2500,
 
 
 def opening_vertical_span(opening, floor, limits=OPENING_LIMITS):
+    limits = floor.get("openingLimits", limits)
     kind = opening["kind"]
     sill = opening.get("sill", limits["defaultSillMm"]) if kind == "window" else 0
     head = min(opening.get("head", limits[f"{kind}HeadMm"]), floor["heightMm"] - limits["lintelClearanceMm"])
@@ -65,6 +66,44 @@ def opening_hosts(building):
     return hosts
 
 
+def validate_concept_sizing(building, floors):
+    """Dimension/source consistency only; not loading or structural certification."""
+    sizing, rules = building.get("structuralSizing"), building.get("quantityRules")
+    if not sizing and not rules:
+        return  # Legacy source models remain loadable.
+    if not sizing or not rules:
+        raise GeometryInputError("Incomplete concept sizing")
+    positive = lambda x: isinstance(x, (float, int)) and math.isfinite(x) and x > 0
+    if not positive(sizing.get("plinthHeightMm")) or sizing["qualification"] != rules["qualification"]:
+        raise GeometryInputError("Invalid plinth sizing or qualification")
+    for floor in floors.values():
+        if not positive(floor.get("slabThicknessMm")) or floor["slabThicknessMm"] >= floor["heightMm"]:
+            raise GeometryInputError("Invalid sized slab thickness")
+    for column in building["columns"]:
+        if not positive(column["size"]):
+            raise GeometryInputError("Invalid sized column")
+    for beam in building["beams"]:
+        floor = floors[beam["floorId"]]
+        if not positive(beam.get("widthMm")) or not positive(beam.get("depthMm")) or \
+                beam["depthMm"] <= floor["slabThicknessMm"] or beam["depthMm"] >= floor["heightMm"]:
+            raise GeometryInputError("Invalid sized beam")
+    ground = min(floors.values(), key=lambda f:f["level"])
+    columns = {c["id"]:c for c in building["columns"] if c["floorId"] == ground["id"]}
+    pads = sizing["footings"]
+    if len(pads) != len(columns) or len({p["columnId"] for p in pads}) != len(columns):
+        raise GeometryInputError("Footings do not match the ground grid")
+    for pad in pads:
+        c, r = columns.get(pad["columnId"]), pad["rect"]
+        if not c or not _rect(r) or not positive(pad["thicknessMm"]) or not math.isfinite(pad["bottomMm"]) or \
+                pad["bottomMm"]+pad["thicknessMm"] >= -sizing["plinthHeightMm"] or \
+                abs(r["x"]+r["w"]/2-c["at"]["x"]) > rules["toleranceMm"] or \
+                abs(r["y"]+r["h"]/2-c["at"]["y"]) > rules["toleranceMm"]:
+            raise GeometryInputError("Invalid source footing position or dimensions")
+    for slab in building["slabs"]:
+        if slab["thicknessMm"] != floors[slab["floorId"]]["slabThicknessMm"]:
+            raise GeometryInputError("Slab dimensions disagree with shared sizing")
+
+
 def validate_payload(payload):
     building = payload["buildingModel"]
     massing = payload["massingModel"]
@@ -84,6 +123,7 @@ def validate_payload(payload):
         raise GeometryInputError("Source floors are missing or duplicated")
     if any(not _rect(rect) for floor in floors.values() for rect in floor["footprint"]):
         raise GeometryInputError("Invalid source floor plate")
+    validate_concept_sizing(building, floors)
     for floor in floors.values():
         for void in floor.get("doubleHeightVoids", []):
             limits = building.get("doubleHeightLimits", {})

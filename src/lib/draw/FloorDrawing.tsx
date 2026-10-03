@@ -3,6 +3,7 @@ import { Fragment } from 'react'
 import { rectBottom, rectCenter, rectRight, rectUnionEdges, type Rect } from '../geometry.ts'
 import type { Design, FloorPlan, Opening, SiteFeature } from '../engine/types.ts'
 import { terraceLayout } from '../engine/terrace.ts'
+import { drawingStructure } from '../engine/structuralSizing.ts'
 import type { CanonicalModel, Zone } from '../model/canonical.ts'
 import { furnishFloor, type FurnitureShape, type Role } from './furniture.ts'
 
@@ -51,6 +52,7 @@ export function FloorDrawing({
   const pres = (presentation ?? theme === 'presentation') && theme !== 'cad'
   const active: DrawingLayers = { site: true, zoning: true, circulation: false, walls: true, openings: true, supports: false, dimensions: showDimensions, labels: showLabels, furniture: pres, ...layers }
   const furniture = active.furniture ? furnishFloor(floor) : []
+  const supports=drawingStructure(floor,model)
   const finishOf = new Map(furniture.map((f) => [f.roomId, f.finish]))
 
   const padL = 3400
@@ -175,7 +177,13 @@ export function FloorDrawing({
           x2={o.at.x + (o.orient === 'h' ? o.width / 2 : 0)} y2={o.at.y + (o.orient === 'v' ? o.width / 2 : 0)} stroke={bg} strokeWidth={340} />)}
       </g>}
       {active.openings && <g data-layer="openings">{floor.openings.map((o, i) => <OpeningMark key={o.id ?? `op-${i}`} o={o} ink={ink} bg={bg} theme={theme} />)}</g>}
-      {active.supports && <g data-layer="supports" stroke={faint} strokeWidth={80} strokeDasharray="180 90">{floor.beams?.map(b => <line key={b.id} x1={b.a.x} y1={b.a.y} x2={b.b.x} y2={b.b.y} />)}</g>}
+      {active.supports && <g data-layer="supports" fill="none" stroke={faint} strokeWidth={35}>
+        <g data-layer="footings" strokeDasharray="100 70">{supports.footings?.map(f=><rect key={f.id} x={f.rect.x} y={f.rect.y} width={f.rect.w} height={f.rect.h}><title>{`${f.id}: ${f.rect.w} × ${f.rect.h} × ${f.thicknessMm} mm · approximate`}</title></rect>)}</g>
+        <g data-layer="plinth-beams" strokeDasharray="140 90">{supports.plinthBeams?.map(b=><line key={b.id} x1={b.a.x} y1={b.a.y} x2={b.b.x} y2={b.b.y} strokeWidth={b.widthMm}><title>{`Plinth beam ${b.widthMm} × ${b.depthMm} mm · approximate`}</title></line>)}</g>
+        {supports.beams.map(b=><line key={b.id} x1={b.a.x} y1={b.a.y} x2={b.b.x} y2={b.b.y} strokeWidth={b.widthMm} strokeDasharray="180 90"><title>{`${b.id}: ${b.widthMm} × ${b.depthMm} mm`}</title></line>)}
+        <text data-layer="structural-note" x={0} y={model.plot.depth+2900} fill={faint} stroke="none" fontSize={200}>approximate; structural design by a licensed engineer required</text>
+        {supports.plinthHeightMm!==undefined&&<text data-layer="plinth-height" x={0} y={model.plot.depth+2550} fill={faint} stroke="none" fontSize={240}>Plinth +{(supports.plinthHeightMm/1000).toFixed(2)} m above site grade</text>}
+      </g>}
       {active.circulation && <g data-layer="circulation" fill="none" stroke={theme === 'cad' ? '#c5e2f0' : '#546c7b'} strokeWidth={50} strokeDasharray="140 90">
         {floor.rooms.filter(r => r.zone === 'circulation').map(r => <rect key={r.id} x={r.rect.x + 100} y={r.rect.y + 100} width={Math.max(0, r.rect.w - 200)} height={Math.max(0, r.rect.h - 200)} />)}
         {floor.openings.filter(o => o.kind !== 'window').map((o, i) => <g key={i}><circle cx={o.at.x} cy={o.at.y} r={140} />{o.rooms?.filter(Boolean).map(id => {
@@ -187,7 +195,7 @@ export function FloorDrawing({
       {/* ---- structural columns (same grid on every floor) ---- */}
       {(active.walls || active.supports) && floor.columns && (
         <g data-layer="columns" fill={ink}>
-          {floor.columns.map((c) => (
+          {supports.columns.map((c) => (
             <rect key={c.id} x={c.at.x - c.size / 2} y={c.at.y - c.size / 2} width={c.size} height={c.size} />
           ))}
         </g>
@@ -543,6 +551,7 @@ export function TerraceDrawing({ design, svgRef, theme = 'presentation', layers 
   const model = design.model
   const layout = terraceLayout(design)
   const top = design.floors[design.floors.length - 1]
+  const supports=drawingStructure(top,model)
   const padL = 3400
   const padT = 1800
   const vb = `${-padL} ${-padT} ${model.plot.width + padL + 1800} ${model.plot.depth + padT + 3400}`
@@ -556,7 +565,7 @@ export function TerraceDrawing({ design, svgRef, theme = 'presentation', layers 
     <svg ref={svgRef} viewBox={vb} className="h-full w-full" xmlns="http://www.w3.org/2000/svg" style={{ background: BG[theme] }}>
       <PresentationDefs />
       {active.site && <g data-layer="site"><rect x={0} y={0} width={model.plot.width} height={model.plot.depth} fill="none" stroke={faint} strokeWidth={40} /><rect x={model.setbacksMm.W} y={model.setbacksMm.N} width={model.envelope.width} height={model.envelope.depth} fill="none" stroke={faint} strokeWidth={25} strokeDasharray="120 90" /></g>}
-      {active.supports && <g data-layer="supports" stroke={faint} strokeWidth={80} strokeDasharray="180 90">{top.beams?.map(b => <line key={b.id} x1={b.a.x} y1={b.a.y} x2={b.b.x} y2={b.b.y} />)}{top.columns?.map(c => <rect key={c.id} x={c.at.x - c.size / 2} y={c.at.y - c.size / 2} width={c.size} height={c.size} fill={ink} />)}</g>}
+      {active.supports && <g data-layer="supports" stroke={faint} strokeWidth={35} strokeDasharray="180 90">{supports.beams.map(b => <line key={b.id} x1={b.a.x} y1={b.a.y} x2={b.b.x} y2={b.b.y} strokeWidth={b.widthMm} />)}{supports.columns.map(c => <rect key={c.id} x={c.at.x - c.size / 2} y={c.at.y - c.size / 2} width={c.size} height={c.size} fill={ink} />)}<text x={0} y={model.plot.depth+2900} fill={faint} stroke="none" fontSize={200}>approximate; structural design by a licensed engineer required</text></g>}
       {active.circulation && top.stair && <rect data-layer="circulation" x={top.stair.rect.x} y={top.stair.rect.y} width={top.stair.rect.w} height={top.stair.rect.h} fill="none" stroke={faint} strokeWidth={60} strokeDasharray="120 90" />}
       {active.dimensions && <g data-layer="dimensions" fill={faint} stroke={faint} strokeWidth={22} fontFamily="monospace">
         <DimH y={model.plot.depth + 1500} x1={0} x2={model.plot.width} label={`${(model.plot.width / 1000).toFixed(2)} m`} />

@@ -3,6 +3,7 @@ import type { Opening, PlacedRoom, StairRun, Wall } from '../types.ts'
 import type { DesignDNA } from '../designDna.ts'
 import type { Beam, Column, FloorPlate, Orientation, Shaft, SupportZone } from './types.ts'
 import { BAND_WALL, COLUMN, EXT_WALL, INT_WALL, snap } from './program.ts'
+import { quantityRules } from '../../cost/data/quantityRules.ts'
 
 /* ------------------------------ local → plan ------------------------------- */
 
@@ -172,10 +173,10 @@ const lineKey = (orient: 'h' | 'v', fixed: number) => `${orient}:${Math.round(fi
 export const COLUMN_CLEAR = COLUMN / 2 + 60
 
 /** column positions along a wall line */
-function columnsOn(columns: Column[], orient: 'h' | 'v', fixed: number): number[] {
+function columnsOn(columns: Column[], orient: 'h' | 'v', fixed: number): {at:number;clear:number}[] {
   return columns
     .filter((c) => Math.abs((orient === 'h' ? c.at.y : c.at.x) - fixed) < 2)
-    .map((c) => (orient === 'h' ? c.at.x : c.at.y))
+    .map((c) => ({at:orient === 'h' ? c.at.x : c.at.y,clear:c.size/2+quantityRules.openingColumnClearanceMm}))
 }
 
 /**
@@ -190,7 +191,7 @@ export function fitOnLine(
   const half = width / 2
   let free: [number, number][] = [[line.lo + endClear + half, line.hi - endClear - half]]
   const blocks: [number, number][] = [
-    ...columnsOn(columns, line.orient, line.fixed).map((c) => [c - COLUMN_CLEAR, c + COLUMN_CLEAR] as [number, number]),
+    ...columnsOn(columns, line.orient, line.fixed).map((c) => [c.at - c.clear, c.at + c.clear] as [number, number]),
     ...(occ.get(lineKey(line.orient, line.fixed)) ?? []).map(([a, b]) => [a - 150, b + 150] as [number, number]),
   ]
   for (const [a, b] of blocks) {

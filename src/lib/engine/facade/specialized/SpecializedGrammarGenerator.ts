@@ -28,7 +28,7 @@ export class SpecializedGrammarGenerator {
     const choose = (category: GrammarCategory, sourceId: string, recipe: (type: string) => GrammarAssembly | null) => {
       const requested = options[category]
       if (requested && !GRAMMAR_TYPES[category].some((type) => type === requested)) throw new RangeError(`Unknown ${category} grammar`)
-      const rng = makeRng(dna.seed, `${building.planId}|specialized-v1|${category}|${sourceId}`)
+      const rng = makeRng(dna.seed, `${building.compositionId ?? building.planId}|specialized-v1|${category}|${sourceId}`)
       const types = requested ? [requested] : [...GRAMMAR_TYPES[category]].map((type) => ({ type, key: rng.next() })).sort((a, b) => a.key - b.key).map((v) => v.type)
       for (const type of types) {
         const candidate = recipe(type)

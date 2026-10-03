@@ -11,6 +11,7 @@ from .plates import create_plate, subtract_rectangles
 from .stairs import stair_layout
 from .massing import mass_rect
 from validation import opening_vertical_span
+from .sizing import slab_thickness, clear_beam
 
 
 def create_foundation(scene, floor, thickness_mm=400, exterior_walls=()):
@@ -39,9 +40,10 @@ def create_slab(scene, slab, floor, voids=()):
 
 def create_roof_slab(scene, floor, voids=()):
     top = floor["elevationMm"] + floor["heightMm"]
+    thickness = slab_thickness(floor)
     for index, rect in enumerate(floor["footprint"], 1):
         create_plate(scene, f"{floor_prefix(floor)}_Roof_Slab_{index:03d}", "ROOF",
-                     rect, top - 180, 180, floor["id"], voids)
+                     rect, top - thickness, thickness, floor["id"], voids)
 
 
 def _wall_piece(scene, wall, floor, axis, fixed, start, end, bottom, top, serial):
@@ -91,16 +93,17 @@ def create_wall(scene, wall, floor, hosted_openings, serial_start):
 def create_column(scene, column, floor):
     return scene.box(f"Column_{column['id']}", "STRUCTURE", column["at"]["x"],
                      column["at"]["y"], floor["elevationMm"], column["size"],
-                     column["size"], floor["heightMm"], "concrete", column["id"])
+                     column["size"], floor["heightMm"]-floor.get("slabThicknessMm", 0), "concrete", column["id"])
 
 
-def create_beam(scene, beam, floor, depth_mm=300, width_mm=230, exterior_walls=()):
-    a, b = beam["a"], beam["b"]
-    length = math.hypot(b["x"] - a["x"], b["y"] - a["y"])
+def create_beam(scene, beam, floor, depth_mm=300, width_mm=230, exterior_walls=(), columns=()):
+    a, b, length = clear_beam(beam, columns)
+    sized = "depthMm" in beam
+    depth_mm, width_mm = beam.get("depthMm", depth_mm), beam.get("widthMm", width_mm)
     axis = "h" if abs(a["y"] - b["y"]) <= 2 else "v"
     fixed = a["y"] if axis == "h" else a["x"]
     lo, hi = sorted((a["x"], b["x"]) if axis == "h" else (a["y"], b["y"]))
-    for wall in exterior_walls:
+    for wall in (() if sized else exterior_walls):
         wa, wb = wall["a"], wall["b"]
         wall_axis = "h" if abs(wa["y"] - wb["y"]) <= 2 else "v"
         wall_fixed = wa["y"] if axis == "h" else wa["x"]
@@ -111,7 +114,7 @@ def create_beam(scene, beam, floor, depth_mm=300, width_mm=230, exterior_walls=(
             width_mm = min(width_mm, wall["thickness"] - 30)
     obj = scene.box(f"Beam_{beam['id']}", "STRUCTURE", (a["x"] + b["x"]) / 2,
                     (a["y"] + b["y"]) / 2, floor["elevationMm"] + floor["heightMm"] - depth_mm,
-                    length, width_mm, depth_mm, "concrete", beam["id"])
+                    length, width_mm, depth_mm-floor.get("slabThicknessMm", 0), "concrete", beam["id"])
     obj.rotation_euler.z = math.atan2(b["y"] - a["y"], b["x"] - a["x"])
     return obj
 

@@ -31,9 +31,9 @@ export function geometryCostKey(design: Design): string {
   return `cost-${fnv(geometry).toString(16)}-${fnv(`quantities|${geometry}`).toString(16)}`
 }
 function openingHeight(o: Opening): number {
-  const m = policy.measurement
-  return Math.max(0, (o.head ?? (o.kind === 'window' ? m.windowHeadMm : o.kind === 'entry' ? m.entryHeightMm : m.doorHeightMm)) -
-    (o.kind === 'window' ? o.sill ?? m.windowSillMm : 0))
+  const m = rules.openingLimits
+  return Math.max(0, (o.head ?? m[`${o.kind}HeadMm`]) -
+    (o.kind === 'window' ? o.sill ?? m.defaultSillMm : 0))
 }
 function hosts(w: Wall, o: Opening): boolean {
   const t = policy.measurement.hostToleranceMm
@@ -163,7 +163,7 @@ export function calculateQuantities(design:Design):Quantities {
     const size=sizing.floors.find(s=>s.level===floor.level)!, slab=size.slabThicknessMm/1000,wallH=h-slab
     const lower=ordered[index-1],upper=ordered[index+1],shafts=(floor.shafts??[]).map(s=>s.rect)
     const plateArea=measuredArea(floor.footprint,[...voids(floor),...shafts,...(lower?.stair?[stairSlabOpening(lower.stair)]:[])])
-    const roofArea=measuredArea(roofPlates(floor),[...(floor.courtyard?[floor.courtyard]:[]),...shafts,...(upper?roofPlates(upper):[]),...(!upper&&floor.stair?[floor.stair.rect]:[])])
+    const roofArea=measuredArea(roofPlates(floor),[...(floor.courtyard?[floor.courtyard]:[]),...shafts,...(upper?roofPlates(upper):[]),...(!upper&&floor.stair?[stairSlabOpening(floor.stair)]:[])])
     const columnRects=size.columns.map(c=>({x:c.at.x-c.size/2,y:c.at.y-c.size/2,w:c.size,h:c.size}))
     // Plates end at centre lines. Column height stops at slab soffit; beam lengths stop at column faces.
     if(plateArea)concrete(f,`${floor.level}:floor-slab`,'slabs',plateArea*slab,index===0?0:plateArea,plateArea)
@@ -219,10 +219,10 @@ export function calculateQuantities(design:Design):Quantities {
       const side=(p:{x:number;y:number})=>horizontal?p.x:p.y
       const plane=(p:{x:number;y:number})=>horizontal?p.y:p.x
       const wallRect={x:lo,y:0,w:length*1000,h:height*1000}
-      const openingCuts=openings.map(o=>({x:side(o.at)-o.width/2,y:o.kind==='window'?(o.sill??policy.measurement.windowSillMm):0,w:o.width,h:openingHeight(o)}))
+      const openingCuts=openings.map(o=>({x:side(o.at)-o.width/2,y:o.kind==='window'?(o.sill??rules.openingLimits.defaultSillMm):0,w:o.width,h:openingHeight(o)}))
       const frameCuts=size.columns.filter(c=>Math.abs(plane(c.at)-fixed)<=c.size/2+wall.thickness/2).map(c=>({x:side(c.at)-c.size/2,y:0,w:c.size,h:height*1000}))
       frameCuts.push(...size.beams.filter(b=>Math.abs(plane(b.a)-fixed)<=rules.toleranceMm&&Math.abs(plane(b.b)-fixed)<=rules.toleranceMm).map(b=>({x:Math.min(side(b.a),side(b.b)),y:(h*1000-b.depthMm),w:Math.abs(side(b.b)-side(b.a)),h:Math.max(0,b.depthMm-size.slabThicknessMm)})))
-      frameCuts.push(...openings.map(o=>({x:side(o.at)-o.width/2-rules.openings.lintelBearingMm,y:(o.kind==='window'?(o.sill??policy.measurement.windowSillMm):0)+openingHeight(o),w:o.width+2*rules.openings.lintelBearingMm,h:rules.openings.lintelDepthMm})))
+      frameCuts.push(...openings.map(o=>({x:side(o.at)-o.width/2-rules.openings.lintelBearingMm,y:(o.kind==='window'?(o.sill??rules.openingLimits.defaultSillMm):0)+openingHeight(o),w:o.width+2*rules.openings.lintelBearingMm,h:rules.openings.lintelDepthMm})))
       const net=measuredArea([wallRect],openingCuts),masonry=measuredArea([wallRect],[...openingCuts,...frameCuts]),thickness=wall.thickness/1000
       add(f,`masonry.${wall.thickness}`,{NetVolume:masonry*thickness,NetSideArea:masonry,Length:length,Count:1})
       add(f,'plaster.walls',{NetSideArea:net*2});add(f,'paint.walls',{NetSideArea:net*2})
@@ -259,7 +259,10 @@ export function calculateQuantities(design:Design):Quantities {
       if(kind!=='bath')add(f,'skirting',{Length:skirting,NetSideArea:skirting*rules.finishes.skirtingHeightMm/1000})
       if(kind==='bath') {
         const tileH=Math.min(wallH,rules.finishes.wetTileHeightMm/1000)
-        const doorArea=floor.openings.filter(o=>o.kind!=='window'&&o.rooms?.includes(room.id)).reduce((n,o)=>n+o.width/1000*Math.min(tileH,openingHeight(o)/1000),0)
+        const doorArea=floor.openings.filter(o=>o.rooms?.includes(room.id)).reduce((n,o)=>{
+          const sill=o.kind==='window'?(o.sill??rules.openingLimits.defaultSillMm)/1000:0
+          return n+o.width/1000*Math.max(0,Math.min(tileH,sill+openingHeight(o)/1000)-sill)
+        },0)
         add(f,'wallTiles.wetRooms',{NetSideArea:Math.max(0,p*tileH-doorArea)});add(f,'waterproofing.baths',{NetArea:area})
       }
       if(kind==='kitchen')add(f,'wallTiles.kitchenDado',{NetSideArea:p*rules.finishes.kitchenDadoWallRatio*rules.finishes.kitchenDadoHeightMm/1000})
@@ -279,8 +282,11 @@ export function calculateQuantities(design:Design):Quantities {
     const roofPerimeter=perimeter(roofPlates(floor),floor.courtyard)
     if(!upper) {
       add(f,'parapet',{Length:roofPerimeter,NetSideArea:roofPerimeter*rules.roof.parapetHeightMm/1000,NetVolume:roofPerimeter*rules.roof.parapetHeightMm*rules.roof.parapetThicknessMm/1e6})
-      // Default terrace edge is a solid parapet, not an additional railing.
-      add(f,'railings.terrace',{Length:0})
+      const parapet=f.items.parapet
+      add(f,'masonry.parapet',{...parapet});add(f,'plaster.walls',{NetSideArea:parapet.NetSideArea*2});add(f,'paint.walls',{NetSideArea:parapet.NetSideArea*2})
+      // Solid perimeter parapet; only the actual stair opening needs guard railing.
+      const guards=floor.stair?rectUnionEdges([stairSlabOpening(floor.stair)]).filter(e=>e.side!==(floor.stair!.startSide??'N')).reduce((n,e)=>n+Math.hypot(e.b.x-e.a.x,e.b.y-e.a.y)/1000,0):0
+      add(f,'railings.terrace',{Length:guards})
     }
     if(index===0) {
       const features=design.siteFeatures??[]
@@ -290,6 +296,7 @@ export function calculateQuantities(design:Design):Quantities {
       const length=design.model.brief.rooms.priorities.compoundWall?Math.max(0,2*(design.model.plot.width+design.model.plot.depth)-rules.site.gateWidthMm)/1000:0
       add(f,'external.compoundWall',{Length:length,NetSideArea:length*rules.site.compoundHeightMm/1000,NetVolume:length*rules.site.compoundHeightMm*rules.site.compoundThicknessMm/1e6})
     }
+    if(f.items['paint.walls'])f.items['paint.walls'].NetSideArea=Math.max(0,f.items['paint.walls'].NetSideArea-(f.items['wallTiles.wetRooms']?.NetSideArea??0)-(f.items['wallTiles.kitchenDado']?.NetSideArea??0))
     perFloor.push(f)
   }
   const total:FloorQuantities={level:-1,name:'Total',items:{},members:perFloor.flatMap(f=>f.members),steelKg:{},formworkM2:{}}
@@ -313,5 +320,5 @@ export function calculateQuantities(design:Design):Quantities {
       'RCC includes the ground/plinth floor plate and exposed roof plates once; intermediate stair landings remain, stair/shaft voids are deducted. No pile or raft design is inferred.',
       'Columns stop at slab soffits; beams use clear spans and exclude slab depth. Masonry deducts the union of openings, columns, beams and lintels; plaster includes RCC faces.',
       'Stair RCC uses inclined waist slabs, triangular treads and a turning landing. Points, glazing fraction, grills, skirting and tank capacities are configurable allowances.',
-      'Terrace edge is a parapet by default; terrace railing is zero unless the edge is specified as a railing. Quantities do not replace existing area-priced BOQ allowances.']}
+      'Terrace perimeter is a parapet by default; guard railing is counted at the stair opening. Quantities do not replace existing area-priced BOQ allowances.']}
 }

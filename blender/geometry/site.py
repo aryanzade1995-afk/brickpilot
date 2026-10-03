@@ -40,7 +40,7 @@ def create_site(scene, building):
     """Paving and a genuine excavated pool remain present when greenery is off."""
     validate_site_features(building)
     ground = min(building["floors"], key=lambda f: f["level"])
-    grade = ground["elevationMm"] + SITE_LEVELS["grade"]
+    grade = ground["elevationMm"] - building.get("structuralSizing", {}).get("plinthHeightMm", -SITE_LEVELS["grade"])
     plot = {"x": 0, "y": 0, "w": building["plot"]["widthMm"], "h": building["plot"]["depthMm"]}
     pools = [f["rect"] for f in building.get("siteFeatures", []) if f["kind"] == "pool"]
     span = max(plot["w"], plot["h"]) * 6

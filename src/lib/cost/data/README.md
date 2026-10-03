@@ -15,6 +15,11 @@ the specification graph before it is used. `schemas.ts` owns the constraints.
 - `presets.json`: an option for every item, including auto/technical items, for
   each of Basic, Mid and Premium. Extras default off. Foundation quantities,
   commercial terms and technical proposals require professional confirmation.
+- `quantity-rules.json`: Zod-validated concept sizing, steel/formwork/material
+  yields, finish dimensions, points and tank allowances. Unknown soil and a
+  standard plinth are shared defaults for every finish preset. These are
+  approximations; structural design by a licensed engineer is required.
+  See [measurement conventions](../../../../docs/quantity-takeoff.md).
 - `finishes.json`, `pune.json`, `legacy-rates.json`: compatibility data for the
   deployed five-category cost UI and reference helpers, also Zod-validated.
   The current BOQ adapter takes its rates, defaults and provenance from `rates.json`;

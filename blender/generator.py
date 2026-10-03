@@ -25,6 +25,7 @@ from geometry.structure import (create_foundation, create_slab, create_wall, cre
                                 create_roof_slab)  # noqa: E402
 from geometry.openings import create_door_opening, create_window_opening  # noqa: E402
 from geometry.stairs import stair_opening, stair_layout  # noqa: E402
+from geometry.sizing import create_sized_foundation, slab_thickness  # noqa: E402
 from geometry.outdoor import (create_balcony, create_terrace, create_parapet,
                               create_pergola, create_planter, accessible_roof_pad)  # noqa: E402
 from facade.features import create_facade, finish_wall_bevels  # noqa: E402
@@ -71,19 +72,26 @@ def create_scene(payload, visualization=None):
     scene.plot_depth = building["plot"]["depthMm"]
     scene.warnings = []
     create_site(scene, building)
-    create_foundation(scene, floors[0], exterior_walls=[wall for wall in building["walls"]
-                      if wall["floorId"] == floors[0]["id"] and wall["kind"] == "exterior"])
+    if building.get("structuralSizing") and building.get("quantityRules"):
+        create_sized_foundation(scene, building, floors[0])
+    else:
+        create_foundation(scene, floors[0], exterior_walls=[wall for wall in building["walls"]
+                          if wall["floorId"] == floors[0]["id"] and wall["kind"] == "exterior"])
     for slab in building["slabs"]:
         floor = by_floor[slab["floorId"]]
         voids = [stair_opening(stair) for stair in building["stairs"]
                  if by_floor[stair["floorId"]]["level"] == floor["level"] - 1]
         voids += [shaft["rect"] for shaft in building["shafts"] if shaft["floorId"] == floor["id"]]
+        voids += [void["rect"] for void in floor.get("doubleHeightVoids", [])]
+        if floor.get("courtyard"):
+            voids.append(floor["courtyard"])
         create_slab(scene, slab, floor, voids)
     for column in building["columns"]:
         create_column(scene, column, by_floor[column["floorId"]])
     for beam in building["beams"]:
         create_beam(scene, beam, by_floor[beam["floorId"]], exterior_walls=[
-            wall for wall in building["walls"] if wall["floorId"] == beam["floorId"] and wall["kind"] == "exterior"])
+            wall for wall in building["walls"] if wall["floorId"] == beam["floorId"] and wall["kind"] == "exterior"],
+            columns=[c for c in building["columns"] if c["floorId"] == beam["floorId"]])
     openings = [*building["doors"], *building["windows"]]
     serials = {floor["id"]: 1 for floor in floors}
     wall_by_id = {wall["id"]: wall for wall in building["walls"]}
@@ -127,7 +135,7 @@ def create_scene(payload, visualization=None):
     for floor in floors:
         for index, void in enumerate(floor.get("doubleHeightVoids", []), 1):
             scene.rect(f"{floor['id']}_DoubleHeight_Ceiling_{index}", "ROOF", void["rect"],
-                       floor["elevationMm"] + floor["heightMm"] - 180, 180, "concrete", void["sourceRoomId"])
+                       floor["elevationMm"] + floor["heightMm"] - slab_thickness(floor), slab_thickness(floor), "concrete", void["sourceRoomId"])
     custom_parapet = any(unit["category"] == "ROOFLINE" and unit["type"] in ("FLAT_PARAPET", "STEPPED_PARAPET", "OFFSET_PARAPET", "PLANTER_PARAPET") for unit in assemblies)
     if flat_roof and not custom_parapet:
         create_parapet(scene, top, roof_level, massing["masses"])

@@ -21,6 +21,17 @@ metadata from existing column centres, beam spans and floor plates. Rules live
 in Zod-validated `cost/data/quantity-rules.json`. Column dimensions are reserved
 before openings are placed, and the existing hard check uses the actual size.
 
+`BuildingModel.planId` includes the sized geometry for validation and export
+identity. Its separate `compositionId` preserves the original plan's seed
+namespace: changing a plinth, soil allowance or sizing rule must not select a
+new massing recipe or hero feature. Historical 300/220 mm identity tokens are
+never used for dimensions. All generators still use the same seeded RNG.
+
+Blender receives the sizes and rule data in its input JSON. It creates named
+footings, PCC pads, pedestals and plinth beams, and uses clear beam spans,
+slab soffits and the selected site grade. Older handoffs without sizing still
+load. Partial or corrupt sizing is rejected before mesh generation.
+
 Column position is classified using occupied quadrants around its grid point.
 Beam depth is span/12 rounded **up** to 50 mm, with a configured minimum. Slabs
 are 125 or 150 mm according to the longest beam span, or the short plate span
@@ -49,8 +60,10 @@ sizes only the floors actually drawn.
 - Stairs use two inclined waist slabs, triangular step concrete and a turning
   landing. The top stair serves the usable terrace. Railing factors, glazing
   fraction, grills and MEP points are configurable allowances, not designs.
-- Default terrace edges are solid parapets; an extra terrace railing is not
-  counted. Roof waterproofing deducts service/stair openings. Lower-roof edge
+- Default terrace edges are solid parapets; guard railing around the source
+  stair opening is counted. Parapet masonry and both plaster faces are included.
+  Paint deducts measured wet-room tiles and kitchen dado. Roof waterproofing
+  deducts service/stair openings. Lower-roof edge
   railings and decorative Blender-only assemblies require a separate schedule.
 - M20 materials use the requested 1.54 dry-volume factor and nominal 1:1.5:3
   arithmetic. M25/M30 return `null` for material conversions; approved mix

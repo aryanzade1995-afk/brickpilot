@@ -46,7 +46,7 @@ export function DrawingWorkspace({ design, onFloorChange }: { design: Design; on
         <span className="flex flex-1 items-center justify-between gap-2"><span className="text-xs text-ink">{LAYER_LABELS[id]}</span><span className="whitespace-nowrap text-[9px] text-ink-faint">{counts[id]} on this floor</span></span>
         <input type="checkbox" aria-label={LAYER_LABELS[id]} checked={layers[id]} onChange={e => { setLayers({ ...layers, [id]: e.target.checked }); setPreset('Custom') }} className="accent-neutral-500" />
       </label>)}</div>
-      <p className="my-3 text-[10px] text-ink-faint">Supports shows beams and pillars. Layers apply to all floors and change only the drawing.</p>
+      <p className="my-3 text-[10px] text-ink-faint">Supports shows columns, beams and ground-floor footings and plinth. Approximate; structural design by a licensed engineer required. Layers change only the drawing.</p>
       <div className="grid grid-cols-3 gap-2">
         <button className={button} aria-label="Zoom out" onClick={() => setZoom(Math.max(0.5, zoom / 1.25))}>−</button>
         <button className={button} aria-label="Fit drawing" onClick={() => setZoom(1)}>Fit</button>

@@ -26,7 +26,7 @@ export function drawingLayerCounts(floor: FloorPlan, features: SiteFeature[] = [
     site: 2 + (floor.level === 0 ? features.length : 0), zoning: floor.rooms.length,
     circulation: floor.rooms.filter(r => r.zone === 'circulation').length + floor.openings.filter(o => o.kind !== 'window').length,
     walls: floor.walls.length + (floor.columns?.length ?? 0), openings: floor.openings.length,
-    supports: (floor.beams?.length ?? 0) + (floor.columns?.length ?? 0), dimensions: 4,
+    supports: (floor.beams?.length ?? 0) + (floor.columns?.length ?? 0) + (floor.level===0?(floor.columns?.length??0)+(floor.beams?.length??0):0), dimensions: 4,
     labels: floor.rooms.filter(r => Math.min(r.rect.w, r.rect.h) >= 1400).length + (floor.level === 0 ? features.filter(f => !f.covered && f.rect.w >= 1400 && f.rect.h >= 1000).length : 0),
     furniture: furnishFloor(floor).reduce((n, f) => n + f.items.filter(i => i.role !== 'plant').length, 0) + (floor.level === 0 ? features.filter(f => !f.covered && f.kind === 'parking').length : 0),
   }

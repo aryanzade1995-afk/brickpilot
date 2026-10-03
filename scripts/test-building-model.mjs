@@ -47,7 +47,8 @@ test('BuildingModel is a faithful, detached serialization of the verified 2D pla
       floor.openings.filter((o) => o.kind === 'window'))
     assert.deepEqual(building.slabs.filter((s) => s.floorId === id).map((s) => s.rect), floor.footprint)
     assert.deepEqual(building.columns.filter((c) => c.floorId === id).map(withoutFloorId), floor.columns)
-    assert.deepEqual(building.beams.filter((b) => b.floorId === id).map(withoutFloorId), floor.beams)
+    assert.deepEqual(building.beams.filter((b) => b.floorId === id).map(withoutFloorId), floor.structuralSizing.beams)
+    assert.ok(building.slabs.filter(s=>s.floorId===id).every(s=>s.thicknessMm===floor.structuralSizing.slabThicknessMm))
     if (floor.stair) assert.deepEqual(building.stairs.find((s) => s.floorId === id).rect, floor.stair.rect)
   }
 
@@ -64,6 +65,14 @@ test('the same plan has one BuildingModel even when exterior seeds change', () =
     const exterior = varyExterior(plan, seed)
     assert.deepEqual(createBuildingModel(exterior), expected)
   }
+})
+test('technical sizing changes source identity but retains the architectural seed namespace',()=>{
+  const d=makePlan(),old=createBuildingModel(d)
+  d.model.brief.specs.overrides={'soil-type':'rock','plinth-height':'raised'}
+  const next=createBuildingModel(d)
+  assert.notEqual(next.planId,old.planId);assert.equal(next.compositionId,old.compositionId)
+  const a=createVillaDesignDNA(old,41),b=createVillaDesignDNA(next,41)
+  assert.deepEqual({...a,sourcePlanId:'same'},{...b,sourcePlanId:'same'})
 })
 
 test('VillaDesignDNA is seeded, repeatable and changes architectural parameters', () => {

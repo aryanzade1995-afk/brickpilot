@@ -1,6 +1,7 @@
 {
   "version": "concept-qto-1",
   "qualification": "approximate; structural design by a licensed engineer required",
+  "seedIdentityDefaults":{"columnMm":300,"slabMm":220},
   "columnsByStoreysMm": [
     {"corner":230,"edge":250,"interior":300},
     {"corner":300,"edge":300,"interior":350},
@@ -18,8 +19,9 @@
   "masonryUnitsPerM3":{"brick":500,"aac":69.4444444444,"concrete-block":62.5},
   "finishes":{"skirtingHeightMm":100,"wetTileHeightMm":2100,"kitchenDadoHeightMm":600,"kitchenDadoWallRatio":0.5},
   "openings":{"lintelDepthMm":150,"lintelBearingMm":150,"chajjaProjectionMm":600,"chajjaThicknessMm":100,"glassRatio":0.85,"grillRatio":1},
+  "openingLimits":{"windowHeadMm":2200,"doorHeadMm":2300,"entryHeadMm":2500,"defaultSillMm":850,"lintelClearanceMm":120,"minWindowHeightMm":150,"minDoorHeightMm":1800},
   "stairs":{"waistMm":150,"landingThicknessMm":150,"guardSides":2},
-  "roof":{"parapetHeightMm":1000,"parapetThicknessMm":115},
+  "roof":{"parapetHeightMm":900,"parapetThicknessMm":120},
   "site":{"gateWidthMm":3800,"compoundHeightMm":1800,"compoundThicknessMm":230},
   "tanks":{"litresPerOccupant":135,"storageDays":2,"overheadFraction":0.5,"roundLitres":500,"minLitres":1000},
   "pointsByRoom":{
@@ -30,6 +32,7 @@
     "other":{"plumbing":0,"electrical":3}
   },
   "toleranceMm":2,
+  "openingColumnClearanceMm":60,
   "memoEntries":16,
   "notes":["Sizing and steel factors are configurable planning assumptions, not calculations of loads or soil bearing capacity.","Unknown soil uses a conservative allowance; a geotechnical report and structural design remain necessary.","M20 material conversion is nominal 1:1.5:3 arithmetic, not an approved concrete mix design. M25/M30 require a mix design and have no nominal material conversion."]
 }

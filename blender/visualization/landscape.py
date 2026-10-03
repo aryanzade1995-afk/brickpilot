@@ -102,7 +102,7 @@ def _entry_paving(scene, building):
             step = {"x": along - width / 2 if horizontal else normal, "y": normal if horizontal else along - width / 2,
                     "w": width if horizontal else 280, "h": 280 if horizontal else width}
             scene.rect(f"Entry_{door['id']}_ApproachStep_{index + 1}", "LANDSCAPE", step,
-                       floor["elevationMm"] - 400, 400 * (3 - index) / 3, "paving", door["id"], bevel=4)
+                       floor["elevationMm"] - building.get("structuralSizing", {}).get("plinthHeightMm",400), building.get("structuralSizing", {}).get("plinthHeightMm",400) * (3 - index) / 3, "paving", door["id"], bevel=4)
 
 
 def create_landscape(scene, payload, options):

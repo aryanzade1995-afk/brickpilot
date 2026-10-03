@@ -43,7 +43,9 @@ test('supports renders real beams and pillars without walls or furniture', () =>
   assert.ok(svg.includes('data-layer="columns"'))
   assert.ok(!svg.includes('data-layer="walls"'))
   assert.ok(!svg.includes('data-layer="furniture"'))
-  assert.equal(drawingLayerCounts(floor, d.siteFeatures).supports, floor.beams.length + floor.columns.length)
+  assert.equal(drawingLayerCounts(floor, d.siteFeatures).supports, floor.beams.length + floor.columns.length + floor.structuralSizing.footings.length + floor.structuralSizing.plinthBeams.length)
+  assert.ok(svg.includes('data-layer="footings"'));assert.ok(svg.includes('data-layer="plinth-beams"'))
+  assert.ok(svg.includes('Plinth +0.45 m'));assert.ok(svg.includes('approximate; structural design by a licensed engineer required'))
   assert.equal(drawingLayerCounts(d.floors[1], d.siteFeatures).site, 2)
 })
 

@@ -5,6 +5,8 @@ import type { Design, Opening, PlacedRoom, SiteFeature, Wall } from './types.ts'
 import type { Beam, Column, Shaft, SupportZone } from './planner/types.ts'
 import { fnv } from './massing/rng.ts'
 import { DOUBLE_HEIGHT_LIMITS } from './planner/doubleHeight.ts'
+import { sizeStructure, type StructuralSizing } from './structuralSizing.ts'
+import { quantityRules } from '../cost/data/quantityRules.ts'
 
 /** A serialized view of the verified 2D plan. All plan coordinates are millimetres. */
 export type BuildingFloor = {
@@ -14,6 +16,8 @@ export type BuildingFloor = {
   name: string
   elevationMm: number
   heightMm: number
+  slabThicknessMm?: number
+  openingLimits?: typeof quantityRules.openingLimits
   outline: Rect
   footprint: Rect[]
   courtyard: Rect | null
@@ -32,16 +36,20 @@ export type BuildingStair = {
   startSide?: 'N' | 'S' | 'E' | 'W'
 }
 export type BuildingColumn = Column & { floorId: string }
-export type BuildingBeam = Beam & { floorId: string }
+export type BuildingBeam = Beam & { floorId: string; widthMm?:number; depthMm?:number }
 export type BuildingShaft = Shaft & { floorId: string }
 export type BuildingSupportZone = SupportZone & { floorId: string }
 export type BuildingSlab = { id: string; floorId: string; rect: Rect; topMm: number; thicknessMm: number }
 
 export type BuildingModel = {
+  quantityRules?: typeof quantityRules
+  structuralSizing?: StructuralSizing
   doubleHeightLimits?: typeof DOUBLE_HEIGHT_LIMITS
   schemaVersion: 1
   /** Content identity of the plan geometry, independent of exterior-design seeds. */
   planId: string
+  /** Stable seed namespace; technical sizing does not select another composition. */
+  compositionId?: string
   units: 'mm'
   /** Plan x grows east, plan y grows south; ground-floor finished level is z = 0. */
   coordinates: 'plan-x-east-y-south-z-up'
@@ -77,6 +85,7 @@ const fallbackId = (prefix: string, kind: string, index: number) => `${prefix}_$
 /** Pure adapter: never replans rooms or derives a second footprint. */
 export function createBuildingModel(design: Design): BuildingModel {
   const { model, structure } = design
+  const sizing=sizeStructure(design)
   const heightMm = Math.round(model.brief.levels.floorToFloor * 1000)
   const floors: BuildingFloor[] = []
   const rooms: BuildingRoom[] = []
@@ -91,11 +100,12 @@ export function createBuildingModel(design: Design): BuildingModel {
   const supportZones: BuildingSupportZone[] = []
 
   for (const floor of design.floors) {
+    const size=sizing.floors.find(s=>s.level===floor.level)!
     const floorId = floor.prefix ?? `L${floor.level}`
     const elevationMm = floor.level * heightMm
     floors.push({
       ...(floor.doubleHeightVoids ? {doubleHeightVoids:structuredClone(floor.doubleHeightVoids)}:{}),
-      id: floorId, level: floor.level, name: floor.name, elevationMm, heightMm,
+      id: floorId, level: floor.level, name: floor.name, elevationMm, heightMm, slabThicknessMm:size.slabThicknessMm, openingLimits:{...quantityRules.openingLimits},
       outline: rect(floor.outline), footprint: floor.footprint.map(rect),
       courtyard: floor.courtyard ? rect(floor.courtyard) : null,
     })
@@ -120,18 +130,20 @@ export function createBuildingModel(design: Design): BuildingModel {
       direction: floor.stair.direction,
       ...(floor.stair.startSide ? { startSide: floor.stair.startSide } : {}),
     })
-    floor.columns?.forEach((column) => columns.push({ ...column, floorId, at: point(column.at) }))
-    floor.beams?.forEach((beam) => beams.push({ ...beam, floorId, a: point(beam.a), b: point(beam.b) }))
+    floor.columns?.forEach((column) => columns.push({ ...column, size:size.columns.find(c=>c.id===column.id)!.size, floorId, at: point(column.at) }))
+    size.beams.forEach((beam) => beams.push({ ...beam, floorId, a: point(beam.a), b: point(beam.b) }))
     floor.shafts?.forEach((shaft) => shafts.push({ ...shaft, floorId, rect: rect(shaft.rect) }))
     floor.supportZones?.forEach((zone) => supportZones.push({ ...zone, floorId, rect: rect(zone.rect) }))
     floor.footprint.forEach((block, index) => slabs.push({
       id: fallbackId(floorId, 'SLAB', index), floorId, rect: rect(block),
-      topMm: elevationMm, thicknessMm: 220,
+      topMm: elevationMm, thicknessMm: size.slabThicknessMm,
     }))
   }
 
   const setbacks: Record<Direction, number> = { ...model.setbacksMm }
   const base = {
+    quantityRules:structuredClone(quantityRules),
+    structuralSizing:sizing,
     ...(floors.some(f=>f.doubleHeightVoids?.length)?{doubleHeightLimits:{...DOUBLE_HEIGHT_LIMITS}}:{}),
     schemaVersion: 1 as const,
     units: 'mm' as const,
@@ -157,5 +169,14 @@ export function createBuildingModel(design: Design): BuildingModel {
   }
   const signature = JSON.stringify(base)
   const hash = (value: string) => fnv(value).toString(16).padStart(8, '0')
-  return { ...base, planId: `plan-${hash(signature)}${hash(`building|${signature}`)}` }
+  // Preserve the original seed namespace projection. These historical sizes
+  // are identity tokens only: no drawing, quantity or mesh uses them as dimensions.
+  const {quantityRules:_rules,structuralSizing:_sizing,...original}=base
+  const originalSignature=JSON.stringify({...original,
+    floors:original.floors.map(({slabThicknessMm:_thickness,openingLimits:_openings,...floor})=>floor),
+    columns:original.columns.map(c=>({...c,size:quantityRules.seedIdentityDefaults.columnMm})),
+    beams:original.beams.map(({widthMm:_width,depthMm:_depth,...beam})=>beam),
+    slabs:original.slabs.map(s=>({...s,thicknessMm:quantityRules.seedIdentityDefaults.slabMm}))})
+  return { ...base, planId: `plan-${hash(signature)}${hash(`building|${signature}`)}`,
+    compositionId:`plan-${hash(originalSignature)}${hash(`building|${originalSignature}`)}` }
 }

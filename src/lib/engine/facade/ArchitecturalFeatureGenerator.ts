@@ -357,7 +357,7 @@ export class ArchitecturalFeatureGenerator {
     const zones = buildFacadeZones(building, massing)
     const groundMm = Math.min(...building.floors.map((f) => f.elevationMm))
     const eligible = (type: ArchitecturalFeatureType, zone: FacadeZone) => fits(type, zone, groundMm)
-    const seedRng = makeRng(dna.seed, `${building.planId}|facade-features-v2`)
+    const seedRng = makeRng(dna.seed, `${building.compositionId ?? building.planId}|facade-features-v2`)
     // Automatic fallback changes the reported family too; a label is never kept
     // when its defining host geometry cannot fit the actual plan.
     // ...and it stays inside the brief's style before it tries any other: a
@@ -378,11 +378,11 @@ export class ArchitecturalFeatureGenerator {
           .sort((a, b) => b.zone.endMm - b.zone.startMm - (a.zone.endMm - a.zone.startMm) || a.key - b.key)
         for (const { zone } of candidates) {
           attemptsTried++
-          const rng = makeRng(dna.seed, `${building.planId}|${family}|${type}|${zone.id}`)
+          const rng = makeRng(dna.seed, `${building.compositionId ?? building.planId}|${family}|${type}|${zone.id}`)
           const hero = makeFeature(type, 'hero', zone, zones, building, dna, rng, 0, recipe)
           if (!hero || validateProceduralFeatures(building, massing, zones, [hero]).length) continue
           const features = [hero]
-          const supportRng = makeRng(dna.seed, `${building.planId}|${family}|supports`)
+          const supportRng = makeRng(dna.seed, `${building.compositionId ?? building.planId}|${family}|supports`)
           const wanted = options.supportingFeatures ?? [...recipe.supports]
             .filter(() => supportRng.range(0, 1) < 0.85)
           for (const supportType of wanted.slice(0, 2)) {
@@ -390,7 +390,7 @@ export class ArchitecturalFeatureGenerator {
             for (const host of zones.filter((z) => eligible(supportType, z) && (!options.usableTerrace || z.kind !== 'ROOFLINE' || z.anchorKind === 'roof-interior') && !features.some((f) => f.zoneIds.includes(z.id)))
               .sort((a, b) => area(b) - area(a))) {
               const candidate = makeFeature(supportType, 'support', host, zones, building, dna,
-                makeRng(dna.seed, `${building.planId}|${family}|support|${supportType}|${host.id}`), features.length, recipe)
+                makeRng(dna.seed, `${building.compositionId ?? building.planId}|${family}|support|${supportType}|${host.id}`), features.length, recipe)
               if (candidate && !validateProceduralFeatures(building, massing, zones, [...features, candidate]).length) {
                 features.push(candidate); break
               }

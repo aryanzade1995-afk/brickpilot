@@ -217,7 +217,7 @@ export class ArchitectureValidator {
     }
 
     for (const column of building.columns) {
-      if (!Number.isFinite(column.at.x) || !Number.isFinite(column.at.y) || column.size <= 0)
+      if (!Number.isFinite(column.at.x) || !Number.isFinite(column.at.y) || !Number.isFinite(column.size) || column.size <= 0)
         add('structure', 'INVALID_COLUMN', 'Column coordinates or size are invalid.', column.id)
       const index = floors.findIndex((f) => f.id === column.floorId)
       if (index > 0 && !building.columns.some((other) => other.floorId === floors[index - 1].id &&
@@ -228,6 +228,9 @@ export class ArchitectureValidator {
       const span = Math.hypot(beam.b.x - beam.a.x, beam.b.y - beam.a.y)
       if (!Number.isFinite(span) || span <= 0 || span > MAX_BEAM_SPAN || !same(beam.span, span))
         add('structure', 'INVALID_BEAM', 'Beam span is invalid or exceeds the concept limit.', beam.id)
+      const floor=floors.find(f=>f.id===beam.floorId)
+      if(beam.depthMm!==undefined&&(!Number.isFinite(beam.depthMm)||!Number.isFinite(beam.widthMm)||beam.widthMm!<=0||!floor||beam.depthMm<=(floor.slabThicknessMm??0)||beam.depthMm>=floor.heightMm))
+        add('structure','INVALID_BEAM_SIZE','Beam dimensions do not fit the source floor.',beam.id)
     }
 
     // The 2D plan owns all openings. Re-check their geometry before any mesh builder sees them.

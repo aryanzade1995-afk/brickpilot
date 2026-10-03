@@ -27,8 +27,8 @@ export function sizeFloor(floor:FloorPlan,storeys:number):FloorSizing {
   return {level:floor.level,columns,beams,slabThicknessMm:slabThicknessMm(span)}
 }
 /** Derived from the existing grid only. Does not move rooms, grid centres or openings. */
-export function sizeStructure(design:Design):StructuralSizing {
-  const brief=design.model.brief, storeys=design.floors.length
+export function sizeStructure(design:Design,storeys=design.floors.length):StructuralSizing {
+  const brief=design.model.brief
   const soilClass=resolveSpecification(brief,'soil-type').id as StructuralSizing['soilClass']
   const plinthChoice=resolveSpecification(brief,'plinth-height').id as keyof typeof rules.plinthHeightsMm
   const plinthHeightMm=rules.plinthHeightsMm[plinthChoice]
@@ -38,6 +38,11 @@ export function sizeStructure(design:Design):StructuralSizing {
   return {version:rules.version,qualification:rules.qualification,storeys,soilClass,plinthHeightMm,floors,
     footings:(ground?.columns??[]).map(c=>({id:`Footing_${c.id}`,columnId:c.id,rect:{x:c.at.x-width/2,y:c.at.y-width/2,w:width,h:width},thicknessMm,bottomMm:-plinthHeightMm-f.depthBelowGradeMm})),
     plinthBeams:(ground?.beams??[]).map(b=>({...b,id:`Plinth_${b.id}`,widthMm:rules.plinthBeam.widthMm,depthMm:rules.plinthBeam.depthMm}))}
+}
+/** Legacy drawings acquire metadata without mutating saved floor geometry. */
+export function drawingStructure(floor:FloorPlan,model:Design['model']):NonNullable<FloorPlan['structuralSizing']> {
+  const sizing=sizeStructure({floors:[floor],model} as Design,model.brief.levels.storeys)
+  return {...sizing.floors[0],qualification:sizing.qualification,...(floor.level===0?{footings:sizing.footings,plinthBeams:sizing.plinthBeams,plinthHeightMm:sizing.plinthHeightMm}:{})}
 }
 /** Attach derived member metadata after planning; all spatial coordinates stay intact. */
 export function exposeStructuralSizing(design:Design):Design {

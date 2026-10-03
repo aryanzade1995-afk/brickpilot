@@ -96,7 +96,7 @@ export function chooseArchitecturalFamily(building: BuildingModel, seed: number,
   const compatible = pool.filter((family) => architecturalFamilyFitsPlan(building, family))
   if (!compatible.length) throw new Error('No architectural composition fits the source plan')
   const signature = (character && SIGNATURE[character]) ?? []
-  const rng = makeRng(seed, `${building.planId}|architectural-family-v1|${character ?? 'any'}`)
+  const rng = makeRng(seed, `${building.compositionId ?? building.planId}|architectural-family-v1|${character ?? 'any'}`)
   return signature.length
     ? rng.weighted(compatible.map((family) => [family, signature.includes(family) ? 3 : 1] as [ArchitecturalFamily, number]))
     : rng.pick(compatible)
