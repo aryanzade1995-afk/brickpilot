@@ -7,6 +7,7 @@ import puneRaw from './pune.json' with { type: 'json' }
 import legacyRaw from './legacy-rates.json' with { type: 'json' }
 import { ratesSchema, specsCatalogueSchema, presetsSchema, materialRegistrySchema, finishesSchema, puneSchema, legacyRatesSchema } from './schemas.ts'
 import { flooringProducts, flooringRates, flooringSpecificationOptions } from '../../flooring/catalogue.ts'
+import { finishProducts, finishRates, finishSpecificationOptions } from '../../finishes/catalogue.ts'
 
 export function validateSpecificationData(r: unknown, s: unknown, p: unknown, m: unknown) {
   const rates = ratesSchema.parse(r), catalogue = specsCatalogueSchema.parse(s), presets = presetsSchema.parse(p), materials = materialRegistrySchema.parse(m)
@@ -16,6 +17,14 @@ export function validateSpecificationData(r: unknown, s: unknown, p: unknown, m:
     const material = materials.materials.find(m => m.id === option.blenderMaterial)
     if (!material) errors.push(`${item.id}/${option.id}: missing Blender material`)
     if (option.flooringProductId && !flooringProducts.some(p => p.id === option.flooringProductId && p.id === option.id && p.blenderMaterial === option.blenderMaterial && option.rateId === `floor-catalog-${p.id}`)) errors.push(`${item.id}/${option.id}: missing flooring product`)
+    if (option.finishProductId) {
+      const product = finishProducts.find(p => p.id === option.finishProductId)
+      const rate = rates.items.find(r => r.id === option.rateId)
+      if (!product || product.id !== option.id || !product.itemIds.includes(item.id) || product.category !== item.group || product.blenderMaterial !== option.blenderMaterial || option.rateId !== `finish-catalog-${product.id}`)
+        errors.push(`${item.id}/${option.id}: missing or incompatible finish product`)
+      if (product && (!rate || rate.unit !== product.rate.unit || rate.material !== product.rate.material || rate.labour !== product.rate.labour)) errors.push(`${item.id}/${option.id}: mismatched finish rate`)
+      if (product?.image.kind === 'generic-material-closeup' && (product.image.path !== material?.webFile || product.sourceUrl !== material?.source)) errors.push(`${item.id}/${option.id}: natural-material photo must share the Blender texture`)
+    }
     for (const photo of option.photos.filter(p => p.kind === 'closeup')) {
       if (photo.file !== material?.texture || photo.webFile !== material?.webFile || photo.sha256 !== material?.sha256 || photo.webSha256 !== material?.webSha256 || photo.source !== material?.source || photo.width !== material?.width || photo.height !== material?.height)
         errors.push(`${item.id}/${option.id}: close-up must share the exact Blender texture and provenance`)
@@ -28,8 +37,9 @@ export function validateSpecificationData(r: unknown, s: unknown, p: unknown, m:
   if (errors.length) throw new Error(`Invalid specification references:\n${errors.join('\n')}`)
   return { rates, catalogue, presets, materials }
 }
-export const specificationData = validateSpecificationData({ ...ratesRaw, items: [...ratesRaw.items, ...flooringRates()] },
-  { ...specsRaw, items: specsRaw.items.map(i => i.group === 'flooring' && i.level !== 'auto' ? { ...i, options: [...i.options, ...flooringSpecificationOptions()] } : i) }, presetsRaw, materialsRaw)
+export const specificationData = validateSpecificationData({ ...ratesRaw, items: [...ratesRaw.items, ...flooringRates(), ...finishRates()] },
+  { ...specsRaw, items: specsRaw.items.map(i => ({ ...i, options: [...i.options,
+    ...(i.group === 'flooring' && i.level !== 'auto' ? flooringSpecificationOptions() : []), ...finishSpecificationOptions(i.id)] })) }, presetsRaw, materialsRaw)
 const installedRate = (id: string) => {
   const rate = specificationData.rates.items.find(r => r.id === id)
   if (!rate) throw new Error(`Missing deployed BOQ rate ${id}`)

@@ -83,7 +83,7 @@
       "trade": "Civil & structure",
       "from": "steel",
       "measure": "Count",
-      "note": "Member-specific kg/m\u00b3 ratios; not an engineered bar schedule."
+      "note": "Member-specific kg/m³ ratios; not an engineered bar schedule."
     },
     {
       "item": "foundation",
@@ -544,7 +544,7 @@
       "trade": "Exterior & site",
       "from": "extra",
       "measure": "NetArea",
-      "note": "Width of source main door \u00d7 configured shade projection; supporting detailed facade additions excluded."
+      "note": "Width of source main door × configured shade projection; supporting detailed facade additions excluded."
     },
     {
       "item": "facade-cladding",
@@ -562,7 +562,7 @@
       "trade": "Exterior & site",
       "from": "items",
       "measure": "NetSideArea",
-      "note": "One-face area \u00d7 assembly rate including masonry and finish; house masonry excludes compound wall."
+      "note": "One-face area × assembly rate including masonry and finish; house masonry excludes compound wall."
     },
     {
       "item": "compound-gate",
@@ -680,6 +680,15 @@
       "from": "extra",
       "measure": "Count",
       "note": "Selected extra; provisional lump-sum pending product and contractor quotes."
+    },
+    {
+      "item": "kitchen-hardware",
+      "key": "sink",
+      "label": "Kitchen hardware upgrade",
+      "trade": "Extras",
+      "from": "room",
+      "measure": "Count",
+      "note": "One incremental hardware set per measured kitchen; standard hardware included in cabinets."
     }
   ],
   "allowances": {
@@ -748,6 +757,8 @@
     "connections": "Fixed allowance in settings, separate summary line.",
     "overhead": "Percentage in settings, separate summary line.",
     "contingency": "Percentage in settings, separate summary line.",
-    "gst": "Optional percentage in settings, separate summary line."
+    "gst": "Optional percentage in settings, separate summary line.",
+    "kitchen-layout": "Cabinet layout preference only; existing run is priced. Unmeasured island/peninsula additions are excluded.",
+    "waterproofing-specialist": "Specialist scope excluded: survey, measured quantities and contractor quote required."
   }
 }

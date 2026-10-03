@@ -2409,111 +2409,14 @@
       ]
     },
     {
-      "id": "kitchen-counter",
+      "id": "kitchen-layout",
       "group": "kitchen",
-      "label": "Kitchen counter",
+      "label": "Kitchen layout preference",
+      "note": "Preference for cabinet drawings only; the 2D kitchen and measured run stay authoritative.",
       "scope": "house",
-      "level": "main",
+      "level": "more",
       "control": "dropdown",
-      "note": "Photo is a reference stone surface, not a quartz or brand-certified sample.",
-      "options": [
-        {
-          "id": "granite",
-          "name": "Granite",
-          "rateId": "kitchen-counter-granite",
-          "blenderMaterial": "granite_paving",
-          "facts": [
-            "Durability: confirm the selected product grade.",
-            "Maintenance: follow the supplier cleaning guide.",
-            "Slip: not a walking-surface rating.",
-            "Suits: wet or outdoor areas with a tested slip rating."
-          ],
-          "tags": [
-            "concept-allowance",
-            "surface-reference-not-product"
-          ],
-          "photos": [
-            {
-              "source": "https://polyhaven.com/a/granite_tile_03",
-              "licence": "CC0-1.0",
-              "credit": "Poly Haven",
-              "verifiedBy": "asset-audit:Codex asset audit 2026-10-03: original texture provenance, file hash and dimensions (not a human product review)",
-              "file": "blender/assets/textures/granite_paving/color.jpg",
-              "kind": "closeup",
-              "webFile": "public/specs/textures/granite_paving-800.jpg",
-              "width": 4096,
-              "height": 4096,
-              "sha256": "beba3c0bf8a15c99d5e711ab21ce8573527f5e4ef38498a182cc785ce0c20596",
-              "webSha256": "8fbfb08e52bfe38950127eea900ae313073abcf70972a516e8b4659a6375540c",
-              "caption": "Material surface reference only; not a product or installed example."
-            }
-          ]
-        },
-        {
-          "id": "quartz",
-          "name": "Engineered quartz allowance",
-          "rateId": "kitchen-counter-quartz",
-          "blenderMaterial": "travertine",
-          "facts": [
-            "Durability: confirm the selected product grade.",
-            "Maintenance: follow the supplier cleaning guide.",
-            "Slip: not a walking-surface rating.",
-            "Suits: the stated scope; photo shows the surface only."
-          ],
-          "tags": [
-            "concept-allowance",
-            "surface-reference-not-product"
-          ],
-          "photos": [
-            {
-              "source": "https://ambientcg.com/a/Travertine009",
-              "licence": "CC0-1.0",
-              "credit": "ambientCG",
-              "verifiedBy": "asset-audit:Codex asset audit 2026-10-03: original texture provenance, file hash and dimensions (not a human product review)",
-              "file": "blender/assets/textures/travertine/color.jpg",
-              "kind": "closeup",
-              "webFile": "public/specs/textures/travertine-800.jpg",
-              "width": 4096,
-              "height": 4096,
-              "sha256": "6401575272509c88e2651fae9a8c22945e14032b9f0493c3600e014de57460a4",
-              "webSha256": "2d46c93406144eef5f6b7847e195239cde664729618666235d358c786a8713f9",
-              "caption": "Material surface reference only; not a product or installed example."
-            }
-          ]
-        },
-        {
-          "id": "stone",
-          "name": "Premium stone allowance",
-          "rateId": "kitchen-counter-stone",
-          "blenderMaterial": "travertine",
-          "facts": [
-            "Durability: confirm the selected product grade.",
-            "Maintenance: follow the supplier cleaning guide.",
-            "Slip: not a walking-surface rating.",
-            "Suits: the stated scope; photo shows the surface only."
-          ],
-          "tags": [
-            "concept-allowance",
-            "surface-reference-not-product"
-          ],
-          "photos": [
-            {
-              "source": "https://ambientcg.com/a/Travertine009",
-              "licence": "CC0-1.0",
-              "credit": "ambientCG",
-              "verifiedBy": "asset-audit:Codex asset audit 2026-10-03: original texture provenance, file hash and dimensions (not a human product review)",
-              "file": "blender/assets/textures/travertine/color.jpg",
-              "kind": "closeup",
-              "webFile": "public/specs/textures/travertine-800.jpg",
-              "width": 4096,
-              "height": 4096,
-              "sha256": "6401575272509c88e2651fae9a8c22945e14032b9f0493c3600e014de57460a4",
-              "webSha256": "2d46c93406144eef5f6b7847e195239cde664729618666235d358c786a8713f9",
-              "caption": "Material surface reference only; not a product or installed example."
-            }
-          ]
-        }
-      ]
+      "options": []
     },
     {
       "id": "kitchen-cabinets",
@@ -2621,6 +2524,123 @@
           ]
         }
       ]
+    },
+    {
+      "id": "kitchen-counter",
+      "group": "kitchen",
+      "label": "Kitchen counter",
+      "scope": "house",
+      "level": "main",
+      "control": "dropdown",
+      "note": "Photo is a reference stone surface, not a quartz or brand-certified sample.",
+      "options": [
+        {
+          "id": "granite",
+          "name": "Granite",
+          "rateId": "kitchen-counter-granite",
+          "blenderMaterial": "granite_paving",
+          "facts": [
+            "Durability: confirm the selected product grade.",
+            "Maintenance: follow the supplier cleaning guide.",
+            "Slip: not a walking-surface rating.",
+            "Suits: wet or outdoor areas with a tested slip rating."
+          ],
+          "tags": [
+            "concept-allowance",
+            "surface-reference-not-product"
+          ],
+          "photos": [
+            {
+              "source": "https://polyhaven.com/a/granite_tile_03",
+              "licence": "CC0-1.0",
+              "credit": "Poly Haven",
+              "verifiedBy": "asset-audit:Codex asset audit 2026-10-03: original texture provenance, file hash and dimensions (not a human product review)",
+              "file": "blender/assets/textures/granite_paving/color.jpg",
+              "kind": "closeup",
+              "webFile": "public/specs/textures/granite_paving-800.jpg",
+              "width": 4096,
+              "height": 4096,
+              "sha256": "beba3c0bf8a15c99d5e711ab21ce8573527f5e4ef38498a182cc785ce0c20596",
+              "webSha256": "8fbfb08e52bfe38950127eea900ae313073abcf70972a516e8b4659a6375540c",
+              "caption": "Material surface reference only; not a product or installed example."
+            }
+          ]
+        },
+        {
+          "id": "quartz",
+          "name": "Engineered quartz allowance",
+          "rateId": "kitchen-counter-quartz",
+          "blenderMaterial": "travertine",
+          "facts": [
+            "Durability: confirm the selected product grade.",
+            "Maintenance: follow the supplier cleaning guide.",
+            "Slip: not a walking-surface rating.",
+            "Suits: the stated scope; photo shows the surface only."
+          ],
+          "tags": [
+            "concept-allowance",
+            "surface-reference-not-product"
+          ],
+          "photos": [
+            {
+              "source": "https://ambientcg.com/a/Travertine009",
+              "licence": "CC0-1.0",
+              "credit": "ambientCG",
+              "verifiedBy": "asset-audit:Codex asset audit 2026-10-03: original texture provenance, file hash and dimensions (not a human product review)",
+              "file": "blender/assets/textures/travertine/color.jpg",
+              "kind": "closeup",
+              "webFile": "public/specs/textures/travertine-800.jpg",
+              "width": 4096,
+              "height": 4096,
+              "sha256": "6401575272509c88e2651fae9a8c22945e14032b9f0493c3600e014de57460a4",
+              "webSha256": "2d46c93406144eef5f6b7847e195239cde664729618666235d358c786a8713f9",
+              "caption": "Material surface reference only; not a product or installed example."
+            }
+          ]
+        },
+        {
+          "id": "stone",
+          "name": "Premium stone allowance",
+          "rateId": "kitchen-counter-stone",
+          "blenderMaterial": "travertine",
+          "facts": [
+            "Durability: confirm the selected product grade.",
+            "Maintenance: follow the supplier cleaning guide.",
+            "Slip: not a walking-surface rating.",
+            "Suits: the stated scope; photo shows the surface only."
+          ],
+          "tags": [
+            "concept-allowance",
+            "surface-reference-not-product"
+          ],
+          "photos": [
+            {
+              "source": "https://ambientcg.com/a/Travertine009",
+              "licence": "CC0-1.0",
+              "credit": "ambientCG",
+              "verifiedBy": "asset-audit:Codex asset audit 2026-10-03: original texture provenance, file hash and dimensions (not a human product review)",
+              "file": "blender/assets/textures/travertine/color.jpg",
+              "kind": "closeup",
+              "webFile": "public/specs/textures/travertine-800.jpg",
+              "width": 4096,
+              "height": 4096,
+              "sha256": "6401575272509c88e2651fae9a8c22945e14032b9f0493c3600e014de57460a4",
+              "webSha256": "2d46c93406144eef5f6b7847e195239cde664729618666235d358c786a8713f9",
+              "caption": "Material surface reference only; not a product or installed example."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kitchen-hardware",
+      "group": "kitchen",
+      "label": "Kitchen hardware upgrade",
+      "note": "Increment above standard hardware included in cabinets; per measured kitchen.",
+      "scope": "house",
+      "level": "more",
+      "control": "dropdown",
+      "options": []
     },
     {
       "id": "kitchen-sink",
@@ -6896,6 +6916,16 @@
           "photos": []
         }
       ]
+    },
+    {
+      "id": "waterproofing-specialist",
+      "group": "waterproofing",
+      "label": "Specialist waterproofing scope",
+      "note": "Tank coating, seepage and injection work are excluded until surveyed and measured.",
+      "scope": "house",
+      "level": "more",
+      "control": "dropdown",
+      "options": []
     }
   ]
 }

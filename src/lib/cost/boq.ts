@@ -7,6 +7,7 @@ import { boqMeasures } from './boqMeasures.ts'
 import { quantityRules } from './data/quantityRules.ts'
 import { estimateLabel, policy, type CostSelection } from './specifications.ts'
 import { selectionFromBrief } from './briefSelections.ts'
+import { finishProduct } from '../finishes/catalogue.ts'
 
 export type Trade = typeof TRADES[number]
 export type Band = { low: number; high: number }
@@ -107,10 +108,12 @@ function buildBoq(design: Design, brief: Brief, selection: CostSelection, quanti
     ...Object.entries(brief.specs.overrides).filter(([id]) => boqRules.unpricedItems[id]).map(([id]) => `${id}: ${boqRules.unpricedItems[id]}`),
   ]
   const disabledExtras = specsCatalogue.items.filter(i => i.group === 'extras' && resolveSpecification(brief, i.id).id === 'off').map(i => `${i.label} (not selected)`)
+  const unmeasuredSelections = specsCatalogue.items.filter(i => brief.specs.overrides[i.id] && finishProduct(resolveSpecification(brief, i.id).finishProductId)?.rate.basis === 'advisory')
+    .map(i => `${i.label}: ${boqRules.unpricedItems[i.id]}`)
   return { currency: 'INR', expected, total: band(expected), ratePerSqm: band(sqmRate), ratePerSqft, lines, boq, quantities, selection,
     label: estimateLabel(), qualification: policy.qualification, confidence: 'C', rateVersion: `${boqRules.version} · ${rateBook.settings.date}`,
     basis: `${quantities.floorArea.toFixed(1)} m² source-plan floor area · measured members, openings and room finishes · provisional ${rateBook.settings.city} rates`,
-    included: [...boqRules.included], excluded: [...boqRules.excluded, ...disabledExtras, ...(!selection.includeGst ? ['GST provision (not enabled)'] : [])],
+    included: [...boqRules.included], excluded: [...boqRules.excluded, ...disabledExtras, ...unmeasuredSelections, ...(!selection.includeGst ? ['GST provision (not enabled)'] : [])],
     assumptions, sources: [rateBook.status, ...policy.sources.map(s => `${s.label} — ${s.url}`)],
     sanityNote: sqmRate && (ratePerSqft < sanity.min || ratePerSqft > sanity.max) ? 'This estimate is outside the configured reference range. Check measured scope, optional extras and provisional rates with a local contractor.' : null,
     tradeTotals, procurement: { contractType: resolveSpecification(brief, 'contract-type').name, turnkey: direct + lines[1].expected,

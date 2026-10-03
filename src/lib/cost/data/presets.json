@@ -89,7 +89,10 @@
         "connections": "computed",
         "overhead": "computed",
         "contingency": "computed",
-        "gst": "computed"
+        "gst": "computed",
+        "kitchen-layout": "layout-match-plan",
+        "kitchen-hardware": "hardware-included",
+        "waterproofing-specialist": "wp-specialist-none"
       }
     },
     {
@@ -180,7 +183,10 @@
         "connections": "computed",
         "overhead": "computed",
         "contingency": "computed",
-        "gst": "computed"
+        "gst": "computed",
+        "kitchen-layout": "layout-match-plan",
+        "kitchen-hardware": "hardware-included",
+        "waterproofing-specialist": "wp-specialist-none"
       }
     },
     {
@@ -271,7 +277,10 @@
         "connections": "computed",
         "overhead": "computed",
         "contingency": "computed",
-        "gst": "computed"
+        "gst": "computed",
+        "kitchen-layout": "layout-match-plan",
+        "kitchen-hardware": "hardware-included",
+        "waterproofing-specialist": "wp-specialist-none"
       }
     }
   ]

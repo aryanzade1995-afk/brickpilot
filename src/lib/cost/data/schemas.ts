@@ -55,7 +55,7 @@ export const specsCatalogueSchema = z.strictObject({
   items: z.array(z.strictObject({ id, group: id, label: z.string().min(1), scope: z.enum(['house', 'perRoom']),
     level: z.enum(['main', 'more', 'technical', 'auto']), control: z.enum(['dropdown', 'toggle', 'computed']), note: z.string(),
     options: z.array(z.strictObject({ id, name: z.string().min(1), rateId: id, blenderMaterial: z.string().min(1), facts: z.array(z.string().min(1).max(110)).max(4),
-      tags: z.array(z.string().min(1)), photos: z.array(photoSchema), flooringProductId: id.optional(),
+      tags: z.array(z.string().min(1)), photos: z.array(photoSchema), flooringProductId: id.optional(), finishProductId: id.optional(),
     })).min(1),
   })).min(1),
 }).superRefine((v, ctx) => {
@@ -68,10 +68,11 @@ export const specsCatalogueSchema = z.strictObject({
     if (i.level === 'technical' && i.control !== 'dropdown') issue(`${i.id}: technical item needs a dropdown`)
     if (i.level !== 'auto' && i.control === 'computed') issue(`${i.id}: computed controls are automatic only`)
     if (['main', 'more'].includes(i.level)) {
-      if (i.control === 'toggle' ? i.options.length !== 2 || !i.options.some(o => o.id === 'off') || !i.options.some(o => o.id === 'on') : i.options.length < 3 || i.options.length > 6 && i.group !== 'flooring') issue(`${i.id}: invalid visible option count`)
+      if (i.control === 'toggle' ? i.options.length !== 2 || !i.options.some(o => o.id === 'off') || !i.options.some(o => o.id === 'on') : i.options.length < 3 || i.options.length > 6 && i.group !== 'flooring' && !i.options.some(o => o.finishProductId)) issue(`${i.id}: invalid visible option count`)
       for (const o of i.options) {
         if (o.flooringProductId && i.group !== 'flooring') issue(`${i.id}: product catalogue is for flooring only`)
-        if (!o.flooringProductId && !o.photos.some(p => p.kind === 'closeup')) issue(`${i.id}/${o.id}: verified close-up required`)
+        if (o.flooringProductId && o.finishProductId) issue(`${i.id}: ambiguous product reference`)
+        if (!o.flooringProductId && !o.finishProductId && !o.photos.some(p => p.kind === 'closeup')) issue(`${i.id}/${o.id}: verified close-up required`)
       }
     }
   }

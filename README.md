@@ -769,6 +769,21 @@ with persistence and rejected mutations. The review fixture and export examples
 remain isolated from the user's project.
 
 
+### Expanded villa finishes catalogue
+
+The seven wall/kitchen/door/window/railing/waterproofing/paint sections share
+`src/lib/finishes/products.json`: 129 additional data-driven choices (18 per section,
+21 for kitchen). `catalogue.ts` validates metadata, contextual filters and installed
+rate adapters; the existing Change → select → Use this workflow stays in place.
+Measured geometry and room scope remain authoritative. Kitchen layout is advisory;
+unmeasured specialist waterproofing is excluded pending a quote. Standard cabinet
+hardware is included, and the separate hardware choice prices only an upgrade.
+No AI imagery is used. Seven choices have audited previews (five distinct CC0
+natural textures and one official real gate photograph). The other 122 show
+Image unavailable. Manufacturer photography needs rights clearance before
+production or redistribution and is omitted from exports. See
+[catalogue coverage, sources, pricing scope and image audit](docs/finish-catalogue.md).
+
 ### Expanded Indian villa flooring catalogue
 
 `src/lib/flooring/products.json` is the reusable source for 25 flooring families.
