@@ -183,6 +183,8 @@ export const briefSchema = z
       .prefault({}),
     site: z
       .object({
+        /** Optional finish context; never changes the plan seed. */
+        climate: z.enum(['hot', 'moderate', 'humid']).optional(),
         plotWidth: z.number().min(6).max(80).default(15),
         plotDepth: z.number().min(6).max(80).default(18),
         facing: directionSchema.default('N'),
@@ -295,7 +297,8 @@ export const defaultBrief = (): Brief => briefSchema.parse({})
 /** Excludes cost preferences, preserving pre-specification saved-project seeds. */
 export function geometryBrief(brief: Brief) {
   const { finish: _finish, specs: _specs, ...geometry } = brief
-  return geometry
+  const { climate: _climate, ...site } = geometry.site
+  return { ...geometry, site }
 }
 
 /** people in the household — `spaces.occupants` is kept only for old briefs */

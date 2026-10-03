@@ -4,6 +4,7 @@ export { catalog, policy }
 export type FinishCategory = 'floor' | 'wall' | 'door' | 'window' | 'roof'
 export type CostSelection = {
   preset: string
+  catalogue?: true
   choices: Record<FinishCategory, string>
   roomFloors: Record<string, string>
   includeGst: boolean
@@ -29,7 +30,7 @@ export function parseSelection(value: unknown): CostSelection {
     const v = saved[key]
     return typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= policy.percentageLimit ? v : defaults[key]
   }
-  return { preset: catalog.presets.some(p => p.id === saved.preset) ? saved.preset! : defaults.preset,
+  return { ...(saved.catalogue === true ? { catalogue: true as const } : {}), preset: catalog.presets.some(p => p.id === saved.preset) ? saved.preset! : defaults.preset,
     choices, roomFloors, includeGst: saved.includeGst === true,
     overheadPercent: percent('overheadPercent'), contingencyPercent: percent('contingencyPercent'),
     feePercent: percent('feePercent'), gstPercent: percent('gstPercent') }

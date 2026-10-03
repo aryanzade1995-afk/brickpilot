@@ -119,6 +119,11 @@ export function SiteStep() {
           options={DIRECTIONS.map((d) => ({ value: d, label: d }))}
         />
       </Field>
+      <Field label="Climate context" hint="Optional. Used for finish suggestions; your plan stays the same.">
+        <select aria-label="Climate context" value={s.climate ?? ''} onChange={e => edit(b => { b.site.climate = (e.target.value || undefined) as typeof s.climate })} className="w-full border border-line bg-bg px-3 py-2.5 text-sm">
+          <option value="">Not specified</option><option value="hot">Hot</option><option value="moderate">Moderate</option><option value="humid">Humid</option>
+        </select>
+      </Field>
 
       <div>
         <span className="label">Setbacks (m)</span>

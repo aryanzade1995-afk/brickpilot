@@ -1,0 +1,256 @@
+{
+  "samples": [
+    {
+      "materialId": "white_plaster",
+      "texture": "blender/assets/textures/white_plaster/color.jpg",
+      "photo": {
+        "file": "public/specs/samples/white_plaster-1600.jpg",
+        "kind": "visualisation",
+        "source": "blender://specification-room",
+        "licence": "CC0-1.0",
+        "credit": "Formstead Blender sample; Poly Haven texture",
+        "verifiedBy": "render-audit: deterministic Blender sample, not a photograph",
+        "webFile": "public/specs/samples/white_plaster-800.jpg",
+        "width": 1600,
+        "height": 1000,
+        "sha256": "ec4d5e3326d13446f12017e4f2c5c5ae2c996c21f17b29f05ed4ce855a922998",
+        "webSha256": "7f3e14ec00f745a38a97085e8844d4aad17c93b10a6075b25c7ff498dbf082b7",
+        "caption": "Visualisation · material sample room, not a supplier product or your generated plan"
+      }
+    },
+    {
+      "materialId": "lime_plaster",
+      "texture": "blender/assets/textures/lime_plaster/color.jpg",
+      "photo": {
+        "file": "public/specs/samples/lime_plaster-1600.jpg",
+        "kind": "visualisation",
+        "source": "blender://specification-room",
+        "licence": "CC0-1.0",
+        "credit": "Formstead Blender sample; Poly Haven texture",
+        "verifiedBy": "render-audit: deterministic Blender sample, not a photograph",
+        "webFile": "public/specs/samples/lime_plaster-800.jpg",
+        "width": 1600,
+        "height": 1000,
+        "sha256": "a18309c5acd91fb05afff7ead5519f633eab9dd06aa8304c1ad2b39fc8566e92",
+        "webSha256": "3bfb19b94be73788a422c2a212add302c3dcf00696ca622cac49146c43fd6324",
+        "caption": "Visualisation · material sample room, not a supplier product or your generated plan"
+      }
+    },
+    {
+      "materialId": "exposed_concrete",
+      "texture": "blender/assets/textures/exposed_concrete/color.jpg",
+      "photo": {
+        "file": "public/specs/samples/exposed_concrete-1600.jpg",
+        "kind": "visualisation",
+        "source": "blender://specification-room",
+        "licence": "CC0-1.0",
+        "credit": "Formstead Blender sample; Poly Haven texture",
+        "verifiedBy": "render-audit: deterministic Blender sample, not a photograph",
+        "webFile": "public/specs/samples/exposed_concrete-800.jpg",
+        "width": 1600,
+        "height": 1000,
+        "sha256": "d837aafec10ae9a1b73cd35cf030250b761f8fd93dbe600ec228eb1d6b59cfa9",
+        "webSha256": "fdadb3e8cfa2e8a65ffe752980c6ce96e54ea4b817321ab2998cb233aeecc0de",
+        "caption": "Visualisation · material sample room, not a supplier product or your generated plan"
+      }
+    },
+    {
+      "materialId": "grey_stone",
+      "texture": "blender/assets/textures/grey_stone/color.jpg",
+      "photo": {
+        "file": "public/specs/samples/grey_stone-1600.jpg",
+        "kind": "visualisation",
+        "source": "blender://specification-room",
+        "licence": "CC0-1.0",
+        "credit": "Formstead Blender sample; Poly Haven texture",
+        "verifiedBy": "render-audit: deterministic Blender sample, not a photograph",
+        "webFile": "public/specs/samples/grey_stone-800.jpg",
+        "width": 1600,
+        "height": 1000,
+        "sha256": "adb999f1365373c6ce0b4f05179ceb6d60180b307951a2c7027f52ed06426025",
+        "webSha256": "d2d07144ee1406ca10fc93be973c74e8da2e27c37e405ee60d5d36eb80ff94d7",
+        "caption": "Visualisation · material sample room, not a supplier product or your generated plan"
+      }
+    },
+    {
+      "materialId": "sandstone",
+      "texture": "blender/assets/textures/sandstone/color.jpg",
+      "photo": {
+        "file": "public/specs/samples/sandstone-1600.jpg",
+        "kind": "visualisation",
+        "source": "blender://specification-room",
+        "licence": "CC0-1.0",
+        "credit": "Formstead Blender sample; Poly Haven texture",
+        "verifiedBy": "render-audit: deterministic Blender sample, not a photograph",
+        "webFile": "public/specs/samples/sandstone-800.jpg",
+        "width": 1600,
+        "height": 1000,
+        "sha256": "4a38352236416d08b5ffe128a4fc79b3f7053c97bdac6436a6ed6003d88978b0",
+        "webSha256": "16ec03deb0c0ea3e7e6456f44d778008a2e5b17ac97fd8e09dfe602a1cae412c",
+        "caption": "Visualisation · material sample room, not a supplier product or your generated plan"
+      }
+    },
+    {
+      "materialId": "teak_wood",
+      "texture": "blender/assets/textures/teak_wood/color.jpg",
+      "photo": {
+        "file": "public/specs/samples/teak_wood-1600.jpg",
+        "kind": "visualisation",
+        "source": "blender://specification-room",
+        "licence": "CC0-1.0",
+        "credit": "Formstead Blender sample; Poly Haven texture",
+        "verifiedBy": "render-audit: deterministic Blender sample, not a photograph",
+        "webFile": "public/specs/samples/teak_wood-800.jpg",
+        "width": 1600,
+        "height": 1000,
+        "sha256": "8430082416ea6695c9e4658fc6a984ce7c2ea1b92266d7f8c304ecfcc2e13655",
+        "webSha256": "0b0f98bfe06e5248dea3fe4a5d3cde2a580b298508e188780bba2adb3b047b7d",
+        "caption": "Visualisation · material sample room, not a supplier product or your generated plan"
+      }
+    },
+    {
+      "materialId": "dark_wood",
+      "texture": "blender/assets/textures/dark_wood/color.jpg",
+      "photo": {
+        "file": "public/specs/samples/dark_wood-1600.jpg",
+        "kind": "visualisation",
+        "source": "blender://specification-room",
+        "licence": "CC0-1.0",
+        "credit": "Formstead Blender sample; Poly Haven texture",
+        "verifiedBy": "render-audit: deterministic Blender sample, not a photograph",
+        "webFile": "public/specs/samples/dark_wood-800.jpg",
+        "width": 1600,
+        "height": 1000,
+        "sha256": "6f949f572f96f7c3b125e3082c248cd91ffdef141cc3e818c23a22173ad69b01",
+        "webSha256": "91809ee23c94d1150a093fd6796cba90c20a06d9ace3a03a54e0bfa2903ae179",
+        "caption": "Visualisation · material sample room, not a supplier product or your generated plan"
+      }
+    },
+    {
+      "materialId": "terracotta_tile",
+      "texture": "blender/assets/textures/terracotta_tile/color.jpg",
+      "photo": {
+        "file": "public/specs/samples/terracotta_tile-1600.jpg",
+        "kind": "visualisation",
+        "source": "blender://specification-room",
+        "licence": "CC0-1.0",
+        "credit": "Formstead Blender sample; Poly Haven texture",
+        "verifiedBy": "render-audit: deterministic Blender sample, not a photograph",
+        "webFile": "public/specs/samples/terracotta_tile-800.jpg",
+        "width": 1600,
+        "height": 1000,
+        "sha256": "50c5f5f948f6f37343a0b7fddfe1831da81f2e3665f58a25be6e294263835426",
+        "webSha256": "0ec94fa2471d8ce108f2a13c1045f355510cf555e3a9a328b58bfd88b762dbde",
+        "caption": "Visualisation · material sample room, not a supplier product or your generated plan"
+      }
+    },
+    {
+      "materialId": "granite_paving",
+      "texture": "blender/assets/textures/granite_paving/color.jpg",
+      "photo": {
+        "file": "public/specs/samples/granite_paving-1600.jpg",
+        "kind": "visualisation",
+        "source": "blender://specification-room",
+        "licence": "CC0-1.0",
+        "credit": "Formstead Blender sample; Poly Haven texture",
+        "verifiedBy": "render-audit: deterministic Blender sample, not a photograph",
+        "webFile": "public/specs/samples/granite_paving-800.jpg",
+        "width": 1600,
+        "height": 1000,
+        "sha256": "80b78e09576bda828bf417baf16dc61877e5dfeeea36a9eb63f3cbbbc124bb73",
+        "webSha256": "4bfd1658f734aea4da6043f57970d313ca6f8e91ee1250eec8ef29205874a9de",
+        "caption": "Visualisation · material sample room, not a supplier product or your generated plan"
+      }
+    },
+    {
+      "materialId": "grass",
+      "texture": "blender/assets/textures/grass/color.jpg",
+      "photo": {
+        "file": "public/specs/samples/grass-1600.jpg",
+        "kind": "visualisation",
+        "source": "blender://specification-room",
+        "licence": "CC0-1.0",
+        "credit": "Formstead Blender sample; Poly Haven texture",
+        "verifiedBy": "render-audit: deterministic Blender sample, not a photograph",
+        "webFile": "public/specs/samples/grass-800.jpg",
+        "width": 1600,
+        "height": 1000,
+        "sha256": "057a137dfb4b36594c0229a27ab5f3a22aefbdc7f2a9a81b4872e1c402ef6477",
+        "webSha256": "f92620aa4a56be1fff9319e82bd615a91afb0d5c83f414436e3740a6daddd48f",
+        "caption": "Visualisation · material sample room, not a supplier product or your generated plan"
+      }
+    },
+    {
+      "materialId": "gravel",
+      "texture": "blender/assets/textures/gravel/color.jpg",
+      "photo": {
+        "file": "public/specs/samples/gravel-1600.jpg",
+        "kind": "visualisation",
+        "source": "blender://specification-room",
+        "licence": "CC0-1.0",
+        "credit": "Formstead Blender sample; Poly Haven texture",
+        "verifiedBy": "render-audit: deterministic Blender sample, not a photograph",
+        "webFile": "public/specs/samples/gravel-800.jpg",
+        "width": 1600,
+        "height": 1000,
+        "sha256": "ba7867f47b442b8176e2f34d6199cc432bf59933e4ddab44e2ca80e86bcccdd8",
+        "webSha256": "f55ba52fc13c535dec7aed9e332b24ef4305c03cbe091df4dd175a9271a22e82",
+        "caption": "Visualisation · material sample room, not a supplier product or your generated plan"
+      }
+    },
+    {
+      "materialId": "travertine",
+      "texture": "blender/assets/textures/travertine/color.jpg",
+      "photo": {
+        "file": "public/specs/samples/travertine-1600.jpg",
+        "kind": "visualisation",
+        "source": "blender://specification-room",
+        "licence": "CC0-1.0",
+        "credit": "Formstead Blender sample; ambientCG texture",
+        "verifiedBy": "render-audit: deterministic Blender sample, not a photograph",
+        "webFile": "public/specs/samples/travertine-800.jpg",
+        "width": 1600,
+        "height": 1000,
+        "sha256": "2212a8d3b348f0e0e4ca6636d8043170e61ddb8ac9bce67ff2a84a8af3efe562",
+        "webSha256": "47e43340387083c69c65490304d0cca1d9f0562ae84643960bcec0e1d941095c",
+        "caption": "Visualisation · material sample room, not a supplier product or your generated plan"
+      }
+    },
+    {
+      "materialId": "metal_plate",
+      "texture": "blender/assets/textures/metal_plate/color.jpg",
+      "photo": {
+        "file": "public/specs/samples/metal_plate-1600.jpg",
+        "kind": "visualisation",
+        "source": "blender://specification-room",
+        "licence": "CC0-1.0",
+        "credit": "Formstead Blender sample; Rob Tuytel / Poly Haven texture",
+        "verifiedBy": "render-audit: deterministic Blender sample, not a photograph",
+        "webFile": "public/specs/samples/metal_plate-800.jpg",
+        "width": 1600,
+        "height": 1000,
+        "sha256": "581a3b1883314bd4e1be619ea3a0b9f0c5054301f7a6aa9988f81c71b9f4e0b2",
+        "webSha256": "831017be5c841d7d2998a291e3c3e47a14670e025368ed94038089e94cc4aff3",
+        "caption": "Visualisation · material sample room, not a supplier product or your generated plan"
+      }
+    },
+    {
+      "materialId": "ceramic_tile",
+      "texture": "blender/assets/textures/floor_tiles_02/color.jpg",
+      "photo": {
+        "file": "public/specs/samples/ceramic_tile-1600.jpg",
+        "kind": "visualisation",
+        "source": "blender://specification-room",
+        "licence": "CC0-1.0",
+        "credit": "Formstead Blender sample; Rob Tuytel / Poly Haven texture",
+        "verifiedBy": "render-audit: deterministic Blender sample, not a photograph",
+        "webFile": "public/specs/samples/ceramic_tile-800.jpg",
+        "width": 1600,
+        "height": 1000,
+        "sha256": "35e7a6f48a6860bcf948d14c7b1ae24231c52bd80636ff71028c7c449c2974ba",
+        "webSha256": "f3ba4959bb0cbc3e60546917095411f9f6a06f1cef623ad2b83035c90948bfa9",
+        "caption": "Visualisation · material sample room, not a supplier product or your generated plan"
+      }
+    }
+  ]
+}

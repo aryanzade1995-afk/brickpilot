@@ -1,0 +1,31 @@
+{
+  "rules": [
+    {
+      "condition": "senior",
+      "items": [
+        "floor-living",
+        "floor-bedrooms",
+        "floor-bathrooms",
+        "floor-other"
+      ],
+      "option": "anti-skid",
+      "reason": "Your brief includes a senior. Specify a tested slip-resistant finish, especially in bathrooms; confirm the supplier rating."
+    },
+    {
+      "condition": "children",
+      "items": [
+        "interior-paint"
+      ],
+      "option": "washable",
+      "reason": "Your brief includes children. A washable paint specification makes routine marks easier to clean."
+    },
+    {
+      "condition": "hot",
+      "items": [
+        "roof-type"
+      ],
+      "option": "cool",
+      "reason": "Your site is marked as hot climate. A rated light cool-roof finish can reduce terrace heat absorption."
+    }
+  ]
+}

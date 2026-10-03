@@ -1277,6 +1277,39 @@
               "caption": "Material surface reference only; not a product or installed example."
             }
           ]
+        },
+        {
+          "id": "anti-skid",
+          "name": "Test-rated anti-skid tile allowance",
+          "rateId": "floor-living-anti-skid",
+          "blenderMaterial": "ceramic_tile",
+          "facts": [
+            "Durability: select a tested residential tile grade.",
+            "Maintenance: textured tiles need regular cleaning.",
+            "Slip: require a verified wet-slip rating from the supplier.",
+            "Suits: senior rooms and bathrooms; this photo is not a rating."
+          ],
+          "tags": [
+            "concept-allowance",
+            "surface-reference-not-product",
+            "slip-rating-required"
+          ],
+          "photos": [
+            {
+              "source": "https://polyhaven.com/a/floor_tiles_02",
+              "licence": "CC0-1.0",
+              "credit": "Rob Tuytel / Poly Haven",
+              "verifiedBy": "asset-audit:Codex 2026-10-03; original-source provenance, dimensions and file hashes; not installed-product review",
+              "file": "blender/assets/textures/floor_tiles_02/color.jpg",
+              "kind": "closeup",
+              "webFile": "public/specs/textures/ceramic_tile-800.jpg",
+              "width": 2048,
+              "height": 2048,
+              "sha256": "9a4e5acbb6c71e03979cc75fe1121ae0dc66583153cab9f32116c79e33707634",
+              "webSha256": "afe176d7757ce97422ca10e80d1c9e532b37a0d057fc2210931d3d08226386ca",
+              "caption": "Material surface reference only; not a product or installed example."
+            }
+          ]
         }
       ]
     },
@@ -1381,6 +1414,39 @@
               "height": 4096,
               "sha256": "6401575272509c88e2651fae9a8c22945e14032b9f0493c3600e014de57460a4",
               "webSha256": "2d46c93406144eef5f6b7847e195239cde664729618666235d358c786a8713f9",
+              "caption": "Material surface reference only; not a product or installed example."
+            }
+          ]
+        },
+        {
+          "id": "anti-skid",
+          "name": "Test-rated anti-skid tile allowance",
+          "rateId": "floor-bedrooms-anti-skid",
+          "blenderMaterial": "ceramic_tile",
+          "facts": [
+            "Durability: select a tested residential tile grade.",
+            "Maintenance: textured tiles need regular cleaning.",
+            "Slip: require a verified wet-slip rating from the supplier.",
+            "Suits: senior rooms and bathrooms; this photo is not a rating."
+          ],
+          "tags": [
+            "concept-allowance",
+            "surface-reference-not-product",
+            "slip-rating-required"
+          ],
+          "photos": [
+            {
+              "source": "https://polyhaven.com/a/floor_tiles_02",
+              "licence": "CC0-1.0",
+              "credit": "Rob Tuytel / Poly Haven",
+              "verifiedBy": "asset-audit:Codex 2026-10-03; original-source provenance, dimensions and file hashes; not installed-product review",
+              "file": "blender/assets/textures/floor_tiles_02/color.jpg",
+              "kind": "closeup",
+              "webFile": "public/specs/textures/ceramic_tile-800.jpg",
+              "width": 2048,
+              "height": 2048,
+              "sha256": "9a4e5acbb6c71e03979cc75fe1121ae0dc66583153cab9f32116c79e33707634",
+              "webSha256": "afe176d7757ce97422ca10e80d1c9e532b37a0d057fc2210931d3d08226386ca",
               "caption": "Material surface reference only; not a product or installed example."
             }
           ]
@@ -1491,6 +1557,39 @@
               "caption": "Material surface reference only; not a product or installed example."
             }
           ]
+        },
+        {
+          "id": "anti-skid",
+          "name": "Test-rated anti-skid tile allowance",
+          "rateId": "floor-kitchen-anti-skid",
+          "blenderMaterial": "ceramic_tile",
+          "facts": [
+            "Durability: select a tested residential tile grade.",
+            "Maintenance: textured tiles need regular cleaning.",
+            "Slip: require a verified wet-slip rating from the supplier.",
+            "Suits: senior rooms and bathrooms; this photo is not a rating."
+          ],
+          "tags": [
+            "concept-allowance",
+            "surface-reference-not-product",
+            "slip-rating-required"
+          ],
+          "photos": [
+            {
+              "source": "https://polyhaven.com/a/floor_tiles_02",
+              "licence": "CC0-1.0",
+              "credit": "Rob Tuytel / Poly Haven",
+              "verifiedBy": "asset-audit:Codex 2026-10-03; original-source provenance, dimensions and file hashes; not installed-product review",
+              "file": "blender/assets/textures/floor_tiles_02/color.jpg",
+              "kind": "closeup",
+              "webFile": "public/specs/textures/ceramic_tile-800.jpg",
+              "width": 2048,
+              "height": 2048,
+              "sha256": "9a4e5acbb6c71e03979cc75fe1121ae0dc66583153cab9f32116c79e33707634",
+              "webSha256": "afe176d7757ce97422ca10e80d1c9e532b37a0d057fc2210931d3d08226386ca",
+              "caption": "Material surface reference only; not a product or installed example."
+            }
+          ]
         }
       ]
     },
@@ -1598,6 +1697,39 @@
               "caption": "Material surface reference only; not a product or installed example."
             }
           ]
+        },
+        {
+          "id": "anti-skid",
+          "name": "Test-rated anti-skid tile allowance",
+          "rateId": "floor-bathrooms-anti-skid",
+          "blenderMaterial": "ceramic_tile",
+          "facts": [
+            "Durability: select a tested residential tile grade.",
+            "Maintenance: textured tiles need regular cleaning.",
+            "Slip: require a verified wet-slip rating from the supplier.",
+            "Suits: senior rooms and bathrooms; this photo is not a rating."
+          ],
+          "tags": [
+            "concept-allowance",
+            "surface-reference-not-product",
+            "slip-rating-required"
+          ],
+          "photos": [
+            {
+              "source": "https://polyhaven.com/a/floor_tiles_02",
+              "licence": "CC0-1.0",
+              "credit": "Rob Tuytel / Poly Haven",
+              "verifiedBy": "asset-audit:Codex 2026-10-03; original-source provenance, dimensions and file hashes; not installed-product review",
+              "file": "blender/assets/textures/floor_tiles_02/color.jpg",
+              "kind": "closeup",
+              "webFile": "public/specs/textures/ceramic_tile-800.jpg",
+              "width": 2048,
+              "height": 2048,
+              "sha256": "9a4e5acbb6c71e03979cc75fe1121ae0dc66583153cab9f32116c79e33707634",
+              "webSha256": "afe176d7757ce97422ca10e80d1c9e532b37a0d057fc2210931d3d08226386ca",
+              "caption": "Material surface reference only; not a product or installed example."
+            }
+          ]
         }
       ]
     },
@@ -1702,6 +1834,39 @@
               "height": 4096,
               "sha256": "6401575272509c88e2651fae9a8c22945e14032b9f0493c3600e014de57460a4",
               "webSha256": "2d46c93406144eef5f6b7847e195239cde664729618666235d358c786a8713f9",
+              "caption": "Material surface reference only; not a product or installed example."
+            }
+          ]
+        },
+        {
+          "id": "anti-skid",
+          "name": "Test-rated anti-skid tile allowance",
+          "rateId": "floor-other-anti-skid",
+          "blenderMaterial": "ceramic_tile",
+          "facts": [
+            "Durability: select a tested residential tile grade.",
+            "Maintenance: textured tiles need regular cleaning.",
+            "Slip: require a verified wet-slip rating from the supplier.",
+            "Suits: senior rooms and bathrooms; this photo is not a rating."
+          ],
+          "tags": [
+            "concept-allowance",
+            "surface-reference-not-product",
+            "slip-rating-required"
+          ],
+          "photos": [
+            {
+              "source": "https://polyhaven.com/a/floor_tiles_02",
+              "licence": "CC0-1.0",
+              "credit": "Rob Tuytel / Poly Haven",
+              "verifiedBy": "asset-audit:Codex 2026-10-03; original-source provenance, dimensions and file hashes; not installed-product review",
+              "file": "blender/assets/textures/floor_tiles_02/color.jpg",
+              "kind": "closeup",
+              "webFile": "public/specs/textures/ceramic_tile-800.jpg",
+              "width": 2048,
+              "height": 2048,
+              "sha256": "9a4e5acbb6c71e03979cc75fe1121ae0dc66583153cab9f32116c79e33707634",
+              "webSha256": "afe176d7757ce97422ca10e80d1c9e532b37a0d057fc2210931d3d08226386ca",
               "caption": "Material surface reference only; not a product or installed example."
             }
           ]
@@ -2997,7 +3162,7 @@
       "group": "windows-glass-grills",
       "label": "Glass specification",
       "scope": "house",
-      "level": "more",
+      "level": "main",
       "control": "dropdown",
       "note": "Photo is a frame-surface reference, not a photograph of transparent glass. Confirm safety requirements with the supplier.",
       "options": [
@@ -5290,6 +5455,39 @@
               "height": 4096,
               "sha256": "a5c601595f42dba60fbb8eabf4ab3adab7b08d8857f2e39c32207af15f194ebd",
               "webSha256": "5a331872da6aa55a5a82e74b382d0fd5f3d0bba98d9056c968f02e66e57f466c",
+              "caption": "Material surface reference only; not a product or installed example."
+            }
+          ]
+        },
+        {
+          "id": "cool",
+          "name": "Light cool-roof finish allowance",
+          "rateId": "roof-type-cool",
+          "blenderMaterial": "exposed_concrete",
+          "facts": [
+            "Durability: confirm the compatible terrace system.",
+            "Maintenance: renew according to the coating specification.",
+            "Slip: require a tested finish on accessible terrace paths.",
+            "Suits: hot-climate terraces; verify solar reflectance rating."
+          ],
+          "tags": [
+            "concept-allowance",
+            "surface-reference-not-product",
+            "solar-reflectance-required"
+          ],
+          "photos": [
+            {
+              "source": "https://polyhaven.com/a/concrete_wall_005",
+              "licence": "CC0-1.0",
+              "credit": "Poly Haven",
+              "verifiedBy": "asset-audit:Codex asset audit 2026-10-03: original texture provenance, file hash and dimensions (not a human product review)",
+              "file": "blender/assets/textures/exposed_concrete/color.jpg",
+              "kind": "closeup",
+              "webFile": "public/specs/textures/exposed_concrete-800.jpg",
+              "width": 4096,
+              "height": 4096,
+              "sha256": "b6b4d7d2a956b0de0ebe75546896c2267f4746d2b8c47eac5a5a3e47e9b09f69",
+              "webSha256": "f7fd5df0834018bee543da1d3a94e394be5252b68cb8a8072f50c05b9acb2d17",
               "caption": "Material surface reference only; not a product or installed example."
             }
           ]

@@ -2226,6 +2226,66 @@
       "date": "2026-10-03",
       "source": "Maharashtra PWD SOR + market, approximate",
       "verification": "provisional-allowance"
+    },
+    {
+      "id": "floor-living-anti-skid",
+      "unit": "m2",
+      "material": 1548,
+      "labour": 602,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "floor-bedrooms-anti-skid",
+      "unit": "m2",
+      "material": 1548,
+      "labour": 602,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "floor-kitchen-anti-skid",
+      "unit": "m2",
+      "material": 1548,
+      "labour": 602,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "floor-bathrooms-anti-skid",
+      "unit": "m2",
+      "material": 1548,
+      "labour": 602,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "floor-other-anti-skid",
+      "unit": "m2",
+      "material": 1548,
+      "labour": 602,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "roof-type-cool",
+      "unit": "m2",
+      "material": 972,
+      "labour": 378,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
     }
   ]
 }
