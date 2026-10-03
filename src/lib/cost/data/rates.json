@@ -35,11 +35,11 @@
   "sanityBands": {
     "basic": {
       "min": 1800,
-      "max": 3000
+      "max": 3800
     },
     "mid": {
       "min": 2500,
-      "max": 4500
+      "max": 5200
     },
     "premium": {
       "min": 3500,
@@ -2202,6 +2202,26 @@
       "unit": "m2",
       "material": 20160.0,
       "labour": 7840.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "boq-pcc",
+      "unit": "m3",
+      "material": 4100,
+      "labour": 900,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "boq-formwork",
+      "unit": "m2",
+      "material": 470,
+      "labour": 330,
       "city": "Pune",
       "date": "2026-10-03",
       "source": "Maharashtra PWD SOR + market, approximate",

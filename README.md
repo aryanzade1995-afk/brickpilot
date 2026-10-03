@@ -67,6 +67,11 @@ IFC-style names, member concrete/steel/formwork, finishes, services and site
 works. Configurable concept sizing is shared by drawings and Blender;
 **approximate; structural design by a licensed engineer required**.
 
+The [specification-driven BOQ](docs/boq.md) prices those measured quantities
+through finish presets and house/room overrides, with separate trade totals,
+material/labour splits and project add-ons. Rates and reference bands remain
+provisional concept data; cost never changes the source plan.
+
 The additional `BuildingModel -> VillaDesignDNA -> MassingModel` data pipeline
 is documented in [Procedural massing](docs/procedural-massing.md). It preserves
 the verified 2D plan, supports 15 conditional massing families and generates

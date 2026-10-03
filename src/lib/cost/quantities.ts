@@ -82,7 +82,7 @@ function measureEnvelope(design: Design): EnvelopeQuantities {
     pavingArea: siteArea(['parking', 'driveway', 'path', 'sitOut', 'utilityYard']), lawnArea: siteArea(['lawn']), poolArea: siteArea(['pool']), rooms,
     assumptions: ['Floor areas use source footprint unions minus courtyard and double-height voids. Roofs include exposed lower roofs and ceilings over double-height space.',
       'Paint covers both wall faces after opening deductions; wall-height and missing opening heights use documented concept defaults.',
-      'Floor finishes use indoor room rectangles; structure, MEP and pool use area allowances, not engineered quantities.',
+      'Floor finishes use indoor room rectangles; RCC and masonry use measured members. Service points and pool equipment remain concept allowances.',
       'Blender-only facade additions, furniture and landscape objects are excluded.'] }
 }
 
@@ -320,5 +320,5 @@ export function calculateQuantities(design:Design):Quantities {
       'RCC includes the ground/plinth floor plate and exposed roof plates once; intermediate stair landings remain, stair/shaft voids are deducted. No pile or raft design is inferred.',
       'Columns stop at slab soffits; beams use clear spans and exclude slab depth. Masonry deducts the union of openings, columns, beams and lintels; plaster includes RCC faces.',
       'Stair RCC uses inclined waist slabs, triangular treads and a turning landing. Points, glazing fraction, grills, skirting and tank capacities are configurable allowances.',
-      'Terrace perimeter is a parapet by default; guard railing is counted at the stair opening. Quantities do not replace existing area-priced BOQ allowances.']}
+      'Terrace perimeter is a parapet by default; guard railing is counted at the stair opening. Detailed member quantities replace legacy floor-area allowances in the BOQ.']}
 }

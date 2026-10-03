@@ -1,0 +1,752 @@
+{
+  "version": "pune-member-boq-v1",
+  "memoEntries": 24,
+  "driverCount": 5,
+  "recipes": [
+    {
+      "item": "site-clearance",
+      "key": "plotArea",
+      "label": "Site clearance",
+      "trade": "Civil & structure",
+      "from": "extra",
+      "measure": "NetArea",
+      "note": ""
+    },
+    {
+      "item": "site-survey",
+      "key": "one",
+      "label": "Survey allowance",
+      "trade": "Civil & structure",
+      "from": "extra",
+      "measure": "Count",
+      "note": ""
+    },
+    {
+      "item": "excavation",
+      "key": "earthwork.excavation",
+      "label": "Foundation excavation",
+      "trade": "Civil & structure",
+      "from": "items",
+      "measure": "NetVolume",
+      "note": ""
+    },
+    {
+      "item": "backfill",
+      "key": "earthwork.backfill",
+      "label": "Foundation backfill",
+      "trade": "Civil & structure",
+      "from": "items",
+      "measure": "NetVolume",
+      "note": ""
+    },
+    {
+      "item": "backfill",
+      "key": "earthwork.plinthFilling",
+      "label": "Plinth filling",
+      "trade": "Civil & structure",
+      "from": "items",
+      "measure": "NetVolume",
+      "note": ""
+    },
+    {
+      "item": "foundation",
+      "key": "earthwork.pcc",
+      "label": "Lean PCC below footings",
+      "trade": "Civil & structure",
+      "from": "items",
+      "measure": "NetVolume",
+      "note": "Separate lean PCC; no reinforcement or formwork.",
+      "rateId": "boq-pcc"
+    },
+    {
+      "item": "anti-termite",
+      "key": "earthwork.antiTermite",
+      "label": "Anti-termite treatment",
+      "trade": "Civil & structure",
+      "from": "items",
+      "measure": "NetArea",
+      "note": ""
+    },
+    {
+      "item": "concrete-grade",
+      "key": "concrete.*",
+      "label": "RCC",
+      "trade": "Civil & structure",
+      "from": "items",
+      "measure": "NetVolume",
+      "note": "Placed concrete only; steel and formwork priced separately. Cement, sand and aggregate included."
+    },
+    {
+      "item": "reinforcement",
+      "key": "*",
+      "label": "Reinforcement",
+      "trade": "Civil & structure",
+      "from": "steel",
+      "measure": "Count",
+      "note": "Member-specific kg/m\u00b3 ratios; not an engineered bar schedule."
+    },
+    {
+      "item": "foundation",
+      "key": "*",
+      "label": "Formwork",
+      "trade": "Civil & structure",
+      "from": "formwork",
+      "measure": "NetArea",
+      "note": "Measured contact surfaces; separate from concrete and reinforcement.",
+      "rateId": "boq-formwork"
+    },
+    {
+      "item": "masonry-type",
+      "key": "masonry.*",
+      "label": "Masonry",
+      "trade": "Civil & structure",
+      "from": "items",
+      "measure": "NetVolume",
+      "note": "230/115 mm source walls and parapet; openings and RCC deductions already applied."
+    },
+    {
+      "item": "internal-plaster",
+      "key": "interiorPlaster",
+      "label": "Internal wall plaster",
+      "trade": "Civil & structure",
+      "from": "extra",
+      "measure": "NetArea",
+      "note": ""
+    },
+    {
+      "item": "internal-plaster",
+      "key": "plaster.ceiling",
+      "label": "Ceiling plaster",
+      "trade": "Civil & structure",
+      "from": "items",
+      "measure": "NetArea",
+      "note": ""
+    },
+    {
+      "item": "external-plaster",
+      "key": "exteriorPlaster",
+      "label": "External wall and parapet plaster",
+      "trade": "Civil & structure",
+      "from": "extra",
+      "measure": "NetArea",
+      "note": ""
+    },
+    {
+      "item": "floor-living",
+      "key": "floor:living",
+      "label": "Living / dining flooring",
+      "trade": "Flooring & tiling",
+      "from": "room",
+      "measure": "NetArea",
+      "note": ""
+    },
+    {
+      "item": "floor-bedrooms",
+      "key": "floor:bedroom",
+      "label": "Bedroom flooring",
+      "trade": "Flooring & tiling",
+      "from": "room",
+      "measure": "NetArea",
+      "note": ""
+    },
+    {
+      "item": "floor-kitchen",
+      "key": "floor:kitchen",
+      "label": "Kitchen flooring",
+      "trade": "Flooring & tiling",
+      "from": "room",
+      "measure": "NetArea",
+      "note": ""
+    },
+    {
+      "item": "floor-bathrooms",
+      "key": "floor:bath",
+      "label": "Bathroom flooring",
+      "trade": "Flooring & tiling",
+      "from": "room",
+      "measure": "NetArea",
+      "note": ""
+    },
+    {
+      "item": "floor-other",
+      "key": "floor:other",
+      "label": "Other indoor flooring",
+      "trade": "Flooring & tiling",
+      "from": "room",
+      "measure": "NetArea",
+      "note": ""
+    },
+    {
+      "item": "floor-other",
+      "key": "skirting",
+      "label": "Skirting",
+      "trade": "Flooring & tiling",
+      "from": "room",
+      "measure": "NetArea",
+      "note": "100 mm high equivalent tile area, using the room flooring specification."
+    },
+    {
+      "item": "bath-wall-tiles",
+      "key": "wetTiles",
+      "label": "Bathroom wall tiles",
+      "trade": "Flooring & tiling",
+      "from": "room",
+      "measure": "NetArea",
+      "note": ""
+    },
+    {
+      "item": "kitchen-wall-tiles",
+      "key": "dado",
+      "label": "Kitchen dado",
+      "trade": "Flooring & tiling",
+      "from": "room",
+      "measure": "NetArea",
+      "note": ""
+    },
+    {
+      "item": "floor-outdoor",
+      "key": "balconyArea",
+      "label": "Outdoor balcony finish",
+      "trade": "Flooring & tiling",
+      "from": "extra",
+      "measure": "NetArea",
+      "note": ""
+    },
+    {
+      "item": "stair-finish",
+      "key": "stairArea",
+      "label": "Stair finish",
+      "trade": "Flooring & tiling",
+      "from": "extra",
+      "measure": "NetArea",
+      "note": "Source staircase plan finish allowance; risers and waste included in provisional installed rate."
+    },
+    {
+      "item": "kitchen-counter",
+      "key": "counter",
+      "label": "Kitchen counter",
+      "trade": "Extras",
+      "from": "room",
+      "measure": "NetArea",
+      "note": "Kitchen run is a documented perimeter allowance, pending cabinet drawings."
+    },
+    {
+      "item": "kitchen-cabinets",
+      "key": "cabinets",
+      "label": "Kitchen cabinets",
+      "trade": "Extras",
+      "from": "room",
+      "measure": "NetArea",
+      "note": "Kitchen run is a documented perimeter allowance, pending cabinet drawings."
+    },
+    {
+      "item": "kitchen-sink",
+      "key": "sink",
+      "label": "Kitchen sink",
+      "trade": "Extras",
+      "from": "room",
+      "measure": "Count",
+      "note": "Kitchen run is a documented perimeter allowance, pending cabinet drawings."
+    },
+    {
+      "item": "main-door",
+      "key": "mainDoors",
+      "label": "Main entry doors",
+      "trade": "Doors & windows",
+      "from": "extra",
+      "measure": "NetArea",
+      "note": ""
+    },
+    {
+      "item": "internal-door",
+      "key": "internalDoors",
+      "label": "Internal door leaves and frames",
+      "trade": "Doors & windows",
+      "from": "extra",
+      "measure": "NetArea",
+      "note": ""
+    },
+    {
+      "item": "door-hardware",
+      "key": "doorCount",
+      "label": "Door hardware",
+      "trade": "Doors & windows",
+      "from": "extra",
+      "measure": "Count",
+      "note": ""
+    },
+    {
+      "item": "windows",
+      "key": "windowFrames",
+      "label": "Window frames",
+      "trade": "Doors & windows",
+      "from": "extra",
+      "measure": "NetArea",
+      "note": "Frame assembly rate excludes glass; glass is a separate measured line."
+    },
+    {
+      "item": "glass",
+      "key": "glazing",
+      "label": "Window glazing",
+      "trade": "Doors & windows",
+      "from": "items",
+      "measure": "NetArea",
+      "note": ""
+    },
+    {
+      "item": "window-grills",
+      "key": "grills",
+      "label": "Window grills",
+      "trade": "Doors & windows",
+      "from": "items",
+      "measure": "NetArea",
+      "note": ""
+    },
+    {
+      "item": "balcony-railings",
+      "key": "railings.stairs",
+      "label": "Stair railings",
+      "trade": "Doors & windows",
+      "from": "items",
+      "measure": "Length",
+      "note": ""
+    },
+    {
+      "item": "balcony-railings",
+      "key": "railings.balconies",
+      "label": "Balcony railings",
+      "trade": "Doors & windows",
+      "from": "items",
+      "measure": "Length",
+      "note": ""
+    },
+    {
+      "item": "balcony-railings",
+      "key": "railings.terrace",
+      "label": "Terrace opening railings",
+      "trade": "Doors & windows",
+      "from": "items",
+      "measure": "Length",
+      "note": ""
+    },
+    {
+      "item": "sanitary",
+      "key": "sanitary",
+      "label": "Sanitary fittings",
+      "trade": "Plumbing & sanitary",
+      "from": "room",
+      "measure": "Count",
+      "note": ""
+    },
+    {
+      "item": "cp-fittings",
+      "key": "cp",
+      "label": "CP fittings",
+      "trade": "Plumbing & sanitary",
+      "from": "room",
+      "measure": "Count",
+      "note": ""
+    },
+    {
+      "item": "water-heater",
+      "key": "heater",
+      "label": "Bathroom water heater",
+      "trade": "Plumbing & sanitary",
+      "from": "room",
+      "measure": "Count",
+      "note": ""
+    },
+    {
+      "item": "water-pipes",
+      "key": "waterPipes",
+      "label": "Water supply piping",
+      "trade": "Plumbing & sanitary",
+      "from": "extra",
+      "measure": "Length",
+      "note": ""
+    },
+    {
+      "item": "drain-pipes",
+      "key": "drainPipes",
+      "label": "Drain piping",
+      "trade": "Plumbing & sanitary",
+      "from": "extra",
+      "measure": "Length",
+      "note": ""
+    },
+    {
+      "item": "water-tanks",
+      "key": "tanks",
+      "label": "Water storage tanks",
+      "trade": "Plumbing & sanitary",
+      "from": "extra",
+      "measure": "Count",
+      "note": "Rate per configured capacity unit for overhead plus underground storage; tank civil support excluded."
+    },
+    {
+      "item": "wiring",
+      "key": "wires",
+      "label": "Wiring and conduit",
+      "trade": "Electrical",
+      "from": "extra",
+      "measure": "Length",
+      "note": ""
+    },
+    {
+      "item": "switches",
+      "key": "electrical.points",
+      "label": "Switch points",
+      "trade": "Electrical",
+      "from": "items",
+      "measure": "Count",
+      "note": ""
+    },
+    {
+      "item": "light-fittings",
+      "key": "lights",
+      "label": "Light fittings",
+      "trade": "Electrical",
+      "from": "extra",
+      "measure": "Count",
+      "note": ""
+    },
+    {
+      "item": "fans",
+      "key": "fans",
+      "label": "Fans",
+      "trade": "Electrical",
+      "from": "room",
+      "measure": "Count",
+      "note": ""
+    },
+    {
+      "item": "distribution-board",
+      "key": "boards",
+      "label": "Distribution boards",
+      "trade": "Electrical",
+      "from": "extra",
+      "measure": "Count",
+      "note": ""
+    },
+    {
+      "item": "earthing",
+      "key": "earthing",
+      "label": "Earthing sets",
+      "trade": "Electrical",
+      "from": "extra",
+      "measure": "Count",
+      "note": ""
+    },
+    {
+      "item": "wall-putty",
+      "key": "paint",
+      "label": "Wall putty",
+      "trade": "Painting",
+      "from": "room",
+      "measure": "NetArea",
+      "note": ""
+    },
+    {
+      "item": "interior-paint",
+      "key": "paint",
+      "label": "Interior wall paint",
+      "trade": "Painting",
+      "from": "room",
+      "measure": "NetArea",
+      "note": ""
+    },
+    {
+      "item": "interior-paint",
+      "key": "ceiling",
+      "label": "Ceiling paint",
+      "trade": "Painting",
+      "from": "room",
+      "measure": "NetArea",
+      "note": ""
+    },
+    {
+      "item": "exterior-paint",
+      "key": "exteriorPaint",
+      "label": "External wall paint",
+      "trade": "Painting",
+      "from": "extra",
+      "measure": "NetArea",
+      "note": ""
+    },
+    {
+      "item": "false-ceiling",
+      "key": "ceiling",
+      "label": "False ceiling",
+      "trade": "Extras",
+      "from": "room",
+      "measure": "NetArea",
+      "note": ""
+    },
+    {
+      "item": "terrace-waterproofing",
+      "key": "waterproofing.terrace",
+      "label": "Terrace waterproofing",
+      "trade": "Waterproofing",
+      "from": "items",
+      "measure": "NetArea",
+      "note": ""
+    },
+    {
+      "item": "terrace-waterproofing",
+      "key": "waterproofing.balconies",
+      "label": "Balcony waterproofing",
+      "trade": "Waterproofing",
+      "from": "items",
+      "measure": "NetArea",
+      "note": ""
+    },
+    {
+      "item": "bath-waterproofing",
+      "key": "bathWaterproofing",
+      "label": "Bathroom waterproofing",
+      "trade": "Waterproofing",
+      "from": "room",
+      "measure": "NetArea",
+      "note": ""
+    },
+    {
+      "item": "foundation-waterproofing",
+      "key": "foundationSide",
+      "label": "Foundation waterproofing",
+      "trade": "Waterproofing",
+      "from": "extra",
+      "measure": "NetArea",
+      "note": ""
+    },
+    {
+      "item": "roof-type",
+      "key": "waterproofing.terrace",
+      "label": "Roof finish above waterproofing",
+      "trade": "Exterior & site",
+      "from": "items",
+      "measure": "NetArea",
+      "note": "Finish over existing flat terrace only; choosing tile does not generate a pitched roof."
+    },
+    {
+      "item": "parapet-finish",
+      "key": "parapet",
+      "label": "Parapet coping",
+      "trade": "Exterior & site",
+      "from": "items",
+      "measure": "Length",
+      "note": "Edge coping only; masonry, plaster and paint are already measured separately."
+    },
+    {
+      "item": "entry-canopy",
+      "key": "canopy",
+      "label": "Main entry canopy allowance",
+      "trade": "Exterior & site",
+      "from": "extra",
+      "measure": "NetArea",
+      "note": "Width of source main door \u00d7 configured shade projection; supporting detailed facade additions excluded."
+    },
+    {
+      "item": "facade-cladding",
+      "key": "cladding",
+      "label": "Facade cladding allowance",
+      "trade": "Exterior & site",
+      "from": "extra",
+      "measure": "NetArea",
+      "note": "Configured fraction of exterior wall faces; extra finish over the measured substrate."
+    },
+    {
+      "item": "compound-wall",
+      "key": "external.compoundWall",
+      "label": "Compound wall assembly",
+      "trade": "Exterior & site",
+      "from": "items",
+      "measure": "NetSideArea",
+      "note": "One-face area \u00d7 assembly rate including masonry and finish; house masonry excludes compound wall."
+    },
+    {
+      "item": "compound-gate",
+      "key": "gate",
+      "label": "Compound gate",
+      "trade": "Exterior & site",
+      "from": "extra",
+      "measure": "NetArea",
+      "note": ""
+    },
+    {
+      "item": "paving",
+      "key": "external.paving",
+      "label": "Site paving",
+      "trade": "Exterior & site",
+      "from": "items",
+      "measure": "NetArea",
+      "note": ""
+    },
+    {
+      "item": "paving",
+      "key": "external.driveway",
+      "label": "Driveway paving",
+      "trade": "Exterior & site",
+      "from": "items",
+      "measure": "NetArea",
+      "note": ""
+    },
+    {
+      "item": "landscaping",
+      "key": "external.lawn",
+      "label": "Planned lawn and planting",
+      "trade": "Exterior & site",
+      "from": "items",
+      "measure": "NetArea",
+      "note": ""
+    },
+    {
+      "item": "pool",
+      "key": "external.pool",
+      "label": "Planned pool",
+      "trade": "Exterior & site",
+      "from": "items",
+      "measure": "NetArea",
+      "note": "Only measured source pool; off removes the specification allowance, not the source geometry. Equipment/structure need confirmation."
+    },
+    {
+      "item": "lift",
+      "key": "one",
+      "label": "Lift allowance",
+      "trade": "Extras",
+      "from": "extra",
+      "measure": "Count",
+      "note": "Selected extra; provisional lump-sum pending product and contractor quotes."
+    },
+    {
+      "item": "solar",
+      "key": "one",
+      "label": "Solar allowance",
+      "trade": "Extras",
+      "from": "extra",
+      "measure": "Count",
+      "note": "Selected extra; provisional lump-sum pending product and contractor quotes."
+    },
+    {
+      "item": "automation",
+      "key": "one",
+      "label": "Automation allowance",
+      "trade": "Extras",
+      "from": "extra",
+      "measure": "Count",
+      "note": "Selected extra; provisional lump-sum pending product and contractor quotes."
+    },
+    {
+      "item": "interiors",
+      "key": "one",
+      "label": "Interiors allowance",
+      "trade": "Extras",
+      "from": "extra",
+      "measure": "Count",
+      "note": "Selected extra; provisional lump-sum pending product and contractor quotes."
+    },
+    {
+      "item": "ev",
+      "key": "one",
+      "label": "Ev allowance",
+      "trade": "Extras",
+      "from": "extra",
+      "measure": "Count",
+      "note": "Selected extra; provisional lump-sum pending product and contractor quotes."
+    },
+    {
+      "item": "cctv",
+      "key": "one",
+      "label": "Cctv allowance",
+      "trade": "Extras",
+      "from": "extra",
+      "measure": "Count",
+      "note": "Selected extra; provisional lump-sum pending product and contractor quotes."
+    },
+    {
+      "item": "air-conditioning",
+      "key": "one",
+      "label": "Air Conditioning allowance",
+      "trade": "Extras",
+      "from": "extra",
+      "measure": "Count",
+      "note": "Selected extra; provisional lump-sum pending product and contractor quotes."
+    },
+    {
+      "item": "rainwater",
+      "key": "one",
+      "label": "Rainwater allowance",
+      "trade": "Extras",
+      "from": "extra",
+      "measure": "Count",
+      "note": "Selected extra; provisional lump-sum pending product and contractor quotes."
+    }
+  ],
+  "allowances": {
+    "waterPipeMetresPerPoint": 8,
+    "drainPipeMetresPerPoint": 6,
+    "wireMetresPerPoint": 18,
+    "lightsPerPoint": 0.5,
+    "tankRateCapacityLitres": 2000,
+    "kitchenRunRatio": 0.3,
+    "counterDepthM": 0.6,
+    "cabinetFaceHeightM": 1.8,
+    "canopyProjectionM": 1.2,
+    "claddingRatio": 0.1,
+    "boardsPerFloor": 1,
+    "earthingSets": 2
+  },
+  "fansByRoom": {
+    "bath": 0,
+    "kitchen": 0,
+    "utility": 0,
+    "bedroom": 1,
+    "living": 2,
+    "office": 1,
+    "pooja": 0,
+    "circulation": 0,
+    "other": 0
+  },
+  "included": [
+    "Measured RCC, reinforcement and formwork; wall masonry and plaster",
+    "Room flooring, wet-room tiles, doors, frames, glazing and paint",
+    "Configured kitchen, sanitary, electrical and storage allowances",
+    "Planned exterior works and enabled extras; separate approvals and connection allowances"
+  ],
+  "excluded": [
+    "Land purchase, finance, movable furniture and loose appliances",
+    "Engineered piles, raft, retaining walls or special soil remediation",
+    "Unmeasured Blender facade features, pitched roof structure and tank civil support",
+    "Product waste and service runs beyond documented allowances; taxes on professional fees"
+  ],
+  "notes": [
+    "Concrete includes cement, sand and aggregate. Cement bags are an informational material take-off, not an additional charge. Nominal M20 quantities do not prescribe an M25/M30 mix.",
+    "Internal/external plaster partition uses source exterior wall faces and parapets. Interior room paint is allocated by measured wall-face weights after wet-tile deductions; site and ceiling measures are separate.",
+    "Piping, wiring, kitchen runs, cladding and shade projections are configurable concept allowances; confirm coordinated working drawings before procurement.",
+    "Trade shares use direct works only. GST, when enabled, applies to works + overhead + contingency; fees and authority allowances are excluded from this provisional GST base.",
+    "Turnkey includes measured materials and labour plus overhead. Material + labour is the same scope split for owner procurement, not a different project total.",
+    "Default comparison uses this finish preset without finish overrides, with the same measured geometry and technical sizing. Rates are provisional, not verified current contractor quotes.",
+    "Sanity bands are provisional full-project checks including measured member works, configured finishes/site scope, overhead, fees, contingency and approvals/connections. Basic/Mid upper bounds replace narrower legacy area-allowance bands; unusual extras or small floor areas can legitimately fall outside them."
+  ],
+  "unpricedItems": {
+    "cement": "Included in placed concrete; displayed material quantities are not added again.",
+    "soil-type": "Changes footing sizing, not a separate price line.",
+    "plinth-height": "Changes foundation and filling quantities, not a separate price line.",
+    "future-floor": "Requires engineer-designed future capacity; no additional unmodelled floor is priced.",
+    "foundation": "RCC is priced by concrete grade; foundation item provides PCC and formwork rate references.",
+    "columns": "Measured RCC priced by concrete grade, reinforcement and formwork.",
+    "beams": "Measured RCC priced by concrete grade, reinforcement and formwork.",
+    "slabs": "Measured RCC priced by concrete grade, reinforcement and formwork.",
+    "stairs": "Measured RCC priced by concrete grade, reinforcement and formwork.",
+    "wall-masonry": "Replaced by volume-priced masonry specification; do not add the legacy face-area allowance.",
+    "lintels": "Included in measured concrete, reinforcement and formwork.",
+    "driveway": "Uses paving specification on measured driveway; legacy auto rate is non-additive.",
+    "lawn": "Uses landscaping specification; legacy lawn allowance is non-additive.",
+    "contract-type": "Procurement comparison only; overall project scope remains priced.",
+    "professional-fees": "Percentage in settings, separate summary line.",
+    "approvals": "Fixed allowance in settings, separate summary line.",
+    "connections": "Fixed allowance in settings, separate summary line.",
+    "overhead": "Percentage in settings, separate summary line.",
+    "contingency": "Percentage in settings, separate summary line.",
+    "gst": "Optional percentage in settings, separate summary line."
+  }
+}
