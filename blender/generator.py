@@ -31,7 +31,7 @@ from geometry.outdoor import (create_balcony, create_terrace, create_parapet,
 from facade.features import create_facade, finish_wall_bevels  # noqa: E402
 from facade.specialized import create_specialized_grammars  # noqa: E402
 from visualization.config import visualization_options, CAMERAS  # noqa: E402
-from visualization.spec_materials import apply_specifications
+from visualization.spec_materials import specification_intent
 from visualization.materials import apply_finish_composition  # noqa: E402
 from visualization.surfaces import create_surface_details  # noqa: E402
 from visualization.landscape import create_landscape  # noqa: E402
@@ -156,7 +156,9 @@ def create_scene(payload, visualization=None):
     composition = apply_finish_composition(scene, building, options["composition"])
     surfaces = create_surface_details(scene, building, options)
     landscape = create_landscape(scene, payload, options)
-    finishes = apply_specifications(scene, building, payload.get("specifications"))
+    finishes = specification_intent(payload.get("specifications"))
+    if finishes.get("signature"):
+        bpy.context.scene["finish_signature"] = finishes["signature"]
     lighting = create_lighting(scene, payload, options)
     render = configure_render(options, dna["seed"])
     cameras = create_cameras(scene, building, options)

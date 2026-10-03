@@ -129,3 +129,36 @@ rate/material/quantity references, contextual filters, every priced option,
 geometry immutability, per-room isolation, saved replay, incremental hardware,
 advisory exclusions and report-safe imagery. It is included in `npm test`.
 Existing specification, flooring, BOQ, cost-delivery and report tests remain in use.
+
+
+## Live specification previews
+
+The Specifications page exposes `more` choices automatically in sections without
+any main choices, so sections such as Fees no longer open to an empty panel.
+Cards retain existing room quantities, undo and pricing; the desktop drawer keeps
+an orbitable object preview beside its contextual catalogue filters.
+
+`src/lib/finishes/preview.ts` selects a semantic object and surface policy.
+Windows/glass/grills show a window assembly; doors show a door; flooring and
+roof finishes show a surface; cabinets/counters show their relevant kitchen part;
+railings/gates, wall treatments and ceilings have their own previews. Administrative
+and unmodelled technical specifications explicitly have no appearance preview.
+The 3D component loads on demand, disposes its texture on replacement/unmount,
+and retains its camera during option changes. It never edits Design.floors.
+
+Only matching, audited local textures are mapped to preview surfaces. Glass uses
+transparency and metal uses its own material response; neither gets an unrelated
+plaster/stone photo. Unavailable marble/patterned/exact supplier textures use a
+labelled indicative finish rather than an unrelated texture. Product photos remain
+separate from generated **Visualisation** previews. Cards without a suitable
+photo use labelled object illustrations, never fabricated product photographs.
+These previews are indicative, not exact supplier models or colour certifications.
+
+New Blender exports preserve the curated exterior palette on facades, entry doors,
+paving/landscape and rooflines. Catalogue textures appear in specification previews, not the complete villa.
+The explicit interior material helper remains reusable for sample scenes; existing
+exports are not overwritten automatically. Cost/specification
+choices and report schedules remain authoritative even when a product is not
+modelled. `blender/test_spec_materials.py` checks palette preservation with real
+Blender objects; `scripts/test-finish-preview.mjs` checks semantic routing, surface
+compatibility, deterministic output and asset existence.

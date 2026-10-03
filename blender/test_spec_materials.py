@@ -4,7 +4,7 @@ from pathlib import Path
 import unittest
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from visualization.spec_materials import REGISTRY, ROOT, material_spec, create_spec_material
+from visualization.spec_materials import REGISTRY, ROOT, material_spec, create_spec_material, specification_intent
 
 try:
     import bpy
@@ -38,6 +38,33 @@ class SpecificationMaterialsTest(unittest.TestCase):
         self.assertEqual(floors[0].data.materials[0]["specification_id"], "teak_wood")
         self.assertIn("floor-living", report["applied"])
         self.assertEqual(bpy.context.scene["finish_signature"], "finish-a")
+
+    @unittest.skipIf(bpy is None, "Run in Blender for palette checks")
+    def test_exterior_palette_is_not_replaced_by_finish_textures(self):
+        from geometry.common import SceneBuilder
+        from visualization.spec_materials import apply_specifications
+        scene = SceneBuilder("palette-test")
+        facade = scene.box("Hero_Stone", "FACADE", 0, 0, 0, 1000, 200, 2500, "stone")
+        roof = scene.box("GF_Slab", "ROOF", 0, 0, 3000, 3000, 3000, 150, "wall")
+        door = scene.box("Door_Main", "DOORS", 0, 0, 0, 1500, 100, 2200, "wood", source_id="d1")
+        originals = [obj.data.materials[0] for obj in (facade, roof, door)]
+        building = {"floors": [], "walls": [], "doors": [{"id": "d1", "kind": "entry"}], "rooms": [], "stairs": [], "shafts": []}
+        result = apply_specifications(scene, building, {"signature": "exterior-finish", "rooms": [], "houses": [
+            {"item": "facade-cladding", "option": "stone", "material": "grey_stone"},
+            {"item": "roof-type", "option": "tiles", "material": "terracotta_tile"},
+            {"item": "main-door", "option": "teak", "material": "teak_wood"}]})
+        self.assertEqual(originals, [obj.data.materials[0] for obj in (facade, roof, door)])
+        self.assertEqual(result["applied"], [])
+
+    def test_villa_finish_choices_remain_metadata_without_texture_application(self):
+        payload = {"signature": "chosen-finishes", "houses": [{"item": "windows"}],
+                   "rooms": [{"finishes": [{"item": "floor-living"}]}]}
+        original = json.dumps(payload)
+        result = specification_intent(payload)
+        self.assertEqual(result["applied"], [])
+        self.assertEqual(result["signature"], "chosen-finishes")
+        self.assertEqual(result["unmodelled"], ["floor-living", "windows"])
+        self.assertEqual(json.dumps(payload), original)
 
     def test_every_registry_texture_and_web_copy_exists(self):
         for entry in json.loads(REGISTRY.read_text())["materials"]:

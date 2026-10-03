@@ -47,6 +47,16 @@ def create_spec_material(material_id):
     return material
 
 
+def specification_intent(specifications):
+    """Keep choices in export metadata; full-villa colours come from its palette."""
+    if not specifications:
+        return {"applied": [], "unmodelled": [], "mode": "palette"}
+    items = {entry["item"] for entry in specifications["houses"]}
+    items |= {entry["item"] for room in specifications["rooms"] for entry in room["finishes"]}
+    return {"signature": specifications["signature"], "applied": [], "unmodelled": sorted(items),
+            "mode": "palette", "note": "Selected finishes are previewed in the specification drawer; villa geometry retains its curated colour palette."}
+
+
 def apply_specifications(scene, building, specifications):
     """Apply existing surface finishes; never alter walls, openings or source slabs.
 
@@ -77,9 +87,7 @@ def apply_specifications(scene, building, specifications):
         obj["finish_item"], obj["finish_option"] = entry["item"], entry["option"]
         applied.add(entry["item"])
 
-    roles = {"primary_wall": "exterior-paint", "secondary_wall": "external-plaster",
-             "wall": "exterior-paint", "stone": "facade-cladding", "wood": "main-door",
-             "accent": "facade-cladding", "paving": "paving", "landscape": "landscaping"}
+    roles = {}  # Exterior architecture retains its curated palette, never catalogue textures.
     for obj in list(bpy.context.scene.objects):
         if obj.type != "MESH":
             continue
@@ -88,7 +96,7 @@ def apply_specifications(scene, building, specifications):
         door = doors.get(source)
         if wall:
             floor = by_floor[wall["floorId"]]
-            exterior = houses.get("exterior-paint")
+            exterior = None  # Exterior faces retain their architectural colour scheme.
             # Assign each physical wall face from its adjacent real room.
             obj.data = obj.data.copy()
             for polygon in obj.data.polygons:
@@ -108,19 +116,19 @@ def apply_specifications(scene, building, specifications):
                     applied.add(entry["item"])
         elif door and obj.get("material_role") not in ("metal", "glass"):
             entry = houses.get("main-door" if door["kind"] == "entry" else "internal-door")
-            if entry:
+            if entry and door["kind"] != "entry":
                 assign(obj, entry)
         elif obj.get("material_role") not in ("glass", "metal", "railing", "light_emission"):
             item = roles.get(obj.get("material_role"))
             if any(c.name == "ROOF" for c in obj.users_collection):
-                item = "roof-type" if "Slab" in obj.name or "Surface" in obj.name else "parapet-finish"
+                item = None  # Roofline follows the curated design palette.
             if item and item in houses:
                 assign(obj, houses[item])
 
     collection = bpy.data.collections.get("FINISHES") or bpy.data.collections.new("FINISHES")
-    if collection.name not in scene.collections:
+    if collection.name not in {child.name for child in bpy.context.scene.collection.children}:
         bpy.context.scene.collection.children.link(collection)
-        scene.collections["FINISHES"] = collection
+    scene.collections["FINISHES"] = collection
     for room in building["rooms"]:
         floor = by_floor[room["floorId"]]
         finishes = room_specs.get((floor["level"], room["semanticId"]), {})

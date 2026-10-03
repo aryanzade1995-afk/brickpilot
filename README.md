@@ -856,3 +856,9 @@ or suggest room cuts. Finishes & Cost remains the measured estimate after design
 `scripts/test-furniture.mjs` covers repeatability, collisions/openings, the three
 furniture verdicts, household counts, size minima, budget verdict boundaries,
 saved preference replay, shell reuse, shared store updates and preserved controls.
+
+Finishes & Cost now offers live, object-specific specification previews in the
+Change drawer, with contextual finish filters and labelled indicative illustrations
+where supplier photography is unavailable. Blender exterior colours retain their
+curated palette; texture previews do not change the source plan or quantities.
+See [finish catalogue and preview policy](docs/finish-catalogue.md).
