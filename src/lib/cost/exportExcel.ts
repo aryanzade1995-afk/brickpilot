@@ -10,6 +10,8 @@ export async function buildBoqExcel(cost: CostEstimate, projectName = 'Formstead
   const decorate = (sheet: import('exceljs').Worksheet, widths: number[], header: number) => {
     widths.forEach((width, index) => { sheet.getColumn(index + 1).width = width })
     sheet.views = [{ state: 'frozen', ySplit: header }]
+    sheet.getRow(1).height = 30
+    sheet.getRow(header).height = 24
     sheet.getRow(1).font = { name: 'Calibri', size: 18, bold: true }
     sheet.getRow(header).font = { name: 'Calibri', bold: true, color: { argb: 'FFFFFFFF' } }
     sheet.getRow(header).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF333333' } }
@@ -38,7 +40,7 @@ export async function buildBoqExcel(cost: CostEstimate, projectName = 'Formstead
         line.qty, line.unit, line.rate, { formula: `C${row}*E${row}`, result: line.amount }, line.materialAmount, line.labourAmount, line.specId, line.note])
     }
     const last = sheet.rowCount, totalRow = last + 1
-    sheet.addRow(['WORKS TOTAL', '', '', '', '', { formula: lines.length ? `SUM(F6:F${last})` : '0', result: trade.amount },
+    sheet.addRow(['WORKS TOTAL', null, null, null, null, { formula: lines.length ? `SUM(F6:F${last})` : '0', result: trade.amount },
       { formula: lines.length ? `SUM(G6:G${last})` : '0', result: trade.material }, { formula: lines.length ? `SUM(H6:H${last})` : '0', result: trade.labour }])
     sheet.getRow(totalRow).font = { bold: true }
     for (const col of [3, 5, 6, 7, 8]) sheet.getColumn(col).numFmt = money
@@ -49,7 +51,7 @@ export async function buildBoqExcel(cost: CostEstimate, projectName = 'Formstead
   })
   const subtotal = summary.rowCount + 1
   summary.addRow(['WORKS SUBTOTAL', { formula: `SUM(B7:B${subtotal - 1})`, result: direct }])
-  for (const line of cost.lines.slice(1)) summary.addRow([line.label, line.expected, '', '', '', line.note])
+  for (const line of cost.lines.slice(1)) summary.addRow([line.label, line.expected, null, null, null, line.note])
   const end = summary.rowCount
   summary.addRow(['EXPECTED PROJECT TOTAL', { formula: `SUM(B${subtotal}:B${end})`, result: cost.expected }])
   summary.addRows([['Range - low (INR)', cost.total.low], ['Range - high (INR)', cost.total.high], ['INR / sq ft', cost.ratePerSqft], [],

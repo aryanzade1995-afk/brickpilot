@@ -1,3 +1,4 @@
+import { CostShareButton } from '@/components/CostShareButton.tsx'
 import { SpecificationSchedule } from '@/components/SpecificationSchedule.tsx'
 import { specificationSchedule } from '@/lib/cost/schedule.ts'
 import { QuantitiesView, EstimateView, AssumptionsView } from './finishes/CostViews.tsx'
@@ -351,6 +352,7 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
             )}
           </div>
 
+          <CostShareButton brief={brief} cost={cost}/>
           <div className="border border-line p-4">
             <div className="label mb-2">Generated images</div>
             <p className="text-[0.8rem] leading-relaxed text-ink-faint">

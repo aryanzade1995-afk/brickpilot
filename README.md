@@ -51,9 +51,10 @@ separately. [`vite.config.ts`](vite.config.ts) proxies `/api` to the Node server
 | `/workspace/plan` | Per-floor SVG drawing, room schedule and validation |
 | `/workspace/massing` | Interactive Three.js building, layer controls and furnished dollhouse view |
 | `/workspace/render` | Geometry-conditioned building concepts and room interior renders |
-| `/workspace/finishes` | Step 06: finish choices, geometry-based quantities, concept cost and BOQ CSV |
+| `/workspace/finishes` | Step 06: finish choices, geometry-based quantities, concept cost and BOQ CSV/Excel |
 | `/workspace/report` | Step 07: project summary and PDF with the selected finishes and full BOQ |
 | `/designs` | Saved projects when Supabase is configured and the user is signed in |
+| `/share/finishes/:token` | Read-only snapshot of a specification sheet and its concept estimate |
 
 Routes are declared in [`src/main.tsx`](src/main.tsx); the workspace navigation
 is in [`src/components/WorkspaceTabs.tsx`](src/components/WorkspaceTabs.tsx).
@@ -732,3 +733,28 @@ node --experimental-strip-types scripts/review-cost-delivery.mjs
 This generates an isolated review fixture using the real production components
 and exports under `output/cost-delivery-review`; it does not replace the user's
 saved brief. Automated coverage is `scripts/test-cost-delivery.mjs`.
+
+### Saved finishes and read-only sharing
+
+Saving a valid design stores its specification overrides, cost allowances and
+validated cost snapshot in the existing saved-design JSON envelope. Reopening
+restores the same finishes, quantities, rate version and estimate. Changing the
+plan, specifications or allowances invalidates that snapshot and recomputes the
+estimate. Older saved designs without snapshots still load normally. Cost
+replay never replaces or edits the source geometry.
+
+The Report's **Create read-only link** saves an immutable specification and
+estimate snapshot. The shared page has no workspace navigation or editing
+controls; later changes require a new link. It contains only the project name,
+finish schedule, audited close-ups and estimate scope, not the private brief.
+The API accepts creation and retrieval only; token-specific writes are refused.
+
+Share files live outside the public directory at `output/cost-shares` by default.
+For deployment, set `COST_SHARE_DIR` to persistent storage and serve the web app
+and API under the same public origin. A localhost link only works while that
+local server is reachable. Anyone possessing the link can view its snapshot.
+
+`scripts/test-cost-sharing.mjs` checks saved-design round trips, exact allowance
+and estimate replay, legacy briefs, malformed snapshots, and real HTTP sharing
+with persistence and rejected mutations. The review fixture and export examples
+remain isolated from the user's project.

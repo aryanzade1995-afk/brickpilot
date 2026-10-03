@@ -1,3 +1,4 @@
+import { replayedCost } from './replay.ts'
 import type { Design } from '../engine/types.ts'
 import type { Brief } from '../model/brief.ts'
 import { estimateBoq, type CostEstimate } from './boq.ts'
@@ -16,6 +17,8 @@ export function estimateSelectedBoq(design: Design, preferences?: unknown, brief
 }
 /** Full current Brief wins; only untouched legacy projects import browser-only finish choices. */
 export function estimateProjectBoq(design: Design, brief: Brief = design.model.brief, saved?: unknown): CostEstimate {
+  const restored = replayedCost(design, brief, saved)
+  if (restored) return restored
   if (saved && !parseSelection(saved).catalogue && brief.finish === 'mid' && !Object.keys(brief.specs.overrides).length) return estimateSelectedBoq(design, saved, brief)
   return estimateBoq(design, brief, saved ? parseSelection(saved) : undefined)
 }

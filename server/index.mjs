@@ -1,3 +1,4 @@
+import { handleCostShareRequest } from './cost-shares.mjs'
 /*
  * Formstead server — serves the built SPA and proxies the image-model API
  * so the key stays server-side. Zero dependencies (Node ≥ 18, global fetch).
@@ -142,6 +143,8 @@ const server = createServer(async (req, res) => {
     })
     return res.end()
   }
+
+  if (await handleCostShareRequest(req, res, readJson)) return
 
   if (await handleVillaRequest(req, res, readJson)) return
 

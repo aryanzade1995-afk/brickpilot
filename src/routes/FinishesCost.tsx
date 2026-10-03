@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { useStudio, type Result } from '@/state/studio.ts'
 import { useFinishes } from '@/state/finishes.ts'
 import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
-import { estimateBoq } from '@/lib/cost/index.ts'
+import { estimateProjectBoq } from '@/lib/cost/index.ts'
 import { geometryCostKey } from '@/lib/cost/quantities.ts'
 import { parseSelection } from '@/lib/cost/specifications.ts'
 import { cx } from '@/lib/cx.ts'
@@ -32,7 +32,7 @@ export function FinishesCostView({ result, brief, onBrief }: { result: Pick<Resu
     writeSelectionToBrief(migrated, result.design, saved)
     return migrated
   }, [brief, localBrief, result, saved])
-  const cost = useMemo(() => result && current ? estimateBoq(result.design, current, saved) : null, [result, current, saved])
+  const cost = useMemo(() => result && current ? estimateProjectBoq(result.design, current, saved) : null, [result, current, saved])
   useEffect(() => { if (cost && result?.report.hardChecksPass) noteQuantities(quantitySignature(cost)) }, [cost, result, noteQuantities])
   const update = (next: Brief) => {
     if (!result) return

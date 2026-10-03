@@ -1,9 +1,11 @@
+import type { z } from 'zod'
+import type { specificationRowSchema } from './deliverySchemas.ts'
 import type { Brief } from '../model/brief.ts'
 import type { CostEstimate } from './boq.ts'
 import { specsCatalogue, specificationRate, resolveSpecification } from './catalogue.ts'
 
 /** One measured-room entry per applicable finish, followed by house specifications. */
-export function specificationSchedule(brief: Brief, cost: CostEstimate) {
+export function specificationSchedule(brief: Brief, cost: CostEstimate): SpecificationRow[] {
   const rows = specsCatalogue.items.filter(i => i.level !== 'auto').flatMap(item => {
     const lines = cost.boq.filter(l => l.item === item.id)
     const locations = item.scope === 'perRoom' ? cost.quantities.rooms.filter(r => lines.some(l => l.roomId === r.id)) : [null]
@@ -24,4 +26,4 @@ export function specificationSchedule(brief: Brief, cost: CostEstimate) {
   })
   return rows.sort((a, b) => Number(!a.roomId) - Number(!b.roomId) || a.where.localeCompare(b.where) || a.group.localeCompare(b.group))
 }
-export type SpecificationRow = ReturnType<typeof specificationSchedule>[number]
+export type SpecificationRow = z.infer<typeof specificationRowSchema>

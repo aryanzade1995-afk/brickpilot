@@ -1,3 +1,4 @@
+import { SharedFinishes } from './routes/SharedFinishes.tsx'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
@@ -32,6 +33,7 @@ const router = createBrowserRouter([
       { path: 'designs', element: <Designs /> },
     ],
   },
+  { path: '/share/finishes/:token', element: <SharedFinishes /> },
   { path: '/__styles', element: <StyleSheet /> },
 ])
 

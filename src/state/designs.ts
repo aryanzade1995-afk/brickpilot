@@ -1,3 +1,7 @@
+import { snapshotCost, parseCostReplay, restoreCostReplay, type CostReplay } from '@/lib/cost/replay.ts'
+import { estimateProjectBoq } from '@/lib/cost/index.ts'
+import { geometryCostKey } from '@/lib/cost/quantities.ts'
+import { useFinishes } from '@/state/finishes.ts'
 import { create } from 'zustand'
 import { supabase } from '@/lib/supabase.ts'
 import { briefSchema, type Brief } from '@/lib/model/brief.ts'
@@ -15,11 +19,12 @@ export type SavedDesign = {
   name: string
   brief: Brief
   pinned: PinnedDir | null
+  costReplay: CostReplay | null
   createdAt: string
   updatedAt: string
 }
 
-function parseRow(row: {
+export function parseSavedDesignRow(row: {
   id: string
   name: string
   brief: unknown
@@ -29,7 +34,10 @@ function parseRow(row: {
 }): SavedDesign | null {
   const brief = briefSchema.safeParse(row.brief)
   if (!brief.success) return null
+  let savedCost: unknown
+  if (row.pinned?.startsWith('{')) { try { savedCost = JSON.parse(row.pinned).costReplay } catch { /* Legacy pin. */ } }
   return {
+    costReplay: parseCostReplay(savedCost),
     id: row.id,
     name: row.name,
     brief: brief.data,
@@ -75,20 +83,22 @@ export const useDesigns = create<DesignsState>((set, get) => ({
       set({ loading: false, error: error.message })
       return
     }
-    set({ loading: false, items: (data ?? []).map(parseRow).filter((d): d is SavedDesign => d !== null) })
+    set({ loading: false, items: (data ?? []).map(parseSavedDesignRow).filter((d): d is SavedDesign => d !== null) })
   },
 
   saveCurrent: async (name) => {
     const user = useAuth.getState().user
     if (!supabase || !user) return { error: 'Sign in to save a design.' }
 
-    const { brief, pinned } = useStudio.getState()
+    const { brief, pinned, result } = useStudio.getState()
+    const savedSelection = result ? useFinishes.getState().entries[geometryCostKey(result.design)] : undefined
+    const replay = result?.report.hardChecksPass ? snapshotCost(result.design, brief, estimateProjectBoq(result.design, brief, savedSelection)) : null
     const { currentId } = get()
     const payload = {
       user_id: user.id,
       name: (name ?? brief.project.name ?? 'Untitled design').trim() || 'Untitled design',
       brief,
-      pinned: serializePinned(pinned),
+      pinned: replay ? JSON.stringify({ ...pinned, costReplay: replay }) : serializePinned(pinned),
     }
 
     const q = currentId
@@ -98,7 +108,7 @@ export const useDesigns = create<DesignsState>((set, get) => ({
     const { data, error } = await q
     if (error || !data) return { error: error?.message ?? 'save failed' }
 
-    const saved = parseRow(data)
+    const saved = parseSavedDesignRow(data)
     set((s) => ({
       currentId: data.id,
       items: [
@@ -128,10 +138,12 @@ export const useDesigns = create<DesignsState>((set, get) => ({
   load: (id) => {
     const design = get().items.find((d) => d.id === id)
     if (!design) return null
+    restoreCostReplay(design.costReplay)
+    if (design.costReplay) useFinishes.getState().setSelection(design.costReplay.geometryKey, design.costReplay.cost.selection)
     useStudio.getState().loadSaved(design.brief, design.pinned)
     set({ currentId: id })
     return design
   },
 
-  clearLocal: () => set({ items: [], currentId: null, error: null }),
+  clearLocal: () => { restoreCostReplay(null); set({ items: [], currentId: null, error: null }) },
 }))
