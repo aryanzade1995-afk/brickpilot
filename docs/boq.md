@@ -69,6 +69,19 @@ room isolation, room-ID migration, explicit tax bases, determinism and a
 100 ms reprice gate. Five valid briefs (the default and four open-space modes)
 are checked at all three finish levels against data-file bands.
 
+Finishes, Report, the Studio result and PDF now use the same BOQ. The Plan step
+keeps its existing drawing flow; prices remain at the end of design. Legacy
+browser-only finish controls are imported through `estimateProjectBoq` only
+for an untouched old Brief. A current Brief's full catalogue overrides win.
+`estimateSelectedBoq` is the compatibility adapter for explicit old five-field
+selections; the old `estimateCost` implementation has been removed.
+
+The screen keeps trade shares, procurement and cost drivers collapsed by
+default. CSV includes exact quantities/units, spec IDs, material/labour splits,
+allowances and assumptions; PDF uses the actual m²/m³/kg/m/count units. Run
+`node --experimental-strip-types scripts/review-boq.mjs` after a build to
+create an HTML/CSV/JSON and PDF review in `output/boq-review/`.
+
 All output is **Concept estimate ±15% · approximate · Pune rates 2026-10-03**.
 The date and city come from the rate data, not this document. Rates are
 provisional allowances referencing SOR, not verified SOR line items or current

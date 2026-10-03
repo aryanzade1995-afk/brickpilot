@@ -5,7 +5,7 @@ import { useFinishes } from '@/state/finishes.ts'
 import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
 import { CostSummary, BoqTable } from '@/components/CostSummary.tsx'
 import { Field } from '@/components/ui/controls.tsx'
-import { estimateCost, boqCsv } from '@/lib/cost/index.ts'
+import { estimateProjectBoq, boqCsv } from '@/lib/cost/index.ts'
 import { geometryCostKey } from '@/lib/cost/quantities.ts'
 import { catalog, defaultSelection, finishOption, parseSelection, policy, type FinishCategory } from '@/lib/cost/specifications.ts'
 import { cx } from '@/lib/cx.ts'
@@ -26,7 +26,7 @@ export function FinishesCostView({ result, brief, onSelection }: { result: Pick<
   const saved = useFinishes(s => s.entries[key]), setSelection = useFinishes(s => s.setSelection)
   const selection = useMemo(() => result ? selectionFromBrief(brief ?? result.design.model.brief, result.design, saved) : parseSelection(saved), [saved, brief, result])
   const matchingPreset = catalog.presets.find(p => Object.entries(p.choices).every(([category, id]) => selection.choices[category as FinishCategory] === id) && !Object.keys(selection.roomFloors).length)?.id
-  const cost = useMemo(() => result ? estimateCost(result.design, selection) : null, [result, selection])
+  const cost = useMemo(() => result ? estimateProjectBoq(result.design, brief ?? result.design.model.brief, saved) : null, [result, brief, saved])
   const update = (change: Partial<typeof selection>) => {
     const next = parseSelection({ ...selection, ...change })
     setSelection(key, next); onSelection?.(next)
@@ -44,7 +44,7 @@ export function FinishesCostView({ result, brief, onSelection }: { result: Pick<
   return <div className="mx-auto max-w-[1400px] px-6 py-8 md:px-10">
     <WorkspaceTabs /><div className="mt-6"><p className="label">Step 6 · Finishes & Cost</p>
       <h1 className="mt-2 font-display text-3xl">Choose the finishes for your home</h1>
-      <p className="mt-3 max-w-2xl text-sm leading-relaxed text-ink-dim">Start with Standard, or choose another finish level. Your estimate updates as you choose. Your rooms and design stay the same.</p></div>
+      <p className="mt-3 max-w-2xl text-sm leading-relaxed text-ink-dim">Start with Mid, or choose another finish level. Your estimate updates as you choose. Your rooms and design stay the same.</p></div>
     <div className="mt-8 grid items-start gap-10 lg:grid-cols-[1fr_420px]">
       <div className="min-w-0">
         <div role="group" aria-label="Finish level" className="grid gap-3 sm:grid-cols-3">

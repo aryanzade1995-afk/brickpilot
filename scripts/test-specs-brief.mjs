@@ -8,7 +8,7 @@ import { generate } from '../src/lib/engine/generate.ts'
 import { resolveSpecification,resolveSpecifications,specsCatalogue } from '../src/lib/cost/catalogue.ts'
 import { selectionFromBrief,writeSelectionToBrief } from '../src/lib/cost/briefSelections.ts'
 import { defaultSelection } from '../src/lib/cost/specifications.ts'
-import { estimateCost } from '../src/lib/cost/index.ts'
+import { estimateSelectedBoq } from '../src/lib/cost/index.ts'
 const b=defaultBrief(),design=generate(compile(b))
 
 test('old projects acquire Mid and empty overrides, retaining every geometry field and their legacy seed',()=>{
@@ -41,7 +41,7 @@ test('room overrides, retired values and auto items resolve safely for every spe
  assert.throws(()=>resolveSpecification(brief,'not-an-item'),/Unknown specification/)
 })
 test('current finish controls round-trip through the Brief and replay costs on another browser without moving geometry',()=>{
- const brief=structuredClone(b),selection=defaultSelection('refined'),room=estimateCost(design).quantities.rooms[0]
+ const brief=structuredClone(b),selection=defaultSelection('refined'),room=estimateSelectedBoq(design).quantities.rooms[0]
  selection.roomFloors[room.id]='ceramic';brief.specs.overrides.solar='on'
  writeSelectionToBrief(brief,design,selection)
  const loaded=briefSchema.parse(JSON.parse(JSON.stringify(brief))),restored=selectionFromBrief(loaded,design)
@@ -49,8 +49,9 @@ test('current finish controls round-trip through the Brief and replay costs on a
  assert.deepEqual(restored,selection)
  const replay=generate(compile(loaded))
  assert.deepEqual(replay.floors,design.floors)
- assert.equal(estimateCost(replay).expected,estimateCost(design,selection).expected)
- assert.ok(estimateCost(replay).expected>estimateCost(design).expected)
+ assert.equal(estimateSelectedBoq(replay).expected,estimateSelectedBoq(design,selection,loaded).expected)
+ assert.equal(estimateSelectedBoq(replay).boq.find(l=>l.item==='solar').amount,250000)
+ assert.ok(estimateSelectedBoq(replay).expected>estimateSelectedBoq(design).expected)
  const oldSaved=defaultSelection('simple')
  assert.deepEqual(selectionFromBrief(b,design,oldSaved),oldSaved)
 })
@@ -61,12 +62,13 @@ const server=await createServer({configFile:false,resolve:{alias:{'@':fileURLToP
 after(()=>server.close())
 const {useStudio}=await server.ssrLoadModule('/src/state/studio.ts')
 test('editing specifications retains the existing result, pinned villa and directions; geometry edits still invalidate',()=>{
- const result={design,model:design.model,cost:estimateCost(design)},pin={massing:design.massingType,seed:42}
+ const result={design,model:design.model,cost:estimateSelectedBoq(design)},pin={massing:design.massingType,seed:42}
  useStudio.setState({brief:structuredClone(b),result,pinned:pin,directions:[]})
  const before=useStudio.getState()
  useStudio.getState().edit(brief=>{brief.finish='premium';brief.specs.overrides.windows='thermal'})
  const current=useStudio.getState()
- assert.equal(current.result,before.result);assert.equal(current.result.design.floors,before.result.design.floors)
+ assert.equal(current.result.design,before.result.design);assert.equal(current.result.design.floors,before.result.design.floors)
+ assert.notEqual(current.result.cost,before.result.cost);assert.ok(current.result.cost.expected>before.result.cost.expected)
  assert.equal(current.pinned,before.pinned);assert.equal(current.directions,before.directions)
  const persisted=JSON.parse(storage.get('brickpilot.studio')).state.brief
  assert.equal(persisted.finish,'premium');assert.equal(persisted.specs.overrides.windows,'thermal')

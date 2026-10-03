@@ -11,9 +11,8 @@ import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
 import { CostSummary } from '@/components/CostSummary.tsx'
 import { InvalidPlanNotice } from '@/components/InvalidPlanNotice.tsx'
 import { useFinishes } from '@/state/finishes.ts'
-import { estimateCost } from '@/lib/cost/index.ts'
+import { estimateProjectBoq } from '@/lib/cost/index.ts'
 import { geometryCostKey } from '@/lib/cost/quantities.ts'
-import { selectionFromBrief } from '@/lib/cost/briefSelections.ts'
 import { ZONE_LABEL } from '@/lib/model/canonical.ts'
 import { cx } from '@/lib/cx.ts'
 import type { Severity } from '@/lib/rules/index.ts'
@@ -45,7 +44,7 @@ export function Report() {
   const brief = useStudio(s => s.brief)
   const costKey = useMemo(() => result ? geometryCostKey(result.design) : '', [result])
   const selection = useFinishes(s => s.entries[costKey])
-  const cost = useMemo(() => result ? estimateCost(result.design, selectionFromBrief(brief, result.design, selection)) : null, [result, selection, brief])
+  const cost = useMemo(() => result ? estimateProjectBoq(result.design, brief, selection) : null, [result, selection, brief])
   useEffect(() => {
     if (!result) run()
   }, [result, run])

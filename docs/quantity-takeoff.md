@@ -80,8 +80,9 @@ must be resolved by the structural engineer. No automatic piling design exists.
 
 ## Pricing
 
-Detailed quantities are available separately from rates. The current concept
-BOQ retains its existing area allowance for structure and services; it does
-not also charge measured concrete, steel or points. Converting this allowance
-to member-priced BOQ needs item rates and a deliberate replacement, not an
-additional charge. Geometry, quantities, specifications and rates stay separate.
+Detailed quantities remain separate from rates. The [specification-driven
+BOQ](boq.md) replaces the previous structure/service area allowances with
+member-priced concrete, reinforcement, formwork and configured service runs.
+It never adds both methods. Cement/aggregate material take-offs are included
+in concrete prices and are not charged again. Geometry, quantities,
+specifications and rates stay separate.

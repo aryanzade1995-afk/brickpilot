@@ -41,17 +41,20 @@ function roomSpec(brief: Brief, item: string, roomId?: string, semanticId?: stri
 function priceLines(design: Design, brief: Brief, quantities: Quantities): BoqLine[] {
   const measures = boqMeasures(design, quantities), boq: BoqLine[] = []
   for (const recipe of boqRules.recipes) {
-    const add = (key: string, qty: number, label: string, roomId?: string, semanticId?: string, floor?: number) => {
+    const add = (key: string, qty: number, label: string, roomId?: string, semanticId?: string, floor?: number, item = recipe.item) => {
       if (qty <= 0) return
-      const spec = roomSpec(brief, recipe.item, roomId, semanticId), rate = specificationRate(recipe.rateId ?? spec.rateId)
-      const id = recipe.from === 'room' && recipe.key.startsWith('floor:') ? `floor:${roomId}` : `${recipe.item}:${recipe.from}:${key}${roomId ? `@${roomId}` : ''}`
-      boq.push({ id, item: recipe.item, specId: `${recipe.item}/${spec.id}`, rateId: rate.id, group: recipe.trade, label,
+      const spec = roomSpec(brief, item, roomId, semanticId), rate = specificationRate(recipe.rateId ?? spec.rateId)
+      const id = recipe.from === 'room' && recipe.key.startsWith('floor:') ? `floor:${roomId}` : `${item}:${recipe.from}:${key}${roomId ? `@${roomId}` : ''}`
+      boq.push({ id, item, specId: `${item}/${spec.id}`, rateId: rate.id, group: recipe.trade, label,
         specification: spec.name, qty, quantity: qty, unit: units[rate.unit] ?? rate.unit,
         rate: rate.installed, amount: qty * rate.installed, materialRate: rate.material, labourRate: rate.labour,
         materialAmount: qty * rate.material, labourAmount: qty * rate.labour, roomId, floor, note: recipe.note })
     }
     if (recipe.from === 'room') {
-      for (const r of measures.rooms) add(recipe.key, r.values[recipe.key] ?? 0, `${r.name} · ${recipe.label}`, r.id, r.semanticId, r.floor)
+      for (const r of measures.rooms) {
+        const floorRecipe = recipe.roomFloorSpec ? boqRules.recipes.find(p => p.from === 'room' && p.key.startsWith('floor:') && r.values[p.key] > 0) : undefined
+        add(recipe.key, r.values[recipe.key] ?? 0, `${r.name} · ${recipe.label}`, r.id, r.semanticId, r.floor, floorRecipe?.item ?? recipe.item)
+      }
     } else if (recipe.from === 'extra') add(recipe.key, measures.extra[recipe.key] ?? 0, recipe.label)
     else {
       for (const f of quantities.perFloor) {
@@ -106,7 +109,7 @@ function buildBoq(design: Design, brief: Brief, selection: CostSelection, quanti
   const disabledExtras = specsCatalogue.items.filter(i => i.group === 'extras' && resolveSpecification(brief, i.id).id === 'off').map(i => `${i.label} (not selected)`)
   return { currency: 'INR', expected, total: band(expected), ratePerSqm: band(sqmRate), ratePerSqft, lines, boq, quantities, selection,
     label: estimateLabel(), qualification: policy.qualification, confidence: 'C', rateVersion: `${boqRules.version} · ${rateBook.settings.date}`,
-    basis: `${quantities.floorArea.toFixed(1)} m² source-plan floor area · measured members, openings and room finishes · provisional Pune rates`,
+    basis: `${quantities.floorArea.toFixed(1)} m² source-plan floor area · measured members, openings and room finishes · provisional ${rateBook.settings.city} rates`,
     included: [...boqRules.included], excluded: [...boqRules.excluded, ...disabledExtras, ...(!selection.includeGst ? ['GST provision (not enabled)'] : [])],
     assumptions, sources: [rateBook.status, ...policy.sources.map(s => `${s.label} — ${s.url}`)],
     sanityNote: sqmRate && (ratePerSqft < sanity.min || ratePerSqft > sanity.max) ? 'This estimate is outside the configured reference range. Check measured scope, optional extras and provisional rates with a local contractor.' : null,

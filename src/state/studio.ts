@@ -14,7 +14,7 @@ import {
 import { distinctDirectionPlans } from '@/lib/engine/generate.ts'
 import { planFingerprint, type PlanFingerprint } from '@/lib/engine/planner/planFingerprint.ts'
 import { validate, type ValidationReport } from '@/lib/rules/index.ts'
-import { estimateCost, type CostEstimate } from '@/lib/cost/index.ts'
+import { estimateBoq, type CostEstimate } from '@/lib/cost/index.ts'
 import { varyExterior } from '@/lib/engine/variation.ts'
 import { parseInspirationPreferences, type InspirationPreferences } from '@/lib/engine/designDna.ts'
 import type { BuildingModel } from '@/lib/engine/buildingModel.ts'
@@ -136,7 +136,7 @@ function variationLevel(brief: Brief) {
 function resultForPlan(design: Design): Result {
   return { model: design.model, design, report: validate(design), buildingModel: null, villaDesignDNA: null,
     massingModel: null, facadeModel: null, shapeFingerprint: null, shapeStatus: 'invalid-plan',
-    cost: estimateCost(design), generatedAt: Date.now() }
+    cost: estimateBoq(design), generatedAt: Date.now() }
 }
 
 function exactResult(plan: Design, seed: number, inspiration: InspirationPreferences | null,
@@ -206,7 +206,10 @@ export const useStudio = create<StudioState>()(
           const geometryBefore = JSON.stringify(geometryBrief(s.brief))
           recipe(s.brief)
           // Finish/specification edits save in the brief without regenerating rooms or a villa.
-          if (geometryBefore === JSON.stringify(geometryBrief(s.brief))) return
+          if (geometryBefore === JSON.stringify(geometryBrief(s.brief))) {
+            if (s.result) s.result.cost = estimateBoq(s.result.design, s.brief)
+            return
+          }
           // Only geometry-relevant brief changes invalidate the generated plan.
           s.directions = null
           s.pinned = null

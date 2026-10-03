@@ -2,7 +2,7 @@ import { defaultBrief } from '../src/lib/model/brief.ts'
 import { compile, canonicalSummary } from '../src/lib/model/canonical.ts'
 import { generate } from '../src/lib/engine/index.ts'
 import { validate } from '../src/lib/rules/index.ts'
-import { estimateCost } from '../src/lib/cost/index.ts'
+import { estimateBoq } from '../src/lib/cost/index.ts'
 
 const brief = defaultBrief()
 brief.levels.storeys = 2
@@ -18,7 +18,7 @@ for (const f of design.floors) {
 const report = validate(design)
 console.log('\nVALIDATION', report.pack, 'score', report.score, 'hardPass', report.hardChecksPass, report.counts)
 for (const fn of report.findings) console.log(`  [${fn.severity}] ${fn.code} - ${fn.message}`)
-const cost = estimateCost(design)
+const cost = estimateBoq(design)
 console.log('\nCOST expected', Math.round(cost.expected), 'range', Math.round(cost.total.low), '-', Math.round(cost.total.high))
 const d2 = generate(compile(brief))
 console.log('\ndeterministic:', JSON.stringify(design) === JSON.stringify(d2))

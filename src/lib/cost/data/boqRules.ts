@@ -8,7 +8,7 @@ export const boqRulesSchema = z.strictObject({
   version: z.string(), memoEntries: positive.int(), driverCount: positive.int(),
   recipes: z.array(z.strictObject({ item: z.string(), key: z.string(), label: z.string(), trade: z.enum(TRADES),
     from: z.enum(['items', 'steel', 'formwork', 'extra', 'room']), measure: z.enum(['NetVolume', 'NetSideArea', 'NetArea', 'Length', 'Count']),
-    rateId: z.string().optional(), note: z.string(),
+    rateId: z.string().optional(), roomFloorSpec: z.boolean().optional(), note: z.string(),
   })),
   allowances: z.strictObject({ waterPipeMetresPerPoint: positive, drainPipeMetresPerPoint: positive, wireMetresPerPoint: positive,
     lightsPerPoint: positive.max(1), tankRateCapacityLitres: positive, kitchenRunRatio: positive.max(1), counterDepthM: positive,

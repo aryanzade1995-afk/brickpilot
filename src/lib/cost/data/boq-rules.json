@@ -183,7 +183,8 @@
       "trade": "Flooring & tiling",
       "from": "room",
       "measure": "NetArea",
-      "note": "100 mm high equivalent tile area, using the room flooring specification."
+      "note": "100 mm high equivalent tile area, using the same flooring specification as this room.",
+      "roomFloorSpec": true
     },
     {
       "item": "bath-wall-tiles",

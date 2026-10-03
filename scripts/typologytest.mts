@@ -2,7 +2,7 @@ import { defaultBrief } from '../src/lib/model/brief.ts'
 import { compile } from '../src/lib/model/canonical.ts'
 import { generate, STRATEGIES } from '../src/lib/engine/index.ts'
 import { validate } from '../src/lib/rules/index.ts'
-import { estimateCost } from '../src/lib/cost/index.ts'
+import { estimateBoq } from '../src/lib/cost/index.ts'
 import { buildMassing } from '../src/lib/three/buildMassing.ts'
 
 /* Large-villa typology. For every character × storey count × strategy the large
@@ -41,8 +41,8 @@ for (const c of chars) {
       const db = onPlot('large-villa')
       const rs = validate(ds)
       const rb = validate(db)
-      const cs = estimateCost(ds)
-      const cb = estimateCost(db)
+      const cs = estimateBoq(ds)
+      const cb = estimateBoq(db)
 
       const m = buildMassing(db)
       const badBox = m.boxes.find(

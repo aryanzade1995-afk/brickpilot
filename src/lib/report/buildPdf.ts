@@ -226,6 +226,7 @@ export async function buildReportPdf(data: ReportData): Promise<Blob> {
   paragraph(cost.qualification)
   paragraph(`${cost.basis} · ${cost.currency}.`)
   paragraph(`Concept range: ${moneyRange(cost.total.low, cost.total.high)}. Rate version: ${cost.rateVersion}.`)
+  paragraph(`${money(cost.ratePerSqft)} / sq ft, including project allowances. Supply/labour splits are approximate.`)
   table(
     ['Item', 'Basis', 'Amount'],
     cost.lines.map((l) => [l.label, l.note, money(l.expected)]),
@@ -236,14 +237,26 @@ export async function buildReportPdf(data: ReportData): Promise<Blob> {
   doc.text('Expected total', M, y)
   doc.text(money(cost.expected), W - M, y, { align: 'right' })
   y += 28
+  heading('Trades & procurement', 90)
+  table(['Trade', 'Share of works', 'Amount'], cost.tradeTotals.map(t => [t.trade, `${(t.share * 100).toFixed(1)}%`, money(t.amount)]), [0.5, 0.2, 0.3])
+  table(['Procurement comparison - same scope', 'Amount'], [
+    ['Materials', money(cost.procurement.material)], ['Labour', money(cost.procurement.labour)],
+    ['Contractor overhead & profit', money(cost.procurement.overhead)],
+    ['Turnkey works subtotal', money(cost.procurement.turnkey)], ['Other project add-ons', money(cost.procurement.projectAddOns)],
+    ['Expected project total', money(cost.expected)],
+  ])
+  paragraph(cost.procurement.note)
+  heading('Largest costs & changes from preset', 90)
+  paragraph(`Same plan and finish level before finish overrides. Default total ${money(cost.defaultExpected)}.`)
+  table(['Specification', 'Amount', 'Change from preset'], cost.topCostDrivers.map(d => [d.label, money(d.amount), d.difference ? `${d.difference > 0 ? '+' : '-'}${money(Math.abs(d.difference))}` : 'Matches preset']), [0.46, 0.27, 0.27])
   heading('Itemised quantities & rates (BOQ)', 90)
   paragraph(cost.label)
   table(['Work / specification', 'Quantity', 'Rate', 'Amount'], cost.boq.map(l => [
-    `${l.label} - ${l.specification}`, `${l.quantity.toFixed(2)} m2`, `${money(l.rate)} / m2`, money(l.amount),
+    `${l.label} - ${l.specification}`, `${l.quantity.toFixed(2)} ${l.unit.replaceAll('²', '2').replaceAll('³', '3')}`, `${money(l.rate)} / ${l.unit.replaceAll('²', '2').replaceAll('³', '3')}`, money(l.amount),
   ]), [0.50, 0.13, 0.18, 0.19])
   paragraph('BOQ works subtotal excludes contractor overhead, fees, contingency and GST; these are shown in the summary above.')
   heading('Measurement assumptions & scope', 90)
-  cost.quantities.assumptions.forEach(a => paragraph(a))
+  cost.assumptions.forEach(a => paragraph(a))
   table(
     ['Included', 'Excluded'],
     zip(cost.included, cost.excluded),

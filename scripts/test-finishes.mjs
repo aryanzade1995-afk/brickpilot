@@ -11,7 +11,7 @@ import { generate } from '../src/lib/engine/generate.ts'
 import { validate } from '../src/lib/rules/index.ts'
 import { geometryCostKey } from '../src/lib/cost/quantities.ts'
 import { defaultSelection } from '../src/lib/cost/specifications.ts'
-import { estimateCost } from '../src/lib/cost/index.ts'
+import { estimateSelectedBoq, estimateProjectBoq } from '../src/lib/cost/index.ts'
 const storage=new Map()
 globalThis.localStorage={getItem:k=>storage.get(k)??null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)}
 globalThis.window={localStorage:globalThis.localStorage,atob:globalThis.atob,btoa:globalThis.btoa}
@@ -41,16 +41,26 @@ test('cost step has defaults, seven-step navigation and collapsed advanced choic
  assert.ok(html.includes('<details'));assert.ok(!html.includes('<details open'))
  assert.ok(!html.includes('<img'));assert.ok(!html.toLowerCase().includes('budget'))
  assert.ok(html.indexOf('Finishes &amp; Cost')<html.indexOf('Report'))
- const cost=estimateCost(design);assert.ok(html.includes(new Intl.NumberFormat('en-IN',{maximumFractionDigits:0}).format(cost.expected)))
+ assert.ok(html.includes('Cost by trade'));assert.ok(html.includes('Largest costs'));assert.ok(html.includes('Approvals allowance'))
+ const cost=estimateSelectedBoq(design);assert.ok(html.includes(new Intl.NumberFormat('en-IN',{maximumFractionDigits:0}).format(cost.expected)))
 })
 test('invalid source plan does not show prices or allow specification editing',()=>{
  const html=render({...result,report:{...report,hardChecksPass:false}});assert.ok(html.includes('Choose a valid floor plan first'))
  assert.ok(!html.includes('Estimated total'));assert.ok(!html.includes('Indoor flooring'))
 })
 
+test('cost screen prices the current Brief beyond the five legacy dropdowns, without regenerating the plan',()=>{
+ useFinishes.setState({entries:{}})
+ const brief=structuredClone(design.model.brief);brief.specs.overrides={solar:'on','glass':'double'}
+ const before=JSON.stringify(design),cost=estimateProjectBoq(design,brief)
+ const html=renderToStaticMarkup(React.createElement(MemoryRouter,null,React.createElement(FinishesCostView,{result,brief})))
+ assert.ok(html.includes(new Intl.NumberFormat('en-IN',{maximumFractionDigits:0}).format(cost.expected)))
+ assert.ok(cost.boq.some(l=>l.item==='solar'&&l.amount===250000));assert.equal(JSON.stringify(design),before)
+})
+
 test('PDF exports the selected BOQ through its final row and carries estimate provenance on every page',async()=>{
  const {buildReportPdf}=await server.ssrLoadModule('/src/lib/report/buildPdf.ts')
- const before=JSON.stringify(design),cost=estimateCost(design,defaultSelection('refined'))
+ const before=JSON.stringify(design),cost=estimateSelectedBoq(design,defaultSelection('refined'))
  const blob=await buildReportPdf({projectName:'Cost review',brief:design.model.brief,design,report,cost,planImages:[],massingImages:[],conceptImages:[]})
  const pdf=Buffer.from(await blob.arrayBuffer()).toString('latin1')
  const amount=new Intl.NumberFormat('en-IN',{maximumFractionDigits:0})
@@ -64,5 +74,7 @@ test('PDF exports the selected BOQ through its final row and carries estimate pr
  assert.ok(pages>=2,'the multi-page BOQ fixture exercises continuation pages')
  assert.ok((pdf.match(/Concept estimate/g)??[]).length>=pages)
  assert.ok(pdf.includes(cost.rateVersion))
+ assert.ok(pdf.includes('TRADES & PROCUREMENT'));assert.ok(pdf.includes(' / kg'));assert.ok(pdf.includes(' / m3'))
+ assert.ok(pdf.includes('Approvals allowance'));assert.ok(pdf.includes('Connections allowance'))
  assert.equal(JSON.stringify(design),before)
 })

@@ -49,6 +49,7 @@ test('per-room overrides take precedence, accept semantic legacy IDs and do not 
  b.specs.overrides[`interior-paint@${paint.roomId}`]='premium'
  const next=estimateBoq(design,b),delta=changed(base,next)
  assert.ok(delta.every(l=>l.item==='floor-bedrooms'&&l.roomId===floor.roomId||l.item==='interior-paint'&&l.roomId===paint.roomId))
+ assert.ok(delta.some(l=>l.roomId===floor.roomId&&l.label.endsWith('Skirting')))
  const semantic=floor.roomId.slice(floor.roomId.indexOf(':')+1),old=structuredClone(brief);old.specs.overrides[`floor-bedrooms@${semantic}`]='stone'
  assert.equal(estimateBoq(design,old).boq.find(l=>l.id===floor.id).rate,next.boq.find(l=>l.id===floor.id).rate)
  old.specs.overrides[`floor-bedrooms@${floor.roomId}`]='ceramic'
