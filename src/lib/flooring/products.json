@@ -1,0 +1,1186 @@
+{
+  "schemaVersion": 1,
+  "products": [
+    {
+      "id": "marble-gvt",
+      "name": "Large-format marble-look GVT/PGVT",
+      "manufacturer": "Orientbell",
+      "productName": "PGVT Armani Marble Crema",
+      "materialType": "PGVT",
+      "look": "Marble",
+      "finish": "Glossy",
+      "color": "Cream",
+      "availableSizes": [
+        "800 × 1600 mm"
+      ],
+      "suitableRooms": [
+        "Living/Dining",
+        "Bedrooms",
+        "Foyer",
+        "Staircase"
+      ],
+      "indoorOutdoor": "indoor",
+      "slipResistance": "Not verified; request a wet-slip test for bathrooms, outdoors and poolside",
+      "price": {
+        "material": 1800,
+        "labour": 450,
+        "unit": "m2",
+        "currency": "INR",
+        "city": "Pune",
+        "date": "2026-10-03",
+        "status": "provisional-allowance",
+        "note": "Approximate installed concept allowance; not manufacturer MRP or a quote. Confirm substrate, cutting, fixing and supplier price."
+      },
+      "image": {
+        "manufacturer": "Orientbell",
+        "productName": "PGVT Armani Marble Crema",
+        "sourceUrl": "https://www.orientbell.com/pgvt-armani-marble-crema",
+        "url": "https://images.orientbell.com/media/catalog/product/p/g/pgvt_armani_marble_crema_f1_inspire_collection_gloss_finish_800x1800_mm__floor_tiles.jpg",
+        "imageType": "product-swatch",
+        "sourceStatus": "source-verified",
+        "licensingStatus": "permission-required",
+        "verifiedAt": "2026-10-03",
+        "verifiedBy": "Source page, asset response and visual swatch audit; not proof of camera capture",
+        "productionReady": false
+      },
+      "thumbnail": "https://images.orientbell.com/media/catalog/product/p/g/pgvt_armani_marble_crema_f1_inspire_collection_gloss_finish_800x1800_mm__floor_tiles.jpg",
+      "sourceUrl": "https://www.orientbell.com/pgvt-armani-marble-crema",
+      "blenderMaterial": "sandstone",
+      "previewNote": "Generic existing CC0 material preview, not this supplier product. Manufacturer imagery is not copied into Blender."
+    },
+    {
+      "id": "italian-marble",
+      "name": "Italian marble",
+      "manufacturer": "NITCO",
+      "productName": "ARABESCATO GRIGIO · origin to confirm",
+      "materialType": "Natural marble",
+      "look": "Marble",
+      "finish": "Polished",
+      "color": "Grey",
+      "availableSizes": [
+        "Cut to size; confirm slab"
+      ],
+      "suitableRooms": [
+        "Living/Dining",
+        "Bedrooms",
+        "Foyer",
+        "Staircase"
+      ],
+      "indoorOutdoor": "indoor",
+      "slipResistance": "Not verified; request a wet-slip test for bathrooms, outdoors and poolside",
+      "price": {
+        "material": 6500,
+        "labour": 1200,
+        "unit": "m2",
+        "currency": "INR",
+        "city": "Pune",
+        "date": "2026-10-03",
+        "status": "provisional-allowance",
+        "note": "Approximate installed concept allowance; not manufacturer MRP or a quote. Confirm substrate, cutting, fixing and supplier price."
+      },
+      "image": {
+        "manufacturer": "NITCO",
+        "productName": "ARABESCATO GRIGIO · origin to confirm",
+        "sourceUrl": "https://www.nitco.in/natural-stone/arabescato-grigio-marble",
+        "url": "https://www.nitco.in/nitcomedia/marble/thumb/BSS1262616.jpg",
+        "imageType": "product-swatch",
+        "sourceStatus": "source-verified",
+        "licensingStatus": "permission-required",
+        "verifiedAt": "2026-10-03",
+        "verifiedBy": "Source page, asset response and visual swatch audit; not proof of camera capture",
+        "productionReady": false
+      },
+      "thumbnail": "https://www.nitco.in/nitcomedia/marble/thumb/BSS1262616.jpg",
+      "sourceUrl": "https://www.nitco.in/natural-stone/arabescato-grigio-marble",
+      "blenderMaterial": "sandstone",
+      "previewNote": "Generic existing CC0 material preview, not this supplier product. Manufacturer imagery is not copied into Blender."
+    },
+    {
+      "id": "indian-marble",
+      "name": "Indian marble",
+      "manufacturer": "Supplier to confirm",
+      "productName": "Indian marble",
+      "materialType": "Natural marble",
+      "look": "Marble",
+      "finish": "Polished",
+      "color": "White",
+      "availableSizes": [
+        "Cut to size; supplier confirmation"
+      ],
+      "suitableRooms": [
+        "Living/Dining",
+        "Bedrooms",
+        "Foyer",
+        "Staircase"
+      ],
+      "indoorOutdoor": "indoor",
+      "slipResistance": "Not verified; request a wet-slip test for bathrooms, outdoors and poolside",
+      "price": {
+        "material": 2200,
+        "labour": 800,
+        "unit": "m2",
+        "currency": "INR",
+        "city": "Pune",
+        "date": "2026-10-03",
+        "status": "provisional-allowance",
+        "note": "Approximate installed concept allowance; not manufacturer MRP or a quote. Confirm substrate, cutting, fixing and supplier price."
+      },
+      "image": {
+        "manufacturer": "Supplier to confirm",
+        "productName": "Indian marble",
+        "sourceUrl": null,
+        "url": null,
+        "imageType": "unavailable",
+        "sourceStatus": "unavailable",
+        "licensingStatus": "not-applicable",
+        "verifiedAt": null,
+        "verifiedBy": null,
+        "productionReady": false
+      },
+      "thumbnail": null,
+      "sourceUrl": null,
+      "blenderMaterial": "sandstone",
+      "previewNote": "Generic existing CC0 material preview, not this supplier product. Manufacturer imagery is not copied into Blender."
+    },
+    {
+      "id": "statuario-look",
+      "name": "Statuario marble-look",
+      "manufacturer": "Orientbell",
+      "productName": "PGVT Statuario Streak Vein Marble",
+      "materialType": "PGVT",
+      "look": "Statuario",
+      "finish": "Glossy",
+      "color": "White",
+      "availableSizes": [
+        "800 × 1600 mm"
+      ],
+      "suitableRooms": [
+        "Living/Dining",
+        "Bedrooms",
+        "Foyer",
+        "Staircase"
+      ],
+      "indoorOutdoor": "indoor",
+      "slipResistance": "Not verified; request a wet-slip test for bathrooms, outdoors and poolside",
+      "price": {
+        "material": 1900,
+        "labour": 450,
+        "unit": "m2",
+        "currency": "INR",
+        "city": "Pune",
+        "date": "2026-10-03",
+        "status": "provisional-allowance",
+        "note": "Approximate installed concept allowance; not manufacturer MRP or a quote. Confirm substrate, cutting, fixing and supplier price."
+      },
+      "image": {
+        "manufacturer": "Orientbell",
+        "productName": "PGVT Statuario Streak Vein Marble",
+        "sourceUrl": "https://www.orientbell.com/pgvt-statuario-streak-vein-marble",
+        "url": "https://images.orientbell.com/media/catalog/product/p/g/pgvt_statuario_streak_vein_marble_f1_inspire_collection_gloss_finish_800x1600_mm__floor_tiles.jpg",
+        "imageType": "product-swatch",
+        "sourceStatus": "source-verified",
+        "licensingStatus": "permission-required",
+        "verifiedAt": "2026-10-03",
+        "verifiedBy": "Source page, asset response and visual swatch audit; not proof of camera capture",
+        "productionReady": false
+      },
+      "thumbnail": "https://images.orientbell.com/media/catalog/product/p/g/pgvt_statuario_streak_vein_marble_f1_inspire_collection_gloss_finish_800x1600_mm__floor_tiles.jpg",
+      "sourceUrl": "https://www.orientbell.com/pgvt-statuario-streak-vein-marble",
+      "blenderMaterial": "sandstone",
+      "previewNote": "Generic existing CC0 material preview, not this supplier product. Manufacturer imagery is not copied into Blender."
+    },
+    {
+      "id": "calacatta-look",
+      "name": "Calacatta marble-look",
+      "manufacturer": "Orientbell",
+      "productName": "PGVT Calacatta Natura",
+      "materialType": "PGVT",
+      "look": "Calacatta",
+      "finish": "Glossy",
+      "color": "White / gold",
+      "availableSizes": [
+        "600 × 1200 mm"
+      ],
+      "suitableRooms": [
+        "Living/Dining",
+        "Bedrooms",
+        "Foyer",
+        "Staircase"
+      ],
+      "indoorOutdoor": "indoor",
+      "slipResistance": "Not verified; request a wet-slip test for bathrooms, outdoors and poolside",
+      "price": {
+        "material": 1850,
+        "labour": 450,
+        "unit": "m2",
+        "currency": "INR",
+        "city": "Pune",
+        "date": "2026-10-03",
+        "status": "provisional-allowance",
+        "note": "Approximate installed concept allowance; not manufacturer MRP or a quote. Confirm substrate, cutting, fixing and supplier price."
+      },
+      "image": {
+        "manufacturer": "Orientbell",
+        "productName": "PGVT Calacatta Natura",
+        "sourceUrl": "https://www.orientbell.com/pgvt-calacatta-natura",
+        "url": "https://images.orientbell.com/media/catalog/product/p/g/pgvt_calacatta_natura_f1.jpg",
+        "imageType": "product-swatch",
+        "sourceStatus": "source-verified",
+        "licensingStatus": "permission-required",
+        "verifiedAt": "2026-10-03",
+        "verifiedBy": "Source page, asset response and visual swatch audit; not proof of camera capture",
+        "productionReady": false
+      },
+      "thumbnail": "https://images.orientbell.com/media/catalog/product/p/g/pgvt_calacatta_natura_f1.jpg",
+      "sourceUrl": "https://www.orientbell.com/pgvt-calacatta-natura",
+      "blenderMaterial": "sandstone",
+      "previewNote": "Generic existing CC0 material preview, not this supplier product. Manufacturer imagery is not copied into Blender."
+    },
+    {
+      "id": "onyx-look",
+      "name": "Onyx-look porcelain / PGVT",
+      "manufacturer": "Orientbell",
+      "productName": "PGVT ONYX PEARL",
+      "materialType": "PGVT",
+      "look": "Onyx",
+      "finish": "Glossy",
+      "color": "Pearl",
+      "availableSizes": [
+        "800 × 1600 mm"
+      ],
+      "suitableRooms": [
+        "Living/Dining",
+        "Bedrooms",
+        "Foyer",
+        "Staircase"
+      ],
+      "indoorOutdoor": "indoor",
+      "slipResistance": "Not verified; request a wet-slip test for bathrooms, outdoors and poolside",
+      "price": {
+        "material": 2000,
+        "labour": 500,
+        "unit": "m2",
+        "currency": "INR",
+        "city": "Pune",
+        "date": "2026-10-03",
+        "status": "provisional-allowance",
+        "note": "Approximate installed concept allowance; not manufacturer MRP or a quote. Confirm substrate, cutting, fixing and supplier price."
+      },
+      "image": {
+        "manufacturer": "Orientbell",
+        "productName": "PGVT ONYX PEARL",
+        "sourceUrl": "https://www.orientbell.com/pgvt-onyx-pearl",
+        "url": "https://images.orientbell.com/media/catalog/product/p/g/pgvt_onyx_pearl-1.jpg",
+        "imageType": "product-swatch",
+        "sourceStatus": "source-verified",
+        "licensingStatus": "permission-required",
+        "verifiedAt": "2026-10-03",
+        "verifiedBy": "Source page, asset response and visual swatch audit; not proof of camera capture",
+        "productionReady": false
+      },
+      "thumbnail": "https://images.orientbell.com/media/catalog/product/p/g/pgvt_onyx_pearl-1.jpg",
+      "sourceUrl": "https://www.orientbell.com/pgvt-onyx-pearl",
+      "blenderMaterial": "sandstone",
+      "previewNote": "Generic existing CC0 material preview, not this supplier product. Manufacturer imagery is not copied into Blender."
+    },
+    {
+      "id": "travertine-look",
+      "name": "Travertine-look porcelain / GVT",
+      "manufacturer": "Orientbell",
+      "productName": "DGVT Real Travertine Grey",
+      "materialType": "GVT",
+      "look": "Travertine",
+      "finish": "Matte",
+      "color": "Grey",
+      "availableSizes": [
+        "600 × 1200 mm"
+      ],
+      "suitableRooms": [
+        "Living/Dining",
+        "Bedrooms",
+        "Foyer",
+        "Staircase",
+        "Kitchen"
+      ],
+      "indoorOutdoor": "indoor",
+      "slipResistance": "Not verified; request a wet-slip test for bathrooms, outdoors and poolside",
+      "price": {
+        "material": 1800,
+        "labour": 450,
+        "unit": "m2",
+        "currency": "INR",
+        "city": "Pune",
+        "date": "2026-10-03",
+        "status": "provisional-allowance",
+        "note": "Approximate installed concept allowance; not manufacturer MRP or a quote. Confirm substrate, cutting, fixing and supplier price."
+      },
+      "image": {
+        "manufacturer": "Orientbell",
+        "productName": "DGVT Real Travertine Grey",
+        "sourceUrl": "https://www.orientbell.com/dgvt-real-travertine-grey",
+        "url": "https://images.orientbell.com/media/catalog/product/d/g/dgvt_real_travertine_grey_f4_glazed_vitrified_tile_wall_floor_tile_600x1200mm.jpg",
+        "imageType": "product-swatch",
+        "sourceStatus": "source-verified",
+        "licensingStatus": "permission-required",
+        "verifiedAt": "2026-10-03",
+        "verifiedBy": "Source page, asset response and visual swatch audit; not proof of camera capture",
+        "productionReady": false
+      },
+      "thumbnail": "https://images.orientbell.com/media/catalog/product/d/g/dgvt_real_travertine_grey_f4_glazed_vitrified_tile_wall_floor_tile_600x1200mm.jpg",
+      "sourceUrl": "https://www.orientbell.com/dgvt-real-travertine-grey",
+      "blenderMaterial": "sandstone",
+      "previewNote": "Generic existing CC0 material preview, not this supplier product. Manufacturer imagery is not copied into Blender."
+    },
+    {
+      "id": "natural-travertine",
+      "name": "Natural travertine",
+      "manufacturer": "NITCO",
+      "productName": "TRAVERTINO (CLASSICO)",
+      "materialType": "Natural travertine",
+      "look": "Travertine",
+      "finish": "Honed",
+      "color": "Cream",
+      "availableSizes": [
+        "Cut to size; confirm slab"
+      ],
+      "suitableRooms": [
+        "Living/Dining",
+        "Bedrooms",
+        "Foyer",
+        "Staircase"
+      ],
+      "indoorOutdoor": "indoor",
+      "slipResistance": "Not verified; request a wet-slip test for bathrooms, outdoors and poolside",
+      "price": {
+        "material": 5500,
+        "labour": 1100,
+        "unit": "m2",
+        "currency": "INR",
+        "city": "Pune",
+        "date": "2026-10-03",
+        "status": "provisional-allowance",
+        "note": "Approximate installed concept allowance; not manufacturer MRP or a quote. Confirm substrate, cutting, fixing and supplier price."
+      },
+      "image": {
+        "manufacturer": "NITCO",
+        "productName": "TRAVERTINO (CLASSICO)",
+        "sourceUrl": "https://www.nitco.in/travertine-marble-collection",
+        "url": "https://www.nitco.in/nitcomedia/marble/masters/TRAVERTINO-(-CLASSICO-).jpg",
+        "imageType": "product-swatch",
+        "sourceStatus": "source-verified",
+        "licensingStatus": "permission-required",
+        "verifiedAt": "2026-10-03",
+        "verifiedBy": "Source page, asset response and visual swatch audit; not proof of camera capture",
+        "productionReady": false
+      },
+      "thumbnail": "https://www.nitco.in/nitcomedia/marble/masters/TRAVERTINO-(-CLASSICO-).jpg",
+      "sourceUrl": "https://www.nitco.in/travertine-marble-collection",
+      "blenderMaterial": "sandstone",
+      "previewNote": "Generic existing CC0 material preview, not this supplier product. Manufacturer imagery is not copied into Blender."
+    },
+    {
+      "id": "sandstone-floor",
+      "name": "Sandstone",
+      "manufacturer": "Supplier to confirm",
+      "productName": "Sandstone",
+      "materialType": "Natural sandstone",
+      "look": "Sandstone",
+      "finish": "Textured",
+      "color": "Beige",
+      "availableSizes": [
+        "Cut to size; supplier confirmation"
+      ],
+      "suitableRooms": [
+        "Foyer",
+        "Balcony",
+        "Terrace",
+        "Outdoor"
+      ],
+      "indoorOutdoor": "both",
+      "slipResistance": "Not verified; request a wet-slip test for bathrooms, outdoors and poolside",
+      "price": {
+        "material": 1600,
+        "labour": 600,
+        "unit": "m2",
+        "currency": "INR",
+        "city": "Pune",
+        "date": "2026-10-03",
+        "status": "provisional-allowance",
+        "note": "Approximate installed concept allowance; not manufacturer MRP or a quote. Confirm substrate, cutting, fixing and supplier price."
+      },
+      "image": {
+        "manufacturer": "Supplier to confirm",
+        "productName": "Sandstone",
+        "sourceUrl": null,
+        "url": null,
+        "imageType": "unavailable",
+        "sourceStatus": "unavailable",
+        "licensingStatus": "not-applicable",
+        "verifiedAt": null,
+        "verifiedBy": null,
+        "productionReady": false
+      },
+      "thumbnail": null,
+      "sourceUrl": null,
+      "blenderMaterial": "sandstone",
+      "previewNote": "Generic existing CC0 material preview, not this supplier product. Manufacturer imagery is not copied into Blender."
+    },
+    {
+      "id": "kota-stone",
+      "name": "Kota stone",
+      "manufacturer": "Supplier to confirm",
+      "productName": "Kota stone",
+      "materialType": "Natural limestone",
+      "look": "Kota stone",
+      "finish": "Honed",
+      "color": "Blue / green",
+      "availableSizes": [
+        "Cut to size; supplier confirmation"
+      ],
+      "suitableRooms": [
+        "Kitchen",
+        "Foyer",
+        "Staircase",
+        "Balcony",
+        "Outdoor"
+      ],
+      "indoorOutdoor": "both",
+      "slipResistance": "Not verified; request a wet-slip test for bathrooms, outdoors and poolside",
+      "price": {
+        "material": 850,
+        "labour": 550,
+        "unit": "m2",
+        "currency": "INR",
+        "city": "Pune",
+        "date": "2026-10-03",
+        "status": "provisional-allowance",
+        "note": "Approximate installed concept allowance; not manufacturer MRP or a quote. Confirm substrate, cutting, fixing and supplier price."
+      },
+      "image": {
+        "manufacturer": "Supplier to confirm",
+        "productName": "Kota stone",
+        "sourceUrl": null,
+        "url": null,
+        "imageType": "unavailable",
+        "sourceStatus": "unavailable",
+        "licensingStatus": "not-applicable",
+        "verifiedAt": null,
+        "verifiedBy": null,
+        "productionReady": false
+      },
+      "thumbnail": null,
+      "sourceUrl": null,
+      "blenderMaterial": "sandstone",
+      "previewNote": "Generic existing CC0 material preview, not this supplier product. Manufacturer imagery is not copied into Blender."
+    },
+    {
+      "id": "granite-floor",
+      "name": "Granite",
+      "manufacturer": "Supplier to confirm",
+      "productName": "Granite",
+      "materialType": "Natural granite",
+      "look": "Granite",
+      "finish": "Polished",
+      "color": "Grey",
+      "availableSizes": [
+        "Cut to size; supplier confirmation"
+      ],
+      "suitableRooms": [
+        "Living/Dining",
+        "Bedrooms",
+        "Foyer",
+        "Staircase",
+        "Kitchen"
+      ],
+      "indoorOutdoor": "indoor",
+      "slipResistance": "Not verified; request a wet-slip test for bathrooms, outdoors and poolside",
+      "price": {
+        "material": 2800,
+        "labour": 700,
+        "unit": "m2",
+        "currency": "INR",
+        "city": "Pune",
+        "date": "2026-10-03",
+        "status": "provisional-allowance",
+        "note": "Approximate installed concept allowance; not manufacturer MRP or a quote. Confirm substrate, cutting, fixing and supplier price."
+      },
+      "image": {
+        "manufacturer": "Supplier to confirm",
+        "productName": "Granite",
+        "sourceUrl": null,
+        "url": null,
+        "imageType": "unavailable",
+        "sourceStatus": "unavailable",
+        "licensingStatus": "not-applicable",
+        "verifiedAt": null,
+        "verifiedBy": null,
+        "productionReady": false
+      },
+      "thumbnail": null,
+      "sourceUrl": null,
+      "blenderMaterial": "sandstone",
+      "previewNote": "Generic existing CC0 material preview, not this supplier product. Manufacturer imagery is not copied into Blender."
+    },
+    {
+      "id": "wood-porcelain",
+      "name": "Wood-look porcelain / GVT",
+      "manufacturer": "Orientbell",
+      "productName": "DGVT Hickory Wood Brown",
+      "materialType": "GVT",
+      "look": "Wood",
+      "finish": "Matte",
+      "color": "Brown",
+      "availableSizes": [
+        "600 × 1200 mm"
+      ],
+      "suitableRooms": [
+        "Bedrooms",
+        "Living/Dining",
+        "Foyer"
+      ],
+      "indoorOutdoor": "indoor",
+      "slipResistance": "Not verified; request a wet-slip test for bathrooms, outdoors and poolside",
+      "price": {
+        "material": 1800,
+        "labour": 450,
+        "unit": "m2",
+        "currency": "INR",
+        "city": "Pune",
+        "date": "2026-10-03",
+        "status": "provisional-allowance",
+        "note": "Approximate installed concept allowance; not manufacturer MRP or a quote. Confirm substrate, cutting, fixing and supplier price."
+      },
+      "image": {
+        "manufacturer": "Orientbell",
+        "productName": "DGVT Hickory Wood Brown",
+        "sourceUrl": "https://www.orientbell.com/dgvt-hickory-wood-brown",
+        "url": "https://images.orientbell.com/media/catalog/product/d/g/dgvt_hickory_wood_brown_f1.jpg",
+        "imageType": "product-swatch",
+        "sourceStatus": "source-verified",
+        "licensingStatus": "permission-required",
+        "verifiedAt": "2026-10-03",
+        "verifiedBy": "Source page, asset response and visual swatch audit; not proof of camera capture",
+        "productionReady": false
+      },
+      "thumbnail": "https://images.orientbell.com/media/catalog/product/d/g/dgvt_hickory_wood_brown_f1.jpg",
+      "sourceUrl": "https://www.orientbell.com/dgvt-hickory-wood-brown",
+      "blenderMaterial": "teak_wood",
+      "previewNote": "Generic existing CC0 material preview, not this supplier product. Manufacturer imagery is not copied into Blender."
+    },
+    {
+      "id": "teak-look",
+      "name": "Teak-look tile",
+      "manufacturer": "Orientbell",
+      "productName": "Teak Natural",
+      "materialType": "Vitrified tile",
+      "look": "Teak",
+      "finish": "Matte",
+      "color": "Teak brown",
+      "availableSizes": [
+        "600 × 600 mm"
+      ],
+      "suitableRooms": [
+        "Bedrooms",
+        "Living/Dining",
+        "Foyer"
+      ],
+      "indoorOutdoor": "indoor",
+      "slipResistance": "Not verified; request a wet-slip test for bathrooms, outdoors and poolside",
+      "price": {
+        "material": 1650,
+        "labour": 400,
+        "unit": "m2",
+        "currency": "INR",
+        "city": "Pune",
+        "date": "2026-10-03",
+        "status": "provisional-allowance",
+        "note": "Approximate installed concept allowance; not manufacturer MRP or a quote. Confirm substrate, cutting, fixing and supplier price."
+      },
+      "image": {
+        "manufacturer": "Orientbell",
+        "productName": "Teak Natural",
+        "sourceUrl": "https://www.orientbell.com/ft-teak-natural-024606635760706361m",
+        "url": "https://images.orientbell.com/media/catalog/product/t/e/teak_natural_1.jpg",
+        "imageType": "product-swatch",
+        "sourceStatus": "source-verified",
+        "licensingStatus": "permission-required",
+        "verifiedAt": "2026-10-03",
+        "verifiedBy": "Source page, asset response and visual swatch audit; not proof of camera capture",
+        "productionReady": false
+      },
+      "thumbnail": "https://images.orientbell.com/media/catalog/product/t/e/teak_natural_1.jpg",
+      "sourceUrl": "https://www.orientbell.com/ft-teak-natural-024606635760706361m",
+      "blenderMaterial": "teak_wood",
+      "previewNote": "Generic existing CC0 material preview, not this supplier product. Manufacturer imagery is not copied into Blender."
+    },
+    {
+      "id": "walnut-look",
+      "name": "Walnut / dark wood-look tile",
+      "manufacturer": "Orientbell",
+      "productName": "DR DGVT Walnut  Wood Wenge ",
+      "materialType": "GVT",
+      "look": "Walnut",
+      "finish": "Matte",
+      "color": "Dark brown",
+      "availableSizes": [
+        "600 × 1200 mm"
+      ],
+      "suitableRooms": [
+        "Bedrooms",
+        "Living/Dining",
+        "Foyer"
+      ],
+      "indoorOutdoor": "indoor",
+      "slipResistance": "Not verified; request a wet-slip test for bathrooms, outdoors and poolside",
+      "price": {
+        "material": 1850,
+        "labour": 450,
+        "unit": "m2",
+        "currency": "INR",
+        "city": "Pune",
+        "date": "2026-10-03",
+        "status": "provisional-allowance",
+        "note": "Approximate installed concept allowance; not manufacturer MRP or a quote. Confirm substrate, cutting, fixing and supplier price."
+      },
+      "image": {
+        "manufacturer": "Orientbell",
+        "productName": "DR DGVT Walnut  Wood Wenge ",
+        "sourceUrl": "https://www.orientbell.com/dr-dgvt-walnut-wood-wenge",
+        "url": "https://images.orientbell.com/media/catalog/product/d/r/dr_dgvt_walnut_wood_wenge_f1.jpg",
+        "imageType": "product-swatch",
+        "sourceStatus": "source-verified",
+        "licensingStatus": "permission-required",
+        "verifiedAt": "2026-10-03",
+        "verifiedBy": "Source page, asset response and visual swatch audit; not proof of camera capture",
+        "productionReady": false
+      },
+      "thumbnail": "https://images.orientbell.com/media/catalog/product/d/r/dr_dgvt_walnut_wood_wenge_f1.jpg",
+      "sourceUrl": "https://www.orientbell.com/dr-dgvt-walnut-wood-wenge",
+      "blenderMaterial": "dark_wood",
+      "previewNote": "Generic existing CC0 material preview, not this supplier product. Manufacturer imagery is not copied into Blender."
+    },
+    {
+      "id": "stone-porcelain",
+      "name": "Natural stone-look porcelain / GVT",
+      "manufacturer": "Orientbell",
+      "productName": "DR DGVT Sandstone Grey DK",
+      "materialType": "GVT",
+      "look": "Stone",
+      "finish": "Matte",
+      "color": "Grey",
+      "availableSizes": [
+        "600 × 1200 mm"
+      ],
+      "suitableRooms": [
+        "Living/Dining",
+        "Bedrooms",
+        "Foyer",
+        "Staircase",
+        "Kitchen"
+      ],
+      "indoorOutdoor": "indoor",
+      "slipResistance": "Not verified; request a wet-slip test for bathrooms, outdoors and poolside",
+      "price": {
+        "material": 1750,
+        "labour": 450,
+        "unit": "m2",
+        "currency": "INR",
+        "city": "Pune",
+        "date": "2026-10-03",
+        "status": "provisional-allowance",
+        "note": "Approximate installed concept allowance; not manufacturer MRP or a quote. Confirm substrate, cutting, fixing and supplier price."
+      },
+      "image": {
+        "manufacturer": "Orientbell",
+        "productName": "DR DGVT Sandstone Grey DK",
+        "sourceUrl": "https://www.orientbell.com/dr-dgvt-sandstone-grey-dk",
+        "url": "https://images.orientbell.com/media/catalog/product/d/r/dr_dgvt_sandstone_grey_dk_f1.jpg",
+        "imageType": "product-swatch",
+        "sourceStatus": "source-verified",
+        "licensingStatus": "permission-required",
+        "verifiedAt": "2026-10-03",
+        "verifiedBy": "Source page, asset response and visual swatch audit; not proof of camera capture",
+        "productionReady": false
+      },
+      "thumbnail": "https://images.orientbell.com/media/catalog/product/d/r/dr_dgvt_sandstone_grey_dk_f1.jpg",
+      "sourceUrl": "https://www.orientbell.com/dr-dgvt-sandstone-grey-dk",
+      "blenderMaterial": "sandstone",
+      "previewNote": "Generic existing CC0 material preview, not this supplier product. Manufacturer imagery is not copied into Blender."
+    },
+    {
+      "id": "slate-look",
+      "name": "Slate-look tile",
+      "manufacturer": "Orientbell",
+      "productName": "BDP Rock Slate Grey",
+      "materialType": "Porcelain",
+      "look": "Slate",
+      "finish": "Matte",
+      "color": "Grey",
+      "availableSizes": [
+        "600 × 600 mm"
+      ],
+      "suitableRooms": [
+        "Kitchen",
+        "Foyer",
+        "Balcony",
+        "Outdoor"
+      ],
+      "indoorOutdoor": "both",
+      "slipResistance": "Not verified; request a wet-slip test for bathrooms, outdoors and poolside",
+      "price": {
+        "material": 1650,
+        "labour": 450,
+        "unit": "m2",
+        "currency": "INR",
+        "city": "Pune",
+        "date": "2026-10-03",
+        "status": "provisional-allowance",
+        "note": "Approximate installed concept allowance; not manufacturer MRP or a quote. Confirm substrate, cutting, fixing and supplier price."
+      },
+      "image": {
+        "manufacturer": "Orientbell",
+        "productName": "BDP Rock Slate Grey",
+        "sourceUrl": "https://www.orientbell.com/bdp-rock-slate-grey",
+        "url": "https://images.orientbell.com/media/catalog/product/b/d/bdp_rock_slate_grey.jpg",
+        "imageType": "product-swatch",
+        "sourceStatus": "source-verified",
+        "licensingStatus": "permission-required",
+        "verifiedAt": "2026-10-03",
+        "verifiedBy": "Source page, asset response and visual swatch audit; not proof of camera capture",
+        "productionReady": false
+      },
+      "thumbnail": "https://images.orientbell.com/media/catalog/product/b/d/bdp_rock_slate_grey.jpg",
+      "sourceUrl": "https://www.orientbell.com/bdp-rock-slate-grey",
+      "blenderMaterial": "grey_stone",
+      "previewNote": "Generic existing CC0 material preview, not this supplier product. Manufacturer imagery is not copied into Blender."
+    },
+    {
+      "id": "concrete-look",
+      "name": "Concrete-look porcelain / GVT",
+      "manufacturer": "Orientbell",
+      "productName": "DGVT Cemento Grey",
+      "materialType": "GVT",
+      "look": "Concrete",
+      "finish": "Matte",
+      "color": "Grey",
+      "availableSizes": [
+        "600 × 600 mm"
+      ],
+      "suitableRooms": [
+        "Living/Dining",
+        "Bedrooms",
+        "Foyer",
+        "Staircase",
+        "Kitchen"
+      ],
+      "indoorOutdoor": "indoor",
+      "slipResistance": "Not verified; request a wet-slip test for bathrooms, outdoors and poolside",
+      "price": {
+        "material": 1500,
+        "labour": 400,
+        "unit": "m2",
+        "currency": "INR",
+        "city": "Pune",
+        "date": "2026-10-03",
+        "status": "provisional-allowance",
+        "note": "Approximate installed concept allowance; not manufacturer MRP or a quote. Confirm substrate, cutting, fixing and supplier price."
+      },
+      "image": {
+        "manufacturer": "Orientbell",
+        "productName": "DGVT Cemento Grey",
+        "sourceUrl": "https://www.orientbell.com/dgvt-cemento-grey",
+        "url": "https://images.orientbell.com/media/catalog/product/d/g/dgvt_cemento_grey_f1-min.jpg",
+        "imageType": "product-swatch",
+        "sourceStatus": "source-verified",
+        "licensingStatus": "permission-required",
+        "verifiedAt": "2026-10-03",
+        "verifiedBy": "Source page, asset response and visual swatch audit; not proof of camera capture",
+        "productionReady": false
+      },
+      "thumbnail": "https://images.orientbell.com/media/catalog/product/d/g/dgvt_cemento_grey_f1-min.jpg",
+      "sourceUrl": "https://www.orientbell.com/dgvt-cemento-grey",
+      "blenderMaterial": "exposed_concrete",
+      "previewNote": "Generic existing CC0 material preview, not this supplier product. Manufacturer imagery is not copied into Blender."
+    },
+    {
+      "id": "terrazzo-look",
+      "name": "Terrazzo-look tile",
+      "manufacturer": "Orientbell",
+      "productName": "Oyster Terrazzo GHR Matte",
+      "materialType": "GVT",
+      "look": "Terrazzo",
+      "finish": "Matte",
+      "color": "Beige",
+      "availableSizes": [
+        "600 × 1200 mm"
+      ],
+      "suitableRooms": [
+        "Living/Dining",
+        "Bedrooms",
+        "Foyer",
+        "Staircase",
+        "Kitchen"
+      ],
+      "indoorOutdoor": "indoor",
+      "slipResistance": "Not verified; request a wet-slip test for bathrooms, outdoors and poolside",
+      "price": {
+        "material": 1900,
+        "labour": 450,
+        "unit": "m2",
+        "currency": "INR",
+        "city": "Pune",
+        "date": "2026-10-03",
+        "status": "provisional-allowance",
+        "note": "Approximate installed concept allowance; not manufacturer MRP or a quote. Confirm substrate, cutting, fixing and supplier price."
+      },
+      "image": {
+        "manufacturer": "Orientbell",
+        "productName": "Oyster Terrazzo GHR Matte",
+        "sourceUrl": "https://www.orientbell.com/oyster-terrazzo-ghr-matte",
+        "url": "https://images.orientbell.com/media/catalog/product/o/y/oyster20terrazzo20ghr20matte_s2ce1jh5n2eu1xo1.jpg",
+        "imageType": "product-swatch",
+        "sourceStatus": "source-verified",
+        "licensingStatus": "permission-required",
+        "verifiedAt": "2026-10-03",
+        "verifiedBy": "Source page, asset response and visual swatch audit; not proof of camera capture",
+        "productionReady": false
+      },
+      "thumbnail": "https://images.orientbell.com/media/catalog/product/o/y/oyster20terrazzo20ghr20matte_s2ce1jh5n2eu1xo1.jpg",
+      "sourceUrl": "https://www.orientbell.com/oyster-terrazzo-ghr-matte",
+      "blenderMaterial": "sandstone",
+      "previewNote": "Generic existing CC0 material preview, not this supplier product. Manufacturer imagery is not copied into Blender."
+    },
+    {
+      "id": "terrazzo-cast",
+      "name": "Terrazzo / mosaic",
+      "manufacturer": "Supplier to confirm",
+      "productName": "Terrazzo / mosaic",
+      "materialType": "Cement terrazzo",
+      "look": "Terrazzo",
+      "finish": "Polished",
+      "color": "Multicolour",
+      "availableSizes": [
+        "Site-cast; confirm aggregate"
+      ],
+      "suitableRooms": [
+        "Living/Dining",
+        "Bedrooms",
+        "Foyer",
+        "Staircase"
+      ],
+      "indoorOutdoor": "indoor",
+      "slipResistance": "Not verified; request a wet-slip test for bathrooms, outdoors and poolside",
+      "price": {
+        "material": 1900,
+        "labour": 850,
+        "unit": "m2",
+        "currency": "INR",
+        "city": "Pune",
+        "date": "2026-10-03",
+        "status": "provisional-allowance",
+        "note": "Approximate installed concept allowance; not manufacturer MRP or a quote. Confirm substrate, cutting, fixing and supplier price."
+      },
+      "image": {
+        "manufacturer": "Supplier to confirm",
+        "productName": "Terrazzo / mosaic",
+        "sourceUrl": null,
+        "url": null,
+        "imageType": "unavailable",
+        "sourceStatus": "unavailable",
+        "licensingStatus": "not-applicable",
+        "verifiedAt": null,
+        "verifiedBy": null,
+        "productionReady": false
+      },
+      "thumbnail": null,
+      "sourceUrl": null,
+      "blenderMaterial": "exposed_concrete",
+      "previewNote": "Generic existing CC0 material preview, not this supplier product. Manufacturer imagery is not copied into Blender."
+    },
+    {
+      "id": "matte-porcelain",
+      "name": "Large-format matte porcelain",
+      "manufacturer": "Orientbell",
+      "productName": "Granalt Taupe Storm Matt SNP",
+      "materialType": "GVT slab",
+      "look": "Stone",
+      "finish": "Matte",
+      "color": "Taupe",
+      "availableSizes": [
+        "800 × 2400 mm"
+      ],
+      "suitableRooms": [
+        "Living/Dining",
+        "Bedrooms",
+        "Foyer",
+        "Staircase",
+        "Kitchen"
+      ],
+      "indoorOutdoor": "indoor",
+      "slipResistance": "Not verified; request a wet-slip test for bathrooms, outdoors and poolside",
+      "price": {
+        "material": 2400,
+        "labour": 750,
+        "unit": "m2",
+        "currency": "INR",
+        "city": "Pune",
+        "date": "2026-10-03",
+        "status": "provisional-allowance",
+        "note": "Approximate installed concept allowance; not manufacturer MRP or a quote. Confirm substrate, cutting, fixing and supplier price."
+      },
+      "image": {
+        "manufacturer": "Orientbell",
+        "productName": "Granalt Taupe Storm Matt SNP",
+        "sourceUrl": "https://www.orientbell.com/granalt-taupe-storm-matt-snp",
+        "url": "https://images.orientbell.com/media/catalog/product/g/r/granalt_taupe_storm_matt_snp.jpg",
+        "imageType": "product-swatch",
+        "sourceStatus": "source-verified",
+        "licensingStatus": "permission-required",
+        "verifiedAt": "2026-10-03",
+        "verifiedBy": "Source page, asset response and visual swatch audit; not proof of camera capture",
+        "productionReady": false
+      },
+      "thumbnail": "https://images.orientbell.com/media/catalog/product/g/r/granalt_taupe_storm_matt_snp.jpg",
+      "sourceUrl": "https://www.orientbell.com/granalt-taupe-storm-matt-snp",
+      "blenderMaterial": "grey_stone",
+      "previewNote": "Generic existing CC0 material preview, not this supplier product. Manufacturer imagery is not copied into Blender."
+    },
+    {
+      "id": "anti-skid-stone",
+      "name": "Anti-skid stone-look tile",
+      "manufacturer": "Orientbell",
+      "productName": "HFA Anti-Skid Rugged Slate",
+      "materialType": "Ceramic",
+      "look": "Slate",
+      "finish": "Anti-skid",
+      "color": "Grey",
+      "availableSizes": [
+        "300 × 300 mm"
+      ],
+      "suitableRooms": [
+        "Kitchen",
+        "Bathrooms",
+        "Balcony",
+        "Terrace",
+        "Outdoor",
+        "Poolside"
+      ],
+      "indoorOutdoor": "both",
+      "slipResistance": "Anti-skid stated by manufacturer; numeric test rating not supplied",
+      "price": {
+        "material": 1350,
+        "labour": 450,
+        "unit": "m2",
+        "currency": "INR",
+        "city": "Pune",
+        "date": "2026-10-03",
+        "status": "provisional-allowance",
+        "note": "Approximate installed concept allowance; not manufacturer MRP or a quote. Confirm substrate, cutting, fixing and supplier price."
+      },
+      "image": {
+        "manufacturer": "Orientbell",
+        "productName": "HFA Anti-Skid Rugged Slate",
+        "sourceUrl": "https://www.orientbell.com/hfa-anti-skid-rugged-slate",
+        "url": "https://images.orientbell.com/media/catalog/product/h/f/hfa_anti-skid_rugged_slate_f1.jpg",
+        "imageType": "product-swatch",
+        "sourceStatus": "source-verified",
+        "licensingStatus": "permission-required",
+        "verifiedAt": "2026-10-03",
+        "verifiedBy": "Source page, asset response and visual swatch audit; not proof of camera capture",
+        "productionReady": false
+      },
+      "thumbnail": "https://images.orientbell.com/media/catalog/product/h/f/hfa_anti-skid_rugged_slate_f1.jpg",
+      "sourceUrl": "https://www.orientbell.com/hfa-anti-skid-rugged-slate",
+      "blenderMaterial": "grey_stone",
+      "previewNote": "Generic existing CC0 material preview, not this supplier product. Manufacturer imagery is not copied into Blender."
+    },
+    {
+      "id": "rustic-outdoor",
+      "name": "Rustic outdoor tile",
+      "manufacturer": "Orientbell",
+      "productName": "DGVT SafeGrip Rustic Grey DK",
+      "materialType": "GVT",
+      "look": "Rustic",
+      "finish": "Textured",
+      "color": "Grey",
+      "availableSizes": [
+        "600 × 1200 mm"
+      ],
+      "suitableRooms": [
+        "Balcony",
+        "Terrace",
+        "Outdoor",
+        "Poolside"
+      ],
+      "indoorOutdoor": "both",
+      "slipResistance": "Anti-skid stated by manufacturer; numeric test rating not supplied",
+      "price": {
+        "material": 1600,
+        "labour": 500,
+        "unit": "m2",
+        "currency": "INR",
+        "city": "Pune",
+        "date": "2026-10-03",
+        "status": "provisional-allowance",
+        "note": "Approximate installed concept allowance; not manufacturer MRP or a quote. Confirm substrate, cutting, fixing and supplier price."
+      },
+      "image": {
+        "manufacturer": "Orientbell",
+        "productName": "DGVT SafeGrip Rustic Grey DK",
+        "sourceUrl": "https://www.orientbell.com/dgvt-safegrip-rustic-grey-dk",
+        "url": "https://images.orientbell.com/media/catalog/product/d/g/dgvt_safegrip_rustic_grey_dk_f1_1.jpg",
+        "imageType": "product-swatch",
+        "sourceStatus": "source-verified",
+        "licensingStatus": "permission-required",
+        "verifiedAt": "2026-10-03",
+        "verifiedBy": "Source page, asset response and visual swatch audit; not proof of camera capture",
+        "productionReady": false
+      },
+      "thumbnail": "https://images.orientbell.com/media/catalog/product/d/g/dgvt_safegrip_rustic_grey_dk_f1_1.jpg",
+      "sourceUrl": "https://www.orientbell.com/dgvt-safegrip-rustic-grey-dk",
+      "blenderMaterial": "grey_stone",
+      "previewNote": "Generic existing CC0 material preview, not this supplier product. Manufacturer imagery is not copied into Blender."
+    },
+    {
+      "id": "moroccan-pattern",
+      "name": "Moroccan / encaustic patterned tile",
+      "manufacturer": "Orientbell",
+      "productName": "TL Moroccan Art Black White",
+      "materialType": "Porcelain",
+      "look": "Moroccan pattern",
+      "finish": "Matte",
+      "color": "Black / white",
+      "availableSizes": [
+        "400 × 400 mm"
+      ],
+      "suitableRooms": [
+        "Kitchen",
+        "Foyer",
+        "Balcony",
+        "Outdoor"
+      ],
+      "indoorOutdoor": "both",
+      "slipResistance": "Not verified; request a wet-slip test for bathrooms, outdoors and poolside",
+      "price": {
+        "material": 1650,
+        "labour": 500,
+        "unit": "m2",
+        "currency": "INR",
+        "city": "Pune",
+        "date": "2026-10-03",
+        "status": "provisional-allowance",
+        "note": "Approximate installed concept allowance; not manufacturer MRP or a quote. Confirm substrate, cutting, fixing and supplier price."
+      },
+      "image": {
+        "manufacturer": "Orientbell",
+        "productName": "TL Moroccan Art Black White",
+        "sourceUrl": "https://www.orientbell.com/tl-moroccan-art-black-white",
+        "url": "https://images.orientbell.com/media/catalog/product/t/l/tl_moroccan_art_black_white_400x400_mm_porcelain_tile_floor_tiles.png",
+        "imageType": "product-swatch",
+        "sourceStatus": "source-verified",
+        "licensingStatus": "permission-required",
+        "verifiedAt": "2026-10-03",
+        "verifiedBy": "Source page, asset response and visual swatch audit; not proof of camera capture",
+        "productionReady": false
+      },
+      "thumbnail": "https://images.orientbell.com/media/catalog/product/t/l/tl_moroccan_art_black_white_400x400_mm_porcelain_tile_floor_tiles.png",
+      "sourceUrl": "https://www.orientbell.com/tl-moroccan-art-black-white",
+      "blenderMaterial": "sandstone",
+      "previewNote": "Generic existing CC0 material preview, not this supplier product. Manufacturer imagery is not copied into Blender."
+    },
+    {
+      "id": "mosaic-floor",
+      "name": "Mosaic flooring",
+      "manufacturer": "NITCO",
+      "productName": "Natural marble mosaico · floor product to confirm",
+      "materialType": "Natural stone mosaic",
+      "look": "Mosaic",
+      "finish": "Honed",
+      "color": "Multicolour",
+      "availableSizes": [
+        "Sheet size; supplier confirmation"
+      ],
+      "suitableRooms": [
+        "Bathrooms",
+        "Foyer",
+        "Poolside"
+      ],
+      "indoorOutdoor": "both",
+      "slipResistance": "Not verified; request a wet-slip test for bathrooms, outdoors and poolside",
+      "price": {
+        "material": 3400,
+        "labour": 1100,
+        "unit": "m2",
+        "currency": "INR",
+        "city": "Pune",
+        "date": "2026-10-03",
+        "status": "provisional-allowance",
+        "note": "Approximate installed concept allowance; not manufacturer MRP or a quote. Confirm substrate, cutting, fixing and supplier price."
+      },
+      "image": {
+        "manufacturer": "NITCO",
+        "productName": "Natural marble mosaico · floor product to confirm",
+        "sourceUrl": "https://www.nitco.in/natural-marble-mosaico",
+        "url": null,
+        "imageType": "unavailable",
+        "sourceStatus": "unavailable",
+        "licensingStatus": "not-applicable",
+        "verifiedAt": null,
+        "verifiedBy": null,
+        "productionReady": false
+      },
+      "thumbnail": null,
+      "sourceUrl": "https://www.nitco.in/natural-marble-mosaico",
+      "blenderMaterial": "sandstone",
+      "previewNote": "Generic existing CC0 material preview, not this supplier product. Manufacturer imagery is not copied into Blender."
+    },
+    {
+      "id": "premium-slab",
+      "name": "Premium large-format porcelain / slab",
+      "manufacturer": "Orientbell",
+      "productName": "Granalt Grey Storm Matt SNP",
+      "materialType": "GVT slab",
+      "look": "Stone",
+      "finish": "Matte",
+      "color": "Grey",
+      "availableSizes": [
+        "800 × 2400 mm"
+      ],
+      "suitableRooms": [
+        "Living/Dining",
+        "Bedrooms",
+        "Foyer",
+        "Staircase",
+        "Kitchen"
+      ],
+      "indoorOutdoor": "indoor",
+      "slipResistance": "Not verified; request a wet-slip test for bathrooms, outdoors and poolside",
+      "price": {
+        "material": 3100,
+        "labour": 900,
+        "unit": "m2",
+        "currency": "INR",
+        "city": "Pune",
+        "date": "2026-10-03",
+        "status": "provisional-allowance",
+        "note": "Approximate installed concept allowance; not manufacturer MRP or a quote. Confirm substrate, cutting, fixing and supplier price."
+      },
+      "image": {
+        "manufacturer": "Orientbell",
+        "productName": "Granalt Grey Storm Matt SNP",
+        "sourceUrl": "https://www.orientbell.com/granalt-grey-storm-matt-snp",
+        "url": "https://images.orientbell.com/media/catalog/product/g/r/granalt_grey_storm_matt_snp.jpg",
+        "imageType": "product-swatch",
+        "sourceStatus": "source-verified",
+        "licensingStatus": "permission-required",
+        "verifiedAt": "2026-10-03",
+        "verifiedBy": "Source page, asset response and visual swatch audit; not proof of camera capture",
+        "productionReady": false
+      },
+      "thumbnail": "https://images.orientbell.com/media/catalog/product/g/r/granalt_grey_storm_matt_snp.jpg",
+      "sourceUrl": "https://www.orientbell.com/granalt-grey-storm-matt-snp",
+      "blenderMaterial": "grey_stone",
+      "previewNote": "Generic existing CC0 material preview, not this supplier product. Manufacturer imagery is not copied into Blender."
+    }
+  ]
+}

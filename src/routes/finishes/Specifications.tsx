@@ -1,9 +1,10 @@
 import { useState } from 'react'
+import { SpecificationImage } from '@/components/SpecificationImage.tsx'
 import type { Brief } from '@/lib/model/brief.ts'
 import type { Design } from '@/lib/engine/types.ts'
 import type { CostEstimate } from '@/lib/cost/index.ts'
 import { specsCatalogue } from '@/lib/cost/catalogue.ts'
-import { applicableRooms, applySpecification, assetUrl, changeCount, effectiveSpec, itemChanged, itemLines, quantityLabel, suggestionFor, undoSpecification, type SpecItem } from '@/lib/cost/workspace.ts'
+import { applicableRooms, applySpecification, changeCount, effectiveSpec, itemChanged, itemLines, quantityLabel, suggestionFor, undoSpecification, type SpecItem } from '@/lib/cost/workspace.ts'
 import { SpecificationPanel } from './SpecificationPanel.tsx'
 import { cx } from '@/lib/cx.ts'
 
@@ -33,11 +34,11 @@ export function Specifications({ brief, cost, design, room, onRoom, onBrief }: {
         <div className="mt-3 divide-y divide-line">{visible.map(item => {
           const rooms = applicableRooms(cost, item), scoped = room ? rooms.filter(r => r.id === room) : rooms
           const options = scoped.map(r => effectiveSpec(brief, item.id, r.id)), option = options[0] ?? effectiveSpec(brief, item.id)
-          const mixed = options.some(o => o.id !== option.id), photo = option.photos.find(p => p.kind === 'closeup')
+          const mixed = options.some(o => o.id !== option.id)
           const changed = itemChanged(brief, cost, item, room), suggestion = suggestionFor(brief, item.id)
           const suggestedAlready = (scoped.length ? scoped.every(r => effectiveSpec(brief, item.id, r.id).id === suggestion?.option) : option.id === suggestion?.option)
           return <article key={item.id} className="py-5"><div className="flex items-start gap-3 sm:gap-4">
-            {photo && <img src={assetUrl(photo.webFile ?? photo.file)} alt={`${option.name} real texture close-up`} loading="lazy" className="h-14 w-14 flex-none object-cover sm:h-16 sm:w-16" />}
+            <SpecificationImage option={option} className="h-14 w-14 flex-none object-cover sm:h-16 sm:w-16" />
             <div className="min-w-0 flex-1"><h3 className="text-sm">{item.label}</h3><p className="mt-1 text-xs text-ink-faint">{item.scope === 'house' ? 'Whole home' : scoped.length ? scoped.map(r => r.name).join(', ') : 'As applicable'}</p><p className="mt-2 text-sm text-ink-dim">{mixed ? 'Mixed room choices' : option.name}</p><p className="mt-1 text-xs text-ink-faint">{quantityLabel(itemLines(cost, item, room))}{item.id.startsWith('floor-') ? ' · flooring and skirting where measured' : ''}</p>
               {changed && <p className="mt-2 text-xs">Changed <button type="button" onClick={() => onBrief(undoSpecification(brief, cost, item, room))} className="ml-2 text-ink-dim underline">Undo</button></p>}</div>
             <button type="button" onClick={() => setEditing(item)} className="flex-none border border-line px-3 py-2 text-xs">Change<span className="sr-only"> {item.label}</span></button>

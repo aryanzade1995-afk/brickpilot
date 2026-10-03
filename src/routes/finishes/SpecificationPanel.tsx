@@ -5,6 +5,9 @@ import { estimateBoq, type CostEstimate } from '@/lib/cost/index.ts'
 import { specificationRate } from '@/lib/cost/catalogue.ts'
 import { applicableRooms, applySpecification, assetUrl, effectiveSpec, samples, type SpecItem, type SpecOption } from '@/lib/cost/workspace.ts'
 import { formatINR } from '@/lib/format.ts'
+import { SpecificationImage } from '@/components/SpecificationImage.tsx'
+import { FlooringFilters } from './FlooringFilters.tsx'
+import { filterFlooringProducts, flooringProduct, type FlooringFilters as Filters } from '@/lib/flooring/catalogue.ts'
 import { cx } from '@/lib/cx.ts'
 
 export function SpecificationPanel({ item, brief, cost, design, room, onClose, onUse }: {
@@ -13,6 +16,9 @@ export function SpecificationPanel({ item, brief, cost, design, room, onClose, o
   const rooms = applicableRooms(cost, item)
   const [selectedRooms, setRooms] = useState(room ? [room] : rooms.map(r => r.id))
   const [optionId, setOption] = useState(effectiveSpec(brief, item.id, room ?? rooms[0]?.id).id)
+  const [filters, setFilters] = useState<Filters>({})
+  const matches = filterFlooringProducts(filters)
+  const filtered = item.options.filter(o => o.flooringProductId ? matches.some(p => p.id === o.flooringProductId) : !Object.values(filters).some(Boolean))
   const [compare, setCompare] = useState('')
   const panel = useRef<HTMLElement>(null)
   const close = useRef(onClose)
@@ -47,11 +53,15 @@ export function SpecificationPanel({ item, brief, cost, design, room, onClose, o
           <label className="mt-2 flex items-center gap-2 text-sm"><input type="checkbox" checked={rooms.every(r => selectedRooms.includes(r.id))} onChange={e => setRooms(e.target.checked ? rooms.map(r => r.id) : [])} />All applicable rooms</label>
           <div className="mt-2 grid gap-2 sm:grid-cols-2">{rooms.map(r => <label key={r.id} className="flex items-center gap-2 text-xs"><input type="checkbox" checked={selectedRooms.includes(r.id)} onChange={e => setRooms(e.target.checked ? [...selectedRooms, r.id] : selectedRooms.filter(id => id !== r.id))} />{r.floor} · {r.name}</label>)}</div></fieldset>}
         <p className="mb-3 text-xs text-ink-dim">Differences below are for the project total, including allowances, for the selected rooms.</p>
-        <div className="grid grid-cols-2 gap-3">{item.options.map(o => <button type="button" key={o.id} onClick={() => { setOption(o.id); if (compare === o.id) setCompare('') }} aria-pressed={optionId === o.id}
+        <p className="mb-3 text-xs">Selected: {selected.name}</p>
+        {item.group === 'flooring' && <FlooringFilters filters={filters} onChange={setFilters} count={matches.length} />}
+        {!filtered.length && <p className="py-4 text-sm text-ink-dim">No matching flooring. Try clearing a filter.</p>}
+        <div className="grid grid-cols-2 gap-3">{filtered.map(o => <button type="button" key={o.id} onClick={() => { setOption(o.id); if (compare === o.id) setCompare('') }} aria-pressed={optionId === o.id}
           className={cx('min-w-0 border p-3 text-left', optionId === o.id ? 'border-ink bg-bg-inset' : 'border-line')}>
-          {o.photos.find(p => p.kind === 'closeup') && <img src={assetUrl(o.photos.find(p => p.kind === 'closeup')!.webFile ?? o.photos[0].file)} alt={`${o.name} texture close-up`} className="mb-3 h-20 w-full object-cover" />}
+          <SpecificationImage option={o} className="mb-3 h-24 w-full object-contain" />
+          {o.flooringProductId && <span className="mb-1 block text-[11px] text-ink-faint">{flooringProduct(o.flooringProductId)?.manufacturer}<br />{flooringProduct(o.flooringProductId)?.productName}</span>}
           <span className="block text-sm">{o.name}</span><span className="mt-2 block text-xs text-ink-dim">{differences[o.id] === 0 ? 'Same estimate' : `${differences[o.id] > 0 ? '+' : '−'}${formatINR(Math.abs(differences[o.id]))}`}</span>
-          {current(o.id) && <span className="mt-2 block text-xs">✓ Current</span>}</button>)}</div>
+          {optionId === o.id && <span className="mt-2 block text-xs">Selected</span>}{current(o.id) && <span className="mt-2 block text-xs">✓ Current</span>}</button>)}</div>
         <label className="mt-6 block text-xs">Compare two options<select aria-label="Compare two options" className="mt-2 w-full border border-line bg-bg p-2 text-sm" value={compare} onChange={e => setCompare(e.target.value)}><option value="">Show selected option only</option>{item.options.filter(o => o.id !== optionId).map(o => <option key={o.id} value={o.id}>{o.name}</option>)}</select></label>
         <div className={cx('mt-5 grid gap-6', compare && 'sm:grid-cols-2')}><OptionDetails option={selected} />{compare && <OptionDetails option={item.options.find(o => o.id === compare)!} />}</div>
       </div>
@@ -59,11 +69,21 @@ export function SpecificationPanel({ item, brief, cost, design, room, onClose, o
     </aside></div>
 }
 function OptionDetails({ option }: { option: SpecOption }) {
+  const product = flooringProduct(option.flooringProductId)
   const rate = specificationRate(option.rateId), sample = samples.find(s => s.materialId === option.blenderMaterial)
   const photos = option.photos.filter(p => p.kind === 'closeup' || p.kind === 'installed')
   return <section className="min-w-0"><h3 className="font-display text-lg">{option.name}</h3>
+    {product && <div className="mt-3 space-y-3 text-xs leading-relaxed text-ink-dim">
+      <SpecificationImage option={option} className="aspect-[4/3] w-full object-contain" />
+      <p>{product.manufacturer} · {product.productName}</p>
+      <p>Material: {product.materialType}<br />Look: {product.look}<br />Finish: {product.finish} · {product.color}</p>
+      <p>Sizes: {product.availableSizes.join(', ')}<br />Recommended for: {product.suitableRooms.join(', ')}<br />{product.indoorOutdoor} · {product.slipResistance}</p>
+      {product.sourceUrl && <a href={product.sourceUrl} target="_blank" rel="noopener noreferrer" className="block underline">Official product / collection source</a>}
+      <p>{product.image.url ? 'Official-source product swatch / slab image. Manufacturer permission is required before production use or redistribution; photography method is not verified.' : 'Image unavailable: no verified product image. Confirm the product with your supplier.'}</p>
+      <p>{product.previewNote}</p><p>{product.price.note}</p>
+    </div>}
     {photos.map(p => <figure key={p.file} className="mt-3"><img src={assetUrl(p.webFile ?? p.file)} alt={`${option.name} ${p.kind}`} className="aspect-[4/3] w-full object-cover" /><figcaption className="mt-1 text-[11px] leading-relaxed text-ink-faint">{p.kind === 'closeup' ? 'Real texture close-up' : 'Installed photograph'} · {p.credit} · {p.licence}</figcaption></figure>)}
-    {sample && <figure className="mt-4"><img src={assetUrl(sample.photo.webFile ?? sample.photo.file)} alt={`${option.name} sample room visualisation`} className="w-full" /><figcaption className="mt-1 text-[11px] text-ink-faint">{sample.photo.caption}</figcaption></figure>}
+    {!product && sample && <figure className="mt-4"><img src={assetUrl(sample.photo.webFile ?? sample.photo.file)} alt={`${option.name} sample room visualisation`} className="w-full" /><figcaption className="mt-1 text-[11px] text-ink-faint">{sample.photo.caption}</figcaption></figure>}
     <ul className="mt-4 space-y-2 text-xs leading-relaxed text-ink-dim">{option.facts.slice(0, 4).map(f => <li key={f}>{f}</li>)}</ul>
     <p className="mt-4 text-sm">{formatINR(rate.installed)} / {rate.unit}</p><p className="mt-1 text-xs text-ink-faint">{rate.city} · {rate.date} · approximate installed allowance</p><p className="mt-2 text-[11px] text-ink-faint">{rate.source}</p>
   </section>

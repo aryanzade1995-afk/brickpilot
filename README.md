@@ -758,3 +758,41 @@ local server is reachable. Anyone possessing the link can view its snapshot.
 and estimate replay, legacy briefs, malformed snapshots, and real HTTP sharing
 with persistence and rejected mutations. The review fixture and export examples
 remain isolated from the user's project.
+
+
+### Expanded Indian villa flooring catalogue
+
+`src/lib/flooring/products.json` is the reusable source for 25 flooring families.
+`catalogue.ts` validates products and supplies facets, specification options and
+rates to the existing BOQ pipeline. Material and look are separate fields.
+The Flooring Change drawer supports search plus material, look, finish,
+manufacturer and room-suitability filters; Apply to / Compare / Use this / Undo
+retain the existing room override semantics. The four legacy choices and all
+presets remain compatible with saved designs. Room recommendations are advisory;
+wet-slip ratings and supplier availability require confirmation.
+
+Catalogue families: large-format marble-look GVT/PGVT, Italian marble (origin
+requires supplier confirmation), Indian marble, Statuario-look, Calacatta-look,
+onyx-look, travertine-look, natural travertine, sandstone, Kota stone, granite,
+wood-look porcelain, teak-look, walnut-look, stone-look porcelain, slate-look,
+concrete-look, terrazzo-look, cast terrazzo/mosaic, large-format matte porcelain,
+anti-skid stone-look, rustic outdoor, Moroccan-pattern, mosaic flooring and
+premium porcelain slabs.
+
+There are 19 official Orientbell/NITCO product-swatch or slab-image references.
+Source page, image response and visual material content were audited; their
+camera capture method and redistribution rights are not verified. All 19 are
+marked permission-required and not production-ready. They are remote references,
+not copied into public assets, PDF exports, shared sheets or Blender textures.
+Six choices explicitly show Image unavailable rather than invented images.
+Every product records source URL, product/manufacturer, image URL/type, audit
+and rights status. Clear/replace images before production use. No AI imagery
+was created. Generic existing CC0 Blender preview textures are not represented
+as exact manufacturer products; supplier-product room previews are hidden.
+
+Rates are data-driven provisional Pune installed allowances, not manufacturer
+MRPs or quotations. Finishes change specification/rate lines, not measured room
+geometry. `scripts/test-flooring.mjs` checks all new choices, rate and material
+references, provenance, filtering, one-room isolation, saved-brief replay and
+unchanged quantity signatures. Manufacturer provenance is retained as text in
+specification schedules; uncleared product imagery is omitted from exports.

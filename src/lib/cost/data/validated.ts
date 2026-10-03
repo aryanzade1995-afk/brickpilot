@@ -6,6 +6,7 @@ import finishesRaw from './finishes.json' with { type: 'json' }
 import puneRaw from './pune.json' with { type: 'json' }
 import legacyRaw from './legacy-rates.json' with { type: 'json' }
 import { ratesSchema, specsCatalogueSchema, presetsSchema, materialRegistrySchema, finishesSchema, puneSchema, legacyRatesSchema } from './schemas.ts'
+import { flooringProducts, flooringRates, flooringSpecificationOptions } from '../../flooring/catalogue.ts'
 
 export function validateSpecificationData(r: unknown, s: unknown, p: unknown, m: unknown) {
   const rates = ratesSchema.parse(r), catalogue = specsCatalogueSchema.parse(s), presets = presetsSchema.parse(p), materials = materialRegistrySchema.parse(m)
@@ -14,6 +15,7 @@ export function validateSpecificationData(r: unknown, s: unknown, p: unknown, m:
     if (!rates.items.some(r => r.id === option.rateId)) errors.push(`${item.id}/${option.id}: missing rate ${option.rateId}`)
     const material = materials.materials.find(m => m.id === option.blenderMaterial)
     if (!material) errors.push(`${item.id}/${option.id}: missing Blender material`)
+    if (option.flooringProductId && !flooringProducts.some(p => p.id === option.flooringProductId && p.id === option.id && p.blenderMaterial === option.blenderMaterial && option.rateId === `floor-catalog-${p.id}`)) errors.push(`${item.id}/${option.id}: missing flooring product`)
     for (const photo of option.photos.filter(p => p.kind === 'closeup')) {
       if (photo.file !== material?.texture || photo.webFile !== material?.webFile || photo.sha256 !== material?.sha256 || photo.webSha256 !== material?.webSha256 || photo.source !== material?.source || photo.width !== material?.width || photo.height !== material?.height)
         errors.push(`${item.id}/${option.id}: close-up must share the exact Blender texture and provenance`)
@@ -26,7 +28,8 @@ export function validateSpecificationData(r: unknown, s: unknown, p: unknown, m:
   if (errors.length) throw new Error(`Invalid specification references:\n${errors.join('\n')}`)
   return { rates, catalogue, presets, materials }
 }
-export const specificationData = validateSpecificationData(ratesRaw, specsRaw, presetsRaw, materialsRaw)
+export const specificationData = validateSpecificationData({ ...ratesRaw, items: [...ratesRaw.items, ...flooringRates()] },
+  { ...specsRaw, items: specsRaw.items.map(i => i.group === 'flooring' && i.level !== 'auto' ? { ...i, options: [...i.options, ...flooringSpecificationOptions()] } : i) }, presetsRaw, materialsRaw)
 const installedRate = (id: string) => {
   const rate = specificationData.rates.items.find(r => r.id === id)
   if (!rate) throw new Error(`Missing deployed BOQ rate ${id}`)
