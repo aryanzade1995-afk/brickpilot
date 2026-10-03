@@ -1,3 +1,4 @@
+import { geometryBrief } from '../../model/brief.ts'
 import { generate } from '../generate.ts'
 import { validate } from '../../rules/index.ts'
 import type { Brief } from '../../model/brief.ts'
@@ -88,7 +89,7 @@ const capacityCache = new Map<string, BriefFit>()
 export const CAPACITY_GUIDANCE = 'Add a floor, enlarge the plot or reduce open space to add another room or member.'
 /** A brief is allowed only when the SAME production planner passes every hard check. */
 export function assessBriefFit(brief: Brief): BriefFit {
-  const key = JSON.stringify(brief)
+  const key = JSON.stringify(geometryBrief(brief))
   const cached = capacityCache.get(key)
   if (cached) return cached
   const fit = packingFit(brief)
@@ -116,7 +117,7 @@ const shapeCache = new Map<string, ShapeCheck>()
 /** Does the production planner really build this shape for this brief? The
  *  plan must pass every hard check AND come out as the asked-for shape. */
 export function assessShape(brief: Brief, shape: ShapeChoice): ShapeCheck {
-  const key = shape + JSON.stringify(brief)
+  const key = shape + JSON.stringify(geometryBrief(brief))
   const cached = shapeCache.get(key)
   if (cached) return cached
   let check: ShapeCheck

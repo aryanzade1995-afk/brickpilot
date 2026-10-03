@@ -1,4 +1,6 @@
-import { useMemo, useState } from 'react'
+import { RoomPanel } from './brief/RoomPanel.tsx'
+import { SelectionsBar } from './brief/SelectionsBar.tsx'
+import { useDeferredValue, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, RotateCcw, Sparkles } from 'lucide-react'
 import { BRIEF_STEPS } from '@/lib/model/brief.ts'
@@ -51,6 +53,14 @@ const SUBSTEPS: Partial<Record<number, SubStep[]>> = {
 }
 
 export function Brief() {
+  const rail = useRef<HTMLDivElement>(null)
+  const [railHeight,setRailHeight] = useState(150)
+  useEffect(() => {
+    if (!rail.current || typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(([entry]) => setRailHeight(entry.contentRect.height))
+    observer.observe(rail.current)
+    return () => observer.disconnect()
+  }, [])
   const [step, setStepState] = useState(0)
   const [sub, setSub] = useState(0)
   /** changing the top-level step always starts at its first sub-step */
@@ -64,7 +74,9 @@ export function Brief() {
   const [formError, setFormError] = useState<string | null>(null)
   const navigate = useNavigate()
 
-  const fit = useMemo(() => assessBriefFit(brief), [brief])
+  const capacityBrief = useDeferredValue(brief)
+  const checking = capacityBrief !== brief
+  const fit = useMemo(() => assessBriefFit(capacityBrief), [capacityBrief])
   const last = step === BRIEF_STEPS.length - 1
   const subs = SUBSTEPS[step]
   const active = subs?.[sub]
@@ -77,7 +89,7 @@ export function Brief() {
       setSub(sub + 1)
     } else if (last) {
       const issues = fit.fits ? [] : [CAPACITY_GUIDANCE, ...fit.issues.slice(0, 2)]
-      if (issues.length) { setFormError(issues.join(' ')); return }
+      if (checking || issues.length) { setFormError(issues.join(' ')); return }
       setFormError(null)
       explore()
       navigate('/workspace/directions')
@@ -92,9 +104,9 @@ export function Brief() {
   }
 
   return (
-    <div>
+    <div style={{ "--brief-rail-height": `${railHeight}px` } as CSSProperties}>
       {/* wizard rail */}
-      <div className="sticky top-0 z-10 border-b border-line bg-bg/90 backdrop-blur">
+      <div ref={rail} className="sticky top-0 z-10 border-b border-line bg-bg/90 backdrop-blur">
         <div className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-3 px-6 py-3 md:px-10">
           <span className="label text-accent">Guided Residential Brief</span>
 
@@ -131,7 +143,7 @@ export function Brief() {
               <RotateCcw size={12} />
               Reset
             </button>
-            <Button size="sm" onClick={next} disabled={last && !fit.fits}>
+            <Button size="sm" onClick={next} disabled={last && (checking || !fit.fits)}>
               {last ? (
                 <>
                   Generate concept
@@ -146,6 +158,7 @@ export function Brief() {
             </Button>
           </div>
         </div>
+        <SelectionsBar jump={setStep} />
       </div>
 
       {/* step body */}
@@ -177,9 +190,8 @@ export function Brief() {
           </div>
         )}
 
-        <div className="mt-10">
+        <div className={cx("mt-10", [4,5,7].includes(step) && "grid items-start gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]")}><section className="order-2 min-w-0 lg:order-1">
           <Body />
-        </div>
 
         <div className="mt-14 flex items-center justify-between border-t border-line pt-6">
           <button
@@ -191,7 +203,7 @@ export function Brief() {
             <ArrowLeft size={13} />
             Back
           </button>
-          <Button onClick={next} disabled={last && !fit.fits}>
+          <Button onClick={next} disabled={last && (checking || !fit.fits)}>
             {last ? (
               <>
                 Generate verified concept
@@ -204,6 +216,8 @@ export function Brief() {
               </>
             )}
           </Button>
+        </div>
+        </section>{[4,5,7].includes(step) && <div className="order-1 sticky top-[calc(var(--brief-rail-height)+16px)] z-[5] self-start lg:order-2"><RoomPanel /></div>}
         </div>
       </div>
     </div>

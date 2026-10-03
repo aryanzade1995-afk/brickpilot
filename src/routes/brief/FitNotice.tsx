@@ -1,10 +1,11 @@
-import { useMemo } from 'react'
+import { useDeferredValue, useMemo } from 'react'
 import { assessBriefFit } from '@/lib/engine/planner/fit.ts'
 import { useStudio } from '@/state/studio.ts'
 
 export function FitNotice() {
   const brief = useStudio((state) => state.brief)
-  const fit = useMemo(() => assessBriefFit(brief), [brief])
+  const capacityBrief = useDeferredValue(brief)
+  const fit = useMemo(() => assessBriefFit(capacityBrief), [capacityBrief])
   const good = fit.fits && fit.atTarget
   const title = fit.issues.length ? 'These requirements cannot produce a valid plan yet' :
     !fit.fits ? 'Requested rooms do not fit this plot' :
@@ -12,6 +13,7 @@ export function FitNotice() {
 
   return (
     <div role="status" aria-live="polite" className={`border-l-2 px-4 py-3 text-sm ${fit.fits ? 'border-ok bg-ok/5' : 'border-bad bg-bad/5'}`}>
+      {capacityBrief !== brief && <p>Checking updated room requirements…</p>}
       <p className={fit.fits ? 'font-medium text-ok' : 'font-medium text-bad'}>{title}</p>
       <p className="mt-1 text-ink-dim">
         Plot: {fit.plotSqm.toFixed(0)} m². After setbacks: {fit.buildableWidthM.toFixed(1)} × {fit.buildableDepthM.toFixed(1)} m.

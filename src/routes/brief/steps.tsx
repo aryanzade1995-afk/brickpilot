@@ -1,4 +1,6 @@
-import { useMemo } from 'react'
+import { BudgetNotice } from './BudgetNotice.tsx'
+import { RoomList, FurnitureReview } from './RoomPanel.tsx'
+import { useDeferredValue, useMemo } from 'react'
 import { assessShape, canIncreaseBrief, CAPACITY_GUIDANCE, SHAPE_CHOICES } from '@/lib/engine/planner/fit.ts'
 import { resolveOpenSpace, OPEN_SPACE_LABEL } from '@/lib/model/openSpace.ts'
 import { PLANNING_LIMITS } from '@/lib/engine/planner/limits.ts'
@@ -15,6 +17,7 @@ import {
   STAFF_LABEL,
   VASTU_LABEL,
   occupantCount,
+  geometryBrief,
   type Brief,
   type Direction,
   type Guests,
@@ -396,22 +399,23 @@ export function LevelsStep() {
 
 export function RoomsStep() {
   const [brief, edit] = useBrief()
+  const capacityBrief = useDeferredValue(brief)
   const r = brief.rooms
   const p = r.priorities
   return (
     <div className="max-w-2xl space-y-8">
       <div className="grid grid-cols-2 gap-x-8 gap-y-6">
         <Field label="Bedrooms with attached bath">
-          <Stepper increaseDisabled={!canIncreaseBrief(brief, b => { b.rooms.bedroomsWithBath += 1 })} increaseReason={CAPACITY_GUIDANCE} value={r.bedroomsWithBath} min={0} max={8} onChange={(v) => edit((b) => void (b.rooms.bedroomsWithBath = v))} />
+          <Stepper increaseDisabled={capacityBrief !== brief || !canIncreaseBrief(capacityBrief, b => { b.rooms.bedroomsWithBath += 1 })} increaseReason={CAPACITY_GUIDANCE} value={r.bedroomsWithBath} min={0} max={8} onChange={(v) => edit((b) => void (b.rooms.bedroomsWithBath = v))} />
         </Field>
         <Field label="Bedrooms without attached bath">
-          <Stepper increaseDisabled={!canIncreaseBrief(brief, b => { b.rooms.bedroomsNoBath += 1 })} increaseReason={CAPACITY_GUIDANCE} value={r.bedroomsNoBath} min={0} max={8} onChange={(v) => edit((b) => void (b.rooms.bedroomsNoBath = v))} />
+          <Stepper increaseDisabled={capacityBrief !== brief || !canIncreaseBrief(capacityBrief, b => { b.rooms.bedroomsNoBath += 1 })} increaseReason={CAPACITY_GUIDANCE} value={r.bedroomsNoBath} min={0} max={8} onChange={(v) => edit((b) => void (b.rooms.bedroomsNoBath = v))} />
         </Field>
         <Field label="Shared / common bathrooms">
-          <Stepper increaseDisabled={!canIncreaseBrief(brief, b => { b.rooms.sharedBaths += 1 })} increaseReason={CAPACITY_GUIDANCE} value={r.sharedBaths} min={0} max={6} onChange={(v) => edit((b) => void (b.rooms.sharedBaths = v))} />
+          <Stepper increaseDisabled={capacityBrief !== brief || !canIncreaseBrief(capacityBrief, b => { b.rooms.sharedBaths += 1 })} increaseReason={CAPACITY_GUIDANCE} value={r.sharedBaths} min={0} max={6} onChange={(v) => edit((b) => void (b.rooms.sharedBaths = v))} />
         </Field>
         <Field label="Studies / offices">
-          <Stepper increaseDisabled={!canIncreaseBrief(brief, b => { b.rooms.studies += 1 })} increaseReason={CAPACITY_GUIDANCE} value={r.studies} min={0} max={4} onChange={(v) => edit((b) => void (b.rooms.studies = v))} />
+          <Stepper increaseDisabled={capacityBrief !== brief || !canIncreaseBrief(capacityBrief, b => { b.rooms.studies += 1 })} increaseReason={CAPACITY_GUIDANCE} value={r.studies} min={0} max={4} onChange={(v) => edit((b) => void (b.rooms.studies = v))} />
         </Field>
       </div>
 
@@ -447,7 +451,9 @@ export function RoomsStep() {
           <Toggle checked={p.compoundWall} onChange={(v) => edit((b) => void (b.rooms.priorities.compoundWall = v))} label="Compound wall" hint="Boundary wall with a gate" />
         </div>
       </div>
-      {(['bedroomsWithBath', 'bedroomsNoBath', 'sharedBaths', 'studies'] as const).some(key => !canIncreaseBrief(brief, b => { b.rooms[key] += 1 })) && <p role="status" className="text-sm text-bad">Add a floor or reduce open space to add another bedroom, bathroom or study.</p>}
+      {(['bedroomsWithBath', 'bedroomsNoBath', 'sharedBaths', 'studies'] as const).some(key => !canIncreaseBrief(capacityBrief, b => { b.rooms[key] += 1 })) && <p role="status" className="text-sm text-bad">Add a floor or reduce open space to add another bedroom, bathroom or study.</p>}
+      <BudgetNotice />
+      <RoomList />
       <FitNotice />
     </div>
   )
@@ -459,7 +465,7 @@ export function StyleStep() {
   const [brief, edit] = useBrief()
   // each shape is built by the production planner for this exact brief: one
   // the plot cannot take is shown, but cannot be chosen
-  const shapeKey = JSON.stringify({ ...brief, style: { ...brief.style, massing: 'auto' } })
+  const shapeKey = JSON.stringify({ ...geometryBrief(brief), style: { ...brief.style, massing: 'auto' } })
   const shapeChecks = useMemo(() => Object.fromEntries(SHAPE_CHOICES.map((shape) => [shape, assessShape(brief, shape)])) as
     Record<ShapeChoiceValue, ReturnType<typeof assessShape>>,
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -645,6 +651,7 @@ export function ReviewStep() {
       </div>
 
       <AnswersSummary brief={brief} />
+      <FurnitureReview />
 
       <div className="border border-line p-5">
         <div className="label text-accent">Programme capacity check</div>

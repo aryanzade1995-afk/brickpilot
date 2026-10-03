@@ -1,3 +1,4 @@
+import { ROOM_SIZE } from '../furniture/sizes.ts'
 import { resolveOpenSpace } from './openSpace.ts'
 import type { Brief, Direction } from './brief.ts'
 import { geometryBrief } from './brief.ts'
@@ -538,6 +539,13 @@ export function compile(brief: Brief): CanonicalModel {
         if (verandah) {verandah.target=Math.max(verandah.target,28);verandah.max=Math.max(verandah.max,48)}
       }
     }
+  }
+
+  for (const f of floors) for (const s of f.spaces) {
+    const size = brief.rooms.sizes[`${f.level}:${s.id}`]
+    if (!size || s.outdoor) continue
+    s.preferredTarget = s.target
+    s.target = Math.max(s.min, Math.min(s.max, s.target * ROOM_SIZE[size]))
   }
 
   return { seed, brief, envelope, plot, setbacksMm, legalSetbacksMm, siteNotes, grid, entrySide, floors, relationships: rel,

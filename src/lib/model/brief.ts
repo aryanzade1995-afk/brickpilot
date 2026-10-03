@@ -222,6 +222,8 @@ export const briefSchema = z
       .prefault({}),
     rooms: z
       .object({
+        sizes: z.record(z.string(), z.enum(['compact', 'small', 'standard', 'large'])).default({}),
+        starred: z.array(z.string()).default([]),
         bedroomsWithBath: z.number().int().min(0).max(8).default(2),
         bedroomsNoBath: z.number().int().min(0).max(8).default(1),
         sharedBaths: z.number().int().min(0).max(6).default(1),
@@ -283,12 +285,14 @@ export const briefSchema = z
       })
       .prefault({}),
     /** Finish/specification preferences are downstream of geometry and never seed it. */
+    budget: z.preprocess(v => v && typeof v === 'object' && 'amount' in v ? v : undefined, z.object({ amount: z.number().finite().positive() }).optional()),
     finish: finishSchema.default('mid'),
     specs: z.object({ overrides: z.record(z.string().min(1).max(160), z.string().min(1).max(100)).default({}) }).prefault({}),
     /** internal variation index — bumped to reroll geometry from the same brief */
     variation: z.number().int().min(0).default(0),
   })
   .prefault({})
+  .transform(b => { if (b.budget === undefined) delete b.budget; return b })
 
 export type Brief = z.infer<typeof briefSchema>
 
@@ -296,9 +300,10 @@ export const defaultBrief = (): Brief => briefSchema.parse({})
 
 /** Excludes cost preferences, preserving pre-specification saved-project seeds. */
 export function geometryBrief(brief: Brief) {
-  const { finish: _finish, specs: _specs, ...geometry } = brief
+  const { finish: _finish, specs: _specs, budget: _budget, ...geometry } = brief
   const { climate: _climate, ...site } = geometry.site
-  return { ...geometry, site }
+  const { sizes, starred: _starred, ...rooms } = geometry.rooms
+  return { ...geometry, site, rooms: Object.keys(sizes).length ? { ...rooms, sizes } : rooms }
 }
 
 /** people in the household — `spaces.occupants` is kept only for old briefs */

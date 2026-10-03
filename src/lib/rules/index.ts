@@ -1,3 +1,4 @@
+import { MIN_DIM } from './roomLimits.ts'
 import { terraceLayout, terraceFreeRatio, TERRACE_LIMITS } from '../engine/terrace.ts'
 import { validateSiteFeatures } from '../engine/planner/siteFeatures.ts'
 import { PLANNING_LIMITS as PLANNING } from '../engine/planner/limits.ts'
@@ -40,15 +41,7 @@ export const RULE_PACK = 'residential-v1'
 /** planning limits — placeholder until wired to local development-control rules */
 
 
-const MIN_DIM: Record<string, number> = {
-  private: 2400,
-  service: 1200,
-  social: 2600,
-  work: 2000,
-  sacred: 1150,
-  circulation: 900,
-  outdoor: 1200,
-}
+
 
 export function validate(design: Design, options: { checkFacade?: boolean } = {}): ValidationReport {
   const findings: Finding[] = []

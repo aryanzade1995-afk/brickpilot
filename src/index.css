@@ -145,3 +145,17 @@
   .drawing-sheet svg { width: 100%; height: 277mm; print-color-adjust: exact; }
   @page plan-sheet { size: A3 landscape; margin: 10mm; }
 }
+
+/* The new indicative preview inherits the app theme and also supports dark hosts. */
+.dark .brief-room-preview, [data-theme="dark"] .brief-room-preview {
+ --color-bg:#202020; --color-bg-inset:#292929; --color-ink:#eeeeec;
+ --color-ink-dim:#ccccca; --color-ink-faint:#aaaaa8; --color-line:rgba(255,255,255,.2);
+ color:var(--color-ink); color-scheme:dark;
+}
+@media (prefers-color-scheme:dark) {
+ .brief-room-preview:not([data-theme="light"]) {
+  --color-bg:#202020; --color-bg-inset:#292929; --color-ink:#eeeeec;
+  --color-ink-dim:#ccccca; --color-ink-faint:#aaaaa8; --color-line:rgba(255,255,255,.2);
+  color:var(--color-ink); color-scheme:dark;
+ }
+}

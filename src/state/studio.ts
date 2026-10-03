@@ -105,6 +105,8 @@ function pinnedPlan(model: CanonicalModel, pinned: PinnedDir): Design {
 
 type StudioState = {
   brief: Brief
+  selectedRoomId: string | null
+  selectRoom: (id: string | null) => void
   directions: DirectionOption[] | null
   pinned: PinnedDir | null
   referencePreferences: InspirationPreferences | null
@@ -187,6 +189,8 @@ export const useStudio = create<StudioState>()(
   persist(
     immer((set, get) => ({
       brief: defaultBrief(),
+      selectedRoomId: null,
+      selectRoom: (id) => set(s => { s.selectedRoomId = id }),
       directions: null,
       pinned: null,
       referencePreferences: null,
@@ -222,6 +226,7 @@ export const useStudio = create<StudioState>()(
       reset: () =>
         set((s) => {
           s.brief = defaultBrief()
+          s.selectedRoomId = null
           s.directions = null
           s.pinned = null
           s.referencePreferences = null
@@ -234,6 +239,7 @@ export const useStudio = create<StudioState>()(
       loadSaved: (brief, pinned) =>
         set((s) => {
           s.brief = briefSchema.parse(brief)
+          s.selectedRoomId = null
           s.pinned = pinned
           s.referencePreferences = parseInspirationPreferences(pinned?.inspiration)
           s.recentExteriorSeeds = pinned ? [pinned.seed] : []

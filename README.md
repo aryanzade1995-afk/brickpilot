@@ -796,3 +796,39 @@ geometry. `scripts/test-flooring.mjs` checks all new choices, rate and material
 references, provenance, filtering, one-room isolation, saved-brief replay and
 unchanged quantity signatures. Manufacturer provenance is retained as text in
 specification schedules; uncleared product imagery is omitted from exports.
+
+
+### Guided room furniture preview and optional budget
+
+The guided Brief keeps all existing Rooms controls and adds a shared selections
+bar on every step. Rooms, Style and Review use a sticky/collapsible room preview;
+mobile starts with a compact pinned card. `selectedRoomId` belongs to the same
+Zustand studio store. The room list comes from the existing compiled programme,
+not an independently generated floor plan. Room size preferences (`rooms.sizes`)
+change canonical target areas within existing min/max limits; hard checks remain
+mandatory. Stars (`rooms.starred`) affect indicative furniture only and never
+suggest removing a room. Old briefs default to empty size/star preferences and
+retain their original architectural seed.
+
+`src/lib/furniture/catalogue.ts` records real metre dimensions and clearances;
+`place.ts` is a bounded deterministic search using the existing seeded RNG.
+Essentials are tried before optionals; window approach and door swing stay clear.
+Comfortable/Tight/Too small, dropped items and reduced clearances describe an
+indicative furniture fit, not planner or accessibility certification. The preview
+reuses the AI Interior segmented wall builder with two cutaway walls, a floor,
+door and window, then renders simple furniture boxes. Its Canvas/camera persist
+between preview updates; shell updates debounce 200 ms, and old geometry is
+released. Top view includes the door swing. Turning Furnished off retains the
+shell. Style tints use the current architectural theme; Review lists furniture fit.
+
+This request restores an optional **guided-brief-only** budget, stored as
+`budget: { amount: rupees }`. Historic budget formats remain silently stripped;
+only the new explicit rupee amount round-trips. The input uses lakh and chips
+use existing lakh/crore formatting. The typical pre-plan range comes from
+canonical room target area and the finish rate bands in `rates.json`. It is not
+an exact BOQ. Budget edits never seed or alter geometry, enforce a spending limit
+or suggest room cuts. Finishes & Cost remains the measured estimate after design.
+
+`scripts/test-furniture.mjs` covers repeatability, collisions/openings, the three
+furniture verdicts, household counts, size minima, budget verdict boundaries,
+saved preference replay, shell reuse, shared store updates and preserved controls.

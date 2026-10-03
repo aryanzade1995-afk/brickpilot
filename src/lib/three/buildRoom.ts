@@ -22,7 +22,7 @@ export type RoomBox = {
   size: [number, number, number]
 }
 
-type Side = 'N' | 'S' | 'E' | 'W'
+export type Side = 'N' | 'S' | 'E' | 'W'
 
 export type RoomOpening = {
   kind: 'window' | 'door' | 'entry'
@@ -115,8 +115,7 @@ export function buildRoom(
     E: edgeIsExterior(rect, 'E', outline),
   }
 
-  type Raw = { kind: RoomOpening['kind']; side: Side; along: number; widthM: number; sillM: number; headM: number }
-  const raw: Raw[] = []
+  const raw: ShellOpening[] = []
   for (const op of floor.openings) {
     for (const side of ['N', 'S', 'E', 'W'] as Side[]) {
       const horizontal = side === 'N' || side === 'S'
@@ -184,8 +183,44 @@ export function buildRoom(
     { position: pos2, target: tgt2, fov: clamp(fov + 2, 56, 78) },
   ]
 
+  boxes.push(...shellWallBoxes(rw, rd, rh, raw, isExt))
+
+  const relOf = (side: Side): RoomOpening['viewRel'] =>
+    side === focal ? 'facing' : side === opp ? 'behind' : 'side'
+
+  return {
+    boxes,
+    camera: cameras[0],
+    cameras,
+    dims: { w: rw, d: rd, h: rh },
+    openings: raw.map((o) => ({
+      kind: o.kind,
+      side: o.side,
+      viewRel: relOf(o.side),
+      widthM: o.widthM,
+      sillM: o.sillM,
+      headM: o.headM,
+      exterior: isExt[o.side],
+    })),
+    focal,
+    daylightDir: focalHoriz ? [0, 0.25, Math.sign(focalFixed) || 1] : [Math.sign(focalFixed) || 1, 0.25, 0],
+    zone: room.zone,
+    name: room.name,
+    roomId,
+    floorName: floor.name,
+    floorLevel: floor.level,
+  }
+}
+
+/** Shared segmented wall builder: AI interior shells and indicative brief cutaways. */
+type ShellOpening = { kind: RoomOpening['kind']; side: Side; along: number; widthM: number; sillM: number; headM: number }
+function shellWallBoxes(rw: number, rd: number, rh: number, raw: ShellOpening[], isExt: Record<Side,boolean>, sides: Side[] = ['N','S','E','W']): RoomBox[] {
+  const boxes: RoomBox[] = [], halfW = rw/2, halfD = rd/2
+  const push = (id: string, mat: RoomMatKey, pos: [number,number,number], size: [number,number,number]) => {
+    if (size.every(v => v > 0.01)) boxes.push({id,mat,pos,size})
+  }
   // ---- four walls, segmented around their openings ----
-  for (const side of ['N', 'S', 'E', 'W'] as Side[]) {
+  for (const side of sides) {
     const t = isExt[side] ? EXT_T : INT_T
     const horizontal = side === 'N' || side === 'S'
     const len = horizontal ? rw : rd
@@ -251,29 +286,15 @@ export function buildRoom(
     wall(cursor, half, 0, rh, 'pE')
   }
 
-  const relOf = (side: Side): RoomOpening['viewRel'] =>
-    side === focal ? 'facing' : side === opp ? 'behind' : 'side'
-
-  return {
-    boxes,
-    camera: cameras[0],
-    cameras,
-    dims: { w: rw, d: rd, h: rh },
-    openings: raw.map((o) => ({
-      kind: o.kind,
-      side: o.side,
-      viewRel: relOf(o.side),
-      widthM: o.widthM,
-      sillM: o.sillM,
-      headM: o.headM,
-      exterior: isExt[o.side],
-    })),
-    focal,
-    daylightDir: focalHoriz ? [0, 0.25, Math.sign(focalFixed) || 1] : [Math.sign(focalFixed) || 1, 0.25, 0],
-    zone: room.zone,
-    name: room.name,
-    roomId,
-    floorName: floor.name,
-    floorLevel: floor.level,
-  }
+  return boxes
+}
+export function buildBriefRoom(roomId: string, name: string, width: number, depth: number, height: number, doorWidth: number, windowWidth: number): RoomModel {
+  const openings: ShellOpening[] = [
+    {kind:'window',side:'N',along:0,widthM:Math.min(windowWidth,width-0.4),sillM:0.9,headM:2.1},
+    {kind:'door',side:'W',along:depth/2-doorWidth/2,widthM:doorWidth,sillM:0,headM:2.1},
+  ]
+  return {boxes:[{id:'floor',mat:'slab',pos:[0,-SLAB/2,0],size:[width,SLAB,depth]},
+    ...shellWallBoxes(width+EXT_T,depth+EXT_T,height,openings,{N:true,W:true,E:false,S:false},['N','W'])],
+    camera:{position:[width*1.1,height*1.5,depth*1.2],target:[0,0.6,0],fov:45},cameras:[],dims:{w:width,d:depth,h:height},
+    openings:openings.map(o=>({...o,viewRel:'facing',exterior:true})),focal:'N',daylightDir:[0,1,-1],zone:'brief',name,roomId,floorName:'Indicative',floorLevel:0}
 }
