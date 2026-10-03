@@ -1,7 +1,7 @@
 # Finishes & Cost
 
-Cost is downstream of the validated design. It never feeds the brief, programme,
-planner, seed, massing, validators or Blender geometry.
+Cost is downstream of the validated design. Finish preferences live in the Brief,
+but never feed the programme, planner seed, massing, validators or Blender geometry.
 
 ## Independent layers
 
@@ -12,9 +12,9 @@ planner, seed, massing, validators or Blender geometry.
    have no door-leaf cost. Exposed lower roofs and double-height roof caps count.
 2. `cost/specifications.ts`: defaults, preset IDs, per-category choices and
    optional room-flooring overrides. Invalid saved option IDs recover safely.
-3. `cost/data/finishes.json`: installed finish allowances per square metre.
-4. `cost/data/pune.json`: location/date, rates, percentages, assumptions, uncertainty,
-   sanity bands, scope and provenance. Values are **provisional project allowances**,
+3. `cost/data/rates.json`: current material/labour rates, settings and per-finish
+   sanity bands in INR/sq ft. The deployed five-category adapter reads these rates.
+4. `cost/data/pune.json`: compatibility scope and measurement assumptions. Values are **provisional project allowances**,
    not verified quotations. CPWD PAR is a methodology reference, not a Pune product
    price list. Changing the dataset requires independent local rate verification.
 5. `cost/index.ts`: quantity × selected rate → BOQ → stated allowances → total.
@@ -35,8 +35,9 @@ accuracy. Every estimate carries its date, city and qualification. CSV exports
 include the same quantities, specifications, allowance bases and unrounded totals
 as the screen; user text is escaped against spreadsheet formula interpretation.
 
-Legacy spending fields remain stripped by the brief schema. No cost selection
-belongs to the brief. Existing `rates.ts` wrappers are reference-only compatibility
+Legacy spending fields remain stripped by the brief schema. `brief.finish` and
+`brief.specs.overrides` are non-geometric preferences, excluded from the plan seed.
+Existing `rates.ts` wrappers are reference-only compatibility
 helpers; production pricing uses measured geometry rather than style multipliers.
 
 ## User flow and saved choices
@@ -51,9 +52,31 @@ quiet link back to the brief rather than an estimate.
 `state/finishes.ts` stores selections separately under `formstead.finishes-v1`,
 keyed by measured source geometry. Seeds alone do not clear finish choices.
 Different geometry gets defaults; prior geometry keeps its own selections.
-Choices persist locally in this browser, not in Supabase project records.
+Finish choices now also save in the project Brief, including room overrides, so
+Supabase project saves retain them. Numerical allowance adjustments remain local.
+Older browser-only choices are respected until the next edit writes them to the Brief.
 Report and its PDF calculate from the same selection as the cost page. No product
-photographs are added to the finish catalogue; the UI uses text specifications.
+installed-product photographs are added; the existing cost UI uses text specifications.
+
+## Full catalogue data
+
+See [`cost/data/README.md`](../src/lib/cost/data/README.md). Every dataset is Zod-
+validated and cross-referenced: 85 items, 208 options, 19 groups and complete
+Basic/Mid/Premium presets. `resolveSpecification()` supports house defaults and
+`itemId@roomId` overrides; auto items ignore overrides and never enter chooser lists.
+Unknown retired option IDs fall back to the selected preset, preserving old saves.
+
+The existing Simple/Standard/Refined controls map to Basic/Mid/Premium in the Brief.
+They price their existing five measured categories. Other catalogue items provide
+data for further controls and take-offs; they are not silently added on top of
+existing structural/MEP allowances. Approvals/connections are recorded allowances
+but remain explicitly excluded from the deployed BOQ until included as measured scope.
+No catalogue selection adds roofs, pools, solar geometry or future floors to a plan.
+
+Original CC0 colour textures and 800px web derivatives are tracked with file
+hashes, dimensions, provenance and source-audit metadata. The exact original
+close-up is loaded by the opt-in Blender specification shader. Installed photos
+require a named human reviewer; no machine audit is presented as human verification.
 
 ## Report and image presentation
 

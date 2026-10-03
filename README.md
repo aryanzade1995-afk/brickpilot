@@ -300,13 +300,17 @@ generated images in its PDF, but those images are not persisted across reloads.
 
 The user flow is **Brief → Directions → 2D → 3D → Render → 06 Finishes & Cost → 07 Report**.
 The cost step defaults to Standard finishes; room overrides, allowances, GST and
-itemised quantities stay collapsed until needed. Selections are saved separately
-from the brief, per source geometry, in this browser. They never affect rooms,
+itemised quantities stay collapsed until needed. Finish level and specification
+overrides save in the Brief, while numerical allowance adjustments save separately
+per source geometry in this browser. These preferences never affect rooms,
 seeds, validators or Blender meshes. Pricing is removed from the earlier Plan page.
 
 The layered calculation is **geometry → quantities → specifications → rates → BOQ**.
 See [Finishes & Cost](docs/finishes-cost.md). Editable numbers, Pune/date metadata,
 uncertainty, scope, percentages and sanity bands live in `src/lib/cost/data/`.
+All datasets are Zod-validated. The full specification catalogue covers 19 groups,
+85 items and 208 options, with Basic/Mid/Premium presets and audited CC0 surface
+references that share the exact Blender texture. See [data contracts](src/lib/cost/data/README.md).
 These are provisional concept allowances, not verified contractor quotations.
 Every cost output carries **Concept estimate ±15% · approximate · Pune rates <date>**;
 final cost depends on structural design, site, products and contractor quotes.

@@ -17,12 +17,23 @@ the specification graph before it is used. `schemas.ts` owns the constraints.
   commercial terms and technical proposals require professional confirmation.
 - `finishes.json`, `pune.json`, `legacy-rates.json`: compatibility data for the
   deployed five-category cost UI and reference helpers, also Zod-validated.
+  The current BOQ adapter takes its rates, defaults and provenance from `rates.json`;
+  old numbers in compatibility datasets remain historical, not current price sources.
 
 Catalogue rates are **not all additive BOQ lines**. Foundations, RCC, masonry,
 plaster and electrical/plumbing allowances must not be counted again alongside
 their detailed items. Some specifications require measurements the source plan
 does not contain. This data foundation does not fabricate those quantities or
 add optional structures to the plan.
+
+`brief.finish` defaults to `mid` and `brief.specs.overrides` to `{}`. House overrides
+use `itemId`; room overrides use `itemId@<floor>:<semanticRoomId>`. Unknown old
+options fall back to the selected preset. Auto items ignore saved overrides.
+Finish-only edits retain the current plan, directions and pinned villa. The plan
+seed excludes these fields, including their empty defaults, preserving old seeds.
+Current finish controls write their choices to the Brief as well as local cost
+state, so saved projects replay them on another browser. Allowance percentages
+remain in the separate cost state and default from `rates.json`.
 
 ## Photo and Blender asset contract
 

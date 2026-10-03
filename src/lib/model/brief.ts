@@ -280,6 +280,9 @@ export const briefSchema = z
         vastu: vastuSchema.default('prefer'),
       })
       .prefault({}),
+    /** Finish/specification preferences are downstream of geometry and never seed it. */
+    finish: finishSchema.default('mid'),
+    specs: z.object({ overrides: z.record(z.string().min(1).max(160), z.string().min(1).max(100)).default({}) }).prefault({}),
     /** internal variation index — bumped to reroll geometry from the same brief */
     variation: z.number().int().min(0).default(0),
   })
@@ -288,6 +291,12 @@ export const briefSchema = z
 export type Brief = z.infer<typeof briefSchema>
 
 export const defaultBrief = (): Brief => briefSchema.parse({})
+
+/** Excludes cost preferences, preserving pre-specification saved-project seeds. */
+export function geometryBrief(brief: Brief) {
+  const { finish: _finish, specs: _specs, ...geometry } = brief
+  return geometry
+}
 
 /** people in the household — `spaces.occupants` is kept only for old briefs */
 export const occupantCount = (brief: Brief): number => brief.household.members.length

@@ -1,5 +1,6 @@
 import { resolveOpenSpace } from './openSpace.ts'
 import type { Brief, Direction } from './brief.ts'
+import { geometryBrief } from './brief.ts'
 
 /* ------------------------------------------------------------------ *
  *  Canonical model — the compiled, engine-facing form of the brief.
@@ -155,9 +156,10 @@ function mk(
  *  the `variation` nonce so the massing grammar's brief-key stays stable across
  *  re-rolls (the seed integer is what varies). */
 function hashSeed(brief: Brief): string {
-  const { autoExtras, ...legacyProject } = brief.project
-  const project = brief.project.buildingType === 'villa' ? legacyProject : { ...legacyProject, autoExtras: autoExtras ?? true }
-  const s = JSON.stringify({ ...brief, project, variation: 0 })
+  const source = geometryBrief(brief)
+  const { autoExtras, ...legacyProject } = source.project
+  const project = source.project.buildingType === 'villa' ? legacyProject : { ...legacyProject, autoExtras: autoExtras ?? true }
+  const s = JSON.stringify({ ...source, project, variation: 0 })
   let h = 0x811c9dc5
   for (let i = 0; i < s.length; i++) {
     h ^= s.charCodeAt(i)

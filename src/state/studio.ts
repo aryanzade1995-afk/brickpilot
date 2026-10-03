@@ -4,7 +4,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 import { compile, type CanonicalModel } from '@/lib/model/canonical.ts'
-import { briefSchema, defaultBrief, type Brief } from '@/lib/model/brief.ts'
+import { briefSchema, defaultBrief, geometryBrief, type Brief } from '@/lib/model/brief.ts'
 import {
   generate,
   MASSING_TYPES,
@@ -203,8 +203,11 @@ export const useStudio = create<StudioState>()(
 
       edit: (recipe) =>
         set((s) => {
+          const geometryBefore = JSON.stringify(geometryBrief(s.brief))
           recipe(s.brief)
-          // any brief change invalidates generated geometry
+          // Finish/specification edits save in the brief without regenerating rooms or a villa.
+          if (geometryBefore === JSON.stringify(geometryBrief(s.brief))) return
+          // Only geometry-relevant brief changes invalidate the generated plan.
           s.directions = null
           s.pinned = null
           s.recentExteriorSeeds = []

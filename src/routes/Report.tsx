@@ -13,6 +13,7 @@ import { InvalidPlanNotice } from '@/components/InvalidPlanNotice.tsx'
 import { useFinishes } from '@/state/finishes.ts'
 import { estimateCost } from '@/lib/cost/index.ts'
 import { geometryCostKey } from '@/lib/cost/quantities.ts'
+import { selectionFromBrief } from '@/lib/cost/briefSelections.ts'
 import { ZONE_LABEL } from '@/lib/model/canonical.ts'
 import { cx } from '@/lib/cx.ts'
 import type { Severity } from '@/lib/rules/index.ts'
@@ -41,9 +42,10 @@ function triggerDownload(blob: Blob, name: string) {
 export function Report() {
   const result = useStudio((s) => s.result)
   const run = useStudio((s) => s.run)
+  const brief = useStudio(s => s.brief)
   const costKey = useMemo(() => result ? geometryCostKey(result.design) : '', [result])
   const selection = useFinishes(s => s.entries[costKey])
-  const cost = useMemo(() => result ? estimateCost(result.design, selection) : null, [result, selection])
+  const cost = useMemo(() => result ? estimateCost(result.design, selectionFromBrief(brief, result.design, selection)) : null, [result, selection, brief])
   useEffect(() => {
     if (!result) run()
   }, [result, run])
@@ -140,7 +142,7 @@ export function Report() {
       const { buildReportPdf } = await import('@/lib/report/buildPdf.ts')
       const blob = await buildReportPdf({
         projectName: model.brief.project.name,
-        brief: model.brief,
+        brief,
         design,
         report,
         cost,

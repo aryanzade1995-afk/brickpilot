@@ -1,6 +1,8 @@
 import type { Design } from '../engine/types.ts'
 import { measureDesign, type Quantities } from './quantities.ts'
 import { estimateLabel, finishOption, parseSelection, policy, type CostSelection } from './specifications.ts'
+import { selectionFromBrief } from './briefSelections.ts'
+import { rateBook } from './catalogue.ts'
 
 export type Band = { low: number; high: number }
 export type CostLine = { label: string; note: string; low: number; high: number; expected: number }
@@ -15,7 +17,7 @@ const band = (amount: number): Band => ({ low: amount * (1 - policy.uncertaintyP
 
 /** Geometry → quantities → specifications → rates → BOQ. No generator, RNG or mutation. */
 export function estimateCost(design: Design, preferences?: unknown): CostEstimate {
-  const quantities = measureDesign(design), selection = parseSelection(preferences), boq: BoqLine[] = []
+  const quantities = measureDesign(design), selection = preferences ? parseSelection(preferences) : selectionFromBrief(design.model.brief, design), boq: BoqLine[] = []
   const add = (id: string, group: string, label: string, quantity: number, rate: number, specification: string) => {
     if (quantity > 0) boq.push({ id, group, label, quantity, unit: 'm²', rate, specification, amount: quantity * rate })
   }
@@ -53,12 +55,14 @@ export function estimateCost(design: Design, preferences?: unknown): CostEstimat
   ] as const
   const lines = summary.map(([label, note, expected]) => ({ label, note, expected, ...band(expected) }))
   const expected = lines.reduce((sum, item) => sum + item.expected, 0), rate = q.floorArea ? expected / q.floorArea : 0
+  const finish = selection.preset === 'simple' ? 'basic' : selection.preset === 'refined' ? 'premium' : 'mid'
+  const sanity = rateBook.sanityBands[finish], rateSqft = rate / rateBook.settings.sqftPerSqm
   return { currency: 'INR', total: band(expected), expected, ratePerSqm: band(rate), lines, quantities, selection, boq,
     label: estimateLabel(), qualification: policy.qualification, confidence: 'C', rateVersion: policy.version,
     basis: `${q.floorArea.toFixed(1)} m² measured floor area · ${q.doorCount} door leaves · ${q.windowCount} glazed openings · ${policy.scope.rates}`,
     included: policy.scope.included, excluded: [...policy.scope.excluded, ...(!selection.includeGst ? ['GST and taxes on professional fees'] : ['Taxes on professional fees'])],
     sources: [policy.status, ...policy.sources.map(s => `${s.label} — ${s.url}`)],
-    sanityNote: rate && (rate < policy.sanityPerSqm.low || rate > policy.sanityPerSqm.high)
+    sanityNote: rate && (rateSqft < sanity.min || rateSqft > sanity.max)
       ? 'This estimate is outside the configured reference range. Check the scope and rates with a local contractor.' : null }
 }
 /** Export the same calculation as screen/PDF, including assumptions and provenance. */

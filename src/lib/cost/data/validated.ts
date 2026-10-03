@@ -27,6 +27,24 @@ export function validateSpecificationData(r: unknown, s: unknown, p: unknown, m:
   return { rates, catalogue, presets, materials }
 }
 export const specificationData = validateSpecificationData(ratesRaw, specsRaw, presetsRaw, materialsRaw)
-export const validatedFinishes = finishesSchema.parse(finishesRaw)
-export const validatedPunePolicy = puneSchema.parse(puneRaw)
+const installedRate = (id: string) => {
+  const rate = specificationData.rates.items.find(r => r.id === id)
+  if (!rate) throw new Error(`Missing deployed BOQ rate ${id}`)
+  return rate.material + rate.labour
+}
+const finishAdapter: Record<string, string> = {floor:'floor-living',wall:'interior-paint',door:'internal-door',window:'windows',roof:'terrace-waterproofing'}
+const compatibleFinishes = finishesSchema.parse(finishesRaw)
+export const validatedFinishes = { ...compatibleFinishes, categories: compatibleFinishes.categories.map(c => ({ ...c,
+  options: c.options.map(o => ({ ...o, rate: installedRate(`${finishAdapter[c.id]}-${o.id}`) })) })) }
+const compatibilityPolicy = puneSchema.parse(puneRaw)
+const settings = specificationData.rates.settings
+/** New rates.json owns current settings; old JSON retains its scope/measurement adapter. */
+export const validatedPunePolicy = { ...compatibilityPolicy, city: settings.city, date: settings.date,
+  version: `pune-concept-${settings.date}`, status: specificationData.rates.status,
+  sources: [...specificationData.rates.sources, ...compatibilityPolicy.sources], uncertaintyPercent: settings.uncertaintyPct,
+  rates: { structure: installedRate('boq-structure'), masonry: installedRate('boq-masonry'), plaster: installedRate('boq-plaster'),
+    electrical: installedRate('boq-electrical'), plumbing: installedRate('boq-plumbing'), paving: installedRate('boq-paving'),
+    lawn: installedRate('boq-lawn'), pool: installedRate('boq-pool') },
+  defaults: { ...compatibilityPolicy.defaults, overheadPercent: settings.overheadPct, contingencyPercent: settings.contingencyPct,
+    feePercent: settings.feePct, gstPercent: settings.gstPct, includeGst: settings.includeGst } }
 export const validatedLegacyRates = legacyRatesSchema.parse(legacyRaw)

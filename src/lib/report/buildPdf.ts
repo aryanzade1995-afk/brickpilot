@@ -3,7 +3,7 @@ import { autoTable } from 'jspdf-autotable'
 import type { Brief } from '@/lib/model/brief.ts'
 import {
   BUILDING_TYPE_LABEL, CHARACTER_LABEL, DIRECTION_LABEL,
-  GUESTS_LABEL, KITCHEN_LABEL, STAFF_LABEL, VASTU_LABEL,
+  GUESTS_LABEL, KITCHEN_LABEL, STAFF_LABEL, VASTU_LABEL, FINISH_LABEL,
 } from '@/lib/model/brief.ts'
 import { describeMembers } from '@/lib/model/household.ts'
 import { preferenceScore } from '@/lib/engine/score.ts'
@@ -294,6 +294,7 @@ function briefRows(b: Brief): string[][] {
   return [
     ['Typology', BUILDING_TYPE_LABEL[b.project.buildingType]],
     ['Character', CHARACTER_LABEL[b.style.character]],
+    ['Finish level', FINISH_LABEL[b.finish]],
     ['Plot', `${b.site.plotWidth} m × ${b.site.plotDepth} m`],
     ['Facing', DIRECTION_LABEL[b.site.facing]],
     ['Road edges', b.site.roadEdges.map((d) => DIRECTION_LABEL[d]).join(', ')],

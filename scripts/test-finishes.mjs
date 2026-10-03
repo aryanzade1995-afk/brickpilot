@@ -16,7 +16,7 @@ const storage=new Map()
 globalThis.localStorage={getItem:k=>storage.get(k)??null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)}
 globalThis.window={localStorage:globalThis.localStorage,atob:globalThis.atob,btoa:globalThis.btoa}
 const server=await createServer({configFile:false,resolve:{alias:{'@':fileURLToPath(new URL('../src',import.meta.url))}},
- optimizeDeps:{noDiscovery:true,entries:[]},server:{middlewareMode:true,watch:null},appType:'custom'})
+ optimizeDeps:{noDiscovery:true,entries:[]},server:{middlewareMode:true,watch:null,hmr:false,ws:false},appType:'custom'})
 after(()=>server.close())
 const {useFinishes}=await server.ssrLoadModule('/src/state/finishes.ts')
 const {FinishesCostView}=await server.ssrLoadModule('/src/routes/FinishesCost.tsx')

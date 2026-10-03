@@ -9,19 +9,28 @@ import { estimateCost, boqCsv } from '@/lib/cost/index.ts'
 import { geometryCostKey } from '@/lib/cost/quantities.ts'
 import { catalog, defaultSelection, finishOption, parseSelection, policy, type FinishCategory } from '@/lib/cost/specifications.ts'
 import { cx } from '@/lib/cx.ts'
+import type { Brief } from '@/lib/model/brief.ts'
+import { selectionFromBrief, writeSelectionToBrief } from '@/lib/cost/briefSelections.ts'
+import type { CostSelection } from '@/lib/cost/specifications.ts'
 
 export function FinishesCost() {
   const result = useStudio(s => s.result), run = useStudio(s => s.run)
+  const brief = useStudio(s => s.brief), edit = useStudio(s => s.edit)
   useEffect(() => { if (!result) run() }, [result, run])
-  return <FinishesCostView result={result} />
+  return <FinishesCostView result={result} brief={brief} onSelection={selection => {
+    if (result) edit(b => writeSelectionToBrief(b, result.design, selection))
+  }} />
 }
-export function FinishesCostView({ result }: { result: Pick<Result, 'design' | 'report'> | null }) {
+export function FinishesCostView({ result, brief, onSelection }: { result: Pick<Result, 'design' | 'report'> | null; brief?: Brief; onSelection?: (selection: CostSelection) => void }) {
   const key = useMemo(() => result ? geometryCostKey(result.design) : '', [result])
   const saved = useFinishes(s => s.entries[key]), setSelection = useFinishes(s => s.setSelection)
-  const selection = useMemo(() => parseSelection(saved), [saved])
+  const selection = useMemo(() => result ? selectionFromBrief(brief ?? result.design.model.brief, result.design, saved) : parseSelection(saved), [saved, brief, result])
   const matchingPreset = catalog.presets.find(p => Object.entries(p.choices).every(([category, id]) => selection.choices[category as FinishCategory] === id) && !Object.keys(selection.roomFloors).length)?.id
   const cost = useMemo(() => result ? estimateCost(result.design, selection) : null, [result, selection])
-  const update = (change: Partial<typeof selection>) => setSelection(key, { ...selection, ...change })
+  const update = (change: Partial<typeof selection>) => {
+    const next = parseSelection({ ...selection, ...change })
+    setSelection(key, next); onSelection?.(next)
+  }
   const download = () => {
     if (!cost) return
     const url = URL.createObjectURL(new Blob(['\uFEFF', boqCsv(cost)], { type: 'text/csv;charset=utf-8' }))
