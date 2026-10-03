@@ -1,5 +1,6 @@
 import { rectArea, rectUnionBBox, rectUnionArea, toSqm, type Rect, type Point } from '../../geometry.ts'
 import type { CanonicalModel, SpaceReq } from '../../model/canonical.ts'
+import { columnPosition, columnSizeMm } from '../structuralSizing.ts'
 import type { FloorPlan, Opening, PlacedRoom } from '../types.ts'
 import { makeRng } from '../massing/rng.ts'
 import { frontYard, placeBalcony, reachability, type PlanRequest, type PlanResult } from './index.ts'
@@ -191,7 +192,7 @@ export function planWings(model: CanonicalModel, request: PlanRequest): PlanResu
   if(fi===0 && rectUnionArea([...footprint,...rooms.filter(r=>r.outdoor&&r.id!=='courtyard').map(r=>r.rect)])>
    site.plot.w*site.plot.h*PLANNING_LIMITS.maxCoverage)return null
   const onPlate=(p:Point)=>footprint.some(r=>p.x>=r.x&&p.x<=r.x+r.w&&p.y>=r.y&&p.y<=r.y+r.h)
-  const columns:Column[]=uniquePoints.filter(onPlate).map((at,i)=>({id:`${f.prefix}_COLUMN_C${String(i+1).padStart(2,'0')}`,at,size:COLUMN,grid:`WING_${i}`}))
+  const columns:Column[]=uniquePoints.filter(onPlate).map((at,i)=>({id:`${f.prefix}_COLUMN_C${String(i+1).padStart(2,'0')}`,at,size:columnSizeMm(model.brief.levels.storeys,columnPosition(at,footprint)),grid:`WING_${i}`}))
   const beams=beamsFor(columns,onPlate,f.prefix);maxSpan=Math.max(maxSpan,...beams.map(b=>b.span))
   const walls=wallGraph(rooms.map(r=>r.id===doubleHeight?.roomId?{...r,outdoor:false}:r),f.prefix,axes.map(a=>({orient:a.orient,fixed:a.at,lo:-Infinity,hi:Infinity})))
   if(doubleHeight)for(const wall of walls){

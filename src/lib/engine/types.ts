@@ -69,6 +69,7 @@ export type StairRun = {
 }
 
 export type FloorPlan = {
+  structuralSizing?: import('./structuralSizing.ts').FloorSizing & {footings?:import('./structuralSizing.ts').Footing[];plinthBeams?:import('./structuralSizing.ts').SizedBeam[];plinthHeightMm?:number;qualification?:string}
   doubleHeightVoids?: import('./planner/doubleHeight.ts').DoubleHeightVoid[]
   level: number
   name: string
@@ -96,6 +97,7 @@ export type FloorPlan = {
 export type SiteFeature = { id: string; kind: 'parking' | 'driveway' | 'path' | 'lawn' | 'pool' | 'sitOut' | 'utilityYard'; rect: Rect; covered: boolean; roomId?: string }
 
 export type Design = {
+  structuralSizing?: import('./structuralSizing.ts').StructuralSizing
   planSeed?: number
   layoutChoices?: LayoutChoices
   siteFeatures?: SiteFeature[]

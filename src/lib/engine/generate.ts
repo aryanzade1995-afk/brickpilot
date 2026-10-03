@@ -1,4 +1,5 @@
 import { placeSiteFeatures } from './planner/siteFeatures.ts'
+import { exposeStructuralSizing } from './structuralSizing.ts'
 import { rectArea, rectUnionArea, toSqm } from '../geometry.ts'
 import type { CanonicalModel } from '../model/canonical.ts'
 import { themeOf } from '../model/themes.ts'
@@ -302,7 +303,7 @@ function generateOne(model: CanonicalModel, family: PlateFamily, seed: number, b
   const windows = floors.reduce((n, f) => n + f.openings.filter((op) => op.kind === 'window').length, 0)
 
   const site = placeSiteFeatures(model, floors[0])
-  return {
+  return exposeStructuralSizing({
     planSeed:seed,
     ...(choices ? {layoutChoices:choices}:{}),
     siteFeatures: site.features, siteNotes: [...(model.siteNotes ?? []), ...site.notes],
@@ -321,5 +322,5 @@ function generateOne(model: CanonicalModel, family: PlateFamily, seed: number, b
     coverage: (groundMm2 + outdoorMm2 * 0.5) / (model.plot.width * model.plot.depth),
     openingCounts: { doors, windows },
     structure: plan.structure,
-  }
+  })
 }

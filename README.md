@@ -62,6 +62,11 @@ controls in [`src/routes/brief/steps.tsx`](src/routes/brief/steps.tsx).
 
 ## How a design is made
 
+The [quantity take-off](docs/quantity-takeoff.md) measures source floors with
+IFC-style names, member concrete/steel/formwork, finishes, services and site
+works. Configurable concept sizing is shared by drawings and Blender;
+**approximate; structural design by a licensed engineer required**.
+
 The additional `BuildingModel -> VillaDesignDNA -> MassingModel` data pipeline
 is documented in [Procedural massing](docs/procedural-massing.md). It preserves
 the verified 2D plan, supports 15 conditional massing families and generates

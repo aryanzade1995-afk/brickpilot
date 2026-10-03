@@ -1,5 +1,6 @@
 import { type Point, type Rect, rectArea, rectBottom, rectRight, rectUnionBBox, sharedEdge, toSqm } from '../../geometry.ts'
 import type { CanonicalModel } from '../../model/canonical.ts'
+import { columnPosition, columnSizeMm } from '../structuralSizing.ts'
 import type { DesignDNA } from '../designDna.ts'
 import type { FloorPlan, Opening, PlacedRoom } from '../types.ts'
 import type { RoofSpec } from '../massing/types.ts'
@@ -7,7 +8,7 @@ import type { Column, FloorRequirements, LocalRoom, PlanStructure, PlateFamily, 
 import { TERRACE_LIMITS } from '../terrace.ts'
 import { makeRng } from '../massing/rng.ts'
 import {
-  BALCONY_DEPTH, COLUMN, VERANDAH_DEPTH, PARKING_DEPTH,
+  BALCONY_DEPTH, VERANDAH_DEPTH, PARKING_DEPTH,
   normalizeBrief, programRequirements, siteModel, stairGeometry, snap, snapUp, GOING,
 } from './program.ts'
 import { placeFloors, plateCandidates, type LayoutInput, type PlateCandidate } from './layout.ts'
@@ -194,7 +195,7 @@ export function planVilla(model: CanonicalModel, request: PlanRequest): PlanResu
     const columns: Column[] = groundCols
       .filter((c) => onPlate(plate, vLines, c.u, c.v))
       .map((c) => ({
-        id: `${prefix}_COLUMN_C${n2(colName.get(c.key)!)}`, at: { ...c.at }, size: COLUMN,
+        id: `${prefix}_COLUMN_C${n2(colName.get(c.key)!)}`, at: { ...c.at }, size: columnSizeMm(layout.plates.length,columnPosition(c.at,footprint)),
         grid: `GRID_${c.ui + 1}${alpha(c.vi)}`,
       }))
     const inPlate = (p: Point) => footprint.some((r) => p.x >= r.x - 1 && p.x <= rectRight(r) + 1 && p.y >= r.y - 1 && p.y <= rectBottom(r) + 1)

@@ -1,0 +1,35 @@
+{
+  "version": "concept-qto-1",
+  "qualification": "approximate; structural design by a licensed engineer required",
+  "columnsByStoreysMm": [
+    {"corner":230,"edge":250,"interior":300},
+    {"corner":300,"edge":300,"interior":350},
+    {"corner":350,"edge":350,"interior":400},
+    {"corner":400,"edge":400,"interior":450}
+  ],
+  "beam": {"spanDepthRatio":12,"roundMm":50,"minDepthMm":250,"widthMm":230},
+  "slab": {"shortSpanLimitMm":4000,"shortThicknessMm":125,"longThicknessMm":150},
+  "footing": {"baseWidthMm":1200,"perStoreyMm":250,"thicknessMm":350,"perStoreyThicknessMm":50,"depthBelowGradeMm":1200,"soilFactors":{"unknown":1.25,"firm":1,"rock":0.85},"roundMm":50},
+  "plinthHeightsMm":{"standard":450,"raised":600,"flood":900},
+  "plinthBeam":{"widthMm":230,"depthMm":300},
+  "earthwork":{"workingSpaceMm":150,"pccProjectionMm":100,"pccThicknessMm":100},
+  "steelKgPerM3":{"footings":75,"columns":175,"plinthBeams":140,"beams":140,"slabs":90,"stairs":90,"lintels":100,"chajjas":90},
+  "concrete":{"dryFactor":1.54,"cementDensityKgM3":1440,"bagKg":50,"m20Parts":[1,1.5,3]},
+  "masonryUnitsPerM3":{"brick":500,"aac":69.4444444444,"concrete-block":62.5},
+  "finishes":{"skirtingHeightMm":100,"wetTileHeightMm":2100,"kitchenDadoHeightMm":600,"kitchenDadoWallRatio":0.5},
+  "openings":{"lintelDepthMm":150,"lintelBearingMm":150,"chajjaProjectionMm":600,"chajjaThicknessMm":100,"glassRatio":0.85,"grillRatio":1},
+  "stairs":{"waistMm":150,"landingThicknessMm":150,"guardSides":2},
+  "roof":{"parapetHeightMm":1000,"parapetThicknessMm":115},
+  "site":{"gateWidthMm":3800,"compoundHeightMm":1800,"compoundThicknessMm":230},
+  "tanks":{"litresPerOccupant":135,"storageDays":2,"overheadFraction":0.5,"roundLitres":500,"minLitres":1000},
+  "pointsByRoom":{
+    "bath":{"plumbing":5,"electrical":3},"kitchen":{"plumbing":3,"electrical":8},
+    "utility":{"plumbing":3,"electrical":4},"bedroom":{"plumbing":0,"electrical":6},
+    "living":{"plumbing":0,"electrical":8},"office":{"plumbing":0,"electrical":6},
+    "pooja":{"plumbing":0,"electrical":2},"circulation":{"plumbing":0,"electrical":2},
+    "other":{"plumbing":0,"electrical":3}
+  },
+  "toleranceMm":2,
+  "memoEntries":16,
+  "notes":["Sizing and steel factors are configurable planning assumptions, not calculations of loads or soil bearing capacity.","Unknown soil uses a conservative allowance; a geotechnical report and structural design remain necessary.","M20 material conversion is nominal 1:1.5:3 arithmetic, not an approved concrete mix design. M25/M30 require a mix design and have no nominal material conversion."]
+}

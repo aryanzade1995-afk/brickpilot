@@ -1,6 +1,6 @@
 import { type Rect, rectArea, rectBottom, rectRight, sharedEdge } from '../../geometry.ts'
 import type { Design, FloorPlan, Opening, PlacedRoom } from '../types.ts'
-import { COLUMN, MAX_BEAM_SPAN, MAX_CANTILEVER, normalizeBrief, stairGeometry } from './program.ts'
+import { MAX_BEAM_SPAN, MAX_CANTILEVER, normalizeBrief, stairGeometry } from './program.ts'
 import { reachability } from './index.ts'
 import { DOUBLE_HEIGHT_LIMITS } from './doubleHeight.ts'
 
@@ -173,7 +173,7 @@ export function planFindings(design: Design): PlanFinding[] {
       for (const c of cols) {
         const cl = o.orient === 'h' ? c.at.y : c.at.x
         const ca = o.orient === 'h' ? c.at.x : c.at.y
-        if (Math.abs(cl - lineOf(o)) < 2 && Math.abs(ca - alongOf(o)) < o.width / 2 + COLUMN / 2)
+        if (Math.abs(cl - lineOf(o)) < 2 && Math.abs(ca - alongOf(o)) < o.width / 2 + c.size / 2)
           add('OPENING_ON_COLUMN', 'geometry', `${label} cuts through ${c.id}.`)
       }
       if (o.leaf !== false && o.kind !== 'window' && a) {
