@@ -4,7 +4,6 @@ import { Dices, Download } from 'lucide-react'
 import { useStudio } from '@/state/studio.ts'
 import { DrawingWorkspace } from '@/components/DrawingWorkspace.tsx'
 import { ZONE_LABEL } from '@/lib/model/canonical.ts'
-import { formatINR, formatINRShort, formatRange } from '@/lib/format.ts'
 import { cx } from '@/lib/cx.ts'
 import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
 import { VillaGenerationNotice } from '@/components/VillaGenerationNotice.tsx'
@@ -33,7 +32,7 @@ export function Plan() {
   }
   if (!result.report.hardChecksPass) return <InvalidPlanNotice report={result.report} />
 
-  const { design, report, cost } = result
+  const { design, report } = result
   const floor = design.floors[Math.min(floorIdx, design.floors.length - 1)]
   // cheap to compute; not a hook, so it is fine after the early returns
   const why = preferenceScore(design)
@@ -56,7 +55,6 @@ export function Plan() {
         >
           {report.hardChecksPass ? '● Hard checks pass' : '● Hard checks fail'}
         </div>
-        <Metric k="Cost band" v={formatRange(cost.total.low, cost.total.high, formatINRShort)} />
         <Metric k="Built area" v={`${design.builtAreaSqm.toFixed(1)} m²`} />
         <Metric k="Height" v={`${design.heightM} m`} />
         <Metric k="Coverage" v={`${(design.coverage * 100).toFixed(0)} %`} />
@@ -98,11 +96,11 @@ export function Plan() {
             Reroll variation
           </button>
           <Link
-            to="/workspace/report"
+            to="/workspace/massing"
             className="flex w-full items-center justify-center gap-2 border border-line-strong py-3 font-mono text-xs uppercase tracking-[0.12em] text-ink-dim hover:border-ink-dim hover:text-ink"
           >
             <Download size={13} />
-            Project report · PDF
+            Continue to 3D
           </Link>
       </div>
 
@@ -135,57 +133,6 @@ export function Plan() {
             ))}
           </ul>
         )}
-      </section>
-
-      {/* cost */}
-      <section className="mt-14 border-t border-line pt-8">
-        <div className="flex items-baseline gap-3">
-          <h2 className="font-display text-2xl">Build-cost estimate</h2>
-          <span className="label">Confidence {cost.confidence} · {cost.currency}</span>
-        </div>
-        <p className="mt-2 text-sm text-ink-dim">{cost.basis}</p>
-
-        <div className="mt-6 border-y border-line">
-          {cost.lines.map((l) => (
-            <div key={l.label} className="flex items-baseline justify-between border-b border-line py-3 last:border-0">
-              <div>
-                <span className="text-sm text-ink">{l.label}</span>
-                <span className="ml-3 text-xs text-ink-faint">{l.note}</span>
-              </div>
-              <span className="font-mono text-xs text-ink-dim tnum">
-                {formatRange(l.low, l.high, formatINR)}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-4 flex items-baseline justify-between">
-          <span className="label">Expected total</span>
-          <span className="font-display text-2xl tnum">{formatINR(cost.expected)}</span>
-        </div>
-
-        <div className="mt-6 grid gap-6 text-xs text-ink-dim sm:grid-cols-2">
-          <div>
-            <div className="label mb-2">Included</div>
-            <ul className="space-y-1">
-              {cost.included.map((x) => (
-                <li key={x}>— {x}</li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <div className="label mb-2">Excluded</div>
-            <ul className="space-y-1">
-              {cost.excluded.map((x) => (
-                <li key={x}>— {x}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        <div className="label mt-6">
-          Sources — {cost.sources.join(' · ')}
-        </div>
       </section>
 
       {/* room schedule */}

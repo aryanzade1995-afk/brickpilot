@@ -7,8 +7,9 @@ const TABS = [
   { to: '/workspace/plan', label: '2D plan', n: '03' },
   { to: '/workspace/massing', label: '3D massing', n: '04' },
   { to: '/workspace/render', label: 'Render', n: '05' },
-  { to: '/workspace/report', label: 'Report', n: '06' },
-  { to: '/workspace/dataset', label: 'Villa dataset', n: '07' },
+  { to: '/workspace/finishes', label: 'Finishes & Cost', n: '06' },
+  { to: '/workspace/report', label: 'Report', n: '07' },
+  { to: '/workspace/dataset', label: 'Villa references', n: '' },
 ]
 
 export function WorkspaceTabs() {

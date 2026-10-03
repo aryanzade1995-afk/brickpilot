@@ -38,3 +38,19 @@ as the screen; user text is escaped against spreadsheet formula interpretation.
 Legacy spending fields remain stripped by the brief schema. No cost selection
 belongs to the brief. Existing `rates.ts` wrappers are reference-only compatibility
 helpers; production pricing uses measured geometry rather than style multipliers.
+
+## User flow and saved choices
+
+`/workspace/finishes` is step 06, after Render; Report is step 07. Plan no longer
+shows early pricing. The existing monochrome controls provide Simple, Standard
+(default) and Refined starting finishes. Individual choices update the estimate
+immediately. Room-flooring overrides, allowances/tax and detailed BOQ are collapsed.
+Changing a finish does not regenerate a plan or a render. Invalid plans get a
+quiet link back to the brief rather than an estimate.
+
+`state/finishes.ts` stores selections separately under `formstead.finishes-v1`,
+keyed by measured source geometry. Seeds alone do not clear finish choices.
+Different geometry gets defaults; prior geometry keeps its own selections.
+Choices persist locally in this browser, not in Supabase project records.
+Report and its PDF calculate from the same selection as the cost page. No product
+photographs are added to the finish catalogue; the UI uses text specifications.

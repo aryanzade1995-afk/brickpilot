@@ -7,8 +7,11 @@ import { FloorDrawing, TerraceDrawing } from '@/lib/draw/FloorDrawing.tsx'
 import { MassingViewport, MASSING_CANVAS, type CaptureView } from '@/lib/render/CaptureCanvas.tsx'
 import { rasterizeSvg } from '@/lib/render/rasterizeSvg.ts'
 import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
+import { CostSummary } from '@/components/CostSummary.tsx'
+import { useFinishes } from '@/state/finishes.ts'
+import { estimateCost } from '@/lib/cost/index.ts'
+import { geometryCostKey } from '@/lib/cost/quantities.ts'
 import { ZONE_LABEL } from '@/lib/model/canonical.ts'
-import { formatINR, formatINRShort, formatRange } from '@/lib/format.ts'
 import { cx } from '@/lib/cx.ts'
 import type { Severity } from '@/lib/rules/index.ts'
 import type { ReportImage } from '@/lib/report/buildPdf.ts'
@@ -36,6 +39,9 @@ function triggerDownload(blob: Blob, name: string) {
 export function Report() {
   const result = useStudio((s) => s.result)
   const run = useStudio((s) => s.run)
+  const costKey = useMemo(() => result ? geometryCostKey(result.design) : '', [result])
+  const selection = useFinishes(s => s.entries[costKey])
+  const cost = useMemo(() => result ? estimateCost(result.design, selection) : null, [result, selection])
   useEffect(() => {
     if (!result) run()
   }, [result, run])
@@ -75,11 +81,11 @@ export function Report() {
     return out
   }, [renderJobs, interiorResults])
 
-  if (!result) {
+  if (!result || !cost) {
     return <div className="mx-auto max-w-[1400px] px-10 py-24 text-ink-dim">Preparing report…</div>
   }
 
-  const { design, model, report, cost } = result
+  const { design, model, report } = result
   const floor = design.floors[Math.min(floorIdx, design.floors.length - 1)]
 
   /** briefly mount the 3D massing offscreen, drive two poses, read the canvas */
@@ -159,7 +165,7 @@ export function Report() {
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-2xl">{model.brief.project.name}</h1>
-        <div className="label text-accent">Step 6 · Report</div>
+        <div className="label text-accent">Step 7 · Report</div>
       </div>
 
       {/* metric bar */}
@@ -173,8 +179,6 @@ export function Report() {
         >
           {report.hardChecksPass ? '● Hard checks pass' : '● Hard checks fail'}
         </div>
-        <Metric k="Cost band" v={formatRange(cost.total.low, cost.total.high, formatINRShort)} />
-        <Metric k="Expected" v={formatINR(cost.expected)} />
         <Metric k="Built area" v={`${design.builtAreaSqm.toFixed(1)} m²`} />
         <Metric k="Coverage" v={`${(design.coverage * 100).toFixed(0)} %`} />
       </div>
@@ -254,28 +258,7 @@ export function Report() {
             )}
           </section>
 
-          {/* cost */}
-          <section>
-            <h2 className="font-display text-xl">Build-cost estimate</h2>
-            <p className="mt-1 text-sm text-ink-dim">{cost.basis}</p>
-            <div className="mt-4 border-y border-line">
-              {cost.lines.map((l) => (
-                <div
-                  key={l.label}
-                  className="flex items-baseline justify-between border-b border-line py-2.5 last:border-0"
-                >
-                  <span className="text-sm text-ink">{l.label}</span>
-                  <span className="font-mono text-xs text-ink-dim tnum">
-                    {formatRange(l.low, l.high, formatINR)}
-                  </span>
-                </div>
-              ))}
-            </div>
-            <div className="mt-3 flex items-baseline justify-between">
-              <span className="label">Expected total</span>
-              <span className="font-display text-xl tnum">{formatINR(cost.expected)}</span>
-            </div>
-          </section>
+          <section><h2 className="mb-3 font-display text-xl">Finishes & Cost</h2><CostSummary cost={cost} /></section>
 
           {conceptImages.length > 0 && (
             <section>

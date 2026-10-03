@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Camera, Clock, Eye, RefreshCw, Sparkles } from 'lucide-react'
 import { useStudio } from '@/state/studio.ts'
 import { useRender, REF_KEYS, REF_LABEL, type RefKey } from '@/state/render.ts'
@@ -217,7 +218,7 @@ export function Render() {
               </button>
             ))}
           </div>
-          <div className="label text-accent">Step 4 · Render</div>
+          <div className="label text-accent">Step 5 · Render</div>
         </div>
       </div>
 
@@ -408,6 +409,7 @@ export function Render() {
           </div>
         </>
       )}
+      <div className="mt-8 flex justify-end"><Link to="/workspace/finishes" className="border border-line-strong px-5 py-3 text-sm">Continue to Finishes & Cost</Link></div>
     </div>
   )
 }
