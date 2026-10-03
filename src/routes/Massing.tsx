@@ -58,7 +58,7 @@ export function Massing() {
     <WorkspaceTabs />
     <h1 className="mt-5 font-display text-2xl">3D massing · {result.model.brief.project.name}</h1>
     <MassingViewTabs mode="architecture" onChange={setMode} studyAvailable={Boolean(result.shapeFingerprint)} />
-    <BlenderVillaPanel plan={result.design} autoGenerate />
+    <BlenderVillaPanel plan={result.design} selectedSeed={result.villaDesignDNA?.seed ?? result.design.dna.seed} autoGenerate />
     <div className="mt-6 flex gap-6 text-sm">
       <Link to="/workspace/plan" className="underline underline-offset-4">View the 2D plan</Link>
       <Link to="/workspace/render" className="underline underline-offset-4">Continue to renders</Link>

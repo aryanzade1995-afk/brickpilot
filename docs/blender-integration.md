@@ -14,8 +14,9 @@ a corner tank; decorative roof shells, stacked roof boxes and pergolas are
 excluded. A hard check requires at least 80% free roof area, including guards.
 External piers and canopies occupy clear areas inside setbacks and avoid source
 rooms, balconies, parking and outdoor circulation. Invalid additions are omitted
-on deterministic retry. Family names retain seeded recipe intent; they cannot
-make unchanged geometry physically unique. Occupied
+on deterministic retry. Production family names describe the source plan's
+actual occupied outline; changing the exterior seed does not change that family.
+Occupied
 upper-floor coverage/location and the original courtyard remain fixed. Moving
 occupied upper floors, removing rooms to make a new ground courtyard, or changing
 balcony access positions requires a changed authoritative plan. Cost estimates
@@ -51,7 +52,19 @@ accepted design and source plan. Worker status and accepted manifests are saved
 on disk. A history lock prevents simultaneous history changes and records its
 owner for stale-lock recovery after a stopped process.
 
-`src/state/blender.ts` stores job IDs and accepted asset URLs by content plan ID.
+`src/state/blender.ts` persists pending preview jobs and caches direction renders
+by **content plan ID + exterior seed**. Two directions sharing room geometry can
+therefore keep separate renders. Pinning a direction carries its exact seed into
+Massing: the page waits for that preview, then adopts the same GLB and images,
+without submitting another random villa. Reloading resumes saved preview jobs.
+Exact requests reject a response whose plan ID or seed differs from the selected
+direction. Restart the Node backend after changing server code; Vite hot reload
+updates the frontend but does not reload the backend process.
+
+The currently displayed/generated villa is retained by plan ID, with a selection
+key so **Generate another design** survives navigation until a different direction
+is selected. Its normal bounded uniqueness retries remain enabled; only pinned
+direction previews use exact seed requests.
 `BlenderVillaPanel` appears on the existing Massing and Render pages. It offers
 fast previews or high-quality finals, **Generate another design**, interactive
 GLB viewing, three camera previews and downloads. Existing study/dollhouse views,

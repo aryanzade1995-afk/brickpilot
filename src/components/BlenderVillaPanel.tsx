@@ -4,7 +4,7 @@ import { Canvas } from '@react-three/fiber'
 import { Bounds, OrbitControls, useGLTF } from '@react-three/drei'
 import type { Design } from '@/lib/engine/types.ts'
 import { createBuildingModel } from '@/lib/engine/buildingModel.ts'
-import { useBlender } from '@/state/blender.ts'
+import { useBlender, directionRenderKey } from '@/state/blender.ts'
 
 function Villa({ url }: { url: string }) {
   const gltf = useGLTF(url)
@@ -24,21 +24,27 @@ class ModelBoundary extends Component<{ children: ReactNode }, { failed: boolean
   render() { return this.state.failed ? <p className="p-6 text-sm text-ink-dim">The interactive model could not load. The images and downloads below are still available.</p> : this.props.children }
 }
 
-export function BlenderVillaPanel({ plan, autoGenerate = false }: { plan: Design; autoGenerate?: boolean }) {
+export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: { plan: Design; autoGenerate?: boolean; selectedSeed?: number }) {
   const id = useMemo(() => createBuildingModel(plan).planId, [plan])
-  const result = useBlender((s) => s.accepted[id])
+  const accepted = useBlender((s) => s.accepted[id])
+  const selectionKey = useBlender((s) => s.selectionKey)
   const job = useBlender((s) => s.job)
   const sourcePlanId = useBlender((s) => s.sourcePlanId)
+  const previewKey = selectedSeed === undefined ? '' : directionRenderKey(id, selectedSeed)
+  const result = selectedSeed === undefined || selectionKey === previewKey || accepted?.seed === selectedSeed ? accepted : undefined
+  const preview = useBlender((s) => s.previews[previewKey])
   const error = useBlender((s) => s.error)
   const generate = useBlender((s) => s.generate)
   const resume = useBlender((s) => s.resume)
   const ensureForPlan = useBlender((s) => s.ensureForPlan)
   const [quality, setQuality] = useState<'preview' | 'final'>('preview')
   const [view, setView] = useState<'hero' | 'front' | 'aerial'>('hero')
-  const busy = Boolean(job && !['complete', 'failed'].includes(job.status))
+  const jobBusy = Boolean(job && !['complete', 'failed'].includes(job.status))
+  const previewBusy = Boolean(preview && ['queued', 'generating', 'rendering'].includes(preview.status))
+  const busy = jobBusy || previewBusy
   const currentJob = sourcePlanId === id ? job : null
   useEffect(() => { void resume() }, [resume])
-  useEffect(() => { if (autoGenerate) void ensureForPlan(plan) }, [autoGenerate, plan, ensureForPlan, busy])
+  useEffect(() => { if (autoGenerate) void ensureForPlan(plan, selectedSeed) }, [autoGenerate, plan, selectedSeed, ensureForPlan, busy])
   return <section className="mt-5 border border-line p-4 md:p-6">
     <div className="flex flex-wrap items-center justify-between gap-4">
       <div><h2 className="font-display text-xl">Blender architectural design</h2>
@@ -54,8 +60,9 @@ export function BlenderVillaPanel({ plan, autoGenerate = false }: { plan: Design
         </button>
       </div>
     </div>
-    {currentJob && busy && <p role="status" className="mt-4 text-sm text-ink-dim">{currentJob.phase}{currentJob.attempt ? ` · candidate ${currentJob.attempt}` : ''}. Rendering can take a few minutes.</p>}
-    {busy && !currentJob && <p role="status" className="mt-4 text-sm text-ink-dim">Another plan is being generated. This plan will start when it finishes.</p>}
+    {previewBusy && <p role="status" className="mt-4 text-sm text-ink-dim">Preparing your selected direction: {preview!.phase}. The same villa will appear here when ready.</p>}
+    {currentJob && jobBusy && <p role="status" className="mt-4 text-sm text-ink-dim">{currentJob.phase}{currentJob.attempt ? ` · candidate ${currentJob.attempt}` : ''}. Rendering can take a few minutes.</p>}
+    {jobBusy && !currentJob && !previewBusy && <p role="status" className="mt-4 text-sm text-ink-dim">Another plan is being generated. This plan will start when it finishes.</p>}
     {!result && <div className="mt-4 flex aspect-[4/3] items-center justify-center border border-line bg-bg-inset p-8 text-center text-sm text-ink-dim">
       {busy ? 'Building and rendering your villa…' : 'The interactive Blender model and three rendered views will appear here.'}
     </div>}

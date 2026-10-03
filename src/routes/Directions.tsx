@@ -13,7 +13,7 @@ import { validate } from '@/lib/rules/index.ts'
 import { prepareInspiration } from '@/lib/render/prepareInspiration.ts'
 import { analyzeInspiration } from '@/lib/engine/inspiration.ts'
 import { useRender } from '@/state/render.ts'
-import { useBlender } from '@/state/blender.ts'
+import { useBlender, directionRenderKey } from '@/state/blender.ts'
 
 export function Directions() {
   const directions = useStudio((s) => s.directions)
@@ -173,7 +173,7 @@ export function Directions() {
                 </div>
               </div>
 
-              <DirectionRender planId={d.buildingModel.planId} label={d.label}
+              <DirectionRender planId={d.buildingModel.planId} seed={d.seed} label={d.label}
                 elements={d.facadeModel.features.map((f) => FEATURE_LABEL[f.type] ?? f.type.replaceAll('_', ' ').toLowerCase())} />
               <DirectionPlanPreview design={d.design} label={d.label} />
 
@@ -232,9 +232,10 @@ const FEATURE_LABEL: Partial<Record<string, string>> = {
 }
 
 /** the direction's Blender villa: its hero render, or where the render stands */
-function DirectionRender({ planId, label, elements }: { planId: string; label: string; elements: string[] }) {
-  const result = useBlender((s) => s.accepted[planId])
-  const preview = useBlender((s) => s.previews[planId])
+function DirectionRender({ planId, seed, label, elements }: { planId: string; seed: number; label: string; elements: string[] }) {
+  const key = directionRenderKey(planId, seed)
+  const result = useBlender((s) => s.directionRenders[key])
+  const preview = useBlender((s) => s.previews[key])
   return <div className="border-b border-line">
     {result ? <img src={result.files.hero} alt={`${label} — Blender render`} className="aspect-[3/2] w-full object-cover" />
       : <div className="flex aspect-[3/2] w-full items-center justify-center bg-bg-inset p-6 text-center text-sm text-ink-dim" role="status">

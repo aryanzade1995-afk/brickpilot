@@ -12,13 +12,14 @@ registerHooks({ resolve(specifier, context, nextResolve) {
 const storage = new Map()
 globalThis.localStorage = { getItem: k => storage.get(k) ?? null, setItem: (k, v) => storage.set(k, v), removeItem: k => storage.delete(k) }
 globalThis.window = {localStorage: globalThis.localStorage}
-const { useBlender } = await import('../src/state/blender.ts')
+const { useBlender, directionRenderKey } = await import('../src/state/blender.ts')
 const plan = generate(compile(openSpaceBrief('maxBuild')))
 const id = createBuildingModel(plan).planId
 const result = { planId: id, seed: plan.dna.seed, requestedSeed: plan.dna.seed, quality: 'preview',
   family: 'STEPPED', hero: 'C_FRAME', roofline: 'FLAT_PARAPET', warnings: [],
   files: Object.fromEntries(['blend', 'glb', 'hero', 'front', 'aerial'].map(k => [k, `/api/villas/test/files/model.${k}`])) }
-const reset = () => useBlender.setState({ accepted: {}, job: null, sourcePlanId: null, error: null })
+const reset = () => useBlender.setState({ accepted: {}, directionRenders: {}, selectionKey: null,
+  previews: {}, job: null, sourcePlanId: null, error: null })
 const respond = data => new Response(JSON.stringify(data), {headers: {'content-type': 'application/json'}})
 
 test('default Massing generation submits the exact verified plan and numeric seed only once', async () => {
@@ -51,6 +52,126 @@ test('returning to an accepted plan reuses its model without a new request', asy
   globalThis.fetch = async () => { throw new Error('Must not request or regenerate') }
   try { await useBlender.getState().ensureForPlan(plan); assert.equal(useBlender.getState().accepted[id], result) }
   finally { globalThis.fetch = original }
+})
+
+test('entering Massing while the pinned direction renders waits for that preview without queuing a second villa',async()=>{
+ reset()
+ const key=directionRenderKey(id,result.seed)
+ useBlender.setState({previews:{[key]:{planId:id,seed:result.seed,status:'rendering',phase:'Rendering',jobId:'preview-job'}}})
+ const calls=[],original=globalThis.fetch
+ globalThis.fetch=async(url,options)=>{calls.push([url,options]);return respond({status:'complete',result,debug:[]})}
+ try{
+  await useBlender.getState().ensureForPlan(plan,result.seed)
+  await useBlender.getState().ensureForPlan(plan,result.seed)
+  assert.deepEqual(calls.map(([url])=>url),['/api/villas/preview-job'])
+  assert.equal(useBlender.getState().accepted[id].seed,result.seed)
+  assert.equal(useBlender.getState().accepted[id].files.glb,result.files.glb)
+ }finally{globalThis.fetch=original}
+})
+
+test('two directions using the same plan retain separate seed-specific renders and pin the correct one',async()=>{
+ reset()
+ const posted=[],original=globalThis.fetch
+ globalThis.fetch=async(url,options)=>{
+  if(url.endsWith('/health'))return respond({available:true})
+  if(options?.method==='POST'){
+   const body=JSON.parse(options.body);posted.push(body)
+   return respond({id:String(body.seed),status:'queued',phase:'Waiting',debug:[]})
+  }
+  const seed=Number(url.split('/').at(-1))
+  return respond({status:'complete',result:{...result,seed,requestedSeed:seed,
+   files:{...result.files,glb:`/model-${seed}.glb`}},debug:[]})
+ }
+ try{
+  await useBlender.getState().previewDirections([{plan,seed:21},{plan,seed:22},{plan,seed:21}])
+  assert.equal(posted.length,2);assert.ok(posted.every(p=>p.exact===true))
+  assert.equal(Object.keys(useBlender.getState().directionRenders).length,2)
+  await useBlender.getState().ensureForPlan(plan,21)
+  assert.equal(useBlender.getState().accepted[id].files.glb,'/model-21.glb')
+  await useBlender.getState().ensureForPlan(plan,22)
+  assert.equal(useBlender.getState().accepted[id].files.glb,'/model-22.glb')
+  assert.equal(posted.length,2)
+ }finally{globalThis.fetch=original}
+})
+
+test('pinned generation requests an exact seed, while Generate another remains a new exterior on the same plan',async()=>{
+ reset()
+ const posted=[],original=globalThis.fetch
+ let seed
+ globalThis.fetch=async(url,options)=>{
+  if(url.endsWith('/health'))return respond({available:true})
+  if(options?.method==='POST'){const body=JSON.parse(options.body);posted.push(body);seed=body.seed;return respond({id:'job',status:'queued',debug:[]})}
+  return respond({status:'complete',result:{...result,seed,requestedSeed:seed},debug:[]})
+ }
+ try{
+  await useBlender.getState().ensureForPlan(plan,123)
+  assert.equal(posted[0].seed,123);assert.equal(posted[0].exact,true)
+  await useBlender.getState().generate(plan,124)
+  await useBlender.getState().ensureForPlan(plan,123)
+  assert.equal(posted.length,2);assert.equal(posted[1].exact,undefined)
+  assert.deepEqual(posted[1].plan,plan)
+  assert.equal(useBlender.getState().accepted[id].seed,124)
+ }finally{globalThis.fetch=original}
+})
+
+test('a preview produced with another seed is rejected instead of silently showing another direction',async()=>{
+ reset()
+ const original=globalThis.fetch
+ globalThis.fetch=async(url,options)=>url.endsWith('/health')?respond({available:true}):
+  options?.method==='POST'?respond({id:'wrong',status:'queued',phase:'Queued',debug:[]}):
+  respond({status:'complete',result:{...result,seed:999},debug:[]})
+ try{
+  await useBlender.getState().previewDirections([{plan,seed:123}])
+  const key=directionRenderKey(id,123)
+  assert.equal(useBlender.getState().previews[key].status,'failed')
+  assert.match(useBlender.getState().previews[key].error,/plan and seed/)
+  assert.equal(useBlender.getState().directionRenders[key],undefined)
+ }finally{globalThis.fetch=original}
+})
+
+test('direct pinned generation rejects a stale backend that substitutes another seed',async()=>{
+ reset()
+ const original=globalThis.fetch
+ globalThis.fetch=async(url,options)=>url.endsWith('/health')?respond({available:true}):
+  options?.method==='POST'?respond({id:'stale',status:'queued',phase:'Queued',debug:[]}):
+  respond({status:'complete',result:{...result,seed:999},debug:[]})
+ try{
+  await useBlender.getState().ensureForPlan(plan,123)
+  assert.equal(useBlender.getState().job.status,'failed')
+  assert.match(useBlender.getState().error,/Restart the backend/)
+  assert.equal(useBlender.getState().accepted[id],undefined)
+ }finally{globalThis.fetch=original}
+})
+
+test('reloading while direction previews run resumes the saved job instead of submitting it again',async()=>{
+ reset()
+ const key=directionRenderKey(id,result.seed)
+ useBlender.setState({previews:{[key]:{planId:id,seed:result.seed,status:'queued',phase:'Waiting',jobId:'saved-preview'}}})
+ await useBlender.persist.rehydrate()
+ const calls=[],original=globalThis.fetch
+ globalThis.fetch=async(url,options)=>{calls.push([url,options]);return respond({status:'complete',result,debug:[]})}
+ try{
+  await useBlender.getState().previewDirections([{plan,seed:result.seed}])
+  assert.deepEqual(calls.map(([url])=>url),['/api/villas/saved-preview'])
+  assert.equal(useBlender.getState().directionRenders[key].seed,result.seed)
+ }finally{globalThis.fetch=original}
+})
+
+test('an interrupted preview submission cannot leave the main page waiting forever after reload',async()=>{
+ reset()
+ const key=directionRenderKey(id,123)
+ useBlender.setState({previews:{[key]:{planId:id,seed:123,status:'queued',phase:'Waiting for Blender'}}})
+ await useBlender.persist.rehydrate()
+ assert.equal(useBlender.getState().previews[key].status,'failed')
+ const posted=[],original=globalThis.fetch
+ globalThis.fetch=async(url,options)=>url.endsWith('/health')?respond({available:true}):
+  options?.method==='POST'?(posted.push(JSON.parse(options.body)),respond({id:'recovered',status:'queued',debug:[]})):
+  respond({status:'complete',result:{...result,seed:123},debug:[]})
+ try{
+  await useBlender.getState().ensureForPlan(plan,123)
+  assert.equal(posted.length,1);assert.equal(posted[0].exact,true)
+  assert.equal(useBlender.getState().accepted[id].seed,123)
+ }finally{globalThis.fetch=original}
 })
 
 test('an unavailable Blender service explains the failure without automatic retry loops', async () => {

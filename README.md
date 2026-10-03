@@ -93,8 +93,10 @@ the existing backend. It does not call the floor-plan generator. Blender builds
 an editable scene, measures evaluated meshes, compares their shape with recent
 accepted villas, then exports/renders only a sufficiently distinct candidate.
 The occupied floor positions, room rectangles, stairs and openings stay fixed.
-L/U/courtyard labels in this mode describe the exterior/roof composition; they
-do not claim that a rectangular occupied plan became a courtyard floor plan.
+Production family labels describe the occupied source-plan outline; an exterior
+seed cannot turn a rectangular plan into a courtyard floor plan. Direction
+previews are cached by plan and seed, and the main 3D page reuses the pinned
+direction's exact render without starting another random generation.
 See [the integrated pipeline and same-plan gallery](docs/blender-integration.md)
 for operation, outputs, limits and reproducible verification.
 
