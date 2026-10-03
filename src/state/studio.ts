@@ -13,6 +13,7 @@ import {
 } from '@/lib/engine/index.ts'
 import { distinctDirectionPlans } from '@/lib/engine/generate.ts'
 import { planFingerprint, type PlanFingerprint } from '@/lib/engine/planner/planFingerprint.ts'
+import { evaluateBriefChoice } from '@/lib/engine/planner/fit.ts'
 import { validate, type ValidationReport } from '@/lib/rules/index.ts'
 import { estimateBoq, type CostEstimate } from '@/lib/cost/index.ts'
 import { varyExterior } from '@/lib/engine/variation.ts'
@@ -105,6 +106,7 @@ function pinnedPlan(model: CanonicalModel, pinned: PinnedDir): Design {
 
 type StudioState = {
   brief: Brief
+  briefChoiceIssue: string | null
   selectedRoomId: string | null
   selectRoom: (id: string | null) => void
   directions: DirectionOption[] | null
@@ -189,6 +191,7 @@ export const useStudio = create<StudioState>()(
   persist(
     immer((set, get) => ({
       brief: defaultBrief(),
+      briefChoiceIssue: null,
       selectedRoomId: null,
       selectRoom: (id) => set(s => { s.selectedRoomId = id }),
       directions: null,
@@ -205,10 +208,16 @@ export const useStudio = create<StudioState>()(
         set((s) => { s.diversityLimits = limits })
       },
 
-      edit: (recipe) =>
+      edit: (recipe) => {
+        const choice = evaluateBriefChoice(get().brief, recipe)
+        if (!choice.allowed) {
+          set(s => { s.briefChoiceIssue = choice.reason })
+          return
+        }
         set((s) => {
           const geometryBefore = JSON.stringify(geometryBrief(s.brief))
-          recipe(s.brief)
+          s.brief = choice.brief
+          s.briefChoiceIssue = choice.reason
           // Finish/specification edits save in the brief without regenerating rooms or a villa.
           if (geometryBefore === JSON.stringify(geometryBrief(s.brief))) {
             if (s.result) s.result.cost = estimateBoq(s.result.design, s.brief)
@@ -221,11 +230,13 @@ export const useStudio = create<StudioState>()(
           s.result = null
           s.generationNotice = null
           s.shapeDebug = []
-        }),
+        })
+      },
 
       reset: () =>
         set((s) => {
           s.brief = defaultBrief()
+          s.briefChoiceIssue = null
           s.selectedRoomId = null
           s.directions = null
           s.pinned = null
@@ -239,6 +250,7 @@ export const useStudio = create<StudioState>()(
       loadSaved: (brief, pinned) =>
         set((s) => {
           s.brief = briefSchema.parse(brief)
+          s.briefChoiceIssue = null
           s.selectedRoomId = null
           s.pinned = pinned
           s.referencePreferences = parseInspirationPreferences(pinned?.inspiration)

@@ -206,18 +206,25 @@ export function Toggle({
   onChange,
   label,
   hint,
+  disabled = false,
+  disabledReason,
 }: {
   checked: boolean
   onChange: (v: boolean) => void
   label: string
   hint?: string
+  disabled?: boolean
+  disabledReason?: string
 }) {
   return (
     <button
       type="button"
+      disabled={disabled}
+      title={disabledReason}
+      aria-pressed={checked}
       onClick={() => onChange(!checked)}
       className={cx(
-        'flex w-full items-start gap-3 border p-3 text-left transition-colors',
+        'flex w-full items-start gap-3 border p-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-45',
         checked ? 'border-accent bg-accent/5' : 'border-line hover:border-line-strong',
       )}
     >
@@ -232,6 +239,7 @@ export function Toggle({
       <span>
         <span className="block text-sm text-ink">{label}</span>
         {hint && <span className="mt-0.5 block text-xs text-ink-faint">{hint}</span>}
+        {disabled && disabledReason && <span className="mt-1 block text-xs text-ink-dim">{disabledReason}</span>}
       </span>
     </button>
   )

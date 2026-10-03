@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { defaultBrief } from '../src/lib/model/brief.ts'
-import { assessBriefFit, canIncreaseBrief } from '../src/lib/engine/planner/fit.ts'
+import { assessBriefFit, canIncreaseBrief, evaluateBriefChoice } from '../src/lib/engine/planner/fit.ts'
 import { generate } from '../src/lib/engine/generate.ts'
 import { compile } from '../src/lib/model/canonical.ts'
 import { validate } from '../src/lib/rules/index.ts'
@@ -15,6 +15,22 @@ test('every allowed capacity fixture produces a plan passing room minimums and a
   else blocked++
  }
  assert.ok(allowed>0 && blocked>0)
+})
+
+test('manual choices and suggestions cannot replace a valid brief with an impossible programme',()=>{
+ const b=defaultBrief(); b.site.plotWidth=22;b.site.plotDepth=26;b.levels.storeys=1
+ assert.ok(assessBriefFit(b).fits)
+ const before=JSON.stringify(b)
+ const rejected=evaluateBriefChoice(b,c=>{c.rooms.bedroomsWithBath=50})
+ assert.equal(rejected.allowed,false)
+ assert.equal(JSON.stringify(rejected.brief),before)
+ assert.match(rejected.reason,/previous selection is kept/)
+ const finish=evaluateBriefChoice(b,c=>{c.specs.overrides={}})
+ assert.equal(finish.allowed,true)
+ const accepted=evaluateBriefChoice(b,c=>{c.site.plotWidth=24})
+ assert.ok(accepted.allowed)
+ assert.ok(validate(generate(compile(accepted.brief))).hardChecksPass)
+ assert.equal(JSON.stringify(b),before)
 })
 test('impossible room and member increments are blocked and checks do not mutate the brief',()=>{
  const b=defaultBrief(); b.site.plotWidth=9; b.site.plotDepth=11; b.levels.storeys=0

@@ -143,3 +143,20 @@ export function canIncreaseBrief(brief: Brief, recipe: (candidate: Brief) => voi
   recipe(candidate)
   return assessBriefFit(candidate).fits
 }
+
+export type BriefChoice = { allowed: boolean; brief: Brief; fit: BriefFit | null; reason: string | null }
+/** Apply suggestions and manual choices through the same gate, before storing them.
+ * An already-invalid saved brief remains editable so its site/programme can be repaired. */
+export function evaluateBriefChoice(brief: Brief, recipe: (candidate: Brief) => void): BriefChoice {
+  const candidate = structuredClone(brief)
+  recipe(candidate)
+  if (JSON.stringify(geometryBrief(brief)) === JSON.stringify(geometryBrief(candidate)))
+    return { allowed: true, brief: candidate, fit: null, reason: null }
+  const fit = assessBriefFit(candidate)
+  if (fit.fits) return { allowed: true, brief: candidate, fit, reason: null }
+  const detail = fit.issues[0] ?? `${fit.busiestFloor} needs more usable space for these rooms.`
+  if (!assessBriefFit(brief).fits)
+    return { allowed: true, brief: candidate, fit, reason: `This saved brief still needs adjustment. ${detail}` }
+  return { allowed: false, brief, fit,
+    reason: `This choice does not fit. ${detail} Your previous selection is kept. Add a floor, enlarge the plot or reduce open space.` }
+}

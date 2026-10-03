@@ -71,6 +71,7 @@ export function Brief() {
   const reset = useStudio((s) => s.reset)
   const explore = useStudio((s) => s.explore)
   const brief = useStudio((s) => s.brief)
+  const briefChoiceIssue = useStudio(s => s.briefChoiceIssue)
   const [formError, setFormError] = useState<string | null>(null)
   const navigate = useNavigate()
 
@@ -88,7 +89,9 @@ export function Brief() {
     if (subs && sub < subs.length - 1) {
       setSub(sub + 1)
     } else if (last) {
-      const issues = fit.fits ? [] : [CAPACITY_GUIDANCE, ...fit.issues.slice(0, 2)]
+      // Recheck the exact current brief, not a deferred render's earlier answer.
+      const currentFit = assessBriefFit(useStudio.getState().brief)
+      const issues = currentFit.fits ? [] : [CAPACITY_GUIDANCE, ...currentFit.issues.slice(0, 2)]
       if (checking || issues.length) { setFormError(issues.join(' ')); return }
       setFormError(null)
       explore()
@@ -105,6 +108,7 @@ export function Brief() {
 
   return (
     <div style={{ "--brief-rail-height": `${railHeight}px` } as CSSProperties}>
+      {briefChoiceIssue && <p role="status" className="mx-auto max-w-[1400px] px-6 py-3 text-sm text-ink-dim md:px-10">{briefChoiceIssue}</p>}
       {/* wizard rail */}
       <div ref={rail} className="sticky top-0 z-10 border-b border-line bg-bg/90 backdrop-blur">
         <div className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-3 px-6 py-3 md:px-10">
