@@ -160,7 +160,7 @@ export function InteriorStudio({
                   )}
                 </div>
                 <figcaption className="label text-center">
-                  {k === 'beauty' ? '3D render' : k === 'depth' ? 'Depth' : 'Edges · ControlNet'}
+                    {k === 'beauty' ? 'Visualisation · 3D' : k === 'depth' ? 'Depth' : 'Edges · ControlNet'}
                 </figcaption>
               </figure>
             ))}
@@ -344,7 +344,7 @@ export function InteriorStudio({
                   </div>
                   <figcaption className="flex items-center justify-between gap-2 border-t border-line px-3 py-2">
                     <span className="truncate font-mono text-[0.65rem] uppercase tracking-[0.08em] text-ink-faint">
-                      {styleById(r.styleId).label} · {r.roomLabel}
+                        Visualisation · AI · {styleById(r.styleId).label} · {r.roomLabel}
                     </span>
                     <span className="flex flex-none items-center gap-1">
                       <button

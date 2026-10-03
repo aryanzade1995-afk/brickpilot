@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Download, FileText, Loader2, Trash2 } from 'lucide-react'
 import { useStudio } from '@/state/studio.ts'
 import { useRender, REF_LABEL, type RefKey } from '@/state/render.ts'
@@ -8,6 +9,7 @@ import { MassingViewport, MASSING_CANVAS, type CaptureView } from '@/lib/render/
 import { rasterizeSvg } from '@/lib/render/rasterizeSvg.ts'
 import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
 import { CostSummary } from '@/components/CostSummary.tsx'
+import { InvalidPlanNotice } from '@/components/InvalidPlanNotice.tsx'
 import { useFinishes } from '@/state/finishes.ts'
 import { estimateCost } from '@/lib/cost/index.ts'
 import { geometryCostKey } from '@/lib/cost/quantities.ts'
@@ -66,12 +68,12 @@ export function Report() {
     const out: ReportImage[] = []
     for (const k of Object.keys(renderJobs) as RefKey[]) {
       const j = renderJobs[k]
-      if (j.status === 'done' && j.url) out.push({ label: `Concept — ${REF_LABEL[k]}`, dataUrl: j.url })
+      if (j.status === 'done' && j.url) out.push({ label: `Visualisation (${j.mock ? 'source preview' : 'AI'}) — ${REF_LABEL[k]}`, dataUrl: j.url })
     }
     interiorResults.forEach((r, i) => {
       r.urls.forEach((u, v) =>
         out.push({
-          label: `Interior — ${r.roomLabel}${r.urls.length > 1 ? ` (view ${v + 1})` : ''}${
+          label: `Visualisation (AI interior) — ${r.roomLabel}${r.urls.length > 1 ? ` (view ${v + 1})` : ''}${
             interiorResults.length > 1 ? ` #${i + 1}` : ''
           }`,
           dataUrl: u,
@@ -84,6 +86,7 @@ export function Report() {
   if (!result || !cost) {
     return <div className="mx-auto max-w-[1400px] px-10 py-24 text-ink-dim">Preparing report…</div>
   }
+  if (!result.report.hardChecksPass) return <InvalidPlanNotice report={result.report} />
 
   const { design, model, report } = result
   const floor = design.floors[Math.min(floorIdx, design.floors.length - 1)]
@@ -97,8 +100,8 @@ export function Report() {
       if (!canvas()?.width) return []
       const out: ReportImage[] = []
       for (const [key, label] of [
-        ['front', 'Massing — front'],
-        ['top', 'Massing — roof + site'],
+        ['front', 'Visualisation (3D) — front'],
+        ['top', 'Visualisation (3D) — roof + site'],
       ] as const) {
         setView(key)
         await wait(1000)
@@ -258,7 +261,8 @@ export function Report() {
             )}
           </section>
 
-          <section><h2 className="mb-3 font-display text-xl">Finishes & Cost</h2><CostSummary cost={cost} /></section>
+          <section><h2 className="mb-3 font-display text-xl">Finishes & Cost</h2><CostSummary cost={cost} />
+            <Link to="/workspace/finishes" className="mt-4 inline-block text-sm underline">Edit finishes & view BOQ</Link></section>
 
           {conceptImages.length > 0 && (
             <section>

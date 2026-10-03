@@ -35,7 +35,7 @@ export type ReportData = {
   conceptImages: ReportImage[]
 }
 
-const ACCENT: [number, number, number] = [224, 82, 30]
+const ACCENT: [number, number, number] = [26, 26, 26]
 const INK: [number, number, number] = [26, 24, 22]
 const DIM: [number, number, number] = [110, 104, 96]
 const RULE: [number, number, number] = [210, 205, 196]
@@ -78,12 +78,14 @@ export async function buildReportPdf(data: ReportData): Promise<Blob> {
     y += lines.length * 12 + 8
   }
 
-  const table = (head: string[], body: (string | number)[][]) => {
+  const table = (head: string[], body: (string | number)[][], widths?: number[]) => {
     autoTable(doc, {
       startY: y,
       head: [head],
       body,
-      margin: { left: M, right: M },
+      margin: { left: M, right: M, bottom: 60 },
+      rowPageBreak: 'avoid',
+      columnStyles: widths ? Object.fromEntries(widths.map((ratio, i) => [i, { cellWidth: contentW * ratio }])) : undefined,
       styles: { font: 'helvetica', fontSize: 8.5, cellPadding: 4, textColor: INK, lineColor: RULE },
       headStyles: { fillColor: [244, 241, 234], textColor: INK, fontStyle: 'bold' },
       alternateRowStyles: { fillColor: [250, 249, 246] },
@@ -126,6 +128,7 @@ export async function buildReportPdf(data: ReportData): Promise<Blob> {
         H - 28,
       )
       doc.text(`${p} / ${pages}`, W - M, H - 28, { align: 'right' })
+      doc.text(data.cost.label, M, H - 16)
     }
   }
 
@@ -218,17 +221,29 @@ export async function buildReportPdf(data: ReportData): Promise<Blob> {
   }
 
   /* ---------------------------------- cost -------------------------------- */
-  heading('Build-cost estimate', 90)
-  paragraph(`${cost.basis} · confidence ${cost.confidence} · ${cost.currency}.`)
+  heading('Finishes & Cost', 90)
+  paragraph(cost.label)
+  paragraph(cost.qualification)
+  paragraph(`${cost.basis} · ${cost.currency}.`)
+  paragraph(`Concept range: ${moneyRange(cost.total.low, cost.total.high)}. Rate version: ${cost.rateVersion}.`)
   table(
-    ['Item', 'Note', 'Low', 'High'],
-    cost.lines.map((l) => [l.label, l.note, money(l.low), money(l.high)]),
+    ['Item', 'Basis', 'Amount'],
+    cost.lines.map((l) => [l.label, l.note, money(l.expected)]),
+    [0.28, 0.50, 0.22],
   )
   ensure(24)
   doc.setFont('helvetica', 'bold').setFontSize(10).setTextColor(...INK)
   doc.text('Expected total', M, y)
   doc.text(money(cost.expected), W - M, y, { align: 'right' })
-  y += 16
+  y += 28
+  heading('Itemised quantities & rates (BOQ)', 90)
+  paragraph(cost.label)
+  table(['Work / specification', 'Quantity', 'Rate', 'Amount'], cost.boq.map(l => [
+    `${l.label} - ${l.specification}`, `${l.quantity.toFixed(2)} m2`, `${money(l.rate)} / m2`, money(l.amount),
+  ]), [0.50, 0.13, 0.18, 0.19])
+  paragraph('BOQ works subtotal excludes contractor overhead, fees, contingency and GST; these are shown in the summary above.')
+  heading('Measurement assumptions & scope', 90)
+  cost.quantities.assumptions.forEach(a => paragraph(a))
   table(
     ['Included', 'Excluded'],
     zip(cost.included, cost.excluded),
@@ -251,7 +266,7 @@ export async function buildReportPdf(data: ReportData): Promise<Blob> {
   /* -------------------------------- concepts ------------------------------ */
   if (data.conceptImages.length) {
     heading('Generated concepts', 200)
-    paragraph('Generative — materials, lighting and furnishing are assumptions, not measured output.')
+    paragraph('Visualisations, not photographs. Generated materials, lighting and furnishing are assumptions, not measured output.')
     data.conceptImages.forEach((img) => image(img, 250))
   }
 

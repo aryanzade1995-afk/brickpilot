@@ -96,7 +96,7 @@ export function HeroPreview() {
 
           <div className="grid grid-cols-4 gap-3 border-t border-line pt-4">
             <Stat k="Built-up" v="247.5 m²" />
-            <Stat k="Concept cost" v="₹44–51 L" />
+            <Stat k="Stage" v="Concept" />
             <Stat k="Drawn" v="A·02" />
             <Stat k="Scale" v="1:100" />
           </div>

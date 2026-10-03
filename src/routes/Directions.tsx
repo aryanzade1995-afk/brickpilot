@@ -244,7 +244,7 @@ function DirectionRender({ planId, seed, label, elements }: { planId: string; se
           : preview.status === 'unavailable' ? `3D render unavailable: ${preview.phase}`
             : `The render stopped: ${preview.error ?? preview.phase}`}
       </div>}
-    <p className="px-5 py-2.5 font-mono text-[0.65rem] uppercase tracking-[0.08em] text-ink-faint">{elements.join(' · ')}</p>
+    <p className="px-5 py-2.5 font-mono text-[0.65rem] uppercase tracking-[0.08em] text-ink-faint">{result ? 'Visualisation · Blender · ' : ''}{elements.join(' · ')}</p>
   </div>
 }
 

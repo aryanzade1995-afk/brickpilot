@@ -48,10 +48,11 @@ separately. [`vite.config.ts`](vite.config.ts) proxies `/api` to the Node server
 | `/` | Landing page |
 | `/workspace` | Eight-step brief: project, site, household, levels, rooms, style, entry, review |
 | `/workspace/directions` | Choose from four validated directions — each its own plan shape and composition, rendered in Blender — preview their 2D floors and optionally upload a reference image |
-| `/workspace/plan` | Per-floor SVG drawing, room schedule, validation and cost summary |
+| `/workspace/plan` | Per-floor SVG drawing, room schedule and validation |
 | `/workspace/massing` | Interactive Three.js building, layer controls and furnished dollhouse view |
 | `/workspace/render` | Geometry-conditioned building concepts and room interior renders |
-| `/workspace/report` | Project summary and PDF download |
+| `/workspace/finishes` | Step 06: finish choices, geometry-based quantities, concept cost and BOQ CSV |
+| `/workspace/report` | Step 07: project summary and PDF with the selected finishes and full BOQ |
 | `/designs` | Saved projects when Supabase is configured and the user is signed in |
 
 Routes are declared in [`src/main.tsx`](src/main.tsx); the workspace navigation
@@ -296,6 +297,26 @@ because the base64 data can be large. The Report page can include current
 generated images in its PDF, but those images are not persisted across reloads.
 
 ## Costs, reports and deployment
+
+The user flow is **Brief → Directions → 2D → 3D → Render → 06 Finishes & Cost → 07 Report**.
+The cost step defaults to Standard finishes; room overrides, allowances, GST and
+itemised quantities stay collapsed until needed. Selections are saved separately
+from the brief, per source geometry, in this browser. They never affect rooms,
+seeds, validators or Blender meshes. Pricing is removed from the earlier Plan page.
+
+The layered calculation is **geometry → quantities → specifications → rates → BOQ**.
+See [Finishes & Cost](docs/finishes-cost.md). Editable numbers, Pune/date metadata,
+uncertainty, scope, percentages and sanity bands live in `src/lib/cost/data/`.
+These are provisional concept allowances, not verified contractor quotations.
+Every cost output carries **Concept estimate ±15% · approximate · Pune rates <date>**;
+final cost depends on structural design, site, products and contractor quotes.
+The screen, BOQ CSV and report PDF use the same calculation and finish selection.
+Structure/MEP/pool quantities remain clearly described area allowances.
+
+Finish choices use text specifications, not fabricated product photographs.
+Real reference photographs remain in the existing dataset with source/licence
+metadata. Blender/Three.js renders are labelled **Visualisation**; AI concepts
+are labelled as AI visualisations and are never presented as real photographs.
 
 [`src/lib/cost/index.ts`](src/lib/cost/index.ts) estimates an advisory cost
 band from the generated design. [`src/routes/Report.tsx`](src/routes/Report.tsx)

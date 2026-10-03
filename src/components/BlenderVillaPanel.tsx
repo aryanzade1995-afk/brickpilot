@@ -68,7 +68,7 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
     </div>}
     {sourcePlanId === id && error && <p role="alert" className="mt-4 text-sm text-bad">{error}</p>}
     {result && <>
-      <p className="mt-4 font-mono text-xs text-ink-dim">Seed {result.seed} · {result.family.replaceAll('_', ' ')} · {result.quality === 'final' ? 'Final render' : 'Preview'}</p>
+      <p className="mt-4 font-mono text-xs text-ink-dim">Visualisation · Blender · Seed {result.seed} · {result.family.replaceAll('_', ' ')} · {result.quality === 'final' ? 'Final render' : 'Preview'}</p>
       <div className="mt-3 grid gap-4 lg:grid-cols-2">
         <div className="aspect-[4/3] overflow-hidden border border-line">
           <ModelBoundary key={result.files.glb}><Canvas shadows camera={{ position: [20, 14, -25], fov: 40 }}>

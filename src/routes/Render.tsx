@@ -385,7 +385,7 @@ export function Render() {
                     )}
                   </div>
                   <figcaption className="flex items-center justify-between border-t border-line px-3 py-2 font-mono text-[0.65rem] uppercase tracking-[0.08em] text-ink-faint">
-                    <span>{CONCEPT_LABEL[k]}</span>
+                    <span>Visualisation · {CONCEPT_LABEL[k]}</span>
                     {job.status === 'done' && <span title={job.note} className="flex items-center gap-2">{job.mock ? 'Mock · source preview' : job.provider === 'gemini-web' ? 'Gemini Web' : job.provider === 'comfyui' ? 'ComfyUI' : job.provider}<Eye size={11} className="text-ok" /></span>}
                   </figcaption>
                 </figure>

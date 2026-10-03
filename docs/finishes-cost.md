@@ -54,3 +54,13 @@ Different geometry gets defaults; prior geometry keeps its own selections.
 Choices persist locally in this browser, not in Supabase project records.
 Report and its PDF calculate from the same selection as the cost page. No product
 photographs are added to the finish catalogue; the UI uses text specifications.
+
+## Report and image presentation
+
+Report and PDF are gated by the same hard plan checks as the cost step. The PDF
+includes measured quantity × rate rows, the selected specification per room,
+allowance bases, concept range, scope, exclusions and measurement assumptions.
+Each PDF page carries the dated estimate label; the palette remains monochrome.
+The old marketing example price is removed so unqualified early pricing is not
+shown. Blender images say Visualisation, and AI interiors/concepts are explicitly
+AI visualisations. Real-photo references retain their source/licence metadata.

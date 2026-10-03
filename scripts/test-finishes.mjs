@@ -14,7 +14,7 @@ import { defaultSelection } from '../src/lib/cost/specifications.ts'
 import { estimateCost } from '../src/lib/cost/index.ts'
 const storage=new Map()
 globalThis.localStorage={getItem:k=>storage.get(k)??null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)}
-globalThis.window={localStorage:globalThis.localStorage}
+globalThis.window={localStorage:globalThis.localStorage,atob:globalThis.atob,btoa:globalThis.btoa}
 const server=await createServer({configFile:false,resolve:{alias:{'@':fileURLToPath(new URL('../src',import.meta.url))}},
  optimizeDeps:{noDiscovery:true,entries:[]},server:{middlewareMode:true,watch:null},appType:'custom'})
 after(()=>server.close())
@@ -46,4 +46,23 @@ test('cost step has defaults, seven-step navigation and collapsed advanced choic
 test('invalid source plan does not show prices or allow specification editing',()=>{
  const html=render({...result,report:{...report,hardChecksPass:false}});assert.ok(html.includes('Choose a valid floor plan first'))
  assert.ok(!html.includes('Estimated total'));assert.ok(!html.includes('Indoor flooring'))
+})
+
+test('PDF exports the selected BOQ through its final row and carries estimate provenance on every page',async()=>{
+ const {buildReportPdf}=await server.ssrLoadModule('/src/lib/report/buildPdf.ts')
+ const before=JSON.stringify(design),cost=estimateCost(design,defaultSelection('refined'))
+ const blob=await buildReportPdf({projectName:'Cost review',brief:design.model.brief,design,report,cost,planImages:[],massingImages:[],conceptImages:[]})
+ const pdf=Buffer.from(await blob.arrayBuffer()).toString('latin1')
+ const amount=new Intl.NumberFormat('en-IN',{maximumFractionDigits:0})
+ assert.ok(pdf.startsWith('%PDF-'))
+ assert.ok(pdf.includes(`Rs ${amount.format(cost.expected)}`))
+ assert.ok(pdf.includes('Natural stone'))
+ const last=cost.boq.at(-1)
+ assert.ok(pdf.includes(last.label))
+ assert.ok(pdf.includes(amount.format(last.amount)))
+ const pages=(pdf.match(/\/Type \/Page\b/g)??[]).length
+ assert.ok(pages>=2,'the multi-page BOQ fixture exercises continuation pages')
+ assert.ok((pdf.match(/Concept estimate/g)??[]).length>=pages)
+ assert.ok(pdf.includes(cost.rateVersion))
+ assert.equal(JSON.stringify(design),before)
 })
