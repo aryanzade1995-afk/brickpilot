@@ -1,3 +1,4 @@
+import { createFinishAssignments } from '../src/lib/cost/finishAssignments.ts'
 import { readFile, writeFile, mkdir, open, unlink, stat } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { availableParallelism } from 'node:os'
@@ -42,6 +43,7 @@ try {
     if (!Array.isArray(items)) throw new Error('Malformed production history')
     history = items.slice(-50).filter((h) => parseFingerprintHistory([h.fingerprint], 1).length && validRealizedShape(h.geometry))
   } catch (error) { if (error.code !== 'ENOENT') throw error }
+  const specifications = createFinishAssignments(request.plan)
   const rng = makeRng(request.seed, 'villa-production-retry-v1'), seen = new Set()
   let seed = request.seed, accepted = null, validFallback = null
   // an exact request has one candidate: its own seed, accepted when valid
@@ -60,7 +62,7 @@ try {
       for (const file of files) if (!(await stat(resolve(stage, file))).size) throw new Error('An output file is empty')
       history = [...history, { fingerprint: fingerprintRecord(payload.shapeFingerprint), geometry: final.realizedGeometry }].slice(-50)
       await writeAtomicJson(historyPath, history)
-      accepted = { seed, requestedSeed: request.seed, planId: payload.buildingModel.planId, family: payload.massingModel.family,
+      accepted = { finishSignature: payload.specifications?.signature, seed, requestedSeed: request.seed, planId: payload.buildingModel.planId, family: payload.massingModel.family,
         hero: payload.shapeFingerprint.heroFeature, facadeFamily: payload.shapeFingerprint.facadeFamily,
         roofline: payload.shapeFingerprint.rooflineType, files, directory: stage, quality: request.quality,
         shapeFingerprint: payload.shapeFingerprint, realizedGeometry: final.realizedGeometry, warnings: [...(final.warnings ?? []), ...(decision.relaxed ? [decision.reason] : [])] }
@@ -83,7 +85,7 @@ try {
   const payloads = new Map(), prepared = new Map()
   const payloadAt = (i) => {
     if (!payloads.has(i)) {
-      try { payloads.set(i, { payload: generateAlternativeDesign(request.plan, seeds[i]) }) }
+      try { payloads.set(i, { payload: { ...generateAlternativeDesign(request.plan, seeds[i]), specifications } }) }
       catch (error) { payloads.set(i, { error }) }
     }
     return payloads.get(i)

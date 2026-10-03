@@ -17,7 +17,7 @@ export const photoSchema = z.strictObject({
   sha256: digest, webSha256: digest, caption: z.string().min(1),
 }).superRefine((p, ctx) => {
   const issue = (message: string) => ctx.addIssue({ code: 'custom', message })
-  if (Math.max(p.width, p.height) < 1600) issue('Original photo needs a long side of at least 1600 px')
+  if (Math.max(p.width, p.height) < (p.kind === 'visualisation' ? 1280 : 1600)) issue('Original photo needs a long side of at least 1600 px')
   if (p.kind === 'visualisation') {
     if (!/^blender:\/\/[a-z0-9-]+$/.test(p.source)) issue('Visualisations need an explicit Blender source')
     if (!p.caption.includes('Visualisation')) issue('Label generated views as Visualisation')

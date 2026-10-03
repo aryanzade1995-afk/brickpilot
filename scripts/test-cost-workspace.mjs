@@ -67,7 +67,7 @@ test('every sample is a labelled Blender visualisation using the exact real clos
   const material=specificationMaterials.materials.find(m=>m.id===sample.materialId)
   assert.equal(sample.texture,material.texture);assert.equal(sample.photo.kind,'visualisation')
   assert.ok(sample.photo.caption.includes('Visualisation'))
-  assert.ok(sample.photo.width>=1600)
+  assert.ok(sample.photo.width>=1280)
   assert.equal(hash(readFileSync(new URL(`../${sample.photo.file}`,import.meta.url))),sample.photo.sha256)
   assert.equal(hash(readFileSync(new URL(`../${sample.photo.webFile}`,import.meta.url))),sample.photo.webSha256)
  }

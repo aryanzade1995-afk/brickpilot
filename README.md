@@ -685,3 +685,30 @@ suggestions, seed preservation, quantity revision signatures and render provenan
 `node --experimental-strip-types scripts/review-finishes.mjs` creates an isolated,
 valid-plan UI review using the production components at
 `output/finishes-review/index.html`; it does not replace a saved project.
+
+
+### Specification finishes in Blender
+
+The production Blender payload includes `specifications`, independently of the
+geometry identity and architectural seed. House finishes and stable per-room
+finish IDs select the exact image texture registered in
+`blender/assets/spec-materials.json`. Wall faces use adjacent room preferences;
+room floor skins preserve stair/shaft/courtyard cuts in a semantic `FINISHES`
+collection. Physical glass and metal shaders remain intact. Products without
+modelled surfaces (services, fittings, cabinetry allowances) are recorded as
+specification intent in the scene manifest, not invented geometry.
+
+Changing finishes refreshes the same villa seed rather than creating a different
+building. The read-only measured shape ignores the non-structural floor skins.
+
+Regenerate all standard material rooms offline (Blender 4.5):
+
+```cmd
+blender -b --python blender/render_spec_samples.py
+blender -b --python blender/test_spec_materials.py
+```
+
+The EEVEE script writes deterministic 1280 × 800 originals, 800 × 500 web copies
+and hashed, explicitly labelled Visualisation metadata to `samples.json`. Real
+catalogue close-up photographs remain at least 1600 px. These neutral sample
+rooms demonstrate a surface; they are not photographs or product approvals.

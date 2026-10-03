@@ -13,6 +13,32 @@ except ImportError:
 
 
 class SpecificationMaterialsTest(unittest.TestCase):
+    @unittest.skipIf(bpy is None, "Run in Blender for editable geometry/material checks")
+    def test_project_finishes_are_scoped_and_do_not_change_existing_geometry(self):
+        from geometry.common import SceneBuilder
+        from visualization.spec_materials import apply_specifications
+        scene = SceneBuilder("test-plan")
+        wall = scene.box("GF_Wall_001", "WALLS", 1500, 0, 0, 3000, 230, 3000, source_id="w1")
+        glass = scene.box("Window_W01", "WINDOWS", 0, 0, 1000, 1000, 10, 1000, "glass")
+        before = [tuple(v.co) for v in wall.data.vertices]
+        original_glass = glass.data.materials[0]
+        building = {"floors": [{"id": "GF", "level": 0, "elevationMm": 0}],
+            "walls": [{"id": "w1", "floorId": "GF", "kind": "exterior"}], "doors": [], "stairs": [], "shafts": [],
+            "rooms": [{"floorId": "GF", "semanticId": "living", "outdoor": False,
+                       "rect": {"x": 0, "y": 0, "w": 3000, "h": 3000}}]}
+        report = apply_specifications(scene, building, {"signature": "finish-a", "houses": [
+            {"item": "exterior-paint", "option": "basic", "material": "white_plaster"}], "rooms": [
+            {"level": 0, "sourceId": "living", "finishes": [
+                {"item": "floor-living", "option": "wood", "material": "teak_wood"},
+                {"item": "interior-paint", "option": "lime", "material": "lime_plaster"}]}]})
+        self.assertEqual(before, [tuple(v.co) for v in wall.data.vertices])
+        self.assertEqual(original_glass, glass.data.materials[0])
+        floors = list(scene.collections["FINISHES"].objects)
+        self.assertEqual(len(floors), 1)
+        self.assertEqual(floors[0].data.materials[0]["specification_id"], "teak_wood")
+        self.assertIn("floor-living", report["applied"])
+        self.assertEqual(bpy.context.scene["finish_signature"], "finish-a")
+
     def test_every_registry_texture_and_web_copy_exists(self):
         for entry in json.loads(REGISTRY.read_text())["materials"]:
             spec, path = material_spec(entry["id"])

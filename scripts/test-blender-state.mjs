@@ -1,3 +1,4 @@
+import { finishSignature } from '../src/lib/cost/finishAssignments.ts'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { registerHooks } from 'node:module'
@@ -15,7 +16,7 @@ globalThis.window = {localStorage: globalThis.localStorage}
 const { useBlender, directionRenderKey } = await import('../src/state/blender.ts')
 const plan = generate(compile(openSpaceBrief('maxBuild')))
 const id = createBuildingModel(plan).planId
-const result = { planId: id, seed: plan.dna.seed, requestedSeed: plan.dna.seed, quality: 'preview',
+const result = { finishSignature: finishSignature(plan.model.brief), planId: id, seed: plan.dna.seed, requestedSeed: plan.dna.seed, quality: 'preview',
   family: 'STEPPED', hero: 'C_FRAME', roofline: 'FLAT_PARAPET', warnings: [],
   files: Object.fromEntries(['blend', 'glb', 'hero', 'front', 'aerial'].map(k => [k, `/api/villas/test/files/model.${k}`])) }
 const reset = () => useBlender.setState({ accepted: {}, directionRenders: {}, selectionKey: null,
@@ -237,4 +238,22 @@ test('automatic seeds avoid the previous seed even when entropy repeats', async 
     assert.equal(newDesignSeed(4294967295), 0)
     assert.equal(newDesignSeed(12), 4294967295)
   } finally { Object.defineProperty(globalThis, 'crypto', descriptor) }
+})
+
+
+test('changing finishes re-renders the same accepted seed and exact rooms instead of reusing stale materials', async () => {
+ reset(); useBlender.setState({accepted:{[id]:result}})
+ const changed=structuredClone(plan);changed.model.brief.specs.overrides['exterior-paint']='premium'
+ const original=globalThis.fetch,posted=[]
+ globalThis.fetch=async(url,options)=>{
+  if(url.endsWith('/health'))return respond({available:true})
+  if(options?.method==='POST'){posted.push(JSON.parse(options.body));return respond({id:'finish-job',status:'queued',debug:[]})}
+  return respond({status:'complete',result:{...result,finishSignature:finishSignature(changed.model.brief)},debug:[]})
+ }
+ try{
+  await useBlender.getState().ensureForPlan(changed,result.seed)
+  assert.equal(posted.length,1);assert.equal(posted[0].seed,result.seed);assert.equal(posted[0].exact,true)
+  assert.deepEqual(posted[0].plan.floors,plan.floors)
+  await useBlender.getState().ensureForPlan(changed,result.seed);assert.equal(posted.length,1)
+ }finally{globalThis.fetch=original}
 })

@@ -1,3 +1,4 @@
+import { finishSignature } from '@/lib/cost/finishAssignments.ts'
 import { newDesignSeed } from '@/lib/newDesignSeed.ts'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
@@ -7,7 +8,7 @@ import { validate } from '@/lib/rules/index.ts'
 
 export type BlenderResult = {
   seed: number; requestedSeed: number; planId: string; family: string; hero: string; roofline: string
-  quality: 'preview' | 'final'; warnings: string[]
+  finishSignature?: string; quality: 'preview' | 'final'; warnings: string[]
   files: { blend: string; glb: string; hero: string; front: string; aerial: string }
 }
 type Job = { id: string; status: string; phase: string; seed?: number; expectedSeed?: number; attempt?: number; error?: string;
@@ -116,14 +117,16 @@ export const useBlender = create<State>()(persist((set, get) => {
     },
     ensureForPlan: async (plan, preferredSeed) => {
       const id = createBuildingModel(plan).planId
-      const key = preferredSeed === undefined ? `${id}:auto` : directionRenderKey(id, preferredSeed)
-      if (get().accepted[id] && (preferredSeed === undefined || get().selectionKey === key)) return
-      const exact = preferredSeed === undefined ? undefined : get().directionRenders[key]
-      if (exact || preferredSeed !== undefined && get().accepted[id]?.seed === preferredSeed) {
+      const signature = finishSignature(plan.model.brief)
+      const key = `${preferredSeed === undefined ? `${id}:auto` : directionRenderKey(id, preferredSeed)}:${signature}`
+      if (get().accepted[id]?.finishSignature === signature && (preferredSeed === undefined || get().selectionKey === key)) return
+      const cached = preferredSeed === undefined ? undefined : get().directionRenders[directionRenderKey(id, preferredSeed)]
+      const exact = cached?.finishSignature === signature ? cached : undefined
+      if (exact || preferredSeed !== undefined && get().accepted[id]?.seed === preferredSeed && get().accepted[id]?.finishSignature === signature) {
         set({ accepted: { ...get().accepted, [id]: exact ?? get().accepted[id] }, selectionKey: key, error: null })
         return
       }
-      const preview = get().previews[key]
+      const preview = preferredSeed === undefined ? undefined : get().previews[directionRenderKey(id, preferredSeed)]
       if (preview && ['queued', 'generating', 'rendering'].includes(preview.status)) {
         await pollPreviews()
         return
@@ -138,15 +141,16 @@ export const useBlender = create<State>()(persist((set, get) => {
         const health = await response.json()
         if (!health.available) throw new Error(health.note || 'Blender is unavailable on this computer.')
         // Recheck after the asynchronous availability request: another view may have started it.
-        const pending = get().previews[key]
-        const ready = preferredSeed === undefined ? undefined : get().directionRenders[key]
+        const pending = preview
+        const ready = exact
         if (ready) {
           set({ accepted: { ...get().accepted, [id]: ready }, selectionKey: key, error: null })
           return
         }
         if (!active(get().job) && !(pending && ['queued', 'generating', 'rendering'].includes(pending.status))) {
           set({ selectionKey: key })
-          await get().generate(plan, preferredSeed ?? newDesignSeed(plan.dna.seed), 'preview', preferredSeed !== undefined)
+          const existing = get().accepted[id]
+          await get().generate(plan, preferredSeed ?? existing?.seed ?? newDesignSeed(plan.dna.seed), 'preview', preferredSeed !== undefined || Boolean(existing))
         }
       } catch (error) {
         if (!active(get().job)) set({ sourcePlanId: id, selectionKey: key, error: error instanceof Error ? error.message : 'Could not start Blender',

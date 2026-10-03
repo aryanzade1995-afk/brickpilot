@@ -1,4 +1,5 @@
 """Deterministic material sample rooms, not photographs or supplier products."""
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -12,12 +13,12 @@ from visualization.spec_materials import create_spec_material, REGISTRY
 bpy.ops.object.select_all(action="SELECT")
 bpy.ops.object.delete(use_global=False)
 scene = bpy.context.scene
-scene.render.engine = "CYCLES"
-scene.cycles.samples = 20
-scene.cycles.use_denoising = True
-scene.render.resolution_x, scene.render.resolution_y = 1600, 1000
+scene.render.engine = "BLENDER_EEVEE_NEXT"
+scene.render.film_transparent = False
+scene.render.image_settings.quality = 92
+scene.render.resolution_x, scene.render.resolution_y = 1280, 800
 scene.render.resolution_percentage = 100
-scene.render.image_settings.file_format = "PNG"
+scene.render.image_settings.file_format = "JPEG"
 scene.view_settings.view_transform = "AgX"
 scene.world.color = (.35, .35, .35)
 
@@ -51,13 +52,31 @@ camera = bpy.context.object
 camera.rotation_euler = (Vector((0, .5, 1.1)) - camera.location).to_track_quat("-Z", "Y").to_euler()
 camera.data.lens = 48
 scene.camera = camera
-folder = ROOT / "output/spec-samples"
+folder = ROOT / "public/specs/samples"
 folder.mkdir(parents=True, exist_ok=True)
+metadata = []
 for entry in json.loads(REGISTRY.read_text(encoding="utf-8"))["materials"]:
     material = create_spec_material(entry["id"])
     for obj in (floor, wall):
         obj.data.materials.clear()
         obj.data.materials.append(material)
-    scene.render.filepath = str(folder / (entry["id"] + ".png"))
+    scene.render.filepath = str(folder / (entry["id"] + "-1280.jpg"))
     bpy.ops.render.render(write_still=True)
     print("SAMPLE_READY", entry["id"], flush=True)
+
+    original = Path(scene.render.filepath)
+    image = bpy.data.images.load(str(original), check_existing=False)
+    image.scale(800, 500)
+    web = folder / (entry["id"] + "-800.jpg")
+    image.filepath_raw, image.file_format = str(web), "JPEG"
+    image.save()
+    bpy.data.images.remove(image)
+    metadata.append({"materialId": entry["id"], "texture": entry["texture"], "photo": {
+        "file": original.relative_to(ROOT).as_posix(), "webFile": web.relative_to(ROOT).as_posix(),
+        "kind": "visualisation", "source": "blender://specification-room", "licence": "CC0-1.0",
+        "credit": "Formstead EEVEE sample; " + entry["credit"],
+        "verifiedBy": "render-audit: deterministic Blender sample, not a photograph",
+        "width": 1280, "height": 800, "sha256": hashlib.sha256(original.read_bytes()).hexdigest(),
+        "webSha256": hashlib.sha256(web.read_bytes()).hexdigest(),
+        "caption": "Visualisation · standard material room, not a supplier product or your generated plan"}})
+(ROOT / "src/lib/cost/data/samples.json").write_text(json.dumps({"samples": metadata}, indent=2), encoding="utf-8")

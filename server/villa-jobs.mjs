@@ -12,7 +12,7 @@ const UUID = /^[a-f0-9-]{36}$/
 const json = (res, code, value) => { res.writeHead(code, { 'content-type': 'application/json', 'cache-control': 'no-store' }); res.end(JSON.stringify(value)) }
 const publicJob = (job) => {
   const result = job.result && { seed: job.result.seed, requestedSeed: job.result.requestedSeed, planId: job.result.planId,
-    family: job.result.family, hero: job.result.hero, roofline: job.result.roofline, quality: job.result.quality,
+    finishSignature: job.result.finishSignature, family: job.result.family, hero: job.result.hero, roofline: job.result.roofline, quality: job.result.quality,
     warnings: job.result.warnings, files: Object.fromEntries(job.result.files.map((file) =>
       [extname(file) === '.blend' ? 'blend' : extname(file) === '.glb' ? 'glb' : file.match(/_(hero|front|aerial)\.png$/)[1],
         `/api/villas/${job.id}/files/${file}`])) }

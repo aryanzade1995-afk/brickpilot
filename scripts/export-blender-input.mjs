@@ -1,3 +1,4 @@
+import { createFinishAssignments } from '../src/lib/cost/finishAssignments.ts'
 import { readFile, writeFile, mkdir, rename, open, unlink } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { defaultBrief } from '../src/lib/model/brief.ts'
@@ -13,7 +14,7 @@ const arg = (flag, fallback) => {
 }
 
 export function createBlenderInput(design, seed = design.dna.seed, featureOptions = {}) {
-  return { schemaVersion: 1, ...createVillaArchitecture(design, seed, featureOptions) }
+  return { schemaVersion: 1, ...createVillaArchitecture(design, seed, featureOptions), specifications: createFinishAssignments(design) }
 }
 
 export function createDistinctBlenderInput(design, seed, history, limits = {}, onAttempt) {

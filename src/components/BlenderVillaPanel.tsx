@@ -1,3 +1,5 @@
+import { useStudio } from '@/state/studio.ts'
+import { finishSignature } from '@/lib/cost/finishAssignments.ts'
 import { newDesignSeed } from '@/lib/newDesignSeed.ts'
 import { Component, Suspense, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Canvas } from '@react-three/fiber'
@@ -25,13 +27,16 @@ class ModelBoundary extends Component<{ children: ReactNode }, { failed: boolean
 }
 
 export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: { plan: Design; autoGenerate?: boolean; selectedSeed?: number }) {
-  const id = useMemo(() => createBuildingModel(plan).planId, [plan])
+  const brief = useStudio(s => s.result?.design === plan ? s.brief : plan.model.brief)
+  const finishedPlan = useMemo(() => ({ ...plan, model: { ...plan.model, brief } }), [plan, brief])
+  const signature = finishSignature(brief)
+  const id = useMemo(() => createBuildingModel(finishedPlan).planId, [finishedPlan])
   const accepted = useBlender((s) => s.accepted[id])
   const selectionKey = useBlender((s) => s.selectionKey)
   const job = useBlender((s) => s.job)
   const sourcePlanId = useBlender((s) => s.sourcePlanId)
   const previewKey = selectedSeed === undefined ? '' : directionRenderKey(id, selectedSeed)
-  const result = selectedSeed === undefined || selectionKey === previewKey || accepted?.seed === selectedSeed ? accepted : undefined
+  const result = selectedSeed === undefined || selectionKey === `${previewKey}:${signature}` || accepted?.seed === selectedSeed ? accepted : undefined
   const preview = useBlender((s) => s.previews[previewKey])
   const error = useBlender((s) => s.error)
   const generate = useBlender((s) => s.generate)
@@ -44,7 +49,7 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
   const busy = jobBusy || previewBusy
   const currentJob = sourcePlanId === id ? job : null
   useEffect(() => { void resume() }, [resume])
-  useEffect(() => { if (autoGenerate) void ensureForPlan(plan, selectedSeed) }, [autoGenerate, plan, selectedSeed, ensureForPlan, busy])
+  useEffect(() => { if (autoGenerate) void ensureForPlan(finishedPlan, selectedSeed) }, [autoGenerate, finishedPlan, selectedSeed, ensureForPlan, busy])
   return <section className="mt-5 border border-line p-4 md:p-6">
     <div className="flex flex-wrap items-center justify-between gap-4">
       <div><h2 className="font-display text-xl">Blender architectural design</h2>
@@ -54,7 +59,7 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
           disabled={busy} onChange={(e) => setQuality(e.target.value as 'preview' | 'final')}>
           <option value="preview">Fast preview</option><option value="final">High quality</option>
         </select>
-        <button type="button" disabled={busy} onClick={() => void generate(plan, newDesignSeed(result?.seed ?? plan.dna.seed), quality)}
+        <button type="button" disabled={busy} onClick={() => void generate(finishedPlan, newDesignSeed(result?.seed ?? plan.dna.seed), quality)}
           className="border border-line-strong px-4 py-2 text-sm uppercase tracking-wide disabled:opacity-50">
           {busy ? 'Generating…' : result ? 'Generate another design' : 'Generate architectural design'}
         </button>
@@ -68,6 +73,7 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
     </div>}
     {sourcePlanId === id && error && <p role="alert" className="mt-4 text-sm text-bad">{error}</p>}
     {result && <>
+      {result.finishSignature !== signature && <p className="mt-3 text-sm text-ink-dim">Updating selected finishes on this same design…</p>}
       <p className="mt-4 font-mono text-xs text-ink-dim">Visualisation · Blender · Seed {result.seed} · {result.family.replaceAll('_', ' ')} · {result.quality === 'final' ? 'Final render' : 'Preview'}</p>
       <div className="mt-3 grid gap-4 lg:grid-cols-2">
         <div className="aspect-[4/3] overflow-hidden border border-line">
