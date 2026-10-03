@@ -409,7 +409,7 @@ export function Render() {
           </div>
         </>
       )}
-      <div className="mt-8 flex justify-end"><Link to="/workspace/finishes" className="border border-line-strong px-5 py-3 text-sm">Continue to Finishes & Cost</Link></div>
+      <div className="mt-8 flex justify-end"><Link to="/workspace/finishes" className="border border-line-strong px-5 py-3 text-sm">Next: finishes & cost →</Link></div>
     </div>
   )
 }

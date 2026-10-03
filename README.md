@@ -646,3 +646,42 @@ the separate Blender batch or the selected design's Blender panel; the
 positive Three.js solids, the requested family and exact passing-seed replay.
 Four ordinary 24×30 m repaired wing fixtures have checked editable Blender/GLB
 exports under `output/wing-reliability-blender/`.
+
+
+### Finishes & Cost workspace (06)
+
+After Render, `/workspace/finishes` offers Brief-style sub-tabs:
+Specifications, Quantities, Estimate and Assumptions; Report remains step 07.
+Only high-impact finish choices appear initially. Each section expands its
+other choices; Technical is collapsed last and automatic measurements are
+never chooser controls. Reset restores the current finish preset. Changing the
+finish level requires inline confirmation and clears its overrides.
+
+Catalogue choices persist in `Brief.specs.overrides`, with canonical room IDs
+for room-specific finishes. The old five-category browser choices migrate once;
+a catalogue marker prevents reset defaults being overwritten by stale choices.
+Cost allowances remain separate. Neither edits nor drawing overlays change
+`Design.floors`, navigation or the architectural seed.
+
+The option panel compares project-total changes for selected rooms, exposes
+source/licence metadata and uses actual CC0 close-ups. Its sample rooms are
+pre-rendered with Blender from the exact same registered texture, explicitly
+labelled **Visualisation**, not product photographs or the generated villa.
+Installed photos display only when catalogue metadata supplies one; none is
+fabricated. Optional Site climate context drives finish suggestions only and
+is excluded from the geometry seed. Suggestions and added provisional rates
+are validated data under `src/lib/cost/data/`.
+
+Quantities support floor filtering and links back to source geometry highlights
+on Plan. Services highlight host rooms, not invented fixture coordinates.
+Plan room clicks open Specifications filtered to that room; the small cost-band
+card links to Estimate. Finish changes keep quantities stable; measured plan
+changes show a quiet update note. Estimate has trade shares, expandable BOQ
+lines, procurement views and CSV export; Assumptions retains the estimate scope
+and dated Pune rate provenance.
+
+`scripts/test-cost-workspace.mjs` checks scoped edits, undo/reset, legacy defaults,
+suggestions, seed preservation, quantity revision signatures and render provenance.
+`node --experimental-strip-types scripts/review-finishes.mjs` creates an isolated,
+valid-plan UI review using the production components at
+`output/finishes-review/index.html`; it does not replace a saved project.

@@ -1,3 +1,4 @@
+import { QuantityHighlight } from './QuantityHighlight.tsx'
 import { DRAWING_PRESETS, type DrawingLayers } from './layers.ts'
 import { Fragment } from 'react'
 import { rectBottom, rectCenter, rectRight, rectUnionEdges, type Rect } from '../geometry.ts'
@@ -28,6 +29,8 @@ export function FloorDrawing({
   showLabels = true,
   showDimensions = true,
   markRoomId,
+  onRoomClick,
+  highlightCategory,
   svgRef,
   siteFeatures,
   layers,
@@ -43,6 +46,8 @@ export function FloorDrawing({
   showDimensions?: boolean
   /** highlight one room — used as the interior reference for the render step */
   markRoomId?: string
+  onRoomClick?: (id: string) => void
+  highlightCategory?: string
   svgRef?: React.Ref<SVGSVGElement>
 }) {
   const ink = INK[theme]
@@ -285,6 +290,8 @@ export function FloorDrawing({
           />
         </g>
       )}
+      {highlightCategory && <QuantityHighlight floor={floor} model={model} siteFeatures={siteFeatures} category={highlightCategory} />}
+      {onRoomClick && <g data-layer="room-actions">{floor.rooms.filter(r => !r.outdoor).map(r => <rect key={r.id} x={r.rect.x} y={r.rect.y} width={r.rect.w} height={r.rect.h} fill="transparent" role="button" tabIndex={0} aria-label={`Choose finishes for ${r.name}`} className="cursor-pointer focus:stroke-amber-700 focus:stroke-[60]" onClick={() => onRoomClick(r.id)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onRoomClick(r.id) } }} />)}</g>}
     </svg>
   )
 }

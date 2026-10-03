@@ -5,11 +5,11 @@ import { DRAWING_PRESETS, LAYER_LABELS, drawingLayerCounts, terraceLayerCounts, 
 import { downloadSheetPdf, downloadSheetSvg } from '@/lib/draw/exportSheet.ts'
 
 /** Display state is local to the sheet. No studio edit/run/reroll is called. */
-export function DrawingWorkspace({ design, onFloorChange }: { design: Design; onFloorChange?: (index: number) => void }) {
-  const [floorIdx, setFloorIdx] = useState(0)
+export function DrawingWorkspace({ design, onFloorChange, initialFloorLevel, highlightCategory, onRoomClick }: { design: Design; onFloorChange?: (index: number) => void; initialFloorLevel?: number; highlightCategory?: string; onRoomClick?: (id: string) => void }) {
+  const [floorIdx, setFloorIdx] = useState(Math.max(0, design.floors.findIndex(f => f.level === initialFloorLevel)))
   const [theme, setTheme] = useState<Theme>('paper')
   const [preset, setPreset] = useState<DrawingPreset | 'Custom'>('Presentation')
-  const [layers, setLayers] = useState({ ...DRAWING_PRESETS.Presentation })
+  const [layers, setLayers] = useState({ ...DRAWING_PRESETS.Presentation, supports: !!highlightCategory })
   const [finishStyle, setFinishStyle] = useState(true)
   const [zoom, setZoom] = useState(1)
   const [exportError, setExportError] = useState('')
@@ -29,9 +29,11 @@ export function DrawingWorkspace({ design, onFloorChange }: { design: Design; on
         <div className="drawing-sheet h-full" style={{ width: `${zoom * 100}%`, height: `${zoom * 100}%`, margin: '0 auto' }}>
           {terrace ? <TerraceDrawing design={design} theme={theme} layers={layers} svgRef={svgRef} /> :
             <FloorDrawing floor={floor} model={design.model} siteFeatures={design.siteFeatures} theme={theme}
-              layers={layers} presentation={finishStyle} svgRef={svgRef} />}
+              layers={layers} presentation={finishStyle} svgRef={svgRef} highlightCategory={highlightCategory} onRoomClick={onRoomClick ? id => { const r = floor.rooms.find(r => r.id === id); if (r) onRoomClick(`${floor.level}:${r.semanticId || r.id}`) } : undefined} />}
         </div>
       </div>
+      {highlightCategory && <p className="mt-2 text-xs text-ink-dim">Highlighted: {highlightCategory.replaceAll('.', ' · ')} · source geometry; service quantities indicate rooms, not point positions.</p>}
+      {onRoomClick && !terrace && <p className="mt-2 text-xs text-ink-dim">Select a room to choose its finishes.</p>}
       <p className="mt-2 text-xs text-ink-faint">{design.candidate} · 1 unit = 1 mm · {floor.name}{terrace ? ' roof' : ''}</p>
     </div>
     <aside aria-label="Drawing layers" className="drawing-controls border border-line p-4 text-sm">
