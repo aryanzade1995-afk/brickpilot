@@ -13,9 +13,12 @@ and engineers must verify them before use.
 
 Wizard geometry edits and suggestions now pass the production capacity check
 before replacing a valid brief. Directions select geometrically diverse plans
-from a larger validated pool. The first ML-roadmap stage exports structured
-synthetic training records; a trained model is **not** deployed yet. See
-[ML planner status](docs/ml-planner-status.md) for implemented and pending work.
+from a larger validated pool. A local ResPlan-trained conditional model and
+seeded retrieval memory guide new footprint proportions and composition; the
+existing planner still creates and validates all room, wall and opening geometry.
+Saved designs retain their generation recipe. See
+[ML planner status](docs/ml-planner-status.md) and
+[model card](src/lib/engine/planner/ml/MODEL_CARD.md).
 
 ## Start here
 

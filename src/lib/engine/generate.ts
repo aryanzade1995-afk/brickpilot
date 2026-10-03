@@ -14,6 +14,7 @@ import { validate } from '../rules/index.ts'
 import { preferenceScore, strictVastuFailures, type PreferenceScore } from './score.ts'
 import { planFingerprint } from './planner/planFingerprint.ts'
 import { diversePlans } from './planner/planDiversity.ts'
+import { proposePlan } from './planner/ml/proposal.ts'
 
 /* ------------------------------------------------------------------ *
  *  generate() — the deterministic rule + constraint planner
@@ -39,6 +40,9 @@ export const STRATEGIES: { id: Strategy; label: string; blurb: string }[] = [
 ]
 
 export type GenerateOpts = {
+  /** Internal benchmark/replay switch; new plans use the learned guidance. */
+  planner?: 'ml' | 'baseline'
+  recipe?: Design['planRecipe']
   /** kept for back-compat — maps onto a plate family */
   strategy?: Strategy
   massing?: MassingType | 'auto' | 'random'
@@ -176,6 +180,15 @@ export function generateCandidates(model: CanonicalModel, opts: Strategy | Gener
     families = [first, ...pool.filter((f) => f !== first)]
   } else families = [FAMILY_OF[requested]]
 
+  if(o.planner!=='baseline' && (requested==='auto'||requested==='random')){
+    const proposal=proposePlan(model,seed)
+    const learnedFamily:PlateFamily|undefined=proposal ? largeWings(model)
+      ? ({rectangular:'twin-wing',stepped:'pavilion','l-shape':'u-wing',courtyard:'courtyard-ring'} as const)[proposal.family]
+      : proposal.family : undefined
+    if(learnedFamily && families.includes(learnedFamily) && model.brief.style.character!=='courtyard-indian')
+      families=[learnedFamily,...families.filter(f=>f!==learnedFamily)]
+  }
+
   // Vastu needs more orientations / mirrors to choose from
   const attempts = families.some(f=>WING_FAMILIES.includes(f)) ? 24 : model.brief.lifestyle.vastu === 'ignore' ? 6 : 12
   const cap = model.brief.lifestyle.vastu === 'strict' ? MAX_CANDIDATES_STRICT : MAX_CANDIDATES
@@ -192,7 +205,7 @@ export function generateCandidates(model: CanonicalModel, opts: Strategy | Gener
     for (let attempt = 0; attempt < searchCount && passing.length < cap; attempt++) {
       if(attempt>=attempts&&passing.length)break
       const trialSeed=attempt<attempts?seed+attempt*31:(attempt-attempts)*31
-      const d = generateOne(model, family, trialSeed, briefKey)
+      const d = generateOne(model, family, trialSeed, briefKey, false, o.planner!=='baseline')
       if (!d) continue
       // Bar plans choose the best scored candidate across a search. Their pin
       // must retain that search's starting seed; wings take the first passing
@@ -214,6 +227,9 @@ export function generateCandidates(model: CanonicalModel, opts: Strategy | Gener
       }
     }
   }
+  // Guidance is optional: it must never make a previously buildable brief fail.
+  // Retry the unchanged planner, with the same family/seed and all hard checks.
+  if(!passing.length && o.planner!=='baseline') return generateCandidates(model,{...o,planner:'baseline'})
   const fallback=best ?? generateOne(model, 'rectangular', seed, briefKey, true)!
   if(WING_FAMILIES.includes(requested as PlateFamily)&&fallback.massingType!==requested)
     fallback.requestedMassing=requested as MassingType
@@ -241,6 +257,13 @@ export const MAX_CANDIDATES_STRICT = 24
  * least-failing plan is returned and reported as failing.
  */
 export function generate(model: CanonicalModel, opts: Strategy | GenerateOpts = {}): Design {
+  if(typeof opts!=='string' && opts.recipe){
+    const recipe=opts.recipe
+    const replay=generateOne(model,recipe.family,recipe.seed,model.seed.split('-')[0])
+    if(replay && validate(replay).hardChecksPass){replay.planSeed=opts.seed??recipe.seed;return replay}
+    // Stale/invalid recipes do not bypass any hard check.
+    return generate(model,{...opts,recipe:undefined})
+  }
   const { passing, fallback } = generateCandidates(model, opts)
   if (!passing.length) return fallback
   if ((typeof opts !== 'string' && WING_FAMILIES.includes(opts.massing as PlateFamily)) || WING_FAMILIES.includes(model.brief.style.massing as PlateFamily)) return passing[0].design
@@ -254,18 +277,26 @@ export function generate(model: CanonicalModel, opts: Strategy | GenerateOpts = 
   const o = typeof opts === 'string' ? { strategy: opts } : opts
   const styleFamilies = (o.massing ?? model.brief.style.massing) === 'auto' && !o.strategy
     ? STYLE_PLAN_FAMILIES[model.brief.style.character] : undefined
+  if(o.planner!=='baseline' && styleFamilies && model.brief.style.character==='courtyard-indian' &&
+    !passing.some(c=>c.design.massingType==='courtyard')){
+    const previous=generate(model,{...o,planner:'baseline'})
+    if(previous.massingType==='courtyard'&&validate(previous).hardChecksPass)return previous
+  }
   const styled = styleFamilies ? passing.filter((c) => (styleFamilies as string[]).includes(c.design.massingType)) : []
-  const shaped = styled.length ? styled : passing
+  const courtyardPlans=styleFamilies && model.brief.style.character==='courtyard-indian'
+    ? styled.filter(c=>c.design.massingType==='courtyard') : []
+  const shaped = courtyardPlans.length ? courtyardPlans : styled.length ? styled : passing
   const pool = strict && shaped.some((c) => c.strictOk) ? shaped.filter((c) => c.strictOk) : shaped
   return pool.reduce((a, b) => ((model.brief.site.openSpace?.mode === 'maxBuild' ? b.design.coveredFootprintSqm > a.design.coveredFootprintSqm : b.score.total > a.score.total) ? b : a)).design
 }
 
-function generateOne(model: CanonicalModel, family: PlateFamily, seed: number, briefKey: string, force = false): Design | null {
+function generateOne(model: CanonicalModel, family: PlateFamily, seed: number, briefKey: string, force = false, learned = true): Design | null {
+  const proposal = learned && !force ? proposePlan(model,seed) : null
   const choices = WING_FAMILIES.includes(family) ? layoutChoices(model, seed, family!=='twin-wing') : undefined
   if (choices) model = layoutProgramme(model,choices)
   const theme = themeOf(model.brief)
   const rng = makeRng(seed, `${briefKey}|plan`)
-  const pick = rng.int(0, 3)
+  const pick = rng.int(0, proposal && !WING_FAMILIES.includes(family) ? 7 : 3)
   const mirror = rng.chance(0.5)
   const roofRng = makeRng(seed, `${briefKey}|roof`)
   const roof = topRoof(theme.roofBias, roofRng)
@@ -274,6 +305,7 @@ function generateOne(model: CanonicalModel, family: PlateFamily, seed: number, b
   const provisional = deriveDesignDNA(briefKey, seed, model.brief.style.character, 'rectangular', 'balanced', model.brief.style.personality)
 
   const plan = planVilla(model, {
+    ...(proposal ? {proposal}:{}),
     ...(choices ? {layoutChoices:choices}:{}),
     family: force ? 'rectangular' : family,
     pick, mirror,
@@ -311,6 +343,9 @@ function generateOne(model: CanonicalModel, family: PlateFamily, seed: number, b
     id: `${model.seed}-${massingType}-${seed}`,
     seed: model.seed,
     algorithm: 'rule-constraint-planner-v1',
+    ...(proposal ? {planProposal:proposal}:{}),
+    ...(proposal ? {planFamily:family}:{}),
+    ...(proposal ? {planRecipe:{family,seed,version:'resplan-ridge-retrieval-v1' as const}}:{}),
     candidate: massingType,
     massingType,
     dna,

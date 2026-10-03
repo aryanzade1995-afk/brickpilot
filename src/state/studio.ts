@@ -45,6 +45,9 @@ export type Result = {
  *  massing archetype plus the seed that produced it. Together with the brief it
  *  fully and deterministically defines the canonical design. */
 export type PinnedDir = {
+  planner?: 'ml' | 'baseline'
+  planFamily?: MassingType
+  recipe?: Design['planRecipe']
   massing: MassingType
   seed: number
   /** the plan seed of a direction explored with its own plan shape; absent =
@@ -77,7 +80,14 @@ export function parsePinned(v: unknown): PinnedDir | null {
     if (typeof o.massing === 'string' && MASSING_TYPES.includes(o.massing as MassingType) &&
       typeof o.seed === 'number' && Number.isFinite(o.seed)) {
       const inspiration = parseInspirationPreferences(o.inspiration)
+      const recipe=o.recipe as Record<string,unknown>|undefined
+      const parsedRecipe=recipe && recipe.version==='resplan-ridge-retrieval-v1' && Number.isSafeInteger(recipe.seed) &&
+        ['rectangular','stepped','l-shape','courtyard','twin-wing','u-wing','courtyard-ring','pavilion'].includes(String(recipe.family))
+        ? {family:recipe.family,seed:recipe.seed,version:recipe.version} as Design['planRecipe'] : undefined
       return { massing: o.massing as MassingType, seed: o.seed,
+        ...(parsedRecipe?{recipe:parsedRecipe}:{}),
+        ...(o.planner === 'ml' || o.planner === 'baseline' ? {planner:o.planner} : {}),
+        ...(typeof o.planFamily==='string' && MASSING_TYPES.includes(o.planFamily as MassingType) ? {planFamily:o.planFamily as MassingType} : {}),
         ...(Number.isSafeInteger(o.planSeed) ? { planSeed: o.planSeed as number } : {}),
         ...(inspiration ? { inspiration } : {}) }
     }
@@ -94,14 +104,15 @@ export function parsePinned(v: unknown): PinnedDir | null {
 }
 
 export const serializePinned = (p: PinnedDir | null): string | null =>
-  p ? p.inspiration || p.planSeed !== undefined ? JSON.stringify(p) : `${p.massing}:${p.seed}` : null
+  p ? p.inspiration || p.planSeed !== undefined || p.planner || p.planFamily || p.recipe ? JSON.stringify(p) : `${p.massing}:${p.seed}` : null
 
 /** the 2D plan a pin stands on: a direction's own plan shape and seed, or the
  *  brief's plan (an older pin of another shape regenerates that shape) */
 function pinnedPlan(model: CanonicalModel, pinned: PinnedDir): Design {
-  if (pinned.planSeed !== undefined) return generate(model, { massing: pinned.massing, seed: pinned.planSeed })
-  const plan = generate(model)
-  return plan.massingType === pinned.massing ? plan : generate(model, { massing: pinned.massing })
+  const planner=pinned.planner??'baseline'
+  if (pinned.planSeed !== undefined) return generate(model, { massing: pinned.planFamily??pinned.massing, seed: pinned.planSeed,planner,recipe:pinned.recipe })
+  const plan = generate(model,{planner})
+  return plan.massingType === pinned.massing ? plan : generate(model, { massing: pinned.massing,planner })
 }
 
 type StudioState = {
@@ -280,7 +291,9 @@ export const useStudio = create<StudioState>()(
           s.brief = brief
           s.pinned = assembled.result.shapeStatus === 'accepted'
             ? { massing: assembled.result.design.massingType, seed: assembled.result.design.dna.seed,
-              planSeed:assembled.result.design.planSeed, inspiration: current.referencePreferences } : null
+              planSeed:assembled.result.design.planSeed, planFamily:assembled.result.design.planFamily,
+              recipe:assembled.result.design.planRecipe,
+              planner:assembled.result.design.planProposal?'ml':'baseline', inspiration: current.referencePreferences } : null
           s.recentExteriorSeeds = []
           s.directions = null
           s.result = assembled.result
@@ -305,6 +318,9 @@ export const useStudio = create<StudioState>()(
         // a new exterior on the same plan keeps that plan's own seed
         const pinned: PinnedDir = { massing: base.massingType, seed: result.design.dna.seed,
           planSeed:cur.pinned?.planSeed??base.planSeed,
+          planner:cur.pinned?.planner??(base.planProposal?'ml':'baseline'),
+          planFamily:cur.pinned?.planFamily??base.planFamily,
+          recipe:cur.pinned?.recipe??base.planRecipe,
           inspiration: cur.referencePreferences }
         set((s) => {
           s.pinned = pinned
@@ -388,7 +404,10 @@ export const useStudio = create<StudioState>()(
       },
 
       pin: (dir) => {
-        const pinned = { ...dir, inspiration: get().referencePreferences }
+        const source=get().directions?.find(d=>d.massing===dir.massing&&d.seed===dir.seed&&d.planSeed===dir.planSeed)
+        const pinned:PinnedDir = { ...dir, planFamily:dir.planFamily??source?.design.planFamily,
+          recipe:dir.recipe??source?.design.planRecipe,
+          planner:dir.planner??(source?.design.planProposal?'ml':'baseline'), inspiration: get().referencePreferences }
         const cur = get()
         const assembled = assemble(cur.brief, pinned, cur.referencePreferences, cur.recentVillaFingerprints, cur.diversityLimits)
         const result = assembled.result
@@ -412,7 +431,10 @@ export const useStudio = create<StudioState>()(
           s.shapeDebug = assembled.debug
           s.generationNotice = assembled.notice
           if (assembled.result.shapeStatus === 'accepted') s.pinned = { massing: assembled.result.design.massingType,
-            seed: assembled.result.design.dna.seed,planSeed:assembled.result.design.planSeed, inspiration: cur.referencePreferences }
+            seed: assembled.result.design.dna.seed,planSeed:assembled.result.design.planSeed,
+            planFamily:assembled.result.design.planFamily,
+            recipe:assembled.result.design.planRecipe,
+            planner:assembled.result.design.planProposal?'ml':'baseline', inspiration: cur.referencePreferences }
         })
         return assembled.result
       },

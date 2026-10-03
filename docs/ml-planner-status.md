@@ -1,42 +1,59 @@
-# 2D ML roadmap: implemented baseline
+# Learned 2D planner: production integration
 
-The existing planner remains the coordinate generator. Every candidate must pass
-the production validator before it enters Directions or the Blender pipeline.
+## Pipeline
+
+Brief → canonical requirements → conditional prediction + seeded retrieval →
+existing candidate plate/wing planner → hard validation → preference scoring →
+geometry diversity selection → accepted Design.floors → Three.js / Blender.
+
+New concepts use the model automatically; no key, external inference server or
+GPU is required. Existing accepted plans are not silently regenerated. Generate
+new concepts or reroll the 2D plan to use new guidance.
 
 ## Implemented
 
-- All geometry-changing wizard edits and suggestions use the same production
-  capacity gate. Invalid choices preserve a previously valid brief. Legacy invalid
-  briefs remain editable so their requirements can be repaired.
-- Directions collect up to eight valid, distinct candidates for four slots and
-  select the first followed by the most geometrically different remaining plans.
-- Distance uses sampled occupied floor footprints, living/master/stair locations
-  and actual plan family. Materials, render styles and exterior decorations do not
-  influence it. Explicit user shape selections remain authoritative.
-- `node --experimental-strip-types scripts/export-plan-training.mjs` exports
-  32 seeded, validated synthetic plans with requirements, geometry, fingerprints,
-  normalized occupancy features and validation labels to
-  `output/ml-baseline/plans.jsonl`. The export does not overwrite user designs.
+- Restricted archive import, recorded-area normalization, entry orientation,
+  duplicate filtering and exclusion of canonical augmented plans.
+- Conditional ridge regression fitted on 7,296 real ResPlan training plans.
+  Validation chooses regularization; 921 held-out test records measure error.
+- 192 training-only exemplars form a balanced retrieval memory. Same seed and
+  brief reproduce the selected exemplar and proposal exactly.
+- Guidance influences feasible plate proportions, orientation, band depths and
+  automatic family order. On large plots, derived archetypes map to the existing
+  twin-wing, U-wing, courtyard-ring and pavilion planners. This mapping is an
+  adaptation rule, not a learned villa-type classifier.
+- Explicit families, courtyard character, room programmes, setbacks, dimensions,
+  circulation, stairs and all geometric checks remain authoritative. If guidance
+  yields no passing plan, the unchanged planner retries. Existing wing recipes
+  keep their living/master/kitchen/verandah/double-height choices.
+- Accepted plans record exact family/trial seed/model version for saved replay;
+  legacy pins continue to use the previous baseline planner.
+- Directions compare occupied footprints and semantic anchors, excluding colours.
 
-## Not implemented yet
+## Reproduce
 
-This is a procedural diversity baseline and training-data interface, not a trained
-ML model. No neural-network weights are deployed. These 32 synthetic examples are
-not enough to train or evaluate a general floor-plan generator.
+Offline training tools only (no new web dependencies):
 
-Next: safely import and deduplicate licensed structured real plans; split by
-source project before training; establish retrieval/adaptation metrics; train a
-ranker against held-out human preference and architectural validity labels; then
-compare it with this deterministic baseline. A model proposal must be adapted to
-the user's exact room programme and pass all existing hard checks. No image-only
-dataset may supply unverified room coordinates.
+```cmd
+python -m pip install -r scripts/ml-training-requirements.txt --target output/ml-python
+python scripts/train-plan-model.py "C:\Users\aryan\Downloads\archive (4).zip"
+node --experimental-strip-types scripts/review-ml-plans.mjs
+```
 
-Small plots and dense programmes may admit only compact rectangular solutions.
-The system must not manufacture invalid wings merely to increase diversity.
+Comparison: `output/ml-review/index.html`, with measured results, training metrics
+and production Blender inputs beside it. It compares 20 briefs × 3 seeds with
+the baseline, then tests one brief over 20 seeds.
 
-## Validation
+## Scope and limits
 
-Capacity tests cover rejecting impossible selections without mutating the brief
-and accepting choices that pass all hard checks. Diversity tests cover identical
-geometry distance, different-footprint distance, deterministic selection and
-feature dimensions. Existing planner, 2D, 3D and replay tests remain enabled.
+This is an implemented hybrid ML-guided generator, not a diffusion model or a
+neural model that directly predicts every wall. The small regression has a modest
+held-out advantage (about 3.2% lower normalized MSE than predicting the training
+mean). Variation comes from its combination with seeded retrieval, broader
+validated candidates and existing massing recipes. No human preference labels
+or architectural-quality benchmark are claimed.
+
+The source is single-floor, mainly South Asian housing. Multi-storey stairs,
+support and terraces are handled by the application's rules. Dense small plots
+may permit only one valid silhouette. Full graph/diffusion generation and human
+preference ranking remain future research, not enabled features.

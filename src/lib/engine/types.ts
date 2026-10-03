@@ -97,6 +97,9 @@ export type FloorPlan = {
 export type SiteFeature = { id: string; kind: 'parking' | 'driveway' | 'path' | 'lawn' | 'pool' | 'sitOut' | 'utilityYard'; rect: Rect; covered: boolean; roomId?: string }
 
 export type Design = {
+  planProposal?: import('./planner/ml/proposal.ts').PlanProposal
+  planFamily?: import('./planner/types.ts').PlateFamily
+  planRecipe?: {family: import('./planner/types.ts').PlateFamily;seed:number;version:'resplan-ridge-retrieval-v1'}
   structuralSizing?: import('./structuralSizing.ts').StructuralSizing
   planSeed?: number
   layoutChoices?: LayoutChoices

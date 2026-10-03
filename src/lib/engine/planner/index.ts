@@ -18,10 +18,13 @@ import {
 } from './elements.ts'
 import { planWings } from './wings.ts'
 import type { LayoutChoices } from './layoutChoices.ts'
+import type { PlanProposal } from './ml/proposal.ts'
+import { PLAN_LEARNING_LIMITS } from './ml/proposal.ts'
 
 export type { PlateFamily } from './types.ts'
 
 export type PlanRequest = {
+  proposal?: PlanProposal
   layoutChoices?: LayoutChoices
   family: PlateFamily
   /** which of the ranked plate candidates to take (seed-driven variety) */
@@ -74,6 +77,24 @@ export function planVilla(model: CanonicalModel, request: PlanRequest): PlanResu
     return { site, floors, courtReq, input, all: plateCandidates(input) }
   })
   const real = (x: (typeof strategies)[number]) => x.all.filter((c) => !c.relaxed)
+  const learnedScore=(c:PlateCandidate)=>{
+    const p=request.proposal
+    if(!p)return 0
+    const across=c.depthA+c.spine+c.depthB
+    const aspect=c.orientation==='x'?c.length/across:across/c.length
+    // Front social band and rear service band: fitted anchors influence actual
+    // band depths, while every size still comes from the existing candidate grid.
+    const livingY=(c.depthA+c.spine+c.depthB/2)/across
+    const kitchenY=c.depthA/2/across
+    return PLAN_LEARNING_LIMITS.aspectWeight*Math.abs(Math.log(aspect/p.aspect))+
+      PLAN_LEARNING_LIMITS.livingWeight*Math.abs(livingY-p.living[1])+
+      PLAN_LEARNING_LIMITS.kitchenWeight*Math.abs(kitchenY-p.kitchen[1])
+  }
+  if(request.proposal)strategies.sort((a,b)=>{
+    const ac=real(a).find(c=>c.atTarget)??real(a).find(c=>c.atMin)
+    const bc=real(b).find(c=>c.atTarget)??real(b).find(c=>c.atMin)
+    return (ac?learnedScore(ac):Infinity)-(bc?learnedScore(bc):Infinity)
+  })
   const chosen = strategies.find((x) => real(x).some((c) => c.atMin)) ??
     strategies.find((x) => real(x).length) ?? strategies.find((x) => x.all.length)
   if (!chosen) return null
@@ -90,10 +111,11 @@ export function planVilla(model: CanonicalModel, request: PlanRequest): PlanResu
   for (const c of tier) {
     if (roofReady.length && c.score > roofReady[0].score + Math.abs(roofReady[0].score) * .18) break
     if (placeFloors(input,c).roofFreeRatio >= TERRACE_LIMITS.minFreeRatio + TERRACE_LIMITS.planningClearanceMargin) roofReady.push(c)
-    if (roofReady.length === 4) break
+    if (roofReady.length === (request.proposal ? PLAN_LEARNING_LIMITS.candidatePool : 4)) break
   }
   const eligible = roofReady.length ? roofReady : tier
-  const pool = eligible.filter((c) => c.score <= eligible[0].score + Math.abs(eligible[0].score) * 0.18).slice(0, 4)
+  const pool = eligible.filter((c) => c.score <= eligible[0].score + Math.abs(eligible[0].score) * 0.18).slice(0, request.proposal ? PLAN_LEARNING_LIMITS.candidatePool : 4)
+  if(request.proposal)pool.sort((a,b)=>learnedScore(a)-learnedScore(b))
   const cand: PlateCandidate = pool[request.pick % pool.length]
 
   // ---- RoomPlacement (local u/v) + StructuralGrid cross axes ----
