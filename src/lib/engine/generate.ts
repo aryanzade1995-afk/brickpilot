@@ -13,6 +13,7 @@ import { layoutChoices, layoutProgramme } from './planner/layoutChoices.ts'
 import { validate } from '../rules/index.ts'
 import { preferenceScore, strictVastuFailures, type PreferenceScore } from './score.ts'
 import { planFingerprint } from './planner/planFingerprint.ts'
+import { diversePlans } from './planner/planDiversity.ts'
 
 /* ------------------------------------------------------------------ *
  *  generate() — the deterministic rule + constraint planner
@@ -137,9 +138,9 @@ export function distinctDirectionPlans(model:CanonicalModel,count=4):{plan:Desig
     const fingerprint=planFingerprint(plan)
     if(seen.has(fingerprint.key))continue
     seen.add(fingerprint.key);plans.push({plan,massing:plan.massingType,planSeed:plan.planSeed??plan.dna.seed})
-    if(plans.length===count)break
+    if(plans.length===count*2)break
   }
-  return plans
+  return diversePlans(plans,count)
 }
 
 export type Candidate = { design: Design; score: PreferenceScore; strictOk: boolean }

@@ -11,6 +11,12 @@ optional and are used for architectural inspiration and presentation renders,
 Outputs are concepts, not permit or construction drawings; a licensed architect
 and engineers must verify them before use.
 
+Wizard geometry edits and suggestions now pass the production capacity check
+before replacing a valid brief. Directions select geometrically diverse plans
+from a larger validated pool. The first ML-roadmap stage exports structured
+synthetic training records; a trained model is **not** deployed yet. See
+[ML planner status](docs/ml-planner-status.md) for implemented and pending work.
+
 ## Start here
 
 Requirements: Node.js 24 or newer and npm. The app works without AI keys or a
