@@ -1,0 +1,2211 @@
+{
+  "schemaVersion": 1,
+  "status": "Provisional concept allowances. SOR is a reference basis; these are not quoted SOR line rates or verified market quotes. Supply/labour splits are planning assumptions.",
+  "sources": [
+    {
+      "label": "Maharashtra PWD State Schedule of Rates 2022\u201323 \u2014 reference; not a current Pune quote",
+      "url": "https://pwd.maharashtra.gov.in/en/publication/state-schedule-of-rate-2022-2023/"
+    }
+  ],
+  "settings": {
+    "city": "Pune",
+    "date": "2026-10-03",
+    "gstPct": 18,
+    "overheadPct": 12,
+    "contingencyPct": 7.5,
+    "feePct": 6,
+    "includeGst": false,
+    "allowances": {
+      "approvals": 75000,
+      "connections": 100000
+    },
+    "percentageLimits": {
+      "overhead": [
+        10,
+        15
+      ],
+      "contingency": [
+        5,
+        10
+      ]
+    },
+    "uncertaintyPct": 15,
+    "sqftPerSqm": 10.7639104167
+  },
+  "sanityBands": {
+    "basic": {
+      "min": 1800,
+      "max": 3000
+    },
+    "mid": {
+      "min": 2500,
+      "max": 4500
+    },
+    "premium": {
+      "min": 3500,
+      "max": 7500
+    }
+  },
+  "items": [
+    {
+      "id": "site-clearance-computed",
+      "unit": "m2",
+      "material": 61.2,
+      "labour": 23.8,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "excavation-computed",
+      "unit": "m3",
+      "material": 468.0,
+      "labour": 182.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "backfill-computed",
+      "unit": "m3",
+      "material": 684.0,
+      "labour": 266.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "anti-termite-basic",
+      "unit": "m2",
+      "material": 93.6,
+      "labour": 36.4,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "anti-termite-mid",
+      "unit": "m2",
+      "material": 136.8,
+      "labour": 53.2,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "anti-termite-premium",
+      "unit": "m2",
+      "material": 187.2,
+      "labour": 72.8,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "site-survey-basic",
+      "unit": "item",
+      "material": 7200.0,
+      "labour": 2800.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "site-survey-mid",
+      "unit": "item",
+      "material": 12960.0,
+      "labour": 5040.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "site-survey-premium",
+      "unit": "item",
+      "material": 18000.0,
+      "labour": 7000.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "soil-type-unknown",
+      "unit": "item",
+      "material": 0.0,
+      "labour": 0.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "soil-type-firm",
+      "unit": "item",
+      "material": 0.0,
+      "labour": 0.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "soil-type-rock",
+      "unit": "item",
+      "material": 0.0,
+      "labour": 0.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "plinth-height-standard",
+      "unit": "m",
+      "material": 0.0,
+      "labour": 0.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "plinth-height-raised",
+      "unit": "m",
+      "material": 0.0,
+      "labour": 0.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "plinth-height-flood",
+      "unit": "m",
+      "material": 0.0,
+      "labour": 0.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "concrete-grade-m20",
+      "unit": "m3",
+      "material": 4680.0,
+      "labour": 1820.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "concrete-grade-m25",
+      "unit": "m3",
+      "material": 5184.0,
+      "labour": 2016.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "concrete-grade-m30",
+      "unit": "m3",
+      "material": 5760.0,
+      "labour": 2240.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "reinforcement-fe500",
+      "unit": "kg",
+      "material": 57.6,
+      "labour": 22.4,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "reinforcement-fe500d",
+      "unit": "kg",
+      "material": 61.92,
+      "labour": 24.08,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "reinforcement-fe550d",
+      "unit": "kg",
+      "material": 66.96,
+      "labour": 26.04,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "cement-ppc",
+      "unit": "bag",
+      "material": 259.2,
+      "labour": 100.8,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "cement-opc43",
+      "unit": "bag",
+      "material": 280.8,
+      "labour": 109.2,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "cement-opc53",
+      "unit": "bag",
+      "material": 302.4,
+      "labour": 117.6,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "future-floor-none",
+      "unit": "item",
+      "material": 0.0,
+      "labour": 0.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "future-floor-one",
+      "unit": "item",
+      "material": 0.0,
+      "labour": 0.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "future-floor-two",
+      "unit": "item",
+      "material": 0.0,
+      "labour": 0.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "foundation-computed",
+      "unit": "m3",
+      "material": 5184.0,
+      "labour": 2016.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "columns-computed",
+      "unit": "m3",
+      "material": 5832.0,
+      "labour": 2268.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "beams-computed",
+      "unit": "m3",
+      "material": 6048.0,
+      "labour": 2352.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "slabs-computed",
+      "unit": "m3",
+      "material": 5616.0,
+      "labour": 2184.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "stairs-computed",
+      "unit": "m3",
+      "material": 5976.0,
+      "labour": 2324.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "masonry-type-brick",
+      "unit": "m3",
+      "material": 5400.0,
+      "labour": 2100.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "masonry-type-aac",
+      "unit": "m3",
+      "material": 4896.0,
+      "labour": 1904.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "masonry-type-concrete-block",
+      "unit": "m3",
+      "material": 4464.0,
+      "labour": 1736.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "wall-masonry-computed",
+      "unit": "m2",
+      "material": 756.0,
+      "labour": 294.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "lintels-computed",
+      "unit": "m",
+      "material": 684.0,
+      "labour": 266.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "internal-plaster-basic",
+      "unit": "m2",
+      "material": 208.8,
+      "labour": 81.2,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "internal-plaster-mid",
+      "unit": "m2",
+      "material": 259.2,
+      "labour": 100.8,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "internal-plaster-premium",
+      "unit": "m2",
+      "material": 338.4,
+      "labour": 131.6,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "external-plaster-basic",
+      "unit": "m2",
+      "material": 244.8,
+      "labour": 95.2,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "external-plaster-mid",
+      "unit": "m2",
+      "material": 309.6,
+      "labour": 120.4,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "external-plaster-premium",
+      "unit": "m2",
+      "material": 417.6,
+      "labour": 162.4,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "wall-putty-basic",
+      "unit": "m2",
+      "material": 61.2,
+      "labour": 23.8,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "wall-putty-mid",
+      "unit": "m2",
+      "material": 93.6,
+      "labour": 36.4,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "wall-putty-premium",
+      "unit": "m2",
+      "material": 136.8,
+      "labour": 53.2,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "floor-living-ceramic",
+      "unit": "m2",
+      "material": 1008.0,
+      "labour": 392.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "floor-living-vitrified",
+      "unit": "m2",
+      "material": 1584.0,
+      "labour": 616.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "floor-living-stone",
+      "unit": "m2",
+      "material": 3456.0,
+      "labour": 1344.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "floor-bedrooms-ceramic",
+      "unit": "m2",
+      "material": 1008.0,
+      "labour": 392.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "floor-bedrooms-vitrified",
+      "unit": "m2",
+      "material": 1584.0,
+      "labour": 616.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "floor-bedrooms-stone",
+      "unit": "m2",
+      "material": 3456.0,
+      "labour": 1344.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "floor-kitchen-ceramic",
+      "unit": "m2",
+      "material": 1008.0,
+      "labour": 392.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "floor-kitchen-vitrified",
+      "unit": "m2",
+      "material": 1584.0,
+      "labour": 616.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "floor-kitchen-stone",
+      "unit": "m2",
+      "material": 3456.0,
+      "labour": 1344.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "floor-bathrooms-ceramic",
+      "unit": "m2",
+      "material": 1008.0,
+      "labour": 392.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "floor-bathrooms-vitrified",
+      "unit": "m2",
+      "material": 1584.0,
+      "labour": 616.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "floor-bathrooms-stone",
+      "unit": "m2",
+      "material": 3456.0,
+      "labour": 1344.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "floor-other-ceramic",
+      "unit": "m2",
+      "material": 1008.0,
+      "labour": 392.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "floor-other-vitrified",
+      "unit": "m2",
+      "material": 1584.0,
+      "labour": 616.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "floor-other-stone",
+      "unit": "m2",
+      "material": 3456.0,
+      "labour": 1344.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "floor-outdoor-textured",
+      "unit": "m2",
+      "material": 1080.0,
+      "labour": 420.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "floor-outdoor-granite",
+      "unit": "m2",
+      "material": 1656.0,
+      "labour": 644.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "floor-outdoor-stone",
+      "unit": "m2",
+      "material": 2736.0,
+      "labour": 1064.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "stair-finish-tile",
+      "unit": "m2",
+      "material": 1296.0,
+      "labour": 504.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "stair-finish-granite",
+      "unit": "m2",
+      "material": 2160.0,
+      "labour": 840.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "stair-finish-timber",
+      "unit": "m2",
+      "material": 3600.0,
+      "labour": 1400.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "bath-wall-tiles-basic",
+      "unit": "m2",
+      "material": 936.0,
+      "labour": 364.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "bath-wall-tiles-mid",
+      "unit": "m2",
+      "material": 1584.0,
+      "labour": 616.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "bath-wall-tiles-premium",
+      "unit": "m2",
+      "material": 2808.0,
+      "labour": 1092.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "kitchen-wall-tiles-basic",
+      "unit": "m2",
+      "material": 864.0,
+      "labour": 336.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "kitchen-wall-tiles-mid",
+      "unit": "m2",
+      "material": 1440.0,
+      "labour": 560.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "kitchen-wall-tiles-premium",
+      "unit": "m2",
+      "material": 2448.0,
+      "labour": 952.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "facade-cladding-stone",
+      "unit": "m2",
+      "material": 1728.0,
+      "labour": 672.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "facade-cladding-sandstone",
+      "unit": "m2",
+      "material": 2736.0,
+      "labour": 1064.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "facade-cladding-travertine",
+      "unit": "m2",
+      "material": 4464.0,
+      "labour": 1736.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "kitchen-counter-granite",
+      "unit": "m2",
+      "material": 3960.0,
+      "labour": 1540.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "kitchen-counter-quartz",
+      "unit": "m2",
+      "material": 7560.0,
+      "labour": 2940.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "kitchen-counter-stone",
+      "unit": "m2",
+      "material": 11520.0,
+      "labour": 4480.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "kitchen-cabinets-basic",
+      "unit": "m2",
+      "material": 4680.0,
+      "labour": 1820.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "kitchen-cabinets-mid",
+      "unit": "m2",
+      "material": 7920.0,
+      "labour": 3080.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "kitchen-cabinets-premium",
+      "unit": "m2",
+      "material": 12960.0,
+      "labour": 5040.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "kitchen-sink-basic",
+      "unit": "item",
+      "material": 5040.0,
+      "labour": 1960.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "kitchen-sink-mid",
+      "unit": "item",
+      "material": 11520.0,
+      "labour": 4480.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "kitchen-sink-premium",
+      "unit": "item",
+      "material": 25200.0,
+      "labour": 9800.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "main-door-flush",
+      "unit": "m2",
+      "material": 7200.0,
+      "labour": 2800.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "main-door-engineered",
+      "unit": "m2",
+      "material": 12960.0,
+      "labour": 5040.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "main-door-hardwood",
+      "unit": "m2",
+      "material": 21600.0,
+      "labour": 8400.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "internal-door-flush",
+      "unit": "m2",
+      "material": 4680.0,
+      "labour": 1820.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "internal-door-engineered",
+      "unit": "m2",
+      "material": 7920.0,
+      "labour": 3080.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "internal-door-hardwood",
+      "unit": "m2",
+      "material": 13680.0,
+      "labour": 5320.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "door-hardware-basic",
+      "unit": "set",
+      "material": 1296.0,
+      "labour": 504.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "door-hardware-mid",
+      "unit": "set",
+      "material": 2880.0,
+      "labour": 1120.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "door-hardware-premium",
+      "unit": "set",
+      "material": 5760.0,
+      "labour": 2240.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "windows-aluminium",
+      "unit": "m2",
+      "material": 5040.0,
+      "labour": 1960.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "windows-upvc",
+      "unit": "m2",
+      "material": 6480.0,
+      "labour": 2520.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "windows-thermal",
+      "unit": "m2",
+      "material": 10440.0,
+      "labour": 4060.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "glass-clear",
+      "unit": "m2",
+      "material": 1584.0,
+      "labour": 616.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "glass-toughened",
+      "unit": "m2",
+      "material": 2520.0,
+      "labour": 980.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "glass-double",
+      "unit": "m2",
+      "material": 4680.0,
+      "labour": 1820.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "window-grills-basic",
+      "unit": "m2",
+      "material": 1296.0,
+      "labour": 504.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "window-grills-mid",
+      "unit": "m2",
+      "material": 2016.0,
+      "labour": 784.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "window-grills-premium",
+      "unit": "m2",
+      "material": 3240.0,
+      "labour": 1260.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "balcony-railings-basic",
+      "unit": "m",
+      "material": 2520.0,
+      "labour": 980.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "balcony-railings-mid",
+      "unit": "m",
+      "material": 4320.0,
+      "labour": 1680.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "balcony-railings-premium",
+      "unit": "m",
+      "material": 7200.0,
+      "labour": 2800.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "compound-gate-basic",
+      "unit": "m2",
+      "material": 3960.0,
+      "labour": 1540.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "compound-gate-mid",
+      "unit": "m2",
+      "material": 6120.0,
+      "labour": 2380.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "compound-gate-premium",
+      "unit": "m2",
+      "material": 10080.0,
+      "labour": 3920.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "compound-wall-plaster",
+      "unit": "m2",
+      "material": 1728.0,
+      "labour": 672.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "compound-wall-stone",
+      "unit": "m2",
+      "material": 2736.0,
+      "labour": 1064.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "compound-wall-screen",
+      "unit": "m2",
+      "material": 3744.0,
+      "labour": 1456.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "terrace-waterproofing-coating",
+      "unit": "m2",
+      "material": 720.0,
+      "labour": 280.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "terrace-waterproofing-membrane",
+      "unit": "m2",
+      "material": 1080.0,
+      "labour": 420.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "terrace-waterproofing-tile",
+      "unit": "m2",
+      "material": 1728.0,
+      "labour": 672.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "bath-waterproofing-basic",
+      "unit": "m2",
+      "material": 360.0,
+      "labour": 140.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "bath-waterproofing-mid",
+      "unit": "m2",
+      "material": 576.0,
+      "labour": 224.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "bath-waterproofing-premium",
+      "unit": "m2",
+      "material": 864.0,
+      "labour": 336.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "foundation-waterproofing-basic",
+      "unit": "m2",
+      "material": 432.0,
+      "labour": 168.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "foundation-waterproofing-mid",
+      "unit": "m2",
+      "material": 684.0,
+      "labour": 266.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "foundation-waterproofing-premium",
+      "unit": "m2",
+      "material": 1008.0,
+      "labour": 392.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "interior-paint-emulsion",
+      "unit": "m2",
+      "material": 187.2,
+      "labour": 72.8,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "interior-paint-washable",
+      "unit": "m2",
+      "material": 273.6,
+      "labour": 106.4,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "interior-paint-premium",
+      "unit": "m2",
+      "material": 432.0,
+      "labour": 168.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "exterior-paint-acrylic",
+      "unit": "m2",
+      "material": 216.0,
+      "labour": 84.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "exterior-paint-weather",
+      "unit": "m2",
+      "material": 324.0,
+      "labour": 126.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "exterior-paint-elastomeric",
+      "unit": "m2",
+      "material": 504.0,
+      "labour": 196.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "sanitary-basic",
+      "unit": "set",
+      "material": 12960.0,
+      "labour": 5040.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "sanitary-mid",
+      "unit": "set",
+      "material": 25200.0,
+      "labour": 9800.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "sanitary-premium",
+      "unit": "set",
+      "material": 50400.0,
+      "labour": 19600.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "cp-fittings-basic",
+      "unit": "set",
+      "material": 8640.0,
+      "labour": 3360.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "cp-fittings-mid",
+      "unit": "set",
+      "material": 18000.0,
+      "labour": 7000.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "cp-fittings-premium",
+      "unit": "set",
+      "material": 36000.0,
+      "labour": 14000.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "water-pipes-cpvc",
+      "unit": "m",
+      "material": 158.4,
+      "labour": 61.6,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "water-pipes-ppr",
+      "unit": "m",
+      "material": 216.0,
+      "labour": 84.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "water-pipes-pex",
+      "unit": "m",
+      "material": 345.6,
+      "labour": 134.4,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "drain-pipes-pvc",
+      "unit": "m",
+      "material": 216.0,
+      "labour": 84.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "drain-pipes-swr",
+      "unit": "m",
+      "material": 324.0,
+      "labour": 126.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "drain-pipes-low-noise",
+      "unit": "m",
+      "material": 504.0,
+      "labour": 196.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "water-tanks-basic",
+      "unit": "item",
+      "material": 10800.0,
+      "labour": 4200.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "water-tanks-mid",
+      "unit": "item",
+      "material": 20160.0,
+      "labour": 7840.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "water-tanks-premium",
+      "unit": "item",
+      "material": 36000.0,
+      "labour": 14000.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "water-heater-basic",
+      "unit": "item",
+      "material": 5760.0,
+      "labour": 2240.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "water-heater-mid",
+      "unit": "item",
+      "material": 10800.0,
+      "labour": 4200.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "water-heater-premium",
+      "unit": "item",
+      "material": 20160.0,
+      "labour": 7840.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "wiring-fr",
+      "unit": "m",
+      "material": 39.6,
+      "labour": 15.4,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "wiring-frls",
+      "unit": "m",
+      "material": 54.0,
+      "labour": 21.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "wiring-lszh",
+      "unit": "m",
+      "material": 79.2,
+      "labour": 30.8,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "switches-basic",
+      "unit": "point",
+      "material": 324.0,
+      "labour": 126.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "switches-mid",
+      "unit": "point",
+      "material": 612.0,
+      "labour": 238.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "switches-premium",
+      "unit": "point",
+      "material": 1080.0,
+      "labour": 420.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "light-fittings-basic",
+      "unit": "item",
+      "material": 504.0,
+      "labour": 196.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "light-fittings-mid",
+      "unit": "item",
+      "material": 1296.0,
+      "labour": 504.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "light-fittings-premium",
+      "unit": "item",
+      "material": 3240.0,
+      "labour": 1260.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "fans-basic",
+      "unit": "item",
+      "material": 1800.0,
+      "labour": 700.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "fans-mid",
+      "unit": "item",
+      "material": 3960.0,
+      "labour": 1540.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "fans-premium",
+      "unit": "item",
+      "material": 7920.0,
+      "labour": 3080.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "distribution-board-basic",
+      "unit": "item",
+      "material": 8640.0,
+      "labour": 3360.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "distribution-board-mid",
+      "unit": "item",
+      "material": 15840.0,
+      "labour": 6160.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "distribution-board-premium",
+      "unit": "item",
+      "material": 28800.0,
+      "labour": 11200.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "earthing-computed",
+      "unit": "item",
+      "material": 8640.0,
+      "labour": 3360.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "false-ceiling-none",
+      "unit": "m2",
+      "material": 0.0,
+      "labour": 0.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "false-ceiling-gypsum",
+      "unit": "m2",
+      "material": 1080.0,
+      "labour": 420.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "false-ceiling-acoustic",
+      "unit": "m2",
+      "material": 2016.0,
+      "labour": 784.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "roof-type-flat",
+      "unit": "m2",
+      "material": 720.0,
+      "labour": 280.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "roof-type-tile",
+      "unit": "m2",
+      "material": 1728.0,
+      "labour": 672.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "roof-type-hybrid",
+      "unit": "m2",
+      "material": 2304.0,
+      "labour": 896.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "parapet-finish-basic",
+      "unit": "m",
+      "material": 468.0,
+      "labour": 182.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "parapet-finish-mid",
+      "unit": "m",
+      "material": 792.0,
+      "labour": 308.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "parapet-finish-premium",
+      "unit": "m",
+      "material": 1368.0,
+      "labour": 532.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "entry-canopy-basic",
+      "unit": "m2",
+      "material": 2736.0,
+      "labour": 1064.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "entry-canopy-mid",
+      "unit": "m2",
+      "material": 4680.0,
+      "labour": 1820.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "entry-canopy-premium",
+      "unit": "m2",
+      "material": 7920.0,
+      "labour": 3080.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "paving-concrete",
+      "unit": "m2",
+      "material": 1008.0,
+      "labour": 392.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "paving-granite",
+      "unit": "m2",
+      "material": 1656.0,
+      "labour": 644.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "paving-stone",
+      "unit": "m2",
+      "material": 2736.0,
+      "labour": 1064.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "landscaping-lawn",
+      "unit": "m2",
+      "material": 324.0,
+      "labour": 126.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "landscaping-mixed",
+      "unit": "m2",
+      "material": 684.0,
+      "labour": 266.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "landscaping-garden",
+      "unit": "m2",
+      "material": 1296.0,
+      "labour": 504.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "pool-off",
+      "unit": "m2",
+      "material": 0.0,
+      "labour": 0.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "pool-on",
+      "unit": "m2",
+      "material": 20160.0,
+      "labour": 7840.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "driveway-computed",
+      "unit": "m2",
+      "material": 1368.0,
+      "labour": 532.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "lawn-computed",
+      "unit": "m2",
+      "material": 324.0,
+      "labour": 126.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "lift-off",
+      "unit": "item",
+      "material": 0.0,
+      "labour": 0.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "lift-on",
+      "unit": "item",
+      "material": 1008000.0,
+      "labour": 392000.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "solar-off",
+      "unit": "item",
+      "material": 0.0,
+      "labour": 0.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "solar-on",
+      "unit": "item",
+      "material": 180000.0,
+      "labour": 70000.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "automation-off",
+      "unit": "item",
+      "material": 0.0,
+      "labour": 0.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "automation-on",
+      "unit": "item",
+      "material": 129600.0,
+      "labour": 50400.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "interiors-off",
+      "unit": "item",
+      "material": 0.0,
+      "labour": 0.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "interiors-on",
+      "unit": "item",
+      "material": 432000.0,
+      "labour": 168000.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "ev-off",
+      "unit": "item",
+      "material": 0.0,
+      "labour": 0.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "ev-on",
+      "unit": "item",
+      "material": 46800.0,
+      "labour": 18200.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "cctv-off",
+      "unit": "item",
+      "material": 0.0,
+      "labour": 0.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "cctv-on",
+      "unit": "item",
+      "material": 32400.0,
+      "labour": 12600.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "air-conditioning-off",
+      "unit": "item",
+      "material": 0.0,
+      "labour": 0.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "air-conditioning-on",
+      "unit": "item",
+      "material": 172800.0,
+      "labour": 67200.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "rainwater-off",
+      "unit": "item",
+      "material": 0.0,
+      "labour": 0.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "rainwater-on",
+      "unit": "item",
+      "material": 68400.0,
+      "labour": 26600.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "contract-type-labour",
+      "unit": "percent",
+      "material": 0.0,
+      "labour": 0.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "contract-type-item-rate",
+      "unit": "percent",
+      "material": 0.0,
+      "labour": 0.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "contract-type-turnkey",
+      "unit": "percent",
+      "material": 0.0,
+      "labour": 0.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "professional-fees-computed",
+      "unit": "percent",
+      "material": 4.32,
+      "labour": 1.68,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "approvals-computed",
+      "unit": "item",
+      "material": 54000.0,
+      "labour": 21000.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "connections-computed",
+      "unit": "item",
+      "material": 72000.0,
+      "labour": 28000.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "overhead-computed",
+      "unit": "percent",
+      "material": 8.64,
+      "labour": 3.36,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "contingency-computed",
+      "unit": "percent",
+      "material": 5.4,
+      "labour": 2.1,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "gst-computed",
+      "unit": "percent",
+      "material": 12.96,
+      "labour": 5.04,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "boq-structure",
+      "unit": "m2",
+      "material": 8280.0,
+      "labour": 3220.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "boq-masonry",
+      "unit": "m2",
+      "material": 756.0,
+      "labour": 294.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "boq-plaster",
+      "unit": "m2",
+      "material": 230.4,
+      "labour": 89.6,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "boq-electrical",
+      "unit": "m2",
+      "material": 1296.0,
+      "labour": 504.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "boq-plumbing",
+      "unit": "m2",
+      "material": 1152.0,
+      "labour": 448.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "boq-paving",
+      "unit": "m2",
+      "material": 1368.0,
+      "labour": 532.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "boq-lawn",
+      "unit": "m2",
+      "material": 324.0,
+      "labour": 126.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    },
+    {
+      "id": "boq-pool",
+      "unit": "m2",
+      "material": 20160.0,
+      "labour": 7840.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
+    }
+  ]
+}

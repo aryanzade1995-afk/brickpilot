@@ -1,5 +1,4 @@
-import catalog from './data/finishes.json' with { type: 'json' }
-import policy from './data/pune.json' with { type: 'json' }
+import { validatedFinishes as catalog, validatedPunePolicy as policy } from './data/validated.ts'
 
 export { catalog, policy }
 export type FinishCategory = 'floor' | 'wall' | 'door' | 'window' | 'roof'

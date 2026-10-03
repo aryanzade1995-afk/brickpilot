@@ -1,7 +1,7 @@
 import type { Design, Opening, Wall } from '../engine/types.ts'
 import { rectUnionArea, segLength, type Rect } from '../geometry.ts'
 import { fnv } from '../engine/massing/rng.ts'
-import policy from './data/pune.json' with { type: 'json' }
+import { validatedPunePolicy as policy } from './data/validated.ts'
 
 export type RoomQuantity = { id: string; floor: string; name: string; area: number }
 export type Quantities = {
