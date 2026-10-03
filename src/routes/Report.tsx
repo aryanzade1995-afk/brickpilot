@@ -1,3 +1,11 @@
+import { SpecificationSchedule } from '@/components/SpecificationSchedule.tsx'
+import { specificationSchedule } from '@/lib/cost/schedule.ts'
+import { QuantitiesView, EstimateView, AssumptionsView } from './finishes/CostViews.tsx'
+import { useBlender } from '@/state/blender.ts'
+import { createBuildingModel } from '@/lib/engine/buildingModel.ts'
+import { finishSignature } from '@/lib/cost/finishAssignments.ts'
+import type { Result } from '@/state/studio.ts'
+import type { Brief } from '@/lib/model/brief.ts'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Download, FileText, Loader2, Trash2 } from 'lucide-react'
@@ -8,7 +16,6 @@ import { FloorDrawing, TerraceDrawing } from '@/lib/draw/FloorDrawing.tsx'
 import { MassingViewport, MASSING_CANVAS, type CaptureView } from '@/lib/render/CaptureCanvas.tsx'
 import { rasterizeSvg } from '@/lib/render/rasterizeSvg.ts'
 import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
-import { CostSummary } from '@/components/CostSummary.tsx'
 import { InvalidPlanNotice } from '@/components/InvalidPlanNotice.tsx'
 import { useFinishes } from '@/state/finishes.ts'
 import { estimateProjectBoq } from '@/lib/cost/index.ts'
@@ -38,10 +45,12 @@ function triggerDownload(blob: Blob, name: string) {
   setTimeout(() => URL.revokeObjectURL(url), 4000)
 }
 
-export function Report() {
-  const result = useStudio((s) => s.result)
+export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sourceResult?: Result; sourceBrief?: Brief; visualisations?: ReportImage[] } = {}) {
+  const storedResult = useStudio((s) => s.result)
+  const result = sourceResult ?? storedResult
   const run = useStudio((s) => s.run)
-  const brief = useStudio(s => s.brief)
+  const storedBrief = useStudio(s => s.brief)
+  const brief = sourceBrief ?? storedBrief
   const costKey = useMemo(() => result ? geometryCostKey(result.design) : '', [result])
   const selection = useFinishes(s => s.entries[costKey])
   const cost = useMemo(() => result ? estimateProjectBoq(result.design, brief, selection) : null, [result, selection, brief])
@@ -49,6 +58,10 @@ export function Report() {
     if (!result) run()
   }, [result, run])
 
+  const planId = useMemo(() => result ? createBuildingModel({ ...result.design, model: { ...result.design.model, brief } }).planId : '', [result, brief])
+  const blender = useBlender(s => s.accepted[planId])
+  const blenderImages = useMemo<ReportImage[]>(() => blender?.finishSignature === finishSignature(brief)
+    ? (['hero','front','aerial'] as const).map(view => ({label: `Visualisation (Blender) — ${view}`, dataUrl: blender.files[view]})) : visualisations, [blender, brief, visualisations])
   const renderJobs = useRender((s) => s.jobs)
   const resetRender = useRender((s) => s.reset)
   const interiorResults = useInterior((s) => s.results)
@@ -120,12 +133,31 @@ export function Report() {
     }
   }
 
+  const downloadExtra = async (format: 'xlsx' | 'spec') => {
+    if (busy) return
+    setBusy(format === 'xlsx' ? 'Preparing Excel…' : 'Preparing specification sheet…'); setError(null)
+    try {
+      const blob = format === 'xlsx'
+        ? await (await import('@/lib/cost/exportExcel.ts')).buildBoqExcel(cost, brief.project.name)
+        : await (await import('@/lib/report/specSheet.ts')).buildSpecSheetPdf({ projectName: brief.project.name, schedule: specificationSchedule(brief, cost), cost })
+      triggerDownload(blob, `formstead-${slug(brief.project.name)}-${format === 'xlsx' ? 'boq.xlsx' : 'specifications.pdf'}`)
+    } catch (e) { setError(e instanceof Error ? e.message : 'The export could not be prepared.') }
+    finally { setBusy(null) }
+  }
+  const imageBytes = async (img: ReportImage): Promise<ReportImage> => {
+    if (img.dataUrl.startsWith('data:')) return img
+    const response = await fetch(img.dataUrl)
+    if (!response.ok) throw new Error('A rendered view could not load. Please try the report again.')
+    const blob = await response.blob()
+    const dataUrl = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = () => reject(reader.error); reader.readAsDataURL(blob) })
+    return {...img,dataUrl}
+  }
   const download = async () => {
     if (busy) return
     setError(null)
     try {
       setBusy('Capturing 3D massing…')
-      const massingImages = await captureMassing()
+      const massingImages = blenderImages.length ? await Promise.all(blenderImages.map(imageBytes)) : await captureMassing()
 
       setBusy('Drawing floor plans…')
       const planImages: ReportImage[] = []
@@ -147,7 +179,7 @@ export function Report() {
         cost,
         planImages,
         massingImages,
-        conceptImages,
+        conceptImages: await Promise.all(conceptImages.map(imageBytes)),
       })
       triggerDownload(blob, `formstead-${slug(model.brief.project.name)}-report.pdf`)
     } catch (e) {
@@ -238,6 +270,29 @@ export function Report() {
             </div>
           </section>
 
+          <section><h2 className="font-display text-xl">3D & renders</h2>
+            {blenderImages.length ? <div className="mt-4 grid gap-3 sm:grid-cols-2">{blenderImages.map(img => <figure key={img.label} className="border border-line"><img src={img.dataUrl} alt={img.label} className="aspect-[4/3] w-full object-contain"/><figcaption className="p-3 text-xs text-ink-dim">{img.label}</figcaption></figure>)}</div> : <p className="mt-3 text-sm text-ink-dim">Generate views on <Link to="/workspace/massing" className="underline">3D Massing</Link>. Your report can also capture the current 3D study.</p>}
+          </section>
+
+          {conceptImages.length > 0 && (
+            <section>
+              <h2 className="font-display text-xl">Generated concepts</h2>
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {conceptImages.map((img, i) => (
+                  <figure key={i} className="border border-line">
+                    <img src={img.dataUrl} alt={img.label} className="aspect-[3/2] w-full object-cover" />
+                    <figcaption className="border-t border-line px-2 py-1.5 font-mono text-[0.6rem] uppercase tracking-[0.08em] text-ink-faint">
+                      {img.label}
+                    </figcaption>
+                  </figure>
+                ))}
+              </div>
+            </section>
+          )}
+          <SpecificationSchedule rows={specificationSchedule(brief, cost)} />
+          <details className="border-t border-line pt-4"><summary className="cursor-pointer font-display text-xl">Quantities summary</summary><div className="mt-5"><QuantitiesView cost={cost}/></div></details>
+          <section><h2 className="mb-5 font-display text-xl">Estimate by trade</h2><EstimateView cost={cost}/><Link to="/workspace/finishes?tab=estimate" className="mt-4 inline-block text-sm underline">Edit finishes & view BOQ</Link></section>
+          <AssumptionsView cost={cost}/>
           {/* findings */}
           <section>
             <h2 className="font-display text-xl">Validation findings</h2>
@@ -262,24 +317,7 @@ export function Report() {
             )}
           </section>
 
-          <section><h2 className="mb-3 font-display text-xl">Finishes & Cost</h2><CostSummary cost={cost} />
-            <Link to="/workspace/finishes" className="mt-4 inline-block text-sm underline">Edit finishes & view BOQ</Link></section>
-
-          {conceptImages.length > 0 && (
-            <section>
-              <h2 className="font-display text-xl">Generated concepts</h2>
-              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {conceptImages.map((img, i) => (
-                  <figure key={i} className="border border-line">
-                    <img src={img.dataUrl} alt={img.label} className="aspect-[3/2] w-full object-cover" />
-                    <figcaption className="border-t border-line px-2 py-1.5 font-mono text-[0.6rem] uppercase tracking-[0.08em] text-ink-faint">
-                      {img.label}
-                    </figcaption>
-                  </figure>
-                ))}
-              </div>
-            </section>
-          )}
+          <section className="border-t border-line pt-4"><h2 className="font-display text-xl">Disclaimer</h2><p className="mt-3 text-sm leading-relaxed text-ink-dim">Concept feasibility and approximate quantities only. No structural engineering certification. A licensed architect and engineers must verify the design before construction. Final cost depends on structural design, site conditions, actual products and contractor quotes.</p></section>
         </div>
 
         {/* actions */}
@@ -289,8 +327,7 @@ export function Report() {
               <FileText size={16} className="text-accent" /> Project report
             </div>
             <p className="mt-1.5 text-[0.8rem] leading-relaxed text-ink-faint">
-              One PDF: the brief, every floor plan and room schedule, the 3D massing, all validation
-              findings and the full cost estimate — plus any concepts you have generated.
+              Plans, room schedules, visualisations, room-by-room finishes, measured quantities, the estimate and its assumptions.
             </p>
 
             <button
@@ -305,6 +342,9 @@ export function Report() {
               {busy ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
               {busy ?? 'Download PDF'}
             </button>
+
+            <button type="button" disabled={!!busy} onClick={()=>void downloadExtra('xlsx')} className="mt-3 w-full border border-line px-4 py-3 text-xs disabled:opacity-50">Download BOQ Excel</button>
+            <button type="button" disabled={!!busy} onClick={()=>void downloadExtra('spec')} className="mt-3 w-full border border-line px-4 py-3 text-xs disabled:opacity-50">Download spec sheet PDF</button>
 
             {error && (
               <p className="mt-3 border-l-2 border-bad/60 bg-bad/5 px-3 py-2 text-xs text-bad">{error}</p>

@@ -712,3 +712,23 @@ The EEVEE script writes deterministic 1280 × 800 originals, 800 × 500 web copi
 and hashed, explicitly labelled Visualisation metadata to `samples.json`. Real
 catalogue close-up photographs remain at least 1600 px. These neutral sample
 rooms demonstrate a surface; they are not photographs or product approvals.
+
+
+### Report and contractor exports
+
+Report 07 follows: project summary, plans/room schedules, 3D visualisations,
+room-by-room specification schedule with audited real texture close-ups,
+quantities, trade estimate and itemised BOQ, assumptions/exclusions, validation
+and disclaimer. Available matching exports are a full PDF, a showroom/contractor
+specification PDF and a numeric Excel BOQ with one tab per trade plus Summary.
+Excel quantity × rate and subtotal cells are formulas with cached results; it
+recalculates on opening. The existing CSV export remains available. ExcelJS is
+loaded only when an Excel download is requested.
+
+```cmd
+node --experimental-strip-types scripts/review-cost-delivery.mjs
+```
+
+This generates an isolated review fixture using the real production components
+and exports under `output/cost-delivery-review`; it does not replace the user's
+saved brief. Automated coverage is `scripts/test-cost-delivery.mjs`.

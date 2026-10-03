@@ -1,3 +1,5 @@
+import { specificationSchedule } from '../cost/schedule.ts'
+import { appendSpecificationSchedule, schedulePhotos } from './specSheet.ts'
 import { jsPDF } from 'jspdf'
 import { autoTable } from 'jspdf-autotable'
 import type { Brief } from '@/lib/model/brief.ts'
@@ -23,6 +25,7 @@ export type ReportImage = { label: string; dataUrl: string }
 
 export type ReportData = {
   projectName: string
+  specPhotos?: Record<string, string>
   brief: Brief
   design: Design
   report: ValidationReport
@@ -139,7 +142,7 @@ export async function buildReportPdf(data: ReportData): Promise<Blob> {
   y += 30
   doc.setFont('times', 'normal').setFontSize(30).setTextColor(...INK)
   doc.text(doc.splitTextToSize(data.projectName, contentW), M, y)
-  y += 34
+  y += doc.splitTextToSize(data.projectName, contentW).length * 34
   doc.setFont('helvetica', 'normal').setFontSize(11).setTextColor(...DIM)
   doc.text('Concept Feasibility Report', M, y)
   y += 16
@@ -182,23 +185,27 @@ export async function buildReportPdf(data: ReportData): Promise<Blob> {
     briefRows(brief),
   )
 
+  /* ----------------------------- why this plan ----------------------------- */
+  const why = preferenceScore(design)
+  const whyTerms = why.terms.filter((t) => t.value !== 0)
+  if (whyTerms.length) {
+    heading('Why this plan', 80)
+    paragraph('Among every plan that passed the hard checks, this one scored best against the brief. Each term is small and additive.')
+    table(['Preference', 'Score'], [
+      ...whyTerms.map((t) => [t.name, `${t.value > 0 ? '+' : ''}${t.value}`]),
+      ['Total', String(why.total)],
+    ])
+  }
+
   /* ------------------------------ floor plans ----------------------------- */
-  data.planImages.forEach((img, idx) => {
-    const floor = design.floors[idx]
-    heading(`${floor?.name ?? img.label} plan`, 220)
-    image(img, 300)
-    if (floor) {
-      table(
-        ['Space', 'Zone', 'Size', 'Area'],
-        floor.rooms.map((r) => [
-          r.name,
-          ZONE_LABEL[r.zone],
-          `${(r.rect.w / 1000).toFixed(1)} × ${(r.rect.h / 1000).toFixed(1)} m`,
-          `${r.area.toFixed(1)} m²`,
-        ]),
-      )
-    }
+  design.floors.forEach((floor, idx) => {
+    heading(`${floor.name} plan`, data.planImages[idx] ? 220 : 60)
+    if (data.planImages[idx]) image(data.planImages[idx], 300)
+    else paragraph('Plan image unavailable in this export; room dimensions remain listed below.')
+    table(['Space', 'Zone', 'Size', 'Area'], floor.rooms.map(r => [r.name, ZONE_LABEL[r.zone],
+      `${(r.rect.w / 1000).toFixed(1)} × ${(r.rect.h / 1000).toFixed(1)} m`, `${r.area.toFixed(1)} m²`]))
   })
+  if (data.planImages[design.floors.length]) { heading('Terrace plan', 220); image(data.planImages[design.floors.length], 300) }
 
   /* --------------------------------- massing ------------------------------ */
   if (data.massingImages.length) {
@@ -206,19 +213,23 @@ export async function buildReportPdf(data: ReportData): Promise<Blob> {
     data.massingImages.forEach((img) => image(img, 240))
   }
 
-  /* ------------------------------- validation ----------------------------- */
-  heading('Validation findings', 90)
-  paragraph(
-    `Rule pack ${report.pack} · score ${report.score}/100 · ${report.counts.error} errors · ${report.counts.warning} warnings · deterministic checks: ${report.checksRun.join(', ')}.`,
-  )
-  if (report.findings.length === 0) {
-    paragraph('No findings — the concept passes every rule in this pack.', INK)
-  } else {
-    table(
-      ['Severity', 'Code', 'Finding'],
-      report.findings.map((f) => [f.severity.toUpperCase(), f.code, f.message]),
-    )
+  /* -------------------------------- concepts ------------------------------ */
+  if (data.conceptImages.length) {
+    heading('Generated concepts', 200)
+    paragraph('Visualisations, not photographs. Generated materials, lighting and furnishing are assumptions, not measured output.')
+    data.conceptImages.forEach((img) => image(img, 250))
   }
+
+  heading('Specification schedule', 90)
+  paragraph('Room-by-room choices and whole-home specifications. Close-ups are real CC0 texture photos, not installed product photographs.')
+  const schedule = specificationSchedule(brief, cost)
+  const photos = data.specPhotos ?? await schedulePhotos(schedule)
+  y = appendSpecificationSchedule(doc, schedule, y, photos)
+  heading('Quantities summary', 90)
+  paragraph('Approximate; structural design by a licensed engineer required. Aggregate and room rows describe the same work, not extra charges.')
+  table(['Measured category', 'Quantity'], Object.entries(cost.quantities.total.items)
+    .filter(([key]) => !key.startsWith('flooring.') && !key.startsWith('skirting.') && !key.startsWith('paint.room.'))
+    .map(([key, values]) => [key.replaceAll('.', ' / '), Object.entries(values).filter(([,v]) => v > 0).map(([name,v]) => `${name} ${v.toFixed(2)} ${name === 'NetVolume' ? 'm3' : name === 'Length' ? 'm' : name === 'Count' ? '' : 'm2'}`).join('; ')]))
 
   /* ---------------------------------- cost -------------------------------- */
   heading('Finishes & Cost', 90)
@@ -264,24 +275,23 @@ export async function buildReportPdf(data: ReportData): Promise<Blob> {
   // Helvetica has no ₹ glyph; any ₹ in free text would garble the whole line
   paragraph(`Sources — ${cost.sources.join(' · ').replaceAll('₹', 'Rs')}`)
 
-  /* ----------------------------- why this plan ----------------------------- */
-  const why = preferenceScore(design)
-  const whyTerms = why.terms.filter((t) => t.value !== 0)
-  if (whyTerms.length) {
-    heading('Why this plan', 80)
-    paragraph('Among every plan that passed the hard checks, this one scored best against the brief. Each term is small and additive.')
-    table(['Preference', 'Score'], [
-      ...whyTerms.map((t) => [t.name, `${t.value > 0 ? '+' : ''}${t.value}`]),
-      ['Total', String(why.total)],
-    ])
+  /* ------------------------------- validation ----------------------------- */
+  heading('Validation findings', 90)
+  paragraph(
+    `Rule pack ${report.pack} · score ${report.score}/100 · ${report.counts.error} errors · ${report.counts.warning} warnings · deterministic checks: ${report.checksRun.join(', ')}.`,
+  )
+  if (report.findings.length === 0) {
+    paragraph('No findings — the concept passes every rule in this pack.', INK)
+  } else {
+    table(
+      ['Severity', 'Code', 'Finding'],
+      report.findings.map((f) => [f.severity.toUpperCase(), f.code, f.message]),
+    )
   }
 
-  /* -------------------------------- concepts ------------------------------ */
-  if (data.conceptImages.length) {
-    heading('Generated concepts', 200)
-    paragraph('Visualisations, not photographs. Generated materials, lighting and furnishing are assumptions, not measured output.')
-    data.conceptImages.forEach((img) => image(img, 250))
-  }
+  heading('Disclaimer', 60)
+  paragraph('Concept feasibility and approximate quantities only. No structural engineering certification. Final cost depends on structural design, soil, site conditions, actual products and contractor quotes. A licensed architect and engineers must verify the design before construction.')
+  paragraph('Texture close-ups: ' + [...new Set(schedule.filter(r=>r.photo).map(r=>`${r.photoSource} · ${r.credit}`))].join('; '))
 
   footer()
   return doc.output('blob')
