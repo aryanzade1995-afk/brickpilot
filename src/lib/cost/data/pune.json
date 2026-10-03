@@ -1,0 +1,21 @@
+{
+  "version": "pune-concept-2026-10-03",
+  "city": "Pune",
+  "date": "2026-10-03",
+  "currency": "INR",
+  "uncertaintyPercent": 15,
+  "status": "Provisional concept allowances, not verified contractor or product quotes",
+  "qualification": "Final cost depends on structural design, site conditions, actual products and contractor quotes.",
+  "sources": [{"label":"CPWD Plinth Area Rates 2025 — methodology reference, not a Pune product price list", "url":"https://cpwd.gov.in/Publication/PLINTH_AREA_RATES_2025.pdf"}],
+  "defaults": {"preset":"standard", "includeGst":false, "overheadPercent":8, "contingencyPercent":10, "feePercent":6, "gstPercent":18},
+  "percentageLimit": 100,
+  "sanityPerSqm": {"low":15000, "high":75000},
+  "measurement": {"slabThicknessMm":220, "doorHeightMm":2100, "entryHeightMm":2400, "windowHeadMm":2100, "windowSillMm":900, "hostToleranceMm":2},
+  "rates": {"structure":11500, "masonry":1050, "plaster":320, "electrical":1800, "plumbing":1600, "paving":1900, "lawn":450, "pool":28000},
+  "scope": {
+    "structure":"Area allowance for foundations, RCC frame, slabs and stair structure; excludes masonry, finishes and MEP. Not a concrete or steel take-off.",
+    "rates":"Installed material + labour allowances, before contractor overhead and GST. GST is excluded by default; the optional provision is not tax advice.",
+    "excluded":["Land, approvals, financing and unusual ground works", "Loose furniture, appliances, modular kitchen, wardrobes, HVAC, lift and solar", "Unmeasured exterior facade features, compound wall/gate, service connections and decorative landscaping"],
+    "included":["Concept structure allowance, measured walls, plaster and selected finishes", "Door leaves and glazing from actual openings, roof waterproofing", "Area-based electrical and plumbing allowances; planned paving, lawn and pool where present"]
+  }
+}

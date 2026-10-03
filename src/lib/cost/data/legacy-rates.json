@@ -1,0 +1,9 @@
+{
+  "finish":{"basic":19500,"mid":24000,"premium":33000},
+  "interiors":{"basic":7000,"mid":12000,"premium":20000},
+  "interiorAreaShare":0.8,
+  "storey":{"0":1,"1":1,"2":1.04,"3":1.08},
+  "family":{"rectangular":1,"stepped":1.03,"l-shape":1.04,"courtyard":1.06,"twin-wing":1.08,"u-wing":1.1,"courtyard-ring":1.12,"pavilion":1.14},
+  "style":{"modern-indian":22000,"contemporary-indian":21500,"modern-kerala":20500,"kerala-contemporary":20500,"luxury-indian":29000,"tropical-indian":22500,"minimal-indian":19500,"courtyard-indian":21000,"resort-luxury":28500,"neo-classical":24500,"contemporary-classical":25500,"urban-premium":25500,"modern-box":22000},
+  "styleReference":22000,"styleLimits":{"low":0.9,"high":1.3},"largeVillaFactor":1.08
+}

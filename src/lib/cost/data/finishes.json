@@ -1,0 +1,14 @@
+{
+  "categories": [
+    {"id":"floor", "label":"Indoor flooring", "options":[{"id":"ceramic", "label":"Ceramic tile", "description":"Simple, durable tile with laying and grout.", "rate":1400}, {"id":"vitrified", "label":"Vitrified tile", "description":"Easy-care large-format tile with laying and grout.", "rate":2200}, {"id":"stone", "label":"Natural stone", "description":"Stone flooring with laying and polishing allowance.", "rate":4800}]},
+    {"id":"wall", "label":"Wall finish", "options":[{"id":"emulsion", "label":"Standard emulsion", "description":"Interior and exterior paint allowance over plaster.", "rate":260}, {"id":"washable", "label":"Washable paint", "description":"Durable washable finish over plaster.", "rate":380}, {"id":"premium", "label":"Premium paint", "description":"Premium coating allowance; decorative cladding excluded.", "rate":600}]},
+    {"id":"door", "label":"Doors", "options":[{"id":"flush", "label":"Flush doors", "description":"Door leaves, frames and standard hardware per square metre.", "rate":6500}, {"id":"engineered", "label":"Engineered timber", "description":"Timber-finished doors, frames and hardware per square metre.", "rate":11000}, {"id":"hardwood", "label":"Hardwood", "description":"Hardwood door allowance, frames and hardware per square metre.", "rate":19000}]},
+    {"id":"window", "label":"Windows & glazed doors", "options":[{"id":"aluminium", "label":"Aluminium glazing", "description":"Standard aluminium frames and glazing, installed.", "rate":7000}, {"id":"upvc", "label":"uPVC glazing", "description":"uPVC frames and glazing, installed.", "rate":9000}, {"id":"thermal", "label":"Thermal-break glazing", "description":"Thermal-break frames and double glazing allowance.", "rate":14500}]},
+    {"id":"roof", "label":"Terrace waterproofing", "options":[{"id":"coating", "label":"Protective coating", "description":"Waterproofing and protective finish; terrace geometry stays fixed.", "rate":1000}, {"id":"membrane", "label":"Membrane system", "description":"Waterproof membrane with protective screed allowance.", "rate":1500}, {"id":"tile", "label":"Tiled terrace", "description":"Waterproofing, screed and outdoor tile finish.", "rate":2400}]}
+  ],
+  "presets": [
+    {"id":"simple", "label":"Simple", "description":"Practical, durable finishes.", "choices":{"floor":"ceramic","wall":"emulsion","door":"flush","window":"aluminium","roof":"coating"}},
+    {"id":"standard", "label":"Standard", "description":"Balanced finishes for everyday use.", "choices":{"floor":"vitrified","wall":"washable","door":"engineered","window":"upvc","roof":"membrane"}},
+    {"id":"refined", "label":"Refined", "description":"Higher-specification surfaces and joinery.", "choices":{"floor":"stone","wall":"premium","door":"hardwood","window":"thermal","roof":"tile"}}
+  ]
+}
