@@ -83,6 +83,9 @@ def create_materials(palette):
                   "leaf": finish("#477448", "leaf", .58),
                   "soil": finish("#41372A", "soil", .96),
                   "paving": finish("#A7A49B", "paving", .8),
+                  "tank": finish("#E6ECF0", "plaster", .42),
+                  "tank_lid": finish("#2D6CA3", "plaster", .4),
+                  "fabric": finish("#EADFC9", "plaster", .92),
                   "light_emission": finish("#FFD4A4", "emission", .35)})
     result = {role: _material(f"Arch_{resolved}_{role}", spec) for role, spec in specs.items()}
     result.update({alias: result[role] for alias, role in ALIASES.items()})

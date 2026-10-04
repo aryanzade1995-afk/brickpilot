@@ -4,7 +4,7 @@ import { DRAWING_PRESETS, type DrawingLayers } from './layers.ts'
 import { Fragment } from 'react'
 import { rectBottom, rectCenter, rectRight, rectUnionEdges, type Rect } from '../geometry.ts'
 import type { Design, FloorPlan, Opening, SiteFeature } from '../engine/types.ts'
-import { terraceLayout } from '../engine/terrace.ts'
+import { terraceLayout, tankBank } from '../engine/terrace.ts'
 import { drawingStructure } from '../engine/structuralSizing.ts'
 import type { CanonicalModel, Zone } from '../model/canonical.ts'
 import { furnishFloor, type FurnitureShape, type Role } from './furniture.ts'
@@ -625,12 +625,17 @@ export function TerraceDrawing({ design, svgRef, theme = 'presentation', layers 
               {active.labels && <RoomTag ink={ink} bg={BG[theme]} name="Stair (DN)" rect={layout.mumty} size={300} />}
             </g>
           )}
-          {active.furniture && layout.tank && (
+          {active.furniture && layout.tank && (() => { const tb = tankBank(layout)!; return (
             <g>
-              <rect x={layout.tank.x} y={layout.tank.y} width={layout.tank.w} height={layout.tank.h} fill="#ffffff" stroke={ink} strokeWidth={40} />
-              <circle cx={layout.tank.x + layout.tank.w / 2} cy={layout.tank.y + layout.tank.h / 2} r={layout.tank.w * 0.38} fill="#d9d9d9" stroke={ink} strokeWidth={25} />
+              <rect x={tb.x} y={tb.y} width={tb.w} height={tb.h} fill="#ffffff" stroke={ink} strokeWidth={40} />
+              {Array.from({ length: Math.max(1, Math.round(Math.max(tb.w, tb.h) / 1150)) }, (_, i) => {
+                const n = Math.max(1, Math.round(Math.max(tb.w, tb.h) / 1150)), alongX = tb.w >= tb.h, pitch = Math.max(tb.w, tb.h) / n
+                return <circle key={`tk-${i}`} cx={alongX ? tb.x + pitch * (i + 0.5) : tb.x + tb.w / 2}
+                  cy={alongX ? tb.y + tb.h / 2 : tb.y + pitch * (i + 0.5)}
+                  r={Math.min(pitch, Math.min(tb.w, tb.h)) * 0.4} fill="#d9d9d9" stroke={ink} strokeWidth={25} />
+              })}
             </g>
-          )}
+          ) })()}
           {active.labels && <RoomTag ink={ink} bg={BG[theme]} name="Open terrace" rect={o} size={440} />}
           {active.labels && active.furniture && layout.pergola && <RoomTag ink={ink} bg={BG[theme]} name="Pergola deck" rect={layout.pergola} size={300} />}
         </g>

@@ -7,6 +7,7 @@ import { Bounds, OrbitControls, useGLTF } from '@react-three/drei'
 import type { Design } from '@/lib/engine/types.ts'
 import { createBuildingModel } from '@/lib/engine/buildingModel.ts'
 import { useBlender, directionRenderKey } from '@/state/blender.ts'
+import { RenderProgress } from './RenderProgress.tsx'
 
 function Villa({ url }: { url: string }) {
   const gltf = useGLTF(url)
@@ -65,7 +66,9 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
         </button>
       </div>
     </div>
+    {previewBusy && <RenderProgress progress={preview!.progress} label={preview!.phase} />}
     {previewBusy && <p role="status" className="mt-4 text-sm text-ink-dim">Preparing your selected direction: {preview!.phase}. The same villa will appear here when ready.</p>}
+    {currentJob && jobBusy && !previewBusy && <RenderProgress progress={currentJob.progress} label={currentJob.phase} />}
     {currentJob && jobBusy && <p role="status" className="mt-4 text-sm text-ink-dim">{currentJob.phase}{currentJob.attempt ? ` · candidate ${currentJob.attempt}` : ''}. Rendering can take a few minutes.</p>}
     {jobBusy && !currentJob && !previewBusy && <p role="status" className="mt-4 text-sm text-ink-dim">Another plan is being generated. This plan will start when it finishes.</p>}
     {!result && <div className="mt-4 flex aspect-[4/3] items-center justify-center border border-line bg-bg-inset p-8 text-center text-sm text-ink-dim">

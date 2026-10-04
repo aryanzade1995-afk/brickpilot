@@ -7,7 +7,7 @@ import type { CanonicalModel } from '../model/canonical.ts'
 import { themeOf, type RailStyle, type ThemeDef } from '../model/themes.ts'
 import type { DesignDNA } from '../engine/designDna.ts'
 import { planFacade } from '../engine/facade/grammar.ts'
-import { terraceLayout, type TerraceLayout } from '../engine/terrace.ts'
+import { terraceLayout, tankBank, type TerraceLayout } from '../engine/terrace.ts'
 import { freeSiteRects } from '../engine/planner/siteFeatures.ts'
 
 /* ------------------------------------------------------------------ *
@@ -1234,7 +1234,8 @@ function buildBalcony(
 }
 
 /** A stair headroom enclosure and water tank only on a usable flat terrace. */
-function roofServices({ mumty, tank }: TerraceLayout, level: number, deckY: number, push: Push, wx: XF, wz: XF, m: XF, exitSide: 'N' | 'S' | 'E' | 'W') {
+function roofServices(layout: TerraceLayout, level: number, deckY: number, push: Push, wx: XF, wz: XF, m: XF, exitSide: 'N' | 'S' | 'E' | 'W') {
+  const { mumty } = layout
   if (mumty) {
     const mw = mumty.w
     const md = mumty.h
@@ -1259,21 +1260,33 @@ function roofServices({ mumty, tank }: TerraceLayout, level: number, deckY: numb
     push('mumty-lip', 'roof', level, [wx(mx), deckY + mh + 0.16, wz(mz)], [m(mw) + 0.48, 0.06, m(md) + 0.48])
   }
 
-  if (!tank) return
-  const near = tank.x + tank.w / 2
-  const nz = tank.y + tank.h / 2
+  const bank = tankBank(layout)
+  if (!bank) return
+  // one stand carrying a row of tanks, one per ~1.15 m of the pad
+  const alongX = bank.w >= bank.h
+  const span = alongX ? bank.w : bank.h
+  const count = Math.max(1, Math.round(span / 1150))
+  const pitch = span / count
+  const cx = bank.x + bank.w / 2
+  const cz = bank.y + bank.h / 2
   const legH = 0.85
-  const tk = 0.9
   const th = 0.95
-  const legs: [number, number][] = [
-    [near - 370, nz - 370], [near + 370, nz - 370],
-    [near - 370, nz + 370], [near + 370, nz + 370],
-  ]
-  legs.forEach(([lx, lz], i) => {
-    push(`tank-leg${i}`, 'railing', level, [wx(lx), deckY + legH / 2, wz(lz)], [0.07, legH, 0.07])
-  })
-  push('tank-frame', 'railing', level, [wx(near), deckY + legH, wz(nz)], [tk + 0.12, 0.05, tk + 0.12])
-  push('tank', 'tank', level, [wx(near), deckY + legH + th / 2, wz(nz)], [tk, th, tk])
+  const tk = Math.min(pitch, alongX ? bank.h : bank.w) / 1000 - 0.14
+  for (let i = 0; i <= count; i++) {
+    for (const side of [-1, 1]) {
+      const at = -span / 2 + pitch * i
+      const off = (alongX ? bank.h : bank.w) / 2 - 70
+      const [lx, lz] = alongX ? [cx + at, cz + side * off] : [cx + side * off, cz + at]
+      push(`tank-leg${i}${side}`, 'railing', level, [wx(lx), deckY + legH / 2, wz(lz)], [0.07, legH, 0.07])
+    }
+  }
+  push('tank-frame', 'railing', level, [wx(cx), deckY + legH, wz(cz)], [m(bank.w) - 0.1, 0.05, m(bank.h) - 0.1])
+  for (let i = 0; i < count; i++) {
+    const at = -span / 2 + pitch * (i + 0.5)
+    const [tx, tz] = alongX ? [cx + at, cz] : [cx, cz + at]
+    push(`tank-${i}`, 'tank', level, [wx(tx), deckY + legH + th / 2, wz(tz)], [tk, th, tk])
+    push(`tank-${i}-lid`, 'tank', level, [wx(tx), deckY + legH + th + 0.03, wz(tz)], [tk * 0.7, 0.06, tk * 0.7])
+  }
 }
 
 /* --------------------------------- site / garden -------------------------------- */

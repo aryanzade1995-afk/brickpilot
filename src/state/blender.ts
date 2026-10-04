@@ -11,11 +11,11 @@ export type BlenderResult = {
   finishSignature?: string; quality: 'preview' | 'final'; warnings: string[]
   files: { blend: string; glb: string; hero: string; front: string; aerial: string }
 }
-type Job = { id: string; status: string; phase: string; seed?: number; expectedSeed?: number; attempt?: number; error?: string;
+type Job = { id: string; status: string; phase: string; progress?: number; seed?: number; expectedSeed?: number; attempt?: number; error?: string;
   result?: BlenderResult; debug: { seed: number; family: string; similarityPercent?: number; nearestPreviousSeed?: number | null; accepted: boolean; reason: string }[] }
 /** A direction is a plan AND an exterior seed. Sharing rooms does not mean sharing a render. */
 export const directionRenderKey = (planId: string, seed: number) => `${planId}:${seed}`
-export type Preview = { status: 'queued' | 'generating' | 'rendering' | 'complete' | 'failed' | 'unavailable'; phase: string; jobId?: string; error?: string; planId: string; seed: number }
+export type Preview = { status: 'queued' | 'generating' | 'rendering' | 'complete' | 'failed' | 'unavailable'; phase: string; progress?: number; jobId?: string; error?: string; planId: string; seed: number }
 type State = {
   accepted: Record<string, BlenderResult>; job: Job | null; sourcePlanId: string | null; error: string | null
   directionRenders: Record<string, BlenderResult>
@@ -78,7 +78,7 @@ export const useBlender = create<State>()(persist((set, get) => {
               set({ directionRenders: { ...get().directionRenders, [key]: job.result } })
               setPreview(key, { ...preview, status: 'complete', phase: 'Ready' })
             } else if (job.status === 'failed') setPreview(key, { ...preview, status: 'failed', phase: 'Stopped', error: job.error || 'Generation failed' })
-            else setPreview(key, { ...preview, status: job.status === 'rendering' ? 'rendering' : job.status === 'queued' ? 'queued' : 'generating', phase: job.phase })
+            else setPreview(key, { ...preview, status: job.status === 'rendering' ? 'rendering' : job.status === 'queued' ? 'queued' : 'generating', phase: job.phase, progress: job.progress })
           } catch (error) {
             setPreview(key, { ...preview, status: 'failed', phase: 'Stopped', error: error instanceof Error ? error.message : 'Could not load the render' })
           }

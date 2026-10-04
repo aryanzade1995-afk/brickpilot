@@ -13,6 +13,7 @@ import { validate } from '@/lib/rules/index.ts'
 import { prepareInspiration } from '@/lib/render/prepareInspiration.ts'
 import { analyzeInspiration } from '@/lib/engine/inspiration.ts'
 import { useRender } from '@/state/render.ts'
+import { RenderProgress } from '@/components/RenderProgress.tsx'
 import { useBlender, directionRenderKey } from '@/state/blender.ts'
 
 export function Directions() {
@@ -240,7 +241,7 @@ function DirectionRender({ planId, seed, label, elements }: { planId: string; se
     {result ? <img src={result.files.hero} alt={`${label} — Blender render`} className="aspect-[3/2] w-full object-cover" />
       : <div className="flex aspect-[3/2] w-full items-center justify-center bg-bg-inset p-6 text-center text-sm text-ink-dim" role="status">
         {!preview || ['queued', 'generating', 'rendering'].includes(preview.status)
-          ? `Building this villa in Blender… ${preview?.phase ?? ''}`
+          ? <div className="w-full"><RenderProgress progress={preview?.progress} label={preview?.phase || 'Building this villa in Blender…'} /></div>
           : preview.status === 'unavailable' ? `3D render unavailable: ${preview.phase}`
             : `The render stopped: ${preview.error ?? preview.phase}`}
       </div>}

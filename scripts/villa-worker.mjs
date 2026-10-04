@@ -55,7 +55,7 @@ try {
     // spare candidates still building would only compete with the render
     stopSpare.abort()
     await emit({debug:decision})
-      await emit({ status: 'rendering', phase: 'Rendering front, hero and aerial views', seed, attempt: candidate.attempt })
+      await emit({ status: 'rendering', phase: 'Rendering front, hero and aerial views', progress: 60, seed, attempt: candidate.attempt })
       await runBlender([...options, '--resume', '--render-all'], resolve(directory, 'blender.log'))
       const final = JSON.parse(await readFile(resolve(stage, name + '.json'), 'utf8'))
       const files = [name + '.blend', name + '.glb', name + '_hero.png', name + '_front.png', name + '_aerial.png']
@@ -67,7 +67,7 @@ try {
         roofline: payload.shapeFingerprint.rooflineType, files, directory: stage, quality: request.quality,
         shapeFingerprint: payload.shapeFingerprint, realizedGeometry: final.realizedGeometry, warnings: [...(final.warnings ?? []), ...(decision.relaxed ? [decision.reason] : [])] }
       await writeFile(resolve(directory, 'accepted.json'), JSON.stringify(accepted))
-      await emit({ status: 'complete', phase: 'Ready', result: accepted })
+      await emit({ status: 'complete', phase: 'Ready', progress: 100, result: accepted })
   }
   // The candidate seeds never depend on results, so the whole sequence is known
   // up front. Candidates are built and measured in Blender several at a time,
@@ -107,7 +107,7 @@ try {
   }
   for (let attempt = 0; attempt < attempts; attempt++) {
     const seed = seeds[attempt]
-    await emit({ status: 'generating', phase: 'Checking architecture', seed, attempt: attempt + 1 })
+    await emit({ status: 'generating', phase: 'Checking architecture', progress: Math.min(8, 3 + attempt), seed, attempt: attempt + 1 })
     try {
       const built = payloadAt(attempt)
       if (built.error) throw built.error
@@ -115,7 +115,7 @@ try {
       const policy = productionDiversityPolicy(attempt,attempts,threshold)
       const quota = evaluateVillaFingerprint(payload.shapeFingerprint, history.map((h) => h.fingerprint), { ...policy.limits, similarityThreshold: 1 })
       if (!quota.accepted && validFallback) { await emit({ debug: quota }); throw new Error('Diversity quota retry') }
-      await emit({ status: 'generating', phase: 'Building and measuring the Blender scene', seed, attempt: attempt + 1 })
+      await emit({ status: 'generating', phase: 'Building and measuring the Blender scene', progress: Math.min(55, 10 + attempt * 5), seed, attempt: attempt + 1 })
       for (let j = attempt; j < Math.min(attempts, attempt + parallel); j++) void prepare(j)
       const ready = await prepare(attempt)
       if (ready.error) throw ready.error

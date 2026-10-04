@@ -114,6 +114,27 @@ def create_car(scene, name, x, y, grade, along_y):
                       "x" if along_y else "y", "metal", name)
 
 
+def _has_access(piece, doors, floor_id):
+    """A roof is only a balcony when a door of the floor above opens onto it."""
+    return any(d["floorId"] == floor_id and d.get("kind") != "entry" and
+               piece["x"] - 450 <= d["at"]["x"] <= piece["x"] + piece["w"] + 450 and
+               piece["y"] - 450 <= d["at"]["y"] <= piece["y"] + piece["h"] + 450 for d in doors)
+
+
+def _plant_edges(scene, name, spans, top, source, seed):
+    """A planter box with a small shrub along each open balcony edge, just inside the rail."""
+    from visualization.landscape import planter
+    for index, (axis, fixed, lo, hi, out) in enumerate(spans, 1):
+        length = min(hi - lo - 500, 1800)
+        if length < 600:
+            continue
+        mid = (lo + hi) / 2
+        depth, gap = 340, 90
+        inner = fixed - out * (gap + depth / 2)
+        rect = {"x": mid - length / 2, "y": inner - depth / 2, "w": length, "h": depth} if axis == "h" else                {"x": inner - depth / 2, "y": mid - length / 2, "w": depth, "h": length}
+        planter(scene, f"{name}_Planter_{index}", {"rect": rect, "z": top + 40, "sourceId": source, "category": "balcony"}, seed, 7)
+
+
 def _feature_cutters(facade, z0, z1):
     """Plan rectangles of facade parts — architectural features and the
     balcony / entrance / depth assemblies — passing through the band z0..z1."""
@@ -230,7 +251,8 @@ def create_covered_outdoor(scene, building, massing, facade=None):
                           top - SLAB - grade - 70, "concrete", room["semanticId"])
             # a roof the upper floor opens onto becomes a balcony; otherwise a
             # neat upstand finishes the roof edge
-            balcony = upper is not None and _touch_length(piece, upper["footprint"]) >= 1200
+            balcony = upper is not None and _touch_length(piece, upper["footprint"]) >= 1200 and \
+                _has_access(piece, building["doors"], upper["id"])
             if balcony:
                 for s_index, s in enumerate(slabs, 1):
                     scene.rect(f"{name}_Deck_{s_index:02d}", "ROOF", s, top, 40, "paving", room["semanticId"], bevel=3)
@@ -243,6 +265,8 @@ def create_covered_outdoor(scene, building, massing, facade=None):
                 spans = [s for s in _open_spans(edge, walls, 150) for s in _open_spans((axis, fixed, *s, out), cuts, 0)]
                 for s_index, (lo, hi) in enumerate(spans, 1):
                     if balcony:
+                        if s_index == 1:
+                            _plant_edges(scene, f"{name}_E{e_index}", [(axis, fixed, lo, hi, out)], top, room["semanticId"], index)
                         create_railing(scene, f"{name}_Rail_{e_index}_{s_index}", ground, (axis, fixed, lo, hi, out), top + 40)
                     else:
                         cx, cy = ((lo + hi) / 2, fixed) if axis == "h" else (fixed, (lo + hi) / 2)
@@ -274,7 +298,7 @@ def create_exposed_roofs(scene, building):
             scene.rect(f"{name}_Slab_{index:02d}", "ROOF", piece, top - thickness, thickness, "concrete", floor["id"])
         report["exposedRoofs"] += len(pieces)
         # usable when the upper floor runs alongside it for at least 1.2 m
-        terrace = any(_touch_length(p, above["footprint"]) >= 1200 for p in pieces)
+        terrace = any(_touch_length(p, above["footprint"]) >= 1200 and _has_access(p, building["doors"], above["id"]) for p in pieces)
         if terrace:
             for index, piece in enumerate(pieces, 1):
                 scene.rect(f"{name}_Deck_{index:02d}", "ROOF", _inset_from(piece, above["footprint"], WALL_CLEAR), top, 40, "paving", floor["id"], bevel=3)
@@ -284,6 +308,8 @@ def create_exposed_roofs(scene, building):
             axis, fixed, _lo, _hi, out = edge
             for s_index, (lo, hi) in enumerate(_open_spans(edge, above["footprint"], 150), 1):
                 if terrace:
+                    if s_index == 1:
+                        _plant_edges(scene, f"{name}_E{index}", [(axis, fixed, lo, hi, out)], top, floor["id"], index)
                     create_railing(scene, f"{name}_Rail_{index:03d}_{s_index}", floor, (axis, fixed, lo, hi, out), top + 40)
                 else:
                     cx, cy = ((lo + hi) / 2, fixed) if axis == "h" else (fixed, (lo + hi) / 2)

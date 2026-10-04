@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Download, Sparkles } from 'lucide-react'
 import { useStudio } from '@/state/studio.ts'
 import { useBlender } from '@/state/blender.ts'
+import { RenderProgress } from '@/components/RenderProgress.tsx'
 import { useVillaVisualizations } from '@/state/villaVisualizations.ts'
 import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
 import { InteriorStudio } from '@/components/InteriorStudio.tsx'
@@ -69,6 +70,7 @@ export function Render() {
         <span className="text-xs text-ink-dim">Same 2D plan · {plan.floors.length} floors · {plan.builtAreaSqm.toFixed(0)} m²</span></div>
       {hasModel?<VillaVisualizationViewport key={sourceId} ref={viewport} design={plan} url={source==='blender'?blender?.files.glb:undefined} onReady={readyChanged}/>:
         <div className="flex min-h-80 flex-col items-center justify-center gap-4 border border-line bg-bg-inset p-8 text-center">
+          {blenderBusy&&<div className="w-full max-w-md"><RenderProgress progress={job?.progress} label={job?.phase||'Preparing the Blender villa'}/></div>}
           <p className="max-w-lg text-sm text-ink-dim">{blenderBusy?'Preparing the Blender villa for your current plan…':'Prepare the Blender villa for this plan to visualize its actual architecture.'}</p>
           <button type="button" disabled={Boolean(blenderBusy)} onClick={()=>void ensure(plan,result.villaDesignDNA?.seed??plan.dna.seed)} className="border border-line-strong px-5 py-3 text-sm disabled:opacity-50">{blenderBusy?'Preparing…':'Prepare Blender villa'}</button>
           <Link to="/workspace/massing" className="text-sm underline underline-offset-4">Open 3D Massing</Link>

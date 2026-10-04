@@ -11,7 +11,7 @@ export const GROUP_OF: Record<MassKind, Group> = {
   mumty: 'shell',
   fence: 'shell',
   railing: 'metal',
-  tank: 'metal',
+  tank: 'slabs',
   partition: 'partition',
   glass: 'glazing',
   slab: 'slabs',

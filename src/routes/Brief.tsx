@@ -7,6 +7,7 @@ import { BRIEF_STEPS } from '@/lib/model/brief.ts'
 import { useStudio } from '@/state/studio.ts'
 import { Button } from '@/components/ui/Button.tsx'
 import { cx } from '@/lib/cx.ts'
+import { GenerationOverlay } from '@/components/GenerationOverlay.tsx'
 import { assessBriefFit, CAPACITY_GUIDANCE } from '@/lib/engine/planner/fit.ts'
 import {
   EntryStep,
@@ -74,6 +75,7 @@ export function Brief() {
   const briefChoiceIssue = useStudio(s => s.briefChoiceIssue)
   const [formError, setFormError] = useState<string | null>(null)
   const navigate = useNavigate()
+  const [generating, setGenerating] = useState(false)
 
   const capacityBrief = useDeferredValue(brief)
   const checking = capacityBrief !== brief
@@ -94,8 +96,9 @@ export function Brief() {
       const issues = currentFit.fits ? [] : [CAPACITY_GUIDANCE, ...currentFit.issues.slice(0, 2)]
       if (checking || issues.length) { setFormError(issues.join(' ')); return }
       setFormError(null)
-      explore()
-      navigate('/workspace/directions')
+      // let the loader paint (and its worker start) before the blocking generation
+      setGenerating(true)
+      setTimeout(() => { explore(); navigate('/workspace/directions') }, 450)
     } else {
       setStep(step + 1)
     }
@@ -108,6 +111,7 @@ export function Brief() {
 
   return (
     <div style={{ "--brief-rail-height": `${railHeight}px` } as CSSProperties}>
+      {generating && <GenerationOverlay label="Generating your concepts" />}
       {briefChoiceIssue && <p role="status" className="mx-auto max-w-[1400px] px-6 py-3 text-sm text-ink-dim md:px-10">{briefChoiceIssue}</p>}
       {/* wizard rail */}
       <div ref={rail} className="sticky top-0 z-10 border-b border-line bg-bg/90 backdrop-blur">

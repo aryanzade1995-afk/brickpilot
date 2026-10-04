@@ -44,6 +44,7 @@ from exporters.glb import export_glb  # noqa: E402
 
 
 from geometry.roof_services import create_roof_services
+from geometry.terrace_objects import create_terrace_objects
 from geometry.covered import create_covered_outdoor, create_exposed_roofs, create_pool_deck
 
 
@@ -122,6 +123,7 @@ def create_scene(payload, visualization=None):
             customized = any(unit["category"] == "BALCONY" and room["semanticId"] in unit["sourceRoomIds"] for unit in assemblies)
             create_balcony(scene, room, by_floor[room["floorId"]], terrace_mass, building["doors"], with_railing=not customized)
     create_roof_services(scene, building)
+    create_terrace_objects(scene, building)
     # car porch / verandah roofs (a balcony where the upper floor opens onto
     # them), the parked car and a deck round the pool
     covered = create_covered_outdoor(scene, building, massing, facade)

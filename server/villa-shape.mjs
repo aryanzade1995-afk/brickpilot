@@ -38,7 +38,8 @@ export function evaluateRealizedVilla(payload, geometry, history, threshold = .7
 /** Only uniqueness preferences are relaxed. This never changes architectural limits. */
 export function productionDiversityPolicy(attempt, attempts, threshold = .75) {
   if (!Number.isFinite(threshold) || threshold<0 || threshold>1) throw new RangeError('Similarity threshold must be in [0,1]')
-  const stage = Math.min(4,Math.floor(attempt * 5 / Math.max(1,attempts)))
+  // the uniqueness preference relaxes within the first ~10 tries: a constrained plan cannot be unique, and every extra try is a full Blender build
+  const stage = Math.min(4,Math.floor(attempt * 5 / Math.max(1,Math.min(attempts,10))))
   const thresholds = [threshold,Math.max(threshold,.82),Math.max(threshold,.90),Math.max(threshold,.97),1]
   return {stage,threshold:thresholds[stage],limits:{maxSameMassingFamily:stage===4?10:2+stage,
     maxSameHero:stage===4?10:2+stage,maxSameFacadeFamily:stage===4?10:2+stage,maxSameRoofline:stage===4?10:3+stage}}

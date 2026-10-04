@@ -91,3 +91,23 @@ export function terraceFreeRatio(layout: TerraceLayout, extra: Rect[] = []): num
   }))
   return 1-rectUnionArea(cuts)/rectUnionArea(layout.slab)
 }
+
+/** The water-tank slot, widened along the roof edge to carry up to three tanks where the deck and the
+ *  stair room leave room. The engine's own `tank` slot stays one tank; this is only what is drawn. */
+export function tankBank(layout: TerraceLayout): Rect | null {
+  const t = layout.tank
+  if (!t) return null
+  const T = t.w
+  const onRoof = (r: Rect) => layout.slab.some(p => r.x >= p.x && r.y >= p.y && rectRight(r) <= rectRight(p) && rectBottom(r) <= rectBottom(p))
+  const clear = (r: Rect) => !layout.mumty || !overlaps(r, layout.mumty, 300)
+  for (const n of [2, 1]) {                        // extra tanks beyond the first
+    const grow = n * (T + 100)
+    const options: Rect[] = [
+      { ...t, w: t.w + grow }, { ...t, x: t.x - grow, w: t.w + grow },
+      { ...t, h: t.h + grow }, { ...t, y: t.y - grow, h: t.h + grow },
+    ]
+    const found = options.find(r => onRoof(r) && clear(r))
+    if (found) return found
+  }
+  return t
+}

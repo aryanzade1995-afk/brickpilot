@@ -16,14 +16,14 @@ const publicJob = (job) => {
     warnings: job.result.warnings, files: Object.fromEntries(job.result.files.map((file) =>
       [extname(file) === '.blend' ? 'blend' : extname(file) === '.glb' ? 'glb' : file.match(/_(hero|front|aerial)\.png$/)[1],
         `/api/villas/${job.id}/files/${file}`])) }
-  return { id: job.id, status: job.status, phase: job.phase, seed: job.seed, attempt: job.attempt,
+  return { id: job.id, status: job.status, phase: job.phase, progress: job.progress, seed: job.seed, attempt: job.attempt,
     error: job.error, debug: job.debug, result }
 }
 async function drain() {
   if (running || !queue.length) return
   running = true
   const job = queue.shift()
-  job.status = 'generating'; job.phase = 'Checking architecture'
+  job.status = 'generating'; job.phase = 'Checking architecture'; job.progress = 3
   const child = spawn(process.execPath, ['--experimental-strip-types', resolve(PROJECT_ROOT, 'scripts/villa-worker.mjs'), job.directory],
     { cwd: PROJECT_ROOT, shell: false, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] })
   let pending = '', errors = ''
