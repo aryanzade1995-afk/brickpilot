@@ -6,6 +6,7 @@ import type { CostEstimate } from '@/lib/cost/index.ts'
 import { specsCatalogue } from '@/lib/cost/catalogue.ts'
 import { applicableRooms, applySpecification, changeCount, effectiveSpec, itemChanged, itemLines, quantityLabel, suggestionFor, undoSpecification, type SpecItem } from '@/lib/cost/workspace.ts'
 import { SpecificationPanel } from './SpecificationPanel.tsx'
+import { paintColour } from '@/lib/finishes/paint.ts'
 import { cx } from '@/lib/cx.ts'
 
 export function Specifications({ brief, cost, design, room, onRoom, onBrief }: { brief: Brief; cost: CostEstimate; design: Design; room?: string; onRoom: (id: string) => void; onBrief: (brief: Brief) => void }) {
@@ -40,7 +41,7 @@ export function Specifications({ brief, cost, design, room, onRoom, onBrief }: {
           const suggestedAlready = (scoped.length ? scoped.every(r => effectiveSpec(brief, item.id, r.id).id === suggestion?.option) : option.id === suggestion?.option)
           return <article key={item.id} className="rounded-xl border border-line bg-bg p-4 sm:p-5"><div className="flex items-start gap-3 sm:gap-4">
             <FinishSwatch item={item} option={option} className="h-20 w-20 flex-none rounded-lg object-cover" />
-            <div className="min-w-0 flex-1"><h3 className="text-sm">{item.label}</h3><p className="mt-1 text-xs text-ink-faint">{item.scope === 'house' ? 'Whole home' : scoped.length ? scoped.map(r => r.name).join(', ') : 'As applicable'}</p><p className="mt-2 text-sm text-ink-dim">{mixed ? 'Mixed room choices' : option.name}</p><p className="mt-1 text-xs text-ink-faint">{quantityLabel(itemLines(cost, item, room))}{item.id.startsWith('floor-') ? ' · flooring and skirting where measured' : ''}</p>
+            <div className="min-w-0 flex-1"><h3 className="text-sm">{item.label}</h3><p className="mt-1 text-xs text-ink-faint">{item.scope === 'house' ? 'Whole home' : scoped.length ? scoped.map(r => r.name).join(', ') : 'As applicable'}</p><p className="mt-2 text-sm text-ink-dim">{mixed ? 'Mixed room choices' : option.name}</p>{item.id === 'interior-paint' && <p className="mt-2 flex items-center gap-2 text-xs text-ink-dim"><span className="h-4 w-4 rounded border border-line" style={{ background: paintColour(brief, room ?? scoped[0]?.id).hex }} />{paintColour(brief, room ?? scoped[0]?.id).label}</p>}<p className="mt-1 text-xs text-ink-faint">{quantityLabel(itemLines(cost, item, room))}{item.id.startsWith('floor-') ? ' · flooring and skirting where measured' : ''}</p>
               {changed && <p className="mt-2 text-xs">Changed <button type="button" onClick={() => onBrief(undoSpecification(brief, cost, item, room))} className="ml-2 text-ink-dim underline">Undo</button></p>}</div>
             <button type="button" onClick={() => setEditing(item)} className="flex-none rounded-lg border border-line px-3 py-2 text-xs hover:bg-bg-inset">Change<span className="sr-only"> {item.label}</span></button>
           </div>{suggestion && !suggestedAlready && <p className="mt-3 bg-bg-inset px-3 py-2 text-xs leading-relaxed text-ink-dim">{suggestion.reason} <button type="button" onClick={() => onBrief(applySpecification(brief, cost, item, suggestion.option, scoped.map(r => r.id)))} className="ml-1 underline">Apply</button></p>}</article>

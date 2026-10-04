@@ -862,3 +862,13 @@ Change drawer, with contextual finish filters and labelled indicative illustrati
 where supplier photography is unavailable. Blender exterior colours retain their
 curated palette; texture previews do not change the source plan or quantities.
 See [finish catalogue and preview policy](docs/finish-catalogue.md).
+
+
+### Finish previews and paint shades (October 2026)
+
+- False ceiling has 15 choices, landscaping 11, and pool allowance 7. New options and approximate measured-area rates live in `src/lib/finishes/experience-options.json`, validated by `experiences.ts`. Existing presets remain compatible. Pool finishes price only an already planned pool; they do not add a pool or change geometry.
+- `previewGeometry.ts` provides fitted ceiling patterns, distinct railing systems, WC/basin tiers, mixer/rain-shower tiers, raised roof finishes, planted garden layouts and pool finishes. `FinishObjectPreview.tsx` displays bevelled, lit, orbitable Three.js visualisations. These are illustrative geometry, not supplier photographs or engineered construction details. Tests require different geometry for every option in these sections.
+- Interior paint quality and colour are independent. `paint-shades.json` records 120 official Asian Paints digital swatches with codes, family, hex, source and verification date; shades are grouped by family and ordered light to deep. `PaintColours.tsx` adds a draggable wheel, lightness and custom colour. Physical samples still govern final colour.
+- Paint colour uses reserved `specs.overrides` keys `interior-paint-colour` and `interior-paint-colour@<floor>:<room>`; old saved briefs load unchanged. Room isolation, undo, reports and reload retain colour. Colour alone does not change the estimate; special tint charges require a quote.
+- No AI images were added. Existing audited real texture/product assets retain their provenance. New ceiling/garden/pool designs have official system/guidance references but no verified matching installation photograph: the UI explicitly marks photos unavailable. Gyproc gallery images assessed as renders were rejected. Do not replace this state with unverified pictures.
+- Preview selections update immediately; saving still uses **Use this**. The villa exterior retains its curated palette and receives no specification image textures.

@@ -1,3 +1,4 @@
+import { paintColour } from '../finishes/paint.ts'
 import { flooringProduct } from '../flooring/catalogue.ts'
 import { finishProduct } from '../finishes/catalogue.ts'
 import type { z } from 'zod'
@@ -22,7 +23,7 @@ export function specificationSchedule(brief: Brief, cost: CostEstimate): Specifi
       const rate = specificationRate(option.rateId)
       return { id: `${item.id}${room ? `@${room.id}` : ''}`, item: item.id, group: item.group,
         label: item.label, where: room ? `${room.floor} · ${room.name}` : 'Whole home', roomId: room?.id,
-        optionId: option.id, choice: option.name, material: option.blenderMaterial, facts: option.facts,
+        optionId: option.id, choice: item.id === 'interior-paint' ? `${option.name} · ${paintColour(brief, room?.id).label} (${paintColour(brief, room?.id).hex})` : option.name, material: option.blenderMaterial, facts: option.facts,
         quantity: own.length ? `${own.reduce((sum, l) => sum + l.qty, 0).toFixed(2)} ${own[0].unit}` : 'As specified',
         rate: rate.installed, unit: rate.unit, city: rate.city, date: rate.date,
         photo: photo?.webFile ?? cleared?.thumbnail ?? null, photoSource: photo?.source ?? cleared?.sourceUrl ?? null, credit: photo?.credit ?? cleared?.image.credit ?? null,

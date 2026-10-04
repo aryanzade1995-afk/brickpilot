@@ -1,3 +1,4 @@
+import { paintColour } from '../finishes/paint.ts'
 import type { Brief } from '../model/brief.ts'
 import type { Design } from '../engine/types.ts'
 import { measureDesign, type Quantities } from './quantities.ts'
@@ -47,7 +48,7 @@ function priceLines(design: Design, brief: Brief, quantities: Quantities): BoqLi
       const spec = roomSpec(brief, item, roomId, semanticId), rate = specificationRate(recipe.rateId ?? spec.rateId)
       const id = recipe.from === 'room' && recipe.key.startsWith('floor:') ? `floor:${roomId}` : `${item}:${recipe.from}:${key}${roomId ? `@${roomId}` : ''}`
       boq.push({ id, item, specId: `${item}/${spec.id}`, rateId: rate.id, group: recipe.trade, label,
-        specification: spec.name, qty, quantity: qty, unit: units[rate.unit] ?? rate.unit,
+        specification: item === 'interior-paint' ? `${spec.name} · ${paintColour(brief, roomId ?? semanticId).label}` : spec.name, qty, quantity: qty, unit: units[rate.unit] ?? rate.unit,
         rate: rate.installed, amount: qty * rate.installed, materialRate: rate.material, labourRate: rate.labour,
         materialAmount: qty * rate.material, labourAmount: qty * rate.labour, roomId, floor, note: recipe.note })
     }

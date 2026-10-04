@@ -1,3 +1,4 @@
+import { PAINT_COLOUR, colourValue } from '../finishes/paint.ts'
 import { z } from 'zod'
 import type { Brief } from '../model/brief.ts'
 import type { CostEstimate, BoqLine } from './boq.ts'
@@ -27,6 +28,7 @@ export function applicableRooms(cost: CostEstimate, item: SpecItem) {
 }
 export function changeCount(brief: Brief) {
   return Object.entries(brief.specs.overrides).filter(([key, value]) => {
+    if (key === PAINT_COLOUR || key.startsWith(`${PAINT_COLOUR}@`)) return colourValue(value).value === value
     const [id, room] = key.split('@'), item = specsCatalogue.items.find(i => i.id === id)
     if (!item || item.level === 'auto' || !item.options.some(o => o.id === value)) return false
     return value !== (room ? brief.specs.overrides[id] ?? defaultSpec(brief, id) : defaultSpec(brief, id))
@@ -50,6 +52,11 @@ export function applySpecification(brief: Brief, cost: CostEstimate, item: SpecI
   return next
 }
 export function undoSpecification(brief: Brief, cost: CostEstimate, item: SpecItem, room?: string) {
+  if (item.id === 'interior-paint') {
+    const clean = { ...brief, specs: { ...brief.specs, overrides: { ...brief.specs.overrides } } }
+    for (const key of Object.keys(clean.specs.overrides)) if (key === PAINT_COLOUR && !room || key.startsWith(`${PAINT_COLOUR}@`) && (!room || key === `${PAINT_COLOUR}@${room}` || key === `${PAINT_COLOUR}@${roomSemantic(room)}`)) delete clean.specs.overrides[key]
+    brief = clean
+  }
   if (room && item.scope === 'perRoom') return applySpecification(brief, cost, item, defaultSpec(brief, item.id), [room])
   const next = { ...brief, specs: { overrides: { ...brief.specs.overrides } } }
   for (const key of Object.keys(next.specs.overrides)) if (key === item.id || key.startsWith(`${item.id}@`)) delete next.specs.overrides[key]
@@ -57,6 +64,7 @@ export function undoSpecification(brief: Brief, cost: CostEstimate, item: SpecIt
 }
 export function itemChanged(brief: Brief, cost: CostEstimate, item: SpecItem, room?: string) {
   const rooms = room ? [room] : applicableRooms(cost, item).map(r => r.id)
+  if (item.id === 'interior-paint' && Object.keys(brief.specs.overrides).some(k => k === PAINT_COLOUR || k.startsWith(`${PAINT_COLOUR}@`) && (!room || k === `${PAINT_COLOUR}@${room}` || k === `${PAINT_COLOUR}@${roomSemantic(room)}`))) return true
   return item.scope === 'perRoom' && rooms.length ? rooms.some(id => effectiveSpec(brief, item.id, id).id !== defaultSpec(brief, item.id)) : effectiveSpec(brief, item.id).id !== defaultSpec(brief, item.id)
 }
 export function suggestionFor(brief: Brief, item: string) {
