@@ -18,6 +18,7 @@ import { fileURLToPath } from 'node:url'
 import { generateInteriorWithFallback, generateBuildingWithFallback, buildingRenderHealth, providerName, resolveProvider } from './providers/index.mjs'
 import { analyzeInspiration, healthy as geminiWebHealth } from './providers/gemini-web.mjs'
 import { handleVillaRequest } from './villa-jobs.mjs'
+import { generateVillaVisualizations, validateVillaReference } from './villa-visualizations.mjs'
 
 // --- load server/.env (no dependency, no --env-file flag needed) ---
 try {
@@ -147,6 +148,19 @@ const server = createServer(async (req, res) => {
   if (await handleCostShareRequest(req, res, readJson)) return
 
   if (await handleVillaRequest(req, res, readJson)) return
+
+  if(req.method==='POST'&&req.url==='/api/villa-visualizations') {
+    let reference
+    try {reference=await readJson(req,48e6);validateVillaReference(reference)}
+    catch(error) {console.warn('[villa-visualizations] Reference rejected:',error?.message);return send(res,400,{error:'Choose two views of the completed model.'})}
+    const controller=new AbortController()
+    const disconnect=()=>{if(!res.writableEnded)controller.abort()}
+    res.once('close',disconnect)
+    try {return send(res,200,await generateVillaVisualizations(reference,{signal:controller.signal}))}
+    catch {if(!res.destroyed)return send(res,503,{error:'Visualizations are unavailable right now. Your 3D model is ready.'})}
+    finally {res.removeListener('close',disconnect)}
+    return
+  }
 
   if (req.method === 'GET' && req.url === '/api/render/health') {
     return send(res, 200, await buildingRenderHealth())

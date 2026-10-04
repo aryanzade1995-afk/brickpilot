@@ -75,21 +75,21 @@ function buildWorkflow({ edgeName, positive, negative, params }) {
 
 /* ---- ComfyUI HTTP ---- */
 
-async function uploadImage(b64, name) {
+async function uploadImage(b64, name, signal) {
   const fd = new FormData()
   fd.append('image', new Blob([Buffer.from(b64, 'base64')], { type: 'image/png' }), name)
   fd.append('overwrite', 'true')
-  const r = await fetch(`${base()}/upload/image`, { method: 'POST', body: fd })
+  const r = await fetch(`${base()}/upload/image`, { method: 'POST', body: fd, signal })
   if (!r.ok) throw new Error(`ComfyUI upload failed (${r.status})`)
   const j = await r.json()
   return j.subfolder ? `${j.subfolder}/${j.name}` : j.name
 }
 
-async function submit(graph, clientId) {
+async function submit(graph, clientId, signal) {
   const r = await fetch(`${base()}/prompt`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ prompt: graph, client_id: clientId }),
+    body: JSON.stringify({ prompt: graph, client_id: clientId }), signal,
   })
   const j = await r.json().catch(() => ({}))
   if (!r.ok) {
@@ -99,13 +99,13 @@ async function submit(graph, clientId) {
   return j.prompt_id
 }
 
-async function fetchImage(ref) {
+async function fetchImage(ref, signal) {
   const q = new URLSearchParams({
     filename: ref.filename,
     subfolder: ref.subfolder || '',
     type: ref.type || 'output',
   })
-  const r = await fetch(`${base()}/view?${q}`)
+  const r = await fetch(`${base()}/view?${q}`,{signal})
   if (!r.ok) throw new Error(`ComfyUI /view failed (${r.status})`)
   const ab = await r.arrayBuffer()
   return {
@@ -114,8 +114,8 @@ async function fetchImage(ref) {
   }
 }
 
-async function historyImage(promptId) {
-  const r = await fetch(`${base()}/history/${promptId}`)
+async function historyImage(promptId, signal) {
+  const r = await fetch(`${base()}/history/${promptId}`,{signal})
   if (!r.ok) return null
   const h = (await r.json())[promptId]
   if (!h?.outputs) return null
@@ -126,12 +126,13 @@ async function historyImage(promptId) {
 }
 
 /** resolve with the output image ref: live WS progress, history poll as backstop */
-function awaitResult(clientId, promptId, onProgress) {
+function awaitResult(clientId, promptId, onProgress, signal) {
   return new Promise((resolve, reject) => {
     let settled = false
     const finish = (fn, arg) => {
       if (settled) return
       settled = true
+      signal?.removeEventListener('abort',onAbort)
       clearInterval(poll)
       clearTimeout(timeout)
       try {
@@ -142,11 +143,16 @@ function awaitResult(clientId, promptId, onProgress) {
       fn(arg)
     }
 
+    const onAbort = () => {
+      finish(reject,signal.reason)
+      // Remove only this pending request; never interrupt somebody else's active GPU job.
+      void fetch(`${base()}/queue`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({delete:[promptId]}),signal:AbortSignal.timeout(2000)}).catch(()=>{})
+    }
     const timeout = setTimeout(() => finish(reject, new Error('ComfyUI generation timed out (5 min)')), 5 * 60 * 1000)
 
     const poll = setInterval(async () => {
       try {
-        const img = await historyImage(promptId)
+        const img = await historyImage(promptId,signal)
         if (img) finish(resolve, img)
       } catch {
         /* keep polling */
@@ -175,6 +181,8 @@ function awaitResult(clientId, promptId, onProgress) {
         finish(reject, new Error(d.exception_message || 'ComfyUI execution error'))
       }
     }
+    signal?.addEventListener('abort',onAbort,{once:true})
+    if(signal?.aborted)onAbort()
     ws.onerror = () => {
       // WS is best-effort for progress; the history poll still resolves us
       onProgress?.(undefined, 'sampling (no live progress)')
@@ -204,4 +212,29 @@ export async function generateInterior({ edge, positive, negative, params = {}, 
 export async function generateBuilding(job) {
   if (!job.edge) throw new Error('The building reference edge map is required for ComfyUI')
   return generateInterior({...job, negative:job.negative || 'changed footprint, extra floors, extra windows, blocked doors, solid rooftop blocks, distorted architecture',params:{...job.params,cnCanny:job.params?.cnCanny ?? .85}})
+}
+
+/** Building-only img2img, with source colours/composition in the VAE latent and
+ * a strong ControlNet on the matching edges. Interior's existing workflow stays intact. */
+export function buildVillaWorkflow({beautyName,edgeName,positive,negative,params}) {
+  const {graph,seed}=buildWorkflow({edgeName,positive,negative,params})
+  graph['80']={class_type:'LoadImage',inputs:{image:beautyName}}
+  graph['81']={class_type:'ImageScale',inputs:{image:['80',0],upscale_method:'lanczos',width:params.width,height:params.height,crop:'disabled'}}
+  graph['82']={class_type:'ImageScale',inputs:{image:['11',0],upscale_method:'lanczos',width:params.width,height:params.height,crop:'disabled'}}
+  graph['12']={class_type:'VAEEncode',inputs:{pixels:['81',0],vae:['4',2]}}
+  graph['31'].inputs.image=['82',0]
+  graph['31'].inputs.end_percent=params.cnEnd
+  graph['70'].inputs.filename_prefix='formstead_villa'
+  return {graph,seed}
+}
+export async function generateVillaView({beauty,edge,positive,negative,params,signal}) {
+  signal?.throwIfAborted()
+  const tag=crypto.randomUUID(),clientId=`formstead-villa-${tag}`
+  const beautyName=await uploadImage(beauty,`villa_${tag}.png`,signal)
+  const edgeName=await uploadImage(edge,`villa_${tag}_edges.png`,signal)
+  const {graph,seed}=buildVillaWorkflow({beautyName,edgeName,positive,negative,params})
+  const promptId=await submit(graph,clientId,signal)
+  const ref=await awaitResult(clientId,promptId,undefined,signal)
+  const img=await fetchImage(ref,signal)
+  return {...img,meta:{seed,promptId}}
 }

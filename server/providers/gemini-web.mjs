@@ -9,7 +9,8 @@ async function request(path, options = {}, timeoutMs = 180000) {
   const url = new URL(base())
   if (!['localhost', '127.0.0.1', '[::1]'].includes(url.hostname))
     throw new Error('GEMINI_WEB_URL must point to a local bridge')
-  const response = await fetch(`${base()}${path}`, { ...options, signal: AbortSignal.timeout(timeoutMs) })
+  const timeout = AbortSignal.timeout(timeoutMs)
+  const response = await fetch(`${base()}${path}`, { ...options, signal: options.signal ? AbortSignal.any([options.signal,timeout]) : timeout })
   const body = await response.json().catch(() => ({}))
   if (!response.ok) throw new Error(body?.error?.message || body?.error || `Gemini Web bridge returned ${response.status}`)
   return body
@@ -117,4 +118,31 @@ export async function generateBuilding({ beauty, edge, positive, negative = '', 
   const imageBase64 = body?.data?.[0]?.b64_json
   if (typeof imageBase64 !== 'string' || !imageBase64) throw new Error('Gemini Web returned no portable building image')
   return {imageBase64,mimeType:'image/png',meta:{provider:id,seed:params.seed,geometryGrounding:'reference description'}}
+}
+
+/** Direct multimodal edit. Never replace the actual image with a text description.
+ * The documented bridge chat may return session-bound Google image URLs. If those
+ * cannot be read without cookies, the paired service uses ComfyUI automatically.
+ */
+export async function generateVillaView({beauty, otherBeauty, positive, signal}) {
+  const selected=await model(process.env.GEMINI_WEB_IMAGE_MODEL||process.env.GEMINI_WEB_MODEL||'',true)
+  signal?.throwIfAborted()
+  const body=await request('/openai/v1/chat/completions',{method:'POST',signal,headers:{'content-type':'application/json'},
+    body:JSON.stringify({model:selected,stream:false,messages:[{role:'user',content:[{type:'text',text:positive},
+      ...[beauty,otherBeauty].map(data=>({type:'image_url',image_url:{url:`data:image/png;base64,${data}`}}))]}]})},60000)
+  const content=body?.choices?.[0]?.message?.content
+  const inline=Array.isArray(content)?content.find(p=>p.type==='image_url'&&p.image_url?.url?.startsWith('data:image/'))?.image_url?.url:null
+  const text=inline||textOf(body)
+  const data=text.match(/data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)/)
+  if(data)return {mimeType:data[1],imageBase64:data[2]}
+  const links=[...text.matchAll(/!\[[^\]]*\]\((https:\/\/[^\s)]+)\)/g)]
+  if(links.length!==1)throw new Error('No directly conditioned image returned')
+  const url=new URL(links[0][1])
+  if(!url.hostname.endsWith('.googleusercontent.com')||url.username||url.password||url.port)throw new Error('Unexpected generated image host')
+  const response=await fetch(url,{signal,redirect:'error'})
+  if(!response.ok)throw new Error('Generated image needs its bridge session')
+  if(Number(response.headers.get('content-length'))>12e6)throw new Error('Generated image is too large')
+  const chunks=[];let size=0
+  for await(const chunk of response.body){size+=chunk.length;if(size>12e6){await response.body.cancel().catch(()=>{});throw new Error('Generated image is too large')}chunks.push(chunk)}
+  return {imageBase64:Buffer.concat(chunks).toString('base64'),mimeType:response.headers.get('content-type')?.split(';')[0]}
 }

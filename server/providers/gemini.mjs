@@ -41,3 +41,14 @@ export async function generateInterior({ beauty, positive, onProgress }) {
     meta: { provider: 'gemini' },
   }
 }
+
+export async function generateVillaView({beauty,otherBeauty,positive,signal}) {
+  if(!KEY())throw new Error('Gemini is not configured')
+  const r=await fetch(ENDPOINT(KEY()),{method:'POST',signal,headers:{'content-type':'application/json'},
+    body:JSON.stringify({contents:[{parts:[{text:positive},...[beauty,otherBeauty].map(data=>({inlineData:{mimeType:'image/png',data}}))]}],
+      generationConfig:{responseModalities:['IMAGE','TEXT']}})})
+  const j=await r.json();if(!r.ok)throw new Error('Gemini generation unavailable')
+  const images=j?.candidates?.[0]?.content?.parts?.filter(p=>p.inlineData)??[]
+  if(images.length!==1)throw new Error('Expected one image per view')
+  return {imageBase64:images[0].inlineData.data,mimeType:images[0].inlineData.mimeType}
+}

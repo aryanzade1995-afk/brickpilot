@@ -1,3 +1,5 @@
+import { useVillaVisualizations } from '@/state/villaVisualizations.ts'
+import { VILLA_VIEW_LABELS, visualizationSourceId } from '@/lib/render/villaVisualizations.ts'
 import { CostShareButton } from '@/components/CostShareButton.tsx'
 import { SpecificationSchedule } from '@/components/SpecificationSchedule.tsx'
 import { specificationSchedule } from '@/lib/cost/schedule.ts'
@@ -63,6 +65,7 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
   const blender = useBlender(s => s.accepted[planId])
   const blenderImages = useMemo<ReportImage[]>(() => blender?.finishSignature === finishSignature(brief)
     ? (['hero','front','aerial'] as const).map(view => ({label: `Visualisation (Blender) — ${view}`, dataUrl: blender.files[view]})) : visualisations, [blender, brief, visualisations])
+  const villaPairs=useVillaVisualizations(s=>s.pairs),resetVillaPairs=useVillaVisualizations(s=>s.reset)
   const renderJobs = useRender((s) => s.jobs)
   const resetRender = useRender((s) => s.reset)
   const interiorResults = useInterior((s) => s.results)
@@ -81,6 +84,14 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
 
   const conceptImages = useMemo<ReportImage[]>(() => {
     const out: ReportImage[] = []
+    const currentSources=new Set(result?[
+      visualizationSourceId(planId,'study',result.design.planSeed??result.design.dna.seed,'',finishSignature(brief)),
+      ...(blender?[visualizationSourceId(planId,'blender',blender.seed,blender.files.glb,finishSignature(brief))]:[]),
+    ]:[])
+    for(const pair of Object.values(villaPairs).filter(p=>currentSources.has(p.sourceId))) {
+      const label=pair.sourceId.includes('|blender|')?'Blender villa':'Study model'
+      pair.images.forEach(image=>out.push({label:`Visualisation (AI · ${label}) — ${VILLA_VIEW_LABELS[image.view]}`,dataUrl:image.url}))
+    }
     for (const k of Object.keys(renderJobs) as RefKey[]) {
       const j = renderJobs[k]
       if (j.status === 'done' && j.url) out.push({ label: `Visualisation (${j.mock ? 'source preview' : 'AI'}) — ${REF_LABEL[k]}`, dataUrl: j.url })
@@ -96,7 +107,7 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
       )
     })
     return out
-  }, [renderJobs, interiorResults])
+  }, [renderJobs, interiorResults, villaPairs, planId, brief, result, blender])
 
   if (!result || !cost) {
     return <div className="mx-auto max-w-[1400px] px-10 py-24 text-ink-dim">Preparing report…</div>
@@ -192,6 +203,7 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
 
   const clearImages = () => {
     resetRender()
+    resetVillaPairs()
     resetInterior()
     setConfirmClear(false)
   }
