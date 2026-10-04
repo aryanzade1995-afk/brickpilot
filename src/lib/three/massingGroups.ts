@@ -5,7 +5,7 @@ import type { GroupKey } from '@/lib/model/themes.ts'
 export type Group = GroupKey
 
 export const GROUP_OF: Record<MassKind, Group> = {
-  wall: 'shell',
+  safety: 'feature', wall: 'shell',
   parapet: 'shell',
   column: 'shell',
   mumty: 'shell',

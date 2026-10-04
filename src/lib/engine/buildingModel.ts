@@ -1,3 +1,4 @@
+import { emergencyPlan, type EmergencyPlan } from './safety.ts'
 import { terraceLayout, terraceFreeRatio, type TerraceLayout } from './terrace.ts'
 import type { Direction } from '../model/brief.ts'
 import type { Point, Rect } from '../geometry.ts'
@@ -42,6 +43,7 @@ export type BuildingSupportZone = SupportZone & { floorId: string }
 export type BuildingSlab = { id: string; floorId: string; rect: Rect; topMm: number; thicknessMm: number }
 
 export type BuildingModel = {
+  emergency: EmergencyPlan
   quantityRules?: typeof quantityRules
   structuralSizing?: StructuralSizing
   doubleHeightLimits?: typeof DOUBLE_HEIGHT_LIMITS
@@ -142,6 +144,7 @@ export function createBuildingModel(design: Design): BuildingModel {
 
   const setbacks: Record<Direction, number> = { ...model.setbacksMm }
   const base = {
+    emergency: emergencyPlan(design),
     quantityRules:structuredClone(quantityRules),
     structuralSizing:sizing,
     ...(floors.some(f=>f.doubleHeightVoids?.length)?{doubleHeightLimits:{...DOUBLE_HEIGHT_LIMITS}}:{}),
@@ -171,7 +174,7 @@ export function createBuildingModel(design: Design): BuildingModel {
   const hash = (value: string) => fnv(value).toString(16).padStart(8, '0')
   // Preserve the original seed namespace projection. These historical sizes
   // are identity tokens only: no drawing, quantity or mesh uses them as dimensions.
-  const {quantityRules:_rules,structuralSizing:_sizing,...original}=base
+  const {quantityRules:_rules,structuralSizing:_sizing,emergency:_emergency,...original}=base
   const originalSignature=JSON.stringify({...original,
     floors:original.floors.map(({slabThicknessMm:_thickness,openingLimits:_openings,...floor})=>floor),
     columns:original.columns.map(c=>({...c,size:quantityRules.seedIdentityDefaults.columnMm})),

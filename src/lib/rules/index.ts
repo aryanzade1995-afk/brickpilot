@@ -1,3 +1,4 @@
+import { outsideEscapePath, ESCAPE_LIMITS } from '../engine/safety.ts'
 import { MIN_DIM } from './roomLimits.ts'
 import { terraceLayout, terraceFreeRatio, TERRACE_LIMITS } from '../engine/terrace.ts'
 import { validateSiteFeatures } from '../engine/planner/siteFeatures.ts'
@@ -241,7 +242,11 @@ export function validate(design: Design, options: { checkFacade?: boolean } = {}
     add('NO_ENTRY_DOOR', 'error', 'egress', 'No entry door was placed on the ground floor.')
   }
 
-  for (const entry of ground.openings.filter(o => o.kind === 'entry')) if (entry.width < 1200 || entry.width > 1800 || (entry.head ?? 2500) < 2400)
+  for(const floor of design.floors) for(const door of floor.openings.filter(o=>o.emergencyExit)) {
+    if(floor.level!==0 || door.kind!=='entry' || door.width<ESCAPE_LIMITS.doorWidthMm || (door.head??0)<ESCAPE_LIMITS.doorHeightMm || !outsideEscapePath(design,door).length)
+      add('EMERGENCY_EXIT_INVALID','error','egress','The secondary exit must be a real ground-floor door with a clear site path to the road edge.')
+  }
+  for (const entry of ground.openings.filter(o => o.kind === 'entry' && !o.emergencyExit)) if (entry.width < 1200 || entry.width > 1800 || (entry.head ?? 2500) < 2400)
     add('MAIN_ENTRY_SIZE', 'error', 'egress', 'The main entry must be 1.2–1.8 m wide and at least 2.4 m tall.')
 
   const terrace = terraceLayout(design)

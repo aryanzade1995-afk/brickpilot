@@ -1,3 +1,4 @@
+import { emergencyPlan } from '@/lib/engine/safety.ts'
 import { useFinishes } from '@/state/finishes.ts'
 import { estimateProjectBoq } from '@/lib/cost/index.ts'
 import { geometryCostKey } from '@/lib/cost/quantities.ts'
@@ -54,6 +55,10 @@ export function Plan() {
       <VillaGenerationNotice />
 
       {design.siteNotes?.length ? <div className="mt-4 border border-line px-4 py-3 text-xs text-ink-dim" role="status">{design.siteNotes.map(note => <p key={note}>{note}</p>)}</div> : null}
+      <details className="mt-4 border border-line p-4 text-sm text-ink-dim"><summary>Emergency escape layout</summary>
+        <ul className="mt-3 list-disc space-y-2 pl-5">{emergencyPlan(design).notes.map(note=><li key={note}>{note}</li>)}</ul>
+        <p className="mt-3 text-xs">{emergencyPlan(design).disclaimer}</p>
+      </details>
       {/* metric bar */}
       <div className="mt-5 flex flex-wrap items-center gap-x-10 gap-y-3 border-b border-line pb-4">
         <Metric k="Validation" v={`${report.score} / 100`} />

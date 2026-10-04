@@ -872,3 +872,11 @@ See [finish catalogue and preview policy](docs/finish-catalogue.md).
 - Paint colour uses reserved `specs.overrides` keys `interior-paint-colour` and `interior-paint-colour@<floor>:<room>`; old saved briefs load unchanged. Room isolation, undo, reports and reload retain colour. Colour alone does not change the estimate; special tint charges require a quote.
 - No AI images were added. Existing audited real texture/product assets retain their provenance. New ceiling/garden/pool designs have official system/guidance references but no verified matching installation photograph: the UI explicitly marks photos unavailable. Gyproc gallery images assessed as renders were rejected. Do not replace this state with unverified pictures.
 - Preview selections update immediately; saving still uses **Use this**. The villa exterior retains its curated palette and receives no specification image textures.
+
+## Emergency escape concept
+
+Every generated plan carries indicative escape routes through its actual doors and aligned stairs, smoke-alarm positions and extinguisher markers. The planner adds a separate 1 m ground-floor exit only where a public/circulation room, wall aperture, columns, door swings and a 0.9 m clear outdoor path permit it. Rooms, windows, stairs and footprint are preserved.
+
+The 2D Drawing layers panel includes **Emergency exits**. The study model and Blender export contain the same real secondary aperture, release bar and semantic safety hardware (`SAFETY` collection). A site-side meeting marker indicates the end of the clear path. The Plan page explains any missing second exit; upper floors explicitly use a shared stair, not a claimed independent escape stair. Existing plans without a secondary exit still show guidance and can be regenerated from their saved recipe.
+
+This is architectural concept guidance, not fire-code certification. A qualified architect/fire professional must review local requirements, alarm placement/coverage, mobility needs, equipment and an assembly point away from the building. Guidance: [USFA home escape planning](https://www.usfa.fema.gov/prevention/home-fires/prepare-for-fire/home-fire-escape-plans/index.html).

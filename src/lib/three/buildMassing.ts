@@ -1,3 +1,4 @@
+import { emergencyPlan, ESCAPE_LIMITS } from '../engine/safety.ts'
 import type { Design, FloorPlan, Opening } from '../engine/types.ts'
 import type { Rect } from '../geometry.ts'
 import { rectUnionEdges } from '../geometry.ts'
@@ -22,6 +23,7 @@ import { freeSiteRects } from '../engine/planner/siteFeatures.ts'
  * ------------------------------------------------------------------ */
 
 export type MassKind =
+  | 'safety'
   | 'plinth'
   | 'slab'
   | 'wall'
@@ -58,6 +60,7 @@ export type RoofPrism = {
 }
 
 export type MassBox = {
+  color?: string
   id: string
   kind: MassKind
   /** world-space centre, metres */
@@ -222,7 +225,7 @@ export function buildMassing(design: Design): Massing {
       if (edge) face.push({ side: edge.side, fixed: edge.side === 'N' || edge.side === 'S' ? edge.a.y : edge.a.x, op: { at: op.orient === 'h' ? op.at.x : op.at.y, ...rec } })
       else interiorOps.push(op)
     }
-    for (const entry of floor.openings.filter(o => o.kind === 'entry')) {
+    for (const entry of floor.openings.filter(o => o.kind === 'entry' && !o.emergencyExit)) {
       const w = m(entry.width), head = m(entry.head ?? 2600), x = wx(entry.at.x), z = wz(entry.at.y)
       const horizontal = entry.orient === 'h'
       const place = (id: string, along: number, offset: number, bottom: number, width: number, depth: number, height: number, kind: MassKind) =>
@@ -443,6 +446,18 @@ export function buildMassing(design: Design): Massing {
   } else buildLandscape(model, floors[0], T, push, wx, wz, m)
 
   const storeys = floors.length
+  for (const marker of emergencyPlan(design).markers) {
+    const level=marker.level, baseY=y0+level*H, horizontal=marker.orient==='h'
+    const sizes:Vec3=marker.kind==='exit'?(horizontal?[.6,.24,.08]:[.08,.24,.6]):marker.kind==='alarm'?[.14,.05,.14]:[.15,.42,.15]
+    const elevation=marker.kind==='exit'?ESCAPE_LIMITS.signHeightMm:marker.kind==='alarm'?ESCAPE_LIMITS.alarmHeightMm:ESCAPE_LIMITS.equipmentHeightMm
+    boxes.push({id:marker.id,kind:'safety',level,pos:[wx(marker.at.x),baseY+elevation/1000,wz(marker.at.y)],size:sizes,
+      color:marker.kind==='exit'?'#278259':marker.kind==='extinguisher'?'#b6342f':'#f5f5ef'})
+  }
+  for(const entry of design.floors[0].openings.filter(o=>o.emergencyExit)) {
+    const h=(entry.head??2200)/1000,w=entry.width/1000,horizontal=entry.orient==='h'
+    boxes.push({id:'secondary-exit-leaf',kind:'safety',level:0,pos:[wx(entry.at.x),y0+h/2,wz(entry.at.y)],size:horizontal?[w-.06,h-.04,.05]:[.05,h-.04,w-.06],color:'#c8c9c5'})
+    boxes.push({id:'secondary-exit-release-bar',kind:'safety',level:0,pos:[wx(entry.at.x),y0+1.05,wz(entry.at.y)+.04],size:horizontal?[w*.7,.04,.05]:[.05,.04,w*.7],color:'#424a4b'})
+  }
   return {
     palette: design.dna.materialPalette,
     boxes: boxes.filter(box => {

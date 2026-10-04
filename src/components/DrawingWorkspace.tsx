@@ -1,3 +1,4 @@
+import { emergencyPlan } from '@/lib/engine/safety.ts'
 import { useRef, useState } from 'react'
 import type { Design } from '@/lib/engine/types.ts'
 import { FloorDrawing, TerraceDrawing, type Theme } from '@/lib/draw/FloorDrawing.tsx'
@@ -28,7 +29,7 @@ export function DrawingWorkspace({ design, onFloorChange, initialFloorLevel, hig
       <div className="drawing-viewport aspect-[4/3] overflow-auto border border-line" style={{ background: theme === 'cad' ? '#11161c' : '#fff' }}>
         <div className="drawing-sheet h-full" style={{ width: `${zoom * 100}%`, height: `${zoom * 100}%`, margin: '0 auto' }}>
           {terrace ? <TerraceDrawing design={design} theme={theme} layers={layers} svgRef={svgRef} /> :
-            <FloorDrawing floor={floor} model={design.model} siteFeatures={design.siteFeatures} theme={theme}
+            <FloorDrawing emergency={emergencyPlan(design)} floor={floor} model={design.model} siteFeatures={design.siteFeatures} theme={theme}
               layers={layers} presentation={finishStyle} svgRef={svgRef} highlightCategory={highlightCategory} onRoomClick={onRoomClick ? id => { const r = floor.rooms.find(r => r.id === id); if (r) onRoomClick(`${floor.level}:${r.semanticId || r.id}`) } : undefined} />}
         </div>
       </div>

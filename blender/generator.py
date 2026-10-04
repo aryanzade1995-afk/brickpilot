@@ -23,6 +23,7 @@ from geometry.site import create_site  # noqa: E402
 from geometry.structure import (create_foundation, create_slab, create_wall, create_column,
                                 create_beam, create_staircase, create_massing_volume,
                                 create_roof_slab)  # noqa: E402
+from geometry.safety import create_emergency_system
 from geometry.openings import create_door_opening, create_window_opening  # noqa: E402
 from geometry.stairs import stair_opening, stair_layout  # noqa: E402
 from geometry.sizing import create_sized_foundation, slab_thickness  # noqa: E402
@@ -161,6 +162,7 @@ def create_scene(payload, visualization=None):
         bpy.context.scene["finish_signature"] = finishes["signature"]
     lighting = create_lighting(scene, payload, options)
     render = configure_render(options, dna["seed"])
+    create_emergency_system(scene, building)
     cameras = create_cameras(scene, building, options)
     scene.visualization_report = {"palette": options["palette"], "options": options, "composition": composition,
                                   "finishes": finishes, "surfaces": surfaces, "landscape": landscape, "lighting": lighting,

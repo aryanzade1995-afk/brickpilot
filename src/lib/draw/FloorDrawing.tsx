@@ -1,3 +1,4 @@
+import { floorEscapeRoutes, type EmergencyPlan } from '../engine/safety.ts'
 import { QuantityHighlight } from './QuantityHighlight.tsx'
 import { DRAWING_PRESETS, type DrawingLayers } from './layers.ts'
 import { Fragment } from 'react'
@@ -35,7 +36,9 @@ export function FloorDrawing({
   siteFeatures,
   layers,
   presentation,
+  emergency,
 }: {
+  emergency?: EmergencyPlan
   layers?: Partial<DrawingLayers>
   presentation?: boolean
   siteFeatures?: SiteFeature[]
@@ -55,7 +58,7 @@ export function FloorDrawing({
   const bg = BG[theme]
   const marked = markRoomId ? floor.rooms.find((r) => r.id === markRoomId) : undefined
   const pres = (presentation ?? theme === 'presentation') && theme !== 'cad'
-  const active: DrawingLayers = { site: true, zoning: true, circulation: false, walls: true, openings: true, supports: false, dimensions: showDimensions, labels: showLabels, furniture: pres, ...layers }
+  const active: DrawingLayers = { safety: true, site: true, zoning: true, circulation: false, walls: true, openings: true, supports: false, dimensions: showDimensions, labels: showLabels, furniture: pres, ...layers }
   const furniture = active.furniture ? furnishFloor(floor) : []
   const supports=drawingStructure(floor,model)
   const finishOf = new Map(furniture.map((f) => [f.roomId, f.finish]))
@@ -292,6 +295,16 @@ export function FloorDrawing({
       )}
       {highlightCategory && <QuantityHighlight floor={floor} model={model} siteFeatures={siteFeatures} category={highlightCategory} />}
       {onRoomClick && <g data-layer="room-actions">{floor.rooms.filter(r => !r.outdoor).map(r => <rect key={r.id} x={r.rect.x} y={r.rect.y} width={r.rect.w} height={r.rect.h} fill="transparent" role="button" tabIndex={0} aria-label={`Choose finishes for ${r.name}`} className="cursor-pointer focus:stroke-amber-700 focus:stroke-[60]" onClick={() => onRoomClick(r.id)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onRoomClick(r.id) } }} />)}</g>}
+      {active.safety && <g data-layer="safety" fill="none" stroke="#278259">
+        <defs><marker id={`escape-arrow-${floor.level}`} markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7" fill="#278259" /></marker></defs>
+        {floorEscapeRoutes(floor).filter(r=>floor.rooms.find(room=>room.id===r.roomId)?.zone!=='service').map(r=><polyline key={r.roomId} points={r.points.map(p=>`${p.x},${p.y}`).join(' ')} strokeWidth="32" strokeDasharray="100 80" opacity=".6" markerEnd={`url(#escape-arrow-${floor.level})`} />)}
+        {floor.openings.filter(o=>o.kind==='entry').map((o,i)=><g key={o.id??i}><rect x={o.at.x-450} y={o.at.y-180} width="900" height="360" rx="40" fill="#278259" stroke="none"/><text x={o.at.x} y={o.at.y+65} textAnchor="middle" fill="white" stroke="none" fontSize="180">{o.emergencyExit?'EXIT 2':'EXIT 1'}</text></g>)}
+        {floor.rooms.filter(r=>!r.outdoor&&(r.zone==='private'||r.zone==='circulation'||r.zone==='social')).map(r=>{const c=rectCenter(r.rect);return <g key={r.id}><circle cx={c.x} cy={c.y} r="110" fill={bg} strokeWidth="24"/><text x={c.x} y={c.y+50} textAnchor="middle" fill="#278259" stroke="none" fontSize="150">S</text></g>})}
+        {floor.level===0 && emergency?.outsideRoute.length ? <polyline points={emergency.outsideRoute.map(p=>`${p.x},${p.y}`).join(' ')} strokeWidth="45" strokeDasharray="130 80" markerEnd={`url(#escape-arrow-${floor.level})`}/>:null}
+        {floor.level===0 && emergency?.meetingPoint ? <g><circle cx={emergency.meetingPoint.x} cy={emergency.meetingPoint.y} r="250" fill={bg} strokeWidth="30"/><text x={emergency.meetingPoint.x} y={emergency.meetingPoint.y+60} fill="#278259" stroke="none" textAnchor="middle" fontSize="180">MEET</text></g>:null}
+        {emergency?.markers.filter(m=>m.level===floor.level&&m.kind==='extinguisher').map(m=><g key={m.id}><circle cx={m.at.x} cy={m.at.y} r="140" fill="#b6342f" stroke="none"/><text x={m.at.x} y={m.at.y+65} textAnchor="middle" fill="white" stroke="none" fontSize="180">F</text></g>)}
+        <text x={0} y={model.plot.depth+1700} fill="#278259" stroke="none" fontSize="210">EXIT = escape door · S = smoke alarm · F = extinguisher · dashed = indicative route</text>
+      </g>}
     </svg>
   )
 }
@@ -346,7 +359,7 @@ function OpeningMark({ o, ink, bg, theme }: { o: Opening; ink: string; bg: strin
       </g>
     )
   }
-  if (o.kind === 'entry') {
+  if (o.kind === 'entry' && !o.emergencyExit) {
     const leaf = half, sign = o.swing ?? -1
     return <g data-entry="double-leaf" transform={`translate(${o.at.x} ${o.at.y}) rotate(${o.orient === 'h' ? 0 : 90})`}>
       <line x1={-half} y1={0} x2={half} y2={0} stroke={eraseColor} strokeWidth={eraseW} />

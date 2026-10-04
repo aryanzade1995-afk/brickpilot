@@ -42,7 +42,7 @@ export class SpecializedGrammarGenerator {
     }
     for (const room of building.rooms.filter((r) => r.outdoor && r.id.startsWith('balcony')))
       choose('BALCONY', room.semanticId, (type) => makeBalcony(ctx, room, type))
-    for (const door of building.doors.filter((d) => d.kind === 'entry')) choose('ENTRANCE', door.id!, (type) => makeEntrance(ctx, door, type))
+    for (const door of building.doors.filter((d) => d.kind === 'entry' && !d.emergencyExit)) choose('ENTRANCE', door.id!, (type) => makeEntrance(ctx, door, type))
     const used = new Set<string>()
     for (const window of building.windows) {
       if (used.has(window.id!)) continue

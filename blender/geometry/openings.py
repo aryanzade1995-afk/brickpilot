@@ -68,7 +68,7 @@ def create_door_opening(scene, opening, wall, floor):
              along + offset, fixed, base, jamb, height, depth, "metal", opening["id"])
     _bar(scene, f"Door_{opening['id']}_Head", "DOORS", axis,
          along, fixed, base + height - jamb, width, jamb, depth, "metal", opening["id"])
-    if opening.get("kind") == "entry":
+    if opening.get("kind") == "entry" and not opening.get("emergencyExit"):
         style = opening.get("entranceDesign", "stone-surround")
         ratio = 0.7 if style == "wide-pivot" else 0.5
         surround_depth = 550 if style == "framed-portico" else 350 if style == "stone-surround" else 240

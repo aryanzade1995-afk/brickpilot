@@ -49,7 +49,7 @@ export function buildFacadeZones(building: BuildingModel, massing: MassingModel)
       const openings = [...building.doors, ...building.windows].filter((o) => o.floorId === floor.id &&
         o.orient === (h ? 'h' : 'v') && same(h ? o.at.y : o.at.x, fixed) &&
         overlap(start, end, (h ? o.at.x : o.at.y) - o.width / 2, (h ? o.at.x : o.at.y) + o.width / 2) > 0)
-      const kind = facesVoid ? 'VOID' : openings.some((o) => o.kind === 'entry') ? 'ENTRANCE' :
+      const kind = facesVoid ? 'VOID' : openings.some((o) => o.kind === 'entry' && !o.emergencyExit) ? 'ENTRANCE' :
         touchingBalcony ? 'BALCONY' : host?.id === 'stair' ? 'STAIR_TOWER' :
           host?.zone === 'service' ? 'SERVICE' : floor.level > 0 ? 'UPPER' :
             side === building.orientation.roadPlanSide ? 'PRIMARY' : 'SECONDARY'

@@ -133,7 +133,7 @@ export function MassingModel({
   const cutaway = explode > 0.04
 
   const merged = useMemo(() => {
-    const byGroup = new Map<Group, THREE.BufferGeometry[]>()
+    const byGroup = new Map<string, {g:Group;color?:string;list:THREE.BufferGeometry[]}>()
 
     for (const b of massing.boxes) {
       const g = GROUP_OF[b.kind]
@@ -164,15 +164,16 @@ export function MassingModel({
       const geo =
         b.kind === 'prism' && b.prism ? makePrism(w, h, d, b.prism) : new THREE.BoxGeometry(w, h, d)
       geo.translate(b.pos[0], cy, b.pos[2])
-      if (!byGroup.has(g)) byGroup.set(g, [])
-      byGroup.get(g)!.push(geo)
+      const key=`${g}:${b.color??''}`
+      if (!byGroup.has(key)) byGroup.set(key, {g,color:b.color,list:[]})
+      byGroup.get(key)!.list.push(geo)
     }
 
-    const out: { g: Group; geo: THREE.BufferGeometry }[] = []
-    for (const [g, list] of byGroup) {
+    const out: { g: Group; color?:string; geo: THREE.BufferGeometry }[] = []
+    for (const {g,color,list} of byGroup.values()) {
       const mg = mergeGeometries(list, false)
       list.forEach((x) => x.dispose())
-      if (mg) out.push({ g, geo: mg })
+      if (mg) out.push({ g, color, geo: mg })
     }
     return out
   }, [massing, hidden, lift, cutaway])
@@ -181,12 +182,12 @@ export function MassingModel({
 
   return (
     <group>
-      {merged.map(({ g, geo }) => {
+      {merged.map(({ g, color, geo }) => {
         const mm = mat[g]
         return (
-          <mesh key={g} geometry={geo} castShadow receiveShadow>
+          <mesh key={`${g}:${color??''}`} geometry={geo} castShadow receiveShadow>
             <meshStandardMaterial
-              color={g === 'feature' || g === 'clad' ? paletteColor : mm.color}
+              color={color ?? (g === 'feature' || g === 'clad' ? paletteColor : mm.color)}
               roughness={mm.roughness}
               metalness={mm.metalness ?? 0}
               envMapIntensity={mm.env ?? 0.4}

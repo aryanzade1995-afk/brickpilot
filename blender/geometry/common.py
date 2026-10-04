@@ -6,7 +6,7 @@ from visualization.materials import create_materials
 MM = 0.001
 COLLECTION_NAMES = (
     "STRUCTURE", "WALLS", "OPENINGS", "WINDOWS", "DOORS", "MASSING",
-    "FACADE", "BALCONIES", "ROOF", "LANDSCAPE", "LIGHTING",
+    "FACADE", "BALCONIES", "ROOF", "LANDSCAPE", "LIGHTING", "SAFETY",
 )
 
 

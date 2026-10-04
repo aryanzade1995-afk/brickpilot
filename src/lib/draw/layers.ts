@@ -6,12 +6,12 @@ import { furnishFloor } from './furniture.ts'
 export const LAYER_LABELS = {
   site: 'Site + setbacks', zoning: 'Room zoning', circulation: 'Circulation + access',
   walls: 'Walls + columns', openings: 'Doors + windows', supports: 'Supports',
-  dimensions: 'Dimensions', labels: 'Labels', furniture: 'Furniture',
+  safety: 'Emergency exits', dimensions: 'Dimensions', labels: 'Labels', furniture: 'Furniture',
 }
 export type LayerId = keyof typeof LAYER_LABELS
 export type DrawingLayers = Record<LayerId, boolean>
 export type DrawingPreset = 'Presentation' | 'Architectural' | 'Validation' | 'Print'
-const architectural: DrawingLayers = { site: true, zoning: false, circulation: false, walls: true,
+const architectural: DrawingLayers = { safety: true, site: true, zoning: false, circulation: false, walls: true,
   openings: true, supports: false, dimensions: true, labels: true, furniture: false }
 export const DRAWING_PRESETS: Record<DrawingPreset, DrawingLayers> = {
   Presentation: { ...architectural, dimensions: false, furniture: true },
@@ -23,6 +23,7 @@ export const DRAWING_PRESETS: Record<DrawingPreset, DrawingLayers> = {
 /** Counts match the visible groups. No geometry is generated or changed here. */
 export function drawingLayerCounts(floor: FloorPlan, features: SiteFeature[] = []): Record<LayerId, number> {
   return {
+    safety: floor.rooms.filter(r=>!r.outdoor).length + floor.openings.filter(o=>o.kind==='entry').length,
     site: 2 + (floor.level === 0 ? features.length : 0), zoning: floor.rooms.length,
     circulation: floor.rooms.filter(r => r.zone === 'circulation').length + floor.openings.filter(o => o.kind !== 'window').length,
     walls: floor.walls.length + (floor.columns?.length ?? 0), openings: floor.openings.length,
@@ -34,7 +35,7 @@ export function drawingLayerCounts(floor: FloorPlan, features: SiteFeature[] = [
 
 export function terraceLayerCounts(design: Design): Record<LayerId, number> {
   const layout = terraceLayout(design), top = design.floors.at(-1)!
-  return { site: 2, zoning: layout?.slab.length ?? top.footprint.length,
+  return { safety: 0, site: 2, zoning: layout?.slab.length ?? top.footprint.length,
     circulation: top.stair ? 1 : 0, walls: (layout ? rectUnionEdges(layout.slab).length + (layout.mumty ? 1 : 0) : top.footprint.length),
     openings: 0, supports: (top.beams?.length ?? 0) + (top.columns?.length ?? 0), dimensions: 4,
     labels: layout ? 1 + (layout.mumty ? 1 : 0) + (layout.pergola ? 1 : 0) : 1,

@@ -160,7 +160,7 @@ export function makeFeature(type: ArchitecturalFeatureType, importance: 'hero' |
         z1 - t, z1, depth, 250)
     }
   } else if (type === 'ENTRY_PORTAL' || type === 'DOUBLE_HEIGHT_PORTAL') {
-    const entry = building.doors.find((o) => o.kind === 'entry' && !!o.id && zone.openingIds.includes(o.id))
+    const entry = building.doors.find((o) => o.kind === 'entry' && !o.emergencyExit && !!o.id && zone.openingIds.includes(o.id))
     if (!entry) return null
     const at = zone.side === 'N' || zone.side === 'S' ? entry.at.x : entry.at.y
     const jamb = clamp(Math.round(entry.width * 0.15), 160, 230)

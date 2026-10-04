@@ -66,7 +66,7 @@ export function boqMeasures(design: Design, q: Quantities) {
     for (const room of floorRooms) room.values.ceiling = roomArea ? ceilingArea * room.values.ceiling / roomArea : 0
     rooms.push(...floorRooms)
     if (floor.stair) stairArea += floor.stair.rect.w * floor.stair.rect.h / 1e6
-    for (const o of floor.openings.filter(o => o.kind === 'entry' && o.leaf !== false)) {
+    for (const o of floor.openings.filter(o => o.kind === 'entry' && !o.emergencyExit && o.leaf !== false)) {
       mainDoors += o.width * (o.head ?? rules.openingLimits.entryHeadMm) / 1e6
       canopy += o.width / 1000 * a.canopyProjectionM
     }
