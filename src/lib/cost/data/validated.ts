@@ -1,3 +1,4 @@
+import { experienceOptions, experienceChoices, experienceRates } from '../../finishes/experiences.ts'
 import ratesRaw from './rates.json' with { type: 'json' }
 import specsRaw from './specs-catalogue.json' with { type: 'json' }
 import presetsRaw from './presets.json' with { type: 'json' }
@@ -25,6 +26,11 @@ export function validateSpecificationData(r: unknown, s: unknown, p: unknown, m:
       if (product && (!rate || rate.unit !== product.rate.unit || rate.material !== product.rate.material || rate.labour !== product.rate.labour)) errors.push(`${item.id}/${option.id}: mismatched finish rate`)
       if (product?.image.kind === 'generic-material-closeup' && (product.image.path !== material?.webFile || product.sourceUrl !== material?.source)) errors.push(`${item.id}/${option.id}: natural-material photo must share the Blender texture`)
     }
+    if (option.experienceOptionId && !experienceOptions.some(o => o.id === option.id && o.id === option.experienceOptionId && o.item === item.id && o.blenderMaterial === option.blenderMaterial && option.rateId === `experience-${o.id}`)) errors.push(`${item.id}/${option.id}: invalid experience reference`)
+    if (option.experienceOptionId) {
+      const product = experienceOptions.find(o => o.id === option.experienceOptionId), rate = rates.items.find(r => r.id === option.rateId)
+      if (product && (!rate || rate.unit !== product.rate.unit || rate.material !== product.rate.material || rate.labour !== product.rate.labour)) errors.push(`${item.id}/${option.id}: mismatched experience rate`)
+    }
     for (const photo of option.photos.filter(p => p.kind === 'closeup')) {
       if (photo.file !== material?.texture || photo.webFile !== material?.webFile || photo.sha256 !== material?.sha256 || photo.webSha256 !== material?.webSha256 || photo.source !== material?.source || photo.width !== material?.width || photo.height !== material?.height)
         errors.push(`${item.id}/${option.id}: close-up must share the exact Blender texture and provenance`)
@@ -37,9 +43,9 @@ export function validateSpecificationData(r: unknown, s: unknown, p: unknown, m:
   if (errors.length) throw new Error(`Invalid specification references:\n${errors.join('\n')}`)
   return { rates, catalogue, presets, materials }
 }
-export const specificationData = validateSpecificationData({ ...ratesRaw, items: [...ratesRaw.items, ...flooringRates(), ...finishRates()] },
-  { ...specsRaw, items: specsRaw.items.map(i => ({ ...i, options: [...i.options,
-    ...(i.group === 'flooring' && i.level !== 'auto' ? flooringSpecificationOptions() : []), ...finishSpecificationOptions(i.id)] })) }, presetsRaw, materialsRaw)
+export const specificationData = validateSpecificationData({ ...ratesRaw, items: [...ratesRaw.items, ...flooringRates(), ...finishRates(), ...experienceRates()] },
+  { ...specsRaw, items: specsRaw.items.map(i => ({ ...i, control: i.id === 'pool' ? 'dropdown' : i.control, options: [...i.options,
+    ...(i.group === 'flooring' && i.level !== 'auto' ? flooringSpecificationOptions() : []), ...finishSpecificationOptions(i.id), ...experienceChoices(i.id)] })) }, presetsRaw, materialsRaw)
 const installedRate = (id: string) => {
   const rate = specificationData.rates.items.find(r => r.id === id)
   if (!rate) throw new Error(`Missing deployed BOQ rate ${id}`)

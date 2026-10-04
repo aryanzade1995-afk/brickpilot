@@ -1,0 +1,7 @@
+import { z } from 'zod'
+import raw from './experience-options.json' with { type: 'json' }
+const entry=z.strictObject({item:z.enum(['false-ceiling','landscaping','pool']),id:z.string().regex(/^[a-z][a-z0-9-]*$/),name:z.string(),pattern:z.string(),blenderMaterial:z.string(),sourceUrl:z.url().refine(u=>['www.gyproc.in','www.rhs.org.uk','www.desjoyauxpools.co.in'].includes(new URL(u).hostname)),date:z.iso.date(),rate:z.strictObject({unit:z.literal('m2'),material:z.number().nonnegative(),labour:z.number().nonnegative()}),note:z.string()})
+export const experienceOptions=z.strictObject({schemaVersion:z.literal(1),options:z.array(entry)}).refine(v=>new Set(v.options.map(o=>o.id)).size===v.options.length,'Duplicate experience option').parse(raw).options
+export const experienceOption=(id?:string)=>experienceOptions.find(o=>o.id===id)
+export const experienceChoices=(item:string)=>experienceOptions.filter(o=>o.item===item).map(o=>({id:o.id,name:o.name,rateId:`experience-${o.id}`,blenderMaterial:o.blenderMaterial,experienceOptionId:o.id,photos:[],tags:[o.pattern],facts:['Preview: indicative geometry, not an exact supplier model.','Installation: coordinate structure, services and access.','Price: concept allowance; request a supplier quotation.']}))
+export const experienceRates=()=>experienceOptions.map(o=>({id:`experience-${o.id}`,...o.rate,city:'Pune' as const,date:o.date,source:'Maharashtra PWD SOR + market, approximate' as const,verification:'provisional-allowance' as const}))

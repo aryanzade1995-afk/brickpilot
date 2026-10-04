@@ -43,7 +43,7 @@ test('every material and photo is present, original-size and byte-linked to its 
  }
  for(const item of catalogue.items.filter(i=>['main','more'].includes(i.level)))for(const option of item.options){
   const material=materials.materials.find(m=>m.id===option.blenderMaterial)
-  if(option.flooringProductId||option.finishProductId){assert.ok(material);assert.equal(option.photos.length,0);continue}
+  if(option.flooringProductId||option.finishProductId||option.experienceOptionId){assert.ok(material);assert.equal(option.photos.length,0);continue}
   assert.ok(option.photos.some(p=>p.kind==='closeup'&&p.file===material.texture&&p.sha256===material.sha256))
  }
 })

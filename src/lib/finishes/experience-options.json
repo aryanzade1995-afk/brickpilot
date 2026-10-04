@@ -1,0 +1,380 @@
+{
+  "schemaVersion": 1,
+  "options": [
+    {
+      "item": "false-ceiling",
+      "id": "ceiling-shadow",
+      "name": "Shadow-gap gypsum ceiling",
+      "pattern": "shadow",
+      "blenderMaterial": "white_plaster",
+      "sourceUrl": "https://www.gyproc.in/professionals/false-ceiling-solutions",
+      "date": "2026-10-04",
+      "rate": {
+        "unit": "m2",
+        "material": 1368,
+        "labour": 532
+      },
+      "note": "Indicative complete ceiling surface allowance including framing; confirm hangers, lights, services, headroom and contractor detail. Geometry is fitted to the preview room, not a supplier model."
+    },
+    {
+      "item": "false-ceiling",
+      "id": "ceiling-cove",
+      "name": "Perimeter cove-light ceiling",
+      "pattern": "cove",
+      "blenderMaterial": "white_plaster",
+      "sourceUrl": "https://www.gyproc.in/professionals/false-ceiling-solutions",
+      "date": "2026-10-04",
+      "rate": {
+        "unit": "m2",
+        "material": 1656,
+        "labour": 644
+      },
+      "note": "Indicative complete ceiling surface allowance including framing; confirm hangers, lights, services, headroom and contractor detail. Geometry is fitted to the preview room, not a supplier model."
+    },
+    {
+      "item": "false-ceiling",
+      "id": "ceiling-tray",
+      "name": "Recessed tray ceiling",
+      "pattern": "tray",
+      "blenderMaterial": "white_plaster",
+      "sourceUrl": "https://www.gyproc.in/professionals/false-ceiling-solutions",
+      "date": "2026-10-04",
+      "rate": {
+        "unit": "m2",
+        "material": 1728,
+        "labour": 672
+      },
+      "note": "Indicative complete ceiling surface allowance including framing; confirm hangers, lights, services, headroom and contractor detail. Geometry is fitted to the preview room, not a supplier model."
+    },
+    {
+      "item": "false-ceiling",
+      "id": "ceiling-double-tray",
+      "name": "Two-level stepped tray ceiling",
+      "pattern": "double-tray",
+      "blenderMaterial": "white_plaster",
+      "sourceUrl": "https://www.gyproc.in/professionals/false-ceiling-solutions",
+      "date": "2026-10-04",
+      "rate": {
+        "unit": "m2",
+        "material": 2016,
+        "labour": 784
+      },
+      "note": "Indicative complete ceiling surface allowance including framing; confirm hangers, lights, services, headroom and contractor detail. Geometry is fitted to the preview room, not a supplier model."
+    },
+    {
+      "item": "false-ceiling",
+      "id": "ceiling-island",
+      "name": "Floating central island ceiling",
+      "pattern": "island",
+      "blenderMaterial": "white_plaster",
+      "sourceUrl": "https://www.gyproc.in/professionals/false-ceiling-solutions",
+      "date": "2026-10-04",
+      "rate": {
+        "unit": "m2",
+        "material": 1800,
+        "labour": 700
+      },
+      "note": "Indicative complete ceiling surface allowance including framing; confirm hangers, lights, services, headroom and contractor detail. Geometry is fitted to the preview room, not a supplier model."
+    },
+    {
+      "item": "false-ceiling",
+      "id": "ceiling-linear",
+      "name": "Linear recessed-light ceiling",
+      "pattern": "linear",
+      "blenderMaterial": "white_plaster",
+      "sourceUrl": "https://www.gyproc.in/professionals/false-ceiling-solutions",
+      "date": "2026-10-04",
+      "rate": {
+        "unit": "m2",
+        "material": 1656,
+        "labour": 644
+      },
+      "note": "Indicative complete ceiling surface allowance including framing; confirm hangers, lights, services, headroom and contractor detail. Geometry is fitted to the preview room, not a supplier model."
+    },
+    {
+      "item": "false-ceiling",
+      "id": "ceiling-coffer",
+      "name": "Coffered gypsum ceiling",
+      "pattern": "coffer",
+      "blenderMaterial": "white_plaster",
+      "sourceUrl": "https://www.gyproc.in/professionals/false-ceiling-solutions",
+      "date": "2026-10-04",
+      "rate": {
+        "unit": "m2",
+        "material": 2304,
+        "labour": 896
+      },
+      "note": "Indicative complete ceiling surface allowance including framing; confirm hangers, lights, services, headroom and contractor detail. Geometry is fitted to the preview room, not a supplier model."
+    },
+    {
+      "item": "false-ceiling",
+      "id": "ceiling-slats",
+      "name": "Timber slat ceiling",
+      "pattern": "slats",
+      "blenderMaterial": "teak_wood",
+      "sourceUrl": "https://www.gyproc.in/professionals/false-ceiling-solutions",
+      "date": "2026-10-04",
+      "rate": {
+        "unit": "m2",
+        "material": 3024,
+        "labour": 1176
+      },
+      "note": "Indicative complete ceiling surface allowance including framing; confirm hangers, lights, services, headroom and contractor detail. Geometry is fitted to the preview room, not a supplier model."
+    },
+    {
+      "item": "false-ceiling",
+      "id": "ceiling-hybrid",
+      "name": "Gypsum border with timber centre",
+      "pattern": "hybrid",
+      "blenderMaterial": "teak_wood",
+      "sourceUrl": "https://www.gyproc.in/professionals/false-ceiling-solutions",
+      "date": "2026-10-04",
+      "rate": {
+        "unit": "m2",
+        "material": 2736,
+        "labour": 1064
+      },
+      "note": "Indicative complete ceiling surface allowance including framing; confirm hangers, lights, services, headroom and contractor detail. Geometry is fitted to the preview room, not a supplier model."
+    },
+    {
+      "item": "false-ceiling",
+      "id": "ceiling-perforated",
+      "name": "Perforated acoustic ceiling",
+      "pattern": "perforated",
+      "blenderMaterial": "white_plaster",
+      "sourceUrl": "https://www.gyproc.in/professionals/false-ceiling-solutions",
+      "date": "2026-10-04",
+      "rate": {
+        "unit": "m2",
+        "material": 2232,
+        "labour": 868
+      },
+      "note": "Indicative complete ceiling surface allowance including framing; confirm hangers, lights, services, headroom and contractor detail. Geometry is fitted to the preview room, not a supplier model."
+    },
+    {
+      "item": "false-ceiling",
+      "id": "ceiling-grid",
+      "name": "Demountable acoustic grid ceiling",
+      "pattern": "grid",
+      "blenderMaterial": "white_plaster",
+      "sourceUrl": "https://www.gyproc.in/professionals/false-ceiling-solutions",
+      "date": "2026-10-04",
+      "rate": {
+        "unit": "m2",
+        "material": 2088,
+        "labour": 812
+      },
+      "note": "Indicative complete ceiling surface allowance including framing; confirm hangers, lights, services, headroom and contractor detail. Geometry is fitted to the preview room, not a supplier model."
+    },
+    {
+      "item": "false-ceiling",
+      "id": "ceiling-curved",
+      "name": "Circular recessed ceiling",
+      "pattern": "circular",
+      "blenderMaterial": "white_plaster",
+      "sourceUrl": "https://www.gyproc.in/professionals/false-ceiling-solutions",
+      "date": "2026-10-04",
+      "rate": {
+        "unit": "m2",
+        "material": 2448,
+        "labour": 952
+      },
+      "note": "Indicative complete ceiling surface allowance including framing; confirm hangers, lights, services, headroom and contractor detail. Geometry is fitted to the preview room, not a supplier model."
+    },
+    {
+      "item": "landscaping",
+      "id": "land-native",
+      "name": "Native planting and lawn",
+      "pattern": "native",
+      "blenderMaterial": "grass",
+      "sourceUrl": "https://www.rhs.org.uk/garden-design",
+      "date": "2026-10-04",
+      "rate": {
+        "unit": "m2",
+        "material": 936,
+        "labour": 364
+      },
+      "note": "Concept planting/ground-cover allowance on measured landscape area only; irrigation, mature plant sizes and maintenance require a site-specific quote. Preview is a sample garden and does not change site geometry."
+    },
+    {
+      "item": "landscaping",
+      "id": "land-tropical",
+      "name": "Tropical layered garden",
+      "pattern": "tropical",
+      "blenderMaterial": "grass",
+      "sourceUrl": "https://www.rhs.org.uk/garden-design",
+      "date": "2026-10-04",
+      "rate": {
+        "unit": "m2",
+        "material": 1404,
+        "labour": 546
+      },
+      "note": "Concept planting/ground-cover allowance on measured landscape area only; irrigation, mature plant sizes and maintenance require a site-specific quote. Preview is a sample garden and does not change site geometry."
+    },
+    {
+      "item": "landscaping",
+      "id": "land-formal",
+      "name": "Formal hedge garden",
+      "pattern": "formal",
+      "blenderMaterial": "grass",
+      "sourceUrl": "https://www.rhs.org.uk/garden-design",
+      "date": "2026-10-04",
+      "rate": {
+        "unit": "m2",
+        "material": 1260,
+        "labour": 490
+      },
+      "note": "Concept planting/ground-cover allowance on measured landscape area only; irrigation, mature plant sizes and maintenance require a site-specific quote. Preview is a sample garden and does not change site geometry."
+    },
+    {
+      "item": "landscaping",
+      "id": "land-zen",
+      "name": "Gravel and stepping-stone garden",
+      "pattern": "zen",
+      "blenderMaterial": "gravel",
+      "sourceUrl": "https://www.rhs.org.uk/garden-design",
+      "date": "2026-10-04",
+      "rate": {
+        "unit": "m2",
+        "material": 1152,
+        "labour": 448
+      },
+      "note": "Concept planting/ground-cover allowance on measured landscape area only; irrigation, mature plant sizes and maintenance require a site-specific quote. Preview is a sample garden and does not change site geometry."
+    },
+    {
+      "item": "landscaping",
+      "id": "land-dry",
+      "name": "Low-water xeriscape",
+      "pattern": "dry",
+      "blenderMaterial": "gravel",
+      "sourceUrl": "https://www.rhs.org.uk/garden-design",
+      "date": "2026-10-04",
+      "rate": {
+        "unit": "m2",
+        "material": 1044,
+        "labour": 406
+      },
+      "note": "Concept planting/ground-cover allowance on measured landscape area only; irrigation, mature plant sizes and maintenance require a site-specific quote. Preview is a sample garden and does not change site geometry."
+    },
+    {
+      "item": "landscaping",
+      "id": "land-flower",
+      "name": "Flowering border garden",
+      "pattern": "flower",
+      "blenderMaterial": "grass",
+      "sourceUrl": "https://www.rhs.org.uk/garden-design",
+      "date": "2026-10-04",
+      "rate": {
+        "unit": "m2",
+        "material": 1116,
+        "labour": 434
+      },
+      "note": "Concept planting/ground-cover allowance on measured landscape area only; irrigation, mature plant sizes and maintenance require a site-specific quote. Preview is a sample garden and does not change site geometry."
+    },
+    {
+      "item": "landscaping",
+      "id": "land-courtyard",
+      "name": "Courtyard planters and paving",
+      "pattern": "courtyard",
+      "blenderMaterial": "granite_paving",
+      "sourceUrl": "https://www.rhs.org.uk/garden-design",
+      "date": "2026-10-04",
+      "rate": {
+        "unit": "m2",
+        "material": 1584,
+        "labour": 616
+      },
+      "note": "Concept planting/ground-cover allowance on measured landscape area only; irrigation, mature plant sizes and maintenance require a site-specific quote. Preview is a sample garden and does not change site geometry."
+    },
+    {
+      "item": "landscaping",
+      "id": "land-lawn-path",
+      "name": "Lawn with stepping-stone path",
+      "pattern": "path",
+      "blenderMaterial": "grass",
+      "sourceUrl": "https://www.rhs.org.uk/garden-design",
+      "date": "2026-10-04",
+      "rate": {
+        "unit": "m2",
+        "material": 756,
+        "labour": 294
+      },
+      "note": "Concept planting/ground-cover allowance on measured landscape area only; irrigation, mature plant sizes and maintenance require a site-specific quote. Preview is a sample garden and does not change site geometry."
+    },
+    {
+      "item": "pool",
+      "id": "pool-blue",
+      "name": "Blue ceramic-lined pool allowance",
+      "pattern": "blue",
+      "blenderMaterial": "ceramic_tile",
+      "sourceUrl": "https://www.desjoyauxpools.co.in/",
+      "date": "2026-10-04",
+      "rate": {
+        "unit": "m2",
+        "material": 20160,
+        "labour": 7840
+      },
+      "note": "Rate applies to pool area already present in the plan. Selecting a finish does not add a pool or change its dimensions; filtration, structure and waterproofing require detailed supplier quotations."
+    },
+    {
+      "item": "pool",
+      "id": "pool-mosaic",
+      "name": "Mosaic-lined pool allowance",
+      "pattern": "mosaic",
+      "blenderMaterial": "ceramic_tile",
+      "sourceUrl": "https://www.desjoyauxpools.co.in/",
+      "date": "2026-10-04",
+      "rate": {
+        "unit": "m2",
+        "material": 23760,
+        "labour": 9240
+      },
+      "note": "Rate applies to pool area already present in the plan. Selecting a finish does not add a pool or change its dimensions; filtration, structure and waterproofing require detailed supplier quotations."
+    },
+    {
+      "item": "pool",
+      "id": "pool-white",
+      "name": "Light porcelain-lined pool allowance",
+      "pattern": "white",
+      "blenderMaterial": "ceramic_tile",
+      "sourceUrl": "https://www.desjoyauxpools.co.in/",
+      "date": "2026-10-04",
+      "rate": {
+        "unit": "m2",
+        "material": 23040,
+        "labour": 8960
+      },
+      "note": "Rate applies to pool area already present in the plan. Selecting a finish does not add a pool or change its dimensions; filtration, structure and waterproofing require detailed supplier quotations."
+    },
+    {
+      "item": "pool",
+      "id": "pool-green",
+      "name": "Green tile-lined pool allowance",
+      "pattern": "green",
+      "blenderMaterial": "ceramic_tile",
+      "sourceUrl": "https://www.desjoyauxpools.co.in/",
+      "date": "2026-10-04",
+      "rate": {
+        "unit": "m2",
+        "material": 22320,
+        "labour": 8680
+      },
+      "note": "Rate applies to pool area already present in the plan. Selecting a finish does not add a pool or change its dimensions; filtration, structure and waterproofing require detailed supplier quotations."
+    },
+    {
+      "item": "pool",
+      "id": "pool-stone",
+      "name": "Stone-look coping pool allowance",
+      "pattern": "stone",
+      "blenderMaterial": "grey_stone",
+      "sourceUrl": "https://www.desjoyauxpools.co.in/",
+      "date": "2026-10-04",
+      "rate": {
+        "unit": "m2",
+        "material": 25200,
+        "labour": 9800
+      },
+      "note": "Rate applies to pool area already present in the plan. Selecting a finish does not add a pool or change its dimensions; filtration, structure and waterproofing require detailed supplier quotations."
+    }
+  ]
+}
