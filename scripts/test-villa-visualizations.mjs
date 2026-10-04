@@ -75,9 +75,9 @@ test('Gemini receives both real renders in a direct edit rather than generating 
   assert.equal(parts[1].image_url.url,`data:image/png;base64,${first}`)
   assert.ok(!requests.some(r=>r.url.includes('images/generations')))
 })
-test('Render retains interior flow, two source tabs, large actual viewport and a single visualization action',async()=>{
+test('Render has two source tabs (AI Interior moved after Finishes & Cost), large actual viewport and a single visualization action',async()=>{
   const route=await readFile(new URL('../src/routes/Render.tsx',import.meta.url),'utf8')
-  assert.match(route,/Blender Villa/);assert.match(route,/Study Model/);assert.match(route,/InteriorStudio/)
+  assert.match(route,/Blender Villa/);assert.match(route,/Study Model/);assert.doesNotMatch(route,/InteriorStudio/)
   assert.match(route,/Generate AI Visualization/);assert.match(route,/VillaVisualizationViewport/)
   assert.match(route,/md:grid-cols-2/);assert.doesNotMatch(route,/runJobs|probeHealth|REF_KEYS|Docker|Cookie|switching/i)
 })

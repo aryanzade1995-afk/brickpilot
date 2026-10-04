@@ -51,7 +51,8 @@ export async function generateVillaVisualizations(reference, {registry, limits=V
   const views=validateVillaReference(reference)
   const primary=process.env.BUILDING_PROVIDER==='gemini' ? gemini : geminiWeb
   const providers=registry??{gemini:primary,comfyui}
-  for(const [name,timeout] of [['gemini',limits.geminiTimeoutMs],['comfyui',limits.comfyTimeoutMs]]) {
+  // local SDXL first (fast, edge-conditioned), Gemini Web as the fallback
+  for(const [name,timeout] of [['comfyui',limits.comfyTimeoutMs],['gemini',limits.geminiTimeoutMs]]) {
     signal?.throwIfAborted()
     const controller=new AbortController(), timer=setTimeout(()=>controller.abort(new Error('Visualization timed out')),timeout)
     const operationSignal=signal?AbortSignal.any([signal,controller.signal]):controller.signal

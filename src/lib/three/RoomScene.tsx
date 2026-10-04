@@ -10,9 +10,11 @@ import { THEMES, type Character } from '@/lib/model/themes.ts'
 
 type Mtl = { color: string; roughness: number; metalness: number; emissive?: string; emissiveIntensity?: number }
 
-function palette(character: Character): Record<RoomMatKey, Mtl> {
+export type RoomLook = { wall: string; slab: string; ceil: string; trim: string }
+
+function palette(character: Character, look?: RoomLook): Record<RoomMatKey, Mtl> {
   const m = THEMES[character].materials
-  return {
+  const base: Record<RoomMatKey, Mtl> = {
     wall: { color: m.shell.color, roughness: 0.92, metalness: 0 },
     slab: { color: m.paving.color, roughness: 0.85, metalness: 0 },
     ceil: { color: m.roof.color, roughness: 0.9, metalness: 0 },
@@ -21,10 +23,13 @@ function palette(character: Character): Record<RoomMatKey, Mtl> {
     // a window reads as a bright daylight source, never a dark hole
     glass: { color: '#cdd9e6', roughness: 0.2, metalness: 0, emissive: '#e8eef5', emissiveIntensity: 0.55 },
   }
+  // the user's chosen finishes replace the theme's neutral shell
+  if (look) { base.wall.color = look.wall; base.slab.color = look.slab; base.ceil.color = look.ceil; base.trim.color = look.trim }
+  return base
 }
 
-export function RoomModelMesh({ model, character }: { model: RoomModel; character: Character }) {
-  const mat = useMemo(() => palette(character), [character])
+export function RoomModelMesh({ model, character, look }: { model: RoomModel; character: Character; look?: RoomLook }) {
+  const mat = useMemo(() => palette(character, look), [character, look])
 
   const merged = useMemo(() => {
     const byMat = new Map<RoomMatKey, THREE.BufferGeometry[]>()

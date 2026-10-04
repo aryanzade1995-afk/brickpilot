@@ -1,5 +1,6 @@
 import type { RoomModel } from '@/lib/three/buildRoom.ts'
 import type { InteriorStyle } from './interiorStyles.ts'
+import type { RoomSpecs } from './roomSpecs.ts'
 
 /* Turn the real room (type, size, openings) + a style preset into an
  * SDXL prompt pair. The depth / edge maps hold the geometry; the prompt
@@ -73,7 +74,7 @@ function openingsPhrase(model: RoomModel): string {
   return `${lead}The room has exactly ${bits.join(' and ')} — do not add, move or remove any windows or doors.`
 }
 
-export function buildInteriorPrompt(model: RoomModel, style: InteriorStyle): InteriorPrompt {
+export function buildInteriorPrompt(model: RoomModel, style: InteriorStyle, specs?: RoomSpecs): InteriorPrompt {
   const word = roomWord(model)
   const furniture = furnitureFor(model)
   const openings = openingsPhrase(model)
@@ -83,7 +84,8 @@ export function buildInteriorPrompt(model: RoomModel, style: InteriorStyle): Int
   const positive = [
     `Photorealistic interior photograph of a fully furnished, richly decorated, lived-in ${size}, ${style.label} style.`,
     `The room is completely furnished with ${furniture} — every piece present, well arranged and clearly in shot, the room looks warm and inhabited, not staged empty.`,
-    style.prompt,
+    // the user's chosen finishes are authoritative: a style preset then only dresses the room
+    specs ? `${specs.statement} Decor in a ${style.label.toLowerCase()} spirit, furniture, textiles and accessories only, never the wall, floor or ceiling surfaces.` : style.prompt,
     openings,
     'Keep the wall layout, ceiling height, opening positions and camera viewpoint exactly as the reference geometry.',
     'Interior design magazine photograph, 28mm lens, eye level, natural daylight plus warm layered lighting, physically based materials, realistic soft shadows and reflections, styled and dressed, sharp focus, ultra-detailed, 8k.',
@@ -96,7 +98,7 @@ export function buildInteriorPrompt(model: RoomModel, style: InteriorStyle): Int
     'people, faces, hands, pets',
     'duplicated furniture, floating furniture, oversized furniture, mismatched scale, messy pile',
     'cartoon, anime, illustration, painting, 3d render look, video game, plasticky, overexposed, oversaturated, HDR halo',
-    style.negative ?? '',
+    specs ? specs.negative : style.negative ?? '',
   ]
     .filter(Boolean)
     .join(', ')

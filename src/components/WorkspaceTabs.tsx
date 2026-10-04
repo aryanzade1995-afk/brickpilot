@@ -8,7 +8,8 @@ const TABS = [
   { to: '/workspace/massing', label: '3D massing', n: '04' },
   { to: '/workspace/render', label: 'Render', n: '05' },
   { to: '/workspace/finishes', label: 'Finishes & Cost', n: '06' },
-  { to: '/workspace/report', label: 'Report', n: '07' },
+  { to: '/workspace/interior', label: 'AI Interior', n: '07' },
+  { to: '/workspace/report', label: 'Report', n: '08' },
   { to: '/workspace/dataset', label: 'Villa references', n: '' },
 ]
 

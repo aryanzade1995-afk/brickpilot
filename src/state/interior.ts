@@ -63,7 +63,7 @@ function parseSse(chunk: string): { event: string; data: string } {
 
 export const useInterior = create<InteriorState>((set, get) => ({
   roomKey: null,
-  styleId: 'modern-indian',
+  styleId: 'as-specified',
   phase: 'idle',
   progress: { pct: 0, stage: '' },
   error: null,

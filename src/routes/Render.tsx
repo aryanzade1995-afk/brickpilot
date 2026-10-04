@@ -6,7 +6,6 @@ import { useBlender } from '@/state/blender.ts'
 import { RenderProgress } from '@/components/RenderProgress.tsx'
 import { useVillaVisualizations } from '@/state/villaVisualizations.ts'
 import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
-import { InteriorStudio } from '@/components/InteriorStudio.tsx'
 import { InvalidPlanNotice } from '@/components/InvalidPlanNotice.tsx'
 import { createBuildingModel } from '@/lib/engine/buildingModel.ts'
 import { finishSignature } from '@/lib/cost/finishAssignments.ts'
@@ -15,7 +14,7 @@ import { VillaVisualizationViewport, type VillaViewportHandle } from '@/lib/rend
 import { readVisualizationPair, visualizationSourceId, VILLA_VIEW_LABELS } from '@/lib/render/villaVisualizations.ts'
 import { cx } from '@/lib/cx.ts'
 
-type Tab='blender'|'study'|'interior'
+type Tab='blender'|'study'
 export function Render() {
   const result=useStudio(s=>s.result),brief=useStudio(s=>s.brief),run=useStudio(s=>s.run)
   const plan=useMemo(()=>result?{...result.design,model:{...result.design.model,brief}}:null,[result,brief])
@@ -62,10 +61,10 @@ export function Render() {
     <div className="mt-8"><p className="label">Step 05 · Render</p><h1 className="mt-3 font-display text-3xl md:text-4xl">Visualise your villa</h1>
       <p className="mt-3 max-w-3xl text-sm leading-relaxed text-ink-dim">Compare your completed 3D model with two realistic exterior views. Your rooms, openings and building geometry remain the reference.</p></div>
     <div role="tablist" aria-label="Visualization model" className="mt-7 flex gap-1 overflow-x-auto border-b border-line">
-      {([['blender','Blender Villa'],['study','Study Model'],['interior','AI Interior']] as const).map(([key,label])=><button key={key} type="button" role="tab" aria-selected={tab===key} disabled={busy}
+      {([['blender','Blender Villa'],['study','Study Model']] as const).map(([key,label])=><button key={key} type="button" role="tab" aria-selected={tab===key} disabled={busy}
         onClick={()=>{if(tab!==key){setReady(false);setTab(key)}}} className={cx('shrink-0 border-b-2 px-5 py-3 font-mono text-xs uppercase tracking-wider disabled:opacity-50',tab===key?'border-ink text-ink':'border-transparent text-ink-dim')}>{label}</button>)}
     </div>
-    {tab==='interior'?<InteriorStudio design={plan} character={brief.style.character}/>:<section role="tabpanel" className="mt-6">
+    <section role="tabpanel" className="mt-6">
       <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3"><h2 className="font-display text-2xl">{source==='blender'?'Your Blender villa':'Your architectural study model'}</h2>
         <span className="text-xs text-ink-dim">Same 2D plan · {plan.floors.length} floors · {plan.builtAreaSqm.toFixed(0)} m²</span></div>
       {hasModel?<VillaVisualizationViewport key={sourceId} ref={viewport} design={plan} url={source==='blender'?blender?.files.glb:undefined} onReady={readyChanged}/>:
@@ -91,7 +90,7 @@ export function Render() {
       </div>
       <p className="mt-3 text-xs text-ink-faint">AI Visualisation · Compare generated images against the authoritative model before presenting architectural details.</p>
       <details className="mt-6 text-xs text-ink-dim"><summary>Emergency escape layout</summary><div className="mt-3 space-y-2">{emergencyPlan(plan).notes.map(n=><p key={n}>{n}</p>)}<p>{emergencyPlan(plan).disclaimer}</p></div></details>
-    </section>}
+    </section>
     <div className="mt-10 flex justify-between border-t border-line pt-5 text-sm"><Link to="/workspace/massing" className="underline underline-offset-4">Back to 3D Massing</Link><Link to="/workspace/finishes" className="underline underline-offset-4">Next: finishes & cost →</Link></div>
   </div>
 }

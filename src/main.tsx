@@ -11,6 +11,7 @@ import { Plan } from './routes/Plan.tsx'
 import { Massing } from './routes/Massing.tsx'
 import { Render } from './routes/Render.tsx'
 import { Report } from './routes/Report.tsx'
+import { Interior } from './routes/Interior.tsx'
 import { FinishesCost } from './routes/FinishesCost.tsx'
 import { Designs } from './routes/Designs.tsx'
 import { VillaDataset } from './routes/VillaDataset.tsx'
@@ -29,6 +30,7 @@ const router = createBrowserRouter([
       { path: 'workspace/render', element: <Render /> },
       { path: 'workspace/finishes', element: <FinishesCost /> },
       { path: 'workspace/dataset', element: <VillaDataset /> },
+      { path: 'workspace/interior', element: <Interior /> },
       { path: 'workspace/report', element: <Report /> },
       { path: 'designs', element: <Designs /> },
     ],

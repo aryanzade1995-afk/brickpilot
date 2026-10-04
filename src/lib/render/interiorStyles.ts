@@ -15,6 +15,12 @@ export type InteriorStyle = {
 
 export const INTERIOR_STYLES: InteriorStyle[] = [
   {
+    id: 'as-specified',
+    label: 'My finishes',
+    note: 'Only your chosen colours and materials',
+    prompt: 'Clean contemporary furnishing with neutral, tasteful decor that lets the specified wall, floor and ceiling finishes lead.',
+  },
+  {
     id: 'modern-indian',
     label: 'Modern Indian',
     note: 'Warm contemporary — teak, brass, handloom',

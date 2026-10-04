@@ -6,6 +6,8 @@ import type { RoomModel } from '@/lib/three/buildRoom.ts'
 import { RoomViewport, type CaptureMaps, type RoomCaptureHandle } from '@/lib/render/RoomViewport.tsx'
 import { buildInteriorPrompt } from '@/lib/render/interiorPrompt.ts'
 import { INTERIOR_STYLES, styleById } from '@/lib/render/interiorStyles.ts'
+import { roomSpecs } from '@/lib/render/roomSpecs.ts'
+import { useStudio } from '@/state/studio.ts'
 import { useInterior } from '@/state/interior.ts'
 import { useRender } from '@/state/render.ts'
 import { cx } from '@/lib/cx.ts'
@@ -67,7 +69,10 @@ export function InteriorStudio({
   const [lvlStr, roomId] = (roomKey ?? '0:').split(':')
   const floorLevel = Number(lvlStr) || 0
   const style = styleById(styleId)
-  const prompt = roomModel ? buildInteriorPrompt(roomModel, style) : null
+  const brief = useStudio((st) => st.brief)
+  // the finishes chosen on Finishes & Cost, resolved for this room
+  const specs = useMemo(() => (roomId ? roomSpecs(design, brief, floorLevel, roomId) : null), [design, brief, floorLevel, roomId])
+  const prompt = roomModel ? buildInteriorPrompt(roomModel, style, specs ?? undefined) : null
 
   const busy = phase === 'capturing' || phase === 'generating'
 
@@ -82,7 +87,7 @@ export function InteriorStudio({
     }
     const maps = dualPov ? captured : captured.slice(0, 1)
     setLastMaps(maps)
-    const p = buildInteriorPrompt(roomModel, style)
+    const p = buildInteriorPrompt(roomModel, style, specs ?? undefined)
     await generate({
       maps,
       positive: p.positive,
@@ -131,7 +136,7 @@ export function InteriorStudio({
           <span>
             Interior engine: <span className="font-mono text-ink">{health.provider}</span>
             {health.note ? ` — ${health.note}` : ''}
-            {offline && ' · start Gemini Web or ComfyUI to generate an interior (see README).'}
+            {offline && ' · start ComfyUI (local SDXL) or Gemini Web to generate an interior (see README).'}
             {offline && <button type="button" onClick={() => void probeHealth()}
               className="ml-2 font-mono text-xs underline underline-offset-2 hover:text-ink">Check again</button>}
           </span>
@@ -148,6 +153,7 @@ export function InteriorStudio({
             character={character}
             captureRef={capRef}
             onModel={setRoomModel}
+            look={specs?.look}
           />
           <div className="mt-3 grid grid-cols-3 gap-3">
             {(['beauty', 'depth', 'edge'] as const).map((k) => (
@@ -195,8 +201,25 @@ export function InteriorStudio({
             </div>
           </div>
 
+          {specs && (
+            <div className="border border-line">
+              <div className="label border-b border-line px-4 py-2.5">Your specifications · this room</div>
+              <ul className="divide-y divide-line">
+                {specs.lines.map((l) => (
+                  <li key={l.item} className="flex items-start gap-3 px-4 py-2 text-[0.8rem]">
+                    <span className="mt-0.5 h-4 w-4 flex-none border border-line-strong" style={{ background: l.hex ?? 'transparent' }} aria-hidden />
+                    <span><span className="block font-mono text-[0.6rem] uppercase tracking-[0.08em] text-ink-faint">{l.label}</span>{l.value}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="border-t border-line px-4 py-2 text-[0.7rem] text-ink-faint">
+                From Finishes &amp; Cost. The 3D room and the AI image use exactly these.
+              </p>
+            </div>
+          )}
+
           <div className="border border-line">
-            <div className="label border-b border-line px-4 py-2.5">Style</div>
+            <div className="label border-b border-line px-4 py-2.5">Decor style</div>
             <div className="grid grid-cols-2 gap-1.5 p-3">
               {INTERIOR_STYLES.map((s) => (
                 <button
@@ -295,9 +318,9 @@ export function InteriorStudio({
           )}
 
           <p className="text-[0.78rem] leading-relaxed text-ink-faint">
-            {health?.provider === 'comfyui'
-              ? 'ComfyUI uses the 3D room edge map for Canny conditioning. Check the output against the plan before using it.'
-              : 'Gemini Web reads the 3D room and generates a furnished concept from its layout description. Its image endpoint does not guarantee exact door or window positions; check the output against the plan. ComfyUI is used if Gemini Web fails.'}
+            {health?.provider === 'gemini-web'
+              ? 'Local SDXL was unavailable, so Gemini Web is generating from the room description. Its image endpoint does not guarantee exact door or window positions; check the output against the plan.'
+              : 'Local SDXL (ComfyUI) uses the 3D room edge map for Canny conditioning and your chosen finishes as a strict specification. Gemini Web is the fallback. Check the output against the plan before using it.'}
             {' '}With the second angle on, each run renders two views of the room.
           </p>
         </div>
@@ -315,10 +338,10 @@ export function InteriorStudio({
               return (
                 <figure key={r.id} className="border border-line">
                   <div className="relative bg-bg-inset">
-                    <div className={cx('grid gap-px', r.urls.length > 1 && 'xl:grid-cols-2')}>
+                    <div className="grid gap-px">
                       {r.urls.map((u, i) => (
                         <button type="button" key={i} onClick={() => openImage(u, `${r.roomLabel} — view ${i + 1}`)}
-                          aria-label={`Enlarge ${r.roomLabel}, view ${i + 1}`} className="relative aspect-[4/3] w-full overflow-hidden cursor-zoom-in">
+                          aria-label={`Enlarge ${r.roomLabel}, view ${i + 1}`} className="relative aspect-[4/3] w-full cursor-zoom-in overflow-hidden">
                           <span className="absolute bottom-3 right-3 flex items-center gap-2 bg-bg/90 px-3 py-2 text-xs"><Maximize2 size={16} /> Enlarge</span>
                           <img
                             src={u}

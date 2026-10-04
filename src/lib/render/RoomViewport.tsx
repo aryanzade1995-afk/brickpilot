@@ -4,7 +4,7 @@ import { Canvas, useThree } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
 import { buildRoom, type RoomModel } from '@/lib/three/buildRoom.ts'
-import { RoomEnv, RoomModelMesh } from '@/lib/three/RoomScene.tsx'
+import { RoomEnv, RoomModelMesh, type RoomLook } from '@/lib/three/RoomScene.tsx'
 import type { Character } from '@/lib/model/themes.ts'
 import type { Design } from '@/lib/engine/types.ts'
 
@@ -157,6 +157,7 @@ export function RoomViewport({
   character,
   captureRef,
   onModel,
+  look,
 }: {
   design: Design
   floorLevel: number
@@ -164,6 +165,8 @@ export function RoomViewport({
   character: Character
   captureRef: MutableRefObject<RoomCaptureHandle | null>
   onModel?: (m: RoomModel | null) => void
+  /** the colours chosen on Finishes & Cost */
+  look?: RoomLook
 }) {
   const model = useMemo(
     () => buildRoom(design, floorLevel, roomId, character),
@@ -194,7 +197,7 @@ export function RoomViewport({
         }}
       >
         <RoomEnv model={model} />
-        <RoomModelMesh model={model} character={character} />
+        <RoomModelMesh model={model} character={character} look={look} />
         <OrbitControls makeDefault enableDamping dampingFactor={0.12} target={model.camera.target} />
         <Rig model={model} />
         <Capturer handleRef={captureRef} model={model} />

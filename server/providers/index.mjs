@@ -1,5 +1,5 @@
-/* Gemini Web is the primary interior engine; ComfyUI preserves the rendered
- * room edges when Gemini Web is unavailable or its generation fails. */
+/* Local SDXL (ComfyUI, edge-conditioned so the room keeps its walls and openings) is the primary
+ * engine: lightweight and fast. Gemini Web is the fallback when it is offline or fails. */
 import * as comfyui from './comfyui.mjs'
 import * as geminiWeb from './gemini-web.mjs'
 import * as gemini from './gemini.mjs'
@@ -8,8 +8,8 @@ import * as mock from './mock.mjs'
 const REGISTRY = { 'gemini-web': geminiWeb, comfyui, gemini, mock }
 
 export function providerName() {
-  const name = (process.env.INTERIOR_PROVIDER || 'gemini-web').toLowerCase()
-  return REGISTRY[name] ? name : 'gemini-web'
+  const name = (process.env.INTERIOR_PROVIDER || 'comfyui').toLowerCase()
+  return REGISTRY[name] ? name : 'comfyui'
 }
 
 export async function resolveProvider() {
@@ -20,15 +20,17 @@ export async function resolveProvider() {
     return { configuredId, activeId: configuredId, reachable: !!health.reachable,
       note: health.note || '', provider: chosen, usingMock: configuredId === 'mock' }
 
-  if (configuredId !== 'comfyui') {
-    const fallback = await comfyui.healthy().catch(() => ({ reachable: false, note: 'health check failed' }))
+  const other = configuredId === 'comfyui' ? geminiWeb : comfyui
+  const otherId = configuredId === 'comfyui' ? 'gemini-web' : 'comfyui'
+  if (configuredId !== 'mock') {
+    const fallback = await other.healthy().catch(() => ({ reachable: false, note: 'health check failed' }))
     if (fallback.reachable)
-      return { configuredId, activeId: 'comfyui', reachable: true,
-        note: `${configuredId} unavailable (${health.note || 'offline'}); using ComfyUI`,
-        provider: comfyui, usingMock: false }
+      return { configuredId, activeId: otherId, reachable: true,
+        note: `${configuredId} unavailable (${health.note || 'offline'}); using ${otherId}`,
+        provider: other, usingMock: false }
   }
   return { configuredId, activeId: 'unavailable', reachable: false,
-    note: `${configuredId} unavailable (${health.note || 'offline'}); ComfyUI also unavailable.`,
+    note: `${configuredId} unavailable (${health.note || 'offline'}); ${otherId} also unavailable.`,
     provider: null, usingMock: false }
 }
 
@@ -39,19 +41,22 @@ export async function generateInteriorWithFallback(job, onFallback) {
   try {
     return await selected.provider.generateInterior(job)
   } catch (error) {
-    if (selected.activeId === 'comfyui' || selected.activeId === 'mock') throw error
-    const health = await comfyui.healthy().catch(() => ({ reachable: false }))
+    if (selected.activeId === 'mock') throw error
+    const other = selected.activeId === 'comfyui' ? geminiWeb : comfyui
+    const otherId = selected.activeId === 'comfyui' ? 'gemini-web' : 'comfyui'
+    if (selected.activeId !== 'comfyui' && selected.activeId !== 'gemini-web') throw error
+    const health = await other.healthy().catch(() => ({ reachable: false }))
     if (!health.reachable)
-      throw new Error(`${selected.activeId} failed: ${String(error?.message || error)}. ComfyUI is unavailable.`)
-    onFallback?.(`${selected.activeId} failed; switching to ComfyUI`)
-    return comfyui.generateInterior(job)
+      throw new Error(`${selected.activeId} failed: ${String(error?.message || error)}. ${otherId} is unavailable.`)
+    onFallback?.(`${selected.activeId} failed; switching to ${otherId}`)
+    return other.generateInterior(job)
   }
 }
 
 /** The Render page always tries this order. InteriorStudio retains its own policy. */
 export async function generateBuildingWithFallback(job, registry = REGISTRY) {
   const attempts = []
-  for (const activeId of ['gemini-web','comfyui','mock']) {
+  for (const activeId of ['comfyui','gemini-web','mock']) {
     const provider = registry[activeId]
     try {
       const health = await provider.healthy()
@@ -68,7 +73,7 @@ export async function generateBuildingWithFallback(job, registry = REGISTRY) {
 }
 
 export async function buildingRenderHealth() {
-  for (const provider of [geminiWeb,comfyui]) {
+  for (const provider of [comfyui,geminiWeb]) {
     const health = await provider.healthy().catch(()=>({reachable:false}))
     if (health.reachable) return {ok:true,reachable:true,configured:true,mock:false,provider:provider.id,note:''}
   }
