@@ -7,6 +7,7 @@ import {validate} from '../src/lib/rules/index.ts'
 import {withEmergencyExit,emergencyPlan,outsideEscapePath,ESCAPE_LIMITS} from '../src/lib/engine/safety.ts'
 import {createBuildingModel} from '../src/lib/engine/buildingModel.ts'
 import {buildMassing} from '../src/lib/three/buildMassing.ts'
+import {siteGate} from '../src/lib/engine/siteGate.ts'
 
 function plan(family='rectangular',floors=2){const b=defaultBrief();b.site.plotWidth=28;b.site.plotDepth=32;b.levels.floors=floors;
   return generate(compile(b),{seed:41,massing:family})}
@@ -41,4 +42,15 @@ test('a legacy plan has honest escape guidance and no invented upper-floor exter
   const s=emergencyPlan(d);assert.equal(s.secondaryExitId,null);assert.ok(s.notes.some(n=>n.includes('could not fit')))
   assert.ok(s.routes.filter(r=>r.level>0).every(r=>r.destination==='Stair → ground exit'))
   assert.match(s.disclaimer,/qualified architect/)
+})
+
+test('compound-wall escape paths terminate inside the same gate used by both 3D engines',()=>{
+  const b=defaultBrief();b.site.plotWidth=28;b.site.plotDepth=32;b.rooms.priorities.compoundWall=true
+  const d=generate(compile(b),{seed:41,massing:'rectangular'}),gate=siteGate(d)
+  const door=d.floors[0].openings.find(o=>o.emergencyExit);assert.ok(door)
+  assert.equal(outsideEscapePath(d,door).at(-1).x,gate.centerX)
+  assert.deepEqual(createBuildingModel(d).siteGate,gate)
+  const shade=buildMassing(d).boxes.find(b=>b.id==='compound-gate-shade')
+  assert.ok(shade);assert.equal(shade.size[0],(gate.widthMm+300)/1000)
+  assert.ok(validate(d).hardChecksPass)
 })

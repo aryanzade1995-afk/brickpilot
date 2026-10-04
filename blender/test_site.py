@@ -19,6 +19,11 @@ class RecordingScene:
         self.objects.append(obj)
         return obj
 
+    def box(self, name, collection, x, y, bottom, width, depth, height,
+            material="concrete", source_id=None, bevel=8):
+        return self.rect(name, collection, {"x": x-width/2, "y": y-depth/2,
+                         "w": width, "h": depth}, bottom, height, material, source_id, bevel)
+
 
 class SiteTest(unittest.TestCase):
     @classmethod
@@ -38,6 +43,20 @@ class SiteTest(unittest.TestCase):
                     self.assertEqual(obj["rect"], f["rect"])
                     self.assertEqual(obj["source_id"], f["id"])
             self.assertEqual(b, before)
+
+    def test_compound_gate_uses_the_serialized_escape_opening(self):
+        b = deepcopy(self.inputs[0]["buildingModel"])
+        b["siteRequirements"] = {"compoundWall": True}
+        b["siteGate"] = {"centerX": b["plot"]["widthMm"]/2, "widthMm": 3000}
+        scene = RecordingScene()
+        create_site(scene, b)
+        gate = b["siteGate"]
+        left = next(o for o in scene.objects if o["name"] == "Compound_South_Left")["rect"]
+        right = next(o for o in scene.objects if o["name"] == "Compound_South_Right")["rect"]
+        shade = next(o for o in scene.objects if o["name"] == "CompoundGate_Canopy")["rect"]
+        self.assertEqual(left["x"]+left["w"], gate["centerX"]-gate["widthMm"]/2)
+        self.assertEqual(right["x"], gate["centerX"]+gate["widthMm"]/2)
+        self.assertEqual(shade["x"]+shade["w"]/2, gate["centerX"])
 
     def test_pool_is_below_grade_and_both_ground_surfaces_have_a_real_hole(self):
         for payload in self.inputs:

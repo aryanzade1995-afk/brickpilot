@@ -1,4 +1,5 @@
 import { emergencyPlan, ESCAPE_LIMITS } from '../engine/safety.ts'
+import { siteGate, type SiteGate } from '../engine/siteGate.ts'
 import type { Design, FloorPlan, Opening } from '../engine/types.ts'
 import type { Rect } from '../geometry.ts'
 import { rectUnionEdges } from '../geometry.ts'
@@ -442,8 +443,8 @@ export function buildMassing(design: Design): Massing {
       }
     }
     // Retain the existing boundary-wall treatment, using no independent lawn or driveway.
-    if (model.brief.rooms.priorities.compoundWall) buildLandscape({ ...model, brief: { ...model.brief, rooms: { ...model.brief.rooms, priorities: { ...model.brief.rooms.priorities, garden: false } } } }, floors[0], T, push, wx, wz, m)
-  } else buildLandscape(model, floors[0], T, push, wx, wz, m)
+    if (model.brief.rooms.priorities.compoundWall) buildLandscape({ ...model, brief: { ...model.brief, rooms: { ...model.brief.rooms, priorities: { ...model.brief.rooms.priorities, garden: false } } } }, floors[0], T, push, wx, wz, m, siteGate(design))
+  } else buildLandscape(model, floors[0], T, push, wx, wz, m, siteGate(design))
 
   const storeys = floors.length
   for (const marker of emergencyPlan(design).markers) {
@@ -1285,6 +1286,7 @@ function buildLandscape(
   wx: XF,
   wz: XF,
   m: XF,
+  gate: SiteGate | null,
 ) {
   const P = model.brief.rooms.priorities
   if (!P.garden && !P.compoundWall) return
@@ -1340,12 +1342,13 @@ function buildLandscape(
     push('cw-n', 'fence', 0, [wx(plotW / 2), cy, wz(z0)], [m(x1 - x0 + t), wallH, t])
     push('cw-e', 'fence', 0, [wx(x1), cy, wz(plotD / 2)], [t, wallH, m(z1 - z0)])
     push('cw-w', 'fence', 0, [wx(x0), cy, wz(plotD / 2)], [t, wallH, m(z1 - z0)])
-    const gateHalf = 1900
-    const gL1 = driveX - gateHalf
-    const gR0 = driveX + gateHalf
+    const gateHalf = (gate?.widthMm ?? 3800) / 2
+    const gateX = gate?.centerX ?? driveX
+    const gL1 = gateX - gateHalf
+    const gR0 = gateX + gateHalf
     if (gL1 - x0 > 300) push('cw-sl', 'fence', 0, [wx((x0 + gL1) / 2), cy, wz(z1)], [m(gL1 - x0), wallH, t])
     if (x1 - gR0 > 300) push('cw-sr', 'fence', 0, [wx((gR0 + x1) / 2), cy, wz(z1)], [m(x1 - gR0), wallH, t])
-    push('compound-gate-shade', 'canopy', 0, [wx(driveX), 2.95, wz(z1 - 600)], [m(gateHalf * 2 + 300), .18, 1.2])
+    push('compound-gate-shade', 'canopy', 0, [wx(gateX), 2.95, wz(z1 - 600)], [m(gateHalf * 2 + 300), .18, 1.2])
     const gpH = wallH + 0.35
     push('gp-l', 'fence', 0, [wx(gL1), gpH / 2, wz(z1)], [0.3, gpH, 0.3])
     push('gp-r', 'fence', 0, [wx(gR0), gpH / 2, wz(z1)], [0.3, gpH, 0.3])

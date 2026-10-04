@@ -1,4 +1,5 @@
 import { emergencyPlan, type EmergencyPlan } from './safety.ts'
+import { siteGate, type SiteGate } from './siteGate.ts'
 import { terraceLayout, terraceFreeRatio, type TerraceLayout } from './terrace.ts'
 import type { Direction } from '../model/brief.ts'
 import type { Point, Rect } from '../geometry.ts'
@@ -58,6 +59,7 @@ export type BuildingModel = {
   plot: { widthMm: number; depthMm: number; buildable: Rect }
   siteFeatures?: SiteFeature[]
   siteRequirements?: { compoundWall: boolean }
+  siteGate?: SiteGate
   roofTerrace?: TerraceLayout & { freeRatio: number }
   floors: BuildingFloor[]
   rooms: BuildingRoom[]
@@ -159,6 +161,7 @@ export function createBuildingModel(design: Design): BuildingModel {
       },
     },
     ...(model.brief.rooms.priorities.compoundWall ? { siteRequirements: { compoundWall: true } } : {}),
+    ...(siteGate(design) ? { siteGate: siteGate(design)! } : {}),
     ...(design.siteFeatures ? { siteFeatures: design.siteFeatures.map(f => ({ ...f, rect: rect(f.rect) })) } : {}),
     ...(terraceLayout(design) ? { roofTerrace: { ...terraceLayout(design)!, freeRatio: terraceFreeRatio(terraceLayout(design)!) } } : {}),
     floors, rooms, walls, doors, windows, stairs, columns, beams, slabs, shafts, supportZones,
@@ -174,7 +177,7 @@ export function createBuildingModel(design: Design): BuildingModel {
   const hash = (value: string) => fnv(value).toString(16).padStart(8, '0')
   // Preserve the original seed namespace projection. These historical sizes
   // are identity tokens only: no drawing, quantity or mesh uses them as dimensions.
-  const {quantityRules:_rules,structuralSizing:_sizing,emergency:_emergency,...original}=base
+  const {quantityRules:_rules,structuralSizing:_sizing,emergency:_emergency,siteGate:_gate,...original}=base
   const originalSignature=JSON.stringify({...original,
     floors:original.floors.map(({slabThicknessMm:_thickness,openingLimits:_openings,...floor})=>floor),
     columns:original.columns.map(c=>({...c,size:quantityRules.seedIdentityDefaults.columnMm})),

@@ -1,6 +1,7 @@
 import type { Design, FloorPlan, Opening } from './types.ts'
 import { rectCenter, type Point, type Rect } from '../geometry.ts'
 import { planFindings } from './planner/validate.ts'
+import { siteGate } from './siteGate.ts'
 
 /** Concept dimensions only. This is not a fire-code or engineering certificate. */
 export const ESCAPE_LIMITS = Object.freeze({ doorWidthMm: 1000, doorHeightMm: 2200,
@@ -22,10 +23,12 @@ export function outsideEscapePath(design: Design, door: Opening): Point[] {
   const start={x:door.at.x+(door.orient==='v'?direction*(radius+ESCAPE_LIMITS.wallClearanceMm):0),
     y:door.at.y+(door.orient==='h'?direction*(radius+ESCAPE_LIMITS.wallClearanceMm):0)}
   const width=design.model.plot.width, depth=design.model.plot.depth
+  const gate=siteGate(design)
+  if(gate&&gate.widthMm<ESCAPE_LIMITS.pathWidthMm+300)return []
   const obstacles=[...g.rooms.filter(r=>r.id!=='courtyard').map(r=>r.rect),
     ...(design.siteFeatures??[]).filter(f=>f.kind==='pool'||f.kind==='parking').map(f=>f.rect)]
     .map(r=>({x:r.x-radius,y:r.y-radius,w:r.w+2*radius,h:r.h+2*radius}))
-  const xs=[...new Set([radius,width-radius,start.x,...obstacles.flatMap(r=>[r.x-1,r.x+r.w+1])])].filter(x=>x>=radius&&x<=width-radius).sort((a,b)=>a-b)
+  const xs=[...new Set([radius,width-radius,start.x,...(gate?[gate.centerX]:[]),...obstacles.flatMap(r=>[r.x-1,r.x+r.w+1])])].filter(x=>x>=radius&&x<=width-radius).sort((a,b)=>a-b)
   const ys=[...new Set([radius,depth-radius,start.y,...obstacles.flatMap(r=>[r.y-1,r.y+r.h+1])])].filter(y=>y>=radius&&y<=depth-radius).sort((a,b)=>a-b)
   const free=(p:Point)=>!obstacles.some(r=>p.x>=r.x&&p.x<=r.x+r.w&&p.y>=r.y&&p.y<=r.y+r.h)
   if(!free(start)||!xs.includes(start.x)||!ys.includes(start.y)) return []
@@ -34,7 +37,7 @@ export function outsideEscapePath(design: Design, door: Opening): Point[] {
   let last=-1
   for(let i=0;i<queue.length;i++) {
     const k=queue[i], x=k%xs.length,y=Math.floor(k/xs.length), p={x:xs[x],y:ys[y]}
-    if(p.y===depth-radius){last=k;break}
+    if(p.y===depth-radius&&(!gate||p.x===gate.centerX)){last=k;break}
     for(const [nx,ny] of [[x-1,y],[x+1,y],[x,y-1],[x,y+1]]) {
       if(nx<0||ny<0||nx>=xs.length||ny>=ys.length)continue
       const n=key(nx,ny),q={x:xs[nx],y:ys[ny]}
@@ -54,6 +57,9 @@ export function outsideEscapePath(design: Design, door: Opening): Point[] {
 export function withEmergencyExit(design: Design): Design {
   const floor=design.floors[0], main=floor.openings.find(o=>o.kind==='entry'&&!o.emergencyExit)
   if(!main||floor.openings.some(o=>o.emergencyExit))return design
+  // A secondary aperture cannot repair an already-invalid room/stair plan.
+  // Avoid retrying every external wall of candidates the planner will reject.
+  if(planFindings(design).length)return design
   const width=ESCAPE_LIMITS.doorWidthMm, candidates:Opening[]=[]
   for(const room of floor.rooms.filter(r=>!r.outdoor&&['circulation','social','work'].includes(r.zone))) {
     for(const wall of floor.walls.filter(w=>w.kind==='exterior')) {

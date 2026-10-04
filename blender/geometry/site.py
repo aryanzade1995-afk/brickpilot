@@ -85,6 +85,9 @@ def create_site(scene, building):
         if portal and any(f['type'] == 'GATE_PORTAL' for f in scene.facade['features']):
             center = (portal['startMm']+portal['endMm'])/2
             half = (portal['endMm']-portal['startMm']-560)/2
+        if building.get("siteGate"):
+            center = building["siteGate"]["centerX"]
+            half = building["siteGate"]["widthMm"]/2
         for name, x, y, w, d in [("North",pw/2,150,pw-150,150),("West",150,pd/2,150,pd-300),("East",pw-150,pd/2,150,pd-300)]:
             scene.box(f"Compound_{name}","LANDSCAPE",x,y,grade,w,d,1600,"wall",building["planId"])
         for side, a, b in [("Left",150,center-half),("Right",center+half,pw-150)]:
