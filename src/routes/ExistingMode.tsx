@@ -114,19 +114,23 @@ const TOOLS: { id: Tool; label: string; icon: typeof Plus; hint: string }[] = [
   { id: 'footing', label: 'Add footing', icon: Square, hint: 'Click a foundation pad that has no column yet.' },
   { id: 'remove', label: 'Remove', icon: Trash2, hint: 'Click a marker or beam to delete it.' },
 ]
+const AI_TOOLS: { id: Tool; label: string; hint: string }[] = [
+  { id: 'seg-column', label: 'AI: click a column', hint: 'Click the body of a column. The model outlines it and measures where it meets the ground.' },
+  { id: 'seg-footing', label: 'AI: click a footing', hint: 'Click the middle of a foundation pad. The model outlines it and places the footing.' },
+]
 
 function DetectStep() {
   const s = useExisting()
   const { detections: d } = s
   const low = [...d.columns, ...d.beams, ...d.footings].filter((x) => !x.confirmed && x.confidence < CONFIDENCE_FLOOR)
-  const tool = TOOLS.find((t) => t.id === s.tool)!
+  const tool = [...TOOLS, ...AI_TOOLS].find((t) => t.id === s.tool)!
   const anchors = d.columns.length + d.footings.length
   return (
     <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
       <div>
         <PhotoEditor imageUrl={s.imageUrl!} size={s.imageSize!} detections={d} mode="edit" tool={s.tool} beamFrom={s.beamFrom} corners={[]} calibration={s.calibration}
           highlight={low.map((x) => x.id)} onAddColumn={s.addColumn} onAddFooting={s.addFooting} onMove={s.moveColumn} onRemove={s.removeElement}
-          onPickBeam={s.pickForBeam} onAddCorner={() => {}} onMoveCorner={() => {}} />
+          onPickBeam={s.pickForBeam} onAddCorner={() => {}} onMoveCorner={() => {}} onSegment={s.segmentClick} mask={s.lastMask} />
         <p className="mt-2 text-xs text-ink-dim">{tool.hint}{s.tool === 'beam' && s.beamFrom ? ' Now click the second column.' : ''}</p>
         {s.message && <p role="status" className="mt-2 text-sm text-ink-dim">{s.message}</p>}
       </div>
@@ -138,6 +142,33 @@ function DetectStep() {
               <t.icon size={13} /> {t.label}
             </button>
           ))}
+        </div>
+        <div className="border border-line p-4" aria-label="AI segmentation">
+          <p className="label">Measure with AI</p>
+          <p className="mt-1 text-xs text-ink-dim">Suggestions come from {s.engine === 'opencv' ? 'OpenCV line and shape analysis' : 'a basic edge scan'}, which is only a starting point on real photos. A small segmentation model, run in your browser, can measure any column or footing you click.</p>
+          {s.sam.state === 'ready' ? (
+            <div className="mt-3 space-y-2">
+              <div className="flex flex-wrap gap-1.5">
+                {AI_TOOLS.map((t) => (
+                  <button key={t.id} type="button" onClick={() => s.setTool(t.id)} aria-pressed={s.tool === t.id}
+                    className={cx('border px-3 py-2 font-mono text-[0.68rem] uppercase tracking-[0.08em]', s.tool === t.id ? 'border-accent bg-accent/5 text-accent' : 'border-line text-ink-dim hover:text-ink')}>{t.label}</button>
+                ))}
+              </div>
+              <Button variant="ghost" size="sm" onClick={s.verifyWithSam} disabled={!!s.busy || !(d.columns.length + d.footings.length)}>Check every suggestion with the model</Button>
+            </div>
+          ) : (
+            <div className="mt-3">
+              <Button variant="ghost" size="sm" onClick={s.enableSam} disabled={s.sam.state === 'loading'}>{s.sam.state === 'loading' ? 'Starting…' : s.sam.state === 'error' ? 'Try again' : 'Turn on AI measuring (about 40 MB, once)'}</Button>
+              {s.sam.state === 'loading' && (
+                <div className="mt-2" role="progressbar" aria-valuenow={s.sam.pct} aria-valuemin={0} aria-valuemax={100}>
+                  <div className="h-1.5 w-full bg-line"><div className="h-full bg-accent transition-all" style={{ width: `${s.sam.pct}%` }} /></div>
+                  <p className="mt-1 text-xs text-ink-faint">{s.sam.label}</p>
+                </div>
+              )}
+              {s.sam.state === 'error' && <p className="mt-2 text-xs text-bad">{s.sam.label}</p>}
+            </div>
+          )}
+          {s.busy && <p className="mt-2 text-xs text-ink-faint">{s.busy}</p>}
         </div>
         <div className="grid grid-cols-3 gap-px border border-line bg-line text-center">
           {[['Columns', d.columns.length], ['Beams', d.beams.length], ['Footings', d.footings.length]].map(([l, n]) => (

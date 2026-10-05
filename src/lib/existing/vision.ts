@@ -6,15 +6,25 @@ import { detectWithOpenCV, type CV } from './detectCv.ts'
  *   - SlimSAM (a small pretrained Segment Anything model, run in the browser through transformers.js): turns a point
  *     into a pixel-accurate mask, so a column or footing is measured, not guessed. Downloaded once (about 40 MB) and cached. */
 
-let cvPromise: Promise<CV> | null = null
-export function loadOpenCV(): Promise<CV> {
-  cvPromise ??= import('@techstark/opencv-js').then(async (m) => {
+let cvPromise: Promise<{ cv: CV }> | null = null
+/** opencv.js is loaded as a plain script. Bundling it turns its internal promise into a copy that can no longer be awaited,
+ *  and its module object is itself "thenable", so it is wrapped before anything resolves it. */
+export function loadOpenCV(): Promise<{ cv: CV }> {
+  cvPromise ??= (async () => {
+    const url = (await import('@techstark/opencv-js/dist/opencv.js?url')).default
+    await new Promise<void>((resolve, reject) => {
+      const el = document.createElement('script')
+      el.src = url; el.async = true
+      el.onload = () => resolve(); el.onerror = () => reject(new Error('opencv.js could not be loaded'))
+      document.head.appendChild(el)
+    })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let cv: any = (m as any).default ?? m
-    if (typeof cv.then === 'function') cv = await cv
+    let cv: any = (window as any).cv
+    if (!cv) throw new Error('opencv.js did not start')
+    if (typeof cv.then === 'function') cv = await new Promise((resolve) => { cv.then((mod: { then?: unknown }) => { mod.then = undefined; resolve(mod) }) })
     if (!cv.Mat) await new Promise<void>((resolve) => { cv.onRuntimeInitialized = () => resolve() })
-    return cv
-  })
+    return { cv: cv as CV }
+  })()
   cvPromise.catch(() => { cvPromise = null })
   return cvPromise
 }
@@ -22,7 +32,7 @@ export function loadOpenCV(): Promise<CV> {
 /** OpenCV analysis when it loads, the built-in lightweight analysis when it does not */
 export async function analyzePhoto(img: ImageLike): Promise<RawAnalysis> {
   try {
-    return detectWithOpenCV(await loadOpenCV(), img)
+    return detectWithOpenCV((await loadOpenCV()).cv, img)
   } catch (error) {
     console.warn('[existing] OpenCV unavailable, using the lightweight analysis:', error instanceof Error ? error.message : error)
     return analyzeImage(img)
