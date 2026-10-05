@@ -93,3 +93,30 @@ test('Blender startup failure is useful and retryable',{skip:process.env.INTERIO
   try {await assert.rejects(renderPreview(scene),/Blender could not start/);await assert.rejects(renderPreview(scene),/Blender could not start/)}
   finally {if(previous===undefined)delete process.env.BLENDER_BIN;else process.env.BLENDER_BIN=previous}
 })
+
+test('the 360 room is dressed in exactly what was chosen on Finishes & Cost, and a changed choice is a new preview', async () => {
+  const { interiorFinishes } = await import('../src/lib/interior/finishes.ts')
+  const withSpecs = (overrides) => { const b = structuredClone(brief); b.specs = { overrides }; return { ...design, model: { ...design.model, brief: b } } }
+  const plain = withSpecs({})
+  const chosen = withSpecs({ 'kitchen-counter': 'granite', sanitary: 'svc-toilet-2', 'cp-fittings': 'svc-faucet-1', fans: 'svc-fans-2',
+    'false-ceiling': 'ceiling-cove', 'bath-wall-tiles': 'wall-subway', 'light-fittings': 'svc-light-fittings-4', switches: 'svc-switches-1' })
+  const room = (re) => previewRooms(design).find((r) => re.test(r.id))
+  const kitchen = room(/^kitchen/), bath = room(/bath/), living = room(/^living/)
+  const k = interiorFinishes(chosen, kitchen.floor, kitchen.id)
+  assert.equal(k.counter.name, 'Granite'); assert.ok(k.counter.image, 'the counter uses the chosen surface texture')
+  assert.equal(k.ceiling.type, 'cove'); assert.equal(k.lights.kind, 'panel'); assert.match(k.switches.image, /svc-switches-1/)
+  const w = interiorFinishes(chosen, bath.floor, bath.id)
+  assert.equal(w.sanitary.wc, 'wall', 'a wall-hung WC is drawn wall-hung'); assert.equal(w.fittings.finish, 'chrome')
+  assert.equal(w.wallTiles.pattern, 'subway'); assert.equal(w.wallTiles.zone, 'full')
+  assert.ok(!w.fan, 'no ceiling fan in a bathroom'); assert.ok(w.waterHeater)
+  const l = interiorFinishes(chosen, living.floor, living.id)
+  assert.match(l.fan.name, /Jupiter/); assert.match(l.fan.image, /svc-fans-2/)
+  assert.ok(l.summary.some((s) => s.label === 'Fans' && /Jupiter/.test(s.value)))
+  // generic allowances never show a material texture as a fixture's picture
+  const p = interiorFinishes(plain, bath.floor, bath.id)
+  assert.equal(p.switches.image, undefined); assert.equal(p.sanitary.image, undefined)
+  // the panorama's identity includes the finishes: change one and it is rendered again
+  const scene = (d) => { const s = createInteriorScene(d, 'fixture', defaultConfiguration(kitchen.id, kitchen.floor), brief.style.character); s.finishes = interiorFinishes(d, kitchen.floor, kitchen.id); return s }
+  assert.notEqual(previewKey(scene(plain)), previewKey(scene(chosen)))
+  assert.equal(previewKey(scene(chosen)), previewKey(scene(chosen)))
+})

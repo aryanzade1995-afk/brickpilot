@@ -3,6 +3,7 @@ import { mkdir, writeFile, readFile, rename, rm } from 'node:fs/promises'
 import { existsSync, createReadStream, readdirSync } from 'node:fs'
 import { resolve, sep } from 'node:path'
 import { createInteriorScene, INTERIOR_STYLES, FLOORINGS, CEILINGS, LIGHTINGS, DENSITIES } from '../src/lib/interior/preview.ts'
+import { interiorFinishes } from '../src/lib/interior/finishes.ts'
 import { validate } from '../src/lib/rules/index.ts'
 import { createBuildingModel } from '../src/lib/engine/buildingModel.ts'
 import { PROJECT_ROOT, runBlender } from './blender-process.mjs'
@@ -12,11 +13,21 @@ const files = new Map()
 const safeId=value=>String(value).replace(/[^a-z0-9_-]/gi,'_').slice(0,120)||'room'
 const pending = new Map()
 const stages = new Map()
-const renderer = await readFile(resolve(PROJECT_ROOT, 'blender/interior_preview.py'))
-const version = createHash('sha256').update(renderer).digest('hex')
+// the renderer version covers every Blender module the panorama depends on, so a change to any of them re-renders
+const version = createHash('sha256').update(Buffer.concat(await Promise.all(['interior_preview.py','interior_finishes.py'].map(f=>readFile(resolve(PROJECT_ROOT,'blender',f)))))).digest('hex')
 function canonical(value) {
   if (Array.isArray(value)) return value.map(canonical)
   if (value && typeof value === 'object') return Object.fromEntries(Object.keys(value).sort().map(k => [k, canonical(value[k])]))
+  return value
+}
+/** product images are public files: give Blender their path on disk, only for files that exist inside public/ */
+const PUBLIC=resolve(PROJECT_ROOT,'public')
+function withFiles(value) {
+  if(Array.isArray(value)) return value.map(withFiles)
+  if(value && typeof value==='object') return Object.fromEntries(Object.entries(value).map(([k,v])=>{
+    if(k==='image' && typeof v==='string' && v.startsWith('/')) {const file=resolve(PUBLIC,'.'+decodeURIComponent(v));return [k,file.startsWith(PUBLIC+sep)&&existsSync(file)?file:undefined]}
+    return [k,withFiles(v)]
+  }))
   return value
 }
 export function previewKey(scene) { return createHash('sha256').update(JSON.stringify(canonical({version, scene}))).digest('hex') }
@@ -89,6 +100,12 @@ export async function handleInteriorPreview(req,res,readJson) {
     if(!validate(p.design).hardChecksPass) throw new Error('The plan must pass validation before previewing.')
     scene=createInteriorScene(p.design,createBuildingModel(p.design).planId,p.config,p.design.model.brief.style.character,p.quality)
     if(!scene) throw new Error('Interior preview could not be prepared for this room.')
+    // the room is dressed in exactly what was chosen on Finishes & Cost; the panel's own pickers only fill what Finishes leaves open
+    const finishes=interiorFinishes(p.design,p.config.floor,p.config.roomId)
+    if(finishes) {
+      scene.finishes=withFiles(finishes)
+      scene.config={...scene.config,flooring:{...scene.config.flooring,color:finishes.floor.color},walls:{color:finishes.walls.color},ceiling:{type:finishes.ceiling.type,color:finishes.ceiling.color}}
+    }
   } catch(error) {send(400,{error:error.message});return true}
   try { send(200,await renderPreview(scene,stage=>{if(requestId)stages.set(requestId,stage)})) } catch(error) {send(503,{error:`Preview failed: ${error.message}`})}
   finally {if(requestId)stages.delete(requestId)}

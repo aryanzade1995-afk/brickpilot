@@ -20,6 +20,9 @@ from pathlib import Path
 import bpy
 import numpy as np
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from interior_finishes import apply_finishes  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent
 TEXTURES = ROOT / 'assets' / 'textures'
 
@@ -67,7 +70,7 @@ def box(name, pos, size, mat, bevel=0.0):
     obj.data.materials.append(mat)
     if bevel > 0 and min(sx, sy, sz) > bevel * 3:
         mod = obj.modifiers.new('bevel', 'BEVEL')
-        mod.width, mod.segments, mod.limit_method = bevel, 2, 'ANGLE'
+        mod.width, mod.segments, mod.limit_method = bevel, 5 if bevel >= 0.03 else 2, 'ANGLE'
     return obj
 
 
@@ -261,7 +264,7 @@ def ceiling_detail(kind, color, dims, clear_top, wood_mat, light_color, add_ligh
 
 # ---------------------------------------------------------------- lighting
 
-def build_lighting(scene_data, cfg, ceiling_bottom):
+def build_lighting(scene_data, cfg, ceiling_bottom, fixture_kind='downlight'):
     dims = scene_data['room']['dims']
     w, d = dims['w'], dims['d']
     lighting = cfg['lighting']
@@ -326,7 +329,9 @@ def build_lighting(scene_data, cfg, ceiling_bottom):
             x = -w / 2 + (i + 0.5) * w / nx
             z = -d / 2 + (j + 0.5) * d / nz
             y = ceiling_bottom - 0.02
-            box(f'fixture-{i}-{j}', (x, y + 0.012, z), (0.09, 0.012, 0.09), fixture)
+            # the chosen fitting: a small recessed downlight, a slim LED panel or a round surface ceiling light
+            fx = {'panel': (0.3, 0.012, 0.3), 'surface': (0.42, 0.06, 0.42)}.get(fixture_kind, (0.09, 0.012, 0.09))
+            box(f'fixture-{i}-{j}', (x, y + 0.012 - (fx[1] / 2 if fixture_kind == 'surface' else 0), z), fx, fixture)
             add_light(f'down-{i}-{j}', (x, y - 0.02, z), 'AREA', per, size=(0.12, 0.12))
             add_light(f'bounce-{i}-{j}', (x, y - 0.6, z), 'AREA', per * 0.35, size=(0.6, 0.6), up=True)
     return add_light
@@ -488,30 +493,43 @@ def main():
     trim_mat = principled('trim', tuple(c * 0.92 for c in hex_rgb(cfg['walls']['color'])), .5)
     glass_mat = principled('window-glass', (0.85, 0.92, 0.95), .02, transmission=1)
     shell_mats = {'wall': wall_mat, 'slab': floor_mat, 'ceil': ceil_mat, 'glass': glass_mat, 'reveal': door_mat, 'trim': trim_mat}
+    mats = furniture_materials(cfg['style'])
+    # the Finishes & Cost choices: flooring, doors, window frames, wall tiles, counter, cabinets, sanitary, fixtures
+    chosen = apply_finishes(data, box, principled, hex_rgb, kelvin_rgb, mats, shell_mats)
+    if chosen.get('lamp_kelvin'):
+        bsdf = mats['lamp'].node_tree.nodes['Principled BSDF']
+        bsdf.inputs['Emission Color'].default_value = (*kelvin_rgb(chosen['lamp_kelvin']), 1)
     clear_top = max((o['headM'] for o in data['openings']), default=0.0)
     for b in data['shell']:
         if b['mat'] in ('glass', 'reveal'):
             clear_top = max(clear_top, b['pos'][1] + b['size'][1] / 2)
-        # a wide opening is a passage, not a door: leave it open and show the space beyond it
-        box(b['id'], b['pos'], b['size'], shell_mats.get(b['mat'], wall_mat))
+        mat = chosen.get('trim_for', {}).get(b['id']) or shell_mats.get(b['mat'], wall_mat)
+        box(b['id'], b['pos'], b['size'], mat)
     # the world outside the windows: ground beyond the house, so glass shows a garden and sky, not a void
     ground = principled('outside-ground', hex_rgb('#6E8B4E'), .95)
     box('outside-ground', (0, -0.3, 0), (80, 0.1, 80), ground)
 
     stage('ceiling')
     temp = {'warm': 3200, 'neutral': 4300, 'evening': 3000, 'daylight': 4000}[cfg['lighting']]
-    mats = furniture_materials(cfg['style'])
     lights_pending = []
     bottoms = ceiling_detail(cfg['ceiling']['type'], cfg['ceiling']['color'], dims, clear_top, mats['wood'], kelvin_rgb(temp),
                              lambda *a, **k: lights_pending.append((a, k)))
 
     stage('furniture')
     for b in data['furniture']:
-        mat = mats.get(ROLE.get(b['mat'], 'panel'), mats['panel'])
-        box(b['id'], b['pos'], b['size'], mat, bevel=0.008)
+        if b['id'] in chosen.get('skip', ()):
+            continue
+        mat = chosen.get('furniture', {}).get(b['id']) or mats.get(ROLE.get(b['mat'], 'panel'), mats['panel'])
+        pos, size = chosen.get('reshape', {}).get(b['id'], (b['pos'], b['size']))
+        obj = box(b['id'], pos, size, mat, bevel=0.0 if b['mat'] == 'ceramic' else 0.008)
+        if b['mat'] == 'ceramic':
+            # sanitary ware is moulded: a subdivided, rounded body rather than a crisp box
+            sub = obj.modifiers.new('mould', 'SUBSURF')
+            sub.levels = sub.render_levels = 2
+            obj.data.polygons.foreach_set('use_smooth', [True] * len(obj.data.polygons))
 
     stage('lighting')
-    add_light = build_lighting(data, cfg, bottoms[0][1])
+    add_light = build_lighting(data, cfg, bottoms[0][1], chosen.get('lights_kind', 'downlight'))
     for a, k in lights_pending:
         add_light(*a, **k)
 

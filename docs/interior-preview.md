@@ -1,8 +1,15 @@
 # Fast 360° Interior Preview
 
 Open AI Interior and use the Fast 360° panel above the existing AI image workflow.
-Choose floor, room, style, flooring and colour, wall colour, ceiling and colour,
-lighting, furniture density, and quality. Generate, then drag the panorama, scroll or pinch to zoom, and use Full screen to look
+Choose floor and room; the room is dressed in exactly what was chosen on Finishes & Cost
+(listed in the panel): wall paint, flooring, bathroom wall tiles / kitchen backsplash, false
+ceiling, kitchen counter and cabinets, internal doors, window frames, toilet type and tap
+finish, water heater, exhaust fan, ceiling fan, light fittings, batten, bulbs and switch plates.
+Surfaces use the chosen product's texture; wall fixtures carry the chosen product's own photo
+on their front (background removed), and fans and fittings take their colour from it.
+Style, lighting, furniture density and quality remain panel choices. Each preview is saved
+per room and finishes (browser storage plus the server cache); changing any finish makes a
+new preview. Generate, then drag the panorama, scroll or pinch to zoom, and use Full screen to look
 around or download its WebP image.
 
 Requires Node 22.18+ (native TypeScript support) and Blender 4.2+; tested on the
