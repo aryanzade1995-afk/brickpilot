@@ -14,6 +14,7 @@ const FinishObjectPreview = lazy(() => import('./FinishObjectPreview.tsx').then(
 import { experienceOption } from '@/lib/finishes/experiences.ts'
 import { applyPaintColour, paintColour, colourValue } from '@/lib/finishes/paint.ts'
 import { PaintColours } from './PaintColours.tsx'
+import { KitchenCounter } from './KitchenCounter.tsx'
 import { cx } from '@/lib/cx.ts'
 
 export function SpecificationPanel({ item, brief, cost, design, room, onClose, onUse }: {
@@ -67,6 +68,7 @@ export function SpecificationPanel({ item, brief, cost, design, room, onClose, o
         {item.scope === 'perRoom' && !!rooms.length && <fieldset className="mb-5"><legend className="label">Apply to</legend>
           <label className="mt-2 flex items-center gap-2 text-sm"><input type="checkbox" checked={rooms.every(r => selectedRooms.includes(r.id))} onChange={e => setRooms(e.target.checked ? rooms.map(r => r.id) : [])} />All applicable rooms</label>
           <div className="mt-2 grid gap-2 sm:grid-cols-2">{rooms.map(r => <label key={r.id} className="flex items-center gap-2 text-xs"><input type="checkbox" checked={selectedRooms.includes(r.id)} onChange={e => setRooms(e.target.checked ? [...selectedRooms, r.id] : selectedRooms.filter(id => id !== r.id))} />{r.floor} · {r.name}</label>)}</div></fieldset>}
+        {item.id === 'kitchen-counter' ? <KitchenCounter item={item} cost={cost} value={optionId} onChange={setOption} /> : <>
         <p className="mb-3 text-xs text-ink-dim">Differences below are for the project total, including allowances, for the selected rooms.</p>
 
         {item.id === 'pool' && !cost.boq.some(line => line.item === 'pool' && line.qty > 0) && <p className="mb-4 rounded-lg bg-bg-inset p-3 text-xs text-ink-dim">Your plan has no pool area. You can explore these finishes, but the estimate adds no pool cost. Add a pool in the Brief if you want it included in the plan.</p>}
@@ -83,6 +85,7 @@ export function SpecificationPanel({ item, brief, cost, design, room, onClose, o
           {optionId === o.id && <span className="mt-2 block text-xs">Selected</span>}{current(o.id) && <span className="mt-2 block text-xs">✓ Current</span>}</button>)}</div>
         <label className="mt-6 block text-xs">Compare two options<select aria-label="Compare two options" className="mt-2 w-full border border-line bg-bg p-2 text-sm" value={compare} onChange={e => setCompare(e.target.value)}><option value="">Show selected option only</option>{item.options.filter(o => o.id !== optionId).map(o => <option key={o.id} value={o.id}>{o.name}</option>)}</select></label>
         <div className={cx('mt-5 grid gap-6', compare && 'sm:grid-cols-2')}><OptionDetails item={item} option={selected} />{compare && <OptionDetails item={item} option={item.options.find(o => o.id === compare)!} />}</div>
+        </>}
       </div></div></div>
       <footer className="flex justify-end gap-3 border-t border-line px-5 py-4"><button type="button" onClick={onClose} className="border border-line px-5 py-2 text-sm">Cancel</button><button type="button" disabled={item.scope === 'perRoom' && !!rooms.length && !selectedRooms.length} onClick={() => onUse(item.id === 'interior-paint' ? applyPaintColour(applySpecification(brief, cost, item, optionId, selectedRooms), colour, rooms.map(r=>r.id), selectedRooms) : applySpecification(brief, cost, item, optionId, selectedRooms))} className="bg-accent px-5 py-2 text-sm text-white disabled:opacity-40">Use this</button></footer>
     </aside></div>

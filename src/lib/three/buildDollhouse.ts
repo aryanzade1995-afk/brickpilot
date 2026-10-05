@@ -980,3 +980,18 @@ function furnishRoom(
   /* circulation, stairs, shafts, everything else: keep the floor clear */
   return n
 }
+
+/** The same rule-based furniture for ONE room, in that room's local metres (centred on the room, y up from its floor,
+ *  x east, z south) — the frame buildRoom uses — for the interior preview. Placement rules are unchanged. */
+export function furnishSingleRoom(design: Design, level: number, roomId: string): DollBox[] {
+  const floor = design.floors.find((f) => f.level === level)
+  const room = floor?.rooms.find((r) => r.id === roomId)
+  if (!floor || !room || room.outdoor) return []
+  const cbm = (design as { cbm?: { floors: { rooms: { id: string; type: string }[] }[] } }).cbm
+  const type = cbm?.floors.flatMap((f) => f.rooms).find((r) => r.id === roomId)?.type
+  const cx = room.rect.x + room.rect.w / 2, cy = room.rect.y + room.rect.h / 2
+  const boxes: DollBox[] = []
+  const push: Push = (id, mat, pos, size) => { if (size[0] > 0.015 && size[1] > 0.015 && size[2] > 0.015) boxes.push({ id, mat, pos, size }) }
+  furnishRoom(room, floor, type, 0, (mm) => (mm - cx) / 1000, (mm) => (mm - cy) / 1000, (mm) => mm / 1000, push)
+  return boxes
+}
