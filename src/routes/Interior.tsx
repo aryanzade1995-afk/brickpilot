@@ -5,7 +5,7 @@ import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
 import { InteriorStudio } from '@/components/InteriorStudio.tsx'
 import { InvalidPlanNotice } from '@/components/InvalidPlanNotice.tsx'
 
-/** Step 07 — comes after Finishes & Cost so every room is dressed in the finishes the user chose. */
+/** Step 06 — comes after Finishes & Cost so every room is dressed in the finishes the user chose. */
 export function Interior() {
   const result = useStudio((s) => s.result), brief = useStudio((s) => s.brief), run = useStudio((s) => s.run)
   const plan = useMemo(() => (result ? { ...result.design, model: { ...result.design.model, brief } } : null), [result, brief])
@@ -16,7 +16,7 @@ export function Interior() {
     <div className="mx-auto max-w-[1700px] px-6 py-8 md:px-10">
       <WorkspaceTabs />
       <div className="mt-8">
-        <p className="label">Step 07 · AI Interior</p>
+        <p className="label">Step 06 · AI Interior</p>
         <h1 className="mt-3 font-display text-3xl md:text-4xl">See each room in your finishes</h1>
         <p className="mt-3 max-w-3xl text-sm leading-relaxed text-ink-dim">
           Pick a room. The 3D room is coloured with the paint, flooring, tiles, ceiling and fittings you chose on

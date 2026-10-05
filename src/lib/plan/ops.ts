@@ -227,7 +227,7 @@ export function moveRoom(layout: LayoutDoc, plan: Design, level: number, id: str
  *  too thin to stand in is refused. */
 function sizeProblem(r: LayoutRoom, rect: Rect): string | null {
   if (isVacant(r)) return null
-  return Math.min(rect.w, rect.h) < 900 ? `${r.name} would be only ${m(Math.min(rect.w, rect.h))} m wide. A room needs at least 0.9 m to stand in.` : null
+  return Math.min(rect.w, rect.h) < MODULE ? `${r.name} would have no size left.` : null
 }
 
 type Side = 'N' | 'S' | 'E' | 'W'
@@ -282,8 +282,9 @@ function pushAway(rooms: LayoutRoom[], claim: Rect, side: Side, skip: Set<Layout
     else {
       n.rect = shift(n.rect, side, d)
       if (plate && !insidePlate(plate, n.rect)) {
-        const room = Math.max(0, along(was, side) - Math.min(minOf(n, side), along(was, side)))
-        return `${n.name} cannot be pushed any further without leaving the building${room > 0 ? `; it can give up at most ${m(room)} m here` : ''}. Resize less, or make the villa bigger first.`
+        // a pushed room still has to be usable: it gives up space down to its minimum width, never below
+        const room = along(was, side) - Math.min(minOf(n, side), along(was, side))
+        return `${n.name} has no space left to give${room > 0 ? `; it can give up at most ${m(room)} m here` : ''}. Make the villa bigger first, or resize less.`
       }
       const more = pushAway(rooms, n.rect, side, skip, depth + 1, plate, minOf)
       if (typeof more === 'string') return more
@@ -367,14 +368,39 @@ export function resizeRoom(layout: LayoutDoc, plan: Design, level: number, id: s
   if (next.w <= 0 || next.h <= 0) return fail('A room cannot be that small.')
   if (sameRect(next, r.rect)) return fail('The size did not change.')
   if (r.outdoor) {
-    if (Math.min(next.w, next.h) < 900) return fail(`${r.name} would be too narrow to use.`)
-    if (!contains(envRect(plan), next)) return fail(`${r.name} would leave the area the plot allows to be built on (inside the setbacks).`)
+    if (next.x < 0 || next.y < 0 || next.x + next.w > plan.model.plot.width || next.y + next.h > plan.model.plot.depth) return fail(`${r.name} would leave the plot.`)
+    // the open-air spaces it grows into make way: they slide along, or give up space when they cannot slide
+    const plot: Rect = { x: 0, y: 0, w: plan.model.plot.width, h: plan.model.plot.depth }
+    const plate = plateFor(out, plan, level)
+    const pushed: string[] = []
+    for (const o of floor.rooms) {
+      if (o === r || !o.outdoor || overlapArea(o.rect, next) <= 0) continue
+      if (o.locked) return fail(`${o.name} is locked and is in the way. Unlock it first.`)
+      const side: Side = next.x + next.w > r.rect.x + r.rect.w && o.rect.x >= r.rect.x + r.rect.w - 1 ? 'E' : next.x < r.rect.x && o.rect.x + o.rect.w <= r.rect.x + 1 ? 'W'
+        : next.y + next.h > r.rect.y + r.rect.h && o.rect.y >= r.rect.y + r.rect.h - 1 ? 'S' : 'N'
+      const d = reach(o.rect, next, side)
+      const clear = (q: Rect) => contains(plot, q) && !plate.some((p) => overlapArea(p, q) > 10_000) && !floor.rooms.some((x) => x !== o && x !== r && overlapArea(x.rect, q) > 0)
+      const slid = shift(o.rect, side, d), cut = shrinkFrom(o.rect, side, d)
+      if (clear(slid)) o.rect = slid
+      else if (along(o.rect, side) - d >= MIN_STAND) o.rect = cut
+      else return fail(`${o.name} has no room to make way for ${r.name}. Move or shrink it first.`)
+      pushed.push(o.id)
+    }
     const hit = outdoorBlockers(out, plan, level, r, next)
     if (hit.length) return fail(`${r.name} would overlap ${hit.join(' and ')}.`)
     r.rect = next
-    return ok(out, `${r.name} resized to ${m(next.w)} × ${m(next.h)} m.`, [id])
+    return ok(out, `${r.name} resized to ${m(next.w)} × ${m(next.h)} m${pushed.length ? `; ${pushed.length} open-air space${pushed.length > 1 ? 's' : ''} moved to make way` : ''}.`, [id, ...pushed])
   }
-  if (!insidePlate(plateFor(out, plan, level), next)) return fail(`${r.name} would leave the building. Make the villa bigger first (drag its orange outer wall).`)
+  if (!insidePlate(plateFor(out, plan, level), next)) {
+    // past the outer wall: the room grows up to the wall (drag the orange outline to make the villa itself bigger)
+    const plate = plateFor(out, plan, level)
+    const bx = Math.min(...plate.map((p) => p.x)), by = Math.min(...plate.map((p) => p.y))
+    const br = Math.max(...plate.map((p) => p.x + p.w)), bb = Math.max(...plate.map((p) => p.y + p.h))
+    const x = Math.max(next.x, bx), y = Math.max(next.y, by)
+    next.w = Math.min(next.x + next.w, br) - x; next.h = Math.min(next.y + next.h, bb) - y
+    next.x = x; next.y = y
+    if (sameRect(next, r.rect)) return fail(`${r.name} already reaches the outer wall. Drag the orange outline to make the villa bigger.`)
+  }
   const tooSmall = sizeProblem(r, next)
   if (tooSmall) return fail(tooSmall)
   // the stair and lift are one shaft through every floor: they change size on all floors together
@@ -408,7 +434,7 @@ export function resizeRoom(layout: LayoutDoc, plan: Design, level: number, id: s
   let next2 = out
   for (const f of shaft || affected.length > 1 ? out.floors : [floor]) next2 = settle(next2, plan, f.level)
   const pushed = [...new Set(affected)].filter((x) => x !== id)
-  return ok(next2, `${r.name} resized to ${m(next.w)} × ${m(next.h)} m${shaft && out.floors.length > 1 ? ' on every floor' : ''}${pushed.length ? `; ${pushed.length} connected room${pushed.length > 1 ? 's' : ''} moved to make space` : ''}.`, [...new Set(affected)])
+  return (ok(next2, `${r.name} resized to ${m(next.w)} × ${m(next.h)} m${shaft && out.floors.length > 1 ? ' on every floor' : ''}${pushed.length ? `; ${pushed.length} connected room${pushed.length > 1 ? 's' : ''} moved to make space` : ''}.`, [...new Set(affected)]))
 }
 
 /* ------------------------------ the stair: one shaft, every floor ------------------------------ */
@@ -865,19 +891,9 @@ export function outlineLimits(layout: LayoutDoc, plan: Design): OutlineLimits {
       const touches = horizontal ? (Math.abs((side === 'N' ? r.rect.y : r.rect.y + r.rect.h) - line) < 2) : (Math.abs((side === 'W' ? r.rect.x : r.rect.x + r.rect.w) - line) < 2)
       if (touches && !isVacant(r) && !r.outdoor) thin = Math.min(thin, horizontal ? r.rect.h : r.rect.w)
     }
-    // the beams that run away from this wall carry the new span
-    let span = 0
-    for (const f of plan.floors) for (const b of f.beams ?? []) {
-      const ends = [b.a, b.b]
-      const onLine = (p: { x: number; y: number }) => Math.abs((horizontal ? p.y : p.x) - (horizontal ? (side === 'N' ? baseBox(plan).y : baseBox(plan).y + baseBox(plan).h) : (side === 'W' ? baseBox(plan).x : baseBox(plan).x + baseBox(plan).w))) < 2
-      const perpendicular = horizontal ? Math.abs(b.a.x - b.b.x) < 2 : Math.abs(b.a.y - b.b.y) < 2
-      if (perpendicular && ends.some(onLine)) span = Math.max(span, b.span)
-    }
-    const current = O[side]
-    const beamRoom = span ? 6000 - (span + current) : Infinity
     out[side] = {
-      max: Math.max(0, Math.floor(Math.min(room, beamRoom) / MODULE) * MODULE),
-      min: -Math.floor(Math.max(0, (Number.isFinite(thin) ? thin : 0) - 900) / MODULE) * MODULE,
+      max: Math.max(0, Math.floor(room / MODULE) * MODULE),
+      min: -Math.floor(Math.max(0, (Number.isFinite(thin) ? thin : 0) - MODULE) / MODULE) * MODULE,
     }
   }
   return out as OutlineLimits
@@ -888,6 +904,17 @@ export function resizeOutline(layout: LayoutDoc, plan: Design, side: keyof Outli
   if (plan.existingStructure) return fail('The villa is planned around a structure that is already built, so its outer walls cannot be moved.')
   const d = snapMm(deltaMm)
   if (!d) return fail('The wall did not move.')
+  // when the whole step does not fit, the wall goes as far as it can
+  const first = moveWall(layout, plan, side, d)
+  if (first.ok) return first
+  for (let t = Math.abs(d) - MODULE; t >= MODULE; t -= MODULE) {
+    const res = moveWall(layout, plan, side, Math.sign(d) * t)
+    if (res.ok) return res
+  }
+  return first
+}
+
+function moveWall(layout: LayoutDoc, plan: Design, side: keyof Outline, d: number): OpResult {
   const out = clone(layout)
   const O = out.outline ?? noOutline()
   const before = boxNow(plan, O)
@@ -906,10 +933,13 @@ export function resizeOutline(layout: LayoutDoc, plan: Design, side: keyof Outli
     else if (side === 'W') r.rect = { ...r.rect, x: r.rect.x - d, w: r.rect.w + d }
     else if (side === 'S') r.rect = { ...r.rect, h: r.rect.h + d }
     else r.rect = { ...r.rect, y: r.rect.y - d, h: r.rect.h + d }
-    if (r.rect.w < 900 || r.rect.h < 900) return fail(`${r.name} would be too narrow to stand in. Move the wall less.`)
+    if (r.rect.w < MODULE || r.rect.h < MODULE) return fail(`${r.name} would have no space left. Move the wall less.`)
   }
   if (!touched.length) return fail('No room touches that wall.')
   out.outline = { ...O, [side]: O[side] + d }
+  const after = boxNow(plan, out.outline)
+  const env = envRect(plan)
+  if (!contains(env, after)) return fail('The villa would go past the setback line (the open margin the plot must keep), so it could not be built.')
   const inward: Side = side === 'N' ? 'S' : side === 'S' ? 'N' : side === 'E' ? 'W' : 'E'
   for (const { floor: f, room: r } of shafts) {
     r.rect = shift(r.rect, inward, -d)
@@ -940,7 +970,7 @@ export function resizeOutline(layout: LayoutDoc, plan: Design, side: keyof Outli
   const levels = [...new Set(out.floors.map((f) => f.level))]
   let next = out
   for (const level of levels) next = settle(next, plan, level)
-  return ok(next, `The ${names[side]} wall moved ${d > 0 ? 'out' : 'in'} ${m(Math.abs(d))} m.`, touched)
+  return (ok(next, `The ${names[side]} wall moved ${d > 0 ? 'out' : 'in'} ${m(Math.abs(d))} m.`, touched))
 }
 
 /* ----------------------- site features: driveway, yards, pool, sit-out ----------------------- */

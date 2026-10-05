@@ -75,9 +75,11 @@ test('Gemini receives both real renders in a direct edit rather than generating 
   assert.equal(parts[1].image_url.url,`data:image/png;base64,${first}`)
   assert.ok(!requests.some(r=>r.url.includes('images/generations')))
 })
-test('Render shows only the Blender villa (no study model; AI Interior after Finishes & Cost), large actual viewport and a single visualization action',async()=>{
-  const route=await readFile(new URL('../src/routes/Render.tsx',import.meta.url),'utf8')
-  assert.match(route,/Your Blender villa/);assert.doesNotMatch(route,/Study Model|study model|'study'/);assert.doesNotMatch(route,/InteriorStudio/)
-  assert.match(route,/Generate AI Visualization/);assert.match(route,/VillaVisualizationViewport/)
-  assert.doesNotMatch(route,/md:grid-cols-2/);assert.doesNotMatch(route,/runJobs|probeHealth|REF_KEYS|Docker|Cookie|switching/i)
+test('the AI visualization lives at the bottom of 3D Massing: only the generated image is shown, no Blender villa viewer and no Render tab',async()=>{
+  const part=await readFile(new URL('../src/components/AiVisualization.tsx',import.meta.url),'utf8')
+  const massing=await readFile(new URL('../src/routes/Massing.tsx',import.meta.url),'utf8')
+  const tabs=await readFile(new URL('../src/components/WorkspaceTabs.tsx',import.meta.url),'utf8')
+  assert.match(part,/Generate AI Visualization/);assert.match(part,/VillaVisualizationViewport/);assert.match(part,/opacity-0/)
+  assert.doesNotMatch(part,/Your Blender villa|Study Model|study model|'study'/);assert.doesNotMatch(part,/runJobs|probeHealth|REF_KEYS|Docker|Cookie|switching/i)
+  assert.match(massing,/<AiVisualization design=\{result\.design\} \/>/);assert.doesNotMatch(tabs,/workspace\/render/)
 })

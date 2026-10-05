@@ -8,6 +8,7 @@ import { terraceLayout, tankBank } from '../engine/terrace.ts'
 import { drawingStructure } from '../engine/structuralSizing.ts'
 import type { CanonicalModel, Zone } from '../model/canonical.ts'
 import { furnishFloor, type FurnitureShape, type Role } from './furniture.ts'
+import { SITE_STYLE, fitLabel } from './siteStyle.ts'
 
 export type Theme = 'dark' | 'paper' | 'presentation' | 'cad'
 
@@ -644,10 +645,36 @@ export function TerraceDrawing({ design, svgRef, theme = 'presentation', layers 
   )
 }
 
-export function SiteFeatureDrawing({ features, ink, faint, showLabels = true, showFurniture = true, dark = false }: { features: SiteFeature[]; ink: string; faint: string; showLabels?: boolean; showFurniture?: boolean; dark?: boolean }) {
-  return <g data-layer="outdoor">{features.map(f => <g key={f.id}>
-    <rect x={f.rect.x} y={f.rect.y} width={f.rect.w} height={f.rect.h} fill={dark ? f.kind === 'pool' ? '#254452' : f.kind === 'lawn' ? '#29382e' : '#3a424a' : f.kind === 'pool' ? '#b5d5df' : f.kind === 'lawn' ? '#d9dfd4' : '#dddcd8'} fillOpacity={0.65} stroke={faint} strokeWidth={25} />
-    {showLabels && !f.covered && f.rect.w >= 1400 && f.rect.h >= 1000 && <text x={f.rect.x + f.rect.w / 2} y={f.rect.y + f.rect.h / 2} textAnchor="middle" fill={ink} fontSize={260} fontFamily="monospace">{f.kind === 'lawn' ? 'LAWN' : f.kind === 'utilityYard' ? 'UTILITY YARD' : f.kind === 'sitOut' ? 'SIT-OUT' : f.kind.toUpperCase()}</text>}
-    {showFurniture && !f.covered && f.kind === 'parking' && <rect x={f.rect.x + 500} y={f.rect.y + 400} width={1900} height={4200} rx={240} fill="none" stroke={ink} strokeWidth={35} />}
-  </g>)}</g>
+export function SiteFeatureDrawing({ features, ink, showLabels = true, showFurniture = true, dark = false }: { features: SiteFeature[]; ink: string; faint?: string; showLabels?: boolean; showFurniture?: boolean; dark?: boolean }) {
+  // the garden is one continuous ground under everything else: no outline between its pieces, one name
+  const lawns = features.filter(f => f.kind === 'lawn')
+  const hard = features.filter(f => f.kind !== 'lawn')
+  const biggest = [...lawns].sort((a, b) => b.rect.w * b.rect.h - a.rect.w * a.rect.h)[0]
+  const gardenLabel = biggest && showLabels ? fitLabel(biggest.rect, SITE_STYLE.lawn.short, 220) : null
+  const label = (rect: Rect, texts: (string | undefined)[], color: string, max?: number) => {
+    const text = texts.find(t => t && fitLabel(rect, t, max)) ?? ''
+    const at = text ? fitLabel(rect, text, max) : null
+    return at && <text x={at.x} y={at.y} transform={at.rotate ? `rotate(${at.rotate} ${at.x} ${at.y})` : undefined} textAnchor="middle" dominantBaseline="middle"
+      fill={color} fontSize={at.size} fontFamily="'IBM Plex Mono', monospace" letterSpacing={at.size * 0.08} fontWeight={600}>{text}</text>
+  }
+  return <g data-layer="outdoor">
+    {lawns.map(f => <rect key={f.id} x={f.rect.x} y={f.rect.y} width={f.rect.w} height={f.rect.h} fill={dark ? SITE_STYLE.lawn.dark : SITE_STYLE.lawn.fill} stroke={dark ? SITE_STYLE.lawn.dark : SITE_STYLE.lawn.fill} strokeWidth={30} />)}
+    {gardenLabel && <text x={gardenLabel.x} y={gardenLabel.y} textAnchor="middle" dominantBaseline="middle" fill={dark ? '#7f9a86' : '#7d9470'} fontSize={gardenLabel.size} fontFamily="'IBM Plex Mono', monospace" letterSpacing={gardenLabel.size * 0.3}>{SITE_STYLE.lawn.short}</text>}
+    {hard.map(f => {
+      const st = SITE_STYLE[f.kind], r = f.rect, long = r.w >= r.h
+      return <g key={f.id} data-site={f.kind}>
+        <rect x={r.x} y={r.y} width={r.w} height={r.h} rx={f.kind === 'pool' ? 250 : 60} fill={dark ? st.dark : st.fill} stroke={st.edge} strokeWidth={f.kind === 'pool' ? 120 : 40} />
+        {/* the driveway reads as a road: a dashed centre line along its length */}
+        {f.kind === 'driveway' && (() => {
+          // a gap is left in the middle for the name
+          const at = showLabels && !f.covered ? fitLabel(r, st.short) : null, gap = at ? at.size * st.short.length * 0.42 : 0
+          const c = long ? r.x + r.w / 2 : r.y + r.h / 2, a = long ? r.x + 300 : r.y + 300, b = long ? r.x + r.w - 300 : r.y + r.h - 300
+          const seg = (p: number, q: number, k: string) => q - p > 200 && <line key={k} x1={long ? p : r.x + r.w / 2} y1={long ? r.y + r.h / 2 : p} x2={long ? q : r.x + r.w / 2} y2={long ? r.y + r.h / 2 : q} stroke="#fff" strokeWidth={70} strokeDasharray="500 350" opacity={0.9} />
+          return <>{seg(a, c - gap, 'a')}{seg(c + gap, b, 'b')}</>
+        })()}
+        {showFurniture && !f.covered && f.kind === 'parking' && <rect x={r.x + 500} y={r.y + 400} width={1900} height={4200} rx={240} fill="none" stroke={ink} strokeWidth={35} />}
+        {showLabels && !f.covered && label(r, [st.short, st.alt], dark ? '#e7e5e0' : '#3f4a55')}
+      </g>
+    })}
+  </g>
 }

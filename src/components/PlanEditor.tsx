@@ -4,13 +4,14 @@ import type { Design } from '@/lib/engine/types.ts'
 import { FloorDrawing } from '@/lib/draw/FloorDrawing.tsx'
 import { DRAWING_PRESETS } from '@/lib/draw/layers.ts'
 import { rectBottom, rectRight, type Rect } from '@/lib/geometry.ts'
-import { boxNow, extractLayout, type LayoutRoom, type Outline } from '@/lib/plan/layout.ts'
+import { boxNow, extractLayout, type LayoutDoc, type LayoutRoom, type Outline } from '@/lib/plan/layout.ts'
 import * as Ops from '@/lib/plan/ops.ts'
 import { ADDABLE_OUTDOOR, ADDABLE_TYPES, TYPE_SPEC, type RoomType } from '@/lib/plan/roomTypes.ts'
 import { m, snapMm, sqm } from '@/lib/plan/rects.ts'
 import { useStudio } from '@/state/studio.ts'
 import { usePlanEdit } from '@/state/planEdit.ts'
 import { cx } from '@/lib/cx.ts'
+import { SITE_STYLE, siteName } from '@/lib/draw/siteStyle.ts'
 
 /* The 2D plan, with every room as an object you can pick up. The drawing underneath is the normal
  * floor drawing; an overlay of the same size carries the rooms, handles and the vacant-space hatching. */
@@ -37,6 +38,17 @@ export function PlanEditor({ design }: { design: Design }) {
   const basePlan = useStudio((s) => s.basePlan)
   const { past, future, autoReplan, feedback } = usePlanEdit()
   const act = usePlanEdit.getState()
+  /** resize with the plan checked: when the whole change breaks a rule, it goes as far as the plan stays valid */
+  const fitRect = (from: Rect, to: Rect, apply: (r: Rect) => (l: LayoutDoc, p: Design) => Ops.OpResult) => {
+    const e0 = [from.x, from.y, from.x + from.w, from.y + from.h], e1 = [to.x, to.y, to.x + to.w, to.y + to.h]
+    const n = Math.max(1, Math.round(Math.max(...e0.map((v, i) => Math.abs(e1[i] - v))) / 100))
+    act.fit((k) => {
+      const [l, t, r, b] = e0.map((v, i) => snapMm(v + ((e1[i] - v) * k) / n))
+      return apply({ x: l, y: t, w: r - l, h: b - t })
+    }, n)
+  }
+  const resizeTo = (id: string, from: Rect, to: Rect) => fitRect(from, to, (g) => (l, p) => Ops.resizeRoom(l, p, floor.level, id, g))
+  const moveWall = (side: Side, delta: number) => act.fit((k) => (l, p) => Ops.resizeOutline(l, p, side, Math.sign(delta) * k * 100), Math.abs(delta) / 100)
 
   const layout = useMemo(() => layoutNow ?? extractLayout(basePlan() ?? design), [layoutNow, basePlan, design])
   const [level, setLevel] = useState(design.floors[0].level)
@@ -50,6 +62,7 @@ export function PlanEditor({ design }: { design: Design }) {
   const [wallStep, setWallStep] = useState(600)
   // a site feature (driveway, yard, pool, sit-out) picked on the plan
   const [feat, setFeat] = useState<string | null>(null)
+  const siteParts = (design.siteFeatures ?? []).filter((f) => Ops.EDITABLE_FEATURES.includes(f.kind) && !f.roomId)
   const [drag, setDrag] = useState<Drag | null>(null)
   const svgRef = useRef<SVGSVGElement>(null)
 
@@ -128,13 +141,14 @@ export function PlanEditor({ design }: { design: Design }) {
     const d = drag, g = ghost, target = dropOn
     setDrag(null); setGhost(null); setDropOn(null)
     if (!d || !g || (g.x === d.rect.x && g.y === d.rect.y && g.w === d.rect.w && g.h === d.rect.h)) return
-    if (d.kind === 'fmove' || d.kind === 'fresize') act.run((l, p) => Ops.setFeature(l, p, d.feature as never, g))
+    if (d.kind === 'fresize') fitRect(d.rect, g, (q) => (l, p) => Ops.setFeature(l, p, d.feature as never, q))
+    else if (d.kind === 'fmove') act.run((l, p) => Ops.setFeature(l, p, d.feature as never, g))
     else if (d.kind === 'move' && target) act.run((l, p) => Ops.swapRooms(l, p, floor.level, d.id, target.id))
     else if (d.kind === 'move') act.run((l, p) => Ops.moveRoom(l, p, floor.level, d.id, { x: g.x, y: g.y }))
     else if (d.kind === 'outline') {
       const delta = d.side === 'E' ? g.w - d.rect.w : d.side === 'S' ? g.h - d.rect.h : d.side === 'W' ? d.rect.x - g.x : d.rect.y - g.y
-      act.run((l, p) => Ops.resizeOutline(l, p, d.side, delta))
-    } else act.run((l, p) => Ops.resizeRoom(l, p, floor.level, d.id, g))
+      moveWall(d.side, delta)
+    } else resizeTo(d.id, d.rect, g)
   }
 
   const nudge = (dx: number, dy: number) => { if (room && canEdit(room)) act.run((l, p) => Ops.moveRoom(l, p, floor.level, room.id, { x: room.rect.x + dx, y: room.rect.y + dy })) }
@@ -201,14 +215,23 @@ export function PlanEditor({ design }: { design: Design }) {
                 </g>
               )
             })}
-            {floor.level === 0 && (design.siteFeatures ?? []).filter((f) => Ops.EDITABLE_FEATURES.includes(f.kind) && !f.roomId).map((f) => (
+            {/* site features: nothing drawn over them until pointed at; the picked one gets an outline, its name and resize edges */}
+            {floor.level === 0 && siteParts.map((f) => (
               <rect key={f.id} x={f.rect.x} y={f.rect.y} width={f.rect.w} height={f.rect.h} data-feature={f.kind}
-                fill={feat === f.kind ? 'rgba(46,125,50,0.16)' : 'transparent'} stroke={feat === f.kind ? '#2E7D32' : 'rgba(46,125,50,0.45)'} strokeWidth={feat === f.kind ? 80 : 40} strokeDasharray="220 160"
-                className="cursor-move" onPointerDown={(e) => startFeature(e, f.kind, f.rect)} />
+                fill={feat === f.kind ? 'rgba(15,118,110,0.10)' : 'transparent'} stroke={feat === f.kind ? '#0F766E' : 'transparent'} strokeWidth={feat === f.kind ? 90 : 60}
+                className="cursor-move hover:stroke-[#0F766E]/60" onPointerDown={(e) => startFeature(e, f.kind, f.rect)}><title>{`${siteName(f.kind)}: drag to move`}</title></rect>
             ))}
             {floor.level === 0 && feat && !drag && (() => {
-              const f = (design.siteFeatures ?? []).find((x) => x.kind === feat && !x.roomId)
-              return f ? <EdgeStrips rect={f.rect} t={hs} color="#2E7D32" name="feature" onDown={(e, side) => startFeature(e, f.kind, f.rect, side)} /> : null
+              const f = siteParts.find((x) => x.kind === feat)
+              if (!f) return null
+              const tag = `${siteName(f.kind)} · ${m(f.rect.w)} × ${m(f.rect.h)} m`, fs = W / 60
+              return <g>
+                <EdgeStrips rect={f.rect} t={hs} color="#0F766E" name="feature" onDown={(e, side) => startFeature(e, f.kind, f.rect, side)} />
+                <g pointerEvents="none" transform={`translate(${f.rect.x + f.rect.w / 2} ${Math.max(f.rect.y - fs * 1.3, -PAD.t + fs)})`}>
+                  <rect x={-tag.length * fs * 0.32} y={-fs * 0.8} width={tag.length * fs * 0.64} height={fs * 1.5} rx={fs * 0.3} fill="#0F766E" />
+                  <text textAnchor="middle" dominantBaseline="middle" y={-fs * 0.05} fill="#fff" fontSize={fs} fontFamily="'IBM Plex Mono', monospace">{tag}</text>
+                </g>
+              </g>
             })()}
             <rect x={box.x} y={box.y} width={box.w} height={box.h} fill="none" stroke="#C2410C" strokeWidth="60" strokeDasharray="300 200" pointerEvents="none" />
             {!drag && !room && <EdgeStrips rect={box} t={hs * 1.2} color="#C2410C" name="wall" onDown={(e, side) => downOutline(e, side)} />}
@@ -321,8 +344,8 @@ export function PlanEditor({ design }: { design: Design }) {
                       {([['N', 'Top edge'], ['S', 'Bottom edge'], ['W', 'Left edge'], ['E', 'Right edge']] as [Side, string][]).map(([side, label]) => (
                         <div key={side} className="flex items-center justify-between text-xs text-ink-dim">{label}
                           <span className="flex gap-1">
-                            <button className={btn} aria-label={`${label} in`} onClick={() => act.run((l, p) => Ops.resizeRoom(l, p, floor.level, room.id, sideRect(room.rect, side, side === 'S' || side === 'E' ? -step : step, side === 'S' || side === 'E' ? -step : step)))}>−</button>
-                            <button className={btn} aria-label={`${label} out`} onClick={() => act.run((l, p) => Ops.resizeRoom(l, p, floor.level, room.id, sideRect(room.rect, side, side === 'S' || side === 'E' ? step : -step, side === 'S' || side === 'E' ? step : -step)))}>+</button>
+                            <button className={btn} aria-label={`${label} in`} onClick={() => resizeTo(room.id, room.rect, sideRect(room.rect, side, side === 'S' || side === 'E' ? -step : step, side === 'S' || side === 'E' ? -step : step))}>−</button>
+                            <button className={btn} aria-label={`${label} out`} onClick={() => resizeTo(room.id, room.rect, sideRect(room.rect, side, side === 'S' || side === 'E' ? step : -step, side === 'S' || side === 'E' ? step : -step))}>+</button>
                           </span>
                         </div>
                       ))}
@@ -337,14 +360,14 @@ export function PlanEditor({ design }: { design: Design }) {
         {feat && (() => {
           const f = (design.siteFeatures ?? []).find((x) => x.kind === feat && !x.roomId)
           if (!f) return null
-          const name = feat === 'utilityYard' ? 'Utility yard' : feat === 'sitOut' ? 'Sit-out' : feat[0].toUpperCase() + feat.slice(1)
+          const name = siteName(feat)
           const set = (r: Rect) => act.run((l, p) => Ops.setFeature(l, p, feat as never, r))
           const hand = !!layout.features?.[feat as never]
           return (
             <section aria-label="Site feature" className="border border-line p-3">
               <h3 className="label mb-1">Site · {name}</h3>
               <p className="font-mono text-[0.75rem] text-ink-dim">{m(f.rect.w)} × {m(f.rect.h)} m · {sqm(f.rect)} m²{hand ? ' · placed by you' : ' · automatic'}</p>
-              <p className="mt-1 text-xs text-ink-faint">It follows the house until you change it. The plan is checked so it never overlaps a room.</p>
+              <p className="mt-1 text-xs text-ink-faint">Drag it on the plan to move it; drag any of its edges to resize. Or use the buttons.</p>
               <div className="mx-auto mt-2 grid w-32 grid-cols-3 gap-1" aria-label="Move site feature">
                 <span /><button className={btn} aria-label="Feature up" onClick={() => set({ ...f.rect, y: f.rect.y - step })}>↑</button><span />
                 <button className={btn} aria-label="Feature left" onClick={() => set({ ...f.rect, x: f.rect.x - step })}>←</button><span />
@@ -362,6 +385,27 @@ export function PlanEditor({ design }: { design: Design }) {
           )
         })()}
 
+        {/* --------------------------------- the site ---------------------------------- */}
+        {floor.level === 0 && siteParts.length > 0 && (
+          <section aria-label="Site">
+            <h3 className="label mb-2">Site</h3>
+            <div className="grid grid-cols-2 gap-1.5">
+              {siteParts.map((f) => (
+                <button key={f.id} type="button" aria-pressed={feat === f.kind} onClick={() => { setSelected(null); setFeat(feat === f.kind ? null : f.kind) }}
+                  className={cx('flex items-center gap-2 border px-2 py-1.5 text-left text-xs', feat === f.kind ? 'border-[#0F766E] text-ink' : 'border-line text-ink-dim hover:text-ink')}>
+                  <span className="h-3.5 w-3.5 flex-none rounded-sm border" style={{ background: SITE_STYLE[f.kind].fill, borderColor: SITE_STYLE[f.kind].edge }} />
+                  <span className="truncate">{siteName(f.kind)}</span>
+                  <span className="ml-auto font-mono text-[0.65rem] text-ink-faint">{sqm(f.rect)} m²</span>
+                </button>
+              ))}
+              <span className="flex items-center gap-2 px-2 py-1.5 text-xs text-ink-faint">
+                <span className="h-3.5 w-3.5 flex-none rounded-sm" style={{ background: SITE_STYLE.lawn.fill }} />Garden fills the rest
+              </span>
+            </div>
+            <p className="mt-2 text-xs text-ink-faint">Pick one here or click it on the plan, then drag it to move or drag its edges to resize.</p>
+          </section>
+        )}
+
         {/* ------------------------------- villa outer walls ------------------------------ */}
         <section aria-label="Villa size">
           <h3 className="label mb-2">Villa size</h3>
@@ -377,13 +421,13 @@ export function PlanEditor({ design }: { design: Design }) {
               <div key={side} className="flex items-center justify-between text-xs text-ink-dim">
                 <span>{label}<span className="ml-1.5 text-ink-faint">{(limits[side].min / 1000).toFixed(1)} to +{(limits[side].max / 1000).toFixed(1)} m</span></span>
                 <span className="flex gap-1">
-                  <button className={btn} aria-label={`${label} in`} disabled={limits[side].min >= 0} onClick={() => act.run((l, p) => Ops.resizeOutline(l, p, side, -Math.min(wallStep, -limits[side].min)))}>−</button>
-                  <button className={btn} aria-label={`${label} out`} disabled={limits[side].max <= 0} onClick={() => act.run((l, p) => Ops.resizeOutline(l, p, side, Math.min(wallStep, limits[side].max)))}>+</button>
+                  <button className={btn} aria-label={`${label} in`} disabled={limits[side].min >= 0} onClick={() => moveWall(side, -Math.min(wallStep, -limits[side].min))}>−</button>
+                  <button className={btn} aria-label={`${label} out`} disabled={limits[side].max <= 0} onClick={() => moveWall(side, Math.min(wallStep, limits[side].max))}>+</button>
                 </span>
               </div>
             ))}
           </div>
-          <p className="mt-2 text-xs text-ink-faint">The limits are the plot's setback line and the longest beam a column line can carry (6 m).</p>
+          <p className="mt-2 text-xs text-ink-faint">The walls can go out as far as the plot's setback line. Every change is checked; if the whole step does not fit, the wall goes as far as the plan stays valid.</p>
         </section>
 
         {/* -------------------------------- add a room -------------------------------- */}

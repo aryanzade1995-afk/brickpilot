@@ -163,7 +163,8 @@ test('resize takes space from vacant areas and a single neighbour, never below a
   const small = O.commit(p, tiny.layout, l1, tiny.affected)
   assert.ok(small.ok, small.reason)
   assert.ok(small.notes.some((n) => /minimum|under/i.test(n.message)), 'the recommended minimum is shown as a note')
-  assert.equal(O.resizeRoom(l1, p, 1, 'familyLounge', { ...lr, h: 500 }).ok, false, 'only a sliver is refused')
+  assert.ok(O.resizeRoom(l1, p, 1, 'familyLounge', { ...lr, h: 500 }).ok, 'there is no minimum size; the rules check the result')
+  assert.equal(O.resizeRoom(l1, p, 1, 'familyLounge', { ...lr, h: 0 }).ok, false, 'only a room with no size is refused')
   // growing into the vacant study area
   const bed3 = room(l1, 1, 'bed3').rect
   const vacant = O.vacantRooms(l1, 1)[0]
@@ -468,10 +469,13 @@ test('growing a room pushes the connected rooms along; shrinking lets them follo
   const after = room(grow.layout, 0, 'dining').rect
   assert.ok(after.y !== d.y || after.h !== d.h || room(grow.layout, 0, 'utility').rect.y !== u.y, 'a neighbour moved to make space')
   assert.ok(O.commit(p, grow.layout, layout, grow.affected).ok)
-  // a push that would go out of the building is refused with the way out
-  const tooFar = O.resizeRoom(layout, p, 0, 'kitchen', { ...k, y: k.y - 1200, h: k.h + 1200 })
-  assert.equal(tooFar.ok, false)
-  assert.match(tooFar.reason, /outer wall|resize less/i)
+  // a big push is never refused by the rules: rooms that cannot slide further give up space, and the plan is kept with advice
+  const big = O.resizeRoom(layout, p, 0, 'kitchen', { ...k, y: k.y - 1200, h: k.h + 1200 })
+  if (!big.ok) assert.match(big.reason, /outer wall|resize less|bigger/i)
+  // the editor applies the largest part of a resize that keeps the plan valid
+  let bigStep = 0
+  for (let i = 12; i >= 1; i--) { const r = O.resizeRoom(layout, p, 0, 'kitchen', { ...k, y: k.y - i * 100, h: k.h + i * 100 }); if (r.ok && O.commit(p, r.layout, layout).ok) { bigStep = i; break } }
+  assert.ok(bigStep >= 1, 'some of the change holds')
   // shrinking: the neighbour on that side grows to follow
   const shrink = O.resizeRoom(layout, p, 0, 'kitchen', { ...k, h: k.h - 600 })
   assert.ok(shrink.ok, shrink.reason)
@@ -512,7 +516,7 @@ test('the stair is dragged onto a room and moves on every floor; the rooms on ea
   assert.ok(lc.design.floors.every((f) => f.rooms.find((r) => r.id === 'stair').rect.h === s.h + 300))
 })
 
-test('moving an outer wall in slides the stair whole and the rooms beside it follow; too far is refused with how far it can go', () => {
+test('moving an outer wall in slides the stair whole and the rooms beside it follow; moving it further is never blocked', () => {
   const p = generate(compile(defaultBrief()))
   let l = extractLayout(p)
   l = O.swapRooms(l, p, 0, 'kitchen', 'dining').layout
@@ -525,7 +529,11 @@ test('moving an outer wall in slides the stair whole and the rooms beside it fol
   assert.ok(c.ok, c.reason)
   const st = c.design.floors.map((f) => f.rooms.find((r) => r.id === 'stair').rect)
   assert.ok(st.every((r) => r.h === st[0].h && JSON.stringify(r) === JSON.stringify(st[0])), 'the stair keeps its size and stays aligned')
+  // further in is the person's choice: it is kept, and what the rules find is advice
   const far = O.resizeOutline(l, p, 'N', -600)
-  assert.equal(far.ok, false)
-  assert.match(far.reason, /at most 0\.3 m/)
+  assert.ok(far.ok, far.reason)
+  // past what the rules allow, the editor stops at the largest valid step: at least the 0.3 m that is known to hold
+  let best = 0
+  for (let i = 6; i >= 1; i--) { const r = O.resizeOutline(l, p, 'N', -i * 100); if (r.ok && O.commit(p, r.layout, l).ok) { best = i; break } }
+  assert.ok(best >= 3)
 })

@@ -162,7 +162,7 @@ type StudioState = {
   /** the plan the layout edits stand on: the pinned plan, or the plan around the built structure */
   basePlan: () => Design | null
   /** run one edit; it is applied only if the whole plan, the 3D villa and every rule still hold */
-  applyPlanOp: (run: (layout: LayoutDoc, plan: Design) => OpResult, opts?: { autoReplan?: boolean }) => PlanOpOutcome
+  applyPlanOp: (run: (layout: LayoutDoc, plan: Design) => OpResult, opts?: { autoReplan?: boolean; dry?: boolean }) => PlanOpOutcome
   /** replace the layout wholesale (undo, redo, restore); null returns to the generated plan */
   setLayout: (layout: LayoutDoc | null) => PlanOpOutcome
   loadExisting: (brief: Brief, structure: ExistingStructure, seed: number) => void
@@ -254,7 +254,7 @@ type Setter = (fn: (s: StudioState) => void) => void
 
 /** One plan edit, end to end: the edit, the nearby replan, the full rule check, then the rebuilt 3D villa. Nothing is kept unless all of it holds. */
 function runPlanOp(get: () => StudioState, set: Setter, run: (layout: LayoutDoc, plan: Design) => OpResult,
-  opts: { autoReplan?: boolean; clear?: boolean } = {}): PlanOpOutcome {
+  opts: { autoReplan?: boolean; clear?: boolean; dry?: boolean } = {}): PlanOpOutcome {
   const cur = get()
   const plan = basePlanOf(cur.brief, cur.pinned, cur.existing)
   if (!plan) return { ok: false, reason: 'Choose a direction first. There is no plan to edit yet.' }
@@ -280,6 +280,8 @@ function runPlanOp(get: () => StudioState, set: Setter, run: (layout: LayoutDoc,
   const assembled = assemble(cur.brief, cur.pinned, cur.referencePreferences, cur.recentVillaFingerprints, cur.diversityLimits, cur.existing, target)
   if (assembled.result.shapeStatus === 'rejected' || assembled.result.shapeStatus === 'invalid-plan' || !assembled.result.report.hardChecksPass)
     return { ok: false, reason: 'The plan is valid, but the 3D villa could not be rebuilt for that arrangement. Try a smaller change.' }
+  // a dry run only answers whether the edit would hold
+  if (opts.dry) return { ok: true, message, notes: checked.notes, layout: target, before: cur.layout }
   const oldKey = cur.result ? geometryCostKey(cur.result.design) : null
   set((s) => {
     s.layout = target

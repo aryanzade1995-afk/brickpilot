@@ -14,6 +14,7 @@ import { cx } from '@/lib/cx.ts'
 import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
 import { InvalidPlanNotice } from '@/components/InvalidPlanNotice.tsx'
 import { BlenderVillaPanel } from '@/components/BlenderVillaPanel.tsx'
+import { AiVisualization } from '@/components/AiVisualization.tsx'
 
 type ViewMode = 'architecture' | 'furnished'
 
@@ -42,8 +43,9 @@ export function Massing() {
     <BlenderVillaPanel plan={result.design} selectedSeed={result.villaDesignDNA?.seed ?? result.design.dna.seed} autoGenerate />
     <div className="mt-6 flex gap-6 text-sm">
       <Link to="/workspace/plan" className="underline underline-offset-4">View the 2D plan</Link>
-      <Link to="/workspace/render" className="underline underline-offset-4">Continue to renders</Link>
+      <Link to="/workspace/finishes" className="underline underline-offset-4">Continue to finishes & cost</Link>
     </div>
+    <AiVisualization design={result.design} />
   </div>
   if (!result || !doll) {
     return <div className="mx-auto max-w-[1400px] px-10 py-24 text-ink-dim">Preparing model…</div>
@@ -150,19 +152,20 @@ export function Massing() {
             </div>
             <div className="space-y-3 p-4">
               <p className="text-[0.8rem] leading-relaxed text-ink-dim">
-                Your accepted architectural design provides the render references. This furnished view follows the floor plan.
+                This furnished view follows the floor plan. The AI visualization of the villa is below.
               </p>
               <Link
-                to="/workspace/render"
+                to="/workspace/finishes"
                 className="flex w-full items-center justify-center gap-2 border border-line-strong py-3 font-mono text-xs uppercase tracking-[0.12em] text-ink-dim hover:border-ink-dim hover:text-ink"
               >
-                Continue to render
+                Continue to finishes & cost
                 <ArrowRight size={13} />
               </Link>
             </div>
           </div>
         </div>
       </div>
+      <AiVisualization design={result.design} />
     </div>
   )
 }

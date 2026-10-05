@@ -4,7 +4,7 @@ import { estimateProjectBoq } from '@/lib/cost/index.ts'
 import { geometryCostKey } from '@/lib/cost/quantities.ts'
 import { formatINR, formatRange } from '@/lib/format.ts'
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Dices, Download, Pencil } from 'lucide-react'
 import { useStudio } from '@/state/studio.ts'
 import { DrawingWorkspace } from '@/components/DrawingWorkspace.tsx'
@@ -25,7 +25,7 @@ const SEV_COLOR: Record<Severity, string> = {
 }
 
 export function Plan() {
-  const navigate = useNavigate(), [params, setParams] = useSearchParams()
+  const [params, setParams] = useSearchParams()
   const [floorIdx, setFloorIdx] = useState(Number(params.get("floor")) || 0)
   const brief = useStudio(s => s.brief)
   const result = useStudio((s) => s.result)
@@ -40,7 +40,6 @@ export function Plan() {
   const saved = useFinishes(s => s.entries[result ? geometryCostKey(result.design) : ''])
   const cost = useMemo(() => result?.report.hardChecksPass ? estimateProjectBoq(result.design, brief, saved) : null, [result, brief, saved])
   const drawingDesign = useMemo(() => result ? { ...result.design, model: { ...result.design.model, brief } } : null, [result, brief])
-  const roomLink = (id: string) => `/workspace/finishes?tab=specifications&room=${encodeURIComponent(id)}`
   useEffect(() => {
     if (!result) run()
   }, [result, run])
@@ -93,7 +92,7 @@ export function Plan() {
         )}
         {layout && <span className="font-mono text-[0.65rem] uppercase tracking-[0.1em] text-warn">Edited plan · saved with the project</span>}
       </div>
-      <div className="mt-4">{editing ? <PlanEditor design={drawingDesign!} /> : <DrawingWorkspace key={`${params.get("floor")}:${params.get("highlight")}`} design={drawingDesign!} onFloorChange={setFloorIdx} initialFloorLevel={params.has("floor") ? Number(params.get("floor")) : undefined} highlightCategory={params.get("highlight") ?? undefined} onRoomClick={id => navigate(roomLink(id))} />}</div>
+      <div className="mt-4">{editing ? <PlanEditor design={drawingDesign!} /> : <DrawingWorkspace key={`${params.get("floor")}:${params.get("highlight")}`} design={drawingDesign!} onFloorChange={setFloorIdx} initialFloorLevel={params.has("floor") ? Number(params.get("floor")) : undefined} highlightCategory={params.get("highlight") ?? undefined} />}</div>
       {cost && <section aria-label="Cost summary" className="mt-6 flex flex-wrap items-center justify-between gap-4 border-y border-line py-5"><div><Link to="/workspace/finishes?tab=estimate" className="text-sm underline">Cost band · {formatRange(cost.total.low, cost.total.high, formatINR)}</Link><p className="mt-2 text-xs text-ink-faint">{cost.label}</p></div><Link to="/workspace/finishes" className="text-sm underline">Finishes & cost →</Link></section>}
       <div className="mt-6 grid gap-6 md:grid-cols-3">
           <Panel title="Study record">
@@ -185,7 +184,7 @@ export function Plan() {
             <tbody>
               {floor.rooms.map((r) => (
                 <tr key={r.id} className="border-t border-line [&>td]:py-2.5 [&>td]:pr-6">
-                  <td className="text-ink">{r.outdoor ? r.name : <Link to={roomLink(`${floor.level}:${r.semanticId || r.id}`)} className="underline">{r.name}</Link>}</td>
+                  <td className="text-ink">{r.name}</td>
                   <td className="text-ink-dim">{ZONE_LABEL[r.zone]}</td>
                   <td className="text-right font-mono text-xs text-ink-dim tnum">
                     {(r.rect.w / 1000).toFixed(1)} × {(r.rect.h / 1000).toFixed(1)} m
