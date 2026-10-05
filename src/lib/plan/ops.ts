@@ -3,7 +3,8 @@ import type { Design } from '../engine/types.ts'
 import { validate } from '../rules/index.ts'
 import { applyLayout, baseBox, boxNow, extractLayout, hasOutline, noOutline, shiftRect, type FloorLayout, type LayoutDoc, type LayoutRoom, type Outline } from './layout.ts'
 import { MODULE, contains, intersect, joinIfRect, m, overlapArea, sameRect, snapMm, sqm, subtract, touchLength, unionRects } from './rects.ts'
-import { ADDABLE_TYPES, TYPE_SPEC, constraintsOf, type RoomType } from './roomTypes.ts'
+import { ADDABLE_TYPES, OUTDOOR_TYPES, TYPE_SPEC, constraintsOf, type RoomType } from './roomTypes.ts'
+import type { SiteFeature } from '../engine/types.ts'
 
 /* ------------------------------------------------------------------ *
  *  Plan editing operations. Each one is a pure function: (layout) in,
@@ -41,7 +42,17 @@ export const isVacant = (r: LayoutRoom) => r.type === 'vacant'
 /** every room can be edited; only a locked room is held. What an edit breaks is found by the rules after it, not guessed before it. */
 const movable = (r: LayoutRoom): string | null => (r.locked ? `${r.name} is locked. Unlock it first.` : null)
 /** the stair and lift stand on every floor as one shaft, and the rest of the plan's rooms are per floor */
-const stayOnFloor = (r: LayoutRoom): string | null => (r.fixed ? `${r.name} belongs to every floor, so it cannot be sent to another one.` : null)
+const stayOnFloor = (r: LayoutRoom): string | null => (r.fixed ? `${r.name} belongs to every floor, so it cannot be sent to another one.` : r.outdoor ? `${r.name} is an open-air space and stays on its own floor.` : null)
+
+/** the line the building and its open-air spaces must stay inside: the plot less the setbacks */
+const envRect = (plan: Design): Rect => ({ x: plan.model.setbacksMm.W, y: plan.model.setbacksMm.N, w: plan.model.envelope.width, h: plan.model.envelope.depth })
+/** the rooms (and the house itself) an open-air space would collide with */
+function outdoorBlockers(layout: LayoutDoc, plan: Design, level: number, self: LayoutRoom | null, rect: Rect): string[] {
+  const floor = floorOf(layout, level)
+  const names = (floor?.rooms ?? []).filter((x) => x !== self && overlapArea(x.rect, rect) > 10_000 && (!isVacant(x))).map((x) => x.name)
+  if (plateFor(layout, plan, level).some((p) => overlapArea(p, rect) > 10_000) && !names.length) names.push('the house')
+  return names
+}
 
 const insidePlate = (plate: Rect[], r: Rect) => plate.reduce((a, p) => a + overlapArea(p, r), 0) >= rectArea(r) - 1000
 
@@ -69,7 +80,8 @@ export function settle(layout: LayoutDoc, plan: Design, level: number): LayoutDo
   const floor = floorOf(out, level)
   if (!floor) return out
   const accepted = new Set(floor.rooms.filter((r) => isVacant(r) && r.accepted).map((r) => `${r.rect.x},${r.rect.y},${r.rect.w},${r.rect.h}`))
-  const real = floor.rooms.filter((r) => !isVacant(r))
+  const open = floor.rooms.filter((r) => r.outdoor)
+  const real = floor.rooms.filter((r) => !isVacant(r) && !r.outdoor)
   let free = plateFor(out, plan, level)
   for (const r of real) free = free.flatMap((f) => subtract(f, r.rect))
   const regions = unionRects(free.filter((f) => f.w > 0 && f.h > 0)).sort((a, b) => a.y - b.y || a.x - b.x)
@@ -79,7 +91,7 @@ export function settle(layout: LayoutDoc, plan: Design, level: number): LayoutDo
     rect, locked: false, fixed: false, constraints: constraintsOf('vacant'),
     ...(accepted.has(`${rect.x},${rect.y},${rect.w},${rect.h}`) ? { accepted: true } : {}),
   }))
-  floor.rooms = [...real, ...vacant]
+  floor.rooms = [...real, ...open, ...vacant]
   return out
 }
 
@@ -138,6 +150,8 @@ export function swapRooms(layout: LayoutDoc, plan: Design, level: number, aId: s
   if (!floor || !a || !b || a === b) return fail('Pick two different rooms to swap.')
   for (const r of [a, b]) { const why = movable(r); if (why) return fail(why) }
   if (isVacant(a) && isVacant(b)) return fail('Pick a room to swap with.')
+  if (!!a.outdoor !== !!b.outdoor) return fail('An open-air space can only swap with another open-air space.')
+  if (a.outdoor && b.outdoor) { const ra = a.rect; a.rect = b.rect; b.rect = ra; return ok(out, `${a.name} and ${b.name} swapped places.`, [aId, bId]) }
   if (isVacant(a) || isVacant(b)) {
     // a room swapped with vacant space takes that space, and the space it left becomes vacant
     const room = isVacant(a) ? b : a, space = isVacant(a) ? a : b
@@ -178,7 +192,16 @@ export function moveRoom(layout: LayoutDoc, plan: Design, level: number, id: str
   if (isVacant(r)) return fail('Vacant space cannot be moved.')
   const target: Rect = { x: snapMm(to.x), y: snapMm(to.y), w: r.rect.w, h: r.rect.h }
   if (sameRect(target, r.rect)) return fail('The room did not move.')
-  if (!insidePlate(plateFor(out, plan, level), target)) return fail(`${r.name} would leave the floor plate. Rooms stay inside the walls of the building.`)
+  if (r.outdoor) {
+    if (!contains(envRect(plan), target)) return fail(`${r.name} would leave the area the plot allows to be built on (inside the setbacks).`)
+    const hit = outdoorBlockers(out, plan, level, r, target)
+    if (!hit.length) { r.rect = target; return ok(out, `${r.name} moved.`, [id]) }
+    const other = floor.rooms.filter((x) => x !== r && x.outdoor && overlapArea(x.rect, target) >= rectArea(x.rect) * 0.4)
+    const onlyOpenAir = hit.every((n) => floor.rooms.some((x) => x.outdoor && x.name === n))
+    if (other.length === 1 && onlyOpenAir) return swapRooms(layout, plan, level, id, other[0].id)
+    return fail(`${r.name} would overlap ${hit.join(' and ')}. Open-air spaces stand beside the house, not on it.`)
+  }
+  if (!r.outdoor && !insidePlate(plateFor(out, plan, level), target)) return fail(`${r.name} would leave the floor plate. Rooms stay inside the walls of the building.`)
   const others = floor.rooms.filter((x) => x !== r)
   const hit = others.filter((x) => !isVacant(x) && overlapArea(x.rect, target) > 0)
   if (!hit.length) { r.rect = target; return ok(settle(out, plan, level), `${r.name} moved.`, [id]) }
@@ -208,7 +231,15 @@ export function resizeRoom(layout: LayoutDoc, plan: Design, level: number, id: s
   const next: Rect = { x: snapMm(to.x), y: snapMm(to.y), w: snapMm(to.w), h: snapMm(to.h) }
   if (next.w <= 0 || next.h <= 0) return fail('A room cannot be that small.')
   if (sameRect(next, r.rect)) return fail('The size did not change.')
-  if (!insidePlate(plateFor(out, plan, level), next)) return fail(`${r.name} would leave the floor plate.`)
+  if (!r.outdoor && !insidePlate(plateFor(out, plan, level), next)) return fail(`${r.name} would leave the floor plate.`)
+  if (r.outdoor) {
+    if (Math.min(next.w, next.h) < 900) return fail(`${r.name} would be too narrow to use.`)
+    if (!contains(envRect(plan), next)) return fail(`${r.name} would leave the area the plot allows to be built on (inside the setbacks).`)
+    const hit = outdoorBlockers(out, plan, level, r, next)
+    if (hit.length) return fail(`${r.name} would overlap ${hit.join(' and ')}.`)
+    r.rect = next
+    return ok(out, `${r.name} resized to ${m(next.w)} × ${m(next.h)} m.`, [id])
+  }
   const tooSmall = sizeProblem(r, next)
   if (tooSmall) return fail(tooSmall)
   const vacants = floor.rooms.filter(isVacant)
@@ -217,7 +248,7 @@ export function resizeRoom(layout: LayoutDoc, plan: Design, level: number, id: s
     let uncovered = [g]
     for (const v of vacants) uncovered = uncovered.flatMap((u) => subtract(u, v.rect))
     for (const u of uncovered) {
-      const donor = floor.rooms.find((x) => x !== r && !isVacant(x) && overlapArea(x.rect, u) > 0)
+      const donor = floor.rooms.find((x) => x !== r && !isVacant(x) && !x.outdoor && overlapArea(x.rect, u) > 0)
       if (!donor) continue
       if (overlapArea(donor.rect, u) < rectArea(u) - 1000 || !contains(donor.rect, u))
         return fail(`${r.name} would reach into more than one room. Resize it so it only takes space from vacant areas or from one neighbour.`)
@@ -286,7 +317,37 @@ export function bestVacantFor(layout: LayoutDoc, plan: Design, level: number, ty
   return best
 }
 
+/** a free spot on the plot beside the house for an open-air space of this size, nearest to the house */
+function outdoorSpot(layout: LayoutDoc, plan: Design, level: number, w: number, h: number): Rect | null {
+  const floor = floorOf(layout, level)
+  if (!floor) return null
+  const env = envRect(plan)
+  const plate = plateFor(layout, plan, level)
+  const edges = [...plate, ...floor.rooms.map((r) => r.rect)]
+  const xs = new Set<number>([env.x, env.x + env.w - w]), ys = new Set<number>([env.y, env.y + env.h - h])
+  for (const r of edges) { xs.add(r.x - w); xs.add(r.x + r.w); xs.add(r.x); ys.add(r.y - h); ys.add(r.y + r.h); ys.add(r.y) }
+  const house = plate.length ? { x: Math.min(...plate.map((p) => p.x)), y: Math.min(...plate.map((p) => p.y)), r: Math.max(...plate.map((p) => p.x + p.w)), b: Math.max(...plate.map((p) => p.y + p.h)) } : null
+  let best: { rect: Rect; d: number } | null = null
+  for (const x of xs) for (const y of ys) {
+    const rect = { x, y, w, h }
+    if (!contains(env, rect) || outdoorBlockers(layout, plan, level, null, rect).length) continue
+    const d = house ? Math.hypot(Math.max(house.x - (x + w), 0, x - house.r), Math.max(house.y - (y + h), 0, y - house.b)) + (y < (house?.b ?? 0) ? 500 : 0) : 0
+    if (!best || d < best.d) best = { rect, d }
+  }
+  return best?.rect ?? null
+}
+
 export function addRoom(layout: LayoutDoc, plan: Design, level: number, type: RoomType, vacantId?: string): OpResult {
+  if (OUTDOOR_TYPES.includes(type)) {
+    if (type === 'balcony' || type === 'courtyard') return fail('Balconies and courtyards belong to the shape of the house and cannot be added here.')
+    const spot = outdoorSpot(layout, plan, level, type === 'parking' ? 5200 : 3400, type === 'parking' ? 5000 : 2600) ?? outdoorSpot(layout, plan, level, type === 'parking' ? 3000 : 2400, type === 'parking' ? 5000 : 2000)
+    if (!spot) return fail(`There is no free space on the plot for a ${TYPE_SPEC[type].label.toLowerCase()}. Make another open-air space smaller first.`)
+    const out = clone(layout)
+    const idn = newIdentity(out, plan, level, type)
+    const room: LayoutRoom = { id: idn.id, semanticId: idn.semanticId, name: type === 'parking' ? 'Covered parking' : 'Covered verandah', type, kind: TYPE_SPEC[type].kind, zone: 'outdoor', rect: spot, locked: false, fixed: false, outdoor: true, constraints: constraintsOf(type) }
+    floorOf(out, level)!.rooms.push(room)
+    return ok(out, `${room.name} added (${sqm(spot)} m²).`, [room.id])
+  }
   if (!ADDABLE_TYPES.includes(type)) return fail('That kind of room cannot be added.')
   const out = clone(layout)
   const floor = floorOf(out, level)
@@ -401,7 +462,7 @@ export function vacantOptions(layout: LayoutDoc, plan: Design, level: number, va
   if (!floor || !v || !isVacant(v)) return []
   const options: VacantOption[] = []
   for (const n of floor.rooms) {
-    if (n === v || isVacant(n) || n.fixed || n.locked || n.type === 'open') continue
+    if (n === v || isVacant(n) || n.fixed || n.outdoor || n.locked || n.type === 'open') continue
     const g = growthInto(n, v.rect)
     if (!g) continue
     // never grow beyond the room's maximum when a smaller share would do: take only what keeps it within range
@@ -577,7 +638,7 @@ export function outlineLimits(layout: LayoutDoc, plan: Design): OutlineLimits {
     let thin = Infinity
     for (const f of layout.floors) for (const r of f.rooms) {
       const touches = horizontal ? (Math.abs((side === 'N' ? r.rect.y : r.rect.y + r.rect.h) - line) < 2) : (Math.abs((side === 'W' ? r.rect.x : r.rect.x + r.rect.w) - line) < 2)
-      if (touches && !isVacant(r)) thin = Math.min(thin, horizontal ? r.rect.h : r.rect.w)
+      if (touches && !isVacant(r) && !r.outdoor) thin = Math.min(thin, horizontal ? r.rect.h : r.rect.w)
     }
     // the beams that run away from this wall carry the new span
     let span = 0
@@ -609,6 +670,7 @@ export function resizeOutline(layout: LayoutDoc, plan: Design, side: keyof Outli
   const horizontal = side === 'N' || side === 'S'
   const touched: string[] = []
   for (const f of out.floors) for (const r of f.rooms) {
+    if (r.outdoor) continue
     const edge = horizontal ? (side === 'N' ? r.rect.y : r.rect.y + r.rect.h) : (side === 'W' ? r.rect.x : r.rect.x + r.rect.w)
     if (Math.abs(edge - line) >= 2) continue
     touched.push(r.id)
@@ -620,9 +682,53 @@ export function resizeOutline(layout: LayoutDoc, plan: Design, side: keyof Outli
   }
   if (!touched.length) return fail('No room touches that wall.')
   out.outline = { ...O, [side]: O[side] + d }
+  // open-air spaces keep their place against the house: one that touched the moved wall goes with it, and one the wall would run into is pushed out of the way
+  const alongWall = (r: Rect) => (horizontal ? Math.min(r.x + r.w, before.x + before.w) - Math.max(r.x, before.x) > 0 : Math.min(r.y + r.h, before.y + before.h) - Math.max(r.y, before.y) > 0)
+  for (const f of out.floors) {
+    const plate = plateFor(out, plan, f.level)
+    for (const r of f.rooms) {
+      if (!r.outdoor) continue
+      const rect = { ...r.rect }
+      const attached = alongWall(rect) && (side === 'E' ? Math.abs(rect.x - line) < 2 : side === 'W' ? Math.abs(rect.x + rect.w - line) < 2 : side === 'S' ? Math.abs(rect.y - line) < 2 : Math.abs(rect.y + rect.h - line) < 2)
+      if (attached) { if (horizontal) rect.y += side === 'S' ? d : -d; else rect.x += side === 'E' ? d : -d }
+      else if (d > 0 && plate.some((p) => overlapArea(p, rect) > 10_000)) {
+        if (side === 'E') rect.x = line + d
+        else if (side === 'W') rect.x = line - d - rect.w
+        else if (side === 'S') rect.y = line + d
+        else rect.y = line - d - rect.h
+        touched.push(r.id)
+      }
+      r.rect = rect
+    }
+  }
   const names = { N: 'north', S: 'south', E: 'east', W: 'west' }
   const levels = [...new Set(out.floors.map((f) => f.level))]
   let next = out
   for (const level of levels) next = settle(next, plan, level)
   return ok(next, `The ${names[side]} wall moved ${d > 0 ? 'out' : 'in'} ${m(Math.abs(d))} m.`, touched)
+}
+
+/* ----------------------- site features: driveway, yards, pool, sit-out ----------------------- */
+
+export const EDITABLE_FEATURES: SiteFeature['kind'][] = ['driveway', 'utilityYard', 'pool', 'sitOut', 'path']
+
+/** put a site feature where the person wants it; it keeps that place while it stays clear of the house and the other features */
+export function setFeature(layout: LayoutDoc, plan: Design, kind: SiteFeature['kind'], rect: Rect): OpResult {
+  if (!EDITABLE_FEATURES.includes(kind)) return fail('That part of the site follows the house automatically.')
+  const r = { x: snapMm(rect.x), y: snapMm(rect.y), w: snapMm(rect.w), h: snapMm(rect.h) }
+  if (Math.min(r.w, r.h) < 900) return fail('A site feature needs at least 0.9 m in each direction.')
+  if (r.x < 0 || r.y < 0 || r.x + r.w > plan.model.plot.width || r.y + r.h > plan.model.plot.depth) return fail('That would take it outside the plot.')
+  const out = clone(layout)
+  out.features = { ...out.features, [kind]: r }
+  return ok(out, `${kind === 'utilityYard' ? 'Utility yard' : kind === 'sitOut' ? 'Sit-out' : kind[0].toUpperCase() + kind.slice(1)} set to ${m(r.w)} × ${m(r.h)} m.`, [])
+}
+
+/** hand a site feature back to the automatic layout */
+export function resetFeature(layout: LayoutDoc, kind: SiteFeature['kind']): OpResult {
+  if (!layout.features?.[kind]) return fail('That feature is already automatic.')
+  const out = clone(layout)
+  const rest = { ...out.features }
+  delete rest[kind]
+  out.features = rest
+  return ok(out, 'Back to the automatic layout.', [])
 }

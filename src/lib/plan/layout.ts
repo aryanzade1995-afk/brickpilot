@@ -1,9 +1,9 @@
 import { rectArea, rectUnionArea, rectUnionBBox, sharedEdge, toSqm, type Point, type Rect } from '../geometry.ts'
 import type { CanonicalModel, FloorProgram, SpaceReq, Zone } from '../model/canonical.ts'
 import { themeOf } from '../model/themes.ts'
-import type { Design, FloorPlan, Opening, PlacedRoom } from '../engine/types.ts'
+import type { Design, FloorPlan, Opening, PlacedRoom, SiteFeature } from '../engine/types.ts'
 import type { RoomKind } from '../engine/planner/types.ts'
-import { beamsFor, fitOnLine, occupy, placeDoors, placeWindows, planShafts, stairRun, wallGraph, type Occupancy } from '../engine/planner/elements.ts'
+import { beamsFor, fitOnLine, occupy, placeDoors, placeWindows, planShafts, stairRun, supportZonesFor, wallGraph, type Occupancy } from '../engine/planner/elements.ts'
 import { GOING, normalizeBrief, stairGeometry } from '../engine/planner/program.ts'
 import { reachability } from '../engine/planner/index.ts'
 import { placeSiteFeatures } from '../engine/planner/siteFeatures.ts'
@@ -35,6 +35,8 @@ export type LayoutRoom = {
   constraints: RoomConstraints
   /** a vacant region the person has decided to leave empty */
   accepted?: boolean
+  /** an open-air space (parking, verandah, balcony, courtyard): it stands on the plot, not inside the floor plate */
+  outdoor?: boolean
 }
 
 export type FloorLayout = { level: number; rooms: LayoutRoom[] }
@@ -42,7 +44,9 @@ export type FloorLayout = { level: number; rooms: LayoutRoom[] }
 export type Outline = { N: number; S: number; E: number; W: number }
 export const noOutline = (): Outline => ({ N: 0, S: 0, E: 0, W: 0 })
 export const hasOutline = (o?: Outline) => !!o && (o.N !== 0 || o.S !== 0 || o.E !== 0 || o.W !== 0)
-export type LayoutDoc = { version: 1; signature: string; floors: FloorLayout[]; outline?: Outline }
+export type LayoutDoc = { version: 1; signature: string; floors: FloorLayout[]; outline?: Outline
+  /** site features the person placed by hand (driveway, yards, pool, sit-out); the rest follow the house automatically */
+  features?: Partial<Record<SiteFeature['kind'], Rect>> }
 
 /* ---- moving the outer walls: every floor's edges that lie on a side of the generated ground floor move with it ---- */
 const near = (a: number, b: number) => Math.abs(a - b) < 2
@@ -61,16 +65,6 @@ const shiftPoint = (p: Point, B: Rect, O: Outline): Point => ({
   x: near(p.x, B.x) ? p.x - O.W : near(p.x, B.x + B.w) ? p.x + O.E : p.x,
   y: near(p.y, B.y) ? p.y - O.N : near(p.y, B.y + B.h) ? p.y + O.S : p.y,
 })
-/** an outdoor space that touches a moved wall from outside goes with it */
-function shiftOutdoor(r: Rect, B: Rect, O: Outline): Rect {
-  const alongY = Math.min(r.y + r.h, B.y + B.h) - Math.max(r.y, B.y) > 0, alongX = Math.min(r.x + r.w, B.x + B.w) - Math.max(r.x, B.x) > 0
-  let { x, y } = r
-  if (alongY && near(r.x + r.w, B.x)) x -= O.W
-  if (alongY && near(r.x, B.x + B.w)) x += O.E
-  if (alongX && near(r.y + r.h, B.y)) y -= O.N
-  if (alongX && near(r.y, B.y + B.h)) y += O.S
-  return { ...r, x, y }
-}
 function shiftFloor(floor: FloorPlan, B: Rect, O: Outline): FloorPlan {
   const footprint = floor.footprint.map((r) => shiftRect(r, B, O))
   const columns = floor.columns?.map((c) => ({ ...c, at: shiftPoint(c.at, B, O) }))
@@ -81,7 +75,6 @@ function shiftFloor(floor: FloorPlan, B: Rect, O: Outline): FloorPlan {
     columns,
     beams: columns ? beamsFor(columns, inPlate, floor.prefix ?? 'GF') : floor.beams,
     supportZones: floor.supportZones?.map((z) => ({ ...z, rect: shiftRect(z.rect, B, O) })),
-    rooms: floor.rooms.map((r) => (r.outdoor ? { ...r, rect: shiftOutdoor(r.rect, B, O) } : r)),
   }
 }
 
@@ -101,6 +94,10 @@ export function kindOfRoom(room: PlacedRoom, model: CanonicalModel): RoomKind {
   if (id === 'lift') return 'lift'
   if (id === 'corridor') return 'corridor'
   if (id.startsWith('lobby')) return 'lobby'
+  if (id === 'parking') return 'parking'
+  if (id.startsWith('verandah')) return 'verandah'
+  if (id.startsWith('balcony')) return 'balcony'
+  if (id === 'courtyard') return 'courtyard'
   if (id.startsWith('openArea') || id.startsWith('vacant')) return 'lounge'
   if (id.startsWith('familyLounge') || id === 'poolHouse') return 'lounge'
   if (id.startsWith('study')) return 'study'
@@ -138,7 +135,7 @@ export function extractLayout(plan: Design): LayoutDoc {
     outline: noOutline(),
     floors: plan.floors.map((floor) => ({
       level: floor.level,
-      rooms: floor.rooms.filter((r) => !r.outdoor).map((r): LayoutRoom => {
+      rooms: floor.rooms.map((r): LayoutRoom => {
         const kind = kindOfRoom(r, plan.model)
         const fixed = FIXED_KINDS.includes(kind) || r.zone === 'circulation'
         const type = fixed ? 'fixed' : typeOfKind(kind, r.id)
@@ -149,7 +146,7 @@ export function extractLayout(plan: Design): LayoutDoc {
             windows: space.wantsWindow ? 'required' : base.windows === 'required' ? 'optional' : base.windows }
           : base
         return { id: r.id, semanticId: r.semanticId, name: r.name, type, kind, zone: r.zone, rect: { ...r.rect }, locked: false, fixed,
-          ...(owners.has(r.id) ? { parent: owners.get(r.id) } : {}), constraints }
+          ...(owners.has(r.id) ? { parent: owners.get(r.id) } : {}), ...(r.outdoor ? { outdoor: true } : {}), constraints }
       }),
     })),
   }
@@ -159,7 +156,7 @@ export function extractLayout(plan: Design): LayoutDoc {
 
 const placed = (r: LayoutRoom): PlacedRoom => ({
   id: r.id, semanticId: r.semanticId, name: r.name, zone: r.zone, rect: { ...r.rect },
-  area: toSqm(rectArea(r.rect)), outdoor: false, wantsWindow: r.constraints.windows === 'required' && r.type !== 'vacant' && r.type !== 'open',
+  area: toSqm(rectArea(r.rect)), outdoor: !!r.outdoor, wantsWindow: !r.outdoor && r.constraints.windows === 'required' && r.type !== 'vacant' && r.type !== 'open',
 })
 
 /** the circulation room everything opens to */
@@ -214,16 +211,13 @@ function connectLeft(failed: string[], rooms: PlacedRoom[], kinds: Map<string, R
 
 function rebuildFloor(plan: Design, floor: FloorPlan, layout: FloorLayout, lower: FloorPlan | null): FloorPlan {
   const model = plan.model
-  const indoor = layout.rooms.map(placed)
-  const outdoor = floor.rooms.filter((r) => r.outdoor)
-  const rooms = [...indoor, ...outdoor]
+  const rooms = [...layout.rooms.filter((r) => !r.outdoor), ...layout.rooms.filter((r) => r.outdoor)].map(placed)
   const kinds = new Map<string, RoomKind>()
   const parents = new Map<string, string>()
   for (const r of layout.rooms) { kinds.set(r.id, r.kind); if (r.parent) parents.set(r.id, r.parent) }
-  for (const r of outdoor) kinds.set(r.id, r.id.startsWith('balcony') ? 'balcony' : r.id === 'courtyard' ? 'courtyard' : r.id === 'parking' ? 'parking' : 'verandah')
   const kindOf = (id: string) => kinds.get(id) ?? ''
   const parentOf = (id: string) => parents.get(id)
-  const spineId = spineOf(layout.rooms)
+  const spineId = spineOf(layout.rooms.filter((r) => !r.outdoor))
   const prefix = floor.prefix ?? (floor.level === 0 ? 'GF' : `F${floor.level}`)
   const lines = (plan.structure?.axes ?? []).map((a) => ({ orient: a.orient, fixed: a.at, lo: -Infinity, hi: Infinity }))
   const columns = floor.columns ?? []
@@ -250,8 +244,13 @@ function rebuildFloor(plan: Design, floor: FloorPlan, layout: FloorLayout, lower
     const g = stairGeometry(normalizeBrief(model))
     stairOut = stairRun(stairRoom.rect, floor.stair.startSide ?? 'S', g.perFlight, GOING)
   }
+  // balconies hang from the plate below: their support zones follow where the person put them
+  const hung = rooms.filter((r) => r.outdoor && r.id.startsWith('balcony') && !(lower?.footprint ?? []).some((q) => r.rect.x >= q.x - 1 && r.rect.y >= q.y - 1 && r.rect.x + r.rect.w <= q.x + q.w + 1 && r.rect.y + r.rect.h <= q.y + q.h + 1)).map((r) => r.rect)
+  const supportZones = floor.supportZones ? [...floor.supportZones.filter((z) => z.support === 'columns'), ...supportZonesFor([], prefix, hung)] : floor.supportZones
+  const court = rooms.find((r) => r.id === 'courtyard' && r.outdoor)
   return {
     ...floor,
+    supportZones, courtyard: floor.courtyard ? (court?.rect ?? null) : floor.courtyard,
     rooms, walls, openings, shafts, stair: stairOut,
     reachable: reach.length === 0 && lonely.length === 0,
     unreachableRooms: [...new Set([...reach, ...lonely.filter((id) => !rooms.find((r) => r.id === id)?.outdoor)])],
@@ -267,7 +266,7 @@ function patchProgramme(model: CanonicalModel, layout: LayoutDoc): CanonicalMode
     const doc = layout.floors.find((l) => l.level === f.level)
     if (!doc) return f
     const indoorIds = new Set(model.floors.flatMap((x) => x.spaces).filter((s) => !s.outdoor).map((s) => s.id))
-    const kept = f.spaces.filter((s) => s.outdoor || !indoorIds.has(s.id))
+    const kept = f.spaces.filter((s) => !s.outdoor && !indoorIds.has(s.id))
     const mine: SpaceReq[] = []
     for (const r of doc.rooms) {
       if (r.type === 'vacant' || r.type === 'open') continue
@@ -275,7 +274,7 @@ function patchProgramme(model: CanonicalModel, layout: LayoutDoc): CanonicalMode
       mine.push(have
         ? { ...have, name: r.name }
         : { id: r.id, name: r.name, zone: r.zone, target: r.constraints.targetSqm, min: r.constraints.minSqm, max: r.constraints.maxSqm,
-          wantsWindow: r.constraints.windows === 'required', wet: r.constraints.plumbing, outdoor: false })
+          wantsWindow: !r.outdoor && r.constraints.windows === 'required', wet: r.constraints.plumbing, outdoor: !!r.outdoor })
     }
     return { ...f, spaces: [...mine, ...kept] }
   })
@@ -298,7 +297,7 @@ export function applyLayout(plan: Design, layout: LayoutDoc): Design {
   }
   const doors = floors.reduce((n, f) => n + f.openings.filter((o) => o.kind === 'door' || o.kind === 'entry').length, 0)
   const windows = floors.reduce((n, f) => n + f.openings.filter((o) => o.kind === 'window').length, 0)
-  const site = placeSiteFeatures(model, floors[0])
+  const site = placeSiteFeatures(model, floors[0], layout.features ?? {})
   // the emergency exit is placed on the plan as built; rebuild it for the new ground floor
   const ground = { ...floors[0], openings: floors[0].openings.filter((o) => !o.emergencyExit) }
   const all = [ground, ...floors.slice(1)]

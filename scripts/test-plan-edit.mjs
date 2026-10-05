@@ -47,7 +47,7 @@ test('every room becomes an editable object and the layout rebuilds the same val
     const layout = extractLayout(p)
     for (const f of layout.floors) for (const r of f.rooms) {
       assert.ok(r.constraints.minSqm >= 0 && r.constraints.minWidthMm >= 0, `${r.id} has constraints`)
-      assert.ok(['bedroom', 'living', 'kitchen', 'washroom', 'puja', 'dining', 'study', 'store', 'fixed'].includes(r.type), `${r.id} type ${r.type}`)
+      assert.ok(['bedroom', 'living', 'kitchen', 'washroom', 'puja', 'dining', 'study', 'store', 'fixed', 'parking', 'verandah', 'balcony', 'courtyard'].includes(r.type), `${r.id} type ${r.type}`)
     }
     const again = applyLayout(p, layout)
     assert.deepEqual(errors(again), [])
@@ -401,4 +401,60 @@ test('rooms on different floors swap floors and the plan stays valid', () => {
   assert.equal(O.swapAcrossFloors(layout, p, 1, 'bed1', 0, 'dining').ok, false, 'bed1 has an attached bath')
   const locked = O.toggleLock(layout, 1, 'study1').layout
   assert.equal(O.swapAcrossFloors(locked, p, 1, 'study1', 0, 'dining').ok, false)
+})
+
+test('parking, verandah and the open-air spaces are editable, and the driveway follows them', () => {
+  const p = plan(), layout = extractLayout(p)
+  const parking = room(layout, 0, 'parking')
+  assert.ok(parking && parking.outdoor, 'parking is a layout room')
+  // resize the parking bay: it must stay clear of the house and inside the setbacks
+  const bigger = O.resizeRoom(layout, p, 0, 'parking', { ...parking.rect, w: parking.rect.w - 600 })
+  assert.ok(bigger.ok, bigger.reason)
+  const c = O.commit(p, bigger.layout, layout, bigger.affected)
+  assert.ok(c.ok, c.reason)
+  const drive = c.design.siteFeatures.find((f) => f.kind === 'driveway')
+  assert.equal(drive.rect.w, parking.rect.w - 600, 'the driveway follows the parking bay')
+  // onto the house is refused with the reason
+  const house = room(layout, 0, 'living').rect
+  const onto = O.moveRoom(layout, p, 0, 'parking', { x: house.x, y: house.y })
+  assert.equal(onto.ok, false)
+  assert.match(onto.reason, /overlap|leave/)
+  // swap with the verandah, and an open-air space cannot swap with a room
+  assert.ok(O.swapRooms(layout, p, 0, 'parking', 'verandah').ok)
+  assert.equal(O.swapRooms(layout, p, 0, 'parking', 'living').ok, false)
+  // delete and add again
+  const gone = O.deleteRoom(layout, p, 0, 'parking')
+  assert.ok(gone.ok && O.commit(p, gone.layout, layout).ok)
+  const back = O.addRoom(gone.layout, p, 0, 'parking')
+  assert.ok(back.ok, back.reason)
+  assert.ok(O.commit(p, back.layout, gone.layout).ok)
+  // a hand-placed driveway stays put and can be handed back to the automatic layout
+  const d0 = drive.rect
+  const hand = O.setFeature(layout, p, 'driveway', { ...d0, w: d0.w + 600 })
+  const ch = O.commit(p, hand.layout, layout)
+  assert.ok(!ch.ok || ch.design.siteFeatures.find((f) => f.kind === 'driveway').rect.w === d0.w + 600)
+  assert.ok(O.resetFeature(hand.layout, 'driveway').ok)
+  assert.equal(O.resetFeature(layout, 'driveway').ok, false)
+})
+
+test('moving an outer wall moves or pushes the open-air spaces so nothing collides', () => {
+  const p = plan(20, 26, 1, 5), layout = extractLayout(p)
+  const limits = O.outlineLimits(layout, p)
+  let moved = 0
+  for (const side of ['N', 'S', 'E', 'W']) {
+    for (const delta of [300, -300]) {
+      const res = O.resizeOutline(layout, p, side, delta)
+      if (!res.ok) continue
+      const c = O.commit(p, res.layout, layout, res.affected)
+      if (!c.ok) continue
+      moved++
+      assert.deepEqual(errors(c.design), [])
+      const g = c.design.floors[0]
+      for (const o of g.rooms.filter((r) => r.outdoor)) for (const i of g.rooms.filter((r) => !r.outdoor)) {
+        const w = Math.min(o.rect.x + o.rect.w, i.rect.x + i.rect.w) - Math.max(o.rect.x, i.rect.x), h = Math.min(o.rect.y + o.rect.h, i.rect.y + i.rect.h) - Math.max(o.rect.y, i.rect.y)
+        assert.ok(!(w > 10 && h > 10), `${o.id} does not overlap ${i.id}`)
+      }
+    }
+  }
+  assert.ok(moved >= 1 && limits.N)
 })

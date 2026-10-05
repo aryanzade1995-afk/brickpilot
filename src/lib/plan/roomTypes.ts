@@ -9,10 +9,13 @@ import type { RoomKind } from '../engine/planner/types.ts'
  *  the rules it was edited under.
  * ------------------------------------------------------------------ */
 
-export type RoomType = 'bedroom' | 'living' | 'kitchen' | 'washroom' | 'puja' | 'dining' | 'study' | 'store' | 'open' | 'vacant'
+export type RoomType = 'bedroom' | 'living' | 'kitchen' | 'washroom' | 'puja' | 'dining' | 'study' | 'store' | 'open' | 'vacant' | 'parking' | 'verandah' | 'balcony' | 'courtyard'
 
 /** what a person can add from the toolbar */
 export const ADDABLE_TYPES: RoomType[] = ['bedroom', 'living', 'kitchen', 'washroom', 'puja', 'dining', 'study', 'store']
+/** open-air spaces: they stand on the plot beside the house, not inside the floor plate */
+export const OUTDOOR_TYPES: RoomType[] = ['parking', 'verandah', 'balcony', 'courtyard']
+export const ADDABLE_OUTDOOR: RoomType[] = ['parking', 'verandah']
 
 export type Ventilation = 'window' | 'ventilator' | 'none'
 export type FloorRule = 'any' | 'ground' | 'upper'
@@ -75,6 +78,18 @@ export const TYPE_SPEC: Record<RoomType, TypeSpec> = {
   open: { type: 'open', label: 'Open space', plural: 'Open spaces', kind: 'lounge', zone: 'circulation', idPrefix: 'openArea',
     minSqm: 4, targetSqm: 10, maxSqm: 40, minWidthMm: 1500, ventilation: 'none', doors: 1, windows: 'optional', plumbing: false, floor: 'any', floorHard: false,
     note: 'An open, unwalled-off area: a sit-out, reading nook or extra circulation.' },
+  parking: { type: 'parking', label: 'Covered parking', plural: 'Covered parking', kind: 'parking', zone: 'outdoor', idPrefix: 'parking', singleId: 'parking',
+    minSqm: 0, targetSqm: 26, maxSqm: 80, minWidthMm: 0, ventilation: 'none', doors: 0, windows: 'none', plumbing: false, floor: 'ground', floorHard: false,
+    note: 'A covered bay for cars, open to the driveway.' },
+  verandah: { type: 'verandah', label: 'Verandah', plural: 'Verandahs', kind: 'verandah', zone: 'outdoor', idPrefix: 'verandah', singleId: 'verandah',
+    minSqm: 0, targetSqm: 9, maxSqm: 60, minWidthMm: 0, ventilation: 'none', doors: 0, windows: 'none', plumbing: false, floor: 'ground', floorHard: false,
+    note: 'A covered sit-out at the entrance.' },
+  balcony: { type: 'balcony', label: 'Balcony', plural: 'Balconies', kind: 'balcony', zone: 'outdoor', idPrefix: 'balcony',
+    minSqm: 0, targetSqm: 6, maxSqm: 30, minWidthMm: 0, ventilation: 'none', doors: 1, windows: 'none', plumbing: false, floor: 'upper', floorHard: false,
+    note: 'An open balcony reached from a room on its floor.' },
+  courtyard: { type: 'courtyard', label: 'Courtyard', plural: 'Courtyards', kind: 'courtyard', zone: 'outdoor', idPrefix: 'courtyard', singleId: 'courtyard',
+    minSqm: 0, targetSqm: 12, maxSqm: 60, minWidthMm: 0, ventilation: 'none', doors: 1, windows: 'none', plumbing: false, floor: 'ground', floorHard: false,
+    note: 'An open court inside the house.' },
   vacant: { type: 'vacant', label: 'Vacant', plural: 'Vacant spaces', kind: 'lounge', zone: 'circulation', idPrefix: 'vacant',
     minSqm: 0, targetSqm: 0, maxSqm: 999, minWidthMm: 0, ventilation: 'none', doors: 1, windows: 'optional', plumbing: false, floor: 'any', floorHard: false,
     note: 'Space with no use yet. It stays enclosed and can be filled later.' },
@@ -89,6 +104,10 @@ export const constraintsOf = (type: RoomType): RoomConstraints => {
 /** the editor type of a planner room, from its kind (a utility becomes a store) */
 export function typeOfKind(kind: RoomKind, id: string): RoomType | 'fixed' {
   switch (kind) {
+    case 'parking': return 'parking'
+    case 'verandah': return 'verandah'
+    case 'balcony': return 'balcony'
+    case 'courtyard': return 'courtyard'
     case 'bed': return 'bedroom'
     case 'living': case 'livingDining': case 'lounge': return id.startsWith('openArea') ? 'open' : id.startsWith('vacant') ? 'vacant' : 'living'
     case 'dining': return 'dining'

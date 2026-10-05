@@ -6,7 +6,7 @@ import { DRAWING_PRESETS } from '@/lib/draw/layers.ts'
 import { rectBottom, rectRight, type Rect } from '@/lib/geometry.ts'
 import { boxNow, extractLayout, type LayoutRoom, type Outline } from '@/lib/plan/layout.ts'
 import * as Ops from '@/lib/plan/ops.ts'
-import { ADDABLE_TYPES, TYPE_SPEC, type RoomType } from '@/lib/plan/roomTypes.ts'
+import { ADDABLE_OUTDOOR, ADDABLE_TYPES, TYPE_SPEC, type RoomType } from '@/lib/plan/roomTypes.ts'
 import { m, snapMm, sqm } from '@/lib/plan/rects.ts'
 import { useStudio } from '@/state/studio.ts'
 import { usePlanEdit } from '@/state/planEdit.ts'
@@ -46,6 +46,8 @@ export function PlanEditor({ design }: { design: Design }) {
   const [pad, setPad] = useState<'move' | 'resize' | null>(null)
   const [step, setStep] = useState(300)
   const [wallStep, setWallStep] = useState(600)
+  // a site feature (driveway, yard, pool, sit-out) picked on the plan
+  const [feat, setFeat] = useState<string | null>(null)
   const [drag, setDrag] = useState<Drag | null>(null)
   const svgRef = useRef<SVGSVGElement>(null)
 
@@ -78,6 +80,7 @@ export function PlanEditor({ design }: { design: Design }) {
 
   const down = (e: React.PointerEvent, r: LayoutRoom) => {
     e.stopPropagation()
+    setFeat(null)
     if (swapFrom && !(swapFrom.level === floor.level && swapFrom.id === r.id)) {
       const from = swapFrom
       act.run((l, p) => Ops.swapAcrossFloors(l, p, from.level, from.id, floor.level, r.id))
@@ -154,7 +157,7 @@ export function PlanEditor({ design }: { design: Design }) {
               layers={{ ...DRAWING_PRESETS.Presentation, safety: false, dimensions: false }} />
           </div>
           <svg ref={svgRef} viewBox={`${-PAD.l} ${-PAD.t} ${W} ${H}`} className="absolute inset-0 h-full w-full touch-none select-none"
-            onPointerMove={move} onPointerUp={up} onPointerCancel={up} onPointerDown={() => { setSelected(null); setSwapFrom(null) }}>
+            onPointerMove={move} onPointerUp={up} onPointerCancel={up} onPointerDown={() => { setSelected(null); setSwapFrom(null); setFeat(null) }}>
             <defs>
               <pattern id="vacantHatch" width="500" height="500" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
                 <rect width="500" height="500" fill="rgba(217,119,6,0.07)" />
@@ -180,6 +183,11 @@ export function PlanEditor({ design }: { design: Design }) {
                 </g>
               )
             })}
+            {floor.level === 0 && (design.siteFeatures ?? []).filter((f) => Ops.EDITABLE_FEATURES.includes(f.kind) && !f.roomId).map((f) => (
+              <rect key={f.id} x={f.rect.x} y={f.rect.y} width={f.rect.w} height={f.rect.h} data-feature={f.kind}
+                fill={feat === f.kind ? 'rgba(46,125,50,0.16)' : 'transparent'} stroke={feat === f.kind ? '#2E7D32' : 'rgba(46,125,50,0.45)'} strokeWidth={feat === f.kind ? 80 : 40} strokeDasharray="220 160"
+                className="cursor-pointer" onPointerDown={(e) => { e.stopPropagation(); setSelected(null); setFeat(f.kind) }} />
+            ))}
             {room && canEdit(room) && !drag && (['N', 'S', 'E', 'W'] as Side[]).map((side) => {
               const r = room.rect
               const cx0 = side === 'N' || side === 'S' ? r.x + r.w / 2 : side === 'W' ? r.x : rectRight(r)
@@ -233,7 +241,7 @@ export function PlanEditor({ design }: { design: Design }) {
                 <p className="mt-0.5 font-mono text-[0.7rem] text-ink-dim">{m(room.rect.w)} × {m(room.rect.h)} m · {sqm(room.rect)} m²{room.locked ? ' · locked' : ''}</p>
                 {fixedReason(room) && <p className="mt-1 text-xs text-ink-faint">{fixedReason(room)}</p>}
               </div>
-              {room.type !== 'fixed' && !Ops.isVacant(room) && (
+              {room.type !== 'fixed' && !room.outdoor && !Ops.isVacant(room) && (
                 <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 border-y border-line py-2 text-xs" aria-label="Room constraints">
                   <dt className="text-ink-faint">Recommended</dt><dd>at least {room.constraints.minSqm} m² · {m(room.constraints.minWidthMm)} m wide (advice)</dd>
                   <dt className="text-ink-faint">Ventilation</dt><dd>{room.constraints.ventilation === 'none' ? 'not required' : room.constraints.ventilation === 'ventilator' ? 'ventilator on an outside wall' : 'window on an outside wall'}</dd>
@@ -251,7 +259,7 @@ export function PlanEditor({ design }: { design: Design }) {
                   <button className={cx(btn, 'col-span-2')} onClick={() => act.run((l) => Ops.toggleLock(l, floor.level, room.id))}>
                     {room.locked ? <><LockOpen size={12} /> Unlock</> : <><Lock size={12} /> Lock in place</>}
                   </button>
-                  {!room.fixed && !room.locked && others.length > 0 && (
+                  {!room.fixed && !room.outdoor && !room.locked && others.length > 0 && (
                     <label className="col-span-2 text-xs text-ink-dim">Move to floor
                       <select aria-label="Move to floor" className="mt-1 w-full border border-line-strong bg-bg-inset px-2 py-2 text-ink" value=""
                         onChange={(e) => { const to = Number(e.target.value); if (!Number.isNaN(to) && act.run((l, p) => Ops.moveToFloor(l, p, floor.level, room.id, to))) setLevel(to) }}>
@@ -294,6 +302,34 @@ export function PlanEditor({ design }: { design: Design }) {
           )}
         </section>
 
+        {feat && (() => {
+          const f = (design.siteFeatures ?? []).find((x) => x.kind === feat && !x.roomId)
+          if (!f) return null
+          const name = feat === 'utilityYard' ? 'Utility yard' : feat === 'sitOut' ? 'Sit-out' : feat[0].toUpperCase() + feat.slice(1)
+          const set = (r: Rect) => act.run((l, p) => Ops.setFeature(l, p, feat as never, r))
+          const hand = !!layout.features?.[feat as never]
+          return (
+            <section aria-label="Site feature" className="border border-line p-3">
+              <h3 className="label mb-1">Site · {name}</h3>
+              <p className="font-mono text-[0.75rem] text-ink-dim">{m(f.rect.w)} × {m(f.rect.h)} m · {sqm(f.rect)} m²{hand ? ' · placed by you' : ' · automatic'}</p>
+              <p className="mt-1 text-xs text-ink-faint">It follows the house until you change it. The plan is checked so it never overlaps a room.</p>
+              <div className="mx-auto mt-2 grid w-32 grid-cols-3 gap-1" aria-label="Move site feature">
+                <span /><button className={btn} aria-label="Feature up" onClick={() => set({ ...f.rect, y: f.rect.y - step })}>↑</button><span />
+                <button className={btn} aria-label="Feature left" onClick={() => set({ ...f.rect, x: f.rect.x - step })}>←</button><span />
+                <button className={btn} aria-label="Feature right" onClick={() => set({ ...f.rect, x: f.rect.x + step })}>→</button>
+                <span /><button className={btn} aria-label="Feature down" onClick={() => set({ ...f.rect, y: f.rect.y + step })}>↓</button><span />
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-1.5">
+                <button className={btn} aria-label="Feature wider" onClick={() => set({ ...f.rect, w: f.rect.w + step })}>Wider +</button>
+                <button className={btn} aria-label="Feature narrower" onClick={() => set({ ...f.rect, w: f.rect.w - step })}>Narrower −</button>
+                <button className={btn} aria-label="Feature longer" onClick={() => set({ ...f.rect, h: f.rect.h + step })}>Longer +</button>
+                <button className={btn} aria-label="Feature shorter" onClick={() => set({ ...f.rect, h: f.rect.h - step })}>Shorter −</button>
+              </div>
+              {hand && <button className={cx(btn, 'mt-2 w-full')} onClick={() => act.run((l) => Ops.resetFeature(l, feat as never))}>Back to automatic</button>}
+            </section>
+          )
+        })()}
+
         {/* ------------------------------- villa outer walls ------------------------------ */}
         <section aria-label="Villa size">
           <h3 className="label mb-2">Villa size</h3>
@@ -322,9 +358,9 @@ export function PlanEditor({ design }: { design: Design }) {
         <section aria-label="Add a room">
           <h3 className="label mb-2">Add a room</h3>
           <div className="grid grid-cols-2 gap-2">
-            {ADDABLE_TYPES.map((t) => <button key={t} className={btn} onClick={() => act.run((l, p) => Ops.addRoom(l, p, floor.level, t))} title={TYPE_SPEC[t].note}><Plus size={11} /> {TYPE_SPEC[t].label}</button>)}
+            {[...ADDABLE_TYPES, ...(floor.level === 0 ? ADDABLE_OUTDOOR : [])].map((t) => <button key={t} className={btn} onClick={() => act.run((l, p) => Ops.addRoom(l, p, floor.level, t))} title={TYPE_SPEC[t].note}><Plus size={11} /> {TYPE_SPEC[t].label}</button>)}
           </div>
-          <p className="mt-2 text-xs text-ink-faint">A new room goes into vacant space on this floor. Delete or shrink a room to make some.</p>
+          <p className="mt-2 text-xs text-ink-faint">A new room goes into vacant space on this floor. Parking and verandah go on the plot beside the house.</p>
         </section>
 
         {/* -------------------------------- vacant space ------------------------------- */}

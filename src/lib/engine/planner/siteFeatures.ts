@@ -33,7 +33,7 @@ export function freeSiteRects(plot: Rect, occupied: Rect[]): Rect[] {
   return free
 }
 
-export function placeSiteFeatures(model: CanonicalModel, ground: FloorPlan): { features: SiteFeature[]; notes: string[] } {
+export function placeSiteFeatures(model: CanonicalModel, ground: FloorPlan, fixed: Partial<Record<SiteFeature['kind'], Rect>> = {}): { features: SiteFeature[]; notes: string[] } {
   const plot = { x: 0, y: 0, w: model.plot.width, h: model.plot.depth }
   const taken = ground.rooms.filter(r => r.id !== 'courtyard').map(r => r.rect)
   const features: SiteFeature[] = [], notes: string[] = []
@@ -42,6 +42,9 @@ export function placeSiteFeatures(model: CanonicalModel, ground: FloorPlan): { f
   }
   const available = () => freeSiteRects(plot, taken).sort((a, b) => b.w * b.h - a.w * a.h)
   const allocate = (kind: SiteFeature['kind'], w: number, h: number, near?: Rect) => {
+    // a feature the person has placed stays where they put it, unless that spot is now taken
+    const own = fixed[kind]
+    if (own && !taken.some(r => overlapsSite(r, own))) { add(kind, own); taken.push(own); return own }
     const candidates = available().filter(r => r.w >= w && r.h >= h)
       .sort((a, b) => near ? Math.hypot(a.x - near.x, a.y - near.y) - Math.hypot(b.x - near.x, b.y - near.y) : b.y + b.h - a.y - a.h)
     const at = (kind === 'parking' ? candidates.find(r => r.h >= h + SITE_LIMITS.pathWidthMm) : undefined) ?? candidates[0]
@@ -55,7 +58,7 @@ export function placeSiteFeatures(model: CanonicalModel, ground: FloorPlan): { f
   const parking = parkingRoom?.rect ?? allocate('parking', 3000, 5000)
   if (!parking) notes.push('A 3 × 5 m parking bay cannot fit in the remaining open space. Increase the road-side open margin or request covered parking.')
   if (parking) {
-    const drive = { x: parking.x, y: parking.y + parking.h, w: parking.w, h: plot.h - parking.y - parking.h }
+    const drive = fixed.driveway ?? { x: parking.x, y: parking.y + parking.h, w: parking.w, h: plot.h - parking.y - parking.h }
     if (drive.h > 0 && !taken.some(r => overlapsSite(r, drive))) { add('driveway', drive); taken.push(drive) }
     else if (drive.h > 0) notes.push('Parking needs a clear route from the road; the current open-space choice blocks a straight driveway.')
   }

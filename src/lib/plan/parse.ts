@@ -4,7 +4,7 @@ import { ADDABLE_TYPES, type RoomType } from './roomTypes.ts'
 
 /* A saved layout is read back defensively: anything malformed is dropped, never trusted. */
 
-const TYPES = new Set<string>([...ADDABLE_TYPES, 'open', 'vacant', 'fixed'])
+const TYPES = new Set<string>([...ADDABLE_TYPES, 'open', 'vacant', 'fixed', 'parking', 'verandah', 'balcony', 'courtyard'])
 const num = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v)
 const rect = (v: unknown): v is Rect => !!v && typeof v === 'object' && num((v as Rect).x) && num((v as Rect).y) && num((v as Rect).w) && num((v as Rect).h) && (v as Rect).w > 0 && (v as Rect).h > 0
 
@@ -30,5 +30,7 @@ export function parseLayout(value: unknown): LayoutDoc | null {
   }
   const o = (v as { outline?: Record<string, unknown> }).outline
   const outline = o && ['N', 'S', 'E', 'W'].every((k) => num(o[k])) ? { N: o.N as number, S: o.S as number, E: o.E as number, W: o.W as number } : undefined
-  return { version: 1, signature: v.signature, floors, ...(outline ? { outline } : {}) }
+  const feats = (v as { features?: Record<string, unknown> }).features
+  const features = feats && typeof feats === 'object' ? Object.fromEntries(Object.entries(feats).filter(([, r]) => rect(r))) as LayoutDoc['features'] : undefined
+  return { version: 1, signature: v.signature, floors, ...(outline ? { outline } : {}), ...(features && Object.keys(features).length ? { features } : {}) }
 }
