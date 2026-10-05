@@ -7,7 +7,8 @@ import type { Detections, Pt } from './types.ts'
 export type ImageLike = { data: Uint8ClampedArray | Uint8Array | number[]; width: number; height: number }
 export type RawColumn = { x: number; width: number; y0: number; y1: number; confidence: number }
 export type RawBeam = { x0: number; x1: number; y: number; thickness: number; confidence: number }
-export type RawAnalysis = { columns: RawColumn[]; beams: RawBeam[]; scale: number; width: number; height: number }
+export type RawFooting = { x: number; y: number; w: number; h: number; confidence: number }
+export type RawAnalysis = { columns: RawColumn[]; beams: RawBeam[]; footings?: RawFooting[]; scale: number; width: number; height: number; engine?: 'opencv' | 'basic' }
 
 const MAX_SIDE = 640
 
@@ -129,7 +130,7 @@ export function analyzeImage(img: ImageLike): RawAnalysis {
     const clash = keptBeams.some((k) => Math.abs(k.y - b.y) < Math.max(k.thickness, b.thickness) && Math.min(k.x1, b.x1) - Math.max(k.x0, b.x0) > 0.5 * (b.x1 - b.x0))
     if (!clash) keptBeams.push(b)
   }
-  return { columns: kept.slice(0, 40).sort((a, b) => a.x - b.x), beams: keptBeams.slice(0, 20), scale, width: w, height: h }
+  return { columns: kept.slice(0, 40).sort((a, b) => a.x - b.x), beams: keptBeams.slice(0, 20), scale, width: w, height: h, engine: 'basic' }
 }
 
 /** Turn the raw analysis into editable detections in the original picture pixel coordinates. */
@@ -160,6 +161,8 @@ export function toDetections(raw: RawAnalysis): Detections {
     const inside = atHeight.filter((c) => c.img.x >= b.x0 * s - tol && c.img.x <= b.x1 * s + tol).sort((p, q) => p.img.x - q.img.x)
     for (let k = 0; k < inside.length - 1; k++) link(inside[k], inside[k + 1], b.confidence)
   }
-  return { columns, beams, footings: [], walls: [],
-    seen: { foundation: false, columns: columns.length > 0, beams: beams.length > 0, slab: false, walls: false } }
+  const footings = (raw.footings ?? []).map((f, i) => ({ id: `foot-${i + 1}`, img: { x: Math.round(f.x * s), y: Math.round(f.y * s) } as Pt,
+    confidence: Math.round(f.confidence * 100) / 100, source: 'auto' as const, confirmed: false }))
+  return { columns, beams, footings, walls: [],
+    seen: { foundation: footings.length > 0, columns: columns.length > 0, beams: beams.length > 0, slab: false, walls: false } }
 }

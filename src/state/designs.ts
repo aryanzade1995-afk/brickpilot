@@ -7,6 +7,8 @@ import { supabase } from '@/lib/supabase.ts'
 import { briefSchema, type Brief } from '@/lib/model/brief.ts'
 import { useStudio, parsePinned, serializePinned, type PinnedDir } from '@/state/studio.ts'
 import { useAuth } from '@/state/auth.ts'
+import { parseLayout } from '@/lib/plan/parse.ts'
+import type { LayoutDoc } from '@/lib/plan/layout.ts'
 
 /* ------------------------------------------------------------------ *
  *  Saved designs — one row per project in Supabase `public.designs`,
@@ -20,6 +22,8 @@ export type SavedDesign = {
   brief: Brief
   pinned: PinnedDir | null
   costReplay: CostReplay | null
+  /** the room-by-room edits made to the pinned plan */
+  layout: LayoutDoc | null
   createdAt: string
   updatedAt: string
 }
@@ -34,10 +38,11 @@ export function parseSavedDesignRow(row: {
 }): SavedDesign | null {
   const brief = briefSchema.safeParse(row.brief)
   if (!brief.success) return null
-  let savedCost: unknown
-  if (row.pinned?.startsWith('{')) { try { savedCost = JSON.parse(row.pinned).costReplay } catch { /* Legacy pin. */ } }
+  let savedCost: unknown, savedLayout: unknown
+  if (row.pinned?.startsWith('{')) { try { const j = JSON.parse(row.pinned); savedCost = j.costReplay; savedLayout = j.planLayout } catch { /* Legacy pin. */ } }
   return {
     costReplay: parseCostReplay(savedCost),
+    layout: parseLayout(savedLayout),
     id: row.id,
     name: row.name,
     brief: brief.data,
@@ -90,7 +95,7 @@ export const useDesigns = create<DesignsState>((set, get) => ({
     const user = useAuth.getState().user
     if (!supabase || !user) return { error: 'Sign in to save a design.' }
 
-    const { brief, pinned, result } = useStudio.getState()
+    const { brief, pinned, result, layout } = useStudio.getState()
     const savedSelection = result ? useFinishes.getState().entries[geometryCostKey(result.design)] : undefined
     const replay = result?.report.hardChecksPass ? snapshotCost(result.design, brief, estimateProjectBoq(result.design, brief, savedSelection)) : null
     const { currentId } = get()
@@ -98,7 +103,7 @@ export const useDesigns = create<DesignsState>((set, get) => ({
       user_id: user.id,
       name: (name ?? brief.project.name ?? 'Untitled design').trim() || 'Untitled design',
       brief,
-      pinned: replay ? JSON.stringify({ ...pinned, costReplay: replay }) : serializePinned(pinned),
+      pinned: replay || layout ? JSON.stringify({ ...pinned, ...(replay ? { costReplay: replay } : {}), ...(layout ? { planLayout: layout } : {}) }) : serializePinned(pinned),
     }
 
     const q = currentId
@@ -140,7 +145,7 @@ export const useDesigns = create<DesignsState>((set, get) => ({
     if (!design) return null
     restoreCostReplay(design.costReplay)
     if (design.costReplay) useFinishes.getState().setSelection(design.costReplay.geometryKey, design.costReplay.cost.selection)
-    useStudio.getState().loadSaved(design.brief, design.pinned)
+    useStudio.getState().loadSaved(design.brief, design.pinned, design.layout)
     set({ currentId: id })
     return design
   },

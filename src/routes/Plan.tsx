@@ -5,9 +5,11 @@ import { geometryCostKey } from '@/lib/cost/quantities.ts'
 import { formatINR, formatRange } from '@/lib/format.ts'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { Dices, Download } from 'lucide-react'
+import { Dices, Download, Pencil } from 'lucide-react'
 import { useStudio } from '@/state/studio.ts'
 import { DrawingWorkspace } from '@/components/DrawingWorkspace.tsx'
+import { PlanEditor } from '@/components/PlanEditor.tsx'
+import { isEditable } from '@/lib/plan/ops.ts'
 import { ZONE_LABEL } from '@/lib/model/canonical.ts'
 import { cx } from '@/lib/cx.ts'
 import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
@@ -23,12 +25,17 @@ const SEV_COLOR: Record<Severity, string> = {
 }
 
 export function Plan() {
-  const navigate = useNavigate(), [params] = useSearchParams()
+  const navigate = useNavigate(), [params, setParams] = useSearchParams()
   const [floorIdx, setFloorIdx] = useState(Number(params.get("floor")) || 0)
   const brief = useStudio(s => s.brief)
   const result = useStudio((s) => s.result)
   const run = useStudio((s) => s.run)
   const reroll = useStudio((s) => s.reroll)
+  const layout = useStudio((s) => s.layout)
+  const basePlan = useStudio((s) => s.basePlan)
+  const editable = useMemo(() => (result ? isEditable(basePlan() ?? result.design) : false), [result?.design.id, basePlan]) // eslint-disable-line react-hooks/exhaustive-deps
+  const editing = params.get('edit') === '1' && editable
+  const toggleEdit = () => { const next = new URLSearchParams(params); if (editing) next.delete('edit'); else next.set('edit', '1'); setParams(next, { replace: true }) }
 
   const saved = useFinishes(s => s.entries[result ? geometryCostKey(result.design) : ''])
   const cost = useMemo(() => result?.report.hardChecksPass ? estimateProjectBoq(result.design, brief, saved) : null, [result, brief, saved])
@@ -75,7 +82,18 @@ export function Plan() {
         <Metric k="Coverage" v={`${(design.coverage * 100).toFixed(0)} %`} />
       </div>
 
-      <div className="mt-6"><DrawingWorkspace key={`${params.get("floor")}:${params.get("highlight")}`} design={drawingDesign!} onFloorChange={setFloorIdx} initialFloorLevel={params.has("floor") ? Number(params.get("floor")) : undefined} highlightCategory={params.get("highlight") ?? undefined} onRoomClick={id => navigate(roomLink(id))} /></div>
+      <div className="mt-4 flex flex-wrap items-center gap-3" data-testid="edit-bar">
+        {editable ? (
+          <button type="button" onClick={toggleEdit} aria-pressed={editing}
+            className={cx('flex items-center gap-2 border px-3 py-2 font-mono text-[0.7rem] uppercase tracking-[0.1em]', editing ? 'border-accent text-accent' : 'border-line-strong text-ink-dim hover:border-ink-dim hover:text-ink')}>
+            <Pencil size={12} /> {editing ? 'Done editing' : 'Edit rooms'}
+          </button>
+        ) : (
+          <p className="text-xs text-ink-faint" role="note">Room-by-room editing is available for the standard plan layouts. Wing and courtyard-ring villas are not editable yet.</p>
+        )}
+        {layout && <span className="font-mono text-[0.65rem] uppercase tracking-[0.1em] text-warn">Edited plan · saved with the project</span>}
+      </div>
+      <div className="mt-4">{editing ? <PlanEditor design={drawingDesign!} /> : <DrawingWorkspace key={`${params.get("floor")}:${params.get("highlight")}`} design={drawingDesign!} onFloorChange={setFloorIdx} initialFloorLevel={params.has("floor") ? Number(params.get("floor")) : undefined} highlightCategory={params.get("highlight") ?? undefined} onRoomClick={id => navigate(roomLink(id))} />}</div>
       {cost && <section aria-label="Cost summary" className="mt-6 flex flex-wrap items-center justify-between gap-4 border-y border-line py-5"><div><Link to="/workspace/finishes?tab=estimate" className="text-sm underline">Cost band · {formatRange(cost.total.low, cost.total.high, formatINR)}</Link><p className="mt-2 text-xs text-ink-faint">{cost.label}</p></div><Link to="/workspace/finishes" className="text-sm underline">Finishes & cost →</Link></section>}
       <div className="mt-6 grid gap-6 md:grid-cols-3">
           <Panel title="Study record">

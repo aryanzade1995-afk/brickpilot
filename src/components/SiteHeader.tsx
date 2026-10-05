@@ -10,6 +10,7 @@ const NAV = [
   { label: 'Studio', to: '/workspace' },
   { label: 'Drawing set', to: '/workspace' },
   { label: 'Evidence', to: '/workspace' },
+  { label: 'My designs', to: '/designs' },
   { label: 'How it works', to: '/' },
 ]
 
@@ -42,6 +43,7 @@ function SignInButton({ label }: { label: string }) {
 
 export function SiteHeader({ variant }: { variant: 'marketing' | 'workspace' }) {
   const user = useAuth((s) => s.user)
+  const configured = useAuth((s) => s.configured)
 
   return (
     <header className="relative z-20 border-b border-line">
@@ -95,13 +97,12 @@ export function SiteHeader({ variant }: { variant: 'marketing' | 'workspace' }) 
                 </ButtonLink>
               </>
             )
-          ) : user ? (
-            <>
-              <SaveDesignButton />
-              <AccountMenu />
-            </>
           ) : (
-            <SignInButton label="Sign in to save" />
+            <>
+              <Link to="/designs" className="hidden font-mono text-[0.7rem] font-medium uppercase tracking-[0.14em] text-ink-dim transition-colors hover:text-ink sm:inline">My designs</Link>
+              <SaveDesignButton />
+              {user ? <AccountMenu /> : configured && <SignInButton label="Sign in" />}
+            </>
           )}
         </div>
       </div>

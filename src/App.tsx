@@ -4,6 +4,7 @@ import { SiteHeader } from './components/SiteHeader.tsx'
 import { AuthDialog } from './components/AuthDialog.tsx'
 import { useAuth } from './state/auth.ts'
 import { useDesigns } from './state/designs.ts'
+import { startAutosave } from './state/projects.ts'
 
 export function App() {
   const { pathname } = useLocation()
@@ -18,6 +19,9 @@ export function App() {
   useEffect(() => {
     initAuth()
   }, [initAuth])
+
+  // the open project saves itself after every major change
+  useEffect(() => startAutosave(), [])
 
   // keep the saved-designs list in sync with who's signed in
   useEffect(() => {

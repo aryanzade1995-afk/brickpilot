@@ -1,11 +1,17 @@
 import { create } from 'zustand'
 import { analyzeImage, toDetections } from '@/lib/existing/detect.ts'
+import { analyzePhoto, looksLikeColumn, looksLikeFooting, startSam, type MaskStats, type SamSession } from '@/lib/existing/vision.ts'
 import { sampleSite } from '@/lib/existing/sample.ts'
 import { buildAsBuilt, type AsBuiltResult } from '@/lib/existing/asBuilt.ts'
 import { planAroundStructure, type ExistingPlan } from '@/lib/existing/plan.ts'
 import { defaultAnswers, type Answers, type Calibration, type Detections, type Pt } from '@/lib/existing/types.ts'
 
-export type Tool = 'move' | 'column' | 'beam' | 'footing' | 'remove'
+export type Tool = 'move' | 'column' | 'beam' | 'footing' | 'remove' | 'seg-column' | 'seg-footing'
+export type SamState = { state: 'idle' | 'loading' | 'ready' | 'error'; pct: number; label: string }
+type Pixels = { data: Uint8ClampedArray; width: number; height: number }
+
+/** the model session belongs to one photo; kept outside the store because it is not serialisable */
+let samSession: SamSession | null = null
 export const STEPS = ['Photo', 'Detect and correct', 'Scale and questions', 'As-built map', 'Plan'] as const
 
 const emptyDetections = (): Detections => ({ columns: [], beams: [], footings: [], walls: [],
@@ -16,6 +22,10 @@ type State = {
   tool: Tool
   imageUrl: string | null
   imageSize: { w: number; h: number } | null
+  pixels: Pixels | null
+  engine: 'opencv' | 'basic' | null
+  sam: SamState
+  lastMask: { x: number; y: number }[] | null
   isSample: boolean
   detections: Detections
   calibration: Calibration
@@ -35,6 +45,9 @@ type State = {
   setTool: (t: Tool) => void
   loadFile: (file: File) => Promise<void>
   loadSample: () => void
+  enableSam: () => Promise<void>
+  verifyWithSam: () => Promise<void>
+  segmentClick: (kind: 'column' | 'footing', at: Pt) => Promise<void>
   addColumn: (at: Pt) => void
   addFooting: (at: Pt) => void
   moveColumn: (id: string, at: Pt) => void
@@ -61,7 +74,7 @@ const nextId = (prefix: string, ids: string[]) => {
 }
 
 /** decode a picture to pixels in the browser (capped so detection stays fast) */
-async function pixelsOf(url: string): Promise<{ data: Uint8ClampedArray; width: number; height: number }> {
+async function pixelsOf(url: string): Promise<Pixels> {
   const img = new Image()
   img.src = url
   await img.decode()
@@ -75,7 +88,7 @@ async function pixelsOf(url: string): Promise<{ data: Uint8ClampedArray; width: 
 }
 
 export const useExisting = create<State>((set, get) => ({
-  step: 0, tool: 'move', imageUrl: null, imageSize: null, isSample: false,
+  step: 0, tool: 'move', imageUrl: null, imageSize: null, pixels: null, engine: null, sam: { state: 'idle', pct: 0, label: '' }, lastMask: null, isSample: false,
   detections: emptyDetections(), calibration: { mode: 'none' }, corners: [], answers: defaultAnswers(), align: true,
   beamFrom: null, asBuilt: null, plan: null, seed: 1, busy: null, message: null,
 
@@ -87,10 +100,14 @@ export const useExisting = create<State>((set, get) => ({
     try {
       const url = URL.createObjectURL(file)
       const px = await pixelsOf(url)
-      const detections = toDetections(analyzeImage(px))
-      set({ imageUrl: url, imageSize: { w: px.width, h: px.height }, isSample: false, detections, calibration: { mode: 'none' }, corners: [],
-        asBuilt: null, plan: null, step: 1, busy: null,
-        message: detections.columns.length ? null : 'No columns were found automatically. Add them by clicking on the photo.' })
+      const raw = await analyzePhoto(px)
+      const detections = toDetections(raw)
+      samSession = null
+      set({ imageUrl: url, imageSize: { w: px.width, h: px.height }, pixels: px, engine: raw.engine ?? 'basic', sam: { state: 'idle', pct: 0, label: '' }, lastMask: null,
+        isSample: false, detections, calibration: { mode: 'none' }, corners: [], asBuilt: null, plan: null, step: 1, busy: null,
+        message: detections.columns.length || detections.footings.length
+          ? 'These are suggestions. Check each one, then confirm or fix it. For an exact result, turn on the AI segmentation and click a column or footing.'
+          : 'Nothing was found automatically. Turn on the AI segmentation and click each column, or add them by hand.' })
     } catch {
       set({ busy: null, message: 'That file could not be read as a picture. Try a JPG or PNG.' })
     }
@@ -103,14 +120,93 @@ export const useExisting = create<State>((set, get) => ({
     const ctx = canvas.getContext('2d')!
     ctx.putImageData(new ImageData(new Uint8ClampedArray(s.data as Uint8ClampedArray), s.width, s.height), 0, 0)
     const detections = toDetections(analyzeImage(s))
+    samSession = null
     set({
-      imageUrl: canvas.toDataURL('image/png'), imageSize: { w: s.width, h: s.height }, isSample: true, detections,
+      imageUrl: canvas.toDataURL('image/png'), imageSize: { w: s.width, h: s.height }, pixels: { data: new Uint8ClampedArray(s.data as Uint8ClampedArray), width: s.width, height: s.height }, engine: 'basic',
+      sam: { state: 'idle', pct: 0, label: '' }, lastMask: null, isSample: true, detections,
       // the demo photo shows a 15 m x 7.5 m frame: its four ground corners are known
       calibration: { mode: 'corners', pts: [s.truth.backBase[0], s.truth.backBase[3], s.truth.frontBase[3], s.truth.frontBase[0]], widthMm: s.truth.widthMm, depthMm: s.truth.depthMm },
       corners: [s.truth.backBase[0], s.truth.backBase[3], s.truth.frontBase[3], s.truth.frontBase[0]],
       answers: { ...defaultAnswers(), plotWidthM: 22, plotDepthM: 22, storeysBuilt: 1, storeysWanted: 1, bedroomsWithBath: 1, bedroomsNoBath: 1, sharedBaths: 1 },
       asBuilt: null, plan: null, step: 1, busy: null, message: 'Demo site loaded: a 15 m x 7.5 m frame. The scale is already set from its four corners.',
     })
+  },
+
+  enableSam: async () => {
+    const px = get().pixels
+    if (!px || get().sam.state === 'loading') return
+    set({ sam: { state: 'loading', pct: 0, label: 'Starting the segmentation model' } })
+    try {
+      samSession = await startSam(px, (p) => set({ sam: { state: p.stage === 'ready' ? 'ready' : 'loading', pct: p.pct, label: p.label } }))
+      set({ sam: { state: 'ready', pct: 100, label: 'Ready' }, tool: 'seg-column' })
+    } catch (error) {
+      samSession = null
+      set({ sam: { state: 'error', pct: 0, label: error instanceof Error ? error.message : 'The model could not start' },
+        message: 'The segmentation model could not be loaded (it needs a connection the first time). You can still correct everything by hand.' })
+    }
+  },
+
+  segmentClick: async (kind, at) => {
+    if (!samSession || !get().imageSize) return
+    const { w, h } = get().imageSize!
+    set({ busy: 'Measuring…' })
+    let m: MaskStats | null = null
+    try { m = await samSession.segment(at) } catch { m = null }
+    if (!m) { set({ busy: null, message: 'Nothing could be measured there. Click on the body of the column or footing.' }); return }
+    const ok = kind === 'column' ? looksLikeColumn(m, w, h) : looksLikeFooting(m, w, h)
+    if (!ok) {
+      set({ busy: null, lastMask: m.outline, message: kind === 'column'
+        ? 'That does not look like a column (it should be tall and narrow). Try clicking the middle of the column.'
+        : 'That does not look like a footing. Click on the middle of the pad.' })
+      return
+    }
+    const mask = m
+    set((s) => {
+      const confidence = Math.round(Math.min(0.97, 0.8 + 0.17 * mask.iou) * 100) / 100
+      if (kind === 'column') {
+        const id = nextId('col', s.detections.columns.map((c) => c.id))
+        return { busy: null, lastMask: mask.outline, asBuilt: null, plan: null, message: null, detections: { ...s.detections,
+          columns: [...s.detections.columns, { id, img: mask.base, top: mask.top, widthPx: Math.round(mask.widthPx), confidence, source: 'user' as const, confirmed: true }],
+          seen: { ...s.detections.seen, columns: true } } }
+      }
+      const id = nextId('foot', s.detections.footings.map((c) => c.id))
+      return { busy: null, lastMask: mask.outline, asBuilt: null, plan: null, message: null, detections: { ...s.detections,
+        footings: [...s.detections.footings, { id, img: { x: Math.round((mask.bbox.x0 + mask.bbox.x1) / 2), y: Math.round((mask.bbox.y0 + mask.bbox.y1) / 2) }, confidence, source: 'user' as const, confirmed: true }],
+        seen: { ...s.detections.seen, foundation: true } } }
+    })
+  },
+
+  verifyWithSam: async () => {
+    const st = get()
+    if (!samSession || !st.imageSize) return
+    const { w, h } = st.imageSize
+    set({ busy: 'Checking every suggestion against the model…' })
+    let kept = 0, dropped = 0
+    const columns: Detections['columns'] = []
+    for (const c of st.detections.columns) {
+      if (c.source === 'user' || c.confirmed) { columns.push(c); continue }
+      const mid = { x: c.img.x, y: Math.round(c.top ? (c.top.y + c.img.y) / 2 : c.img.y - 30) }
+      let m: MaskStats | null = null
+      try { m = await samSession.segment(mid) } catch { m = null }
+      if (m && looksLikeColumn(m, w, h) && Math.abs(m.base.x - c.img.x) <= Math.max(25, m.widthPx * 1.5)) {
+        kept++
+        columns.push({ ...c, img: m.base, top: m.top, widthPx: Math.round(m.widthPx), confidence: Math.round(Math.min(0.95, 0.7 + 0.25 * m.iou) * 100) / 100 })
+      } else dropped++
+    }
+    const footings: Detections['footings'] = []
+    for (const f of st.detections.footings) {
+      if (f.source === 'user' || f.confirmed) { footings.push(f); continue }
+      let m: MaskStats | null = null
+      try { m = await samSession.segment(f.img) } catch { m = null }
+      if (m && looksLikeFooting(m, w, h)) {
+        kept++
+        footings.push({ ...f, img: { x: Math.round((m.bbox.x0 + m.bbox.x1) / 2), y: Math.round((m.bbox.y0 + m.bbox.y1) / 2) }, confidence: Math.round(Math.min(0.9, 0.65 + 0.25 * m.iou) * 100) / 100 })
+      } else dropped++
+    }
+    const ids = new Set(columns.map((c) => c.id))
+    set((s) => ({ busy: null, asBuilt: null, plan: null,
+      detections: { ...s.detections, columns, footings, beams: s.detections.beams.filter((b) => ids.has(b.a) && ids.has(b.b)) },
+      message: `The model confirmed ${kept} suggestion${kept === 1 ? '' : 's'} and dropped ${dropped} that did not look like a column or footing. Click anything it missed.` }))
   },
 
   addColumn: (at) => set((s) => {
@@ -173,6 +269,6 @@ export const useExisting = create<State>((set, get) => ({
     set({ plan, seed: use })
     return plan
   },
-  reset: () => set({ step: 0, tool: 'move', imageUrl: null, imageSize: null, isSample: false, detections: emptyDetections(), calibration: { mode: 'none' }, corners: [],
-    answers: defaultAnswers(), beamFrom: null, asBuilt: null, plan: null, seed: 1, busy: null, message: null }),
+  reset: () => { samSession = null; set({ step: 0, tool: 'move', imageUrl: null, imageSize: null, pixels: null, engine: null, sam: { state: 'idle', pct: 0, label: '' }, lastMask: null, isSample: false, detections: emptyDetections(), calibration: { mode: 'none' }, corners: [],
+    answers: defaultAnswers(), beamFrom: null, asBuilt: null, plan: null, seed: 1, busy: null, message: null }) },
 }))
