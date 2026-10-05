@@ -1,12 +1,12 @@
 import { useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { AlertTriangle, ArrowRight, Check, ImagePlus, Lock, MousePointer2, Plus, Sparkles, Trash2, Waypoints, Square } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Check, ImagePlus, Lock, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/Button.tsx'
 import { PhotoEditor } from '@/components/existing/PhotoEditor.tsx'
 import { PlanLegend, PlanView } from '@/components/existing/PlanView.tsx'
-import { useExisting, type Tool } from '@/state/existing.ts'
+import { useExisting } from '@/state/existing.ts'
 import { useStudio } from '@/state/studio.ts'
-import { CONFIDENCE_FLOOR, type RoadSide } from '@/lib/existing/types.ts'
+import { type RoadSide } from '@/lib/existing/types.ts'
 import { buildMapping } from '@/lib/existing/calibrate.ts'
 import { compile } from '@/lib/model/canonical.ts'
 import { briefFromAnswers } from '@/lib/existing/plan.ts'
@@ -120,111 +120,30 @@ function PhotoStep() {
   )
 }
 
-/* ---------------------------------- step 2: detect ---------------------------------- */
-const TOOLS: { id: Tool; label: string; icon: typeof Plus; hint: string }[] = [
-  { id: 'move', label: 'Move', icon: MousePointer2, hint: 'Drag a marker onto the exact column base.' },
-  { id: 'column', label: 'Add column', icon: Plus, hint: 'Click where a column meets the ground.' },
-  { id: 'beam', label: 'Add beam', icon: Waypoints, hint: 'Click two columns to join them with a beam.' },
-  { id: 'footing', label: 'Add footing', icon: Square, hint: 'Click a foundation pad that has no column yet.' },
-  { id: 'remove', label: 'Remove', icon: Trash2, hint: 'Click a marker or beam to delete it.' },
-]
-const AI_TOOLS: { id: Tool; label: string; hint: string }[] = [
-  { id: 'seg-column', label: 'AI: click a column', hint: 'Click the body of a column. The model outlines it and measures where it meets the ground.' },
-  { id: 'seg-footing', label: 'AI: click a footing', hint: 'Click the middle of a foundation pad. The model outlines it and places the footing.' },
-]
-
-function DetectStep() {
+/** Shown when the photo is not read with confidence: the person describes the structure; nothing is guessed. */
+function ManualForm() {
   const s = useExisting()
-  const { detections: d } = s
-  const low = [...d.columns, ...d.beams, ...d.footings].filter((x) => !x.confirmed && x.confidence < CONFIDENCE_FLOOR)
-  const tool = [...TOOLS, ...AI_TOOLS].find((t) => t.id === s.tool)!
-  const anchors = d.columns.length + d.footings.length
+  const { spec: sp, answers: a } = s
+  const cols = sp.along * sp.across
+  const beams = (sp.beamsAlong ? sp.across * (sp.along - 1) : 0) + (sp.beamsAcross ? sp.along * (sp.across - 1) : 0)
+  const lengthM = (sp.along - 1) * sp.gapAlongM, widthM = (sp.across - 1) * sp.gapAcrossM
   return (
-    <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
-      <div>
-        <PhotoEditor imageUrl={s.imageUrl!} size={s.imageSize!} detections={d} mode="edit" tool={s.tool} beamFrom={s.beamFrom} corners={[]} calibration={s.calibration}
-          highlight={low.map((x) => x.id)} onAddColumn={s.addColumn} onAddFooting={s.addFooting} onMove={s.moveColumn} onRemove={s.removeElement}
-          onPickBeam={s.pickForBeam} onAddCorner={() => {}} onMoveCorner={() => {}} onSegment={s.segmentClick} mask={s.lastMask} />
-        <p className="mt-2 text-xs text-ink-dim">{tool.hint}{s.tool === 'beam' && s.beamFrom ? ' Now click the second column.' : ''}</p>
-        {s.message && <p role="status" className="mt-2 text-sm text-ink-dim">{s.message}</p>}
+    <div className="border border-line p-4" aria-label="Describe the structure">
+      <p className="label">Describe what is built</p>
+      <p className="mt-1 text-xs text-ink-dim">A regular grid of columns: how many in each direction and the gap between them. We build the plan from exactly this.</p>
+      <div className="mt-3 grid grid-cols-2 gap-3">
+        <Field label="Columns along the length"><input className={input} type="number" min={2} max={12} value={sp.along} onChange={(e) => s.setSpec({ along: Math.round(num(e.target.value, sp.along)) })} /></Field>
+        <Field label="Columns across the width"><input className={input} type="number" min={2} max={12} value={sp.across} onChange={(e) => s.setSpec({ across: Math.round(num(e.target.value, sp.across)) })} /></Field>
+        <Field label="Gap along the length (m)" hint="Centre to centre"><input className={input} type="number" min={1.5} step={0.1} value={sp.gapAlongM} onChange={(e) => s.setSpec({ gapAlongM: num(e.target.value, sp.gapAlongM) })} /></Field>
+        <Field label="Gap across the width (m)" hint="Centre to centre"><input className={input} type="number" min={1.5} step={0.1} value={sp.gapAcrossM} onChange={(e) => s.setSpec({ gapAcrossM: num(e.target.value, sp.gapAcrossM) })} /></Field>
+        <Field label="Column size (mm)" hint="Square side"><input className={input} type="number" min={150} step={5} value={a.columnSizeMm} onChange={(e) => s.setAnswer('columnSizeMm', num(e.target.value, a.columnSizeMm))} /></Field>
+        <Field label="Beam width (mm)"><input className={input} type="number" min={150} step={5} value={a.beamWidthMm} onChange={(e) => s.setAnswer('beamWidthMm', num(e.target.value, a.beamWidthMm))} /></Field>
       </div>
-      <div className="space-y-4">
-        <div className="flex flex-wrap gap-1.5">
-          {TOOLS.map((t) => (
-            <button key={t.id} type="button" onClick={() => s.setTool(t.id)} aria-pressed={s.tool === t.id}
-              className={cx('flex items-center gap-1.5 border px-3 py-2 font-mono text-[0.68rem] uppercase tracking-[0.08em]', s.tool === t.id ? 'border-accent bg-accent/5 text-accent' : 'border-line text-ink-dim hover:text-ink')}>
-              <t.icon size={13} /> {t.label}
-            </button>
-          ))}
-        </div>
-        <div className="border border-line p-4" aria-label="AI segmentation">
-          <p className="label">Measure with AI</p>
-          <p className="mt-1 text-xs text-ink-dim">Suggestions come from {s.engine === 'opencv' ? 'OpenCV line and shape analysis' : 'a basic edge scan'}, which is only a starting point on real photos. A small segmentation model, run in your browser, can measure any column or footing you click.</p>
-          {s.sam.state === 'ready' ? (
-            <div className="mt-3 space-y-2">
-              <div className="flex flex-wrap gap-1.5">
-                {AI_TOOLS.map((t) => (
-                  <button key={t.id} type="button" onClick={() => s.setTool(t.id)} aria-pressed={s.tool === t.id}
-                    className={cx('border px-3 py-2 font-mono text-[0.68rem] uppercase tracking-[0.08em]', s.tool === t.id ? 'border-accent bg-accent/5 text-accent' : 'border-line text-ink-dim hover:text-ink')}>{t.label}</button>
-                ))}
-              </div>
-              <Button variant="ghost" size="sm" onClick={s.verifyWithSam} disabled={!!s.busy || !(d.columns.length + d.footings.length)}>Check every suggestion with the model</Button>
-            </div>
-          ) : (
-            <div className="mt-3">
-              <Button variant="ghost" size="sm" onClick={s.enableSam} disabled={s.sam.state === 'loading'}>{s.sam.state === 'loading' ? 'Starting…' : s.sam.state === 'error' ? 'Try again' : 'Turn on AI measuring (about 40 MB, once)'}</Button>
-              {s.sam.state === 'loading' && (
-                <div className="mt-2" role="progressbar" aria-valuenow={s.sam.pct} aria-valuemin={0} aria-valuemax={100}>
-                  <div className="h-1.5 w-full bg-line"><div className="h-full bg-accent transition-all" style={{ width: `${s.sam.pct}%` }} /></div>
-                  <p className="mt-1 text-xs text-ink-faint">{s.sam.label}</p>
-                </div>
-              )}
-              {s.sam.state === 'error' && <p className="mt-2 text-xs text-bad">{s.sam.label}</p>}
-            </div>
-          )}
-          {s.busy && <p className="mt-2 text-xs text-ink-faint">{s.busy}</p>}
-        </div>
-        <div className="grid grid-cols-3 gap-px border border-line bg-line text-center">
-          {[['Columns', d.columns.length], ['Beams', d.beams.length], ['Footings', d.footings.length]].map(([l, n]) => (
-            <div key={l as string} className="bg-bg px-3 py-3"><div className="font-display text-2xl">{n}</div><div className="label">{l}</div></div>
-          ))}
-        </div>
-        <div className="border border-line p-4">
-          <p className="label">Seen on site</p>
-          <div className="mt-2 grid grid-cols-2 gap-1.5 text-sm">
-            {(['foundation', 'columns', 'beams', 'slab', 'walls'] as const).map((k) => (
-              <label key={k} className="flex items-center gap-2 capitalize">
-                <input type="checkbox" className="accent-accent" checked={d.seen[k]} onChange={(e) => s.setSeen(k, e.target.checked)} /> {k}
-              </label>
-            ))}
-          </div>
-          <p className="mt-2 text-[0.72rem] text-ink-faint">Foundation only? Mark each footing and the columns will be proposed on them.</p>
-        </div>
-        {low.length > 0 ? (
-          <div className="border-l-2 border-warn bg-warn/5 p-4">
-            <p className="flex items-center gap-2 text-sm font-medium text-warn"><AlertTriangle size={14} /> {low.length} low-confidence detection{low.length > 1 ? 's' : ''} need your confirmation</p>
-            <p className="mt-1 text-xs text-ink-dim">Check the dashed red markers on the photo, then confirm or delete each one.</p>
-            <ul className="mt-2 space-y-1.5">
-              {low.map((x) => (
-                <li key={x.id} className="flex items-center justify-between gap-2 text-sm">
-                  <span>{x.id} · {Math.round(x.confidence * 100)}%</span>
-                  <span className="flex gap-1.5">
-                    <button type="button" onClick={() => s.confirm(x.id)} className="border border-line-strong px-2 py-1 font-mono text-[0.62rem] uppercase hover:border-accent">Confirm</button>
-                    <button type="button" onClick={() => s.removeElement(x.id)} className="border border-line px-2 py-1 font-mono text-[0.62rem] uppercase text-ink-dim hover:text-bad">Delete</button>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : anchors > 0 && (
-          <p className="flex items-center gap-2 text-sm text-ok"><Check size={14} /> Every detection is confirmed.</p>
-        )}
-        <div className="flex flex-wrap items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={s.confirmAll} disabled={!anchors}>Confirm all</Button>
-          <Button onClick={() => s.setStep(2)} disabled={anchors < 2 || low.length > 0}>Continue <ArrowRight size={13} /></Button>
-        </div>
-        {anchors < 2 && <p className="text-xs text-ink-faint">Mark at least two columns or footings to continue.</p>}
+      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm">
+        <label className="flex items-center gap-2"><input type="checkbox" className="accent-accent" checked={sp.beamsAlong} onChange={(e) => s.setSpec({ beamsAlong: e.target.checked })} /> Beams along the length</label>
+        <label className="flex items-center gap-2"><input type="checkbox" className="accent-accent" checked={sp.beamsAcross} onChange={(e) => s.setSpec({ beamsAcross: e.target.checked })} /> Beams across the width</label>
       </div>
+      <p className="mt-3 text-sm text-ink-dim" role="status">{cols} columns, {beams} beams, {lengthM.toFixed(1)} × {widthM.toFixed(1)} m.</p>
     </div>
   )
 }
@@ -256,18 +175,25 @@ function MeasureStep() {
   return (
     <div className="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
       <div>
-        <PhotoEditor imageUrl={s.imageUrl!} size={s.imageSize!} detections={d} mode="edit" tool="move" beamFrom={null} corners={[]} calibration={cal}
-          onAddColumn={() => {}} onAddFooting={() => {}} onMove={s.moveColumn} onRemove={() => {}} onPickBeam={() => {}} onAddCorner={() => {}} onMoveCorner={() => {}} />
+        <PhotoEditor imageUrl={s.imageUrl!} size={s.imageSize!} detections={s.needsInput ? { ...d, columns: [], beams: [], footings: [] } : d} mode="edit" tool="move" beamFrom={null} corners={[]} calibration={cal} readOnly
+          onAddColumn={() => {}} onAddFooting={() => {}} onMove={() => {}} onRemove={() => {}} onPickBeam={() => {}} onAddCorner={() => {}} onMoveCorner={() => {}} />
         {corners.length === 4 && (
           <p className="mt-2 text-xs text-ink-faint">Measure between the numbered corners of the structure: 1 back-left, 2 back-right, 3 front-right.</p>
         )}
+        {s.needsInput ? (
+          <p className="mt-3 border-l-2 border-warn bg-warn/5 p-3 text-sm text-warn" role="status">
+            The photo could not be read with enough confidence{s.confidence !== null ? ` (${Math.round(s.confidence * 100)}%)` : ''}, so nothing was guessed. Describe the structure on the right instead: how many columns, the gaps between them, and the beams.
+          </p>
+        ) : (
         <p className="mt-3 flex flex-wrap items-center gap-x-3 text-sm text-ink-dim" role="status">
           <span className="flex items-center gap-1.5 text-ok"><Check size={14} /> Found {d.columns.length} column{d.columns.length === 1 ? '' : 's'}, {d.beams.length} beam{d.beams.length === 1 ? '' : 's'}{d.footings.length ? `, ${d.footings.length} footing${d.footings.length === 1 ? '' : 's'}` : ''} automatically.</span>
-          <button type="button" className="underline" onClick={() => s.setStep(1)}>Review or fix what was found</button>
+          <button type="button" className="underline" onClick={() => s.describeMyself(true)}>Not right? Describe the structure myself</button>
         </p>
-        {single && <p className="mt-2 border-l-2 border-warn bg-warn/5 p-3 text-sm text-warn">Only one line of columns is visible, so the other side cannot be measured from this photo. A photo taken from a corner or from above shows both sides.</p>}
+        )}
+        {single && !s.needsInput && <p className="mt-2 border-l-2 border-warn bg-warn/5 p-3 text-sm text-warn">Only one line of columns is visible, so the other side cannot be measured from this photo. A photo taken from a corner or from above shows both sides.</p>}
       </div>
       <div className="space-y-5">
+        {s.needsInput ? <ManualForm /> : <>
         <div className="border border-line p-4">
           <p className="label">Measure the built structure</p>
           <p className="mt-1 text-xs text-ink-dim">{single ? 'Distance between the first and last column.' : 'Real distances between the corner columns of what is already built.'}</p>
@@ -283,6 +209,7 @@ function MeasureStep() {
           </div>
           {!ready && <p className="mt-2 text-xs text-ink-faint">{mapping.note}</p>}
         </div>
+        </>}
 
         <div className="border border-line p-4">
           <p className="label">Your plot</p>
@@ -326,8 +253,17 @@ function MeasureStep() {
           )}
         </div>
         {error && <p role="alert" className="border-l-2 border-bad bg-bad/5 p-3 text-sm text-bad">{error}</p>}
-        <Button disabled={!ready} onClick={build}>Build my plan <ArrowRight size={13} /></Button>
-        {!ready && <p className="text-xs text-ink-faint">Enter the measurements above to continue.</p>}
+        {s.needsInput ? (
+          <>
+            <Button onClick={() => { setError(null); const e = s.buildFromSpec(); if (e) setError(e) }}>Build my plan <ArrowRight size={13} /></Button>
+            {s.confidence !== null && s.confidence >= 0.2 && <button type="button" className="block text-xs underline" onClick={() => s.describeMyself(false)}>Use what was found in the photo instead</button>}
+          </>
+        ) : (
+          <>
+            <Button disabled={!ready} onClick={build}>Build my plan <ArrowRight size={13} /></Button>
+            {!ready && <p className="text-xs text-ink-faint">Enter the measurements above to continue.</p>}
+          </>
+        )}
       </div>
     </div>
   )
@@ -475,7 +411,6 @@ export function ExistingMode() {
       <div className="mt-5"><Stepper /></div>
       <div className="mt-7" aria-busy={!!busy}>
         {step === 0 && <PhotoStep />}
-        {step === 1 && <DetectStep />}
         {step === 2 && <MeasureStep />}
         {step === 3 && <MapStep />}
         {step === 4 && <PlanStep />}

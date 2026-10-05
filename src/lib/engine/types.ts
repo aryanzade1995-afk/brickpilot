@@ -102,6 +102,8 @@ export type Design = {
   planFamily?: import('./planner/types.ts').PlateFamily
   planRecipe?: {family: import('./planner/types.ts').PlateFamily;seed:number;version:'resplan-ridge-retrieval-v1'}
   structuralSizing?: import('./structuralSizing.ts').StructuralSizing
+  /** the rooms were arranged by the person (not generated): room-size guidance is advice, not a limit */
+  userEdited?: boolean
   planSeed?: number
   /** Existing Structure Mode: what is already built and where it stands on the plot (the structure was only translated) */
   existingStructure?: { structure: import('./planner/types.ts').ExistingStructure; dx: number; dy: number }

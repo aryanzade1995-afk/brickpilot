@@ -13,6 +13,11 @@ type Pixels = { data: Uint8ClampedArray; width: number; height: number }
 
 /** the model session belongs to one photo; kept outside the store because it is not serialisable */
 let samSession: SamSession | null = null
+/** What the person types when the photo cannot be read with confidence: a regular grid of columns, its gaps and its beams. */
+export type ManualSpec = { along: number; across: number; gapAlongM: number; gapAcrossM: number; beamsAlong: boolean; beamsAcross: boolean }
+export const defaultSpec = (): ManualSpec => ({ along: 4, across: 3, gapAlongM: 5, gapAcrossM: 4, beamsAlong: true, beamsAcross: true })
+/** below this the photo is not trusted and the person is asked for the structure's parameters */
+export const TRUST_FLOOR = 0.6
 export const STEPS = ['Photo', 'Detect and correct', 'Scale and questions', 'As-built map', 'Plan'] as const
 
 const emptyDetections = (): Detections => ({ columns: [], beams: [], footings: [], walls: [],
@@ -28,6 +33,11 @@ type State = {
   sam: SamState
   /** the automatic analysis that runs when a photo is chosen */
   auto: { pct: number; label: string } | null
+  /** how far the photo analysis can be trusted, 0 to 1 (null before an analysis) */
+  confidence: number | null
+  /** true when the person must describe the structure themselves: the photo was not read with confidence */
+  needsInput: boolean
+  spec: ManualSpec
   lastMask: { x: number; y: number }[] | null
   isSample: boolean
   detections: Detections
@@ -50,6 +60,10 @@ type State = {
   loadSample: () => void
   enableSam: () => Promise<void>
   autoAnalyze: () => Promise<void>
+  setSpec: (patch: Partial<ManualSpec>) => void
+  describeMyself: (on: boolean) => void
+  /** build the as-built map from the typed-in grid and plan around it */
+  buildFromSpec: () => string | null
   verifyWithSam: () => Promise<void>
   segmentClick: (kind: 'column' | 'footing', at: Pt) => Promise<void>
   addColumn: (at: Pt) => void
@@ -92,7 +106,7 @@ async function pixelsOf(url: string): Promise<Pixels> {
 }
 
 export const useExisting = create<State>((set, get) => ({
-  step: 0, tool: 'move', imageUrl: null, imageSize: null, pixels: null, engine: null, sam: { state: 'idle', pct: 0, label: '' }, auto: null, lastMask: null, isSample: false,
+  step: 0, tool: 'move', imageUrl: null, imageSize: null, pixels: null, engine: null, sam: { state: 'idle', pct: 0, label: '' }, auto: null, confidence: null, needsInput: false, spec: defaultSpec(), lastMask: null, isSample: false,
   detections: emptyDetections(), calibration: { mode: 'none' }, corners: [], answers: defaultAnswers(), align: true,
   beamFrom: null, asBuilt: null, plan: null, seed: 1, busy: null, message: null,
 
@@ -119,7 +133,7 @@ export const useExisting = create<State>((set, get) => ({
     const st = get()
     if (!st.pixels || !st.imageSize) return
     const { w, h } = st.imageSize
-    const fallback = (message: string) => set({ busy: null, auto: null, step: 1, message })
+    const fallback = (message: string) => set({ busy: null, auto: null, step: 2, confidence: 0.2, needsInput: true, message })
     set({ busy: 'Starting the AI model…', auto: { pct: 0, label: 'Starting the AI model (the first time it downloads about 40 MB)' } })
     try {
       await get().enableSam()
@@ -146,7 +160,10 @@ export const useExisting = create<State>((set, get) => ({
       const calibration: Calibration = corners
         ? { mode: 'corners', pts: corners, widthMm: 0, depthMm: 0 }
         : { mode: 'scale', a: columns[0]?.id ?? '', b: columns[columns.length - 1]?.id ?? '', distanceMm: 0 }
-      set({ busy: null, auto: null, step: 2, corners: corners ?? [], calibration, asBuilt: null, plan: null, lastMask: null, tool: 'move',
+      // trust: enough columns, both sides of the structure visible, and the model sure of each one
+      const mean = columns.length ? columns.reduce((a, c) => a + c.confidence, 0) / columns.length : 0.5
+      const confidence = Math.round(mean * Math.min(1, (columns.length + footings.length) / 6) * (corners ? 1 : 0.5) * 100) / 100
+      set({ busy: null, auto: null, step: 2, confidence, needsInput: confidence < TRUST_FLOOR, corners: corners ?? [], calibration, asBuilt: null, plan: null, lastMask: null, tool: 'move',
         detections: { columns, beams, footings, walls: old.walls, seen: { ...old.seen, columns: columns.length > 0, foundation: footings.length > 0 || old.seen.foundation } },
         message: null })
     } catch (error) {
@@ -170,7 +187,7 @@ export const useExisting = create<State>((set, get) => ({
       calibration: { mode: 'corners', pts: [s.truth.backBase[0], s.truth.backBase[3], s.truth.frontBase[3], s.truth.frontBase[0]], widthMm: s.truth.widthMm, depthMm: s.truth.depthMm },
       corners: [s.truth.backBase[0], s.truth.backBase[3], s.truth.frontBase[3], s.truth.frontBase[0]],
       answers: { ...defaultAnswers(), plotWidthM: 22, plotDepthM: 22, storeysBuilt: 1, storeysWanted: 1, bedroomsWithBath: 1, bedroomsNoBath: 1, sharedBaths: 1 },
-      asBuilt: null, plan: null, step: 2, busy: null, auto: null, message: 'Demo site loaded: a 15 m x 7.5 m frame. The scale is already set from its four corners.',
+      asBuilt: null, plan: null, step: 2, busy: null, auto: null, confidence: 0.95, needsInput: false, message: 'Demo site loaded: a 15 m x 7.5 m frame. The scale is already set from its four corners.',
     })
   },
 
@@ -296,6 +313,36 @@ export const useExisting = create<State>((set, get) => ({
   setAlign: (align) => set({ align, asBuilt: null, plan: null }),
   setSeen: (key, v) => set((s) => ({ detections: { ...s.detections, seen: { ...s.detections.seen, [key]: v } } })),
 
+  setSpec: (patch) => set((st) => ({ spec: { ...st.spec, ...patch }, asBuilt: null, plan: null })),
+  describeMyself: (on) => set({ needsInput: on, asBuilt: null, plan: null, message: null }),
+
+  buildFromSpec: () => {
+    const { spec: sp, answers } = get()
+    if (sp.along < 2 || sp.across < 2) return 'A structure needs at least 2 columns along each side to be planned around.'
+    if (sp.gapAlongM < 1.5 || sp.gapAcrossM < 1.5) return 'The gap between columns must be at least 1.5 m.'
+    const gx = Math.round(sp.gapAlongM * 1000), gy = Math.round(sp.gapAcrossM * 1000)
+    const cols: Detections['columns'] = []
+    for (let j = 0; j < sp.across; j++) for (let i = 0; i < sp.along; i++) {
+      const at = { x: i * gx, y: j * gy }
+      cols.push({ id: `col-${cols.length + 1}`, img: at, widthPx: answers.columnSizeMm, confidence: 1, source: 'user', confirmed: true })
+    }
+    const beams: Detections['beams'] = []
+    const at = (i: number, j: number) => cols[j * sp.along + i].id
+    {
+      if (sp.beamsAlong) for (let j = 0; j < sp.across; j++) for (let i = 0; i < sp.along - 1; i++) beams.push({ id: `beam-${beams.length + 1}`, a: at(i, j), b: at(i + 1, j), confidence: 1, source: 'user', confirmed: true })
+      if (sp.beamsAcross) for (let i = 0; i < sp.along; i++) for (let j = 0; j < sp.across - 1; j++) beams.push({ id: `beam-${beams.length + 1}`, a: at(i, j), b: at(i, j + 1), confidence: 1, source: 'user', confirmed: true })
+    }
+    // the typed grid is already in millimetres, so one pixel is one millimetre
+    const calibration: Calibration = { mode: 'scale', a: cols[0].id, b: cols[1].id, distanceMm: gx }
+    set({ detections: { columns: cols, beams, footings: [], walls: [], seen: { foundation: false, columns: true, beams: beams.length > 0, slab: false, walls: false } },
+      calibration, corners: [], asBuilt: null, plan: null, lastMask: null })
+    const built = get().buildMap()
+    if (!built.ok) return built.error
+    get().generate(1)
+    set({ step: 4 })
+    return null
+  },
+
   buildMap: () => {
     const s = get()
     const asBuilt = buildAsBuilt(s.detections, s.calibration, s.answers, { align: s.align })
@@ -311,6 +358,6 @@ export const useExisting = create<State>((set, get) => ({
     set({ plan, seed: use })
     return plan
   },
-  reset: () => { samSession = null; set({ auto: null, step: 0, tool: 'move', imageUrl: null, imageSize: null, pixels: null, engine: null, sam: { state: 'idle', pct: 0, label: '' }, lastMask: null, isSample: false, detections: emptyDetections(), calibration: { mode: 'none' }, corners: [],
+  reset: () => { samSession = null; set({ auto: null, confidence: null, needsInput: false, spec: defaultSpec(), step: 0, tool: 'move', imageUrl: null, imageSize: null, pixels: null, engine: null, sam: { state: 'idle', pct: 0, label: '' }, lastMask: null, isSample: false, detections: emptyDetections(), calibration: { mode: 'none' }, corners: [],
     answers: defaultAnswers(), beamFrom: null, asBuilt: null, plan: null, seed: 1, busy: null, message: null }) },
 }))

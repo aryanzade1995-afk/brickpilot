@@ -25,6 +25,8 @@ type Props = {
   onSegment?: (kind: 'column' | 'footing', p: Pt) => void
   /** the outline of the last measured object */
   mask?: Pt[] | null
+  /** only show the detections: nothing can be moved, added or removed */
+  readOnly?: boolean
 }
 
 const tone = (conf: number, confirmed: boolean) =>
@@ -43,7 +45,7 @@ export function PhotoEditor(p: Props) {
   const byId = new Map(p.detections.columns.map((c) => [c.id, c]))
 
   const background = (e: React.PointerEvent) => {
-    if (drag) return
+    if (drag || p.readOnly) return
     const at = toImage(e)
     if (p.mode === 'calibrate') { p.onAddCorner(at); return }
     if (p.tool === 'column') p.onAddColumn(at)
@@ -59,7 +61,7 @@ export function PhotoEditor(p: Props) {
   }
   const grab = (e: React.PointerEvent, id: string) => {
     e.stopPropagation()
-    if (p.mode === 'calibrate') return
+    if (p.mode === 'calibrate' || p.readOnly) return
     if (p.tool === 'remove') { p.onRemove(id); return }
     if (p.tool === 'beam') { p.onPickBeam(id); return }
     if (p.tool === 'move') { (e.target as Element).setPointerCapture(e.pointerId); setDrag({ kind: 'el', id }) }
@@ -70,7 +72,7 @@ export function PhotoEditor(p: Props) {
     <div className="relative select-none overflow-hidden border border-line-strong bg-bg-inset">
       <img src={p.imageUrl} alt="Site photo" className="block h-auto w-full" draggable={false} />
       <svg ref={svg} viewBox={`0 0 ${p.size.w} ${p.size.h}`} className="absolute inset-0 h-full w-full touch-none"
-        style={{ cursor: p.mode === 'calibrate' ? (p.corners.length < 4 ? 'crosshair' : 'default') : p.tool === 'column' || p.tool === 'footing' || p.tool === 'seg-column' || p.tool === 'seg-footing' ? 'crosshair' : p.tool === 'remove' ? 'not-allowed' : 'default' }}
+        style={{ cursor: p.readOnly ? 'default' : p.mode === 'calibrate' ? (p.corners.length < 4 ? 'crosshair' : 'default') : p.tool === 'column' || p.tool === 'footing' || p.tool === 'seg-column' || p.tool === 'seg-footing' ? 'crosshair' : p.tool === 'remove' ? 'not-allowed' : 'default' }}
         onPointerDown={background} onPointerMove={move} onPointerUp={() => setDrag(null)} onPointerLeave={() => setDrag(null)}>
         {p.mask && p.mask.length > 2 && <polygon points={p.mask.map((q) => `${q.x},${q.y}`).join(' ')} fill="rgba(29,78,137,0.28)" stroke="#1D4E89" strokeWidth={Math.max(2, p.size.w / 400)} pointerEvents="none" />}
         {/* beams */}

@@ -28,5 +28,7 @@ export function parseLayout(value: unknown): LayoutDoc | null {
     if (rooms.some((r) => r === null)) return null
     floors.push({ level: (f as { level: number }).level, rooms: rooms as LayoutRoom[] })
   }
-  return { version: 1, signature: v.signature, floors }
+  const o = (v as { outline?: Record<string, unknown> }).outline
+  const outline = o && ['N', 'S', 'E', 'W'].every((k) => num(o[k])) ? { N: o.N as number, S: o.S as number, E: o.E as number, W: o.W as number } : undefined
+  return { version: 1, signature: v.signature, floors, ...(outline ? { outline } : {}) }
 }

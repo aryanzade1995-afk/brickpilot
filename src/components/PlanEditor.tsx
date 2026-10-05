@@ -4,7 +4,7 @@ import type { Design } from '@/lib/engine/types.ts'
 import { FloorDrawing } from '@/lib/draw/FloorDrawing.tsx'
 import { DRAWING_PRESETS } from '@/lib/draw/layers.ts'
 import { rectBottom, rectRight, type Rect } from '@/lib/geometry.ts'
-import { extractLayout, type LayoutRoom } from '@/lib/plan/layout.ts'
+import { boxNow, extractLayout, type LayoutRoom, type Outline } from '@/lib/plan/layout.ts'
 import * as Ops from '@/lib/plan/ops.ts'
 import { ADDABLE_TYPES, TYPE_SPEC, type RoomType } from '@/lib/plan/roomTypes.ts'
 import { m, snapMm, sqm } from '@/lib/plan/rects.ts'
@@ -17,7 +17,7 @@ import { cx } from '@/lib/cx.ts'
 
 const PAD = { l: 3400, r: 1800, t: 1800, b: 3400 }
 type Side = 'N' | 'S' | 'E' | 'W'
-type Drag = { kind: 'move'; id: string; from: { x: number; y: number }; rect: Rect } | { kind: 'resize'; id: string; side: Side; from: { x: number; y: number }; rect: Rect }
+type Drag = { kind: 'move'; id: string; from: { x: number; y: number }; rect: Rect } | { kind: 'resize'; id: string; side: Side; from: { x: number; y: number }; rect: Rect } | { kind: 'outline'; side: Side; from: { x: number; y: number }; rect: Rect }
 
 function sideRect(r: Rect, side: Side, dx: number, dy: number): Rect {
   const next = { ...r }
@@ -39,12 +39,19 @@ export function PlanEditor({ design }: { design: Design }) {
   const layout = useMemo(() => layoutNow ?? extractLayout(basePlan() ?? design), [layoutNow, basePlan, design])
   const [level, setLevel] = useState(design.floors[0].level)
   const [selected, setSelected] = useState<string | null>(null)
-  const [swapping, setSwapping] = useState(false)
+  // the room waiting to be swapped, which may be on another floor: pick it, switch floor, pick the other
+  const [swapFrom, setSwapFrom] = useState<{ level: number; id: string; name: string } | null>(null)
+  const swapping = !!swapFrom
+  const setSwapping = (on: boolean | ((v: boolean) => boolean)) => { const want = typeof on === 'function' ? on(!!swapFrom) : on; setSwapFrom(want && room ? { level: floor.level, id: room.id, name: room.name } : null) }
   const [pad, setPad] = useState<'move' | 'resize' | null>(null)
   const [step, setStep] = useState(300)
+  const [wallStep, setWallStep] = useState(600)
   const [drag, setDrag] = useState<Drag | null>(null)
   const svgRef = useRef<SVGSVGElement>(null)
 
+  const base = useMemo(() => basePlan() ?? design, [basePlan, design])
+  const box = boxNow(base, layout.outline)
+  const limits = useMemo(() => Ops.outlineLimits(layout, base), [layout, base])
   const floor = design.floors.find((f) => f.level === level) ?? design.floors[0]
   const rooms = Ops.floorOf(layout, floor.level)?.rooms ?? []
   const room = rooms.find((r) => r.id === selected) ?? null
@@ -66,14 +73,15 @@ export function PlanEditor({ design }: { design: Design }) {
     return { x: p.x, y: p.y }
   }
 
-  const fixedReason = (r: LayoutRoom) => (r.fixed ? 'Hall, stair and lift stay where they are.' : r.locked ? 'Locked.' : '')
-  const canEdit = (r: LayoutRoom | null) => !!r && !r.fixed && !r.locked && !Ops.isVacant(r)
+  const fixedReason = (r: LayoutRoom) => (r.locked ? 'Locked.' : r.fixed ? 'The hall, stair and lift can be changed too. The plan is checked after every change, and a change that breaks access or the stair is refused.' : '')
+  const canEdit = (r: LayoutRoom | null) => !!r && !r.locked && !Ops.isVacant(r)
 
   const down = (e: React.PointerEvent, r: LayoutRoom) => {
     e.stopPropagation()
-    if (swapping && room && r.id !== room.id) {
-      act.run((l, p) => Ops.swapRooms(l, p, floor.level, room.id, r.id))
-      setSwapping(false)
+    if (swapFrom && !(swapFrom.level === floor.level && swapFrom.id === r.id)) {
+      const from = swapFrom
+      act.run((l, p) => Ops.swapAcrossFloors(l, p, from.level, from.id, floor.level, r.id))
+      setSwapFrom(null)
       return
     }
     setSelected(r.id)
@@ -86,6 +94,11 @@ export function PlanEditor({ design }: { design: Design }) {
     ;svgRef.current?.setPointerCapture?.(e.pointerId)
     setDrag({ kind: 'resize', id: r.id, side, from: toPlan(e), rect: r.rect })
   }
+  const downOutline = (e: React.PointerEvent, side: Side) => {
+    e.stopPropagation()
+    svgRef.current?.setPointerCapture?.(e.pointerId)
+    setDrag({ kind: 'outline', side, from: toPlan(e), rect: box })
+  }
   const [ghost, setGhost] = useState<Rect | null>(null)
   const move = (e: React.PointerEvent) => {
     if (!drag) return
@@ -97,7 +110,10 @@ export function PlanEditor({ design }: { design: Design }) {
     setDrag(null); setGhost(null)
     if (!d || !g || (g.x === d.rect.x && g.y === d.rect.y && g.w === d.rect.w && g.h === d.rect.h)) return
     if (d.kind === 'move') act.run((l, p) => Ops.moveRoom(l, p, floor.level, d.id, { x: g.x, y: g.y }))
-    else act.run((l, p) => Ops.resizeRoom(l, p, floor.level, d.id, g))
+    else if (d.kind === 'outline') {
+      const delta = d.side === 'E' ? g.w - d.rect.w : d.side === 'S' ? g.h - d.rect.h : d.side === 'W' ? d.rect.x - g.x : d.rect.y - g.y
+      act.run((l, p) => Ops.resizeOutline(l, p, d.side, delta))
+    } else act.run((l, p) => Ops.resizeRoom(l, p, floor.level, d.id, g))
   }
 
   const nudge = (dx: number, dy: number) => { if (room && canEdit(room)) act.run((l, p) => Ops.moveRoom(l, p, floor.level, room.id, { x: room.rect.x + dx, y: room.rect.y + dy })) }
@@ -108,7 +124,7 @@ export function PlanEditor({ design }: { design: Design }) {
     else if (e.key === 'ArrowUp') { e.preventDefault(); nudge(0, -step) }
     else if (e.key === 'ArrowDown') { e.preventDefault(); nudge(0, step) }
     else if (e.key === 'Delete' || e.key === 'Backspace') { if (room && canEdit(room)) { e.preventDefault(); act.run((l, p) => Ops.deleteRoom(l, p, floor.level, room.id)) } }
-    else if (e.key === 'Escape') { setSelected(null); setSwapping(false) }
+    else if (e.key === 'Escape') { setSelected(null); setSwapFrom(null) }
     else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); act.undo() }
   }
 
@@ -120,7 +136,7 @@ export function PlanEditor({ design }: { design: Design }) {
       <div className="min-w-0">
         <div role="tablist" aria-label="Floors" className="mb-3 flex flex-wrap items-center gap-1">
           {design.floors.map((f) => (
-            <button key={f.level} role="tab" aria-selected={f.level === floor.level} onClick={() => { setLevel(f.level); setSelected(null); setSwapping(false) }}
+            <button key={f.level} role="tab" aria-selected={f.level === floor.level} onClick={() => { setLevel(f.level); setSelected(null) }}
               className={cx('border border-line-strong px-2 py-2 text-xs text-ink-dim hover:text-ink', f.level === floor.level && 'border-ink text-ink')}>
               {f.level === 0 ? 'Ground' : `Floor ${f.level}`}
               {Ops.vacantRooms(layout, f.level).some((v) => !v.accepted) && <span className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-warn align-middle" title="Has vacant space" />}
@@ -138,7 +154,7 @@ export function PlanEditor({ design }: { design: Design }) {
               layers={{ ...DRAWING_PRESETS.Presentation, safety: false, dimensions: false }} />
           </div>
           <svg ref={svgRef} viewBox={`${-PAD.l} ${-PAD.t} ${W} ${H}`} className="absolute inset-0 h-full w-full touch-none select-none"
-            onPointerMove={move} onPointerUp={up} onPointerCancel={up} onPointerDown={() => { setSelected(null); setSwapping(false) }}>
+            onPointerMove={move} onPointerUp={up} onPointerCancel={up} onPointerDown={() => { setSelected(null); setSwapFrom(null) }}>
             <defs>
               <pattern id="vacantHatch" width="500" height="500" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
                 <rect width="500" height="500" fill="rgba(217,119,6,0.07)" />
@@ -150,7 +166,7 @@ export function PlanEditor({ design }: { design: Design }) {
               return (
                 <g key={r.id}>
                   <rect x={r.rect.x} y={r.rect.y} width={r.rect.w} height={r.rect.h}
-                    fill={vac ? 'url(#vacantHatch)' : isSel ? 'rgba(29,78,137,0.14)' : swapping && room && r.id !== room.id && !r.fixed && !r.locked ? 'rgba(29,78,137,0.07)' : 'transparent'}
+                    fill={vac ? 'url(#vacantHatch)' : isSel ? 'rgba(29,78,137,0.14)' : swapFrom && !(swapFrom.level === floor.level && swapFrom.id === r.id) && !r.locked ? 'rgba(29,78,137,0.12)' : 'transparent'}
                     stroke={isSel ? '#1D4E89' : vac ? '#D97706' : r.locked ? '#B45309' : 'transparent'} strokeWidth={isSel ? 90 : 50} strokeDasharray={vac || r.locked ? '180 120' : undefined}
                     className={cx(editable ? 'cursor-move' : 'cursor-pointer', 'hover:fill-[rgba(29,78,137,0.08)]')}
                     role="button" tabIndex={-1} aria-label={`${r.name}, ${sqm(r.rect)} square metres${r.locked ? ', locked' : ''}`}
@@ -171,6 +187,14 @@ export function PlanEditor({ design }: { design: Design }) {
               return <rect key={side} x={cx0 - hs / 2} y={cy0 - hs / 2} width={hs} height={hs} fill="#fff" stroke="#1D4E89" strokeWidth="45"
                 className={side === 'N' || side === 'S' ? 'cursor-ns-resize' : 'cursor-ew-resize'} data-handle={side} onPointerDown={(e) => downHandle(e, room, side)} />
             })}
+            <rect x={box.x} y={box.y} width={box.w} height={box.h} fill="none" stroke="#C2410C" strokeWidth="60" strokeDasharray="300 200" pointerEvents="none" />
+            {!drag && (['N', 'S', 'E', 'W'] as Side[]).map((side) => {
+              const cx0 = side === 'N' || side === 'S' ? box.x + box.w / 2 : side === 'W' ? box.x : box.x + box.w
+              const cy0 = side === 'W' || side === 'E' ? box.y + box.h / 2 : side === 'N' ? box.y : box.y + box.h
+              const horizontal = side === 'N' || side === 'S'
+              return <rect key={`o${side}`} x={cx0 - (horizontal ? hs * 1.6 : hs / 2)} y={cy0 - (horizontal ? hs / 2 : hs * 1.6)} width={horizontal ? hs * 3.2 : hs} height={horizontal ? hs : hs * 3.2} rx={hs / 4}
+                fill="#C2410C" stroke="#fff" strokeWidth="35" className={horizontal ? 'cursor-ns-resize' : 'cursor-ew-resize'} data-outline={side} onPointerDown={(e) => downOutline(e, side)}><title>Drag to resize the whole villa</title></rect>
+            })}
             {ghost && <rect x={ghost.x} y={ghost.y} width={ghost.w} height={ghost.h} fill="rgba(29,78,137,0.12)" stroke="#1D4E89" strokeWidth="70" strokeDasharray="200 140" pointerEvents="none" />}
           </svg>
         </div>
@@ -185,6 +209,12 @@ export function PlanEditor({ design }: { design: Design }) {
             <span><span className="text-ink">Replan nearby automatically.</span> When an edit frees space, only the rooms beside it are adjusted. Everything else stays as it is.</span>
           </label>
         </div>
+
+        {swapFrom && (
+          <p role="status" className="border border-accent/50 bg-accent/5 px-3 py-2 text-xs text-accent">
+            Swapping <b>{swapFrom.name}</b>. Click the room to swap it with, on this floor or any other floor. <button type="button" className="underline" onClick={() => setSwapFrom(null)}>Cancel</button>
+          </p>
+        )}
 
         {feedback && (
           <div role="status" className={cx('border px-3 py-2 text-xs', feedback.kind === 'error' ? 'border-bad/50 text-bad' : 'border-ok/50 text-ink-dim')}>
@@ -205,14 +235,14 @@ export function PlanEditor({ design }: { design: Design }) {
               </div>
               {room.type !== 'fixed' && !Ops.isVacant(room) && (
                 <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 border-y border-line py-2 text-xs" aria-label="Room constraints">
-                  <dt className="text-ink-faint">Minimum</dt><dd>{room.constraints.minSqm} m² · {m(room.constraints.minWidthMm)} m wide</dd>
+                  <dt className="text-ink-faint">Recommended</dt><dd>at least {room.constraints.minSqm} m² · {m(room.constraints.minWidthMm)} m wide (advice)</dd>
                   <dt className="text-ink-faint">Ventilation</dt><dd>{room.constraints.ventilation === 'none' ? 'not required' : room.constraints.ventilation === 'ventilator' ? 'ventilator on an outside wall' : 'window on an outside wall'}</dd>
                   <dt className="text-ink-faint">Door / windows</dt><dd>{room.constraints.doors} door · windows {room.constraints.windows}</dd>
                   <dt className="text-ink-faint">Plumbing</dt><dd>{room.constraints.plumbing ? 'needs a wet wall' : 'none'}</dd>
                   <dt className="text-ink-faint">Floor</dt><dd>{room.constraints.floor === 'any' ? 'any floor' : room.constraints.floor === 'ground' ? 'best on the ground floor' : 'upper floors'}</dd>
                 </dl>
               )}
-              {room.type !== 'fixed' && !Ops.isVacant(room) && (
+              {!Ops.isVacant(room) && (
                 <div className="grid grid-cols-2 gap-2">
                   <button className={cx(btn, pad === 'move' && 'border-accent text-accent')} disabled={!canEdit(room)} aria-pressed={pad === 'move'} onClick={() => setPad(pad === 'move' ? null : 'move')}><Move size={12} /> Move</button>
                   <button className={cx(btn, pad === 'resize' && 'border-accent text-accent')} disabled={!canEdit(room)} aria-pressed={pad === 'resize'} onClick={() => setPad(pad === 'resize' ? null : 'resize')}><Maximize2 size={12} /> Resize</button>
@@ -262,6 +292,30 @@ export function PlanEditor({ design }: { design: Design }) {
               )}
             </div>
           )}
+        </section>
+
+        {/* ------------------------------- villa outer walls ------------------------------ */}
+        <section aria-label="Villa size">
+          <h3 className="label mb-2">Villa size</h3>
+          <p className="font-mono text-[0.75rem] text-ink-dim">{m(box.w)} × {m(box.h)} m · {(Math.round((box.w * box.h) / 1e5) / 10)} m² footprint</p>
+          <p className="mt-1 text-xs text-ink-faint">Drag the orange handles on the plan, or use the buttons. Every floor, its rooms, columns and beams follow the wall.</p>
+          <label className="mt-2 flex items-center justify-between text-xs text-ink-dim">Step
+            <select aria-label="Wall step" className="border border-line-strong bg-bg-inset px-2 py-1 text-ink" value={wallStep} onChange={(e) => setWallStep(Number(e.target.value))}>
+              {[100, 300, 600, 900, 1500].map((v) => <option key={v} value={v}>{v / 1000} m</option>)}
+            </select>
+          </label>
+          <div className="mt-2 grid gap-1.5">
+            {([['N', 'North wall'], ['S', 'South (road) wall'], ['W', 'West wall'], ['E', 'East wall']] as [keyof Outline, string][]).map(([side, label]) => (
+              <div key={side} className="flex items-center justify-between text-xs text-ink-dim">
+                <span>{label}<span className="ml-1.5 text-ink-faint">{(limits[side].min / 1000).toFixed(1)} to +{(limits[side].max / 1000).toFixed(1)} m</span></span>
+                <span className="flex gap-1">
+                  <button className={btn} aria-label={`${label} in`} disabled={limits[side].min >= 0} onClick={() => act.run((l, p) => Ops.resizeOutline(l, p, side, -Math.min(wallStep, -limits[side].min)))}>−</button>
+                  <button className={btn} aria-label={`${label} out`} disabled={limits[side].max <= 0} onClick={() => act.run((l, p) => Ops.resizeOutline(l, p, side, Math.min(wallStep, limits[side].max)))}>+</button>
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-ink-faint">The limits are the plot's setback line and the longest beam a column line can carry (6 m).</p>
         </section>
 
         {/* -------------------------------- add a room -------------------------------- */}

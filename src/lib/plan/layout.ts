@@ -1,9 +1,10 @@
-import { rectArea, sharedEdge, toSqm, type Rect } from '../geometry.ts'
+import { rectArea, rectUnionArea, rectUnionBBox, sharedEdge, toSqm, type Point, type Rect } from '../geometry.ts'
 import type { CanonicalModel, FloorProgram, SpaceReq, Zone } from '../model/canonical.ts'
 import { themeOf } from '../model/themes.ts'
 import type { Design, FloorPlan, Opening, PlacedRoom } from '../engine/types.ts'
 import type { RoomKind } from '../engine/planner/types.ts'
-import { fitOnLine, occupy, placeDoors, placeWindows, planShafts, wallGraph, type Occupancy } from '../engine/planner/elements.ts'
+import { beamsFor, fitOnLine, occupy, placeDoors, placeWindows, planShafts, stairRun, wallGraph, type Occupancy } from '../engine/planner/elements.ts'
+import { GOING, normalizeBrief, stairGeometry } from '../engine/planner/program.ts'
 import { reachability } from '../engine/planner/index.ts'
 import { placeSiteFeatures } from '../engine/planner/siteFeatures.ts'
 import { withEmergencyExit } from '../engine/safety.ts'
@@ -37,7 +38,52 @@ export type LayoutRoom = {
 }
 
 export type FloorLayout = { level: number; rooms: LayoutRoom[] }
-export type LayoutDoc = { version: 1; signature: string; floors: FloorLayout[] }
+/** how far each outer wall of the villa has been moved from where it was generated, mm; positive is outward */
+export type Outline = { N: number; S: number; E: number; W: number }
+export const noOutline = (): Outline => ({ N: 0, S: 0, E: 0, W: 0 })
+export const hasOutline = (o?: Outline) => !!o && (o.N !== 0 || o.S !== 0 || o.E !== 0 || o.W !== 0)
+export type LayoutDoc = { version: 1; signature: string; floors: FloorLayout[]; outline?: Outline }
+
+/* ---- moving the outer walls: every floor's edges that lie on a side of the generated ground floor move with it ---- */
+const near = (a: number, b: number) => Math.abs(a - b) < 2
+/** the ground-floor box the outline is measured from */
+export const baseBox = (plan: Design): Rect => plan.floors[0].outline
+export const boxNow = (plan: Design, o?: Outline): Rect => { const b = baseBox(plan), d = o ?? noOutline(); return { x: b.x - d.W, y: b.y - d.N, w: b.w + d.W + d.E, h: b.h + d.N + d.S } }
+export function shiftRect(r: Rect, B: Rect, O: Outline): Rect {
+  let { x, y, w, h } = r
+  if (near(r.x, B.x)) { x -= O.W; w += O.W }
+  if (near(r.x + r.w, B.x + B.w)) w += O.E
+  if (near(r.y, B.y)) { y -= O.N; h += O.N }
+  if (near(r.y + r.h, B.y + B.h)) h += O.S
+  return { x, y, w, h }
+}
+const shiftPoint = (p: Point, B: Rect, O: Outline): Point => ({
+  x: near(p.x, B.x) ? p.x - O.W : near(p.x, B.x + B.w) ? p.x + O.E : p.x,
+  y: near(p.y, B.y) ? p.y - O.N : near(p.y, B.y + B.h) ? p.y + O.S : p.y,
+})
+/** an outdoor space that touches a moved wall from outside goes with it */
+function shiftOutdoor(r: Rect, B: Rect, O: Outline): Rect {
+  const alongY = Math.min(r.y + r.h, B.y + B.h) - Math.max(r.y, B.y) > 0, alongX = Math.min(r.x + r.w, B.x + B.w) - Math.max(r.x, B.x) > 0
+  let { x, y } = r
+  if (alongY && near(r.x + r.w, B.x)) x -= O.W
+  if (alongY && near(r.x, B.x + B.w)) x += O.E
+  if (alongX && near(r.y + r.h, B.y)) y -= O.N
+  if (alongX && near(r.y, B.y + B.h)) y += O.S
+  return { ...r, x, y }
+}
+function shiftFloor(floor: FloorPlan, B: Rect, O: Outline): FloorPlan {
+  const footprint = floor.footprint.map((r) => shiftRect(r, B, O))
+  const columns = floor.columns?.map((c) => ({ ...c, at: shiftPoint(c.at, B, O) }))
+  const inPlate = (p: Point) => footprint.some((r) => p.x >= r.x - 1 && p.x <= r.x + r.w + 1 && p.y >= r.y - 1 && p.y <= r.y + r.h + 1)
+  return {
+    ...floor, footprint, outline: rectUnionBBox(footprint),
+    courtyard: floor.courtyard ? shiftRect(floor.courtyard, B, O) : floor.courtyard,
+    columns,
+    beams: columns ? beamsFor(columns, inPlate, floor.prefix ?? 'GF') : floor.beams,
+    supportZones: floor.supportZones?.map((z) => ({ ...z, rect: shiftRect(z.rect, B, O) })),
+    rooms: floor.rooms.map((r) => (r.outdoor ? { ...r, rect: shiftOutdoor(r.rect, B, O) } : r)),
+  }
+}
 
 /* ------------------------------ identification ----------------------------- */
 
@@ -89,6 +135,7 @@ export function extractLayout(plan: Design): LayoutDoc {
   return {
     version: 1,
     signature: layoutSignature(plan),
+    outline: noOutline(),
     floors: plan.floors.map((floor) => ({
       level: floor.level,
       rooms: floor.rooms.filter((r) => !r.outdoor).map((r): LayoutRoom => {
@@ -196,9 +243,16 @@ function rebuildFloor(plan: Design, floor: FloorPlan, layout: FloorLayout, lower
   for (const o of openings) if (o.kind === 'entry' && mainEntry) { o.entranceDesign = mainEntry.entranceDesign; o.head = mainEntry.head }
   const shafts = planShafts(rooms, walls, openings, kindOf, lower?.rooms ?? [])
   const reach = reachability(rooms, openings, floor.level)
+  // a stair that grew or shrank with a moved wall is drawn again for its new room
+  let stairOut = floor.stair
+  const stairRoom = layout.rooms.find((r) => r.id === 'stair')
+  if (floor.stair && stairRoom && (stairRoom.rect.x !== floor.stair.rect.x || stairRoom.rect.y !== floor.stair.rect.y || stairRoom.rect.w !== floor.stair.rect.w || stairRoom.rect.h !== floor.stair.rect.h)) {
+    const g = stairGeometry(normalizeBrief(model))
+    stairOut = stairRun(stairRoom.rect, floor.stair.startSide ?? 'S', g.perFlight, GOING)
+  }
   return {
     ...floor,
-    rooms, walls, openings, shafts,
+    rooms, walls, openings, shafts, stair: stairOut,
     reachable: reach.length === 0 && lonely.length === 0,
     unreachableRooms: [...new Set([...reach, ...lonely.filter((id) => !rooms.find((r) => r.id === id)?.outdoor)])],
   }
@@ -231,9 +285,14 @@ function patchProgramme(model: CanonicalModel, layout: LayoutDoc): CanonicalMode
 /** a plan whose rooms follow `layout`; the structure, stair, columns and outdoor spaces are the plan's own */
 export function applyLayout(plan: Design, layout: LayoutDoc): Design {
   const model = patchProgramme(plan.model, layout)
-  const draft: Design = { ...plan, model }
+  const O = layout.outline ?? noOutline()
+  const moved = hasOutline(O)
+  const B = baseBox(plan)
+  const baseFloors = moved ? plan.floors.map((f) => shiftFloor(f, B, O)) : plan.floors
+  const draft: Design = { ...plan, model, userEdited: true,
+    ...(moved && plan.structure ? { structure: { ...plan.structure, axes: plan.structure.axes.map((a) => ({ ...a, at: a.orient === 'v' ? (near(a.at, B.x) ? a.at - O.W : near(a.at, B.x + B.w) ? a.at + O.E : a.at) : (near(a.at, B.y) ? a.at - O.N : near(a.at, B.y + B.h) ? a.at + O.S : a.at) })) } } : {}) }
   const floors: FloorPlan[] = []
-  for (const [i, floor] of plan.floors.entries()) {
+  for (const [i, floor] of baseFloors.entries()) {
     const doc = layout.floors.find((l) => l.level === floor.level)
     floors.push(doc ? rebuildFloor(draft, floor, doc, floors[i - 1] ?? null) : floor)
   }
@@ -242,7 +301,14 @@ export function applyLayout(plan: Design, layout: LayoutDoc): Design {
   const site = placeSiteFeatures(model, floors[0])
   // the emergency exit is placed on the plan as built; rebuild it for the new ground floor
   const ground = { ...floors[0], openings: floors[0].openings.filter((o) => !o.emergencyExit) }
-  const next: Design = { ...draft, floors: [ground, ...floors.slice(1)], openingCounts: { doors, windows },
+  const all = [ground, ...floors.slice(1)]
+  const groundMm2 = rectUnionArea(all[0].footprint)
+  const outdoorMm2 = all[0].rooms.filter((r) => r.outdoor && r.id !== 'courtyard').reduce((a, r) => a + rectArea(r.rect), 0)
+  const areas = moved ? {
+    builtAreaSqm: toSqm(all.reduce((a, f) => a + rectUnionArea(f.footprint), 0)), footprintSqm: toSqm(groundMm2), coveredFootprintSqm: toSqm(groundMm2 + outdoorMm2),
+    coverage: (groundMm2 + outdoorMm2 * 0.5) / (model.plot.width * model.plot.depth),
+  } : {}
+  const next: Design = { ...draft, ...areas, floors: all, openingCounts: { doors, windows },
     siteFeatures: site.features, siteNotes: [...(plan.model.siteNotes ?? []), ...site.notes] }
   return exposeStructuralSizing(withEmergencyExit(next))
 }

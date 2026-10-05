@@ -111,13 +111,22 @@ test('locked rooms are preserved by every operation', () => {
   assert.equal(O.toggleLock(locked, 1, 'bed1').layout && room(O.toggleLock(locked, 1, 'bed1').layout, 1, 'bed1').locked, false)
 })
 
-test('stair, hall and lobby are never moved, resized or deleted', () => {
+test('the hall, stair and lift can be edited too, but a change that breaks the plan is refused by the rules', () => {
   const p = plan(), layout = extractLayout(p)
-  for (const id of ['stair', 'corridor']) {
-    assert.equal(O.deleteRoom(layout, p, 0, id).ok, false)
-    assert.equal(O.moveRoom(layout, p, 0, id, { x: 0, y: 0 }).ok, false)
+  // the stair, hall and foyer are how the house works: they can be moved, resized and swapped, never deleted
+  for (const [level, id] of [[0, 'stair'], [0, 'corridor'], [1, 'lobby1'], [0, 'foyer']]) {
+    assert.equal(O.deleteRoom(layout, p, level, id).ok, false, `${id} cannot be deleted`)
   }
-  assert.equal(O.deleteRoom(layout, p, 1, 'lobby1').ok, false)
+  // moving or resizing the stair on one floor breaks its alignment with the other floor
+  const st = room(layout, 0, 'stair').rect
+  const grown = O.resizeRoom(layout, p, 0, 'stair', { ...st, w: st.w + 600 })
+  if (grown.ok) assert.equal(O.commit(p, grown.layout, layout).ok, false)
+  // every room can be swapped, including with vacant space; whatever is accepted is a valid plan
+  const free = O.deleteRoom(layout, p, 1, 'study1').layout
+  const vac = O.vacantRooms(free, 1)[0]
+  const into = O.swapRooms(free, p, 1, 'familyLounge', vac.id)
+  assert.ok(into.ok, into.reason)
+  assert.ok(O.commit(p, into.layout, free).ok)
 })
 
 test('swap exchanges two rooms and the plan stays valid', () => {
@@ -133,9 +142,11 @@ test('swap exchanges two rooms and the plan stays valid', () => {
   assert.ok(c.design.floors[0].rooms.some((r) => r.id === 'kitchen'))
   // a room cannot swap with itself, and unequal rooms that do not fit each other's space are refused
   assert.equal(O.swapRooms(layout, p, 1, 'bed1', 'bed1').ok, false)
-  const noFit = O.swapRooms(layout, p, 1, 'bed2', 'familyLounge')
-  assert.equal(noFit.ok, false)
-  assert.match(noFit.reason, /do not fit/)
+  // unequal rooms far apart exchange places, each taking the size of the other's space
+  const far = O.swapRooms(layout, p, 1, 'bed2', 'familyLounge')
+  assert.ok(far.ok, far.reason)
+  assert.deepEqual(room(far.layout, 1, 'bed2').rect, room(layout, 1, 'familyLounge').rect)
+  assert.deepEqual(room(far.layout, 1, 'familyLounge').rect, room(layout, 1, 'bed2').rect)
   // a swap that would strand a bath behind the wrong room is rejected by the rules, with the reason
   const strand = O.swapRooms(layout, p, 1, 'bed2', 'bath1')
   if (strand.ok) assert.equal(O.commit(p, strand.layout, layout).ok, false)
@@ -145,10 +156,14 @@ test('resize takes space from vacant areas and a single neighbour, never below a
   const p = plan(), layout = extractLayout(p)
   const del = O.deleteRoom(layout, p, 1, 'study1')
   const l1 = del.layout
-  // a bedroom cannot be made smaller than 9 m²
-  const tiny = O.resizeRoom(l1, p, 1, 'bed3', { ...room(l1, 1, 'bed3').rect, h: 1500 })
-  assert.equal(tiny.ok, false)
-  assert.match(tiny.reason, /minimum|wide/)
+  // there is no minimum size: a bedroom can be made as small as the person wants, and the guidance is reported as a note
+  const lr = room(l1, 1, 'familyLounge').rect
+  const tiny = O.resizeRoom(l1, p, 1, 'familyLounge', { ...lr, y: lr.y + lr.h - 2700, h: 2700 })
+  assert.ok(tiny.ok, tiny.reason)
+  const small = O.commit(p, tiny.layout, l1, tiny.affected)
+  assert.ok(small.ok, small.reason)
+  assert.ok(small.notes.some((n) => /minimum|under/i.test(n.message)), 'the recommended minimum is shown as a note')
+  assert.equal(O.resizeRoom(l1, p, 1, 'familyLounge', { ...lr, h: 500 }).ok, false, 'only a sliver is refused')
   // growing into the vacant study area
   const bed3 = room(l1, 1, 'bed3').rect
   const vacant = O.vacantRooms(l1, 1)[0]
@@ -331,4 +346,59 @@ test('an edited plan still feeds the 3D handoff, the cost estimate and the furni
   }
   // fewer rooms to finish means a different, still positive estimate
   assert.notEqual(estimateBoq(c.design).total.low, estimateBoq(p).total.low)
+})
+
+test('the whole villa can be resized by moving its outer walls, within the plot and the beam limit', () => {
+  const p = plan(), layout = extractLayout(p)
+  const limits = O.outlineLimits(layout, p)
+  for (const side of ['N', 'S', 'E', 'W']) assert.ok(limits[side].max >= 0 && limits[side].min <= 0, `${side} limits`)
+  // find a wall that can move outward, move it, and check the building really grew everywhere it should
+  const side = ['E', 'W', 'N', 'S'].find((x) => limits[x].max >= 600)
+  assert.ok(side, 'some wall can move outward')
+  const res = O.resizeOutline(layout, p, side, 600)
+  assert.ok(res.ok, res.reason)
+  const c = O.commit(p, res.layout, layout, res.affected)
+  assert.ok(c.ok, c.reason)
+  const before = p.floors[0].outline, after = c.design.floors[0].outline
+  const grew = side === 'E' || side === 'W' ? after.w - before.w : after.h - before.h
+  assert.equal(grew, 600)
+  assert.ok(c.design.builtAreaSqm > p.builtAreaSqm)
+  // every floor stays tiled, the columns on that wall moved with it, and the stair is still the same room on every floor
+  for (const f of c.design.floors) {
+    assert.ok(Math.abs(f.footprint.reduce((a, q) => a + q.w * q.h, 0) - f.rooms.filter((q) => !q.outdoor).reduce((a, q) => a + q.rect.w * q.rect.h, 0)) <= 50_000)
+  }
+  assert.deepEqual(errors(c.design), [])
+  // it survives a save and a reload, and moves back
+  const again = parseLayout(JSON.parse(JSON.stringify(res.layout)))
+  assert.deepEqual(again.outline, res.layout.outline)
+  const back = O.resizeOutline(res.layout, p, side, -600)
+  assert.ok(back.ok, back.reason)
+  assert.ok(O.commit(p, back.layout, res.layout).ok)
+  // a wall cannot go past the beam limit or the setback line, and the refusal says why
+  const far = O.resizeOutline(layout, p, side, limits[side].max + 3000)
+  if (far.ok) assert.equal(O.commit(p, far.layout, layout).ok, false)
+  // shrinking the villa is allowed too
+  const sIn = ['E', 'W', 'N', 'S'].find((x) => limits[x].min <= -600)
+  if (sIn) { const r2 = O.resizeOutline(layout, p, sIn, -600); if (r2.ok) { const c2 = O.commit(p, r2.layout, layout); assert.ok(c2.ok || c2.reason.length > 0) } }
+})
+
+test('rooms on different floors swap floors and the plan stays valid', () => {
+  const p = plan(18, 24, 1), layout = extractLayout(p)
+  // the study upstairs and the dining room below exchange floors; each takes the other's slot
+  const res = O.swapAcrossFloors(layout, p, 1, 'study1', 0, 'dining')
+  assert.ok(res.ok, res.reason)
+  const c = O.commit(p, res.layout, layout, res.affected)
+  assert.ok(c.ok, c.reason)
+  assert.ok(room(res.layout, 0, 'study1') && room(res.layout, 1, 'dining'))
+  assert.equal(room(res.layout, 1, 'study1'), undefined)
+  assert.deepEqual(room(res.layout, 0, 'study1').rect, room(layout, 0, 'dining').rect)
+  assert.deepEqual(room(res.layout, 1, 'dining').rect, room(layout, 1, 'study1').rect)
+  assert.match(room(res.layout, 1, 'dining').semanticId, /^FF_/)
+  assert.match(room(res.layout, 0, 'study1').semanticId, /^GF_/)
+  assert.ok(c.notes.some((n) => /ground floor/.test(n.message)), 'dining on the upper floor is advised against')
+  // fixed, locked and attached rooms are refused with a reason
+  assert.equal(O.swapAcrossFloors(layout, p, 1, 'stair', 0, 'dining').ok, false)
+  assert.equal(O.swapAcrossFloors(layout, p, 1, 'bed1', 0, 'dining').ok, false, 'bed1 has an attached bath')
+  const locked = O.toggleLock(layout, 1, 'study1').layout
+  assert.equal(O.swapAcrossFloors(locked, p, 1, 'study1', 0, 'dining').ok, false)
 })

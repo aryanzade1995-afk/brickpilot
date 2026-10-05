@@ -44,6 +44,10 @@ export const RULE_PACK = 'residential-v1'
 
 
 
+/** On a plan the person has edited room by room, the size and daylight guidance of each room is advice, not a limit:
+ *  it is reported as a warning. Structure, overlaps, doors, stairs, reachability and setbacks stay hard rules. */
+const USER_CHOICE = new Set(['AREA_BELOW_MINIMUM', 'MIN_ROOM_DIMENSION', 'NO_DAYLIGHT', 'BATH_NO_VENTILATION', 'ROOM_OVER_GROWTH_LIMIT'])
+
 export function validate(design: Design, options: { checkFacade?: boolean } = {}): ValidationReport {
   const findings: Finding[] = []
   const add = (
@@ -52,7 +56,7 @@ export function validate(design: Design, options: { checkFacade?: boolean } = {}
     category: FindingCategory,
     message: string,
     roomId?: string,
-  ) => findings.push({ code, severity, category, message, roomId })
+  ) => findings.push({ code, severity: design.userEdited && USER_CHOICE.has(code) && severity === 'error' ? 'warning' : severity, category, message, roomId })
 
   if(design.requestedMassing&&design.requestedMassing!==design.massingType)
     add('REQUESTED_MASSING_UNAVAILABLE','error','planning',

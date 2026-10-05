@@ -1,8 +1,7 @@
 import { rectArea, rectBottom, rectRight, rectUnionEdges, type Rect } from '../geometry.ts'
 import type { Design } from '../engine/types.ts'
 import { validate } from '../rules/index.ts'
-import { MIN_DIM } from '../rules/roomLimits.ts'
-import { applyLayout, extractLayout, type FloorLayout, type LayoutDoc, type LayoutRoom } from './layout.ts'
+import { applyLayout, baseBox, boxNow, extractLayout, hasOutline, noOutline, shiftRect, type FloorLayout, type LayoutDoc, type LayoutRoom, type Outline } from './layout.ts'
 import { MODULE, contains, intersect, joinIfRect, m, overlapArea, sameRect, snapMm, sqm, subtract, touchLength, unionRects } from './rects.ts'
 import { ADDABLE_TYPES, TYPE_SPEC, constraintsOf, type RoomType } from './roomTypes.ts'
 
@@ -27,7 +26,11 @@ const fail = (reason: string): OpFail => ({ ok: false, reason })
 const ok = (layout: LayoutDoc, message: string, affected: string[] = [], notes: Notice[] = []): OpOk => ({ ok: true, layout, message, affected, notes })
 
 export const floorOf = (layout: LayoutDoc, level: number): FloorLayout | undefined => layout.floors.find((f) => f.level === level)
-const plateOf = (plan: Design, level: number): Rect[] => plan.floors.find((f) => f.level === level)?.footprint ?? []
+/** the floor plate as it stands now: the generated plate with the person's moved outer walls applied */
+const plateFor = (layout: LayoutDoc, plan: Design, level: number): Rect[] => {
+  const base = plan.floors.find((f) => f.level === level)?.footprint ?? []
+  return hasOutline(layout.outline) ? base.map((r) => shiftRect(r, baseBox(plan), layout.outline!)) : base
+}
 const prefixOf = (plan: Design, level: number) => plan.floors.find((f) => f.level === level)?.prefix ?? (level === 0 ? 'GF' : `F${level}`)
 const levelName = (plan: Design, level: number) => plan.floors.find((f) => f.level === level)?.name ?? `Floor ${level}`
 const where = (plan: Design, level: number) => (level === 0 ? 'the ground floor' : levelName(plan, level).toLowerCase())
@@ -35,9 +38,10 @@ const where = (plan: Design, level: number) => (level === 0 ? 'the ground floor'
 const clone = (layout: LayoutDoc): LayoutDoc => structuredClone(layout)
 const area = (r: LayoutRoom) => sqm(r.rect)
 export const isVacant = (r: LayoutRoom) => r.type === 'vacant'
-const movable = (r: LayoutRoom): string | null =>
-  r.fixed ? `${r.name} is part of the circulation (hall, stair or lift) and stays where it is.`
-    : r.locked ? `${r.name} is locked. Unlock it first.` : null
+/** every room can be edited; only a locked room is held. What an edit breaks is found by the rules after it, not guessed before it. */
+const movable = (r: LayoutRoom): string | null => (r.locked ? `${r.name} is locked. Unlock it first.` : null)
+/** the stair and lift stand on every floor as one shaft, and the rest of the plan's rooms are per floor */
+const stayOnFloor = (r: LayoutRoom): string | null => (r.fixed ? `${r.name} belongs to every floor, so it cannot be sent to another one.` : null)
 
 const insidePlate = (plate: Rect[], r: Rect) => plate.reduce((a, p) => a + overlapArea(p, r), 0) >= rectArea(r) - 1000
 
@@ -66,7 +70,7 @@ export function settle(layout: LayoutDoc, plan: Design, level: number): LayoutDo
   if (!floor) return out
   const accepted = new Set(floor.rooms.filter((r) => isVacant(r) && r.accepted).map((r) => `${r.rect.x},${r.rect.y},${r.rect.w},${r.rect.h}`))
   const real = floor.rooms.filter((r) => !isVacant(r))
-  let free = plateOf(plan, level)
+  let free = plateFor(out, plan, level)
   for (const r of real) free = free.flatMap((f) => subtract(f, r.rect))
   const regions = unionRects(free.filter((f) => f.w > 0 && f.h > 0)).sort((a, b) => a.y - b.y || a.x - b.x)
   const prefix = prefixOf(plan, level)
@@ -118,6 +122,7 @@ export function deleteRoom(layout: LayoutDoc, plan: Design, level: number, id: s
   const why = movable(r)
   if (why) return fail(why)
   if (isVacant(r)) return fail('This space is already vacant.')
+  if (r.fixed) return fail(`${r.name} is how people get around the house. It can be moved, resized or swapped, but not deleted.`)
   const attached = floor.rooms.filter((x) => x.parent === id)
   const gone = new Set([id, ...attached.map((x) => x.id)])
   floor.rooms = floor.rooms.filter((x) => !gone.has(x.id))
@@ -132,7 +137,14 @@ export function swapRooms(layout: LayoutDoc, plan: Design, level: number, aId: s
   const a = floor?.rooms.find((x) => x.id === aId), b = floor?.rooms.find((x) => x.id === bId)
   if (!floor || !a || !b || a === b) return fail('Pick two different rooms to swap.')
   for (const r of [a, b]) { const why = movable(r); if (why) return fail(why) }
-  if (isVacant(a) || isVacant(b)) return fail('Vacant space cannot be swapped. Move the room into it instead.')
+  if (isVacant(a) && isVacant(b)) return fail('Pick a room to swap with.')
+  if (isVacant(a) || isVacant(b)) {
+    // a room swapped with vacant space takes that space, and the space it left becomes vacant
+    const room = isVacant(a) ? b : a, space = isVacant(a) ? a : b
+    room.rect = space.rect
+    floor.rooms = floor.rooms.filter((x) => x !== space)
+    return ok(settle(out, plan, level), `${room.name} moved into the vacant space.`, [room.id])
+  }
   const ra = { ...a.rect }, rb = { ...b.rect }
   if (ra.w === rb.w && ra.h === rb.h) { a.rect = rb; b.rect = ra; return ok(settle(out, plan, level), `${a.name} and ${b.name} swapped places.`, [aId, bId]) }
   const joined = joinIfRect(ra, rb)
@@ -150,14 +162,10 @@ export function swapRooms(layout: LayoutDoc, plan: Design, level: number, aId: s
     }
     return ok(settle(out, plan, level), `${a.name} and ${b.name} exchanged their order along the wall they share.`, [aId, bId])
   }
-  // apart and unequal: each moves into the other's space if it fits, the rest of that space is left vacant
-  if (a.rect.w <= rb.w && a.rect.h <= rb.h && b.rect.w <= ra.w && b.rect.h <= ra.h) {
-    // keep each against the same outer corner it came from
-    a.rect = { x: rb.x, y: rb.y, w: ra.w, h: ra.h }
-    b.rect = { x: ra.x, y: ra.y, w: rb.w, h: rb.h }
-    return ok(settle(out, plan, level), `${a.name} and ${b.name} swapped places. The unused corner of each space is now vacant.`, [aId, bId])
-  }
-  return fail(`${a.name} (${m(ra.w)} × ${m(ra.h)} m) and ${b.name} (${m(rb.w)} × ${m(rb.h)} m) do not fit each other's space. Resize one of them first, or swap two rooms of the same size.`)
+  // apart and unequal: the two rooms exchange places, each taking the shape of the space the other left
+  a.rect = rb
+  b.rect = ra
+  return ok(settle(out, plan, level), `${a.name} and ${b.name} swapped places; each now has the size of the other's old space.`, [aId, bId])
 }
 
 export function moveRoom(layout: LayoutDoc, plan: Design, level: number, id: string, to: { x: number; y: number }): OpResult {
@@ -170,7 +178,7 @@ export function moveRoom(layout: LayoutDoc, plan: Design, level: number, id: str
   if (isVacant(r)) return fail('Vacant space cannot be moved.')
   const target: Rect = { x: snapMm(to.x), y: snapMm(to.y), w: r.rect.w, h: r.rect.h }
   if (sameRect(target, r.rect)) return fail('The room did not move.')
-  if (!insidePlate(plateOf(plan, level), target)) return fail(`${r.name} would leave the floor plate. Rooms stay inside the walls of the building.`)
+  if (!insidePlate(plateFor(out, plan, level), target)) return fail(`${r.name} would leave the floor plate. Rooms stay inside the walls of the building.`)
   const others = floor.rooms.filter((x) => x !== r)
   const hit = others.filter((x) => !isVacant(x) && overlapArea(x.rect, target) > 0)
   if (!hit.length) { r.rect = target; return ok(settle(out, plan, level), `${r.name} moved.`, [id]) }
@@ -182,15 +190,11 @@ export function moveRoom(layout: LayoutDoc, plan: Design, level: number, id: str
 
 /* ------------------------------------ resize ----------------------------------- */
 
-/** a size that breaks the room's minimum; a room the plan already holds below it may stay as it is, but never get smaller */
+/** Room sizes are the person's choice. The recommended minimum is shown as a note after the edit, never as a limit; only a sliver
+ *  too thin to stand in is refused. */
 function sizeProblem(r: LayoutRoom, rect: Rect): string | null {
-  if (isVacant(r) || r.fixed) return null
-  const c = r.constraints
-  const a = sqm(rect), short = Math.min(rect.w, rect.h)
-  const needW = Math.max(c.minWidthMm, MIN_DIM[r.zone] ?? 0)
-  if (a < c.minSqm - 0.04 && rectArea(rect) < rectArea(r.rect)) return `${r.name} would be ${a} m², under its ${c.minSqm} m² minimum.`
-  if (short < needW - 1 && short < Math.min(r.rect.w, r.rect.h)) return `${r.name} would be only ${m(short)} m wide; it needs at least ${m(needW)} m.`
-  return null
+  if (isVacant(r)) return null
+  return Math.min(rect.w, rect.h) < 900 ? `${r.name} would be only ${m(Math.min(rect.w, rect.h))} m wide. A room needs at least 0.9 m to stand in.` : null
 }
 
 export function resizeRoom(layout: LayoutDoc, plan: Design, level: number, id: string, to: Rect): OpResult {
@@ -204,7 +208,7 @@ export function resizeRoom(layout: LayoutDoc, plan: Design, level: number, id: s
   const next: Rect = { x: snapMm(to.x), y: snapMm(to.y), w: snapMm(to.w), h: snapMm(to.h) }
   if (next.w <= 0 || next.h <= 0) return fail('A room cannot be that small.')
   if (sameRect(next, r.rect)) return fail('The size did not change.')
-  if (!insidePlate(plateOf(plan, level), next)) return fail(`${r.name} would leave the floor plate.`)
+  if (!insidePlate(plateFor(out, plan, level), next)) return fail(`${r.name} would leave the floor plate.`)
   const tooSmall = sizeProblem(r, next)
   if (tooSmall) return fail(tooSmall)
   const vacants = floor.rooms.filter(isVacant)
@@ -234,10 +238,10 @@ export function resizeRoom(layout: LayoutDoc, plan: Design, level: number, id: s
 /* ------------------------------------- add ------------------------------------- */
 
 /** a rectangle for a room of `type` cut from the vacant region `v`, or null when none fits */
-function carve(v: Rect, areaSqm: number, c: ReturnType<typeof constraintsOf>, zone: string, others: LayoutRoom[], plate: Rect[], wantAccess = true): Rect | null {
-  const minW = Math.max(c.minWidthMm, MIN_DIM[zone] ?? 0)
+function carve(v: Rect, areaSqm: number, c: ReturnType<typeof constraintsOf>, _zone: string, others: LayoutRoom[], plate: Rect[], wantAccess = true): Rect | null {
+  const minW = 900
   // a room is as large as it wants to be, but never larger than the space it goes into
-  const need = Math.max(c.minSqm, Math.min(areaSqm, rectArea(v) / 1e6)) * 1e6
+  const need = Math.max(1.5, Math.min(areaSqm, rectArea(v) / 1e6)) * 1e6
   const cands: Rect[] = []
   const wholeOk = rectArea(v) <= Math.max(c.maxSqm, c.targetSqm * 1.3) * 1e6 * 1.15
   if (wholeOk) cands.push(v)
@@ -250,7 +254,6 @@ function carve(v: Rect, areaSqm: number, c: ReturnType<typeof constraintsOf>, zo
   for (const rect of cands) {
     if (rectArea(rect) < need - 1000 || Math.min(rect.w, rect.h) < minW) continue
     const ratio = Math.max(rect.w, rect.h) / Math.min(rect.w, rect.h)
-    if (ratio > 3.4 && c.windows !== 'none' && zone !== 'service') continue
     const access = circulation.reduce((a, o) => a + touchLength(rect, o.rect), 0)
     const ext = exteriorLength(rect, plate)
     // a slice that takes the whole vacant region leaves no odd leftovers
@@ -274,8 +277,8 @@ export function bestVacantFor(layout: LayoutDoc, plan: Design, level: number, ty
   const spec = TYPE_SPEC[type]
   let best: { vacant: LayoutRoom; rect: Rect; score: number } | null = null
   for (const v of floor.rooms.filter(isVacant)) {
-    const rect = carve(v.rect, areaSqm ?? spec.targetSqm, constraintsOf(type), spec.zone, floor.rooms, plateOf(plan, level)) ??
-      (type === 'store' || type === 'puja' ? carve(v.rect, areaSqm ?? spec.targetSqm, constraintsOf(type), spec.zone, floor.rooms, plateOf(plan, level), false) : null)
+    const rect = carve(v.rect, areaSqm ?? spec.targetSqm, constraintsOf(type), spec.zone, floor.rooms, plateFor(layout, plan, level)) ??
+      (type === 'store' || type === 'puja' ? carve(v.rect, areaSqm ?? spec.targetSqm, constraintsOf(type), spec.zone, floor.rooms, plateFor(layout, plan, level), false) : null)
     if (!rect) continue
     const score = -rectArea(v.rect) / 1e8 + (sameRect(rect, v.rect) ? 2 : 0)
     if (!best || score > best.score) best = { vacant: v, rect, score }
@@ -292,11 +295,11 @@ export function addRoom(layout: LayoutDoc, plan: Design, level: number, type: Ro
   const vacants = floor.rooms.filter(isVacant)
   if (!vacants.length) return fail(`There is no vacant space on ${where(plan, level)}. Delete or shrink a room first, then add the ${spec.label.toLowerCase()} into the space it frees.`)
   const choice = vacantId
-    ? (() => { const v = vacants.find((x) => x.id === vacantId); const rect = v && (carve(v.rect, spec.targetSqm, constraintsOf(type), spec.zone, floor.rooms, plateOf(plan, level)) ?? carve(v.rect, spec.targetSqm, constraintsOf(type), spec.zone, floor.rooms, plateOf(plan, level), false)); return v && rect ? { vacant: v, rect } : null })()
+    ? (() => { const v = vacants.find((x) => x.id === vacantId); const rect = v && (carve(v.rect, spec.targetSqm, constraintsOf(type), spec.zone, floor.rooms, plateFor(out, plan, level)) ?? carve(v.rect, spec.targetSqm, constraintsOf(type), spec.zone, floor.rooms, plateFor(out, plan, level), false)); return v && rect ? { vacant: v, rect } : null })()
     : bestVacantFor(out, plan, level, type)
   if (!choice) {
     const biggest = Math.max(...vacants.map((v) => sqm(v.rect)))
-    return fail(`A ${spec.label.toLowerCase()} needs at least ${spec.minSqm} m² (${m(spec.minWidthMm)} m wide)${spec.windows === 'required' ? ', an outside wall for its window' : ''} and a wall on the hall. The largest vacant space is ${biggest} m² and does not give that.`)
+    return fail(`No vacant space can take a ${spec.label.toLowerCase()}: it needs a wall on the hall${spec.windows === 'required' ? ' and an outside wall for its window' : ''}, and the largest vacant space is ${biggest} m².`)
   }
   const idn = newIdentity(out, plan, level, type)
   const room: LayoutRoom = { id: idn.id, semanticId: idn.semanticId, name: idn.name, type, kind: spec.kind, zone: spec.zone, rect: choice.rect, locked: false, fixed: false, constraints: constraintsOf(type) }
@@ -312,7 +315,7 @@ export function moveToFloor(layout: LayoutDoc, plan: Design, level: number, id: 
   const from = floorOf(out, level), to = floorOf(out, toLevel)
   const r = from?.rooms.find((x) => x.id === id)
   if (!from || !to || !r) return fail('That floor or room is not in the plan.')
-  const why = movable(r)
+  const why = movable(r) ?? stayOnFloor(r)
   if (why) return fail(why)
   if (isVacant(r)) return fail('Vacant space stays on its floor.')
   if (from.rooms.some((x) => x.parent === id)) return fail(`${r.name} has an attached bath. Move or delete the bath first.`)
@@ -328,6 +331,32 @@ export function moveToFloor(layout: LayoutDoc, plan: Design, level: number, id: 
   const rule = r.constraints.floor
   if (rule === 'ground' && toLevel !== 0) notes.push({ severity: 'warning', message: `${r.name} suits the ground floor best.`, roomId: id })
   return ok(settle(settle(out, plan, level), plan, toLevel), `${r.name} moved to ${where(plan, toLevel)}.`, [id], notes)
+}
+
+/** two rooms on different floors exchange floors: each takes the slot the other leaves, so every floor stays exactly tiled */
+export function swapAcrossFloors(layout: LayoutDoc, plan: Design, levelA: number, aId: string, levelB: number, bId: string): OpResult {
+  if (levelA === levelB) return swapRooms(layout, plan, levelA, aId, bId)
+  const out = clone(layout)
+  const fa = floorOf(out, levelA), fb = floorOf(out, levelB)
+  const a = fa?.rooms.find((x) => x.id === aId), b = fb?.rooms.find((x) => x.id === bId)
+  if (!fa || !fb || !a || !b) return fail('Both rooms must exist to swap them.')
+  for (const r of [a, b]) {
+    const why = movable(r) ?? stayOnFloor(r)
+    if (why) return fail(why)
+    if (isVacant(r)) return fail('Vacant space cannot be swapped. Move a room into it instead.')
+    if (r.parent) return fail(`${r.name} is the attached bath of another room and stays with it.`)
+    if ((r.id === a.id ? fa : fb).rooms.some((x) => x.parent === r.id)) return fail(`${r.name} has an attached bath. Move or delete the bath first.`)
+  }
+  const ra = a.rect, rb = b.rect
+  const pa = prefixOf(plan, levelA), pb = prefixOf(plan, levelB)
+  const rename = (sid: string, from: string, to: string) => (sid.startsWith(`${from}_`) ? `${to}_${sid.slice(from.length + 1)}` : `${to}_${sid}`)
+  fa.rooms = fa.rooms.filter((x) => x !== a)
+  fb.rooms = fb.rooms.filter((x) => x !== b)
+  fa.rooms.push({ ...b, rect: ra, semanticId: rename(b.semanticId, pb, pa) })
+  fb.rooms.push({ ...a, rect: rb, semanticId: rename(a.semanticId, pa, pb) })
+  const notes: Notice[] = []
+  for (const [r, lv] of [[a, levelB], [b, levelA]] as const) if (r.constraints.floor === 'ground' && lv !== 0) notes.push({ severity: 'warning', message: `${r.name} suits the ground floor best.`, roomId: r.id })
+  return ok(settle(settle(out, plan, levelA), plan, levelB), `${a.name} and ${b.name} swapped floors: ${a.name} is now on ${where(plan, levelB)}, ${b.name} on ${where(plan, levelA)}.`, [aId, bId], notes)
 }
 
 /* -------------------------------- vacant optimizer ------------------------------- */
@@ -385,8 +414,8 @@ export function vacantOptions(layout: LayoutDoc, plan: Design, level: number, va
   const present = new Set(layout.floors.flatMap((f) => f.rooms.map((r) => r.id)))
   for (const type of ADDABLE_TYPES) {
     const spec = TYPE_SPEC[type]
-    const rect = carve(v.rect, spec.targetSqm, constraintsOf(type), spec.zone, floor.rooms, plateOf(plan, level)) ??
-      (type === 'store' || type === 'puja' ? carve(v.rect, spec.targetSqm, constraintsOf(type), spec.zone, floor.rooms, plateOf(plan, level), false) : null)
+    const rect = carve(v.rect, spec.targetSqm, constraintsOf(type), spec.zone, floor.rooms, plateFor(layout, plan, level)) ??
+      (type === 'store' || type === 'puja' ? carve(v.rect, spec.targetSqm, constraintsOf(type), spec.zone, floor.rooms, plateFor(layout, plan, level), false) : null)
     if (!rect) continue
     const missing = [...original].some((id) => !present.has(id) && (id.startsWith(spec.idPrefix) || spec.singleId === id))
     options.push({ kind: 'add', type, label: spec.label, areaSqm: sqm(rect), reason: missing ? `The brief asked for a ${spec.label.toLowerCase()} and the plan no longer has one.` : spec.note })
@@ -529,4 +558,71 @@ export function isEditable(plan: Design): boolean {
     const design = applyLayout(plan, layout)
     return validate(design).hardChecksPass && design.floors.every((f, i) => f.openings.length === plan.floors[i].openings.length)
   } catch { return false }
+}
+
+/* --------------------------- the outer walls of the villa -------------------------- */
+
+export type OutlineLimits = Record<keyof Outline, { min: number; max: number }>
+
+/** how far each outer wall can move: the plot's setback line, the longest beam a column line can carry, and a room that must stay standable */
+export function outlineLimits(layout: LayoutDoc, plan: Design): OutlineLimits {
+  const O = layout.outline ?? noOutline()
+  const now = boxNow(plan, O)
+  const env = { x: plan.model.setbacksMm.W, y: plan.model.setbacksMm.N, r: plan.model.setbacksMm.W + plan.model.envelope.width, b: plan.model.setbacksMm.N + plan.model.envelope.depth }
+  const out: Partial<OutlineLimits> = {}
+  for (const side of ['N', 'S', 'E', 'W'] as const) {
+    const horizontal = side === 'N' || side === 'S'
+    const line = side === 'N' ? now.y : side === 'S' ? now.y + now.h : side === 'W' ? now.x : now.x + now.w
+    const room = side === 'N' ? now.y - env.y : side === 'S' ? env.b - (now.y + now.h) : side === 'W' ? now.x - env.x : env.r - (now.x + now.w)
+    let thin = Infinity
+    for (const f of layout.floors) for (const r of f.rooms) {
+      const touches = horizontal ? (Math.abs((side === 'N' ? r.rect.y : r.rect.y + r.rect.h) - line) < 2) : (Math.abs((side === 'W' ? r.rect.x : r.rect.x + r.rect.w) - line) < 2)
+      if (touches && !isVacant(r)) thin = Math.min(thin, horizontal ? r.rect.h : r.rect.w)
+    }
+    // the beams that run away from this wall carry the new span
+    let span = 0
+    for (const f of plan.floors) for (const b of f.beams ?? []) {
+      const ends = [b.a, b.b]
+      const onLine = (p: { x: number; y: number }) => Math.abs((horizontal ? p.y : p.x) - (horizontal ? (side === 'N' ? baseBox(plan).y : baseBox(plan).y + baseBox(plan).h) : (side === 'W' ? baseBox(plan).x : baseBox(plan).x + baseBox(plan).w))) < 2
+      const perpendicular = horizontal ? Math.abs(b.a.x - b.b.x) < 2 : Math.abs(b.a.y - b.b.y) < 2
+      if (perpendicular && ends.some(onLine)) span = Math.max(span, b.span)
+    }
+    const current = O[side]
+    const beamRoom = span ? 6000 - (span + current) : Infinity
+    out[side] = {
+      max: Math.max(0, Math.floor(Math.min(room, beamRoom) / MODULE) * MODULE),
+      min: -Math.floor(Math.max(0, (Number.isFinite(thin) ? thin : 0) - 900) / MODULE) * MODULE,
+    }
+  }
+  return out as OutlineLimits
+}
+
+/** move one outer wall of the whole villa. Every floor's edge on that wall moves with it; the rooms against it stretch or shrink, the columns on it go with it. */
+export function resizeOutline(layout: LayoutDoc, plan: Design, side: keyof Outline, deltaMm: number): OpResult {
+  if (plan.existingStructure) return fail('The villa is planned around a structure that is already built, so its outer walls cannot be moved.')
+  const d = snapMm(deltaMm)
+  if (!d) return fail('The wall did not move.')
+  const out = clone(layout)
+  const O = out.outline ?? noOutline()
+  const before = boxNow(plan, O)
+  const line = side === 'N' ? before.y : side === 'S' ? before.y + before.h : side === 'W' ? before.x : before.x + before.w
+  const horizontal = side === 'N' || side === 'S'
+  const touched: string[] = []
+  for (const f of out.floors) for (const r of f.rooms) {
+    const edge = horizontal ? (side === 'N' ? r.rect.y : r.rect.y + r.rect.h) : (side === 'W' ? r.rect.x : r.rect.x + r.rect.w)
+    if (Math.abs(edge - line) >= 2) continue
+    touched.push(r.id)
+    if (side === 'E') r.rect = { ...r.rect, w: r.rect.w + d }
+    else if (side === 'W') r.rect = { ...r.rect, x: r.rect.x - d, w: r.rect.w + d }
+    else if (side === 'S') r.rect = { ...r.rect, h: r.rect.h + d }
+    else r.rect = { ...r.rect, y: r.rect.y - d, h: r.rect.h + d }
+    if (r.rect.w < 900 || r.rect.h < 900) return fail(`${r.name} would be too narrow to stand in. Move the wall less.`)
+  }
+  if (!touched.length) return fail('No room touches that wall.')
+  out.outline = { ...O, [side]: O[side] + d }
+  const names = { N: 'north', S: 'south', E: 'east', W: 'west' }
+  const levels = [...new Set(out.floors.map((f) => f.level))]
+  let next = out
+  for (const level of levels) next = settle(next, plan, level)
+  return ok(next, `The ${names[side]} wall moved ${d > 0 ? 'out' : 'in'} ${m(Math.abs(d))} m.`, touched)
 }

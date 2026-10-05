@@ -142,3 +142,28 @@ test('automatic clean-up: one mask per column, outliers dropped, corners and bea
   assert.equal(beams.length, 1)
   assert.deepEqual([beams[0].a, beams[0].b].sort(), ['a', 'b'])
 })
+
+test('a structure typed in by hand (columns, gaps, beams) is planned around when the photo cannot be read', async () => {
+  const { planAroundStructure: plan } = await import('../src/lib/existing/plan.ts')
+  const { buildAsBuilt: build } = await import('../src/lib/existing/asBuilt.ts')
+  const { defaultAnswers: answers } = await import('../src/lib/existing/types.ts')
+  const planAroundStructure = plan, buildAsBuilt = build, defaultAnswers = answers
+  const run = (along, across, gx, gy, built, wanted, beams = true) => {
+    const cols = [], bm = []
+    for (let j = 0; j < across; j++) for (let i = 0; i < along; i++) cols.push({ id: `col-${cols.length + 1}`, img: { x: i * gx * 1000, y: j * gy * 1000 }, widthPx: 230, confidence: 1, source: 'user', confirmed: true })
+    const at = (i, j) => cols[j * along + i].id
+    if (beams) { for (let j = 0; j < across; j++) for (let i = 0; i < along - 1; i++) bm.push({ id: `b${bm.length}`, a: at(i, j), b: at(i + 1, j), confidence: 1, source: 'user', confirmed: true })
+      for (let i = 0; i < along; i++) for (let j = 0; j < across - 1; j++) bm.push({ id: `b${bm.length}`, a: at(i, j), b: at(i, j + 1), confidence: 1, source: 'user', confirmed: true }) }
+    const det = { columns: cols, beams: bm, footings: [], walls: [], seen: {} }
+    const a = { ...defaultAnswers(), plotWidthM: 22, plotDepthM: 24, storeysBuilt: built, storeysWanted: wanted, bedroomsWithBath: 1, bedroomsNoBath: 1, sharedBaths: 1 }
+    const ab = buildAsBuilt(det, { mode: 'scale', a: cols[0].id, b: cols[1].id, distanceMm: gx * 1000 }, a, { align: true })
+    if (!ab.ok) return 'asBuilt: ' + ab.error
+    const p = planAroundStructure(ab.value, a)
+    return p.ok ? (p.valid ? 'VALID' : 'invalid: ' + [...p.rules.findings.filter(f => f.severity === 'error').map(f => f.message), ...(p.existing.ok ? [] : ['existing'])].slice(0, 2).join(' | ')) : 'no plan: ' + p.reason
+  }
+  
+  assert.equal(run(4, 3, 5, 4, 1, 1), 'VALID')
+  assert.equal(run(4, 3, 5, 4, 1, 2), 'VALID')
+  // a frame too small for the rooms asked for is reported with the reason, never silently accepted
+  assert.match(run(3, 3, 5, 4, 1, 1), /under its/)
+})
