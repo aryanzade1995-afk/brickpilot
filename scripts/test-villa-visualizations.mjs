@@ -13,7 +13,7 @@ function png(v){const chunk=(type,data)=>{const b=Buffer.alloc(data.length+12);b
   const h=Buffer.alloc(13);h.writeUInt32BE(2);h.writeUInt32BE(2,4);h[8]=8;h[9]=2
   return Buffer.concat([Buffer.from('89504e470d0a1a0a','hex'),chunk('IHDR',h),chunk('IDAT',deflateSync(Buffer.from([0,v,v,v,v,v,v,0,v,v,v,v,v,v]))),chunk('IEND',Buffer.alloc(0))]).toString('base64')}
 const first=png(60),second=png(140),output=(imageBase64=first)=>({imageBase64,mimeType:'image/png'})
-const reference={sourceId:'plan-A|study|41',source:'study',seed:41,views:[{view:'front',beauty:first,edge:second}]}
+const reference={sourceId:'plan-A|blender|41',source:'blender',seed:41,views:[{view:'front',beauty:first,edge:second}]}
 const limits={...VISUALIZATION_LIMITS,geminiTimeoutMs:25,comfyTimeoutMs:150}
 
 test('a successful run returns the single source-bound front view and never exposes provider details',async()=>{
@@ -49,7 +49,8 @@ test('reject corrupt containers, duplicate/missing views and stale responses',()
   const corrupt=Buffer.from(first,'base64');corrupt[45]^=1;assert.ok(!validImage(corrupt.toString('base64'),'image/png'))
   assert.throws(()=>validateVillaReference({...reference,views:[reference.views[0],reference.views[0]]}))
   assert.throws(()=>readVisualizationPair({sourceId:'old',images:[]},reference.sourceId))
-  assert.notEqual(visualizationSourceId('A','study',41),visualizationSourceId('A','blender',41))
+  assert.throws(()=>validateVillaReference({...reference,source:'study'}),'the study model is no longer a visualization source')
+  assert.notEqual(visualizationSourceId('A','blender',41),visualizationSourceId('A','blender',42))
   assert.notEqual(visualizationSourceId('A','blender',41,'old.glb'),visualizationSourceId('A','blender',41,'new.glb'))
 })
 test('local workflow seeds the actual colour render, preserves edges and uses bounded moderate-denoise settings',()=>{
@@ -74,9 +75,9 @@ test('Gemini receives both real renders in a direct edit rather than generating 
   assert.equal(parts[1].image_url.url,`data:image/png;base64,${first}`)
   assert.ok(!requests.some(r=>r.url.includes('images/generations')))
 })
-test('Render has two source tabs (AI Interior moved after Finishes & Cost), large actual viewport and a single visualization action',async()=>{
+test('Render shows only the Blender villa (no study model; AI Interior after Finishes & Cost), large actual viewport and a single visualization action',async()=>{
   const route=await readFile(new URL('../src/routes/Render.tsx',import.meta.url),'utf8')
-  assert.match(route,/Blender Villa/);assert.match(route,/Study Model/);assert.doesNotMatch(route,/InteriorStudio/)
+  assert.match(route,/Your Blender villa/);assert.doesNotMatch(route,/Study Model|study model|'study'/);assert.doesNotMatch(route,/InteriorStudio/)
   assert.match(route,/Generate AI Visualization/);assert.match(route,/VillaVisualizationViewport/)
   assert.doesNotMatch(route,/md:grid-cols-2/);assert.doesNotMatch(route,/runJobs|probeHealth|REF_KEYS|Docker|Cookie|switching/i)
 })

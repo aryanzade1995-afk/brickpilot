@@ -1,34 +1,21 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Canvas, useThree } from '@react-three/fiber'
-import { Grid, OrbitControls } from '@react-three/drei'
+import { OrbitControls } from '@react-three/drei'
 import { BrightnessContrast, EffectComposer, N8AO, SMAA, Vignette } from '@react-three/postprocessing'
 import { ArrowRight, Grid3x3 } from 'lucide-react'
 import * as THREE from 'three'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { useStudio } from '@/state/studio.ts'
 import { MASSING_LABEL } from '@/lib/engine/index.ts'
-import { buildMassing } from '@/lib/three/buildMassing.ts'
-import { MassingModel, SceneEnv } from '@/lib/three/MassingScene.tsx'
-import { ArchitectureDebug } from '@/lib/three/ArchitectureDebug.tsx'
 import { buildDollhouse } from '@/lib/three/buildDollhouse.ts'
 import { DollhouseModel, DollhouseEnv } from '@/lib/three/DollhouseScene.tsx'
-import type { Group } from '@/lib/three/massingGroups.ts'
 import { cx } from '@/lib/cx.ts'
 import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
 import { InvalidPlanNotice } from '@/components/InvalidPlanNotice.tsx'
 import { BlenderVillaPanel } from '@/components/BlenderVillaPanel.tsx'
 
-const LAYER_TOGGLES: { g: Group; label: string }[] = [
-  { g: 'shell', label: 'Walls' },
-  { g: 'glazing', label: 'Glazing' },
-  { g: 'slabs', label: 'Floor slabs' },
-  { g: 'roof', label: 'Roof + canopies' },
-  { g: 'partition', label: 'Partitions (explode)' },
-  { g: 'stair', label: 'Stair core' },
-]
-
-type ViewMode = 'architecture' | 'study' | 'furnished'
+type ViewMode = 'architecture' | 'furnished'
 
 type CamKey = 'front' | 'rear' | 'left' | 'right' | 'iso' | 'top'
 
@@ -40,12 +27,6 @@ export function Massing() {
   }, [result, run])
 
   const [mode, setMode] = useState<ViewMode>('architecture')
-  const massing = useMemo(() => (result?.shapeFingerprint && mode !== 'architecture' ? buildMassing(result.design) : null), [result, mode])
-
-  const [explode, setExplode] = useState(0)
-  const [hidden, setHidden] = useState<Set<Group>>(new Set())
-  const [showSite, setShowSite] = useState(true)
-  const [showDebug, setShowDebug] = useState(false)
   const [pendingView, setPendingView] = useState<CamKey | null>('iso')
   const [floorSel, setFloorSel] = useState<number | 'all'>('all')
   const doll = useMemo(
@@ -57,48 +38,39 @@ export function Massing() {
   if (result && (mode === 'architecture' || !result.shapeFingerprint)) return <div className="mx-auto max-w-[1400px] px-6 py-8 md:px-10">
     <WorkspaceTabs />
     <h1 className="mt-5 font-display text-2xl">3D massing · {result.model.brief.project.name}</h1>
-    <MassingViewTabs mode="architecture" onChange={setMode} studyAvailable={Boolean(result.shapeFingerprint)} />
+    <MassingViewTabs mode="architecture" onChange={setMode} furnishedAvailable={Boolean(result.shapeFingerprint)} />
     <BlenderVillaPanel plan={result.design} selectedSeed={result.villaDesignDNA?.seed ?? result.design.dna.seed} autoGenerate />
     <div className="mt-6 flex gap-6 text-sm">
       <Link to="/workspace/plan" className="underline underline-offset-4">View the 2D plan</Link>
       <Link to="/workspace/render" className="underline underline-offset-4">Continue to renders</Link>
     </div>
   </div>
-  if (!result || !massing) {
+  if (!result || !doll) {
     return <div className="mx-auto max-w-[1400px] px-10 py-24 text-ink-dim">Preparing model…</div>
   }
 
-  const furnished = mode === 'furnished' && doll
   const levels = result.design.floors.map((f) => f.level)
-  const span = furnished ? Math.max(doll.bounds.w, doll.bounds.d) : Math.max(massing.bounds.w, massing.bounds.d)
-  const center = furnished ? doll.center : massing.center
+  const span = Math.max(doll.bounds.w, doll.bounds.d)
+  const center = doll.center
   const switchMode = (mm: ViewMode) => {
     setMode(mm)
     setPendingView('iso')
   }
-  const character = result.model.brief.style.character
-
-  const toggle = (g: Group) =>
-    setHidden((h) => {
-      const n = new Set(h)
-      if (n.has(g)) n.delete(g)
-      else n.add(g)
-      return n
-    })
+  const design = result.design
 
   return (
     <div className="mx-auto max-w-[1400px] px-6 py-8 md:px-10">
       <WorkspaceTabs />
-      <MassingViewTabs mode={mode} onChange={switchMode} studyAvailable />
+      <MassingViewTabs mode={mode} onChange={switchMode} furnishedAvailable />
       <div className="mt-4 flex items-center justify-between">
-        <h1 className="font-display text-2xl">Floor-plan study · {result.model.brief.project.name}</h1>
+        <h1 className="font-display text-2xl">Furnished · {result.model.brief.project.name}</h1>
         <div className="font-mono text-[0.7rem] uppercase tracking-[0.1em] text-ok">● Geometry verified</div>
       </div>
 
       <div className="mt-5 grid gap-6 lg:grid-cols-[1fr_280px]">
         <div>
           <div className="mb-3 flex flex-wrap items-center gap-1">
-            {mode === 'furnished' && levels.length > 1 && (
+            {levels.length > 1 && (
               <div className="mr-3 flex border border-line">
                 {(['all', ...levels] as (number | 'all')[]).map((l) => (
                   <button
@@ -141,28 +113,8 @@ export function Massing() {
                 gl.toneMappingExposure = 1.5
               }}
             >
-              {furnished ? <DollhouseEnv doll={doll} /> : <SceneEnv massing={massing} />}
-              {showSite && !furnished && (
-                <Grid
-                  position={[massing.center[0], -0.01, massing.center[2]]}
-                  args={[span * 3, span * 3]}
-                  cellSize={1}
-                  cellThickness={0.5}
-                  cellColor="#525252"
-                  sectionSize={5}
-                  sectionThickness={0.8}
-                  sectionColor="#686868"
-                  fadeDistance={span * 3.4}
-                  fadeStrength={1.3}
-                />
-              )}
-
-              {furnished ? (
-                <DollhouseModel doll={doll} />
-              ) : (
-                <MassingModel massing={massing} explode={explode} hidden={hidden} character={character} />
-              )}
-              {import.meta.env.DEV && showDebug && mode === 'study' && <ArchitectureDebug design={result.design} />}
+              <DollhouseEnv doll={doll} />
+              <DollhouseModel doll={doll} />
 
               <EffectComposer enableNormalPass multisampling={4}>
                 <N8AO aoRadius={1.5} intensity={2.7} distanceFalloff={1.1} halfRes />
@@ -179,46 +131,17 @@ export function Massing() {
             </div>
           </div>
 
-          <div className="mt-4 flex items-center gap-4">
-            <span className="label flex-none">Explode</span>
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.01}
-              value={explode}
-              onChange={(e) => setExplode(Number(e.target.value))}
-              className="w-full accent-accent"
-            />
-            <span className="w-10 flex-none text-right font-mono text-xs text-ink-dim tnum">
-              {Math.round(explode * 100)}%
-            </span>
-          </div>
         </div>
 
         <div className="space-y-6">
           <Panel title="Model">
             <Stat k="Massing" v={MASSING_LABEL[result.design.massingType] ?? result.design.massingType} />
-            <Stat k="Storeys" v={String(massing.stats.storeys)} />
-            <Stat k="Height" v={`${massing.stats.heightM} m`} />
-            <Stat k="Built area" v={`${massing.stats.builtAreaSqm.toFixed(1)} m²`} />
-            <Stat k="Openings" v={String(massing.stats.openings)} />
+            <Stat k="Storeys" v={String(design.floors.length)} />
+            <Stat k="Height" v={`${design.heightM} m`} />
+            <Stat k="Built area" v={`${design.builtAreaSqm.toFixed(1)} m²`} />
+            <Stat k="Openings" v={String(design.openingCounts.doors + design.openingCounts.windows)} />
             <Stat k="New element" v={result.design.dna.roofGeometry?.element ?? 'portal'} />
           </Panel>
-
-          <div className="border border-line">
-            <div className="label border-b border-line px-4 py-2.5">Layers</div>
-            <div className="p-2">
-              {LAYER_TOGGLES.map((l) => (
-                <LayerRow key={l.g} label={l.label} on={!hidden.has(l.g)} onClick={() => toggle(l.g)} />
-              ))}
-              <LayerRow label="Site + grid" on={showSite} onClick={() => setShowSite((v) => !v)} />
-              {import.meta.env.DEV && <LayerRow label="Architecture debug" on={showDebug} onClick={() => setShowDebug((v) => !v)} />}
-            </div>
-          </div>
-          {import.meta.env.DEV && showDebug && <p className="text-[0.65rem] leading-relaxed text-ink-dim">
-            Blue openings · green available walls · yellow clearance · cyan anchors · magenta features · red collisions
-          </p>}
 
           <div className="border border-line">
             <div className="label flex items-center justify-between border-b border-line px-4 py-2.5">
@@ -227,7 +150,7 @@ export function Massing() {
             </div>
             <div className="space-y-3 p-4">
               <p className="text-[0.8rem] leading-relaxed text-ink-dim">
-                Your accepted architectural design provides the render references. This study view follows the floor plan.
+                Your accepted architectural design provides the render references. This furnished view follows the floor plan.
               </p>
               <Link
                 to="/workspace/render"
@@ -244,10 +167,10 @@ export function Massing() {
   )
 }
 
-function MassingViewTabs({ mode, onChange, studyAvailable }: { mode: ViewMode; onChange: (mode: ViewMode) => void; studyAvailable: boolean }) {
+function MassingViewTabs({ mode, onChange, furnishedAvailable }: { mode: ViewMode; onChange: (mode: ViewMode) => void; furnishedAvailable: boolean }) {
   return <div className="mt-5 flex flex-wrap gap-1" role="tablist" aria-label="3D views">
-    {([['architecture', 'Blender design'], ['study', 'Floor-plan study'], ['furnished', 'Furnished']] as const).map(([key, label]) =>
-      <button key={key} type="button" role="tab" aria-selected={mode === key} disabled={key !== 'architecture' && !studyAvailable}
+    {([['architecture', 'Blender design'], ['furnished', 'Furnished']] as const).map(([key, label]) =>
+      <button key={key} type="button" role="tab" aria-selected={mode === key} disabled={key !== 'architecture' && !furnishedAvailable}
         onClick={() => onChange(key)} className={cx('border border-line px-3 py-2 text-xs disabled:opacity-40',
           mode === key ? 'border-ink text-ink' : 'text-ink-dim hover:text-ink')}>{label}</button>)}
   </div>
@@ -305,22 +228,6 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
       <div className="label border-b border-line px-4 py-2.5">{title}</div>
       <div className="space-y-2 p-4">{children}</div>
     </div>
-  )
-}
-
-function LayerRow({ label, on, onClick }: { label: string; on: boolean; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cx(
-        'flex w-full items-center justify-between px-2 py-2 text-left text-sm',
-        on ? 'text-ink' : 'text-ink-faint',
-      )}
-    >
-      {label}
-      <span className={cx('h-2 w-2 rounded-full', on ? 'bg-accent' : 'bg-line-strong')} />
-    </button>
   )
 }
 

@@ -12,21 +12,19 @@ import { finishSignature } from '@/lib/cost/finishAssignments.ts'
 import { emergencyPlan } from '@/lib/engine/safety.ts'
 import { VillaVisualizationViewport, type VillaViewportHandle } from '@/lib/render/VillaVisualizationViewport.tsx'
 import { readVisualizationPair, visualizationSourceId, VILLA_VIEW_LABELS } from '@/lib/render/villaVisualizations.ts'
-import { cx } from '@/lib/cx.ts'
 
-type Tab='blender'|'study'
 export function Render() {
   const result=useStudio(s=>s.result),brief=useStudio(s=>s.brief),run=useStudio(s=>s.run)
   const plan=useMemo(()=>result?{...result.design,model:{...result.design.model,brief}}:null,[result,brief])
   const planId=useMemo(()=>plan?createBuildingModel(plan).planId:'',[plan])
   const blender=useBlender(s=>s.accepted[planId]),ensure=useBlender(s=>s.ensureForPlan),resume=useBlender(s=>s.resume)
   const job=useBlender(s=>s.sourcePlanId===planId?s.job:null)
-  const [tab,setTab]=useState<Tab>('blender'),[ready,setReady]=useState(false)
+  const [ready,setReady]=useState(false)
   const [storedPhase,storePhase]=useState<{sourceId:string;value:'idle'|'capture'|'generate'}|null>(null)
   const [storedMessage,storeMessage]=useState<{sourceId:string;text:string|null}|null>(null)
   const viewport=useRef<VillaViewportHandle>(null),request=useRef<AbortController|null>(null)
-  const source=tab==='study'?'study':'blender',seed=source==='blender'?blender?.seed??0:plan?.planSeed??plan?.dna.seed??0
-  const sourceId=visualizationSourceId(planId,source,seed,source==='blender'?blender?.files.glb??'':'',finishSignature(brief))
+  const source='blender',seed=blender?.seed??0
+  const sourceId=visualizationSourceId(planId,source,seed,blender?.files.glb??'',finishSignature(brief))
   const phase=storedPhase?.sourceId===sourceId?storedPhase.value:'idle',message=storedMessage?.sourceId===sourceId?storedMessage.text:null
   const setPhase=(value:'idle'|'capture'|'generate')=>storePhase({sourceId,value})
   const setMessage=(text:string|null)=>storeMessage({sourceId,text})
@@ -43,7 +41,7 @@ export function Render() {
       const views=await viewport.current.capture();controller.signal.throwIfAborted();setPhase('generate')
       const response=await fetch('/api/villa-visualizations',{method:'POST',headers:{'content-type':'application/json'},
         signal:AbortSignal.any([controller.signal,AbortSignal.timeout(340000)]),
-        body:JSON.stringify({sourceId,source,seed,views,facts:`${plan.floors.length} occupied floors. Keep the supplied ${source==='blender'?'accepted Blender villa':'study model'} unchanged. ${plan.openingCounts.windows} planned windows, ${plan.openingCounts.doors} planned doors. ${plan.siteFeatures?.some(f=>f.kind==='pool')?'The site has a swimming pool.':'The site has NO swimming pool.'}`})})
+        body:JSON.stringify({sourceId,source,seed,views,facts:`${plan.floors.length} occupied floors. Keep the supplied accepted Blender villa unchanged. ${plan.openingCounts.windows} planned windows, ${plan.openingCounts.doors} planned doors. ${plan.siteFeatures?.some(f=>f.kind==='pool')?'The site has a swimming pool.':'The site has NO swimming pool.'}`})})
       const data=await response.json();controller.signal.throwIfAborted()
       if(!response.ok)throw new Error('Visualizations are unavailable right now. Your 3D model is ready.')
       save(readVisualizationPair(data,sourceId))
@@ -55,19 +53,15 @@ export function Render() {
   if(!result||!plan)return <div className="mx-auto max-w-[1400px] px-10 py-24 text-ink-dim">Preparing model…</div>
   if(!result.report.hardChecksPass)return <InvalidPlanNotice report={result.report}/>
   const blenderBusy=job&&!['complete','failed'].includes(job.status)
-  const hasModel=source==='study'||Boolean(blender)
+  const hasModel=Boolean(blender)
   return <div className="mx-auto max-w-[1400px] px-6 py-8 md:px-10">
     <WorkspaceTabs/>
     <div className="mt-8"><p className="label">Step 05 · Render</p><h1 className="mt-3 font-display text-3xl md:text-4xl">Visualise your villa</h1>
       <p className="mt-3 max-w-3xl text-sm leading-relaxed text-ink-dim">Compare your completed 3D model with two realistic exterior views. Your rooms, openings and building geometry remain the reference.</p></div>
-    <div role="tablist" aria-label="Visualization model" className="mt-7 flex gap-1 overflow-x-auto border-b border-line">
-      {([['blender','Blender Villa'],['study','Study Model']] as const).map(([key,label])=><button key={key} type="button" role="tab" aria-selected={tab===key} disabled={busy}
-        onClick={()=>{if(tab!==key){setReady(false);setTab(key)}}} className={cx('shrink-0 border-b-2 px-5 py-3 font-mono text-xs uppercase tracking-wider disabled:opacity-50',tab===key?'border-ink text-ink':'border-transparent text-ink-dim')}>{label}</button>)}
-    </div>
-    <section role="tabpanel" className="mt-6">
-      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3"><h2 className="font-display text-2xl">{source==='blender'?'Your Blender villa':'Your architectural study model'}</h2>
+    <section className="mt-7">
+      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3"><h2 className="font-display text-2xl">Your Blender villa</h2>
         <span className="text-xs text-ink-dim">Same 2D plan · {plan.floors.length} floors · {plan.builtAreaSqm.toFixed(0)} m²</span></div>
-      {hasModel?<VillaVisualizationViewport key={sourceId} ref={viewport} design={plan} url={source==='blender'?blender?.files.glb:undefined} onReady={readyChanged}/>:
+      {hasModel?<VillaVisualizationViewport key={sourceId} ref={viewport} design={plan} url={blender!.files.glb} onReady={readyChanged}/>:
         <div className="flex min-h-80 flex-col items-center justify-center gap-4 border border-line bg-bg-inset p-8 text-center">
           {blenderBusy&&<div className="w-full max-w-md"><RenderProgress progress={job?.progress} label={job?.phase||'Preparing the Blender villa'}/></div>}
           <p className="max-w-lg text-sm text-ink-dim">{blenderBusy?'Preparing the Blender villa for your current plan…':'Prepare the Blender villa for this plan to visualize its actual architecture.'}</p>
@@ -85,7 +79,7 @@ export function Render() {
         {(Object.keys(VILLA_VIEW_LABELS) as (keyof typeof VILLA_VIEW_LABELS)[]).map(view=>{
           const image=pair?.images.find(i=>i.view===view)
           return <figure key={view}><div className="flex aspect-[4/3] items-center justify-center overflow-hidden border border-line bg-bg-inset">
-            {image?<a href={image.url} target="_blank" rel="noreferrer" className="block h-full w-full"><img src={image.url} alt={`${VILLA_VIEW_LABELS[view]} of the ${source==='blender'?'Blender villa':'study model'}`} className="h-full w-full object-contain"/></a>:<p className="px-6 text-center text-sm text-ink-faint">{busy?'Creating this view…':`${VILLA_VIEW_LABELS[view]} will appear here.`}</p>}
+            {image?<a href={image.url} target="_blank" rel="noreferrer" className="block h-full w-full"><img src={image.url} alt={`${VILLA_VIEW_LABELS[view]} of the Blender villa`} className="h-full w-full object-contain"/></a>:<p className="px-6 text-center text-sm text-ink-faint">{busy?'Creating this view…':`${VILLA_VIEW_LABELS[view]} will appear here.`}</p>}
           </div><figcaption className="mt-3 flex items-center justify-between gap-2 text-sm"><span>{VILLA_VIEW_LABELS[view]}</span>{image&&<a href={image.url} download={`${source}_${seed}_${view}.png`} className="flex items-center gap-1 text-xs underline"><Download size={13}/>Download</a>}</figcaption></figure>
         })}
       </div>

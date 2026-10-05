@@ -40,7 +40,7 @@ export function validImage(imageBase64, mimeType) {
 
 export function validateVillaReference(reference) {
   if(!reference||typeof reference.sourceId!=='string'||!reference.sourceId.trim()||reference.sourceId.length>512||
-    !['blender','study'].includes(reference.source)||!Number.isSafeInteger(reference.seed)||reference.seed<0||
+    reference.source!=='blender'||!Number.isSafeInteger(reference.seed)||reference.seed<0||
     !Array.isArray(reference.views)||reference.views.length!==VILLA_VIEWS.length)throw new Error('Invalid villa reference')
   if(reference.facts!==undefined&&(typeof reference.facts!=='string'||reference.facts.length>4000))throw new Error('Invalid villa facts')
   return VILLA_VIEWS.map(view=>{

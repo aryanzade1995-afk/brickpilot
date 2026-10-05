@@ -4,13 +4,9 @@ import { OrbitControls, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import type { Design } from '../engine/types.ts'
-import { buildMassing } from '../three/buildMassing.ts'
-import { MassingModel, SceneEnv } from '../three/MassingScene.tsx'
 import { buildingEdgeMap } from './edgeMap.ts'
-import type { Group } from '../three/massingGroups.ts'
 import type { VillaReferenceView } from './villaVisualizations.ts'
 
-const visible=new Set<Group>()
 const CAMERA={fov:40,near:.1,far:2000}
 const GL={preserveDrawingBuffer:true,antialias:true}
 const TARGET:[number,number,number]=[0,3,0]
@@ -23,7 +19,7 @@ class ModelBoundary extends Component<{children:ReactNode},{failed:boolean}> {
 }
 
 /** Both source tabs use the actual editable model, not a generic villa or image substitute. */
-export const VillaVisualizationViewport=forwardRef<VillaViewportHandle,{design:Design;url?:string;onReady:(ready:boolean)=>void}>(
+export const VillaVisualizationViewport=forwardRef<VillaViewportHandle,{design:Design;url:string;onReady:(ready:boolean)=>void}>(
   function VillaVisualizationViewport({design,url,onReady},ref) {
     const driver=useRef<Driver|null>(null)
     const setDriver=useCallback((value:Driver|null)=>{driver.current=value;onReady(Boolean(value))},[onReady])
@@ -34,7 +30,7 @@ export const VillaVisualizationViewport=forwardRef<VillaViewportHandle,{design:D
     return <div data-villa-visualization-model className="aspect-[4/3] max-h-[680px] w-full overflow-hidden border border-line bg-bg-inset">
       <ModelBoundary key={url??design.id}><Canvas shadows dpr={[1,2]} camera={CAMERA}
         gl={GL} onCreated={({gl})=>{gl.toneMapping=THREE.NeutralToneMapping;gl.toneMappingExposure=1.2}}>
-        <Suspense fallback={null}>{url?<BlenderSource url={url} setDriver={setDriver}/>:<StudySource design={design} setDriver={setDriver}/>}</Suspense>
+        <Suspense fallback={null}><BlenderSource url={url} setDriver={setDriver}/></Suspense>
         <OrbitControls makeDefault target={TARGET} minDistance={2} maxDistance={150} maxPolarAngle={Math.PI/2.02}/>
       </Canvas></ModelBoundary>
     </div>
@@ -49,28 +45,18 @@ function BlenderSource({url,setDriver}:SourceProps&{url:string}) {
   },[gltf.scene])
   const box=useMemo(()=>new THREE.Box3().setFromObject(scene),[scene])
   return <><color attach="background" args={['#e8e7e4']}/><ambientLight intensity={.8}/><directionalLight position={[-20,35,-25]} intensity={2.4} castShadow shadow-mapSize={[2048,2048]}/>
-    <primitive object={scene}/><SourceCamera box={box} source="blender" setDriver={setDriver}/></>
+    <primitive object={scene}/><SourceCamera box={box} setDriver={setDriver}/></>
 }
-function StudySource({design,setDriver}:SourceProps&{design:Design}) {
-  const massing=useMemo(()=>buildMassing(design),[design])
-  const box=useMemo(()=>{
-    const b=new THREE.Box3()
-    for(const item of massing.boxes){const center=new THREE.Vector3(...item.pos),half=new THREE.Vector3(...item.size).multiplyScalar(.5);b.expandByPoint(center.clone().sub(half));b.expandByPoint(center.clone().add(half))}
-    return b
-  },[massing])
-  return <><SceneEnv massing={massing}/><MassingModel massing={massing} explode={0} hidden={visible} character={design.model.brief.style.character}/>
-    <SourceCamera box={box} source="study" setDriver={setDriver}/></>
-}
-function SourceCamera({box,source,setDriver}:SourceProps&{box:THREE.Box3;source:'study'|'blender'}) {
+function SourceCamera({box,setDriver}:SourceProps&{box:THREE.Box3}) {
   const {gl,scene,camera,controls}=useThree()
   useEffect(()=>{
     if(box.isEmpty())return
     const size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3())
     const pose=(c:THREE.PerspectiveCamera,view:'front'|'iso')=>{
-      // Blender exports its plan-south +Y as Three.js -Z; the study model uses +Z.
+      // Blender exports its plan-south +Y as Three.js -Z.
       // front: straight onto the entrance side, a little above eye level. iso: the classic
       // three-quarter bird's-eye view from the front-left corner.
-      const frontSign=source==='blender'?-1:1
+      const frontSign=-1
       const direction=view==='front'?new THREE.Vector3(0,.13,frontSign).normalize():new THREE.Vector3(-1,.82,frontSign).normalize()
       const points=Array.from({length:8},(_,i)=>new THREE.Vector3(i&1?box.max.x:box.min.x,i&2?box.max.y:box.min.y,i&4?box.max.z:box.min.z))
       const aim=center.clone();aim.y=box.min.y+size.y*.44
@@ -107,6 +93,6 @@ function SourceCamera({box,source,setDriver}:SourceProps&{box:THREE.Box3;source:
       } finally {scene.background=previousBackground;gl.setPixelRatio(dpr);gl.setSize(old.x,old.y,false);gl.render(scene,camera)}
     }})
     return ()=>{alive=false;sky.dispose();setDriver(null)}
-  },[gl,scene,camera,controls,box,source,setDriver])
+  },[gl,scene,camera,controls,box,setDriver])
   return null
 }

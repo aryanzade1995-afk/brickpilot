@@ -85,11 +85,10 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
   const conceptImages = useMemo<ReportImage[]>(() => {
     const out: ReportImage[] = []
     const currentSources=new Set(result?[
-      visualizationSourceId(planId,'study',result.design.planSeed??result.design.dna.seed,'',finishSignature(brief)),
       ...(blender?[visualizationSourceId(planId,'blender',blender.seed,blender.files.glb,finishSignature(brief))]:[]),
     ]:[])
     for(const pair of Object.values(villaPairs).filter(p=>currentSources.has(p.sourceId))) {
-      const label=pair.sourceId.includes('|blender|')?'Blender villa':'Study model'
+      const label='Blender villa'
       pair.images.forEach(image=>out.push({label:`Visualisation (AI · ${label}) — ${VILLA_VIEW_LABELS[image.view]}`,dataUrl:image.url}))
     }
     for (const k of Object.keys(renderJobs) as RefKey[]) {

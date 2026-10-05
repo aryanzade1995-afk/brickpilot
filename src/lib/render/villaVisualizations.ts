@@ -3,7 +3,7 @@ export type VillaView=keyof typeof VILLA_VIEW_LABELS
 export type VillaReferenceView={view:VillaView;beauty:string;edge:string}
 export type VillaVisualizationImage={view:VillaView;url:string}
 export type VillaVisualizationPair={sourceId:string;images:VillaVisualizationImage[]}
-export function visualizationSourceId(planId:string,source:'blender'|'study',seed:number,artifact='',finish='') {
+export function visualizationSourceId(planId:string,source:'blender',seed:number,artifact='',finish='') {
   return `${planId}|${source}|${seed}|${artifact}|${finish}`
 }
 export function readVisualizationPair(data:unknown,sourceId:string):VillaVisualizationPair {
