@@ -35,3 +35,8 @@ __pycache__/
 
 # generated contact sheet
 massing-grid.html
+ml/.venv/
+ml/data/
+ml/runs/
+*.pt
+ml/install.log
