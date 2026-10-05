@@ -129,7 +129,7 @@ export async function generateVillaView({beauty, otherBeauty, positive, signal})
   signal?.throwIfAborted()
   const body=await request('/openai/v1/chat/completions',{method:'POST',signal,headers:{'content-type':'application/json'},
     body:JSON.stringify({model:selected,stream:false,messages:[{role:'user',content:[{type:'text',text:positive},
-      ...[beauty,otherBeauty].map(data=>({type:'image_url',image_url:{url:`data:image/png;base64,${data}`}}))]}]})},60000)
+      ...[beauty,otherBeauty].filter(Boolean).map(data=>({type:'image_url',image_url:{url:`data:image/png;base64,${data}`}}))]}]})},60000)
   const content=body?.choices?.[0]?.message?.content
   const inline=Array.isArray(content)?content.find(p=>p.type==='image_url'&&p.image_url?.url?.startsWith('data:image/'))?.image_url?.url:null
   const text=inline||textOf(body)

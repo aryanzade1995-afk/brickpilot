@@ -230,9 +230,11 @@ export function buildVillaWorkflow({beautyName,edgeName,positive,negative,params
 export async function generateVillaView({beauty,edge,positive,negative,params,signal}) {
   signal?.throwIfAborted()
   const tag=crypto.randomUUID(),clientId=`formstead-villa-${tag}`
-  const beautyName=await uploadImage(beauty,`villa_${tag}.png`,signal)
+  // interior-style: generate the photo from the prompt, with the model's edges holding the architecture
+  const beautyName=params.img2img?await uploadImage(beauty,`villa_${tag}.png`,signal):null
   const edgeName=await uploadImage(edge,`villa_${tag}_edges.png`,signal)
-  const {graph,seed}=buildVillaWorkflow({beautyName,edgeName,positive,negative,params})
+  const {graph,seed}=params.img2img?buildVillaWorkflow({beautyName,edgeName,positive,negative,params}):buildWorkflow({edgeName,positive,negative,params})
+  graph['70'].inputs.filename_prefix='formstead_villa'
   const promptId=await submit(graph,clientId,signal)
   const ref=await awaitResult(clientId,promptId,undefined,signal)
   const img=await fetchImage(ref,signal)

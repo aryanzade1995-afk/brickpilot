@@ -66,10 +66,12 @@ function SourceCamera({box,source,setDriver}:SourceProps&{box:THREE.Box3;source:
   useEffect(()=>{
     if(box.isEmpty())return
     const size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3())
-    const pose=(c:THREE.PerspectiveCamera,view:'front-left'|'rear-right')=>{
+    const pose=(c:THREE.PerspectiveCamera,view:'front'|'iso')=>{
       // Blender exports its plan-south +Y as Three.js -Z; the study model uses +Z.
-      const side=view==='front-left'?-1:1,frontSign=source==='blender'?-1:1
-      const direction=new THREE.Vector3(side,.36,-side*frontSign).normalize()
+      // front: straight onto the entrance side, a little above eye level. iso: the classic
+      // three-quarter bird's-eye view from the front-left corner.
+      const frontSign=source==='blender'?-1:1
+      const direction=view==='front'?new THREE.Vector3(0,.13,frontSign).normalize():new THREE.Vector3(-1,.82,frontSign).normalize()
       const points=Array.from({length:8},(_,i)=>new THREE.Vector3(i&1?box.max.x:box.min.x,i&2?box.max.y:box.min.y,i&4?box.max.z:box.min.z))
       const aim=center.clone();aim.y=box.min.y+size.y*.44
       let distance=Math.max(size.x,size.y,size.z)*1.2
@@ -80,15 +82,20 @@ function SourceCamera({box,source,setDriver}:SourceProps&{box:THREE.Box3;source:
       }
     }
     const initial=new THREE.PerspectiveCamera(40,gl.domElement.width/gl.domElement.height,.1,2000)
-    pose(initial,'front-left');camera.position.copy(initial.position);camera.quaternion.copy(initial.quaternion)
+    pose(initial,'iso');camera.position.copy(initial.position);camera.quaternion.copy(initial.quaternion)
     if(controls&&'target' in controls){(controls.target as THREE.Vector3).copy(center);(controls as OrbitControlsImpl).update()}
     let alive=true
+    // A plain grey backdrop stays grey in the AI image. A sky gradient reads as sky, so the AI paints a real one.
+    const sky=(()=>{const c=document.createElement('canvas');c.width=4;c.height=256;const g=c.getContext('2d')!.createLinearGradient(0,0,0,256)
+      g.addColorStop(0,'#5f9bd8');g.addColorStop(.55,'#b9d8f0');g.addColorStop(1,'#eef4f8');const x=c.getContext('2d')!;x.fillStyle=g;x.fillRect(0,0,4,256)
+      const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t})()
     setDriver({capture:async()=>{
-      const pair:VillaReferenceView[]=[],old=gl.getSize(new THREE.Vector2()),dpr=gl.getPixelRatio()
+      const pair:VillaReferenceView[]=[],old=gl.getSize(new THREE.Vector2()),dpr=gl.getPixelRatio(),previousBackground=scene.background
       try {
+        scene.background=sky
         gl.setPixelRatio(1);gl.setSize(1024,768,false)
         const captureCamera=new THREE.PerspectiveCamera(40,4/3,.1,2000)
-        for(const view of ['front-left','rear-right'] as const) {
+        for(const view of ['front'] as const) {
           if(!alive)throw new Error('The source model changed')
           pose(captureCamera,view);gl.render(scene,captureCamera)
           const beauty=gl.domElement.toDataURL('image/png').split(',')[1]
@@ -97,9 +104,9 @@ function SourceCamera({box,source,setDriver}:SourceProps&{box:THREE.Box3;source:
         }
         if(!alive)throw new Error('The source model changed')
         return pair
-      } finally {gl.setPixelRatio(dpr);gl.setSize(old.x,old.y,false);gl.render(scene,camera)}
+      } finally {scene.background=previousBackground;gl.setPixelRatio(dpr);gl.setSize(old.x,old.y,false);gl.render(scene,camera)}
     }})
-    return ()=>{alive=false;setDriver(null)}
+    return ()=>{alive=false;sky.dispose();setDriver(null)}
   },[gl,scene,camera,controls,box,source,setDriver])
   return null
 }

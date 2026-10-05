@@ -1,11 +1,17 @@
+import {mkdirSync,writeFileSync} from 'node:fs'
 import * as geminiWeb from './providers/gemini-web.mjs'
 import * as gemini from './providers/gemini.mjs'
 import * as comfyui from './providers/comfyui.mjs'
 
-export const VILLA_VIEWS = ['front-left', 'rear-right']
-export const VISUALIZATION_LIMITS = Object.freeze({geminiTimeoutMs:60000, comfyTimeoutMs:100000,
-  maxImageBytes:12e6, width:1024, height:768, steps:12, cfg:2.6, denoise:.28, cnCanny:.95, cnEnd:1})
-const PRESERVE = 'Edit the FIRST image, the authoritative completed 3D villa. The second image shows its other side for consistency only. Keep the FIRST camera exactly. Preserve footprint, silhouette, storeys, roof, stair headroom, clear terrace, all walls, columns, entrances, windows, doors, balconies, safety equipment, facade features, paths and landscape positions. Keep the same colours and material placement in both views. Improve surface realism, physical lighting, reflections, vegetation realism and architectural photographic quality only. No invented or moved architecture. Natural daylight, realistic architectural lens, little empty sky, no cropped elements. Return ONE image, no text.'
+export const VILLA_VIEWS = ['front']
+export const VISUALIZATION_LIMITS = Object.freeze({geminiTimeoutMs:60000, comfyTimeoutMs:150000,
+  maxImageBytes:12e6, width:1024, height:768, steps:8, cfg:2, denoise:1, cnCanny:1, cnEnd:.9, img2img:false})
+const PRESERVE = 'Edit the FIRST image, the authoritative completed 3D villa. Keep the FIRST camera exactly. Preserve footprint, silhouette, storeys, roof, stair headroom, clear terrace, all walls, columns, entrances, windows, doors, balconies, safety equipment, facade features, paths and landscape positions. Keep the same colours and material placement as the source. Improve surface realism, physical lighting, reflections, vegetation realism and architectural photographic quality only. No invented or moved architecture. Natural daylight, realistic architectural lens, little empty sky, no cropped elements. Return ONE image, no text.'
+const VIEW_TEXT = {front: 'Straight-on FRONT elevation of the entrance side, camera at about eye level, symmetrical framing.',
+  iso: 'ISOMETRIC three-quarter bird-eye view from the front-left corner, about 35 degrees above the ground, showing the roof terrace.'}
+// local SDXL gets a descriptive photo prompt (it cannot follow editing instructions)
+const comfyPrompt = (view, facts) => `Photorealistic architectural photograph of a modern two-storey Indian villa, ${VIEW_TEXT[view].replace(/\.$/, '')}. Cream-white plaster walls with natural stone cladding panels, large glass windows with dark frames and reflections, timber entrance door, flat concrete roof with parapet and rooftop water tanks, glass balcony railings, covered car porch, landscaped green lawn, small planters, paved driveway, golden-hour sunlight, blue sky with soft clouds, magazine-quality real-estate photograph, 35mm lens, sharp focus, ultra-detailed, 8k. ${facts ?? ''}`
+const COMFY_NEGATIVE = 'flat colours, untextured, 3d render, clay model, cartoon, illustration, sketch, blueprint, wireframe, distorted architecture, extra floors, changed footprint, extra windows, blocked doors, text, watermark, collage, blurry, low resolution'
 const NEGATIVE = 'redesigned villa, changed footprint, extra or missing floor, extra or moved window, changed roof, new balcony, blocked exit, distorted architecture, different materials, solid roof blocks, extreme wide angle, excessive sky, text, collage, illustration'
 const crcTable=Uint32Array.from({length:256},(_,value)=>{for(let i=0;i<8;i++)value=(value&1)?0xedb88320^(value>>>1):value>>>1;return value>>>0})
 function crc32(bytes){let value=0xffffffff;for(const byte of bytes)value=crcTable[(value^byte)&255]^(value>>>8);return (value^0xffffffff)>>>0}
@@ -35,11 +41,11 @@ export function validImage(imageBase64, mimeType) {
 export function validateVillaReference(reference) {
   if(!reference||typeof reference.sourceId!=='string'||!reference.sourceId.trim()||reference.sourceId.length>512||
     !['blender','study'].includes(reference.source)||!Number.isSafeInteger(reference.seed)||reference.seed<0||
-    !Array.isArray(reference.views)||reference.views.length!==2)throw new Error('Invalid villa reference')
+    !Array.isArray(reference.views)||reference.views.length!==VILLA_VIEWS.length)throw new Error('Invalid villa reference')
   if(reference.facts!==undefined&&(typeof reference.facts!=='string'||reference.facts.length>4000))throw new Error('Invalid villa facts')
   return VILLA_VIEWS.map(view=>{
     const matches=reference.views.filter(r=>r.view===view)
-    if(matches.length!==1||!validImage(matches[0].beauty,'image/png')||!validImage(matches[0].edge,'image/png'))throw new Error('Two actual model views and edge maps are required')
+    if(matches.length!==1||!validImage(matches[0].beauty,'image/png')||!validImage(matches[0].edge,'image/png'))throw new Error('An actual model view and edge map are required')
     return matches[0]
   })
 }
@@ -49,10 +55,15 @@ export function validateVillaReference(reference) {
  */
 export async function generateVillaVisualizations(reference, {registry, limits=VISUALIZATION_LIMITS, signal}={}) {
   const views=validateVillaReference(reference)
+  // keep the last reference views (git-ignored output/) so a bad result can be reproduced and tuned offline
+  try{const dir=new URL('../output/villa-last-reference/',import.meta.url);mkdirSync(dir,{recursive:true})
+    for(const v of views){writeFileSync(new URL(`${v.view}_beauty.png`,dir),Buffer.from(v.beauty,'base64'));writeFileSync(new URL(`${v.view}_edge.png`,dir),Buffer.from(v.edge,'base64'))}}catch{/* diagnostics only */}
   const primary=process.env.BUILDING_PROVIDER==='gemini' ? gemini : geminiWeb
   const providers=registry??{gemini:primary,comfyui}
   // local SDXL first (fast, edge-conditioned), Gemini Web as the fallback
-  for(const [name,timeout] of [['comfyui',limits.comfyTimeoutMs],['gemini',limits.geminiTimeoutMs]]) {
+  const order=[['comfyui',limits.comfyTimeoutMs],['gemini',limits.geminiTimeoutMs]]
+  if((process.env.IMAGE_ENGINE||'').toLowerCase()==='gemini-web')order.reverse()
+  for(const [name,timeout] of order) {
     signal?.throwIfAborted()
     const controller=new AbortController(), timer=setTimeout(()=>controller.abort(new Error('Visualization timed out')),timeout)
     const operationSignal=signal?AbortSignal.any([signal,controller.signal]):controller.signal
@@ -62,8 +73,8 @@ export async function generateVillaVisualizations(reference, {registry, limits=V
         const images=[]
         for(let i=0;i<views.length;i++) {
           operationSignal.throwIfAborted()
-          const view=views[i], result=await providers[name].generateVillaView({beauty:view.beauty,edge:view.edge,otherBeauty:views[1-i].beauty,
-            positive:`${PRESERVE}\nView: ${view.view}. ${reference.facts??''}`,negative:NEGATIVE,signal:operationSignal,
+          const view=views[i], result=await providers[name].generateVillaView({beauty:view.beauty,edge:view.edge,otherBeauty:views[1-i]?.beauty,
+            positive:name==='comfyui'?comfyPrompt(view.view,reference.facts):`${PRESERVE}\nView: ${view.view}. ${VIEW_TEXT[view.view]} ${reference.facts??''}`,negative:name==='comfyui'?(/has a swimming pool/i.test(reference.facts??'')?COMFY_NEGATIVE:`swimming pool, ${COMFY_NEGATIVE}`):NEGATIVE,signal:operationSignal,
             params:{...limits,seed:reference.seed}})
           operationSignal.throwIfAborted()
           if(!validImage(result?.imageBase64,result?.mimeType))throw new Error('Invalid generated image')

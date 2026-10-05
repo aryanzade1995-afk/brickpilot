@@ -23,3 +23,19 @@ export function RenderProgress({ progress, label }: { progress?: number; label: 
     <div className="mt-1 h-2 w-full overflow-hidden bg-bg-inset"><div className="h-full bg-ink transition-[width] duration-500" style={{ width: `${pct}%` }} /></div>
   </div>
 }
+
+/** For work with no progress feed (image generation): fills along an easing curve that never reaches 100%
+ *  until the work ends and the bar is unmounted. `expectedSeconds` is roughly how long it usually takes. */
+export function TimedProgress({ label, expectedSeconds = 60, start = 6 }: { label: string; expectedSeconds?: number; start?: number }) {
+  const [elapsed, setElapsed] = useState(0)
+  useEffect(() => {
+    const began = Date.now()
+    const t = setInterval(() => setElapsed((Date.now() - began) / 1000), 400)
+    return () => clearInterval(t)
+  }, [])
+  const pct = Math.round(start + (96 - start) * (1 - Math.exp(-elapsed / (expectedSeconds / 2.2))))
+  return <div className="mt-4" role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>
+    <div className="flex justify-between text-xs text-ink-dim"><span>{label}</span><span className="tabular-nums">{pct}% · {Math.floor(elapsed)}s</span></div>
+    <div className="mt-1 h-2 w-full overflow-hidden bg-bg-inset"><div className="h-full bg-ink transition-[width] duration-500" style={{ width: `${pct}%` }} /></div>
+  </div>
+}

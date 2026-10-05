@@ -137,7 +137,7 @@ export function Directions() {
             {referencePreferences?.styleFamily && <p className="mt-3 text-xs text-ok" role="status">
               Reference cues: {referencePreferences.styleFamily.replaceAll('-', ' ')} · {referencePreferences.materialPalette?.replaceAll('-', ' ') ?? 'coordinated materials'}
             </p>}
-            {referenceError && <p className="mt-3 text-xs text-bad" role="alert">{referenceError} The image stays selected, but automatic style analysis needs the local Gemini Web bridge.</p>}
+            {referenceError && <p className="mt-3 text-xs text-bad" role="alert">{referenceError} The image stays selected, but automatic style analysis is unavailable right now.</p>}
           </div>
         </div>
       </div>

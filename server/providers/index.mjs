@@ -7,6 +7,9 @@ import * as mock from './mock.mjs'
 
 const REGISTRY = { 'gemini-web': geminiWeb, comfyui, gemini, mock }
 
+/** IMAGE_ENGINE=gemini-web puts Gemini first everywhere; the default is local SDXL first. */
+export const geminiFirst = () => (process.env.IMAGE_ENGINE || '').toLowerCase() === 'gemini-web'
+
 export function providerName() {
   const name = (process.env.INTERIOR_PROVIDER || 'comfyui').toLowerCase()
   return REGISTRY[name] ? name : 'comfyui'
@@ -56,7 +59,7 @@ export async function generateInteriorWithFallback(job, onFallback) {
 /** The Render page always tries this order. InteriorStudio retains its own policy. */
 export async function generateBuildingWithFallback(job, registry = REGISTRY) {
   const attempts = []
-  for (const activeId of ['comfyui','gemini-web','mock']) {
+  for (const activeId of geminiFirst() ? ['gemini-web','comfyui','mock'] : ['comfyui','gemini-web','mock']) {
     const provider = registry[activeId]
     try {
       const health = await provider.healthy()
@@ -73,7 +76,7 @@ export async function generateBuildingWithFallback(job, registry = REGISTRY) {
 }
 
 export async function buildingRenderHealth() {
-  for (const provider of [comfyui,geminiWeb]) {
+  for (const provider of geminiFirst() ? [geminiWeb,comfyui] : [comfyui,geminiWeb]) {
     const health = await provider.healthy().catch(()=>({reachable:false}))
     if (health.reachable) return {ok:true,reachable:true,configured:true,mock:false,provider:provider.id,note:''}
   }

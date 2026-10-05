@@ -125,20 +125,13 @@ export function InteriorStudio({
             className="self-end border border-line px-4 py-2 text-sm">Download image</button>}
         </div>
       </dialog>
-      {health && (
-        <p
-          className={cx(
-            'flex items-start gap-2 border-l-2 px-4 py-2.5 text-sm',
-            offline ? 'border-warn/60 bg-warn/5 text-ink-dim' : 'border-ok/50 bg-ok/5 text-ink-dim',
-          )}
-        >
-          {offline && <AlertTriangle size={14} className="mt-0.5 flex-none text-warn" />}
+      {offline && (
+        <p className="flex items-start gap-2 border-l-2 border-warn/60 bg-warn/5 px-4 py-2.5 text-sm text-ink-dim">
+          <AlertTriangle size={14} className="mt-0.5 flex-none text-warn" />
           <span>
-            Interior engine: <span className="font-mono text-ink">{health.provider}</span>
-            {health.note ? ` — ${health.note}` : ''}
-            {offline && ' · start ComfyUI (local SDXL) or Gemini Web to generate an interior (see README).'}
-            {offline && <button type="button" onClick={() => void probeHealth()}
-              className="ml-2 font-mono text-xs underline underline-offset-2 hover:text-ink">Check again</button>}
+            Image generation is not available right now.
+            <button type="button" onClick={() => void probeHealth()}
+              className="ml-2 font-mono text-xs underline underline-offset-2 hover:text-ink">Check again</button>
           </span>
         </p>
       )}
@@ -286,7 +279,7 @@ export function InteriorStudio({
               ? 'Capturing 3D room…'
               : phase === 'generating'
                 ? `Generating… ${progress.pct}%`
-                : offline ? 'Interior engine offline' : 'Generate AI Interior'}
+                : offline ? 'Image generation unavailable' : 'Generate AI Interior'}
           </button>
 
           {busy && (
@@ -318,9 +311,7 @@ export function InteriorStudio({
           )}
 
           <p className="text-[0.78rem] leading-relaxed text-ink-faint">
-            {health?.provider === 'gemini-web'
-              ? 'Local SDXL was unavailable, so Gemini Web is generating from the room description. Its image endpoint does not guarantee exact door or window positions; check the output against the plan.'
-              : 'Local SDXL (ComfyUI) uses the 3D room edge map for Canny conditioning and your chosen finishes as a strict specification. Gemini Web is the fallback. Check the output against the plan before using it.'}
+            Your chosen finishes are used as a strict specification. Check the output against the plan before using it.
             {' '}With the second angle on, each run renders two views of the room.
           </p>
         </div>
@@ -332,13 +323,13 @@ export function InteriorStudio({
             <h2 className="font-display text-2xl">Generated interiors</h2>
             <span className="label">Session only · {results.length}</span>
           </div>
-          <div className="mt-6 grid gap-8">
+          <div className="mt-6 grid max-w-5xl gap-8">
             {results.map((r) => {
               const slug = `formstead-${r.styleId}-${r.roomLabel.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`
               return (
                 <figure key={r.id} className="border border-line">
                   <div className="relative bg-bg-inset">
-                    <div className="grid gap-px">
+                    <div className={cx('grid gap-px', r.urls.length > 1 && 'sm:grid-cols-2')}>
                       {r.urls.map((u, i) => (
                         <button type="button" key={i} onClick={() => openImage(u, `${r.roomLabel} — view ${i + 1}`)}
                           aria-label={`Enlarge ${r.roomLabel}, view ${i + 1}`} className="relative aspect-[4/3] w-full cursor-zoom-in overflow-hidden">
