@@ -30,6 +30,8 @@ export type PlateCandidate = {
 }
 
 export type LayoutInput = {
+  /** Existing Structure Mode: cross axes (local u) already built; walls slide onto them and they stay the grid */
+  lockedAxes?: number[]
   floors: FloorRequirements[]
   site: SiteModel
   family: PlateFamily
@@ -381,9 +383,9 @@ export function placeFloors(input: LayoutInput, cand: PlateCandidate): LayoutRes
   // edges — ground rooms slide their walls onto them just as upper rooms do
   const core = ground.units.find((u) => u.anchor && u.band === 'A')
   const coreLen = core && core.rooms.every((r) => r.fixedWidthMm) ? sum(core.rooms.map((r) => r.fixedWidthMm!)) : 0
-  const g = floorRooms(ground, L, aSegs, bSegs, [...(court ?? []), ...(notch ? [notch[0]] : []), ...(coreLen ? [coreLen] : [])])
+  const g = floorRooms(ground, L, aSegs, bSegs, [...(input.lockedAxes ?? []), ...(court ?? []), ...(notch ? [notch[0]] : []), ...(coreLen ? [coreLen] : [])])
   const coreEnd = g.rooms.find((r) => r.req.kind === 'stair' || r.req.kind === 'lift')
-  const uLines = crossAxes(g.rooms, L, [
+  const uLines = input.lockedAxes?.length ? [...new Set([0, ...input.lockedAxes, L])].filter(u => u >= 0 && u <= L).sort((a, b) => a - b) : crossAxes(g.rooms, L, [
     0, L,
     ...Object.values(g.plate.segments).flat(2),
     ...(court ?? []), ...(notch ? [notch[0]] : []),

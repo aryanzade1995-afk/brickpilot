@@ -1,7 +1,7 @@
 import { BudgetNotice } from './BudgetNotice.tsx'
 import { RoomList, FurnitureReview } from './RoomPanel.tsx'
-import { useDeferredValue, useMemo } from 'react'
-import { assessShape, canIncreaseBrief, CAPACITY_GUIDANCE, SHAPE_CHOICES } from '@/lib/engine/planner/fit.ts'
+import { useMemo } from 'react'
+import { assessShape, SHAPE_CHOICES } from '@/lib/engine/planner/fit.ts'
 import { resolveOpenSpace, OPEN_SPACE_LABEL } from '@/lib/model/openSpace.ts'
 import { PLANNING_LIMITS } from '@/lib/engine/planner/limits.ts'
 import { Plus, X } from 'lucide-react'
@@ -31,7 +31,6 @@ import {
 import { canonicalSummary, compile } from '@/lib/model/canonical.ts'
 import { programmeCapacity } from '@/lib/rules/index.ts'
 import { useStudio } from '@/state/studio.ts'
-import { FitNotice } from './FitNotice.tsx'
 import { describeMembers, membersByRole } from '@/lib/model/household.ts'
 import {
   CardChoice,
@@ -93,7 +92,6 @@ export function SiteStep() {
           <NumberInput value={s.plotDepth} min={6} max={80} step={0.5} suffix="m" onChange={(v) => edit((b) => void (b.site.plotDepth = v))} />
         </Field>
       </div>
-      <FitNotice />
 
       <Field label="Road edges" hint="Which sides face a road — the first is the approach">
         <div className="flex gap-2">
@@ -179,7 +177,7 @@ export function FamilyStep() {
   const [brief, edit] = useBrief()
   const h = brief.household
   const count = occupantCount(brief)
-  const canAdd = (role: MemberRole) => count < MAX_MEMBERS && canIncreaseBrief(brief, b => { b.household.members.push({ role, needsGroundFloor: role === 'senior' }); syncOccupants(b) })
+  const canAdd = (_role: MemberRole) => count < MAX_MEMBERS
   const add = (role: MemberRole) =>
     edit((b) => {
       if (!canAdd(role)) return
@@ -229,7 +227,6 @@ export function FamilyStep() {
             </div>
           ))}
         </div>
-        {!canAdd('adult') && <p className="text-sm text-bad" role="status">{CAPACITY_GUIDANCE}</p>}
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
@@ -324,8 +321,6 @@ export function LifestyleStep() {
       <div className="space-y-4">
         <Field label="People working from home">
           <Stepper
-            increaseDisabled={!canIncreaseBrief(brief, b => { b.lifestyle.wfhCount += 1 })}
-            increaseReason={CAPACITY_GUIDANCE}
             value={l.wfhCount}
             min={0}
             max={4}
@@ -390,7 +385,6 @@ export function LevelsStep() {
         label="Reserve space for a future lift"
         hint="Conceptual shaft only — lift design stays professional scope"
       />
-      <FitNotice />
     </div>
   )
 }
@@ -399,23 +393,22 @@ export function LevelsStep() {
 
 export function RoomsStep() {
   const [brief, edit] = useBrief()
-  const capacityBrief = useDeferredValue(brief)
   const r = brief.rooms
   const p = r.priorities
   return (
     <div className="max-w-2xl space-y-8">
       <div className="grid grid-cols-2 gap-x-8 gap-y-6">
         <Field label="Bedrooms with attached bath">
-          <Stepper increaseDisabled={capacityBrief !== brief || !canIncreaseBrief(capacityBrief, b => { b.rooms.bedroomsWithBath += 1 })} increaseReason={CAPACITY_GUIDANCE} value={r.bedroomsWithBath} min={0} max={8} onChange={(v) => edit((b) => void (b.rooms.bedroomsWithBath = v))} />
+          <Stepper value={r.bedroomsWithBath} min={0} max={8} onChange={(v) => edit((b) => void (b.rooms.bedroomsWithBath = v))} />
         </Field>
         <Field label="Bedrooms without attached bath">
-          <Stepper increaseDisabled={capacityBrief !== brief || !canIncreaseBrief(capacityBrief, b => { b.rooms.bedroomsNoBath += 1 })} increaseReason={CAPACITY_GUIDANCE} value={r.bedroomsNoBath} min={0} max={8} onChange={(v) => edit((b) => void (b.rooms.bedroomsNoBath = v))} />
+          <Stepper value={r.bedroomsNoBath} min={0} max={8} onChange={(v) => edit((b) => void (b.rooms.bedroomsNoBath = v))} />
         </Field>
         <Field label="Shared / common bathrooms">
-          <Stepper increaseDisabled={capacityBrief !== brief || !canIncreaseBrief(capacityBrief, b => { b.rooms.sharedBaths += 1 })} increaseReason={CAPACITY_GUIDANCE} value={r.sharedBaths} min={0} max={6} onChange={(v) => edit((b) => void (b.rooms.sharedBaths = v))} />
+          <Stepper value={r.sharedBaths} min={0} max={6} onChange={(v) => edit((b) => void (b.rooms.sharedBaths = v))} />
         </Field>
         <Field label="Studies / offices">
-          <Stepper increaseDisabled={capacityBrief !== brief || !canIncreaseBrief(capacityBrief, b => { b.rooms.studies += 1 })} increaseReason={CAPACITY_GUIDANCE} value={r.studies} min={0} max={4} onChange={(v) => edit((b) => void (b.rooms.studies = v))} />
+          <Stepper value={r.studies} min={0} max={4} onChange={(v) => edit((b) => void (b.rooms.studies = v))} />
         </Field>
       </div>
 
@@ -451,10 +444,8 @@ export function RoomsStep() {
           <Toggle checked={p.compoundWall} onChange={(v) => edit((b) => void (b.rooms.priorities.compoundWall = v))} label="Compound wall" hint="Boundary wall with a gate" />
         </div>
       </div>
-      {(['bedroomsWithBath', 'bedroomsNoBath', 'sharedBaths', 'studies'] as const).some(key => !canIncreaseBrief(capacityBrief, b => { b.rooms[key] += 1 })) && <p role="status" className="text-sm text-bad">Add a floor or reduce open space to add another bedroom, bathroom or study.</p>}
       <BudgetNotice />
       <RoomList />
-      <FitNotice />
     </div>
   )
 }
@@ -531,14 +522,14 @@ export function StyleStep() {
           value={brief.style.massing}
           onChange={(v) => edit((b) => void (b.style.massing = v))}
           options={MASSING_CHOICES.map((o) => o.value === 'auto' ? o : { ...o,
-            disabled: !shapeChecks[o.value as ShapeChoiceValue].ok,
-            disabledReason: !shapeChecks[o.value as ShapeChoiceValue].ok ? shapeChecks[o.value as ShapeChoiceValue].reason : undefined })}
+            // never blocked: a shape that may not fit says so, and the fit panel offers adjustments
+            note: !shapeChecks[o.value as ShapeChoiceValue].ok ? 'May not fit this plot' : undefined })}
         />
         <p className="text-xs text-ink-dim">Changing this layout creates a new floor plan. Generate another 3D design keeps your selected plan and varies its exterior.</p>
         <ul className="space-y-1 text-xs" role="status" aria-label="Shape checks">
           {SHAPE_CHOICES.map((shape) => (
-            <li key={shape} className={shapeChecks[shape].ok ? 'text-ok' : 'text-ink-faint'}>
-              {shapeChecks[shape].ok ? '✓' : '✕'} {SHAPE_LABEL[shape]} — {shapeChecks[shape].reason}
+            <li key={shape} className={shapeChecks[shape].ok ? 'text-ok' : 'text-warn'}>
+              {shapeChecks[shape].ok ? '✓' : '!'} {SHAPE_LABEL[shape]} — {shapeChecks[shape].reason}
             </li>
           ))}
         </ul>
@@ -547,8 +538,7 @@ export function StyleStep() {
             This saved brief uses an older massing choice ({brief.style.massing.replaceAll('-', ' ')}). It still loads; choose Auto or one of the four wing designs above to change it.
           </p>
         )}
-        <FitNotice />
-      </div>
+        </div>
 
       <Field label="Design personality" hint="Sets the composition bias while preserving the same structural plan">
         <Segmented

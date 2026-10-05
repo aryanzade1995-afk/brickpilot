@@ -10,6 +10,7 @@ import { deriveDesignDNA, type InspirationPreferences } from './designDna.ts'
 import { selectExteriorDirections } from './variation.ts'
 import type { Design } from './types.ts'
 import { planVilla, type PlateFamily } from './planner/index.ts'
+import type { ExistingStructure } from './planner/types.ts'
 import { layoutChoices, layoutProgramme } from './planner/layoutChoices.ts'
 import { validate } from '../rules/index.ts'
 import { preferenceScore, strictVastuFailures, type PreferenceScore } from './score.ts'
@@ -291,8 +292,8 @@ export function generate(model: CanonicalModel, opts: Strategy | GenerateOpts = 
   return pool.reduce((a, b) => ((model.brief.site.openSpace?.mode === 'maxBuild' ? b.design.coveredFootprintSqm > a.design.coveredFootprintSqm : b.score.total > a.score.total) ? b : a)).design
 }
 
-function generateOne(model: CanonicalModel, family: PlateFamily, seed: number, briefKey: string, force = false, learned = true): Design | null {
-  const proposal = learned && !force ? proposePlan(model,seed) : null
+export function generateOne(model: CanonicalModel, family: PlateFamily, seed: number, briefKey: string, force = false, learned = true, existing?: ExistingStructure): Design | null {
+  const proposal = learned && !force && !existing ? proposePlan(model,seed) : null
   const choices = WING_FAMILIES.includes(family) ? layoutChoices(model, seed, family!=='twin-wing') : undefined
   if (choices) model = layoutProgramme(model,choices)
   const theme = themeOf(model.brief)
@@ -306,6 +307,7 @@ function generateOne(model: CanonicalModel, family: PlateFamily, seed: number, b
   const provisional = deriveDesignDNA(briefKey, seed, model.brief.style.character, 'rectangular', 'balanced', model.brief.style.personality)
 
   const plan = planVilla(model, {
+    ...(existing ? {existing} : {}),
     ...(proposal ? {proposal}:{}),
     ...(choices ? {layoutChoices:choices}:{}),
     family: force ? 'rectangular' : family,
@@ -339,6 +341,7 @@ function generateOne(model: CanonicalModel, family: PlateFamily, seed: number, b
   const site = placeSiteFeatures(model, floors[0])
   return exposeStructuralSizing(withEmergencyExit({
     planSeed:seed,
+    ...(existing && plan.existingOffset ? { existingStructure: { structure: existing, ...plan.existingOffset } } : {}),
     ...(choices ? {layoutChoices:choices}:{}),
     siteFeatures: site.features, siteNotes: [...(model.siteNotes ?? []), ...site.notes],
     id: `${model.seed}-${massingType}-${seed}`,

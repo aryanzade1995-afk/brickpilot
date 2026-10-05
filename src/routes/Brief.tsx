@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button.tsx'
 import { cx } from '@/lib/cx.ts'
 import { GenerationOverlay } from '@/components/GenerationOverlay.tsx'
 import { assessBriefFit, CAPACITY_GUIDANCE } from '@/lib/engine/planner/fit.ts'
+import { FitMeter } from '@/routes/brief/FitMeter.tsx'
 import {
   EntryStep,
   FamilyStep,
@@ -98,7 +99,8 @@ export function Brief() {
       setFormError(null)
       // let the loader paint (and its worker start) before the blocking generation
       setGenerating(true)
-      setTimeout(() => { explore(); navigate('/workspace/directions') }, 450)
+      // a fresh brief leaves any Existing Structure Mode project behind
+      setTimeout(() => { useStudio.getState().clearExisting(); explore(); navigate('/workspace/directions') }, 450)
     } else {
       setStep(step + 1)
     }
@@ -171,7 +173,7 @@ export function Brief() {
 
       {/* step body */}
       <div className="mx-auto max-w-[1400px] px-6 py-12 md:px-10 md:py-16">
-        {!fit.fits && <p role="status" aria-live="polite" className="mb-6 border-l-2 border-bad bg-bad/5 px-4 py-3 text-sm text-bad">{CAPACITY_GUIDANCE} {fit.issues.slice(0, 1).join(" ")}</p>}
+        <FitMeter />
         {formError && <p role="alert" className="mb-6 border-l-2 border-bad bg-bad/5 px-4 py-3 text-sm text-bad">{formError}</p>}
         <p className="label">Step {step + 1} of {BRIEF_STEPS.length}</p>
         <h1 className="mt-3 font-display text-[clamp(2rem,4vw,3rem)]">{title}</h1>

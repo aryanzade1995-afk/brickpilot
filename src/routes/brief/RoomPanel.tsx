@@ -2,7 +2,6 @@ import { FURNITURE_LIMITS } from '@/lib/furniture/catalogue.ts'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { useStudio } from '@/state/studio.ts'
 import { briefRooms, type BriefRoom, type RoomSize } from '@/lib/furniture/rooms.ts'
-import { canIncreaseBrief, CAPACITY_GUIDANCE } from '@/lib/engine/planner/fit.ts'
 const FurniturePreview = lazy(() => import('./FurniturePreview.tsx').then(m => ({ default: m.FurniturePreview })))
 function FitBadge({room}:{room:BriefRoom}){return <span className="whitespace-nowrap border border-line px-2 py-0.5 text-[11px]">{room.fit.verdict}</span>}
 export function RoomList(){
@@ -27,8 +26,7 @@ export function RoomPanel(){
    <Suspense fallback={<p className="py-8 text-xs text-ink-faint">Preparing room preview…</p>}><FurniturePreview room={room} character={brief.style.character} furnished={furnished}/></Suspense>
    <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={furnished} onChange={e=>setFurnished(e.target.checked)}/>Furnished</label>
    <div className="flex flex-wrap gap-1" aria-label="Room size">{(['compact','small','standard','large'] as const).map(size=>{
-    const fits=room.size===size||canIncreaseBrief(brief,b=>{if(size==='standard')delete b.rooms.sizes[room.id];else b.rooms.sizes[room.id]=size})
-    return <button key={size} type="button" disabled={!fits} title={!fits?CAPACITY_GUIDANCE:undefined} aria-pressed={room.size===size} onClick={()=>choose(size)} className={`border px-2 py-1 text-xs disabled:opacity-35 ${size===room.size?'border-ink bg-bg-inset':'border-line'}`}>{size[0].toUpperCase()+size.slice(1)}</button>
+    return <button key={size} type="button" aria-pressed={room.size===size} onClick={()=>choose(size)} className={`border px-2 py-1 text-xs ${size===room.size?'border-ink bg-bg-inset':'border-line'}`}>{size[0].toUpperCase()+size.slice(1)}</button>
    })}</div>
    <div className="flex flex-wrap gap-1">{room.fit.placed.map(p=><span key={p.id} className="border border-line px-2 py-1 text-[11px]">{p.name}</span>)}{room.fit.dropped.map(p=><span key={p.id} className="border border-line px-2 py-1 text-[11px] text-ink-faint line-through">{p.name}</span>)}</div>
    <p className="text-[11px] text-ink-faint">Indicative layout. Final sizes and doors come from the generated plan.</p>

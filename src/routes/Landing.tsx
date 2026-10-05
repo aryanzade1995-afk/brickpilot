@@ -40,11 +40,11 @@ export function Landing() {
           </p>
 
           <div className="mt-9 flex flex-wrap items-center gap-5">
-            <ButtonLink to="/workspace">
+            <ButtonLink to="/start">
               Start a project
               <ArrowRight size={14} strokeWidth={2.5} />
             </ButtonLink>
-            <ButtonLink to="/workspace" variant="quiet">
+            <ButtonLink to="/start" variant="quiet">
               See the evidence
             </ButtonLink>
           </div>

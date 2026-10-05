@@ -252,7 +252,7 @@ export function CardChoice<T extends string>({
 }: {
   value: T
   onChange: (v: T) => void
-  options: { value: T; title: string; body: string; soon?: boolean; disabled?: boolean; disabledReason?: string }[]
+  options: { value: T; title: string; body: string; soon?: boolean; disabled?: boolean; disabledReason?: string; note?: string }[]
 }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -285,6 +285,7 @@ export function CardChoice<T extends string>({
             <div className="font-display text-lg">{o.title}</div>
             <p className="mt-1.5 text-xs leading-relaxed text-ink-dim">{o.body}</p>
             {o.disabledReason && <p className="mt-2 text-xs leading-relaxed text-ink-faint">{o.disabledReason}</p>}
+            {o.note && <p className="mt-2 inline-block bg-warn/10 px-2 py-0.5 text-[0.7rem] text-warn">{o.note}</p>}
           </button>
         )
       })}

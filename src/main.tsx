@@ -12,6 +12,8 @@ import { Massing } from './routes/Massing.tsx'
 import { Render } from './routes/Render.tsx'
 import { Report } from './routes/Report.tsx'
 import { Interior } from './routes/Interior.tsx'
+import { Start } from './routes/Start.tsx'
+import { ExistingMode } from './routes/ExistingMode.tsx'
 import { FinishesCost } from './routes/FinishesCost.tsx'
 import { Designs } from './routes/Designs.tsx'
 import { VillaDataset } from './routes/VillaDataset.tsx'
@@ -23,6 +25,9 @@ const router = createBrowserRouter([
     element: <App />,
     children: [
       { index: true, element: <Landing /> },
+      { path: 'start', element: <Start /> },
+      { path: 'home', element: <Start /> },
+      { path: 'workspace/existing', element: <ExistingMode /> },
       { path: 'workspace', element: <Brief /> },
       { path: 'workspace/directions', element: <Directions /> },
       { path: 'workspace/plan', element: <Plan /> },

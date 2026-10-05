@@ -103,6 +103,8 @@ export type Design = {
   planRecipe?: {family: import('./planner/types.ts').PlateFamily;seed:number;version:'resplan-ridge-retrieval-v1'}
   structuralSizing?: import('./structuralSizing.ts').StructuralSizing
   planSeed?: number
+  /** Existing Structure Mode: what is already built and where it stands on the plot (the structure was only translated) */
+  existingStructure?: { structure: import('./planner/types.ts').ExistingStructure; dx: number; dy: number }
   layoutChoices?: LayoutChoices
   siteFeatures?: SiteFeature[]
   siteNotes?: string[]

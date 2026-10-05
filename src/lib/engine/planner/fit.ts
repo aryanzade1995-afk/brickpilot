@@ -160,3 +160,47 @@ export function evaluateBriefChoice(brief: Brief, recipe: (candidate: Brief) => 
   return { allowed: false, brief, fit,
     reason: `This choice does not fit. ${detail} Your previous selection is kept. Add a floor, enlarge the plot or reduce open space.` }
 }
+
+/** Apply a brief edit without gating it: the wizard lets people choose freely and shows how it fits instead. */
+export function applyBriefChoice(brief: Brief, recipe: (candidate: Brief) => void): Brief {
+  const candidate = structuredClone(brief)
+  recipe(candidate)
+  return candidate
+}
+
+export type FitSuggestion = { id: string; label: string; detail: string; recipe: (b: Brief) => void }
+const REDUCTIONS: { id: string; label: string; detail: string; applies: (b: Brief) => boolean; recipe: (b: Brief) => void }[] = [
+  { id: 'studies', label: 'One study fewer', detail: 'Frees about a room of space', applies: b => b.rooms.studies > 0, recipe: b => void (b.rooms.studies -= 1) },
+  { id: 'bedNoBath', label: 'One bedroom (shared bath) fewer', detail: 'Frees a bedroom', applies: b => b.rooms.bedroomsNoBath > 0, recipe: b => void (b.rooms.bedroomsNoBath -= 1) },
+  { id: 'sharedBath', label: 'One shared bathroom fewer', detail: 'Frees a bathroom', applies: b => b.rooms.sharedBaths > 0, recipe: b => void (b.rooms.sharedBaths -= 1) },
+  { id: 'bedBath', label: 'One bedroom with bath fewer', detail: 'Frees a bedroom and its bath', applies: b => b.rooms.bedroomsWithBath > 1, recipe: b => void (b.rooms.bedroomsWithBath -= 1) },
+  { id: 'wfh', label: 'One work-from-home desk fewer', detail: 'Smaller work area', applies: b => b.lifestyle.wfhCount > 0, recipe: b => void (b.lifestyle.wfhCount -= 1) },
+  { id: 'sizes', label: 'Use standard room sizes', detail: 'Resets any enlarged rooms', applies: b => Object.keys(b.rooms.sizes ?? {}).length > 0, recipe: b => void (b.rooms.sizes = {}) },
+  { id: 'storey', label: 'Add a floor', detail: 'Spreads the rooms over more levels', applies: b => b.levels.storeys < 3, recipe: b => void (b.levels.storeys += 1) },
+  { id: 'build', label: 'Allow more of the plot to be built on', detail: 'Less open space around the house', applies: b => b.site.openSpace?.mode !== 'maxBuild', recipe: b => void (b.site.openSpace = { ...b.site.openSpace, mode: 'maxBuild' } as Brief['site']['openSpace']) },
+]
+
+/** Ways to make a brief fit: single changes that already work, else the shortest run of changes that does. */
+export function fitSuggestions(brief: Brief): { single: FitSuggestion[]; combined: FitSuggestion | null } {
+  const make = (r: (typeof REDUCTIONS)[number]): FitSuggestion => ({ id: r.id, label: r.label, detail: r.detail, recipe: r.recipe })
+  const usable = REDUCTIONS.filter(r => r.applies(brief))
+  const single = usable.filter(r => assessBriefFit(applyBriefChoice(brief, r.recipe)).fits).map(make)
+  if (single.length) return { single, combined: null }
+  // nothing works alone: apply changes in a sensible order (repeating where it helps) until it fits
+  const order = ['sizes', 'storey', 'build', 'studies', 'wfh', 'bedNoBath', 'sharedBath', 'bedBath']
+    .map(id => REDUCTIONS.find(r => r.id === id)!)
+  let current = brief
+  const steps: typeof REDUCTIONS = []
+  for (let i = 0; i < 14; i++) {
+    const next = order.find(r => r.applies(current))
+    if (!next) break
+    current = applyBriefChoice(current, next.recipe); steps.push(next)
+    if (assessBriefFit(current).fits) {
+      const counts = new Map<string, { label: string; n: number }>()
+      for (const st of steps) counts.set(st.id, { label: st.label, n: (counts.get(st.id)?.n ?? 0) + 1 })
+      const label = [...counts.values()].map(c => c.n > 1 ? `${c.label} (x${c.n})` : c.label).join(', ')
+      return { single: [], combined: { id: 'combined', label, detail: `${steps.length} changes together`, recipe: b => steps.forEach(st => st.recipe(b)) } }
+    }
+  }
+  return { single: [], combined: null }
+}

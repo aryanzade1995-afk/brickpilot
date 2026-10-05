@@ -89,7 +89,7 @@ export function SiteHeader({ variant }: { variant: 'marketing' | 'workspace' }) 
             ) : (
               <>
                 <SignInButton label="Sign in" />
-                <ButtonLink to="/workspace" size="sm">
+                <ButtonLink to="/start" size="sm">
                   Get started
                   <ArrowUpRight size={13} strokeWidth={2.5} />
                 </ButtonLink>

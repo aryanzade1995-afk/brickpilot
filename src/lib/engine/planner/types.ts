@@ -102,8 +102,22 @@ export type FloorPlate = {
   segments: Record<Band, [number, number][]>
 }
 
-export type Column = { id: string; at: Point; size: number; grid: string }
-export type Beam = { id: string; a: Point; b: Point; span: number }
+/** Existing Structure Mode: LOCKED = already built (never moved or resized), EDITABLE = not built,
+ *  PROPOSED = newly generated. Ordinary plans leave `state` unset. */
+export type ElementState = 'LOCKED' | 'EDITABLE' | 'PROPOSED'
+export type Column = { id: string; at: Point; size: number; grid: string; state?: ElementState; optional?: boolean }
+export type Beam = { id: string; a: Point; b: Point; span: number; state?: ElementState; optional?: boolean }
+
+/** What is already built on site, in plan millimetres (y grows toward the road). Nothing here is ever moved. */
+export type ExistingStructure = {
+  columns: { id: string; at: Point; size: number }[]
+  /** footings / pedestals with no column above yet: the position is fixed, the column is proposed on it */
+  footings: { id: string; at: Point }[]
+  beams: { id: string; a: Point; b: Point; width: number }[]
+  walls: { id: string; a: Point; b: Point; thickness: number }[]
+  /** storeys whose columns are already poured (1 = ground floor only) */
+  storeysBuilt: number
+}
 export type SupportZone = { id: string; rect: Rect; support: 'columns' | 'cantilever' }
 export type Shaft = { id: string; roomId: string; rect: Rect; stackedOver: string | null }
 

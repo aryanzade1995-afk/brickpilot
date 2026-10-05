@@ -13,7 +13,9 @@ import {
 } from '@/lib/engine/index.ts'
 import { distinctDirectionPlans } from '@/lib/engine/generate.ts'
 import { planFingerprint, type PlanFingerprint } from '@/lib/engine/planner/planFingerprint.ts'
-import { evaluateBriefChoice } from '@/lib/engine/planner/fit.ts'
+import { applyBriefChoice } from '@/lib/engine/planner/fit.ts'
+import { generateExisting } from '@/lib/engine/generateExisting.ts'
+import type { ExistingStructure } from '@/lib/engine/planner/types.ts'
 import { validate, type ValidationReport } from '@/lib/rules/index.ts'
 import { estimateBoq, type CostEstimate } from '@/lib/cost/index.ts'
 import { varyExterior } from '@/lib/engine/variation.ts'
@@ -134,6 +136,10 @@ type StudioState = {
   reset: () => void
   /** replace the working brief + pinned direction (loading a saved design) */
   loadSaved: (brief: Brief, pinned: PinnedDir | null) => void
+  /** Existing Structure Mode: plan around a structure that is already built (null = the normal brief flow) */
+  existing: { structure: ExistingStructure; seed: number } | null
+  loadExisting: (brief: Brief, structure: ExistingStructure, seed: number) => void
+  clearExisting: () => void
   setReferencePreferences: (preferences: InspirationPreferences | null) => void
   reroll: () => void
   /** re-roll the geometry of the pinned massing (or the brief seed) and rebuild */
@@ -183,10 +189,22 @@ function replayResult(plan: Design, seed: number, inspiration: InspirationPrefer
   }
 }
 
+/** a persisted Existing Structure Mode structure, or null when it is missing or malformed */
+function parseExisting(value: unknown): { structure: ExistingStructure; seed: number } | null {
+  const v = value as { structure?: Partial<ExistingStructure>; seed?: unknown } | null
+  const s = v?.structure
+  const point = (p: unknown) => !!p && typeof (p as { x: unknown }).x === 'number' && typeof (p as { y: unknown }).y === 'number'
+  if (!s || !Array.isArray(s.columns) || !Array.isArray(s.footings) || !Array.isArray(s.beams) || !Array.isArray(s.walls) || typeof s.storeysBuilt !== 'number') return null
+  if (!s.columns.every((c) => point(c.at)) || !s.footings.every((f) => point(f.at)) || !s.beams.every((b) => point(b.a) && point(b.b))) return null
+  return { structure: s as ExistingStructure, seed: Number.isSafeInteger(v?.seed) ? (v!.seed as number) : 1 }
+}
+
 function assemble(brief: Brief, pinned: PinnedDir | null, inspiration: InspirationPreferences | null,
-  history: ShapeFingerprintRecord[], limits: VillaDiversityLimits) {
+  history: ShapeFingerprintRecord[], limits: VillaDiversityLimits, existing: { structure: ExistingStructure; seed: number } | null = null) {
   const model = compile(brief)
-  const plan = pinned ? pinnedPlan(model, pinned) : generate(model)
+  // Existing Structure Mode plans around what is built; otherwise the normal planner runs
+  const fromStructure = existing ? generateExisting(model, existing.structure, existing.seed).design : null
+  const plan = fromStructure ?? (pinned ? pinnedPlan(model, pinned) : generate(model))
   if (!validate(plan).hardChecksPass) return { result: resultForPlan(plan), history, debug: [], notice: null }
   if (pinned) {
     // Loading/pinning/navigation is an exact replay, not another new candidate.
@@ -214,17 +232,20 @@ export const useStudio = create<StudioState>()(
       shapeDebug: [],
       generationNotice: null,
       result: null,
+      existing: null,
+      loadExisting: (brief, structure, seed) => set((s) => {
+        s.brief = brief; s.existing = { structure, seed }; s.pinned = null; s.directions = null
+        s.result = null; s.recentExteriorSeeds = []; s.generationNotice = null; s.shapeDebug = []; s.briefChoiceIssue = null
+      }),
+      clearExisting: () => set((s) => { if (s.existing) { s.existing = null; s.result = null; s.pinned = null; s.directions = null } }),
       setDiversityLimits: (options) => {
         const limits = diversityLimits({ ...get().diversityLimits, ...options })
         set((s) => { s.diversityLimits = limits })
       },
 
       edit: (recipe) => {
-        const choice = evaluateBriefChoice(get().brief, recipe)
-        if (!choice.allowed) {
-          set(s => { s.briefChoiceIssue = choice.reason })
-          return
-        }
+        // Choices are never blocked: the Brief page shows how the brief fits and how to adjust it.
+        const choice = { brief: applyBriefChoice(get().brief, recipe), reason: null as string | null }
         set((s) => {
           const geometryBefore = JSON.stringify(geometryBrief(s.brief))
           s.brief = choice.brief
@@ -246,6 +267,7 @@ export const useStudio = create<StudioState>()(
 
       reset: () =>
         set((s) => {
+          s.existing = null
           s.brief = defaultBrief()
           s.briefChoiceIssue = null
           s.selectedRoomId = null
@@ -424,7 +446,7 @@ export const useStudio = create<StudioState>()(
       run: () => {
         const cur = get()
         if (cur.result) return cur.result
-        const assembled = assemble(cur.brief, cur.pinned, cur.referencePreferences, cur.recentVillaFingerprints, cur.diversityLimits)
+        const assembled = assemble(cur.brief, cur.pinned, cur.referencePreferences, cur.recentVillaFingerprints, cur.diversityLimits, cur.existing)
         set((s) => {
           s.result = assembled.result
           s.recentVillaFingerprints = assembled.history
@@ -441,7 +463,7 @@ export const useStudio = create<StudioState>()(
     })),
     {
       name: 'brickpilot.studio',
-      partialize: (s) => ({ brief: s.brief, pinned: s.pinned,
+      partialize: (s) => ({ brief: s.brief, pinned: s.pinned, existing: s.existing,
         referencePreferences: s.referencePreferences, recentExteriorSeeds: s.recentExteriorSeeds,
         recentVillaFingerprints: s.recentVillaFingerprints, diversityLimits: s.diversityLimits }),
       // re-parse the persisted brief through the schema on every rehydrate, so a
@@ -449,7 +471,7 @@ export const useStudio = create<StudioState>()(
       // white-screening the app at compile(). Schema-repair, not versioning —
       // add `version` + `migrate` only for a real breaking change.
       merge: (persisted, current) => {
-        const p = (persisted ?? {}) as Partial<{ brief: unknown; pinned: unknown;
+        const p = (persisted ?? {}) as Partial<{ brief: unknown; pinned: unknown; existing: unknown;
           referencePreferences: unknown; recentExteriorSeeds: unknown; recentVillaFingerprints: unknown; diversityLimits: unknown }>
         const parsed = briefSchema.safeParse(p.brief)
         let limits = { ...DEFAULT_DIVERSITY_LIMITS }
@@ -457,6 +479,7 @@ export const useStudio = create<StudioState>()(
         return {
           ...current,
           brief: parsed.success ? parsed.data : defaultBrief(),
+          existing: parseExisting(p.existing),
           pinned: parsePinned(p.pinned),
           referencePreferences: parseInspirationPreferences(p.referencePreferences) ??
             parseInspirationPreferences(parsePinned(p.pinned)?.inspiration),

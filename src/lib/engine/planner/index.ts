@@ -4,7 +4,7 @@ import { columnPosition, columnSizeMm } from '../structuralSizing.ts'
 import type { DesignDNA } from '../designDna.ts'
 import type { FloorPlan, Opening, PlacedRoom } from '../types.ts'
 import type { RoofSpec } from '../massing/types.ts'
-import type { Column, FloorRequirements, LocalRoom, PlanStructure, PlateFamily, RoomReq, SiteModel } from './types.ts'
+import type { Column, ExistingStructure, FloorRequirements, LocalRoom, PlanStructure, PlateFamily, RoomReq, SiteModel } from './types.ts'
 import { TERRACE_LIMITS } from '../terrace.ts'
 import { makeRng } from '../massing/rng.ts'
 import {
@@ -17,6 +17,7 @@ import {
   stairRun, supportZonesFor, toPlanPoint, toPlanRect, wallGraph,
 } from './elements.ts'
 import { planWings } from './wings.ts'
+import { planExisting } from './existing.ts'
 import type { LayoutChoices } from './layoutChoices.ts'
 import type { PlanProposal } from './ml/proposal.ts'
 import { PLAN_LEARNING_LIMITS } from './ml/proposal.ts'
@@ -24,6 +25,8 @@ import { PLAN_LEARNING_LIMITS } from './ml/proposal.ts'
 export type { PlateFamily } from './types.ts'
 
 export type PlanRequest = {
+  /** Existing Structure Mode: plan around what is already built */
+  existing?: ExistingStructure
   proposal?: PlanProposal
   layoutChoices?: LayoutChoices
   family: PlateFamily
@@ -38,6 +41,8 @@ export type PlanRequest = {
 }
 
 export type PlanResult = {
+  /** Existing Structure Mode: translation applied to the structure to place it on the plot */
+  existingOffset?: { dx: number; dy: number }
   floors: FloorPlan[]
   structure: PlanStructure
   site: SiteModel
@@ -49,6 +54,7 @@ const n2 = (i: number) => String(i).padStart(2, '0')
 
 /** Every stage, in order. Deterministic: the same brief + request ⇒ the same plan. */
 export function planVilla(model: CanonicalModel, request: PlanRequest): PlanResult | null {
+  if (request.existing) return planExisting(model, request)
   if (['twin-wing','u-wing','courtyard-ring','pavilion'].includes(request.family)) return planWings(model, request)
   // ---- NormalizedBrief → StairCore sizing → SiteModel × ProgramRequirements ----
   const nb = normalizeBrief(model)
@@ -304,7 +310,7 @@ function lightCourt(large: boolean): RoomReq {
  * foyer; the kitchen suite keeps its internal dining → kitchen → utility
  * order. Every variant still has to pass the same validators.
  */
-function reorder(floors: FloorRequirements[], seed: number) {
+export function reorder(floors: FloorRequirements[], seed: number) {
   if (!seed) return
   const rng = makeRng(seed, 'order')
   for (const f of floors) {
