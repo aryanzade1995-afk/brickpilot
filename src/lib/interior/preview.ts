@@ -2,6 +2,7 @@ import type { Design } from '../engine/types.ts'
 import type { Character } from '../model/themes.ts'
 import { buildRoom, type RoomBox, type Side } from '../three/buildRoom.ts'
 import { furnishSingleRoom, type DollBox } from '../three/buildDollhouse.ts'
+import { clearRoom, layoutRoom, roomKindOf, type Piece } from './layout.ts'
 import { createBuildingModel } from '../engine/buildingModel.ts'
 
 /* ------------------------------------------------------------------ *
@@ -72,6 +73,8 @@ export type InteriorScene = {
   room: { id: string; name: string; floor: number; floorName: string; dims: { w: number; d: number; h: number }; focal: Side }
   shell: RoomBox[]
   furniture: DollBox[]
+  /** the designed layout (living, bedroom, dining, study): each piece is built as a full model by the renderer */
+  pieces: Piece[]
   openings: { id?: string; kind: string; side: Side; alongM?: number; widthM: number; sillM: number; headM: number; exterior: boolean }[]
   /** room-local metres, y up: a clear standing point near the centre at eye height */
   camera: [number, number, number]
@@ -94,13 +97,22 @@ export function createInteriorScene(design: Design, designId: string, config: In
   const placed = furnishSingleRoom(design, config.floor, config.roomId)
   const columns=architecture.boxes.filter(b=>b.id.startsWith('column'))
   const unsafeGroups=new Set(placed.filter(b=>columns.some(c=>b.pos.every((v,i)=>Math.abs(v-c.pos[i])<(b.size[i]+c.size[i])/2-0.005))).map(b=>b.id.slice(config.roomId.length+1).split('-')[0]))
-  const furniture = [...placed, ...kitchenExtras(placed, architecture.boxes, shell.dims)].filter((b) => (!drop || !(drop.test(b.id) || drop.test(b.mat))) && !unsafeGroups.has(b.id.slice(config.roomId.length+1).split('-')[0]) && b.pos[1]+b.size[1]/2<shell.dims.h)
-  const camera = standingPoint(shell.dims.w, shell.dims.d, [...furniture, ...shell.boxes.filter(b => b.id.startsWith('column'))] as DollBox[])
+  // living rooms, bedrooms, dining rooms and studies get a designed layout; wet rooms and kitchens keep their fitted fixtures
+  const kind = roomKindOf(config.roomId, shell.name)
+  const sparse = config.furnitureDensity === 'low' ? /^(plant|art|bookshelf|armchair|floor-lamp|side-table|sideboard|console)$/ : null
+  const pieces = kind ? layoutRoom(kind, config.roomId, shell.name, architecture.boxes, architecture.openings, shell.dims).filter((p) => !sparse || !sparse.test(p.type)) : []
+  const furniture = kind ? [] : [...placed, ...kitchenExtras(placed, architecture.boxes, shell.dims)].filter((b) => (!drop || !(drop.test(b.id) || drop.test(b.mat))) && !unsafeGroups.has(b.id.slice(config.roomId.length+1).split('-')[0]) && b.pos[1]+b.size[1]/2<shell.dims.h)
+  const solids = pieces.filter((p) => !['rug', 'curtain', 'art', 'pendant', 'tv', 'table-lamp'].includes(p.type)).map((p): DollBox => {
+    const [fw, fd] = p.face === 'N' || p.face === 'S' ? [p.w, p.d] : [p.d, p.w]
+    return { id: p.id, mat: 'wood', pos: [p.x, p.h / 2, p.z], size: [fw, p.h, fd] }
+  })
+  const camera = standingPoint(clearRoom(architecture.boxes, shell.dims), [...furniture, ...solids, ...shell.boxes.filter(b => b.id.startsWith('column'))] as DollBox[])
   return {
     designId,
     room: { id: config.roomId, name: shell.name, floor: shell.floorLevel, floorName: shell.floorName, dims: shell.dims, focal: shell.focal },
     shell: shell.boxes,
     furniture,
+    pieces,
     openings: architecture.openings,
     camera,
     initialYaw: { N: 0, E: 90, S: 180, W: 270 }[shell.focal],
@@ -110,18 +122,18 @@ export function createInteriorScene(design: Design, designId: string, config: In
   }
 }
 
-/** the clear point nearest the room centre: away from the walls and out of every piece of furniture, at 1.6 m eye height */
-function standingPoint(w: number, d: number, furniture: DollBox[]): [number, number, number] {
+/** where the photo is taken: a clear standing spot with real elbow-room (measured from the wall faces and every piece of
+ *  furniture), as near the middle of the room as that allows, at 1.6 m eye height */
+function standingPoint(room: { x0: number; x1: number; z0: number; z1: number }, furniture: DollBox[]): [number, number, number] {
   const solid = furniture.filter((b) => b.size[1] > 0.05 && b.pos[1] - b.size[1] / 2 < 1.7)
-  const clearance = (x: number, z: number) => Math.min(
-    w / 2 - Math.abs(x), d / 2 - Math.abs(z),
-    ...solid.map((b) => Math.max(Math.abs(x - b.pos[0]) - b.size[0] / 2, Math.abs(z - b.pos[2]) - b.size[2] / 2)),
-  )
-  let best: [number, number] = [0, 0], bestScore = -Infinity
-  for (let x = -w / 2 + 0.3; x <= w / 2 - 0.3; x += 0.1) for (let z = -d / 2 + 0.3; z <= d / 2 - 0.3; z += 0.1) {
+  const clearance = (x: number, z: number) => Math.min(x - room.x0, room.x1 - x, z - room.z0, room.z1 - z,
+    ...solid.map((b) => Math.max(Math.abs(x - b.pos[0]) - b.size[0] / 2, Math.abs(z - b.pos[2]) - b.size[2] / 2)))
+  const cx = (room.x0 + room.x1) / 2, cz = (room.z0 + room.z1) / 2
+  let best: [number, number] = [cx, cz], bestScore = -Infinity
+  for (let x = room.x0 + 0.3; x <= room.x1 - 0.3; x += 0.05) for (let z = room.z0 + 0.3; z <= room.z1 - 0.3; z += 0.05) {
     const c = clearance(x, z)
-    // enough room to stand (0.45 m all round) wins; among those, the one nearest the centre
-    const score = c >= 0.45 ? 10 - Math.hypot(x, z) : c
+    if (c < 0.3) continue
+    const score = 3 * Math.min(c, 0.75) - 0.5 * Math.hypot(x - cx, z - cz)
     if (score > bestScore) { bestScore = score; best = [x, z] }
   }
   return [Math.round(best[0] * 100) / 100, 1.6, Math.round(best[1] * 100) / 100]

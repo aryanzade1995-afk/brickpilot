@@ -22,6 +22,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from interior_finishes import apply_finishes  # noqa: E402
+from interior_furniture import build_pieces  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent
 TEXTURES = ROOT / 'assets' / 'textures'
@@ -527,6 +528,14 @@ def main():
             sub = obj.modifiers.new('mould', 'SUBSURF')
             sub.levels = sub.render_levels = 2
             obj.data.polygons.foreach_set('use_smooth', [True] * len(obj.data.polygons))
+
+    # the designed layout (living, bedroom, dining, study): full furniture models; curtains hang under any ceiling drop
+    pieces = []
+    for piece in data.get('pieces', []):
+        if piece['type'] == 'curtain':
+            piece = {**piece, 'h': min(piece['h'], bottoms[0][1] - 0.04)}
+        pieces.append(piece)
+    build_pieces(pieces, box, principled, hex_rgb, STYLES.get(cfg['style'], STYLES['modern']), dims['h'])
 
     stage('lighting')
     add_light = build_lighting(data, cfg, bottoms[0][1], chosen.get('lights_kind', 'downlight'))

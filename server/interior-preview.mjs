@@ -14,7 +14,7 @@ const safeId=value=>String(value).replace(/[^a-z0-9_-]/gi,'_').slice(0,120)||'ro
 const pending = new Map()
 const stages = new Map()
 // the renderer version covers every Blender module the panorama depends on, so a change to any of them re-renders
-const version = createHash('sha256').update(Buffer.concat(await Promise.all(['interior_preview.py','interior_finishes.py'].map(f=>readFile(resolve(PROJECT_ROOT,'blender',f)))))).digest('hex')
+const version = createHash('sha256').update(Buffer.concat(await Promise.all(['interior_preview.py','interior_finishes.py','interior_furniture.py'].map(f=>readFile(resolve(PROJECT_ROOT,'blender',f)))))).digest('hex')
 function canonical(value) {
   if (Array.isArray(value)) return value.map(canonical)
   if (value && typeof value === 'object') return Object.fromEntries(Object.keys(value).sort().map(k => [k, canonical(value[k])]))
