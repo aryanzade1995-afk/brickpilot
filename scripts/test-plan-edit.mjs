@@ -458,3 +458,74 @@ test('moving an outer wall moves or pushes the open-air spaces so nothing collid
   }
   assert.ok(moved >= 1 && limits.N)
 })
+
+test('growing a room pushes the connected rooms along; shrinking lets them follow', () => {
+  const p = plan(), layout = extractLayout(p)
+  const k = room(layout, 0, 'kitchen').rect, u = room(layout, 0, 'utility').rect, d = room(layout, 0, 'dining').rect
+  // the kitchen grows into the dining room: the dining room gives way and keeps its other edges
+  const grow = O.resizeRoom(layout, p, 0, 'kitchen', { ...k, h: k.h + 600 })
+  assert.ok(grow.ok, grow.reason)
+  const after = room(grow.layout, 0, 'dining').rect
+  assert.ok(after.y !== d.y || after.h !== d.h || room(grow.layout, 0, 'utility').rect.y !== u.y, 'a neighbour moved to make space')
+  assert.ok(O.commit(p, grow.layout, layout, grow.affected).ok)
+  // a push that would go out of the building is refused with the way out
+  const tooFar = O.resizeRoom(layout, p, 0, 'kitchen', { ...k, y: k.y - 1200, h: k.h + 1200 })
+  assert.equal(tooFar.ok, false)
+  assert.match(tooFar.reason, /outer wall|resize less/i)
+  // shrinking: the neighbour on that side grows to follow
+  const shrink = O.resizeRoom(layout, p, 0, 'kitchen', { ...k, h: k.h - 600 })
+  assert.ok(shrink.ok, shrink.reason)
+  assert.equal(O.vacantRooms(shrink.layout, 0).length, 0, 'the freed strip was taken by the connected room')
+})
+
+test('the corridor is resizable: widening it pushes the rooms beside it, the stair moving on every floor', () => {
+  const p = plan(), layout = extractLayout(p)
+  const c = room(layout, 0, 'corridor').rect
+  const res = O.resizeRoom(layout, p, 0, 'corridor', { ...c, x: c.x - 300, w: c.w + 300 })
+  assert.ok(res.ok, res.reason)
+  const cm = O.commit(p, res.layout, layout, res.affected)
+  assert.ok(cm.ok, cm.reason)
+  assert.equal(cm.design.floors[0].rooms.find((r) => r.id === 'corridor').rect.w, c.w + 300)
+  const stairs = cm.design.floors.map((f) => f.rooms.find((r) => r.id === 'stair').rect)
+  assert.ok(stairs.every((r) => JSON.stringify(r) === JSON.stringify(stairs[0])), 'the stair is the same on every floor')
+  // a column left inside a room by the moved wall is a note on an edited plan, not a reason to refuse
+  assert.ok(!errors(cm.design).some((f) => f.code === 'COLUMN_NOT_IN_WALL'))
+})
+
+test('the stair is dragged onto a room and moves on every floor; the rooms on each floor shift to make space', () => {
+  const p = plan(), layout = extractLayout(p)
+  const before = layout.floors.map((f) => f.rooms.find((r) => r.id === 'stair').rect)
+  const res = O.swapRooms(layout, p, 0, 'stair', 'dining')
+  assert.ok(res.ok, res.reason)
+  const c = O.commit(p, res.layout, layout, res.affected)
+  assert.ok(c.ok, c.reason)
+  const after = c.design.floors.map((f) => f.rooms.find((r) => r.id === 'stair').rect)
+  assert.notDeepEqual(after[0], before[0])
+  assert.deepEqual(after[1], after[0], 'the upper floor stair moved too')
+  assert.equal(after[0].h, before[0].h, 'the stair keeps its size')
+  // resizing the stair resizes it on every floor
+  const s = room(layout, 0, 'stair').rect
+  const longer = O.resizeRoom(layout, p, 0, 'stair', { ...s, y: s.y - 300, h: s.h + 300 })
+  assert.ok(longer.ok, longer.reason)
+  const lc = O.commit(p, longer.layout, layout, longer.affected)
+  assert.ok(lc.ok, lc.reason)
+  assert.ok(lc.design.floors.every((f) => f.rooms.find((r) => r.id === 'stair').rect.h === s.h + 300))
+})
+
+test('moving an outer wall in slides the stair whole and the rooms beside it follow; too far is refused with how far it can go', () => {
+  const p = generate(compile(defaultBrief()))
+  let l = extractLayout(p)
+  l = O.swapRooms(l, p, 0, 'kitchen', 'dining').layout
+  const moved = O.swapRooms(l, p, 0, 'stair', 'dining')
+  assert.ok(moved.ok && O.commit(p, moved.layout, l).ok, 'the stair move itself is valid')
+  l = moved.layout
+  const ok300 = O.resizeOutline(l, p, 'N', -300)
+  assert.ok(ok300.ok, ok300.reason)
+  const c = O.commit(p, ok300.layout, l, ok300.affected)
+  assert.ok(c.ok, c.reason)
+  const st = c.design.floors.map((f) => f.rooms.find((r) => r.id === 'stair').rect)
+  assert.ok(st.every((r) => r.h === st[0].h && JSON.stringify(r) === JSON.stringify(st[0])), 'the stair keeps its size and stays aligned')
+  const far = O.resizeOutline(l, p, 'N', -600)
+  assert.equal(far.ok, false)
+  assert.match(far.reason, /at most 0\.3 m/)
+})

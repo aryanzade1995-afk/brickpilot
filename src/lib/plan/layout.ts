@@ -242,7 +242,10 @@ function rebuildFloor(plan: Design, floor: FloorPlan, layout: FloorLayout, lower
   const stairRoom = layout.rooms.find((r) => r.id === 'stair')
   if (floor.stair && stairRoom && (stairRoom.rect.x !== floor.stair.rect.x || stairRoom.rect.y !== floor.stair.rect.y || stairRoom.rect.w !== floor.stair.rect.w || stairRoom.rect.h !== floor.stair.rect.h)) {
     const g = stairGeometry(normalizeBrief(model))
-    stairOut = stairRun(stairRoom.rect, floor.stair.startSide ?? 'S', g.perFlight, GOING)
+    // the flight starts on the side that opens onto the hall, as the planner draws it
+    const sp = spine.rect, sr = stairRoom.rect
+    const side = Math.abs(sr.y - (sp.y + sp.h)) < 2 ? 'N' : Math.abs(sr.y + sr.h - sp.y) < 2 ? 'S' : Math.abs(sr.x - (sp.x + sp.w)) < 2 ? 'W' : Math.abs(sr.x + sr.w - sp.x) < 2 ? 'E' : floor.stair.startSide ?? 'S'
+    stairOut = stairRun(stairRoom.rect, side, g.perFlight, GOING)
   }
   // balconies hang from the plate below: their support zones follow where the person put them
   const hung = rooms.filter((r) => r.outdoor && r.id.startsWith('balcony') && !(lower?.footprint ?? []).some((q) => r.rect.x >= q.x - 1 && r.rect.y >= q.y - 1 && r.rect.x + r.rect.w <= q.x + q.w + 1 && r.rect.y + r.rect.h <= q.y + q.h + 1)).map((r) => r.rect)

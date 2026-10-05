@@ -17,7 +17,9 @@ import { cx } from '@/lib/cx.ts'
 
 const PAD = { l: 3400, r: 1800, t: 1800, b: 3400 }
 type Side = 'N' | 'S' | 'E' | 'W'
-type Drag = { kind: 'move'; id: string; from: { x: number; y: number }; rect: Rect } | { kind: 'resize'; id: string; side: Side; from: { x: number; y: number }; rect: Rect } | { kind: 'outline'; side: Side; from: { x: number; y: number }; rect: Rect }
+type Pt = { x: number; y: number }
+type Drag = { kind: 'move'; id: string; from: Pt; rect: Rect } | { kind: 'resize'; id: string; side: Side; from: Pt; rect: Rect } | { kind: 'outline'; side: Side; from: Pt; rect: Rect }
+  | { kind: 'fmove'; feature: string; from: Pt; rect: Rect } | { kind: 'fresize'; feature: string; side: Side; from: Pt; rect: Rect }
 
 function sideRect(r: Rect, side: Side, dx: number, dy: number): Rect {
   const next = { ...r }
@@ -102,17 +104,33 @@ export function PlanEditor({ design }: { design: Design }) {
     svgRef.current?.setPointerCapture?.(e.pointerId)
     setDrag({ kind: 'outline', side, from: toPlan(e), rect: box })
   }
+  const startFeature = (e: React.PointerEvent, kind: string, rect: Rect, side?: Side) => {
+    e.stopPropagation()
+    setSelected(null); setFeat(kind)
+    svgRef.current?.setPointerCapture?.(e.pointerId)
+    setDrag(side ? { kind: 'fresize', feature: kind, side, from: toPlan(e), rect } : { kind: 'fmove', feature: kind, from: toPlan(e), rect })
+  }
   const [ghost, setGhost] = useState<Rect | null>(null)
+  // the room under the pointer while a room is dragged: dropping on it swaps the two
+  const [dropOn, setDropOn] = useState<LayoutRoom | null>(null)
   const move = (e: React.PointerEvent) => {
     if (!drag) return
     const p = toPlan(e), dx = p.x - drag.from.x, dy = p.y - drag.from.y
-    setGhost(drag.kind === 'move' ? { ...drag.rect, x: snapMm(drag.rect.x + dx), y: snapMm(drag.rect.y + dy) } : sideRect(drag.rect, drag.side, snapMm(dx), snapMm(dy)))
+    const moving = drag.kind === 'move' || drag.kind === 'fmove'
+    setGhost(moving ? { ...drag.rect, x: snapMm(drag.rect.x + dx), y: snapMm(drag.rect.y + dy) } : sideRect(drag.rect, drag.side, snapMm(dx), snapMm(dy)))
+    if (drag.kind === 'move') {
+      const self = rooms.find((r) => r.id === drag.id)
+      const under = rooms.find((r) => r !== self && !!self && !!r.outdoor === !!self.outdoor && p.x >= r.rect.x && p.x <= rectRight(r.rect) && p.y >= r.rect.y && p.y <= rectBottom(r.rect))
+      setDropOn(under ?? null)
+    }
   }
   const up = () => {
-    const d = drag, g = ghost
-    setDrag(null); setGhost(null)
+    const d = drag, g = ghost, target = dropOn
+    setDrag(null); setGhost(null); setDropOn(null)
     if (!d || !g || (g.x === d.rect.x && g.y === d.rect.y && g.w === d.rect.w && g.h === d.rect.h)) return
-    if (d.kind === 'move') act.run((l, p) => Ops.moveRoom(l, p, floor.level, d.id, { x: g.x, y: g.y }))
+    if (d.kind === 'fmove' || d.kind === 'fresize') act.run((l, p) => Ops.setFeature(l, p, d.feature as never, g))
+    else if (d.kind === 'move' && target) act.run((l, p) => Ops.swapRooms(l, p, floor.level, d.id, target.id))
+    else if (d.kind === 'move') act.run((l, p) => Ops.moveRoom(l, p, floor.level, d.id, { x: g.x, y: g.y }))
     else if (d.kind === 'outline') {
       const delta = d.side === 'E' ? g.w - d.rect.w : d.side === 'S' ? g.h - d.rect.h : d.side === 'W' ? d.rect.x - g.x : d.rect.y - g.y
       act.run((l, p) => Ops.resizeOutline(l, p, d.side, delta))
@@ -186,8 +204,23 @@ export function PlanEditor({ design }: { design: Design }) {
             {floor.level === 0 && (design.siteFeatures ?? []).filter((f) => Ops.EDITABLE_FEATURES.includes(f.kind) && !f.roomId).map((f) => (
               <rect key={f.id} x={f.rect.x} y={f.rect.y} width={f.rect.w} height={f.rect.h} data-feature={f.kind}
                 fill={feat === f.kind ? 'rgba(46,125,50,0.16)' : 'transparent'} stroke={feat === f.kind ? '#2E7D32' : 'rgba(46,125,50,0.45)'} strokeWidth={feat === f.kind ? 80 : 40} strokeDasharray="220 160"
-                className="cursor-pointer" onPointerDown={(e) => { e.stopPropagation(); setSelected(null); setFeat(f.kind) }} />
+                className="cursor-move" onPointerDown={(e) => startFeature(e, f.kind, f.rect)} />
             ))}
+            {floor.level === 0 && feat && !drag && (() => {
+              const f = (design.siteFeatures ?? []).find((x) => x.kind === feat && !x.roomId)
+              return f ? <EdgeStrips rect={f.rect} t={hs} color="#2E7D32" name="feature" onDown={(e, side) => startFeature(e, f.kind, f.rect, side)} /> : null
+            })()}
+            <rect x={box.x} y={box.y} width={box.w} height={box.h} fill="none" stroke="#C2410C" strokeWidth="60" strokeDasharray="300 200" pointerEvents="none" />
+            {!drag && !room && <EdgeStrips rect={box} t={hs * 1.2} color="#C2410C" name="wall" onDown={(e, side) => downOutline(e, side)} />}
+            {!drag && !room && (['N', 'S', 'E', 'W'] as Side[]).map((side) => {
+              const cx0 = side === 'N' || side === 'S' ? box.x + box.w / 2 : side === 'W' ? box.x : box.x + box.w
+              const cy0 = side === 'W' || side === 'E' ? box.y + box.h / 2 : side === 'N' ? box.y : box.y + box.h
+              const horizontal = side === 'N' || side === 'S'
+              return <rect key={`o${side}`} x={cx0 - (horizontal ? hs * 1.6 : hs / 2)} y={cy0 - (horizontal ? hs / 2 : hs * 1.6)} width={horizontal ? hs * 3.2 : hs} height={horizontal ? hs : hs * 3.2} rx={hs / 4}
+                fill="#C2410C" stroke="#fff" strokeWidth="35" className={horizontal ? 'cursor-ns-resize' : 'cursor-ew-resize'} data-outline={side} onPointerDown={(e) => downOutline(e, side)}><title>Drag to resize the whole villa</title></rect>
+            })}
+            {/* the selected room's edges sit above the villa's wall handles, so a room on the outer wall is still resized as a room */}
+            {room && canEdit(room) && !drag && <EdgeStrips rect={room.rect} t={hs} color="#1D4E89" name="room" onDown={(e, side) => downHandle(e, room, side)} />}
             {room && canEdit(room) && !drag && (['N', 'S', 'E', 'W'] as Side[]).map((side) => {
               const r = room.rect
               const cx0 = side === 'N' || side === 'S' ? r.x + r.w / 2 : side === 'W' ? r.x : rectRight(r)
@@ -195,18 +228,17 @@ export function PlanEditor({ design }: { design: Design }) {
               return <rect key={side} x={cx0 - hs / 2} y={cy0 - hs / 2} width={hs} height={hs} fill="#fff" stroke="#1D4E89" strokeWidth="45"
                 className={side === 'N' || side === 'S' ? 'cursor-ns-resize' : 'cursor-ew-resize'} data-handle={side} onPointerDown={(e) => downHandle(e, room, side)} />
             })}
-            <rect x={box.x} y={box.y} width={box.w} height={box.h} fill="none" stroke="#C2410C" strokeWidth="60" strokeDasharray="300 200" pointerEvents="none" />
-            {!drag && (['N', 'S', 'E', 'W'] as Side[]).map((side) => {
-              const cx0 = side === 'N' || side === 'S' ? box.x + box.w / 2 : side === 'W' ? box.x : box.x + box.w
-              const cy0 = side === 'W' || side === 'E' ? box.y + box.h / 2 : side === 'N' ? box.y : box.y + box.h
-              const horizontal = side === 'N' || side === 'S'
-              return <rect key={`o${side}`} x={cx0 - (horizontal ? hs * 1.6 : hs / 2)} y={cy0 - (horizontal ? hs / 2 : hs * 1.6)} width={horizontal ? hs * 3.2 : hs} height={horizontal ? hs : hs * 3.2} rx={hs / 4}
-                fill="#C2410C" stroke="#fff" strokeWidth="35" className={horizontal ? 'cursor-ns-resize' : 'cursor-ew-resize'} data-outline={side} onPointerDown={(e) => downOutline(e, side)}><title>Drag to resize the whole villa</title></rect>
-            })}
+            {dropOn && drag?.kind === 'move' && <rect x={dropOn.rect.x} y={dropOn.rect.y} width={dropOn.rect.w} height={dropOn.rect.h} fill="rgba(46,125,50,0.22)" stroke="#2E7D32" strokeWidth="110" pointerEvents="none" />}
             {ghost && <rect x={ghost.x} y={ghost.y} width={ghost.w} height={ghost.h} fill="rgba(29,78,137,0.12)" stroke="#1D4E89" strokeWidth="70" strokeDasharray="200 140" pointerEvents="none" />}
+            {ghost && drag && (
+              <text x={ghost.x + ghost.w / 2} y={ghost.y + ghost.h / 2} textAnchor="middle" dominantBaseline="middle" fontSize={W / 48} fontFamily="'IBM Plex Mono', monospace"
+                fill="#0B2545" stroke="#fff" strokeWidth={W / 400} paintOrder="stroke" pointerEvents="none">
+                {drag.kind === 'move' && dropOn ? (Ops.isVacant(dropOn) ? 'Move into vacant space' : `Swap with ${dropOn.name}`) : `${m(ghost.w)} × ${m(ghost.h)} m`}
+              </text>
+            )}
           </svg>
         </div>
-        <p className="mt-2 text-xs text-ink-faint">Pick a room, then drag it to move, drag an edge to resize, or use the arrow keys. Hatched areas are vacant. {design.candidate} · {floor.name}</p>
+        <p className="mt-2 text-xs text-ink-faint">Drag a room onto another room to swap them, or onto hatched vacant space to move it there. Select a room and drag any of its edges to resize; connected rooms are pushed along. Drag the orange outline to resize the whole villa. {design.candidate} · {floor.name}</p>
       </div>
 
       <aside aria-label="Edit rooms" className="space-y-4 border border-line p-4 text-sm">
@@ -376,6 +408,18 @@ export function PlanEditor({ design }: { design: Design }) {
       </aside>
     </div>
   )
+}
+
+/** invisible grab strips along all four edges of a rectangle: the whole edge can be dragged, not only a small handle */
+function EdgeStrips({ rect: r, t, color, name, onDown }: { rect: Rect; t: number; color: string; name: string; onDown: (e: React.PointerEvent, side: Side) => void }) {
+  const strips: [Side, Rect][] = [
+    ['N', { x: r.x + t / 2, y: r.y - t / 2, w: Math.max(0, r.w - t), h: t }], ['S', { x: r.x + t / 2, y: r.y + r.h - t / 2, w: Math.max(0, r.w - t), h: t }],
+    ['W', { x: r.x - t / 2, y: r.y + t / 2, w: t, h: Math.max(0, r.h - t) }], ['E', { x: r.x + r.w - t / 2, y: r.y + t / 2, w: t, h: Math.max(0, r.h - t) }],
+  ]
+  return <g>{strips.map(([side, q]) => (
+    <rect key={side} x={q.x} y={q.y} width={q.w} height={q.h} fill={color} fillOpacity={0} className={cx('transition-[fill-opacity] hover:[fill-opacity:0.35]', side === 'N' || side === 'S' ? 'cursor-ns-resize' : 'cursor-ew-resize')}
+      data-edge={`${name}-${side}`} onPointerDown={(e) => onDown(e, side)}><title>Drag to resize</title></rect>
+  ))}</g>
 }
 
 function VacantCard({ v, level, plan, layout, selected, onSelect, btn }: { v: LayoutRoom; level: number; plan: Design; layout: ReturnType<typeof extractLayout>; selected: boolean; onSelect: () => void; btn: string }) {

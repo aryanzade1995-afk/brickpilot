@@ -1,6 +1,7 @@
 import { rectArea, rectBottom, rectRight, rectUnionEdges, type Rect } from '../geometry.ts'
 import type { Design } from '../engine/types.ts'
 import { validate } from '../rules/index.ts'
+import { normalizeBrief, stairGeometry } from '../engine/planner/program.ts'
 import { applyLayout, baseBox, boxNow, extractLayout, hasOutline, noOutline, shiftRect, type FloorLayout, type LayoutDoc, type LayoutRoom, type Outline } from './layout.ts'
 import { MODULE, contains, intersect, joinIfRect, m, overlapArea, sameRect, snapMm, sqm, subtract, touchLength, unionRects } from './rects.ts'
 import { ADDABLE_TYPES, OUTDOOR_TYPES, TYPE_SPEC, constraintsOf, type RoomType } from './roomTypes.ts'
@@ -144,6 +145,14 @@ export function deleteRoom(layout: LayoutDoc, plan: Design, level: number, id: s
 /* ------------------------------------- move ------------------------------------ */
 
 export function swapRooms(layout: LayoutDoc, plan: Design, level: number, aId: string, bId: string): OpResult {
+  {
+    const f = floorOf(layout, level)
+    const a = f?.rooms.find((x) => x.id === aId), b = f?.rooms.find((x) => x.id === bId)
+    if (a && b && a !== b && (a.kind === 'stair' || b.kind === 'stair')) {
+      const stair = a.kind === 'stair' ? a : b, other = stair === a ? b : a
+      return moveStair(layout, plan, level, other.rect, isVacant(other) ? undefined : other.id)
+    }
+  }
   const out = clone(layout)
   const floor = floorOf(out, level)
   const a = floor?.rooms.find((x) => x.id === aId), b = floor?.rooms.find((x) => x.id === bId)
@@ -192,6 +201,7 @@ export function moveRoom(layout: LayoutDoc, plan: Design, level: number, id: str
   if (isVacant(r)) return fail('Vacant space cannot be moved.')
   const target: Rect = { x: snapMm(to.x), y: snapMm(to.y), w: r.rect.w, h: r.rect.h }
   if (sameRect(target, r.rect)) return fail('The room did not move.')
+  if (r.kind === 'stair') return moveStair(layout, plan, level, target)
   if (r.outdoor) {
     if (!contains(envRect(plan), target)) return fail(`${r.name} would leave the area the plot allows to be built on (inside the setbacks).`)
     const hit = outdoorBlockers(out, plan, level, r, target)
@@ -220,6 +230,131 @@ function sizeProblem(r: LayoutRoom, rect: Rect): string | null {
   return Math.min(rect.w, rect.h) < 900 ? `${r.name} would be only ${m(Math.min(rect.w, rect.h))} m wide. A room needs at least 0.9 m to stand in.` : null
 }
 
+type Side = 'N' | 'S' | 'E' | 'W'
+const MIN_STAND = 900
+/** how short a room may be squeezed along one direction: a person's width, the stair's legal flight, never for the lift */
+type MinOf = (n: LayoutRoom, side: Side) => number
+function minSizer(plan: Design): MinOf {
+  const st = stairGeometry(normalizeBrief(plan.model))
+  return (n, side) => {
+    if (n.kind === 'lift') return Infinity
+    if (n.kind !== 'stair') return MIN_STAND
+    const len = side === 'E' || side === 'W' ? n.rect.w : n.rect.h, other = side === 'E' || side === 'W' ? n.rect.h : n.rect.w
+    return len >= other ? st.depth : st.slotWidth
+  }
+}
+
+/** how far `n` reaches into the strip `g` along the push direction of `side` */
+function reach(n: Rect, g: Rect, side: Side): number {
+  if (side === 'E') return g.x + g.w - n.x
+  if (side === 'W') return n.x + n.w - g.x
+  if (side === 'S') return g.y + g.h - n.y
+  return n.y + n.h - g.y
+}
+const along = (r: Rect, side: Side) => (side === 'E' || side === 'W' ? r.w : r.h)
+function shrinkFrom(r: Rect, side: Side, d: number): Rect {
+  if (side === 'E') return { ...r, x: r.x + d, w: r.w - d }
+  if (side === 'W') return { ...r, w: r.w - d }
+  if (side === 'S') return { ...r, y: r.y + d, h: r.h - d }
+  return { ...r, h: r.h - d }
+}
+function shift(r: Rect, side: Side, d: number): Rect {
+  if (side === 'E') return { ...r, x: r.x + d }
+  if (side === 'W') return { ...r, x: r.x - d }
+  if (side === 'S') return { ...r, y: r.y + d }
+  return { ...r, y: r.y - d }
+}
+
+/** Make room for `claim`: every room it runs into gives way in the direction `side`. A room that would get too thin is
+ *  pushed along whole and passes the push on to the rooms behind it. Returns the ids moved, or why it cannot be done. */
+function pushAway(rooms: LayoutRoom[], claim: Rect, side: Side, skip: Set<LayoutRoom>, depth = 0, plate?: Rect[], minOf: MinOf = () => MIN_STAND): string[] | string {
+  if (depth > 12) return 'Too many rooms would have to move.'
+  const moved: string[] = []
+  for (const n of rooms) {
+    if (skip.has(n) || isVacant(n) || n.outdoor || overlapArea(n.rect, claim) <= 0) continue
+    if (n.locked) return `${n.name} is locked and is in the way. Unlock it first.`
+    const d = reach(n.rect, claim, side)
+    if (d <= 0) continue
+    skip.add(n)
+    const was = { ...n.rect }
+    // a room gives up space down to its minimum (the stair keeps its legal flight, the lift its shaft); past that it slides along whole
+    if (along(n.rect, side) - d >= minOf(n, side)) n.rect = shrinkFrom(n.rect, side, d)
+    else {
+      n.rect = shift(n.rect, side, d)
+      if (plate && !insidePlate(plate, n.rect)) {
+        const room = Math.max(0, along(was, side) - Math.min(minOf(n, side), along(was, side)))
+        return `${n.name} cannot be pushed any further without leaving the building${room > 0 ? `; it can give up at most ${m(room)} m here` : ''}. Resize less, or make the villa bigger first.`
+      }
+      const more = pushAway(rooms, n.rect, side, skip, depth + 1, plate, minOf)
+      if (typeof more === 'string') return more
+      moved.push(...more)
+    }
+    moved.push(n.id)
+    moved.push(...followEdge(rooms, n, was, claim, side, d, skip))
+  }
+  return moved
+}
+
+/** the rooms that shared the edge a pushed room gave up follow it, so no thin empty strip is left between them */
+function followEdge(rooms: LayoutRoom[], n: LayoutRoom, was: Rect, claim: Rect, side: Side, d: number, skip: Set<LayoutRoom>): string[] {
+  const out: string[] = []
+  const edge = side === 'S' ? was.y : side === 'N' ? was.y + was.h : side === 'E' ? was.x : was.x + was.w
+  const horizontal = side === 'N' || side === 'S'
+  for (const m of rooms) {
+    if (m === n || skip.has(m) || isVacant(m) || m.outdoor || m.locked || m.kind === 'stair' || m.kind === 'lift') continue
+    if (overlapArea(m.rect, claim) > 0) continue
+    const far = side === 'S' ? m.rect.y + m.rect.h : side === 'N' ? m.rect.y : side === 'E' ? m.rect.x + m.rect.w : m.rect.x
+    if (Math.abs(far - edge) >= 2) continue
+    const inside = horizontal ? m.rect.x >= was.x - 1 && m.rect.x + m.rect.w <= was.x + was.w + 1 : m.rect.y >= was.y - 1 && m.rect.y + m.rect.h <= was.y + was.h + 1
+    if (!inside) continue
+    const next = side === 'S' ? { ...m.rect, h: m.rect.h + d } : side === 'N' ? { ...m.rect, y: m.rect.y - d, h: m.rect.h + d } : side === 'E' ? { ...m.rect, w: m.rect.w + d } : { ...m.rect, x: m.rect.x - d, w: m.rect.w + d }
+    if (rooms.some((o) => o !== m && !isVacant(o) && !o.outdoor && overlapArea(o.rect, next) > 0)) continue
+    m.rect = next
+    out.push(m.id)
+  }
+  return out
+}
+
+/** rooms touching the edge that moved inward follow it when they fit within it, so the freed strip stays used */
+function followIn(rooms: LayoutRoom[], self: LayoutRoom, before: Rect, after: Rect, side: Side): string[] {
+  const out: string[] = []
+  const line = side === 'E' ? before.x + before.w : side === 'W' ? before.x : side === 'S' ? before.y + before.h : before.y
+  const d = along(before, side) - along(after, side)
+  for (const n of rooms) {
+    if (n === self || isVacant(n) || n.outdoor || n.locked) continue
+    const touches = side === 'E' ? Math.abs(n.rect.x - line) < 2 : side === 'W' ? Math.abs(n.rect.x + n.rect.w - line) < 2 : side === 'S' ? Math.abs(n.rect.y - line) < 2 : Math.abs(n.rect.y + n.rect.h - line) < 2
+    const within = side === 'E' || side === 'W' ? n.rect.y >= before.y - 1 && n.rect.y + n.rect.h <= before.y + before.h + 1 : n.rect.x >= before.x - 1 && n.rect.x + n.rect.w <= before.x + before.w + 1
+    if (!touches || !within) continue
+    n.rect = side === 'E' ? { ...n.rect, x: n.rect.x - d, w: n.rect.w + d } : side === 'W' ? { ...n.rect, w: n.rect.w + d } : side === 'S' ? { ...n.rect, y: n.rect.y - d, h: n.rect.h + d } : { ...n.rect, h: n.rect.h + d }
+    out.push(n.id)
+  }
+  return out
+}
+
+/** resize one room on one floor: growing pushes the connected rooms along, shrinking lets them follow */
+function resizeOn(floor: FloorLayout, r: LayoutRoom, next: Rect, plate: Rect[], minOf: MinOf): string[] | string {
+  const before = r.rect
+  const affected: string[] = [r.id]
+  const sides: { side: Side; grow: number }[] = [
+    { side: 'E', grow: next.x + next.w - (before.x + before.w) }, { side: 'W', grow: before.x - next.x },
+    { side: 'S', grow: next.y + next.h - (before.y + before.h) }, { side: 'N', grow: before.y - next.y },
+  ]
+  for (const { side, grow } of sides) {
+    if (grow > 0) {
+      const claim = subtract(next, before).find((g) => (side === 'E' ? g.x >= before.x + before.w - 1 : side === 'W' ? g.x + g.w <= before.x + 1 : side === 'S' ? g.y >= before.y + before.h - 1 : g.y + g.h <= before.y + 1))
+      if (!claim) continue
+      const res = pushAway(floor.rooms, claim, side, new Set([r]), 0, plate, minOf)
+      if (typeof res === 'string') return res
+      affected.push(...res)
+    }
+  }
+  r.rect = next
+  for (const { side, grow } of sides) if (grow < 0) affected.push(...followIn(floor.rooms, r, before, next, side))
+  const outside = floor.rooms.find((x) => !isVacant(x) && !x.outdoor && !insidePlate(plate, x.rect))
+  if (outside) return `${outside.name} would be pushed out of the building. Make the villa bigger first (drag its orange outer wall), or resize less.`
+  return affected
+}
+
 export function resizeRoom(layout: LayoutDoc, plan: Design, level: number, id: string, to: Rect): OpResult {
   const out = clone(layout)
   const floor = floorOf(out, level)
@@ -231,7 +366,6 @@ export function resizeRoom(layout: LayoutDoc, plan: Design, level: number, id: s
   const next: Rect = { x: snapMm(to.x), y: snapMm(to.y), w: snapMm(to.w), h: snapMm(to.h) }
   if (next.w <= 0 || next.h <= 0) return fail('A room cannot be that small.')
   if (sameRect(next, r.rect)) return fail('The size did not change.')
-  if (!r.outdoor && !insidePlate(plateFor(out, plan, level), next)) return fail(`${r.name} would leave the floor plate.`)
   if (r.outdoor) {
     if (Math.min(next.w, next.h) < 900) return fail(`${r.name} would be too narrow to use.`)
     if (!contains(envRect(plan), next)) return fail(`${r.name} would leave the area the plot allows to be built on (inside the setbacks).`)
@@ -240,30 +374,121 @@ export function resizeRoom(layout: LayoutDoc, plan: Design, level: number, id: s
     r.rect = next
     return ok(out, `${r.name} resized to ${m(next.w)} × ${m(next.h)} m.`, [id])
   }
+  if (!insidePlate(plateFor(out, plan, level), next)) return fail(`${r.name} would leave the building. Make the villa bigger first (drag its orange outer wall).`)
   const tooSmall = sizeProblem(r, next)
   if (tooSmall) return fail(tooSmall)
-  const vacants = floor.rooms.filter(isVacant)
-  const affected = [id]
-  for (const g of subtract(next, r.rect)) {
-    let uncovered = [g]
-    for (const v of vacants) uncovered = uncovered.flatMap((u) => subtract(u, v.rect))
-    for (const u of uncovered) {
-      const donor = floor.rooms.find((x) => x !== r && !isVacant(x) && !x.outdoor && overlapArea(x.rect, u) > 0)
-      if (!donor) continue
-      if (overlapArea(donor.rect, u) < rectArea(u) - 1000 || !contains(donor.rect, u))
-        return fail(`${r.name} would reach into more than one room. Resize it so it only takes space from vacant areas or from one neighbour.`)
-      const dwhy = movable(donor)
-      if (dwhy) return fail(`${r.name} would take space from ${donor.name}. ${dwhy}`)
-      const rest = subtract(donor.rect, u)
-      if (rest.length !== 1) return fail(`${donor.name} cannot give up that corner and stay rectangular. Take the full width of its side instead.`)
-      const dp = sizeProblem(donor, rest[0])
-      if (dp) return fail(`${dp} (it would give up space to ${r.name}).`)
-      donor.rect = rest[0]
-      affected.push(donor.id)
+  // the stair and lift are one shaft through every floor: they change size on all floors together
+  const shaft = r.kind === 'stair' || r.kind === 'lift'
+  const affected: string[] = []
+  const was = { ...r.rect }
+  for (const f of shaft ? out.floors : [floor]) {
+    const target = f === floor ? r : f.rooms.find((x) => x.id === r.id && sameRect(x.rect, was))
+    if (!target) continue
+    if (target.locked) return fail(`${target.name} is locked on another floor.`)
+    const res = resizeOn(f, target, next, plateFor(out, plan, f.level), minSizer(plan))
+    if (typeof res === 'string') return fail(res)
+    affected.push(...res)
+  }
+  // a push that moved the stair or lift on this floor moves it the same way on every other floor
+  if (!shaft) {
+    const before = floorOf(layout, level)!.rooms.filter((x) => x.kind === 'stair' || x.kind === 'lift')
+    for (const b of before) {
+      const now = floor.rooms.find((x) => x.id === b.id)
+      if (!now || sameRect(now.rect, b.rect)) continue
+      for (const f of out.floors) {
+        if (f === floor) continue
+        const there = f.rooms.find((x) => x.id === b.id && sameRect(x.rect, b.rect))
+        if (!there) continue
+        const res = resizeOn(f, there, { ...now.rect }, plateFor(out, plan, f.level), minSizer(plan))
+        if (typeof res === 'string') return fail(`${res} (the ${b.name.toLowerCase()} moves on every floor)`)
+        affected.push(...res)
+      }
     }
   }
-  r.rect = next
-  return ok(settle(out, plan, level), `${r.name} resized to ${m(next.w)} × ${m(next.h)} m.`, affected)
+  let next2 = out
+  for (const f of shaft || affected.length > 1 ? out.floors : [floor]) next2 = settle(next2, plan, f.level)
+  const pushed = [...new Set(affected)].filter((x) => x !== id)
+  return ok(next2, `${r.name} resized to ${m(next.w)} × ${m(next.h)} m${shaft && out.floors.length > 1 ? ' on every floor' : ''}${pushed.length ? `; ${pushed.length} connected room${pushed.length > 1 ? 's' : ''} moved to make space` : ''}.`, [...new Set(affected)])
+}
+
+/* ------------------------------ the stair: one shaft, every floor ------------------------------ */
+
+/** Slide the stair along its band (the line of rooms it stands in) on one floor: the rooms between its old and new place
+ *  shift over by the stair's length, so every room keeps its size and its neighbours. */
+function slideStair(f: FloorLayout, stair: LayoutRoom, start: number, axis: 'x' | 'y', name: string): string | null {
+  const old = stair.rect
+  const len = axis === 'y' ? old.h : old.w
+  const s0 = axis === 'y' ? old.y : old.x
+  const lo = axis === 'y' ? old.x : old.y, hi = axis === 'y' ? old.x + old.w : old.y + old.h
+  const st = (r: Rect) => (axis === 'y' ? r.y : r.x), en = (r: Rect) => (axis === 'y' ? r.y + r.h : r.x + r.w)
+  const cross = (r: Rect) => (axis === 'y' ? [r.x, r.x + r.w] : [r.y, r.y + r.h])
+  const set = (r: LayoutRoom, a0: number, a1: number) => { r.rect = axis === 'y' ? { ...r.rect, y: a0, h: a1 - a0 } : { ...r.rect, x: a0, w: a1 - a0 } }
+  const up = start < s0
+  // the span the rooms move through
+  const span0 = up ? start : s0 + len, span1 = up ? s0 : start + len
+  for (const n of f.rooms) {
+    if (n === stair || isVacant(n) || n.outdoor) continue
+    const [c0, c1] = cross(n.rect)
+    const overlapsSpan = en(n.rect) > span0 && st(n.rect) < span1
+    if (!overlapsSpan || c1 <= lo + 1 || c0 >= hi - 1) continue
+    const inBand = c0 >= lo - 1 && c1 <= hi + 1
+    if (!inBand) return `${n.name} on ${name} is in the way and is wider than the stair's band.`
+    if (n.locked) return `${n.name} on ${name} is locked and is in the way.`
+    if (st(n.rect) >= span0 - 1 && en(n.rect) <= span1 + 1) { set(n, st(n.rect) + (up ? len : -len), en(n.rect) + (up ? len : -len)); continue }
+    // a room only partly inside the span keeps the part outside it
+    if (up) set(n, st(n.rect), span0)
+    else set(n, span1, en(n.rect))
+    if (Math.min(n.rect.w, n.rect.h) < MIN_STAND) return `${n.name} on ${name} would be too small after the stair moves.`
+  }
+  set(stair, start, start + len)
+  return null
+}
+
+export function moveStair(layout: LayoutDoc, plan: Design, level: number, target: Rect, swapWith?: string): OpResult {
+  const out = clone(layout)
+  const here = floorOf(out, level)?.rooms.find((x) => x.kind === 'stair')
+  if (!here) return fail('This floor has no stair.')
+  const old = { ...here.rect }
+  const T = { x: snapMm(target.x), y: snapMm(target.y), w: snapMm(target.w), h: snapMm(target.h) }
+  if (sameRect(T, old)) return fail('The stair did not move.')
+  // within its own band the stair slides, keeping its size; the rooms it passes shift over on every floor
+  const axis: 'x' | 'y' | null = Math.abs(T.x - old.x) < 2 && Math.abs(T.w - old.w) < 2 ? 'y' : Math.abs(T.y - old.y) < 2 && Math.abs(T.h - old.h) < 2 ? 'x' : null
+  if (axis) {
+    const len = axis === 'y' ? old.h : old.w
+    const start = (axis === 'y' ? T.y : T.x) < (axis === 'y' ? old.y : old.x) ? (axis === 'y' ? T.y : T.x) : (axis === 'y' ? T.y + T.h : T.x + T.w) - len
+    for (const f of out.floors) {
+      const stair = f.rooms.find((x) => x.kind === 'stair')
+      if (!stair) continue
+      if (stair.locked) return fail('The stair is locked.')
+      const why = slideStair(f, stair, start, axis, where(plan, f.level))
+      if (why) return fail(why)
+    }
+    let res = out
+    for (const f of out.floors) res = settle(res, plan, f.level)
+    return ok(res, `The stair moved on every floor; the rooms beside it shifted over to make space.`, out.floors.flatMap((f) => f.rooms.map((x) => x.id)))
+  }
+  for (const f of out.floors) {
+    const stair = f.rooms.find((x) => x.kind === 'stair')
+    if (!stair) continue
+    if (stair.locked) return fail('The stair is locked.')
+    if (!insidePlate(plateFor(out, plan, f.level), T)) return fail(`The stair would leave the building on ${where(plan, f.level)}.`)
+    const others = f.rooms.filter((x) => x !== stair && !isVacant(x) && !x.outdoor && overlapArea(x.rect, T) > 0)
+    const picked = f.level === level && swapWith ? others.find((x) => x.id === swapWith) : undefined
+    // the room in the way: the one dropped on, or on other floors the one covering most of the new spot
+    const main = picked ?? [...others].sort((p, q) => overlapArea(q.rect, T) - overlapArea(p.rect, T))[0]
+    for (const n of others) {
+      if (n.locked) return fail(`${n.name} on ${where(plan, f.level)} is locked and is where the stair would go.`)
+      if (n === main && (sameRect(n.rect, T) || contains(T, n.rect) || picked)) { n.rect = { ...old }; continue }
+      const rest = subtract(n.rect, T)
+      if (rest.length !== 1) return fail(`${n.name} on ${where(plan, f.level)} would be cut in two by the stair. Swap the stair with a room of about its size.`)
+      n.rect = rest[0]
+      if (Math.min(n.rect.w, n.rect.h) < MIN_STAND) return fail(`${n.name} on ${where(plan, f.level)} would be too narrow after the stair moves.`)
+    }
+    stair.rect = { ...T }
+  }
+  let res = out
+  for (const f of out.floors) res = settle(res, plan, f.level)
+  return ok(res, `The stair moved on every floor${out.floors.length > 1 ? '; the rooms where it now stands took its old place' : ''}.`, out.floors.flatMap((f) => f.rooms.map((x) => x.id)))
 }
 
 /* ------------------------------------- add ------------------------------------- */
@@ -669,11 +894,14 @@ export function resizeOutline(layout: LayoutDoc, plan: Design, side: keyof Outli
   const line = side === 'N' ? before.y : side === 'S' ? before.y + before.h : side === 'W' ? before.x : before.x + before.w
   const horizontal = side === 'N' || side === 'S'
   const touched: string[] = []
+  const shafts: { floor: FloorLayout; room: LayoutRoom }[] = []
   for (const f of out.floors) for (const r of f.rooms) {
-    if (r.outdoor) continue
+    if (r.outdoor || isVacant(r)) continue
     const edge = horizontal ? (side === 'N' ? r.rect.y : r.rect.y + r.rect.h) : (side === 'W' ? r.rect.x : r.rect.x + r.rect.w)
     if (Math.abs(edge - line) >= 2) continue
     touched.push(r.id)
+    // the stair and lift keep their size: a wall moving in slides them inward and they push the rooms behind them
+    if (d < 0 && (r.kind === 'stair' || r.kind === 'lift')) { shafts.push({ floor: f, room: r }); continue }
     if (side === 'E') r.rect = { ...r.rect, w: r.rect.w + d }
     else if (side === 'W') r.rect = { ...r.rect, x: r.rect.x - d, w: r.rect.w + d }
     else if (side === 'S') r.rect = { ...r.rect, h: r.rect.h + d }
@@ -682,6 +910,13 @@ export function resizeOutline(layout: LayoutDoc, plan: Design, side: keyof Outli
   }
   if (!touched.length) return fail('No room touches that wall.')
   out.outline = { ...O, [side]: O[side] + d }
+  const inward: Side = side === 'N' ? 'S' : side === 'S' ? 'N' : side === 'E' ? 'W' : 'E'
+  for (const { floor: f, room: r } of shafts) {
+    r.rect = shift(r.rect, inward, -d)
+    const res = pushAway(f.rooms, r.rect, inward, new Set([r]), 0, plateFor(out, plan, f.level), minSizer(plan))
+    if (typeof res === 'string') return fail(res)
+    touched.push(...res)
+  }
   // open-air spaces keep their place against the house: one that touched the moved wall goes with it, and one the wall would run into is pushed out of the way
   const alongWall = (r: Rect) => (horizontal ? Math.min(r.x + r.w, before.x + before.w) - Math.max(r.x, before.x) > 0 : Math.min(r.y + r.h, before.y + before.h) - Math.max(r.y, before.y) > 0)
   for (const f of out.floors) {
