@@ -3,21 +3,31 @@ import { FinishSwatch } from './FinishSwatch.tsx'
 import type { Brief } from '@/lib/model/brief.ts'
 import type { Design } from '@/lib/engine/types.ts'
 import type { CostEstimate } from '@/lib/cost/index.ts'
-import { specsCatalogue } from '@/lib/cost/catalogue.ts'
+import { specificationRate, specsCatalogue } from '@/lib/cost/catalogue.ts'
 import { applicableRooms, applySpecification, changeCount, effectiveSpec, itemChanged, itemLines, quantityLabel, suggestionFor, undoSpecification, type SpecItem } from '@/lib/cost/workspace.ts'
 import { SpecificationPanel } from './SpecificationPanel.tsx'
 import { paintColour } from '@/lib/finishes/paint.ts'
 import { cx } from '@/lib/cx.ts'
 import { photographedOptions } from '@/lib/finishes/optionImage.ts'
 
+/** not part of the Finishes section: their allowances stay in the estimate at their defaults */
+const HIDDEN_GROUPS = new Set(['external-works', 'extras', 'fees-contract'])
+/** the card's mini photograph: the chosen product itself, or for a general allowance the pictured product nearest its price */
+function cardPhoto(item: SpecItem, option: SpecItem['options'][number]) {
+  const pictured = photographedOptions(item)
+  if (pictured.some((o) => o.id === option.id) || !pictured.length) return option
+  const price = (o: SpecItem['options'][number]) => specificationRate(o.rateId).installed
+  return [...pictured].sort((a, b) => Math.abs(price(a) - price(option)) - Math.abs(price(b) - price(option)))[0]
+}
+
 export function Specifications({ brief, cost, design, room, onRoom, onBrief }: { brief: Brief; cost: CostEstimate; design: Design; room?: string; onRoom: (id: string) => void; onBrief: (brief: Brief) => void }) {
   const [group, setGroup] = useState('flooring'), [technical, setTechnical] = useState(false)
   const [more, setMore] = useState<Record<string, boolean>>({}), [editing, setEditing] = useState<SpecItem | null>(null)
   const [pendingFinish, setPending] = useState<Brief['finish'] | null>(null)
-  const groups = [...new Set(specsCatalogue.items.filter(i => i.level !== 'auto' && i.level !== 'technical').map(i => i.group))]
+  const groups = [...new Set(specsCatalogue.items.filter(i => i.level !== 'auto' && i.level !== 'technical' && !HIDDEN_GROUPS.has(i.group)).map(i => i.group))]
   const groupLabel = (id: string) => id === 'technical' ? 'Technical' : specsCatalogue.groups.find(g => g.id === id)?.label ?? id
   const roomObject = cost.quantities.rooms.find(r => r.id === room)
-  const eligible = (i: SpecItem) => photographedOptions(i).length > 0 && (!room || i.scope === 'house' || applicableRooms(cost, i).some(r => r.id === room))
+  const eligible = (i: SpecItem) => !HIDDEN_GROUPS.has(i.group) && photographedOptions(i).length > 0 && (!room || i.scope === 'house' || applicableRooms(cost, i).some(r => r.id === room))
   const hasMain = specsCatalogue.items.some(i => i.group === group && i.level === 'main' && eligible(i))
   const visible = specsCatalogue.items.filter(i => i.level !== 'auto' && eligible(i) && (group === 'technical' ? i.level === 'technical' : i.group === group && (i.level === 'main' || (!hasMain || more[group]) && i.level === 'more')))
   const changedGroup = (g: string) => specsCatalogue.items.some(i => (g === 'technical' ? i.level === 'technical' : i.group === g && i.level !== 'technical') && itemChanged(brief, cost, i, room))
@@ -41,7 +51,7 @@ export function Specifications({ brief, cost, design, room, onRoom, onBrief }: {
           const changed = itemChanged(brief, cost, item, room), suggestion = suggestionFor(brief, item.id)
           const suggestedAlready = (scoped.length ? scoped.every(r => effectiveSpec(brief, item.id, r.id).id === suggestion?.option) : option.id === suggestion?.option)
           return <article key={item.id} className="rounded-xl border border-line bg-bg p-4 sm:p-5"><div className="flex items-start gap-3 sm:gap-4">
-            {photographedOptions(item).some(o=>o.id===option.id)?<FinishSwatch item={item} option={option} className="h-20 w-20 flex-none rounded-lg object-cover" />:<span className="flex h-20 w-20 flex-none items-center rounded-lg bg-bg-inset p-2 text-center text-xs text-ink-dim">Choose pictured product</span>}
+            <FinishSwatch item={item} option={cardPhoto(item, option)} className="h-20 w-20 flex-none rounded-lg object-cover" />
             <div className="min-w-0 flex-1"><h3 className="text-sm">{item.label}</h3><p className="mt-1 text-xs text-ink-faint">{item.scope === 'house' ? 'Whole home' : scoped.length ? scoped.map(r => r.name).join(', ') : 'As applicable'}</p><p className="mt-2 text-sm text-ink-dim">{mixed ? 'Mixed room choices' : option.name}</p>{item.id === 'interior-paint' && <p className="mt-2 flex items-center gap-2 text-xs text-ink-dim"><span className="h-4 w-4 rounded border border-line" style={{ background: paintColour(brief, room ?? scoped[0]?.id).hex }} />{paintColour(brief, room ?? scoped[0]?.id).label}</p>}<p className="mt-1 text-xs text-ink-faint">{quantityLabel(itemLines(cost, item, room))}{item.id.startsWith('floor-') ? ' · flooring and skirting where measured' : ''}</p>
               {changed && <p className="mt-2 text-xs">Changed <button type="button" onClick={() => onBrief(undoSpecification(brief, cost, item, room))} className="ml-2 text-ink-dim underline">Undo</button></p>}</div>
             <button type="button" onClick={() => setEditing(item)} className="flex-none rounded-lg border border-line px-3 py-2 text-xs hover:bg-bg-inset">Change<span className="sr-only"> {item.label}</span></button>

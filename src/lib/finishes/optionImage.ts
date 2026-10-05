@@ -8,11 +8,20 @@ const cached = (path: string) => {
   const entry = (cachedImages as Record<string, {path: string | null}>)[path]
   return entry ? entry.path ? url(entry.path) : undefined : url(path)
 }
+/** Photographic references for the window and glass allowances (made for Formstead, not a supplier's product). */
+const GLAZING_PHOTOS: Record<string, string> = {
+  'windows-aluminium': '/specs/products/window-aluminium.jpg', 'windows-upvc': '/specs/products/window-upvc.jpg',
+  'windows-thermal': '/specs/products/window-thermal.jpg', 'glass-clear': '/specs/products/glass-clear.jpg',
+  'glass-toughened': '/specs/products/glass-toughened.jpg', 'glass-double': '/specs/products/glass-double.jpg',
+}
 /** One image source for cards, specification sheets and the colour-faithful 3D surface. */
 export function optionImage(option: SpecOption) {
   const floor = flooringProduct(option.flooringProductId), finish = finishProduct(option.finishProductId)
   if (floor) { const src = floor.thumbnail && cached(floor.thumbnail); return src ? { src, surface: true } : undefined }
   if (finish) { const src = finish.image.path && cached(finish.image.path); return src ? { src, surface: finish.image.projection === 'surface' || finish.image.kind === 'generic-material-closeup' } : undefined }
+  // the general window and glass allowances are shown as glass and windows, never the frame-metal sample
+  const glazing = GLAZING_PHOTOS[option.rateId]
+  if (glazing) return { src: glazing, surface: false }
   const photo = option.photos.find(p => p.kind === 'closeup') ?? option.photos.find(p => p.kind === 'installed')
   // These legacy glazing allowances carry a frame-metal sample, not an image of glass.
   const frameSample = ['Clear safety glass allowance', 'Toughened glass', 'Double glazing'].includes(option.name)
