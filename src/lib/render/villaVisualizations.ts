@@ -1,6 +1,7 @@
 export const VILLA_VIEW_LABELS={'front':'Front view'} as const
 export type VillaView=keyof typeof VILLA_VIEW_LABELS
-export type VillaReferenceView={view:VillaView;beauty:string;edge:string}
+/** depth: the model's true depth from the same camera (near is white), so the AI is held to the real geometry */
+export type VillaReferenceView={view:VillaView;beauty:string;edge:string;depth?:string}
 export type VillaVisualizationImage={view:VillaView;url:string}
 export type VillaVisualizationPair={sourceId:string;images:VillaVisualizationImage[]}
 export function visualizationSourceId(planId:string,source:'blender',seed:number,artifact='',finish='') {

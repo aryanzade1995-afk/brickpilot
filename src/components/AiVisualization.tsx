@@ -9,6 +9,7 @@ import { createBuildingModel } from '@/lib/engine/buildingModel.ts'
 import { finishSignature } from '@/lib/cost/finishAssignments.ts'
 import { VillaVisualizationViewport, type VillaViewportHandle } from '@/lib/render/VillaVisualizationViewport.tsx'
 import { readVisualizationPair, visualizationSourceId, VILLA_VIEW_LABELS } from '@/lib/render/villaVisualizations.ts'
+import { matchModelColours } from '@/lib/render/colorMatch.ts'
 
 /** The AI villa visualization, shown at the bottom of 3D Massing. The Blender villa it is made from is captured off screen,
  *  so only the realistic image is shown here. */
@@ -38,10 +39,17 @@ export function AiVisualization({ design }: { design: Design }) {
       const views = await viewport.current.capture(); controller.signal.throwIfAborted(); setPhase('generate')
       const response = await fetch('/api/villa-visualizations', { method: 'POST', headers: { 'content-type': 'application/json' },
         signal: AbortSignal.any([controller.signal, AbortSignal.timeout(340000)]),
-        body: JSON.stringify({ sourceId, source, seed, views, facts: `${plan.floors.length} occupied floors. Keep the supplied accepted Blender villa unchanged. ${plan.openingCounts.windows} planned windows, ${plan.openingCounts.doors} planned doors. ${plan.siteFeatures?.some((f) => f.kind === 'pool') ? 'The site has a swimming pool.' : 'The site has NO swimming pool.'}` }) })
+        body: JSON.stringify({ sourceId, source, seed, views, facts: `${plan.floors.length} occupied floors. Keep the supplied accepted Blender villa unchanged. ${plan.openingCounts.windows} planned windows, ${plan.openingCounts.doors} planned doors. ${plan.siteFeatures?.some((f) => f.kind === 'pool') ? 'The site has a swimming pool.' : 'The site has NO swimming pool.'}${plan.floors[0]?.rooms.some((r) => /parking/i.test(r.id + r.name)) ? ' Cars stand under the covered car porch.' : ''}` }) })
       const data = await response.json(); controller.signal.throwIfAborted()
       if (!response.ok) throw new Error('Visualizations are unavailable right now. Your 3D model is ready.')
-      save(readVisualizationPair(data, sourceId))
+      const pair = readVisualizationPair(data, sourceId)
+      // the colours are held to the model it was made from
+      const images = await Promise.all(pair.images.map(async (image) => {
+        const capture = views.find((v) => v.view === image.view)?.beauty
+        return capture ? { ...image, url: await matchModelColours(image.url, capture).catch(() => image.url) } : image
+      }))
+      controller.signal.throwIfAborted()
+      save({ ...pair, images })
     } catch (error) {
       if (!controller.signal.aborted) { console.warn('[villa-visualizations] Request did not complete:', error instanceof Error ? error.message : 'Unknown error'); setMessage('Visualizations are unavailable right now. Your 3D model is ready.') }
     } finally { if (request.current === controller) { setPhase('idle'); request.current = null } }

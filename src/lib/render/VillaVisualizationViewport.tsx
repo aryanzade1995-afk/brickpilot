@@ -57,13 +57,13 @@ function SourceCamera({box,setDriver}:SourceProps&{box:THREE.Box3}) {
       // front: straight onto the entrance side, a little above eye level. iso: the classic
       // three-quarter bird's-eye view from the front-left corner.
       const frontSign=-1
-      const direction=view==='front'?new THREE.Vector3(0,.13,frontSign).normalize():new THREE.Vector3(-1,.82,frontSign).normalize()
+      const direction=view==='front'?new THREE.Vector3(0,.07,frontSign).normalize():new THREE.Vector3(-1,.82,frontSign).normalize()
       const points=Array.from({length:8},(_,i)=>new THREE.Vector3(i&1?box.max.x:box.min.x,i&2?box.max.y:box.min.y,i&4?box.max.z:box.min.z))
       const aim=center.clone();aim.y=box.min.y+size.y*.44
       let distance=Math.max(size.x,size.y,size.z)*1.2
       for(let i=0;i<35;i++) {
         c.position.copy(aim).addScaledVector(direction,distance);c.lookAt(aim);c.updateMatrixWorld();c.updateProjectionMatrix()
-        if(points.every(p=>{const v=p.clone().project(c);return Math.abs(v.x)<.88&&Math.abs(v.y)<.88&&v.z>-1&&v.z<1}))break
+        if(points.every(p=>{const v=p.clone().project(c);return Math.abs(v.x)<.94&&Math.abs(v.y)<.9&&v.z>-1&&v.z<1}))break
         distance*=1.075
       }
     }
@@ -77,20 +77,53 @@ function SourceCamera({box,setDriver}:SourceProps&{box:THREE.Box3}) {
       const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t})()
     setDriver({capture:async()=>{
       const pair:VillaReferenceView[]=[],old=gl.getSize(new THREE.Vector2()),dpr=gl.getPixelRatio(),previousBackground=scene.background
+      // the capture stands the villa on real ground under a sun, so the AI reads it as a photograph to finish, not a floating model
+      const stage=new THREE.Group()
+      const ground=new THREE.Mesh(new THREE.PlaneGeometry(4000,4000),new THREE.MeshStandardMaterial({color:'#6d8a4a',roughness:1}))
+      ground.rotation.x=-Math.PI/2;ground.position.set(center.x,box.min.y-.02,center.z);ground.receiveShadow=true
+      const sun=new THREE.DirectionalLight('#fff4e0',2.6),r=Math.max(size.x,size.z)
+      sun.position.set(center.x-r*.9,box.max.y+r*1.2,center.z-r*1.1);sun.target.position.copy(center);sun.castShadow=true
+      sun.shadow.mapSize.set(4096,4096);Object.assign(sun.shadow.camera,{left:-r,right:r,top:r,bottom:-r,near:.1,far:r*6});sun.shadow.bias=-.0004;sun.shadow.normalBias=.02
+      stage.add(ground,sun,sun.target,new THREE.HemisphereLight('#cfe3ff','#5d6b45',.9))
+      const shadows=gl.shadowMap.enabled,cast=new Map<THREE.Object3D,[boolean,boolean]>()
+      scene.traverse(o=>{if((o as THREE.Mesh).isMesh){cast.set(o,[o.castShadow,o.receiveShadow]);o.castShadow=true;o.receiveShadow=true}})
+      const lights:THREE.Light[]=[];scene.traverse(o=>{if((o as THREE.Light).isLight){lights.push(o as THREE.Light)}})
+      const dim=lights.map(l=>l.intensity)
       try {
         scene.background=sky
+        lights.forEach(l=>{l.intensity*=.35})
+        scene.add(stage);gl.shadowMap.enabled=true;gl.shadowMap.type=THREE.PCFSoftShadowMap;gl.shadowMap.needsUpdate=true
         gl.setPixelRatio(1);gl.setSize(1024,768,false)
         const captureCamera=new THREE.PerspectiveCamera(40,4/3,.1,2000)
         for(const view of ['front'] as const) {
           if(!alive)throw new Error('The source model changed')
           pose(captureCamera,view);gl.render(scene,captureCamera)
           const beauty=gl.domElement.toDataURL('image/png').split(',')[1]
+          // the same camera's depth, near white: the villa's exact volumes for the AI to hold to
+          // linear depth stretched over the villa itself (its nearest to its farthest point), so every step in the facade reads
+          const view0=captureCamera.matrixWorldInverse,zs=Array.from({length:8},(_,i)=>-new THREE.Vector3(i&1?box.max.x:box.min.x,i&2?box.max.y:box.min.y,i&4?box.max.z:box.min.z).applyMatrix4(view0).z)
+          const near=Math.max(.1,Math.min(...zs)),far=Math.max(...zs)+size.length()*.15
+          const depthMat=new THREE.ShaderMaterial({uniforms:{near:{value:near},far:{value:far}},
+            vertexShader:`varying float vz;
+void main(){
+#include <begin_vertex>
+#include <project_vertex>
+vz=-mvPosition.z;
+}`,
+            fragmentShader:'uniform float near;uniform float far;varying float vz;void main(){float d=clamp((vz-near)/(far-near),0.,1.);gl_FragColor=vec4(vec3(pow(1.-d,.8)),1.);}'})
+          const bg:THREE.Scene['background']=scene.background
+          scene.overrideMaterial=depthMat;scene.background=new THREE.Color('#000');gl.render(scene,captureCamera)
+          const depth=gl.domElement.toDataURL('image/png').split(',')[1]
+          scene.overrideMaterial=null;scene.background=bg;depthMat.dispose()
           const edge=await buildingEdgeMap(beauty)
-          pair.push({view,beauty,edge})
+          pair.push({view,beauty,edge,depth})
         }
         if(!alive)throw new Error('The source model changed')
         return pair
-      } finally {scene.background=previousBackground;gl.setPixelRatio(dpr);gl.setSize(old.x,old.y,false);gl.render(scene,camera)}
+      } finally {
+        scene.remove(stage);ground.geometry.dispose();(ground.material as THREE.Material).dispose();sun.dispose()
+        lights.forEach((l,i)=>{l.intensity=dim[i]});cast.forEach(([c,rcv],o)=>{o.castShadow=c;o.receiveShadow=rcv});gl.shadowMap.enabled=shadows;gl.shadowMap.needsUpdate=true
+        scene.background=previousBackground;gl.setPixelRatio(dpr);gl.setSize(old.x,old.y,false);gl.render(scene,camera)}
     }})
     return ()=>{alive=false;sky.dispose();setDriver(null)}
   },[gl,scene,camera,controls,box,setDriver])

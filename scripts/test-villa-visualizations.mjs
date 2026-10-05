@@ -16,28 +16,36 @@ const first=png(60),second=png(140),output=(imageBase64=first)=>({imageBase64,mi
 const reference={sourceId:'plan-A|blender|41',source:'blender',seed:41,views:[{view:'front',beauty:first,edge:second}]}
 const limits={...VISUALIZATION_LIMITS,geminiTimeoutMs:25,comfyTimeoutMs:150}
 
-test('a successful run returns the single source-bound front view and never exposes provider details',async()=>{
-  const calls=[],registry={gemini:{generateVillaView:async job=>{calls.push(job);return output(job.beauty)}},comfyui:{generateVillaView:()=>{throw Error('must not run')}}}
-  const pair=await generateVillaVisualizations(reference,{registry,limits})
-  assert.deepEqual(pair.images.map(i=>i.view),['front'])
-  assert.deepEqual(Object.keys(pair),['sourceId','images']);assert.equal(calls.length,1)
-  assert.equal(calls[0].beauty,first);assert.equal(calls[0].otherBeauty,undefined)
-  assert.match(calls[0].positive,/authoritative completed 3D villa/)
+test('the villa image is an edit of the actual capture held to its edges and depth: local SDXL first, Gemini only as the fallback',async()=>{
+  const calls=[],registry={comfyui:{generateVillaView:async job=>{calls.push(job);return output(job.beauty)}},gemini:{generateVillaView:()=>{throw Error('must not run')}}}
+  const ref={...reference,views:[{...reference.views[0],depth:second}]}
+  const pair=await generateVillaVisualizations(ref,{registry,limits})
+  assert.deepEqual(pair.images.map(i=>i.view),['front']);assert.deepEqual(Object.keys(pair),['sourceId','images']);assert.equal(calls.length,1)
+  assert.equal(calls[0].beauty,first);assert.equal(calls[0].depth,second);assert.equal(calls[0].params.img2img,true)
+  assert.ok(calls[0].params.denoise<.85&&calls[0].params.denoise>.6,'strong enough for realism, low enough to keep walls and colours')
+  assert.equal(calls[0].params.cnEnd,1);assert.doesNotMatch(calls[0].positive,/stone cladding|golden-hour|palm/i)
   assert.deepEqual(readVisualizationPair(pair,reference.sourceId),pair)
+  const {graph}=buildVillaWorkflow({beautyName:'b.png',edgeName:'e.png',depthName:'d.png',positive:'p',negative:'n',params:{...VISUALIZATION_LIMITS,seed:1}})
+  assert.equal(graph['83'].inputs.image,'d.png');assert.deepEqual(graph['50'].inputs.positive,['32',0]);assert.deepEqual(graph['32'].inputs.positive,['31',0])
+})
+test('Gemini Web edits the direct capture when local SDXL is unavailable',async()=>{
+  const calls=[],registry={comfyui:{generateVillaView:async()=>{throw Error('GPU missing')}},gemini:{generateVillaView:async job=>{calls.push(job);return output(job.beauty)}}}
+  const pair=await generateVillaVisualizations(reference,{registry,limits})
+  assert.equal(calls.length,1);assert.match(calls[0].positive,/authoritative completed 3D villa/);assert.equal(pair.images.length,1)
 })
 for(const cause of ['authentication','network','empty','invalid','partial','timeout'])test(`${cause}: primary failure automatically replaces the entire pair`,async()=>{
   let g=0,c=0
-  const registry={gemini:{generateVillaView:async()=>{g++;if(cause==='partial'&&g===1)return output(second)
+  const registry={comfyui:{generateVillaView:async()=>{g++;if(cause==='partial')return {imageBase64:second.slice(0,-12),mimeType:'image/png'}
     if(cause==='timeout')return new Promise(()=>{})
     if(cause==='empty')return output('')
     if(cause==='invalid')return {imageBase64:Buffer.from('<html>broken</html>').toString('base64'),mimeType:'image/png'}
-    throw Error(cause)}},comfyui:{generateVillaView:async()=>{c++;return output(first)}}}
+    throw Error(cause)}},gemini:{generateVillaView:async()=>{c++;return output(first)}}}
   const pair=await generateVillaVisualizations(reference,{registry,limits})
   assert.equal(c,1);assert.equal(pair.images.length,1)
   assert.ok(pair.images.every(i=>i.url.endsWith(first)))
 })
 test('no mock or partial gallery when both providers fail; client cancellation stops fallback',async()=>{
-  let calls=0;const registry={gemini:{generateVillaView:async()=>{throw Error('secret-cookie')}},comfyui:{generateVillaView:async()=>{calls++;throw Error('GPU missing')}}}
+  let calls=0;const registry={comfyui:{generateVillaView:async()=>{throw Error('GPU missing')}},gemini:{generateVillaView:async()=>{calls++;throw Error('secret-cookie')}}}
   await assert.rejects(generateVillaVisualizations(reference,{registry,limits}),/Visualizations are unavailable right now/)
   const controller=new AbortController();controller.abort()
   await assert.rejects(generateVillaVisualizations(reference,{registry,limits,signal:controller.signal}),{name:'AbortError'})
