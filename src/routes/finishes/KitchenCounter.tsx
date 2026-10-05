@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import type { CostEstimate } from '@/lib/cost/index.ts'
 import { specificationRate } from '@/lib/cost/catalogue.ts'
-import { assetUrl, itemLines, type SpecItem, type SpecOption } from '@/lib/cost/workspace.ts'
+import { itemLines, type SpecItem, type SpecOption } from '@/lib/cost/workspace.ts'
+import { optionImage, photographedOptions } from '@/lib/finishes/optionImage.ts'
 import { finishProduct } from '@/lib/finishes/catalogue.ts'
 import { formatINR } from '@/lib/format.ts'
 import { cx } from '@/lib/cx.ts'
@@ -9,10 +10,7 @@ import { cx } from '@/lib/cx.ts'
 const FIRST = 6
 
 /** the material's own surface texture (the same one the 3D model and renders use) */
-const imageOf = (o: SpecOption) => {
-  const photo = o.photos.find((p) => p.kind === 'closeup') ?? o.photos[0]
-  return photo ? assetUrl(photo.webFile ?? photo.file) : `/specs/textures/${o.blenderMaterial}-800.jpg`
-}
+const imageOf = (o: SpecOption) => optionImage(o)?.src
 /** plain notes about the material: no brand, supplier or source attribution */
 const notesOf = (o: SpecOption) => {
   const p = finishProduct(o.finishProductId)
@@ -21,7 +19,7 @@ const notesOf = (o: SpecOption) => {
 
 /** Kitchen counter: six material cards (more on request), one selected, and its specification sheet with the plan-linked cost. */
 export function KitchenCounter({ item, cost, value, onChange }: { item: SpecItem; cost: CostEstimate; value: string; onChange: (id: string) => void }) {
-  const options = item.options.filter((o, i, all) => all.findIndex((x) => x.id === o.id) === i)
+  const options = photographedOptions(item).filter((o, i, all) => all.findIndex((x) => x.id === o.id) === i)
   const [more, setMore] = useState(() => options.findIndex((o) => o.id === value) >= FIRST)
   const shown = more ? options : options.slice(0, FIRST)
   const selected = options.find((o) => o.id === value) ?? options[0]

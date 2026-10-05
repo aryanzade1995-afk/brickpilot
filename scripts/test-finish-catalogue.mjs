@@ -14,10 +14,11 @@ import { specificationSchedule } from '../src/lib/cost/schedule.ts'
 const brief=defaultBrief(),design=generate(compile(brief)),base=estimateBoq(design,brief)
 const find=id=>specsCatalogue.items.find(i=>i.id===id)
 
-test('seven catalogues separate material, type, finish and application; preserve legacy options and presets',()=>{
+test('nine catalogues separate material, type, finish and application; preserve legacy options and presets',()=>{
  const categories=[...new Set(finishProducts.map(p=>p.category))]
- assert.equal(categories.length,7);assert.equal(finishProducts.length,129)
- for(const group of categories) assert.equal(finishProducts.filter(p=>p.category===group).length,group==='kitchen'?21:18)
+ assert.equal(categories.length,9);assert.equal(finishProducts.length,219)
+ const counts={'kitchen':24,'doors':24,'railings-gates':24,'wall-tiles-cladding':20,'windows-glass-grills':18,'waterproofing':21,'painting':22,'electrical':30,'plumbing-sanitary':36}
+ for(const group of categories) assert.equal(finishProducts.filter(p=>p.category===group).length,counts[group])
  for(const p of finishProducts)for(const id of p.itemIds){
   const i=find(id),o=i.options.find(o=>o.id===p.id),r=specificationRate(o.rateId)
   assert.equal(o.finishProductId,p.id);assert.equal(i.group,p.category)
@@ -31,8 +32,8 @@ test('seven catalogues separate material, type, finish and application; preserve
 
 test('images are audited real imagery or explicitly unavailable, with safe official sources and licensing status',()=>{
  const withImages=finishProducts.filter(p=>p.image.path)
- assert.equal(withImages.length,7)
- assert.equal(withImages.filter(p=>p.image.kind==='real-product-photo').length,1)
+ assert.equal(withImages.length,97)
+ assert.equal(withImages.filter(p=>p.image.kind==='real-product-photo').length,89)
  for(const p of finishProducts){
   assert.equal(p.thumbnail,p.image.path)
   if(!p.image.path){assert.equal(p.image.kind,'unavailable');assert.equal(p.image.sourceStatus,'unavailable');continue}

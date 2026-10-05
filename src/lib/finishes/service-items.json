@@ -1,0 +1,79 @@
+[
+  {
+    "id": "bath-basin",
+    "group": "plumbing-sanitary",
+    "label": "Wash basins & vanity context",
+    "scope": "perRoom",
+    "level": "main",
+    "control": "dropdown",
+    "note": "Basin preference within the existing sanitary allowance. Cabinet shown only as installation context; confirm cabinet and basin quote separately.",
+    "options": [],
+    "roomSource": "sanitary"
+  },
+  {
+    "id": "bath-shower",
+    "group": "plumbing-sanitary",
+    "label": "Showerheads & shower systems",
+    "scope": "perRoom",
+    "level": "main",
+    "control": "dropdown",
+    "note": "Showerhead preference within the taps/shower allowance. Arm, valve, hand shower and pipe positions are installation context; confirm complete system quote.",
+    "options": [],
+    "roomSource": "cp-fittings"
+  },
+  {
+    "id": "bath-tub",
+    "group": "plumbing-sanitary",
+    "label": "Bathtubs",
+    "scope": "perRoom",
+    "level": "main",
+    "control": "dropdown",
+    "note": "Optional bathtub preference. Bathtub, support, drain and installation are excluded from the current bathroom allowance until measured and quoted.",
+    "options": [],
+    "roomSource": "sanitary"
+  },
+  {
+    "id": "bath-enclosure",
+    "group": "plumbing-sanitary",
+    "label": "Shower cabins & glass enclosures",
+    "scope": "perRoom",
+    "level": "main",
+    "control": "dropdown",
+    "note": "Optional enclosure preference. Glass, hardware and installation are excluded until actual bathroom clearance is measured and quoted.",
+    "options": [],
+    "roomSource": "sanitary"
+  },
+  {
+    "id": "electrical-bulbs",
+    "group": "electrical",
+    "label": "LED & decorative bulbs",
+    "scope": "house",
+    "level": "main",
+    "control": "dropdown",
+    "note": "Product preference only. Confirm quantity, installation compatibility and supplier quote; not an additional priced allowance.",
+    "options": [],
+    "roomSource": "light-fittings"
+  },
+  {
+    "id": "electrical-battens",
+    "group": "electrical",
+    "label": "Batten & tube lights",
+    "scope": "house",
+    "level": "main",
+    "control": "dropdown",
+    "note": "Product preference only. Confirm quantity, installation compatibility and supplier quote; not an additional priced allowance.",
+    "options": [],
+    "roomSource": "light-fittings"
+  },
+  {
+    "id": "electrical-exhaust",
+    "group": "electrical",
+    "label": "Ventilation & exhaust fans",
+    "scope": "house",
+    "level": "main",
+    "control": "dropdown",
+    "note": "Product preference only. Confirm quantity, installation compatibility and supplier quote; not an additional priced allowance.",
+    "options": [],
+    "roomSource": "sanitary"
+  }
+]

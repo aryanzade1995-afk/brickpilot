@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import raw from './boq-rules.json' with { type: 'json' }
 import { rateBook, specsCatalogue } from '../catalogue.ts'
+import serviceItems from '../../finishes/service-items.json' with {type:'json'}
 
 const positive = z.number().positive().finite(), nonnegative = z.number().nonnegative().finite()
 export const TRADES = ['Civil & structure', 'Flooring & tiling', 'Doors & windows', 'Plumbing & sanitary', 'Electrical', 'Painting', 'Waterproofing', 'Exterior & site', 'Extras'] as const
@@ -26,4 +27,4 @@ export const boqRulesSchema = z.strictObject({
   for (const item of specsCatalogue.items) if (!v.recipes.some(r => r.item === item.id) && !v.unpricedItems[item.id])
     ctx.addIssue({ code: 'custom', message: `Missing BOQ scope decision for ${item.id}` })
 })
-export const boqRules = boqRulesSchema.parse(raw)
+export const boqRules = boqRulesSchema.parse({...raw,unpricedItems:{...raw.unpricedItems,...Object.fromEntries(serviceItems.map(i=>[i.id,i.note]))}})

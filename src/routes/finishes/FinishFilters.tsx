@@ -1,10 +1,10 @@
 import { finishFacets, type FinishFilters as Filters } from '@/lib/finishes/catalogue.ts'
 
 /** Facets come from the applicable specification data, not a component-specific product list. */
-export function FinishFilters({ itemId, filters, onChange, count }: {
-  itemId: string; filters: Filters; onChange: (filters: Filters) => void; count: number
+export function FinishFilters({ itemId, availableIds, filters, onChange, count }: {
+  itemId: string; availableIds?: string[]; filters: Filters; onChange: (filters: Filters) => void; count: number
 }) {
-  const facets = finishFacets(itemId)
+  const facets = finishFacets(itemId, availableIds)
   return <fieldset className="mb-5 border-b border-line pb-5"><legend className="sr-only">Find specifications</legend>
     <label className="block text-xs">Search specifications<input type="search" value={filters.search ?? ''} onChange={e => onChange({ ...filters, search: e.target.value })}
       placeholder="Material, finish, type or supplier…" className="mt-2 w-full border border-line bg-bg px-3 py-2 text-sm" /></label>

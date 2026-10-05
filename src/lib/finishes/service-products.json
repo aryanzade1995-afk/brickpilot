@@ -1,0 +1,4531 @@
+{
+  "schemaVersion": 1,
+  "products": [
+    {
+      "id": "svc-fans-1",
+      "name": "Crompton Energion Niteo Pro BLDC Ceiling Fan",
+      "category": "electrical",
+      "subcategory": "fans",
+      "itemIds": [
+        "fans"
+      ],
+      "brand": "Crompton",
+      "productName": "Crompton Energion Niteo Pro BLDC Ceiling Fan",
+      "material": "Metal",
+      "style": "Ceiling fan",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "fans"
+      ],
+      "suitableRooms": [
+        "As specified"
+      ],
+      "specification": "One fan per measured fan location. Catalogue selling price observed 6 October 2026 plus provisional installation; confirm finish, sweep and quote.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.crompton.co.in/products/crompton-energion-niteo-pro-bldc-ceiling-fan",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "item",
+        "material": 6399,
+        "labour": 700,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "allowance",
+        "note": "One fan per measured fan location. Catalogue selling price observed 6 October 2026 plus provisional installation; confirm finish, sweep and quote."
+      },
+      "facts": [
+        "Official Crompton catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Provisional installed allowance; confirm supplier quote"
+      ],
+      "image": {
+        "brand": "Crompton",
+        "productName": "Crompton Energion Niteo Pro BLDC Ceiling Fan",
+        "sourceUrl": "https://www.crompton.co.in/products/crompton-energion-niteo-pro-bldc-ceiling-fan",
+        "path": "public/specs/products/svc-fans-1.png",
+        "originalUrl": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/Artboard0_abf66d1d-debf-4441-bc3e-4d4a0033a308.png?v=1787836433",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Crompton",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-fans-1.png",
+      "preview": {
+        "model": "fan",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 0
+      }
+    },
+    {
+      "id": "svc-fans-2",
+      "name": "Crompton Luxian Jupiter Senze Ceiling Fan",
+      "category": "electrical",
+      "subcategory": "fans",
+      "itemIds": [
+        "fans"
+      ],
+      "brand": "Crompton",
+      "productName": "Crompton Luxian Jupiter Senze Ceiling Fan",
+      "material": "Metal",
+      "style": "Ceiling fan",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "fans"
+      ],
+      "suitableRooms": [
+        "As specified"
+      ],
+      "specification": "One fan per measured fan location. Catalogue selling price observed 6 October 2026 plus provisional installation; confirm finish, sweep and quote.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.crompton.co.in/products/crompton-luxian-jupiter-senze-ceiling-fan",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "item",
+        "material": 15999,
+        "labour": 700,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "allowance",
+        "note": "One fan per measured fan location. Catalogue selling price observed 6 October 2026 plus provisional installation; confirm finish, sweep and quote."
+      },
+      "facts": [
+        "Official Crompton catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Provisional installed allowance; confirm supplier quote"
+      ],
+      "image": {
+        "brand": "Crompton",
+        "productName": "Crompton Luxian Jupiter Senze Ceiling Fan",
+        "sourceUrl": "https://www.crompton.co.in/products/crompton-luxian-jupiter-senze-ceiling-fan",
+        "path": "public/specs/products/svc-fans-2.png",
+        "originalUrl": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/Jupiter-Photoroom_1.png?v=1787651564",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Crompton",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-fans-2.png",
+      "preview": {
+        "model": "fan",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 1
+      }
+    },
+    {
+      "id": "svc-fans-3",
+      "name": "Crompton SilentPro Fluido Glide IOT Ceiling Fan",
+      "category": "electrical",
+      "subcategory": "fans",
+      "itemIds": [
+        "fans"
+      ],
+      "brand": "Crompton",
+      "productName": "Crompton SilentPro Fluido Glide IOT Ceiling Fan",
+      "material": "Metal",
+      "style": "Ceiling fan",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "fans"
+      ],
+      "suitableRooms": [
+        "As specified"
+      ],
+      "specification": "One fan per measured fan location. Catalogue selling price observed 6 October 2026 plus provisional installation; confirm finish, sweep and quote.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.crompton.co.in/products/crompton-silentpro-fluido-glide-iot-ceiling-fan",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "item",
+        "material": 11499,
+        "labour": 700,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "allowance",
+        "note": "One fan per measured fan location. Catalogue selling price observed 6 October 2026 plus provisional installation; confirm finish, sweep and quote."
+      },
+      "facts": [
+        "Official Crompton catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Provisional installed allowance; confirm supplier quote"
+      ],
+      "image": {
+        "brand": "Crompton",
+        "productName": "Crompton SilentPro Fluido Glide IOT Ceiling Fan",
+        "sourceUrl": "https://www.crompton.co.in/products/crompton-silentpro-fluido-glide-iot-ceiling-fan",
+        "path": "public/specs/products/svc-fans-3.png",
+        "originalUrl": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/1-Photoroom_3.png?v=1787562847",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Crompton",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-fans-3.png",
+      "preview": {
+        "model": "fan",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 2
+      }
+    },
+    {
+      "id": "svc-fans-4",
+      "name": "Crompton Energion Roverr Underlight BLDC Ceiling Fan",
+      "category": "electrical",
+      "subcategory": "fans",
+      "itemIds": [
+        "fans"
+      ],
+      "brand": "Crompton",
+      "productName": "Crompton Energion Roverr Underlight BLDC Ceiling Fan",
+      "material": "Metal",
+      "style": "Ceiling fan",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "fans"
+      ],
+      "suitableRooms": [
+        "As specified"
+      ],
+      "specification": "One fan per measured fan location. Catalogue selling price observed 6 October 2026 plus provisional installation; confirm finish, sweep and quote.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.crompton.co.in/products/crompton-energion-roverr-underlight-bldc-ceiling-fan",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "item",
+        "material": 13499,
+        "labour": 700,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "allowance",
+        "note": "One fan per measured fan location. Catalogue selling price observed 6 October 2026 plus provisional installation; confirm finish, sweep and quote."
+      },
+      "facts": [
+        "Official Crompton catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Provisional installed allowance; confirm supplier quote"
+      ],
+      "image": {
+        "brand": "Crompton",
+        "productName": "Crompton Energion Roverr Underlight BLDC Ceiling Fan",
+        "sourceUrl": "https://www.crompton.co.in/products/crompton-energion-roverr-underlight-bldc-ceiling-fan",
+        "path": "public/specs/products/svc-fans-4.png",
+        "originalUrl": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/Untitled-1_97065d67-d52a-4513-909c-454baab6fe97.png?v=1776751790",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Crompton",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-fans-4.png",
+      "preview": {
+        "model": "fan",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 3
+      }
+    },
+    {
+      "id": "svc-fans-5",
+      "name": "Crompton Luxian Uranus Chandelier Ceiling Fan",
+      "category": "electrical",
+      "subcategory": "fans",
+      "itemIds": [
+        "fans"
+      ],
+      "brand": "Crompton",
+      "productName": "Crompton Luxian Uranus Chandelier Ceiling Fan",
+      "material": "Metal",
+      "style": "Ceiling fan",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "fans"
+      ],
+      "suitableRooms": [
+        "As specified"
+      ],
+      "specification": "One fan per measured fan location. Catalogue selling price observed 6 October 2026 plus provisional installation; confirm finish, sweep and quote.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.crompton.co.in/products/crompton-luxian-uranus",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "item",
+        "material": 9999,
+        "labour": 700,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "allowance",
+        "note": "One fan per measured fan location. Catalogue selling price observed 6 October 2026 plus provisional installation; confirm finish, sweep and quote."
+      },
+      "facts": [
+        "Official Crompton catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Provisional installed allowance; confirm supplier quote"
+      ],
+      "image": {
+        "brand": "Crompton",
+        "productName": "Crompton Luxian Uranus Chandelier Ceiling Fan",
+        "sourceUrl": "https://www.crompton.co.in/products/crompton-luxian-uranus",
+        "path": "public/specs/products/svc-fans-5.png",
+        "originalUrl": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/1_9352ed6d-106c-4141-a638-5c20b05e74c4.png?v=1772789704",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Crompton",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-fans-5.png",
+      "preview": {
+        "model": "fan",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 4
+      }
+    },
+    {
+      "id": "svc-light-fittings-1",
+      "name": "Crompton Intellisense MoodFlex Smart Ceiling Lights",
+      "category": "electrical",
+      "subcategory": "light-fittings",
+      "itemIds": [
+        "light-fittings"
+      ],
+      "brand": "Crompton",
+      "productName": "Crompton Intellisense MoodFlex Smart Ceiling Lights",
+      "material": "Metal",
+      "style": "Round ceiling light",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "light fittings"
+      ],
+      "suitableRooms": [
+        "As specified"
+      ],
+      "specification": "One ceiling fitting per existing measured light allowance. Price is provisional; no extra lighting points are added.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.crompton.co.in/products/crompton-intellisense-moodflex-smart-ceiling-lights",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "item",
+        "material": 1000,
+        "labour": 250,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "allowance",
+        "note": "One ceiling fitting per existing measured light allowance. Price is provisional; no extra lighting points are added."
+      },
+      "facts": [
+        "Official Crompton catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Provisional installed allowance; confirm supplier quote"
+      ],
+      "image": {
+        "brand": "Crompton",
+        "productName": "Crompton Intellisense MoodFlex Smart Ceiling Lights",
+        "sourceUrl": "https://www.crompton.co.in/products/crompton-intellisense-moodflex-smart-ceiling-lights",
+        "path": "public/specs/products/svc-light-fittings-1.png",
+        "originalUrl": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/Artboard0_41798cad-9669-4e8e-b9f0-8172d8b2785f.png?v=1772704541",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Crompton",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-light-fittings-1.png",
+      "preview": {
+        "model": "light-round",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 0
+      }
+    },
+    {
+      "id": "svc-light-fittings-2",
+      "name": "10W Star Glaze NXT Round Recessed Junction Box Downlighter",
+      "category": "electrical",
+      "subcategory": "light-fittings",
+      "itemIds": [
+        "light-fittings"
+      ],
+      "brand": "Crompton",
+      "productName": "10W Star Glaze NXT Round Recessed Junction Box Downlighter",
+      "material": "Metal",
+      "style": "Round ceiling light",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "light fittings"
+      ],
+      "suitableRooms": [
+        "As specified"
+      ],
+      "specification": "One ceiling fitting per existing measured light allowance. Price is provisional; no extra lighting points are added.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.crompton.co.in/products/10w-star-glaze-nxt-round-recessed-junction-box-downlighter",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "item",
+        "material": 350,
+        "labour": 250,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "allowance",
+        "note": "One ceiling fitting per existing measured light allowance. Price is provisional; no extra lighting points are added."
+      },
+      "facts": [
+        "Official Crompton catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Provisional installed allowance; confirm supplier quote"
+      ],
+      "image": {
+        "brand": "Crompton",
+        "productName": "10W Star Glaze NXT Round Recessed Junction Box Downlighter",
+        "sourceUrl": "https://www.crompton.co.in/products/10w-star-glaze-nxt-round-recessed-junction-box-downlighter",
+        "path": "public/specs/products/svc-light-fittings-2.png",
+        "originalUrl": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/strglznxtpng_85823017-60a0-4d8f-94fd-bfa3f4c91d7d.png?v=1721624962",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Crompton",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-light-fittings-2.png",
+      "preview": {
+        "model": "light-round",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 1
+      }
+    },
+    {
+      "id": "svc-light-fittings-3",
+      "name": "TRIO PANEL 15W ROUND C+W",
+      "category": "electrical",
+      "subcategory": "light-fittings",
+      "itemIds": [
+        "light-fittings"
+      ],
+      "brand": "Crompton",
+      "productName": "TRIO PANEL 15W ROUND C+W",
+      "material": "Metal",
+      "style": "Round ceiling light",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "light fittings"
+      ],
+      "suitableRooms": [
+        "As specified"
+      ],
+      "specification": "One ceiling fitting per existing measured light allowance. Price is provisional; no extra lighting points are added.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.crompton.co.in/products/trio-panel-15w-round-c-w",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "item",
+        "material": 1400,
+        "labour": 250,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "allowance",
+        "note": "One ceiling fitting per existing measured light allowance. Price is provisional; no extra lighting points are added."
+      },
+      "facts": [
+        "Official Crompton catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Provisional installed allowance; confirm supplier quote"
+      ],
+      "image": {
+        "brand": "Crompton",
+        "productName": "TRIO PANEL 15W ROUND C+W",
+        "sourceUrl": "https://www.crompton.co.in/products/trio-panel-15w-round-c-w",
+        "path": "public/specs/products/svc-light-fittings-3.png",
+        "originalUrl": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/png_5bfd9d5f-fc45-49cc-98a1-d144eb3a8845.png?v=1715342617",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Crompton",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-light-fittings-3.png",
+      "preview": {
+        "model": "light-round",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 2
+      }
+    },
+    {
+      "id": "svc-light-fittings-4",
+      "name": "25W Star Dura Pro Square Led Recess Panel",
+      "category": "electrical",
+      "subcategory": "light-fittings",
+      "itemIds": [
+        "light-fittings"
+      ],
+      "brand": "Crompton",
+      "productName": "25W Star Dura Pro Square Led Recess Panel",
+      "material": "Metal",
+      "style": "Square ceiling light",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "light fittings"
+      ],
+      "suitableRooms": [
+        "As specified"
+      ],
+      "specification": "One ceiling fitting per existing measured light allowance. Price is provisional; no extra lighting points are added.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.crompton.co.in/products/25w-star-dura-pro-square-led-recess-panel",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "item",
+        "material": 2000,
+        "labour": 250,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "allowance",
+        "note": "One ceiling fitting per existing measured light allowance. Price is provisional; no extra lighting points are added."
+      },
+      "facts": [
+        "Official Crompton catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Provisional installed allowance; confirm supplier quote"
+      ],
+      "image": {
+        "brand": "Crompton",
+        "productName": "25W Star Dura Pro Square Led Recess Panel",
+        "sourceUrl": "https://www.crompton.co.in/products/25w-star-dura-pro-square-led-recess-panel",
+        "path": "public/specs/products/svc-light-fittings-4.png",
+        "originalUrl": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/SDES_SQAURE_FRONT_940b06fb-d18c-4a78-b766-4188c759c708.png?v=1712915101",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Crompton",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-light-fittings-4.png",
+      "preview": {
+        "model": "light-square",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 3
+      }
+    },
+    {
+      "id": "svc-light-fittings-5",
+      "name": "9W Star Deepglaze Round Led Downlighter",
+      "category": "electrical",
+      "subcategory": "light-fittings",
+      "itemIds": [
+        "light-fittings"
+      ],
+      "brand": "Crompton",
+      "productName": "9W Star Deepglaze Round Led Downlighter",
+      "material": "Metal",
+      "style": "Round ceiling light",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "light fittings"
+      ],
+      "suitableRooms": [
+        "As specified"
+      ],
+      "specification": "One ceiling fitting per existing measured light allowance. Price is provisional; no extra lighting points are added.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.crompton.co.in/products/9w-star-deepglaze-round-led-downlighter",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "item",
+        "material": 500,
+        "labour": 250,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "allowance",
+        "note": "One ceiling fitting per existing measured light allowance. Price is provisional; no extra lighting points are added."
+      },
+      "facts": [
+        "Official Crompton catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Provisional installed allowance; confirm supplier quote"
+      ],
+      "image": {
+        "brand": "Crompton",
+        "productName": "9W Star Deepglaze Round Led Downlighter",
+        "sourceUrl": "https://www.crompton.co.in/products/9w-star-deepglaze-round-led-downlighter",
+        "path": "public/specs/products/svc-light-fittings-5.png",
+        "originalUrl": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/Copyof3_a76b7789-af3f-46d0-966f-9517c46435fd.png?v=1709284193",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Crompton",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-light-fittings-5.png",
+      "preview": {
+        "model": "light-round",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 4
+      }
+    },
+    {
+      "id": "svc-electrical-bulbs-1",
+      "name": "26W B22 Dynaray Led Bulb",
+      "category": "electrical",
+      "subcategory": "electrical-bulbs",
+      "itemIds": [
+        "electrical-bulbs"
+      ],
+      "brand": "Crompton",
+      "productName": "26W B22 Dynaray Led Bulb",
+      "material": "Metal",
+      "style": "LED bulb",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "electrical bulbs"
+      ],
+      "suitableRooms": [
+        "As specified"
+      ],
+      "specification": "Product preference only. Confirm quantity, installation compatibility and supplier quote; not an additional priced allowance.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.crompton.co.in/products/26w-b22-dynaray-led-bulb",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "item",
+        "material": 0,
+        "labour": 0,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "advisory",
+        "note": "Product preference only. Confirm quantity, installation compatibility and supplier quote; not an additional priced allowance."
+      },
+      "facts": [
+        "Official Crompton catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Preference only; quote required"
+      ],
+      "image": {
+        "brand": "Crompton",
+        "productName": "26W B22 Dynaray Led Bulb",
+        "sourceUrl": "https://www.crompton.co.in/products/26w-b22-dynaray-led-bulb",
+        "path": "public/specs/products/svc-electrical-bulbs-1.png",
+        "originalUrl": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/Untitled-1_f3645859-f828-4ada-807c-23ca9c5d1f1b.png?v=1694779121",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Crompton",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-electrical-bulbs-1.png",
+      "preview": {
+        "model": "bulb",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 0
+      }
+    },
+    {
+      "id": "svc-electrical-bulbs-2",
+      "name": "15W B22 Backup Led Bulb",
+      "category": "electrical",
+      "subcategory": "electrical-bulbs",
+      "itemIds": [
+        "electrical-bulbs"
+      ],
+      "brand": "Crompton",
+      "productName": "15W B22 Backup Led Bulb",
+      "material": "Metal",
+      "style": "LED bulb",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "electrical bulbs"
+      ],
+      "suitableRooms": [
+        "As specified"
+      ],
+      "specification": "Product preference only. Confirm quantity, installation compatibility and supplier quote; not an additional priced allowance.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.crompton.co.in/products/15w-b22-backup-led-bulb",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "item",
+        "material": 0,
+        "labour": 0,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "advisory",
+        "note": "Product preference only. Confirm quantity, installation compatibility and supplier quote; not an additional priced allowance."
+      },
+      "facts": [
+        "Official Crompton catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Preference only; quote required"
+      ],
+      "image": {
+        "brand": "Crompton",
+        "productName": "15W B22 Backup Led Bulb",
+        "sourceUrl": "https://www.crompton.co.in/products/15w-b22-backup-led-bulb",
+        "path": "public/specs/products/svc-electrical-bulbs-2.png",
+        "originalUrl": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/Untitled-1_ddce9bff-2646-43b1-a7ac-4cc9a224267d.png?v=1695203151",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Crompton",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-electrical-bulbs-2.png",
+      "preview": {
+        "model": "bulb",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 1
+      }
+    },
+    {
+      "id": "svc-electrical-bulbs-3",
+      "name": "10W Lyor Led Bulb",
+      "category": "electrical",
+      "subcategory": "electrical-bulbs",
+      "itemIds": [
+        "electrical-bulbs"
+      ],
+      "brand": "Crompton",
+      "productName": "10W Lyor Led Bulb",
+      "material": "Metal",
+      "style": "LED bulb",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "electrical bulbs"
+      ],
+      "suitableRooms": [
+        "As specified"
+      ],
+      "specification": "Product preference only. Confirm quantity, installation compatibility and supplier quote; not an additional priced allowance.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.crompton.co.in/products/10w-lyor-led-bulb",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "item",
+        "material": 0,
+        "labour": 0,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "advisory",
+        "note": "Product preference only. Confirm quantity, installation compatibility and supplier quote; not an additional priced allowance."
+      },
+      "facts": [
+        "Official Crompton catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Preference only; quote required"
+      ],
+      "image": {
+        "brand": "Crompton",
+        "productName": "10W Lyor Led Bulb",
+        "sourceUrl": "https://www.crompton.co.in/products/10w-lyor-led-bulb",
+        "path": "public/specs/products/svc-electrical-bulbs-3.png",
+        "originalUrl": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/LYOR_UPLOAD_1.png?v=1694003367",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Crompton",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-electrical-bulbs-3.png",
+      "preview": {
+        "model": "bulb",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 2
+      }
+    },
+    {
+      "id": "svc-electrical-bulbs-4",
+      "name": "9W Immensa Smart Bulb with Music Mode (E27 Base)",
+      "category": "electrical",
+      "subcategory": "electrical-bulbs",
+      "itemIds": [
+        "electrical-bulbs"
+      ],
+      "brand": "Crompton",
+      "productName": "9W Immensa Smart Bulb with Music Mode (E27 Base)",
+      "material": "Metal",
+      "style": "LED bulb",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "electrical bulbs"
+      ],
+      "suitableRooms": [
+        "As specified"
+      ],
+      "specification": "Product preference only. Confirm quantity, installation compatibility and supplier quote; not an additional priced allowance.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.crompton.co.in/products/9w-immensa-smart-bulb-with-music-mode-e27-base",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "item",
+        "material": 0,
+        "labour": 0,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "advisory",
+        "note": "Product preference only. Confirm quantity, installation compatibility and supplier quote; not an additional priced allowance."
+      },
+      "facts": [
+        "Official Crompton catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Preference only; quote required"
+      ],
+      "image": {
+        "brand": "Crompton",
+        "productName": "9W Immensa Smart Bulb with Music Mode (E27 Base)",
+        "sourceUrl": "https://www.crompton.co.in/products/9w-immensa-smart-bulb-with-music-mode-e27-base",
+        "path": "public/specs/products/svc-electrical-bulbs-4.png",
+        "originalUrl": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/ImmensaE27_2df92a79-1a43-459d-ba62-2d8f7b5d4165.png?v=1702377085",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Crompton",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-electrical-bulbs-4.png",
+      "preview": {
+        "model": "bulb",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 3
+      }
+    },
+    {
+      "id": "svc-electrical-bulbs-5",
+      "name": "4.5W Clear E27 Candle Lamp",
+      "category": "electrical",
+      "subcategory": "electrical-bulbs",
+      "itemIds": [
+        "electrical-bulbs"
+      ],
+      "brand": "Crompton",
+      "productName": "4.5W Clear E27 Candle Lamp",
+      "material": "Metal",
+      "style": "Candle bulb",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "electrical bulbs"
+      ],
+      "suitableRooms": [
+        "As specified"
+      ],
+      "specification": "Product preference only. Confirm quantity, installation compatibility and supplier quote; not an additional priced allowance.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.crompton.co.in/products/4-5w-clear-e27-candle-lamp",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "item",
+        "material": 0,
+        "labour": 0,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "advisory",
+        "note": "Product preference only. Confirm quantity, installation compatibility and supplier quote; not an additional priced allowance."
+      },
+      "facts": [
+        "Official Crompton catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Preference only; quote required"
+      ],
+      "image": {
+        "brand": "Crompton",
+        "productName": "4.5W Clear E27 Candle Lamp",
+        "sourceUrl": "https://www.crompton.co.in/products/4-5w-clear-e27-candle-lamp",
+        "path": "public/specs/products/svc-electrical-bulbs-5.png",
+        "originalUrl": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/4.5W_E27_Clear__1_-removebg-preview.png?v=1692611115",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Crompton",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-electrical-bulbs-5.png",
+      "preview": {
+        "model": "bulb-candle",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 4
+      }
+    },
+    {
+      "id": "svc-electrical-battens-1",
+      "name": "20W Senso Batten",
+      "category": "electrical",
+      "subcategory": "electrical-battens",
+      "itemIds": [
+        "electrical-battens"
+      ],
+      "brand": "Crompton",
+      "productName": "20W Senso Batten",
+      "material": "Metal",
+      "style": "Batten light",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "electrical battens"
+      ],
+      "suitableRooms": [
+        "As specified"
+      ],
+      "specification": "Product preference only. Confirm quantity, installation compatibility and supplier quote; not an additional priced allowance.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.crompton.co.in/products/20w-senso-batten",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "item",
+        "material": 0,
+        "labour": 0,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "advisory",
+        "note": "Product preference only. Confirm quantity, installation compatibility and supplier quote; not an additional priced allowance."
+      },
+      "facts": [
+        "Official Crompton catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Preference only; quote required"
+      ],
+      "image": {
+        "brand": "Crompton",
+        "productName": "20W Senso Batten",
+        "sourceUrl": "https://www.crompton.co.in/products/20w-senso-batten",
+        "path": "public/specs/products/svc-electrical-battens-1.png",
+        "originalUrl": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/png_e890389a-8f97-4e34-bcba-25e32b3e8d96.png?v=1721306081",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Crompton",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-electrical-battens-1.png",
+      "preview": {
+        "model": "batten",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 0
+      }
+    },
+    {
+      "id": "svc-electrical-battens-2",
+      "name": "Crompton 20W SlimO Batten",
+      "category": "electrical",
+      "subcategory": "electrical-battens",
+      "itemIds": [
+        "electrical-battens"
+      ],
+      "brand": "Crompton",
+      "productName": "Crompton 20W SlimO Batten",
+      "material": "Metal",
+      "style": "Batten light",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "electrical battens"
+      ],
+      "suitableRooms": [
+        "As specified"
+      ],
+      "specification": "Product preference only. Confirm quantity, installation compatibility and supplier quote; not an additional priced allowance.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.crompton.co.in/products/crompton-20w-slimo-batten",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "item",
+        "material": 0,
+        "labour": 0,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "advisory",
+        "note": "Product preference only. Confirm quantity, installation compatibility and supplier quote; not an additional priced allowance."
+      },
+      "facts": [
+        "Official Crompton catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Preference only; quote required"
+      ],
+      "image": {
+        "brand": "Crompton",
+        "productName": "Crompton 20W SlimO Batten",
+        "sourceUrl": "https://www.crompton.co.in/products/crompton-20w-slimo-batten",
+        "path": "public/specs/products/svc-electrical-battens-2.png",
+        "originalUrl": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/slimo_1.png?v=1721887725",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Crompton",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-electrical-battens-2.png",
+      "preview": {
+        "model": "batten",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 1
+      }
+    },
+    {
+      "id": "svc-electrical-battens-3",
+      "name": "Crompton 20W Premion Deco Batten",
+      "category": "electrical",
+      "subcategory": "electrical-battens",
+      "itemIds": [
+        "electrical-battens"
+      ],
+      "brand": "Crompton",
+      "productName": "Crompton 20W Premion Deco Batten",
+      "material": "Metal",
+      "style": "Batten light",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "electrical battens"
+      ],
+      "suitableRooms": [
+        "As specified"
+      ],
+      "specification": "Product preference only. Confirm quantity, installation compatibility and supplier quote; not an additional priced allowance.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.crompton.co.in/products/crompton-20w-premion-deco-batten",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "item",
+        "material": 0,
+        "labour": 0,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "advisory",
+        "note": "Product preference only. Confirm quantity, installation compatibility and supplier quote; not an additional priced allowance."
+      },
+      "facts": [
+        "Official Crompton catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Preference only; quote required"
+      ],
+      "image": {
+        "brand": "Crompton",
+        "productName": "Crompton 20W Premion Deco Batten",
+        "sourceUrl": "https://www.crompton.co.in/products/crompton-20w-premion-deco-batten",
+        "path": "public/specs/products/svc-electrical-battens-3.png",
+        "originalUrl": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/png_f32501ec-0131-47e4-83f1-e8fd1e6c7f65.png?v=1721018193",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Crompton",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-electrical-battens-3.png",
+      "preview": {
+        "model": "batten",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 2
+      }
+    },
+    {
+      "id": "svc-electrical-battens-4",
+      "name": "36W Laser Ray Neo Maxx Led Batten",
+      "category": "electrical",
+      "subcategory": "electrical-battens",
+      "itemIds": [
+        "electrical-battens"
+      ],
+      "brand": "Crompton",
+      "productName": "36W Laser Ray Neo Maxx Led Batten",
+      "material": "Metal",
+      "style": "Batten light",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "electrical battens"
+      ],
+      "suitableRooms": [
+        "As specified"
+      ],
+      "specification": "Product preference only. Confirm quantity, installation compatibility and supplier quote; not an additional priced allowance.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.crompton.co.in/products/36w-laser-ray-neo-maxx-led-batten",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "item",
+        "material": 0,
+        "labour": 0,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "advisory",
+        "note": "Product preference only. Confirm quantity, installation compatibility and supplier quote; not an additional priced allowance."
+      },
+      "facts": [
+        "Official Crompton catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Preference only; quote required"
+      ],
+      "image": {
+        "brand": "Crompton",
+        "productName": "36W Laser Ray Neo Maxx Led Batten",
+        "sourceUrl": "https://www.crompton.co.in/products/36w-laser-ray-neo-maxx-led-batten",
+        "path": "public/specs/products/svc-electrical-battens-4.png",
+        "originalUrl": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/laserrayneomaxx_d36c4012-e1d4-4290-81c3-b5f6aab15949.png?v=1714201085",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Crompton",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-electrical-battens-4.png",
+      "preview": {
+        "model": "batten",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 3
+      }
+    },
+    {
+      "id": "svc-electrical-battens-5",
+      "name": "22W TRIO Batten",
+      "category": "electrical",
+      "subcategory": "electrical-battens",
+      "itemIds": [
+        "electrical-battens"
+      ],
+      "brand": "Crompton",
+      "productName": "22W TRIO Batten",
+      "material": "Metal",
+      "style": "Batten light",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "electrical battens"
+      ],
+      "suitableRooms": [
+        "As specified"
+      ],
+      "specification": "Product preference only. Confirm quantity, installation compatibility and supplier quote; not an additional priced allowance.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.crompton.co.in/products/22w-trio-batten",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "item",
+        "material": 0,
+        "labour": 0,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "advisory",
+        "note": "Product preference only. Confirm quantity, installation compatibility and supplier quote; not an additional priced allowance."
+      },
+      "facts": [
+        "Official Crompton catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Preference only; quote required"
+      ],
+      "image": {
+        "brand": "Crompton",
+        "productName": "22W TRIO Batten",
+        "sourceUrl": "https://www.crompton.co.in/products/22w-trio-batten",
+        "path": "public/specs/products/svc-electrical-battens-5.png",
+        "originalUrl": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/A_2df525de-bb8f-40b5-b11c-5589fdfa60b6.png?v=1703073265",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Crompton",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-electrical-battens-5.png",
+      "preview": {
+        "model": "batten",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 4
+      }
+    },
+    {
+      "id": "svc-electrical-exhaust-1",
+      "name": "Crompton New Mount Air Exhuast Fan",
+      "category": "electrical",
+      "subcategory": "electrical-exhaust",
+      "itemIds": [
+        "electrical-exhaust"
+      ],
+      "brand": "Crompton",
+      "productName": "Crompton New Mount Air Exhuast Fan",
+      "material": "Metal",
+      "style": "Ventilation fan",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "electrical exhaust"
+      ],
+      "suitableRooms": [
+        "As specified"
+      ],
+      "specification": "Product preference only. Confirm quantity, installation compatibility and supplier quote; not an additional priced allowance.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.crompton.co.in/products/crompton-new-mount-air-exhuast-fan",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "item",
+        "material": 0,
+        "labour": 0,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "advisory",
+        "note": "Product preference only. Confirm quantity, installation compatibility and supplier quote; not an additional priced allowance."
+      },
+      "facts": [
+        "Official Crompton catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Preference only; quote required"
+      ],
+      "image": {
+        "brand": "Crompton",
+        "productName": "Crompton New Mount Air Exhuast Fan",
+        "sourceUrl": "https://www.crompton.co.in/products/crompton-new-mount-air-exhuast-fan",
+        "path": "public/specs/products/svc-electrical-exhaust-1.png",
+        "originalUrl": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/Untitled-6.png?v=1721125805",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Crompton",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-electrical-exhaust-1.png",
+      "preview": {
+        "model": "exhaust",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 0
+      }
+    },
+    {
+      "id": "svc-electrical-exhaust-2",
+      "name": "Crompton Fluxair Exhaust Fan",
+      "category": "electrical",
+      "subcategory": "electrical-exhaust",
+      "itemIds": [
+        "electrical-exhaust"
+      ],
+      "brand": "Crompton",
+      "productName": "Crompton Fluxair Exhaust Fan",
+      "material": "Metal",
+      "style": "Ventilation fan",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "electrical exhaust"
+      ],
+      "suitableRooms": [
+        "As specified"
+      ],
+      "specification": "Product preference only. Confirm quantity, installation compatibility and supplier quote; not an additional priced allowance.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.crompton.co.in/products/crompton-fluxair-exhaust-fan",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "item",
+        "material": 0,
+        "labour": 0,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "advisory",
+        "note": "Product preference only. Confirm quantity, installation compatibility and supplier quote; not an additional priced allowance."
+      },
+      "facts": [
+        "Official Crompton catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Preference only; quote required"
+      ],
+      "image": {
+        "brand": "Crompton",
+        "productName": "Crompton Fluxair Exhaust Fan",
+        "sourceUrl": "https://www.crompton.co.in/products/crompton-fluxair-exhaust-fan",
+        "path": "public/specs/products/svc-electrical-exhaust-2.png",
+        "originalUrl": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/Untitled-1_624b45f3-236a-452b-9504-43dd74b25275.png?v=1703656328",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Crompton",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-electrical-exhaust-2.png",
+      "preview": {
+        "model": "exhaust",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 1
+      }
+    },
+    {
+      "id": "svc-electrical-exhaust-3",
+      "name": "Crompton Driftair Antidust Exhaust Fan",
+      "category": "electrical",
+      "subcategory": "electrical-exhaust",
+      "itemIds": [
+        "electrical-exhaust"
+      ],
+      "brand": "Crompton",
+      "productName": "Crompton Driftair Antidust Exhaust Fan",
+      "material": "Metal",
+      "style": "Ventilation fan",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "electrical exhaust"
+      ],
+      "suitableRooms": [
+        "As specified"
+      ],
+      "specification": "Product preference only. Confirm quantity, installation compatibility and supplier quote; not an additional priced allowance.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.crompton.co.in/products/crompton-driftair-antidust-exhaust-fan-2",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "item",
+        "material": 0,
+        "labour": 0,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "advisory",
+        "note": "Product preference only. Confirm quantity, installation compatibility and supplier quote; not an additional priced allowance."
+      },
+      "facts": [
+        "Official Crompton catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Preference only; quote required"
+      ],
+      "image": {
+        "brand": "Crompton",
+        "productName": "Crompton Driftair Antidust Exhaust Fan",
+        "sourceUrl": "https://www.crompton.co.in/products/crompton-driftair-antidust-exhaust-fan-2",
+        "path": "public/specs/products/svc-electrical-exhaust-3.png",
+        "originalUrl": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/02_5c649056-effc-47a6-b827-d1e37a9a3edb.png?v=1703498609",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Crompton",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-electrical-exhaust-3.png",
+      "preview": {
+        "model": "exhaust",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 2
+      }
+    },
+    {
+      "id": "svc-electrical-exhaust-4",
+      "name": "Crompton Axial Air Exhaust Fan",
+      "category": "electrical",
+      "subcategory": "electrical-exhaust",
+      "itemIds": [
+        "electrical-exhaust"
+      ],
+      "brand": "Crompton",
+      "productName": "Crompton Axial Air Exhaust Fan",
+      "material": "Metal",
+      "style": "Ventilation fan",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "electrical exhaust"
+      ],
+      "suitableRooms": [
+        "As specified"
+      ],
+      "specification": "Product preference only. Confirm quantity, installation compatibility and supplier quote; not an additional priced allowance.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.crompton.co.in/products/crompton-axial-air-exhaust-fan",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "item",
+        "material": 0,
+        "labour": 0,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "advisory",
+        "note": "Product preference only. Confirm quantity, installation compatibility and supplier quote; not an additional priced allowance."
+      },
+      "facts": [
+        "Official Crompton catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Preference only; quote required"
+      ],
+      "image": {
+        "brand": "Crompton",
+        "productName": "Crompton Axial Air Exhaust Fan",
+        "sourceUrl": "https://www.crompton.co.in/products/crompton-axial-air-exhaust-fan",
+        "path": "public/specs/products/svc-electrical-exhaust-4.png",
+        "originalUrl": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/ivory100.png?v=1703483061",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Crompton",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-electrical-exhaust-4.png",
+      "preview": {
+        "model": "exhaust",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 3
+      }
+    },
+    {
+      "id": "svc-electrical-exhaust-5",
+      "name": "Crompton Brisk Air Plus Exhaust Fan",
+      "category": "electrical",
+      "subcategory": "electrical-exhaust",
+      "itemIds": [
+        "electrical-exhaust"
+      ],
+      "brand": "Crompton",
+      "productName": "Crompton Brisk Air Plus Exhaust Fan",
+      "material": "Metal",
+      "style": "Ventilation fan",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "electrical exhaust"
+      ],
+      "suitableRooms": [
+        "As specified"
+      ],
+      "specification": "Product preference only. Confirm quantity, installation compatibility and supplier quote; not an additional priced allowance.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.crompton.co.in/products/crompton-brisk-air-plus-exhaust-fan-1",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "item",
+        "material": 0,
+        "labour": 0,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "advisory",
+        "note": "Product preference only. Confirm quantity, installation compatibility and supplier quote; not an additional priced allowance."
+      },
+      "facts": [
+        "Official Crompton catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Preference only; quote required"
+      ],
+      "image": {
+        "brand": "Crompton",
+        "productName": "Crompton Brisk Air Plus Exhaust Fan",
+        "sourceUrl": "https://www.crompton.co.in/products/crompton-brisk-air-plus-exhaust-fan-1",
+        "path": "public/specs/products/svc-electrical-exhaust-5.png",
+        "originalUrl": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/Briskairplus200mm_White__1angle_021133ac-1830-453a-9eb3-072d122c194a.png?v=1694084379",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Crompton",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-electrical-exhaust-5.png",
+      "preview": {
+        "model": "exhaust",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 4
+      }
+    },
+    {
+      "id": "svc-water-heater-1",
+      "name": "Crompton Solarium DLX Water Heater",
+      "category": "plumbing-sanitary",
+      "subcategory": "water-heater",
+      "itemIds": [
+        "water-heater"
+      ],
+      "brand": "Crompton",
+      "productName": "Crompton Solarium DLX Water Heater",
+      "material": "Metal",
+      "style": "Vertical water heater",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "water heater"
+      ],
+      "suitableRooms": [
+        "Bathroom"
+      ],
+      "specification": "One heater per existing bathroom heater allowance. Catalogue price plus provisional installation; confirm capacity and electrical/plumbing requirements.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.crompton.co.in/products/crompton-solarium-dlx-water-heater",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "item",
+        "material": 13000,
+        "labour": 1800,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "allowance",
+        "note": "One heater per existing bathroom heater allowance. Catalogue price plus provisional installation; confirm capacity and electrical/plumbing requirements."
+      },
+      "facts": [
+        "Official Crompton catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Provisional installed allowance; confirm supplier quote"
+      ],
+      "image": {
+        "brand": "Crompton",
+        "productName": "Crompton Solarium DLX Water Heater",
+        "sourceUrl": "https://www.crompton.co.in/products/crompton-solarium-dlx-water-heater",
+        "path": "public/specs/products/svc-water-heater-1.png",
+        "originalUrl": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/SolariumDLX-WaterHeater____29-06-26______1X1__1.png?v=1784263760",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Crompton",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-water-heater-1.png",
+      "preview": {
+        "model": "heater",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 0
+      }
+    },
+    {
+      "id": "svc-water-heater-2",
+      "name": "Crompton Versa DLX Water Heater",
+      "category": "plumbing-sanitary",
+      "subcategory": "water-heater",
+      "itemIds": [
+        "water-heater"
+      ],
+      "brand": "Crompton",
+      "productName": "Crompton Versa DLX Water Heater",
+      "material": "Metal",
+      "style": "Vertical water heater",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "water heater"
+      ],
+      "suitableRooms": [
+        "Bathroom"
+      ],
+      "specification": "One heater per existing bathroom heater allowance. Catalogue price plus provisional installation; confirm capacity and electrical/plumbing requirements.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.crompton.co.in/products/crompton-versa-dlx-water-heater",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "item",
+        "material": 10700,
+        "labour": 1800,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "allowance",
+        "note": "One heater per existing bathroom heater allowance. Catalogue price plus provisional installation; confirm capacity and electrical/plumbing requirements."
+      },
+      "facts": [
+        "Official Crompton catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Provisional installed allowance; confirm supplier quote"
+      ],
+      "image": {
+        "brand": "Crompton",
+        "productName": "Crompton Versa DLX Water Heater",
+        "sourceUrl": "https://www.crompton.co.in/products/crompton-versa-dlx-water-heater",
+        "path": "public/specs/products/svc-water-heater-2.png",
+        "originalUrl": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/VersaDLX__1080x1080__1-removebg-preview-removebg-preview.png?v=1783933686",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Crompton",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-water-heater-2.png",
+      "preview": {
+        "model": "heater",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 1
+      }
+    },
+    {
+      "id": "svc-water-heater-3",
+      "name": "Crompton Regera HZ RHS Water Heater",
+      "category": "plumbing-sanitary",
+      "subcategory": "water-heater",
+      "itemIds": [
+        "water-heater"
+      ],
+      "brand": "Crompton",
+      "productName": "Crompton Regera HZ RHS Water Heater",
+      "material": "Metal",
+      "style": "Horizontal water heater",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "water heater"
+      ],
+      "suitableRooms": [
+        "Bathroom"
+      ],
+      "specification": "One heater per existing bathroom heater allowance. Catalogue price plus provisional installation; confirm capacity and electrical/plumbing requirements.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.crompton.co.in/products/crompton-regera-hz-rhs-water-heater",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "item",
+        "material": 10700,
+        "labour": 1800,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "allowance",
+        "note": "One heater per existing bathroom heater allowance. Catalogue price plus provisional installation; confirm capacity and electrical/plumbing requirements."
+      },
+      "facts": [
+        "Official Crompton catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Provisional installed allowance; confirm supplier quote"
+      ],
+      "image": {
+        "brand": "Crompton",
+        "productName": "Crompton Regera HZ RHS Water Heater",
+        "sourceUrl": "https://www.crompton.co.in/products/crompton-regera-hz-rhs-water-heater",
+        "path": "public/specs/products/svc-water-heater-3.png",
+        "originalUrl": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/CopyofRegeraRHSWaterHeaterPL.png?v=1783058753",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Crompton",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-water-heater-3.png",
+      "preview": {
+        "model": "heater-horizontal",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 2
+      }
+    },
+    {
+      "id": "svc-water-heater-4",
+      "name": "Crompton Solarium PLS, 3000W Instant Water Heater - 3L",
+      "category": "plumbing-sanitary",
+      "subcategory": "water-heater",
+      "itemIds": [
+        "water-heater"
+      ],
+      "brand": "Crompton",
+      "productName": "Crompton Solarium PLS, 3000W Instant Water Heater - 3L",
+      "material": "Metal",
+      "style": "Vertical water heater",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "water heater"
+      ],
+      "suitableRooms": [
+        "Bathroom"
+      ],
+      "specification": "One heater per existing bathroom heater allowance. Catalogue price plus provisional installation; confirm capacity and electrical/plumbing requirements.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.crompton.co.in/products/crompton-solarium-pls-3000w-instant-water-heater-3l",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "item",
+        "material": 5999,
+        "labour": 1800,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "allowance",
+        "note": "One heater per existing bathroom heater allowance. Catalogue price plus provisional installation; confirm capacity and electrical/plumbing requirements."
+      },
+      "facts": [
+        "Official Crompton catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Provisional installed allowance; confirm supplier quote"
+      ],
+      "image": {
+        "brand": "Crompton",
+        "productName": "Crompton Solarium PLS, 3000W Instant Water Heater - 3L",
+        "sourceUrl": "https://www.crompton.co.in/products/crompton-solarium-pls-3000w-instant-water-heater-3l",
+        "path": "public/specs/products/svc-water-heater-4.png",
+        "originalUrl": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/PLBanner1_67f800d4-46a2-41c3-9f5d-2f70bb91eaf2.png?v=1769598204",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Crompton",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-water-heater-4.png",
+      "preview": {
+        "model": "heater",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 3
+      }
+    },
+    {
+      "id": "svc-water-heater-5",
+      "name": "Crompton FestoKwik, 3000W Instant Water Heater",
+      "category": "plumbing-sanitary",
+      "subcategory": "water-heater",
+      "itemIds": [
+        "water-heater"
+      ],
+      "brand": "Crompton",
+      "productName": "Crompton FestoKwik, 3000W Instant Water Heater",
+      "material": "Metal",
+      "style": "Vertical water heater",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "water heater"
+      ],
+      "suitableRooms": [
+        "Bathroom"
+      ],
+      "specification": "One heater per existing bathroom heater allowance. Catalogue price plus provisional installation; confirm capacity and electrical/plumbing requirements.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.crompton.co.in/products/crompton-festokwik-3000w-instant-water-heater",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "item",
+        "material": 13100,
+        "labour": 1800,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "allowance",
+        "note": "One heater per existing bathroom heater allowance. Catalogue price plus provisional installation; confirm capacity and electrical/plumbing requirements."
+      },
+      "facts": [
+        "Official Crompton catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Provisional installed allowance; confirm supplier quote"
+      ],
+      "image": {
+        "brand": "Crompton",
+        "productName": "Crompton FestoKwik, 3000W Instant Water Heater",
+        "sourceUrl": "https://www.crompton.co.in/products/crompton-festokwik-3000w-instant-water-heater",
+        "path": "public/specs/products/svc-water-heater-5.png",
+        "originalUrl": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/PLBanner1_8f6b4da1-a717-4f3e-847d-73e70c3093e9.png?v=1769598200",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Crompton",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-water-heater-5.png",
+      "preview": {
+        "model": "heater",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 4
+      }
+    },
+    {
+      "id": "svc-switches-1",
+      "name": "Avataron-45A 1G Double Pole Switch With Led, Wg",
+      "category": "electrical",
+      "subcategory": "switches",
+      "itemIds": [
+        "switches"
+      ],
+      "brand": "Schneider Electric",
+      "productName": "Avataron-45A 1G Double Pole Switch With Led, Wg",
+      "material": "Metal",
+      "style": "Switch module",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "switches"
+      ],
+      "suitableRooms": [
+        "As specified"
+      ],
+      "specification": "Selected switch family is a provisional allowance per measured electrical point, not a specified module schedule. Confirm module combinations, current ratings and supplier quote.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://eshop.se.com/in/avataron-45a-1g-double-pole-switch-with-led-wg.html",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "point",
+        "material": 650,
+        "labour": 250,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "allowance",
+        "note": "Selected switch family is a provisional allowance per measured electrical point, not a specified module schedule. Confirm module combinations, current ratings and supplier quote."
+      },
+      "facts": [
+        "Official Schneider Electric catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Provisional installed allowance; confirm supplier quote"
+      ],
+      "image": {
+        "brand": "Schneider Electric",
+        "productName": "Avataron-45A 1G Double Pole Switch With Led, Wg",
+        "sourceUrl": "https://eshop.se.com/in/avataron-45a-1g-double-pole-switch-with-led-wg.html",
+        "path": "public/specs/products/svc-switches-1.jpg",
+        "originalUrl": "https://shop.schneider-electric.co.in/media/catalog/product/cache/957058827deea85a6c51d651d25db05e/e/8/e8331d45n_wg_g8.jpg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Schneider Electric",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-switches-1.jpg",
+      "preview": {
+        "model": "switch",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 0
+      }
+    },
+    {
+      "id": "svc-switches-2",
+      "name": "Avataron-20A 1G Double Pole Switch With Led, Wg",
+      "category": "electrical",
+      "subcategory": "switches",
+      "itemIds": [
+        "switches"
+      ],
+      "brand": "Schneider Electric",
+      "productName": "Avataron-20A 1G Double Pole Switch With Led, Wg",
+      "material": "Metal",
+      "style": "Switch module",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "switches"
+      ],
+      "suitableRooms": [
+        "As specified"
+      ],
+      "specification": "Selected switch family is a provisional allowance per measured electrical point, not a specified module schedule. Confirm module combinations, current ratings and supplier quote.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://eshop.se.com/in/avataron-20a-1g-double-pole-switch-with-led-wg.html",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "point",
+        "material": 800,
+        "labour": 250,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "allowance",
+        "note": "Selected switch family is a provisional allowance per measured electrical point, not a specified module schedule. Confirm module combinations, current ratings and supplier quote."
+      },
+      "facts": [
+        "Official Schneider Electric catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Provisional installed allowance; confirm supplier quote"
+      ],
+      "image": {
+        "brand": "Schneider Electric",
+        "productName": "Avataron-20A 1G Double Pole Switch With Led, Wg",
+        "sourceUrl": "https://eshop.se.com/in/avataron-20a-1g-double-pole-switch-with-led-wg.html",
+        "path": "public/specs/products/svc-switches-2.jpg",
+        "originalUrl": "https://shop.schneider-electric.co.in/media/catalog/product/cache/957058827deea85a6c51d651d25db05e/e/8/e8331d20n_wg_g8.jpg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Schneider Electric",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-switches-2.jpg",
+      "preview": {
+        "model": "switch",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 1
+      }
+    },
+    {
+      "id": "svc-switches-3",
+      "name": "Avataron-2G Mechanical Curtain Switch, Gh",
+      "category": "electrical",
+      "subcategory": "switches",
+      "itemIds": [
+        "switches"
+      ],
+      "brand": "Schneider Electric",
+      "productName": "Avataron-2G Mechanical Curtain Switch, Gh",
+      "material": "Metal",
+      "style": "Switch module",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "switches"
+      ],
+      "suitableRooms": [
+        "As specified"
+      ],
+      "specification": "Selected switch family is a provisional allowance per measured electrical point, not a specified module schedule. Confirm module combinations, current ratings and supplier quote.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://eshop.se.com/in/avataron-2g-mechanical-curtain-switch-gh.html",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "point",
+        "material": 950,
+        "labour": 250,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "allowance",
+        "note": "Selected switch family is a provisional allowance per measured electrical point, not a specified module schedule. Confirm module combinations, current ratings and supplier quote."
+      },
+      "facts": [
+        "Official Schneider Electric catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Provisional installed allowance; confirm supplier quote"
+      ],
+      "image": {
+        "brand": "Schneider Electric",
+        "productName": "Avataron-2G Mechanical Curtain Switch, Gh",
+        "sourceUrl": "https://eshop.se.com/in/avataron-2g-mechanical-curtain-switch-gh.html",
+        "path": "public/specs/products/svc-switches-3.jpg",
+        "originalUrl": "https://shop.schneider-electric.co.in/media/catalog/product/cache/957058827deea85a6c51d651d25db05e/e/8/e8332c_gh_g8.jpg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Schneider Electric",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-switches-3.jpg",
+      "preview": {
+        "model": "switch",
+        "color": "#454a4c",
+        "accent": "#aeb8bd",
+        "variant": 2
+      }
+    },
+    {
+      "id": "svc-switches-4",
+      "name": "Avataron-20A 1G Double Pole Switch With Led, Wd",
+      "category": "electrical",
+      "subcategory": "switches",
+      "itemIds": [
+        "switches"
+      ],
+      "brand": "Schneider Electric",
+      "productName": "Avataron-20A 1G Double Pole Switch With Led, Wd",
+      "material": "Metal",
+      "style": "Switch module",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "switches"
+      ],
+      "suitableRooms": [
+        "As specified"
+      ],
+      "specification": "Selected switch family is a provisional allowance per measured electrical point, not a specified module schedule. Confirm module combinations, current ratings and supplier quote.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://eshop.se.com/in/avataron-20a-1g-double-pole-switch-with-led-wd.html",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "point",
+        "material": 1100,
+        "labour": 250,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "allowance",
+        "note": "Selected switch family is a provisional allowance per measured electrical point, not a specified module schedule. Confirm module combinations, current ratings and supplier quote."
+      },
+      "facts": [
+        "Official Schneider Electric catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Provisional installed allowance; confirm supplier quote"
+      ],
+      "image": {
+        "brand": "Schneider Electric",
+        "productName": "Avataron-20A 1G Double Pole Switch With Led, Wd",
+        "sourceUrl": "https://eshop.se.com/in/avataron-20a-1g-double-pole-switch-with-led-wd.html",
+        "path": "public/specs/products/svc-switches-4.jpg",
+        "originalUrl": "https://shop.schneider-electric.co.in/media/catalog/product/cache/957058827deea85a6c51d651d25db05e/e/8/e8331d20n_wd_g8.jpg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Schneider Electric",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-switches-4.jpg",
+      "preview": {
+        "model": "switch",
+        "color": "#b6995d",
+        "accent": "#aeb8bd",
+        "variant": 3
+      }
+    },
+    {
+      "id": "svc-switches-5",
+      "name": "250V 16A Elec Keycard SW, DG",
+      "category": "electrical",
+      "subcategory": "switches",
+      "itemIds": [
+        "switches"
+      ],
+      "brand": "Schneider Electric",
+      "productName": "250V 16A Elec Keycard SW, DG",
+      "material": "Metal",
+      "style": "Switch module",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "switches"
+      ],
+      "suitableRooms": [
+        "As specified"
+      ],
+      "specification": "Selected switch family is a provisional allowance per measured electrical point, not a specified module schedule. Confirm module combinations, current ratings and supplier quote.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://eshop.se.com/in/250v-16a-elec-keycard-sw-dg.html",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "point",
+        "material": 1250,
+        "labour": 250,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "allowance",
+        "note": "Selected switch family is a provisional allowance per measured electrical point, not a specified module schedule. Confirm module combinations, current ratings and supplier quote."
+      },
+      "facts": [
+        "Official Schneider Electric catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Provisional installed allowance; confirm supplier quote"
+      ],
+      "image": {
+        "brand": "Schneider Electric",
+        "productName": "250V 16A Elec Keycard SW, DG",
+        "sourceUrl": "https://eshop.se.com/in/250v-16a-elec-keycard-sw-dg.html",
+        "path": "public/specs/products/svc-switches-5.jpg",
+        "originalUrl": "https://shop.schneider-electric.co.in/media/catalog/product/cache/957058827deea85a6c51d651d25db05e/e/8/e8331ekt_dg_front.jpg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Schneider Electric",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-switches-5.jpg",
+      "preview": {
+        "model": "switch",
+        "color": "#454a4c",
+        "accent": "#aeb8bd",
+        "variant": 4
+      }
+    },
+    {
+      "id": "svc-toilet-1",
+      "name": "Single piece-WC · KUS-WHT-35851S300UF",
+      "category": "plumbing-sanitary",
+      "subcategory": "sanitary",
+      "itemIds": [
+        "sanitary"
+      ],
+      "brand": "Jaquar",
+      "productName": "Single piece-WC · KUS-WHT-35851S300UF",
+      "material": "Ceramic",
+      "style": "Western floor-standing toilet",
+      "finish": "Glazed white ceramic",
+      "application": [
+        "sanitary"
+      ],
+      "suitableRooms": [
+        "Bathroom"
+      ],
+      "specification": "Sanitary package allowance per bathroom, including basin. Selected toilet is a product preference within that package, not a supplier quote for this WC alone.",
+      "blenderMaterial": "white_plaster",
+      "sourceUrl": "https://www.jaquar.com/en/kubix-single-piece-wc?Id=4",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "set",
+        "material": 25200,
+        "labour": 9800,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "allowance",
+        "note": "Sanitary package allowance per bathroom, including basin. Selected toilet is a product preference within that package, not a supplier quote for this WC alone."
+      },
+      "facts": [
+        "Official Jaquar catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Provisional installed allowance; confirm supplier quote"
+      ],
+      "image": {
+        "brand": "Jaquar",
+        "productName": "Single piece-WC · KUS-WHT-35851S300UF",
+        "sourceUrl": "https://www.jaquar.com/en/kubix-single-piece-wc?Id=4",
+        "path": "public/specs/products/svc-toilet-1.jpeg",
+        "originalUrl": "https://www.jaquar.com/images/thumbs/0009657_single-piece-wc_960.jpeg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Jaquar",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-toilet-1.jpeg",
+      "preview": {
+        "model": "toilet-floor",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 0
+      }
+    },
+    {
+      "id": "svc-toilet-2",
+      "name": "Wall Hung WC · ARS-WHT-39951UFSM",
+      "category": "plumbing-sanitary",
+      "subcategory": "sanitary",
+      "itemIds": [
+        "sanitary"
+      ],
+      "brand": "Jaquar",
+      "productName": "Wall Hung WC · ARS-WHT-39951UFSM",
+      "material": "Ceramic",
+      "style": "Western wall-hung toilet",
+      "finish": "Glazed white ceramic",
+      "application": [
+        "sanitary"
+      ],
+      "suitableRooms": [
+        "Bathroom"
+      ],
+      "specification": "Sanitary package allowance per bathroom, including basin. Selected toilet is a product preference within that package, not a supplier quote for this WC alone.",
+      "blenderMaterial": "white_plaster",
+      "sourceUrl": "https://www.jaquar.com/en/wallhung-wc-aria?Id=19",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "set",
+        "material": 28200,
+        "labour": 9800,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "allowance",
+        "note": "Sanitary package allowance per bathroom, including basin. Selected toilet is a product preference within that package, not a supplier quote for this WC alone."
+      },
+      "facts": [
+        "Official Jaquar catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Provisional installed allowance; confirm supplier quote"
+      ],
+      "image": {
+        "brand": "Jaquar",
+        "productName": "Wall Hung WC · ARS-WHT-39951UFSM",
+        "sourceUrl": "https://www.jaquar.com/en/wallhung-wc-aria?Id=19",
+        "path": "public/specs/products/svc-toilet-2.jpeg",
+        "originalUrl": "https://www.jaquar.com/images/thumbs/0009673_wall-hung-wc_960.jpeg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Jaquar",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-toilet-2.jpeg",
+      "preview": {
+        "model": "toilet-wall",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 1
+      }
+    },
+    {
+      "id": "svc-toilet-3",
+      "name": "Bowl With Cistern · ARS-WHT-39751P180UFSMZ",
+      "category": "plumbing-sanitary",
+      "subcategory": "sanitary",
+      "itemIds": [
+        "sanitary"
+      ],
+      "brand": "Jaquar",
+      "productName": "Bowl With Cistern · ARS-WHT-39751P180UFSMZ",
+      "material": "Ceramic",
+      "style": "Western floor-standing toilet",
+      "finish": "Glazed white ceramic",
+      "application": [
+        "sanitary"
+      ],
+      "suitableRooms": [
+        "Bathroom"
+      ],
+      "specification": "Sanitary package allowance per bathroom, including basin. Selected toilet is a product preference within that package, not a supplier quote for this WC alone.",
+      "blenderMaterial": "white_plaster",
+      "sourceUrl": "https://www.jaquar.com/en/aria-two-piece-wc-p-trap?Id=20",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "set",
+        "material": 31200,
+        "labour": 9800,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "allowance",
+        "note": "Sanitary package allowance per bathroom, including basin. Selected toilet is a product preference within that package, not a supplier quote for this WC alone."
+      },
+      "facts": [
+        "Official Jaquar catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Provisional installed allowance; confirm supplier quote"
+      ],
+      "image": {
+        "brand": "Jaquar",
+        "productName": "Bowl With Cistern · ARS-WHT-39751P180UFSMZ",
+        "sourceUrl": "https://www.jaquar.com/en/aria-two-piece-wc-p-trap?Id=20",
+        "path": "public/specs/products/svc-toilet-3.jpeg",
+        "originalUrl": "https://www.jaquar.com/images/thumbs/0037449_bowl-with-cistern_960.jpeg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Jaquar",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-toilet-3.jpeg",
+      "preview": {
+        "model": "toilet-floor",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 2
+      }
+    },
+    {
+      "id": "svc-toilet-4",
+      "name": "Rimless Wall Hung WC · FNS-WHT-40953UF",
+      "category": "plumbing-sanitary",
+      "subcategory": "sanitary",
+      "itemIds": [
+        "sanitary"
+      ],
+      "brand": "Jaquar",
+      "productName": "Rimless Wall Hung WC · FNS-WHT-40953UF",
+      "material": "Ceramic",
+      "style": "Western wall-hung toilet",
+      "finish": "Glazed white ceramic",
+      "application": [
+        "sanitary"
+      ],
+      "suitableRooms": [
+        "Bathroom"
+      ],
+      "specification": "Sanitary package allowance per bathroom, including basin. Selected toilet is a product preference within that package, not a supplier quote for this WC alone.",
+      "blenderMaterial": "white_plaster",
+      "sourceUrl": "https://www.jaquar.com/en/wallhung-wc-fonte?Id=23",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "set",
+        "material": 34200,
+        "labour": 9800,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "allowance",
+        "note": "Sanitary package allowance per bathroom, including basin. Selected toilet is a product preference within that package, not a supplier quote for this WC alone."
+      },
+      "facts": [
+        "Official Jaquar catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Provisional installed allowance; confirm supplier quote"
+      ],
+      "image": {
+        "brand": "Jaquar",
+        "productName": "Rimless Wall Hung WC · FNS-WHT-40953UF",
+        "sourceUrl": "https://www.jaquar.com/en/wallhung-wc-fonte?Id=23",
+        "path": "public/specs/products/svc-toilet-4.jpeg",
+        "originalUrl": "https://www.jaquar.com/images/thumbs/0043495_rimless-wall-hung-wc_960.jpeg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Jaquar",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-toilet-4.jpeg",
+      "preview": {
+        "model": "toilet-wall",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 3
+      }
+    },
+    {
+      "id": "svc-toilet-5",
+      "name": "Rimless Single piece-WC · VGS-WHT-81853S300UF",
+      "category": "plumbing-sanitary",
+      "subcategory": "sanitary",
+      "itemIds": [
+        "sanitary"
+      ],
+      "brand": "Jaquar",
+      "productName": "Rimless Single piece-WC · VGS-WHT-81853S300UF",
+      "material": "Ceramic",
+      "style": "Western floor-standing toilet",
+      "finish": "Glazed white ceramic",
+      "application": [
+        "sanitary"
+      ],
+      "suitableRooms": [
+        "Bathroom"
+      ],
+      "specification": "Sanitary package allowance per bathroom, including basin. Selected toilet is a product preference within that package, not a supplier quote for this WC alone.",
+      "blenderMaterial": "white_plaster",
+      "sourceUrl": "https://www.jaquar.com/en/vignette-single-piece-wc-s-trap?Id=27",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "set",
+        "material": 37200,
+        "labour": 9800,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "allowance",
+        "note": "Sanitary package allowance per bathroom, including basin. Selected toilet is a product preference within that package, not a supplier quote for this WC alone."
+      },
+      "facts": [
+        "Official Jaquar catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Provisional installed allowance; confirm supplier quote"
+      ],
+      "image": {
+        "brand": "Jaquar",
+        "productName": "Rimless Single piece-WC · VGS-WHT-81853S300UF",
+        "sourceUrl": "https://www.jaquar.com/en/vignette-single-piece-wc-s-trap?Id=27",
+        "path": "public/specs/products/svc-toilet-5.jpeg",
+        "originalUrl": "https://www.jaquar.com/images/thumbs/0053698_rimless-single-piece-wc_960.jpeg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Jaquar",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-toilet-5.jpeg",
+      "preview": {
+        "model": "toilet-floor",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 4
+      }
+    },
+    {
+      "id": "svc-toilet-indian",
+      "name": "Indian Orissa pan · ECS-WHT-451",
+      "category": "plumbing-sanitary",
+      "subcategory": "sanitary",
+      "itemIds": [
+        "sanitary"
+      ],
+      "brand": "Essco by Jaquar",
+      "productName": "Indian Orissa pan · ECS-WHT-451",
+      "material": "Ceramic",
+      "style": "Indian squatting pan",
+      "finish": "Glazed white ceramic",
+      "application": [
+        "sanitary"
+      ],
+      "suitableRooms": [
+        "Bathroom"
+      ],
+      "specification": "Indian toilet preference within the sanitary package allowance including basin. Confirm floor recess, trap and installation with supplier.",
+      "blenderMaterial": "white_plaster",
+      "sourceUrl": "https://global.esscobathware.com/orrisa-pan-451",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "set",
+        "material": 12960,
+        "labour": 5040,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "allowance",
+        "note": "Indian toilet preference within the sanitary package allowance including basin. Confirm floor recess, trap and installation with supplier."
+      },
+      "facts": [
+        "Official Essco by Jaquar catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Provisional installed allowance; confirm supplier quote"
+      ],
+      "image": {
+        "brand": "Essco by Jaquar",
+        "productName": "Indian Orissa pan · ECS-WHT-451",
+        "sourceUrl": "https://global.esscobathware.com/orrisa-pan-451",
+        "path": "public/specs/products/svc-toilet-indian.jpg",
+        "originalUrl": "https://global.esscobathware.com/image/cache/catalog/2020/ECS-WHT-451-1000x1000.jpg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Essco by Jaquar",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-toilet-indian.jpg",
+      "preview": {
+        "model": "toilet-indian",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 0
+      }
+    },
+    {
+      "id": "svc-basin-1",
+      "name": "Floor standing Basin · KUS-WHT-35401N",
+      "category": "plumbing-sanitary",
+      "subcategory": "bath-basin",
+      "itemIds": [
+        "bath-basin"
+      ],
+      "brand": "Jaquar",
+      "productName": "Floor standing Basin · KUS-WHT-35401N",
+      "material": "Ceramic",
+      "style": "Freestanding basin",
+      "finish": "Glazed white ceramic",
+      "application": [
+        "bath basin"
+      ],
+      "suitableRooms": [
+        "Bathroom"
+      ],
+      "specification": "Basin preference within the existing sanitary allowance. Cabinet shown only as installation context; confirm cabinet and basin quote separately.",
+      "blenderMaterial": "white_plaster",
+      "sourceUrl": "https://www.jaquar.com/en/floor-standing-washbasin-kubix?Id=10",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "set",
+        "material": 0,
+        "labour": 0,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "advisory",
+        "note": "Basin preference within the existing sanitary allowance. Cabinet shown only as installation context; confirm cabinet and basin quote separately."
+      },
+      "facts": [
+        "Official Jaquar catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Preference only; quote required"
+      ],
+      "image": {
+        "brand": "Jaquar",
+        "productName": "Floor standing Basin · KUS-WHT-35401N",
+        "sourceUrl": "https://www.jaquar.com/en/floor-standing-washbasin-kubix?Id=10",
+        "path": "public/specs/products/svc-basin-1.jpeg",
+        "originalUrl": "https://www.jaquar.com/images/thumbs/0049000_floor-standing-basin_960.jpeg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Jaquar",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-basin-1.jpeg",
+      "preview": {
+        "model": "basin-pedestal",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 0
+      }
+    },
+    {
+      "id": "svc-basin-2",
+      "name": "Thin Rim Table Top Basin · LYS-WHT-38901N",
+      "category": "plumbing-sanitary",
+      "subcategory": "bath-basin",
+      "itemIds": [
+        "bath-basin"
+      ],
+      "brand": "Jaquar",
+      "productName": "Thin Rim Table Top Basin · LYS-WHT-38901N",
+      "material": "Ceramic",
+      "style": "Oval countertop basin",
+      "finish": "Glazed white ceramic",
+      "application": [
+        "bath basin"
+      ],
+      "suitableRooms": [
+        "Bathroom"
+      ],
+      "specification": "Basin preference within the existing sanitary allowance. Cabinet shown only as installation context; confirm cabinet and basin quote separately.",
+      "blenderMaterial": "white_plaster",
+      "sourceUrl": "https://www.jaquar.com/en/oval-washbasin-table-top-lyric?Id=17",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "set",
+        "material": 0,
+        "labour": 0,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "advisory",
+        "note": "Basin preference within the existing sanitary allowance. Cabinet shown only as installation context; confirm cabinet and basin quote separately."
+      },
+      "facts": [
+        "Official Jaquar catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Preference only; quote required"
+      ],
+      "image": {
+        "brand": "Jaquar",
+        "productName": "Thin Rim Table Top Basin · LYS-WHT-38901N",
+        "sourceUrl": "https://www.jaquar.com/en/oval-washbasin-table-top-lyric?Id=17",
+        "path": "public/specs/products/svc-basin-2.jpeg",
+        "originalUrl": "https://www.jaquar.com/images/thumbs/0009670_thin-rim-table-top-basin_960.jpeg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Jaquar",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-basin-2.jpeg",
+      "preview": {
+        "model": "basin-oval",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 1
+      }
+    },
+    {
+      "id": "svc-basin-3",
+      "name": "Table Top Basin · LYS-WHT-38931",
+      "category": "plumbing-sanitary",
+      "subcategory": "bath-basin",
+      "itemIds": [
+        "bath-basin"
+      ],
+      "brand": "Jaquar",
+      "productName": "Table Top Basin · LYS-WHT-38931",
+      "material": "Ceramic",
+      "style": "Rectangular countertop basin",
+      "finish": "Glazed white ceramic",
+      "application": [
+        "bath basin"
+      ],
+      "suitableRooms": [
+        "Bathroom"
+      ],
+      "specification": "Basin preference within the existing sanitary allowance. Cabinet shown only as installation context; confirm cabinet and basin quote separately.",
+      "blenderMaterial": "white_plaster",
+      "sourceUrl": "https://www.jaquar.com/en/rectangle-washbasin-table-top-lyric?Id=18",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "set",
+        "material": 0,
+        "labour": 0,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "advisory",
+        "note": "Basin preference within the existing sanitary allowance. Cabinet shown only as installation context; confirm cabinet and basin quote separately."
+      },
+      "facts": [
+        "Official Jaquar catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Preference only; quote required"
+      ],
+      "image": {
+        "brand": "Jaquar",
+        "productName": "Table Top Basin · LYS-WHT-38931",
+        "sourceUrl": "https://www.jaquar.com/en/rectangle-washbasin-table-top-lyric?Id=18",
+        "path": "public/specs/products/svc-basin-3.jpeg",
+        "originalUrl": "https://www.jaquar.com/images/thumbs/0009671_table-top-basin_960.jpeg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Jaquar",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-basin-3.jpeg",
+      "preview": {
+        "model": "basin-rectangle",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 2
+      }
+    },
+    {
+      "id": "svc-basin-4",
+      "name": "Table Top Basin · ARS-WHT-39901",
+      "category": "plumbing-sanitary",
+      "subcategory": "bath-basin",
+      "itemIds": [
+        "bath-basin"
+      ],
+      "brand": "Jaquar",
+      "productName": "Table Top Basin · ARS-WHT-39901",
+      "material": "Ceramic",
+      "style": "Square countertop basin",
+      "finish": "Glazed white ceramic",
+      "application": [
+        "bath basin"
+      ],
+      "suitableRooms": [
+        "Bathroom"
+      ],
+      "specification": "Basin preference within the existing sanitary allowance. Cabinet shown only as installation context; confirm cabinet and basin quote separately.",
+      "blenderMaterial": "white_plaster",
+      "sourceUrl": "https://www.jaquar.com/en/square-washbasin-table-top-aria?Id=21",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "set",
+        "material": 0,
+        "labour": 0,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "advisory",
+        "note": "Basin preference within the existing sanitary allowance. Cabinet shown only as installation context; confirm cabinet and basin quote separately."
+      },
+      "facts": [
+        "Official Jaquar catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Preference only; quote required"
+      ],
+      "image": {
+        "brand": "Jaquar",
+        "productName": "Table Top Basin · ARS-WHT-39901",
+        "sourceUrl": "https://www.jaquar.com/en/square-washbasin-table-top-aria?Id=21",
+        "path": "public/specs/products/svc-basin-4.jpeg",
+        "originalUrl": "https://www.jaquar.com/images/thumbs/0009676_table-top-basin_960.jpeg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Jaquar",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-basin-4.jpeg",
+      "preview": {
+        "model": "basin-square",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 3
+      }
+    },
+    {
+      "id": "svc-basin-5",
+      "name": "Under Counter Basin · FLS-WHT-5701",
+      "category": "plumbing-sanitary",
+      "subcategory": "bath-basin",
+      "itemIds": [
+        "bath-basin"
+      ],
+      "brand": "Jaquar",
+      "productName": "Under Counter Basin · FLS-WHT-5701",
+      "material": "Ceramic",
+      "style": "Undermount basin",
+      "finish": "Glazed white ceramic",
+      "application": [
+        "bath basin"
+      ],
+      "suitableRooms": [
+        "Bathroom"
+      ],
+      "specification": "Basin preference within the existing sanitary allowance. Cabinet shown only as installation context; confirm cabinet and basin quote separately.",
+      "blenderMaterial": "white_plaster",
+      "sourceUrl": "https://www.jaquar.com/en/washbasin-under-counter-florentine?Id=43",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "set",
+        "material": 0,
+        "labour": 0,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "advisory",
+        "note": "Basin preference within the existing sanitary allowance. Cabinet shown only as installation context; confirm cabinet and basin quote separately."
+      },
+      "facts": [
+        "Official Jaquar catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Preference only; quote required"
+      ],
+      "image": {
+        "brand": "Jaquar",
+        "productName": "Under Counter Basin · FLS-WHT-5701",
+        "sourceUrl": "https://www.jaquar.com/en/washbasin-under-counter-florentine?Id=43",
+        "path": "public/specs/products/svc-basin-5.jpeg",
+        "originalUrl": "https://www.jaquar.com/images/thumbs/0050468_under-counter-basin_960.jpeg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Jaquar",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-basin-5.jpeg",
+      "preview": {
+        "model": "basin-undermount",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 4
+      }
+    },
+    {
+      "id": "svc-faucet-1",
+      "name": "Single Lever Extended Basin Mixer · FUS-CHR-29023B",
+      "category": "plumbing-sanitary",
+      "subcategory": "cp-fittings",
+      "itemIds": [
+        "cp-fittings"
+      ],
+      "brand": "Jaquar",
+      "productName": "Single Lever Extended Basin Mixer · FUS-CHR-29023B",
+      "material": "Metal",
+      "style": "Basin mixer",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "cp fittings"
+      ],
+      "suitableRooms": [
+        "Bathroom"
+      ],
+      "specification": "Whole bathroom taps and shower fittings package allowance. Selected basin faucet is the reference; other fittings require a coordinated supplier quote.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.jaquar.com/en/fusion-basin-mixer-85mm-height?Id=122",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "set",
+        "material": 18000,
+        "labour": 7000,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "allowance",
+        "note": "Whole bathroom taps and shower fittings package allowance. Selected basin faucet is the reference; other fittings require a coordinated supplier quote."
+      },
+      "facts": [
+        "Official Jaquar catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Provisional installed allowance; confirm supplier quote"
+      ],
+      "image": {
+        "brand": "Jaquar",
+        "productName": "Single Lever Extended Basin Mixer · FUS-CHR-29023B",
+        "sourceUrl": "https://www.jaquar.com/en/fusion-basin-mixer-85mm-height?Id=122",
+        "path": "public/specs/products/svc-faucet-1.jpeg",
+        "originalUrl": "https://www.jaquar.com/images/thumbs/0008546_single-lever-extended-basin-mixer_960.jpeg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Jaquar",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-faucet-1.jpeg",
+      "preview": {
+        "model": "faucet",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 0
+      }
+    },
+    {
+      "id": "svc-faucet-2",
+      "name": "Exposed Part Kit of Single Lever Basin Mixer · FUS-CHR-29233NK",
+      "category": "plumbing-sanitary",
+      "subcategory": "cp-fittings",
+      "itemIds": [
+        "cp-fittings"
+      ],
+      "brand": "Jaquar",
+      "productName": "Exposed Part Kit of Single Lever Basin Mixer · FUS-CHR-29233NK",
+      "material": "Metal",
+      "style": "Wall-mounted basin mixer",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "cp fittings"
+      ],
+      "suitableRooms": [
+        "Bathroom"
+      ],
+      "specification": "Whole bathroom taps and shower fittings package allowance. Selected basin faucet is the reference; other fittings require a coordinated supplier quote.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.jaquar.com/en/fusion-concealed-wall-basin-mixer?Id=124",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "set",
+        "material": 20000,
+        "labour": 7000,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "allowance",
+        "note": "Whole bathroom taps and shower fittings package allowance. Selected basin faucet is the reference; other fittings require a coordinated supplier quote."
+      },
+      "facts": [
+        "Official Jaquar catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Provisional installed allowance; confirm supplier quote"
+      ],
+      "image": {
+        "brand": "Jaquar",
+        "productName": "Exposed Part Kit of Single Lever Basin Mixer · FUS-CHR-29233NK",
+        "sourceUrl": "https://www.jaquar.com/en/fusion-concealed-wall-basin-mixer?Id=124",
+        "path": "public/specs/products/svc-faucet-2.jpeg",
+        "originalUrl": "https://www.jaquar.com/images/thumbs/0008553_exposed-part-kit-of-single-lever-basin-mixer_960.jpeg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Jaquar",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-faucet-2.jpeg",
+      "preview": {
+        "model": "faucet-wall",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 1
+      }
+    },
+    {
+      "id": "svc-faucet-3",
+      "name": "Single Lever Basin Mixer · SOL-CHR-6001B",
+      "category": "plumbing-sanitary",
+      "subcategory": "cp-fittings",
+      "itemIds": [
+        "cp-fittings"
+      ],
+      "brand": "Jaquar",
+      "productName": "Single Lever Basin Mixer · SOL-CHR-6001B",
+      "material": "Metal",
+      "style": "Basin mixer",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "cp fittings"
+      ],
+      "suitableRooms": [
+        "Bathroom"
+      ],
+      "specification": "Whole bathroom taps and shower fittings package allowance. Selected basin faucet is the reference; other fittings require a coordinated supplier quote.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.jaquar.com/en/solo-basin-mixer-single-lever?Id=397",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "set",
+        "material": 22000,
+        "labour": 7000,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "allowance",
+        "note": "Whole bathroom taps and shower fittings package allowance. Selected basin faucet is the reference; other fittings require a coordinated supplier quote."
+      },
+      "facts": [
+        "Official Jaquar catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Provisional installed allowance; confirm supplier quote"
+      ],
+      "image": {
+        "brand": "Jaquar",
+        "productName": "Single Lever Basin Mixer · SOL-CHR-6001B",
+        "sourceUrl": "https://www.jaquar.com/en/solo-basin-mixer-single-lever?Id=397",
+        "path": "public/specs/products/svc-faucet-3.jpeg",
+        "originalUrl": "https://www.jaquar.com/images/thumbs/0008617_single-lever-basin-mixer_960.jpeg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Jaquar",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-faucet-3.jpeg",
+      "preview": {
+        "model": "faucet",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 2
+      }
+    },
+    {
+      "id": "svc-faucet-4",
+      "name": "Exposed Part Kit of Single Lever Basin Mixer · SOL-CHR-6233NK",
+      "category": "plumbing-sanitary",
+      "subcategory": "cp-fittings",
+      "itemIds": [
+        "cp-fittings"
+      ],
+      "brand": "Jaquar",
+      "productName": "Exposed Part Kit of Single Lever Basin Mixer · SOL-CHR-6233NK",
+      "material": "Metal",
+      "style": "Wall-mounted basin mixer",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "cp fittings"
+      ],
+      "suitableRooms": [
+        "Bathroom"
+      ],
+      "specification": "Whole bathroom taps and shower fittings package allowance. Selected basin faucet is the reference; other fittings require a coordinated supplier quote.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.jaquar.com/en/solo-concealed-wall-basin-mixer?Id=398",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "set",
+        "material": 24000,
+        "labour": 7000,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "allowance",
+        "note": "Whole bathroom taps and shower fittings package allowance. Selected basin faucet is the reference; other fittings require a coordinated supplier quote."
+      },
+      "facts": [
+        "Official Jaquar catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Provisional installed allowance; confirm supplier quote"
+      ],
+      "image": {
+        "brand": "Jaquar",
+        "productName": "Exposed Part Kit of Single Lever Basin Mixer · SOL-CHR-6233NK",
+        "sourceUrl": "https://www.jaquar.com/en/solo-concealed-wall-basin-mixer?Id=398",
+        "path": "public/specs/products/svc-faucet-4.jpeg",
+        "originalUrl": "https://www.jaquar.com/images/thumbs/0008621_exposed-part-kit-of-single-lever-basin-mixer_960.jpeg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Jaquar",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-faucet-4.jpeg",
+      "preview": {
+        "model": "faucet-wall",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 3
+      }
+    },
+    {
+      "id": "svc-faucet-5",
+      "name": "Single Lever Basin Mixer · LYR-CHR-38051B",
+      "category": "plumbing-sanitary",
+      "subcategory": "cp-fittings",
+      "itemIds": [
+        "cp-fittings"
+      ],
+      "brand": "Jaquar",
+      "productName": "Single Lever Basin Mixer · LYR-CHR-38051B",
+      "material": "Metal",
+      "style": "Basin mixer",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "cp fittings"
+      ],
+      "suitableRooms": [
+        "Bathroom"
+      ],
+      "specification": "Whole bathroom taps and shower fittings package allowance. Selected basin faucet is the reference; other fittings require a coordinated supplier quote.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.jaquar.com/en/lyric-basin-mixer-with-pop-up-waste-system?Id=905",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "set",
+        "material": 26000,
+        "labour": 7000,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "allowance",
+        "note": "Whole bathroom taps and shower fittings package allowance. Selected basin faucet is the reference; other fittings require a coordinated supplier quote."
+      },
+      "facts": [
+        "Official Jaquar catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Provisional installed allowance; confirm supplier quote"
+      ],
+      "image": {
+        "brand": "Jaquar",
+        "productName": "Single Lever Basin Mixer · LYR-CHR-38051B",
+        "sourceUrl": "https://www.jaquar.com/en/lyric-basin-mixer-with-pop-up-waste-system?Id=905",
+        "path": "public/specs/products/svc-faucet-5.jpeg",
+        "originalUrl": "https://www.jaquar.com/images/thumbs/0032813_single-lever-basin-mixer_960.jpeg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Jaquar",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-faucet-5.jpeg",
+      "preview": {
+        "model": "faucet",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 4
+      }
+    },
+    {
+      "id": "svc-shower-1",
+      "name": "Overhead Shower Ø105mm Round Shape Single Flow · OHS-CHR-1709",
+      "category": "plumbing-sanitary",
+      "subcategory": "bath-shower",
+      "itemIds": [
+        "bath-shower"
+      ],
+      "brand": "Jaquar",
+      "productName": "Overhead Shower Ø105mm Round Shape Single Flow · OHS-CHR-1709",
+      "material": "Metal",
+      "style": "Overhead shower",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "bath shower"
+      ],
+      "suitableRooms": [
+        "Bathroom"
+      ],
+      "specification": "Showerhead preference within the taps/shower allowance. Arm, valve, hand shower and pipe positions are installation context; confirm complete system quote.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.jaquar.com/en/overhead-105mm-shower?Id=672",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "set",
+        "material": 0,
+        "labour": 0,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "advisory",
+        "note": "Showerhead preference within the taps/shower allowance. Arm, valve, hand shower and pipe positions are installation context; confirm complete system quote."
+      },
+      "facts": [
+        "Official Jaquar catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Preference only; quote required"
+      ],
+      "image": {
+        "brand": "Jaquar",
+        "productName": "Overhead Shower Ø105mm Round Shape Single Flow · OHS-CHR-1709",
+        "sourceUrl": "https://www.jaquar.com/en/overhead-105mm-shower?Id=672",
+        "path": "public/specs/products/svc-shower-1.jpeg",
+        "originalUrl": "https://www.jaquar.com/images/thumbs/0009363_overhead-shower-o105mm-round-shape-single-flow_960.jpeg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Jaquar",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-shower-1.jpeg",
+      "preview": {
+        "model": "shower",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 0
+      }
+    },
+    {
+      "id": "svc-shower-2",
+      "name": "Overhead Shower Ø140mm Round Shape Single Flow · OHS-CHR-1757",
+      "category": "plumbing-sanitary",
+      "subcategory": "bath-shower",
+      "itemIds": [
+        "bath-shower"
+      ],
+      "brand": "Jaquar",
+      "productName": "Overhead Shower Ø140mm Round Shape Single Flow · OHS-CHR-1757",
+      "material": "Metal",
+      "style": "Overhead shower",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "bath shower"
+      ],
+      "suitableRooms": [
+        "Bathroom"
+      ],
+      "specification": "Showerhead preference within the taps/shower allowance. Arm, valve, hand shower and pipe positions are installation context; confirm complete system quote.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.jaquar.com/en/overhead-shower-air-effect-140mm?Id=674",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "set",
+        "material": 0,
+        "labour": 0,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "advisory",
+        "note": "Showerhead preference within the taps/shower allowance. Arm, valve, hand shower and pipe positions are installation context; confirm complete system quote."
+      },
+      "facts": [
+        "Official Jaquar catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Preference only; quote required"
+      ],
+      "image": {
+        "brand": "Jaquar",
+        "productName": "Overhead Shower Ø140mm Round Shape Single Flow · OHS-CHR-1757",
+        "sourceUrl": "https://www.jaquar.com/en/overhead-shower-air-effect-140mm?Id=674",
+        "path": "public/specs/products/svc-shower-2.jpeg",
+        "originalUrl": "https://www.jaquar.com/images/thumbs/0009367_overhead-shower-o140mm-round-shape-single-flow_960.jpeg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Jaquar",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-shower-2.jpeg",
+      "preview": {
+        "model": "shower",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 1
+      }
+    },
+    {
+      "id": "svc-shower-3",
+      "name": "Overhead Shower Ø180mm Round Shape Single Flow · OHS-CHR-1755",
+      "category": "plumbing-sanitary",
+      "subcategory": "bath-shower",
+      "itemIds": [
+        "bath-shower"
+      ],
+      "brand": "Jaquar",
+      "productName": "Overhead Shower Ø180mm Round Shape Single Flow · OHS-CHR-1755",
+      "material": "Metal",
+      "style": "Overhead shower",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "bath shower"
+      ],
+      "suitableRooms": [
+        "Bathroom"
+      ],
+      "specification": "Showerhead preference within the taps/shower allowance. Arm, valve, hand shower and pipe positions are installation context; confirm complete system quote.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.jaquar.com/en/overhead-shower-air-effect-180mm?Id=676",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "set",
+        "material": 0,
+        "labour": 0,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "advisory",
+        "note": "Showerhead preference within the taps/shower allowance. Arm, valve, hand shower and pipe positions are installation context; confirm complete system quote."
+      },
+      "facts": [
+        "Official Jaquar catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Preference only; quote required"
+      ],
+      "image": {
+        "brand": "Jaquar",
+        "productName": "Overhead Shower Ø180mm Round Shape Single Flow · OHS-CHR-1755",
+        "sourceUrl": "https://www.jaquar.com/en/overhead-shower-air-effect-180mm?Id=676",
+        "path": "public/specs/products/svc-shower-3.jpeg",
+        "originalUrl": "https://www.jaquar.com/images/thumbs/0009371_overhead-shower-o180mm-round-shape-single-flow_960.jpeg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Jaquar",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-shower-3.jpeg",
+      "preview": {
+        "model": "shower",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 2
+      }
+    },
+    {
+      "id": "svc-shower-4",
+      "name": "Round Shape Overhead Shower · OHS-CHR-1989",
+      "category": "plumbing-sanitary",
+      "subcategory": "bath-shower",
+      "itemIds": [
+        "bath-shower"
+      ],
+      "brand": "Jaquar",
+      "productName": "Round Shape Overhead Shower · OHS-CHR-1989",
+      "material": "Metal",
+      "style": "Overhead shower",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "bath shower"
+      ],
+      "suitableRooms": [
+        "Bathroom"
+      ],
+      "specification": "Showerhead preference within the taps/shower allowance. Arm, valve, hand shower and pipe positions are installation context; confirm complete system quote.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.jaquar.com/en/overhead-100mm-rain-shower?Id=822",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "set",
+        "material": 0,
+        "labour": 0,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "advisory",
+        "note": "Showerhead preference within the taps/shower allowance. Arm, valve, hand shower and pipe positions are installation context; confirm complete system quote."
+      },
+      "facts": [
+        "Official Jaquar catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Preference only; quote required"
+      ],
+      "image": {
+        "brand": "Jaquar",
+        "productName": "Round Shape Overhead Shower · OHS-CHR-1989",
+        "sourceUrl": "https://www.jaquar.com/en/overhead-100mm-rain-shower?Id=822",
+        "path": "public/specs/products/svc-shower-4.jpeg",
+        "originalUrl": "https://www.jaquar.com/images/thumbs/0009391_round-shape-overhead-shower_960.jpeg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Jaquar",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-shower-4.jpeg",
+      "preview": {
+        "model": "shower",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 3
+      }
+    },
+    {
+      "id": "svc-shower-5",
+      "name": "Overhead Shower · OHS-CHR-1999",
+      "category": "plumbing-sanitary",
+      "subcategory": "bath-shower",
+      "itemIds": [
+        "bath-shower"
+      ],
+      "brand": "Jaquar",
+      "productName": "Overhead Shower · OHS-CHR-1999",
+      "material": "Metal",
+      "style": "Overhead shower",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "bath shower"
+      ],
+      "suitableRooms": [
+        "Bathroom"
+      ],
+      "specification": "Showerhead preference within the taps/shower allowance. Arm, valve, hand shower and pipe positions are installation context; confirm complete system quote.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.jaquar.com/en/overhead-100mm-shower-multi-function?Id=823",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "set",
+        "material": 0,
+        "labour": 0,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "advisory",
+        "note": "Showerhead preference within the taps/shower allowance. Arm, valve, hand shower and pipe positions are installation context; confirm complete system quote."
+      },
+      "facts": [
+        "Official Jaquar catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Preference only; quote required"
+      ],
+      "image": {
+        "brand": "Jaquar",
+        "productName": "Overhead Shower · OHS-CHR-1999",
+        "sourceUrl": "https://www.jaquar.com/en/overhead-100mm-shower-multi-function?Id=823",
+        "path": "public/specs/products/svc-shower-5.jpeg",
+        "originalUrl": "https://www.jaquar.com/images/thumbs/0070785_overhead-shower_960.jpeg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Jaquar",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-shower-5.jpeg",
+      "preview": {
+        "model": "shower",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 4
+      }
+    },
+    {
+      "id": "svc-tub-1",
+      "name": "Laguna Free Standing Bathtub · JBT-WHT-FSBTLG6001",
+      "category": "plumbing-sanitary",
+      "subcategory": "bath-tub",
+      "itemIds": [
+        "bath-tub"
+      ],
+      "brand": "Jaquar",
+      "productName": "Laguna Free Standing Bathtub · JBT-WHT-FSBTLG6001",
+      "material": "Ceramic",
+      "style": "Freestanding bathtub",
+      "finish": "Glazed white ceramic",
+      "application": [
+        "bath tub"
+      ],
+      "suitableRooms": [
+        "Bathroom"
+      ],
+      "specification": "Optional bathtub preference. Bathtub, support, drain and installation are excluded from the current bathroom allowance until measured and quoted.",
+      "blenderMaterial": "white_plaster",
+      "sourceUrl": "https://www.jaquar.com/en/laguna-free-standing-bathtub?Id=7339",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "set",
+        "material": 0,
+        "labour": 0,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "advisory",
+        "note": "Optional bathtub preference. Bathtub, support, drain and installation are excluded from the current bathroom allowance until measured and quoted."
+      },
+      "facts": [
+        "Official Jaquar catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Preference only; quote required"
+      ],
+      "image": {
+        "brand": "Jaquar",
+        "productName": "Laguna Free Standing Bathtub · JBT-WHT-FSBTLG6001",
+        "sourceUrl": "https://www.jaquar.com/en/laguna-free-standing-bathtub?Id=7339",
+        "path": "public/specs/products/svc-tub-1.jpeg",
+        "originalUrl": "https://www.jaquar.com/images/thumbs/0037583_laguna-free-standing-bathtub_960.jpeg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Jaquar",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-tub-1.jpeg",
+      "preview": {
+        "model": "tub",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 0
+      }
+    },
+    {
+      "id": "svc-tub-2",
+      "name": "Queens · JBT-WHT-FSBTMAD1778",
+      "category": "plumbing-sanitary",
+      "subcategory": "bath-tub",
+      "itemIds": [
+        "bath-tub"
+      ],
+      "brand": "Jaquar",
+      "productName": "Queens · JBT-WHT-FSBTMAD1778",
+      "material": "Ceramic",
+      "style": "Clawfoot bathtub",
+      "finish": "Glazed white ceramic",
+      "application": [
+        "bath tub"
+      ],
+      "suitableRooms": [
+        "Bathroom"
+      ],
+      "specification": "Optional bathtub preference. Bathtub, support, drain and installation are excluded from the current bathroom allowance until measured and quoted.",
+      "blenderMaterial": "white_plaster",
+      "sourceUrl": "https://www.jaquar.com/en/queens-freestanding-bathtub-chrome?Id=2750",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "set",
+        "material": 0,
+        "labour": 0,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "advisory",
+        "note": "Optional bathtub preference. Bathtub, support, drain and installation are excluded from the current bathroom allowance until measured and quoted."
+      },
+      "facts": [
+        "Official Jaquar catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Preference only; quote required"
+      ],
+      "image": {
+        "brand": "Jaquar",
+        "productName": "Queens · JBT-WHT-FSBTMAD1778",
+        "sourceUrl": "https://www.jaquar.com/en/queens-freestanding-bathtub-chrome?Id=2750",
+        "path": "public/specs/products/svc-tub-2.jpeg",
+        "originalUrl": "https://www.jaquar.com/images/thumbs/0011903_queens_960.jpeg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Jaquar",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-tub-2.jpeg",
+      "preview": {
+        "model": "tub-claw",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 1
+      }
+    },
+    {
+      "id": "svc-tub-3",
+      "name": "Queens · JBT-WHT-FSBTMAD1778G",
+      "category": "plumbing-sanitary",
+      "subcategory": "bath-tub",
+      "itemIds": [
+        "bath-tub"
+      ],
+      "brand": "Jaquar",
+      "productName": "Queens · JBT-WHT-FSBTMAD1778G",
+      "material": "Ceramic",
+      "style": "Clawfoot bathtub",
+      "finish": "Glazed white ceramic",
+      "application": [
+        "bath tub"
+      ],
+      "suitableRooms": [
+        "Bathroom"
+      ],
+      "specification": "Optional bathtub preference. Bathtub, support, drain and installation are excluded from the current bathroom allowance until measured and quoted.",
+      "blenderMaterial": "white_plaster",
+      "sourceUrl": "https://www.jaquar.com/en/queens-freestanding-bathtub-gold?Id=2901",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "set",
+        "material": 0,
+        "labour": 0,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "advisory",
+        "note": "Optional bathtub preference. Bathtub, support, drain and installation are excluded from the current bathroom allowance until measured and quoted."
+      },
+      "facts": [
+        "Official Jaquar catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Preference only; quote required"
+      ],
+      "image": {
+        "brand": "Jaquar",
+        "productName": "Queens · JBT-WHT-FSBTMAD1778G",
+        "sourceUrl": "https://www.jaquar.com/en/queens-freestanding-bathtub-gold?Id=2901",
+        "path": "public/specs/products/svc-tub-3.jpeg",
+        "originalUrl": "https://www.jaquar.com/images/thumbs/0012239_queens_960.jpeg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Jaquar",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-tub-3.jpeg",
+      "preview": {
+        "model": "tub-claw",
+        "color": "#f6f6f2",
+        "accent": "#b39a58",
+        "variant": 2
+      }
+    },
+    {
+      "id": "svc-tub-4",
+      "name": "Alaska · JBT-WHT-FSBT177542X",
+      "category": "plumbing-sanitary",
+      "subcategory": "bath-tub",
+      "itemIds": [
+        "bath-tub"
+      ],
+      "brand": "Jaquar",
+      "productName": "Alaska · JBT-WHT-FSBT177542X",
+      "material": "Ceramic",
+      "style": "Freestanding bathtub",
+      "finish": "Glazed white ceramic",
+      "application": [
+        "bath tub"
+      ],
+      "suitableRooms": [
+        "Bathroom"
+      ],
+      "specification": "Optional bathtub preference. Bathtub, support, drain and installation are excluded from the current bathroom allowance until measured and quoted.",
+      "blenderMaterial": "white_plaster",
+      "sourceUrl": "https://www.jaquar.com/en/freestanding-bathtub-alaska?Id=2059",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "set",
+        "material": 0,
+        "labour": 0,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "advisory",
+        "note": "Optional bathtub preference. Bathtub, support, drain and installation are excluded from the current bathroom allowance until measured and quoted."
+      },
+      "facts": [
+        "Official Jaquar catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Preference only; quote required"
+      ],
+      "image": {
+        "brand": "Jaquar",
+        "productName": "Alaska · JBT-WHT-FSBT177542X",
+        "sourceUrl": "https://www.jaquar.com/en/freestanding-bathtub-alaska?Id=2059",
+        "path": "public/specs/products/svc-tub-4.jpeg",
+        "originalUrl": "https://www.jaquar.com/images/thumbs/0009908_alaska_960.jpeg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Jaquar",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-tub-4.jpeg",
+      "preview": {
+        "model": "tub",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 3
+      }
+    },
+    {
+      "id": "svc-tub-5",
+      "name": "Eggy · JBT-WHT-FSBTPB278X",
+      "category": "plumbing-sanitary",
+      "subcategory": "bath-tub",
+      "itemIds": [
+        "bath-tub"
+      ],
+      "brand": "Jaquar",
+      "productName": "Eggy · JBT-WHT-FSBTPB278X",
+      "material": "Ceramic",
+      "style": "Freestanding bathtub",
+      "finish": "Glazed white ceramic",
+      "application": [
+        "bath tub"
+      ],
+      "suitableRooms": [
+        "Bathroom"
+      ],
+      "specification": "Optional bathtub preference. Bathtub, support, drain and installation are excluded from the current bathroom allowance until measured and quoted.",
+      "blenderMaterial": "white_plaster",
+      "sourceUrl": "https://www.jaquar.com/en/freestanding-bathtub-eggy?Id=2057",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "set",
+        "material": 0,
+        "labour": 0,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "advisory",
+        "note": "Optional bathtub preference. Bathtub, support, drain and installation are excluded from the current bathroom allowance until measured and quoted."
+      },
+      "facts": [
+        "Official Jaquar catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Preference only; quote required"
+      ],
+      "image": {
+        "brand": "Jaquar",
+        "productName": "Eggy · JBT-WHT-FSBTPB278X",
+        "sourceUrl": "https://www.jaquar.com/en/freestanding-bathtub-eggy?Id=2057",
+        "path": "public/specs/products/svc-tub-5.jpeg",
+        "originalUrl": "https://www.jaquar.com/images/thumbs/0009910_eggy_960.jpeg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Jaquar",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-tub-5.jpeg",
+      "preview": {
+        "model": "tub",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 4
+      }
+    },
+    {
+      "id": "svc-enclosure-1",
+      "name": "Optima - Antique Bronze · JSE-ABR-OPTSDR1015X",
+      "category": "plumbing-sanitary",
+      "subcategory": "bath-enclosure",
+      "itemIds": [
+        "bath-enclosure"
+      ],
+      "brand": "Jaquar",
+      "productName": "Optima - Antique Bronze · JSE-ABR-OPTSDR1015X",
+      "material": "Metal",
+      "style": "Sliding shower enclosure",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "bath enclosure"
+      ],
+      "suitableRooms": [
+        "Bathroom"
+      ],
+      "specification": "Optional enclosure preference. Glass, hardware and installation are excluded until actual bathroom clearance is measured and quoted.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.jaquar.com/en/optima-antique-bronze?Id=11853",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "set",
+        "material": 0,
+        "labour": 0,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "advisory",
+        "note": "Optional enclosure preference. Glass, hardware and installation are excluded until actual bathroom clearance is measured and quoted."
+      },
+      "facts": [
+        "Official Jaquar catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Preference only; quote required"
+      ],
+      "image": {
+        "brand": "Jaquar",
+        "productName": "Optima - Antique Bronze · JSE-ABR-OPTSDR1015X",
+        "sourceUrl": "https://www.jaquar.com/en/optima-antique-bronze?Id=11853",
+        "path": "public/specs/products/svc-enclosure-1.jpeg",
+        "originalUrl": "https://www.jaquar.com/images/thumbs/0057354_optima-antique-bronze_960.jpeg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Jaquar",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-enclosure-1.jpeg",
+      "preview": {
+        "model": "enclosure-sliding",
+        "color": "#f6f6f2",
+        "accent": "#9b775c",
+        "variant": 0
+      }
+    },
+    {
+      "id": "svc-enclosure-2",
+      "name": "Optima - Antique Copper · JSE-ACR-OPTSDR1015X",
+      "category": "plumbing-sanitary",
+      "subcategory": "bath-enclosure",
+      "itemIds": [
+        "bath-enclosure"
+      ],
+      "brand": "Jaquar",
+      "productName": "Optima - Antique Copper · JSE-ACR-OPTSDR1015X",
+      "material": "Metal",
+      "style": "Sliding shower enclosure",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "bath enclosure"
+      ],
+      "suitableRooms": [
+        "Bathroom"
+      ],
+      "specification": "Optional enclosure preference. Glass, hardware and installation are excluded until actual bathroom clearance is measured and quoted.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.jaquar.com/en/optima-antique-copper?Id=11854",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "set",
+        "material": 0,
+        "labour": 0,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "advisory",
+        "note": "Optional enclosure preference. Glass, hardware and installation are excluded until actual bathroom clearance is measured and quoted."
+      },
+      "facts": [
+        "Official Jaquar catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Preference only; quote required"
+      ],
+      "image": {
+        "brand": "Jaquar",
+        "productName": "Optima - Antique Copper · JSE-ACR-OPTSDR1015X",
+        "sourceUrl": "https://www.jaquar.com/en/optima-antique-copper?Id=11854",
+        "path": "public/specs/products/svc-enclosure-2.jpeg",
+        "originalUrl": "https://www.jaquar.com/images/thumbs/0057355_optima-antique-copper_960.jpeg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Jaquar",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-enclosure-2.jpeg",
+      "preview": {
+        "model": "enclosure-sliding",
+        "color": "#f6f6f2",
+        "accent": "#b67d5b",
+        "variant": 1
+      }
+    },
+    {
+      "id": "svc-enclosure-3",
+      "name": "Optima - Chrome · JSE-CHR-OPTSDR1015X",
+      "category": "plumbing-sanitary",
+      "subcategory": "bath-enclosure",
+      "itemIds": [
+        "bath-enclosure"
+      ],
+      "brand": "Jaquar",
+      "productName": "Optima - Chrome · JSE-CHR-OPTSDR1015X",
+      "material": "Metal",
+      "style": "Sliding shower enclosure",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "bath enclosure"
+      ],
+      "suitableRooms": [
+        "Bathroom"
+      ],
+      "specification": "Optional enclosure preference. Glass, hardware and installation are excluded until actual bathroom clearance is measured and quoted.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.jaquar.com/en/optima-right-version-sliding-shower-enclosures_1000-1500?Id=7553",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "set",
+        "material": 0,
+        "labour": 0,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "advisory",
+        "note": "Optional enclosure preference. Glass, hardware and installation are excluded until actual bathroom clearance is measured and quoted."
+      },
+      "facts": [
+        "Official Jaquar catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Preference only; quote required"
+      ],
+      "image": {
+        "brand": "Jaquar",
+        "productName": "Optima - Chrome · JSE-CHR-OPTSDR1015X",
+        "sourceUrl": "https://www.jaquar.com/en/optima-right-version-sliding-shower-enclosures_1000-1500?Id=7553",
+        "path": "public/specs/products/svc-enclosure-3.jpeg",
+        "originalUrl": "https://www.jaquar.com/images/thumbs/0041998_optima-chrome_960.jpeg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Jaquar",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-enclosure-3.jpeg",
+      "preview": {
+        "model": "enclosure-sliding",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 2
+      }
+    },
+    {
+      "id": "svc-enclosure-4",
+      "name": "Free Standing Bathscreen with Stabilizer - (Width : 1201-1600) · JSE-CHR-S810S1216H20X",
+      "category": "plumbing-sanitary",
+      "subcategory": "bath-enclosure",
+      "itemIds": [
+        "bath-enclosure"
+      ],
+      "brand": "Jaquar",
+      "productName": "Free Standing Bathscreen with Stabilizer - (Width : 1201-1600) · JSE-CHR-S810S1216H20X",
+      "material": "Metal",
+      "style": "Shower screen",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "bath enclosure"
+      ],
+      "suitableRooms": [
+        "Bathroom"
+      ],
+      "specification": "Optional enclosure preference. Glass, hardware and installation are excluded until actual bathroom clearance is measured and quoted.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.jaquar.com/en/free-standing-bathscreen-with-stabiizer?Id=9139",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "set",
+        "material": 0,
+        "labour": 0,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "advisory",
+        "note": "Optional enclosure preference. Glass, hardware and installation are excluded until actual bathroom clearance is measured and quoted."
+      },
+      "facts": [
+        "Official Jaquar catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Preference only; quote required"
+      ],
+      "image": {
+        "brand": "Jaquar",
+        "productName": "Free Standing Bathscreen with Stabilizer - (Width : 1201-1600) · JSE-CHR-S810S1216H20X",
+        "sourceUrl": "https://www.jaquar.com/en/free-standing-bathscreen-with-stabiizer?Id=9139",
+        "path": "public/specs/products/svc-enclosure-4.jpeg",
+        "originalUrl": "https://www.jaquar.com/images/thumbs/0045057_free-standing-bathscreen-with-stabilizer-width-1201-1600_960.jpeg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Jaquar",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-enclosure-4.jpeg",
+      "preview": {
+        "model": "enclosure-screen",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 3
+      }
+    },
+    {
+      "id": "svc-enclosure-5",
+      "name": "1810-D - (Size :  801-1000) · JSE-CHR-810D0810H19X",
+      "category": "plumbing-sanitary",
+      "subcategory": "bath-enclosure",
+      "itemIds": [
+        "bath-enclosure"
+      ],
+      "brand": "Jaquar",
+      "productName": "1810-D - (Size :  801-1000) · JSE-CHR-810D0810H19X",
+      "material": "Metal",
+      "style": "Hinged shower cabin",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "bath enclosure"
+      ],
+      "suitableRooms": [
+        "Bathroom"
+      ],
+      "specification": "Optional enclosure preference. Glass, hardware and installation are excluded until actual bathroom clearance is measured and quoted.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.jaquar.com/en/frameless-shower-enclosures-iara-1810d-801-1000?Id=9279",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "set",
+        "material": 0,
+        "labour": 0,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "advisory",
+        "note": "Optional enclosure preference. Glass, hardware and installation are excluded until actual bathroom clearance is measured and quoted."
+      },
+      "facts": [
+        "Official Jaquar catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Preference only; quote required"
+      ],
+      "image": {
+        "brand": "Jaquar",
+        "productName": "1810-D - (Size :  801-1000) · JSE-CHR-810D0810H19X",
+        "sourceUrl": "https://www.jaquar.com/en/frameless-shower-enclosures-iara-1810d-801-1000?Id=9279",
+        "path": "public/specs/products/svc-enclosure-5.jpeg",
+        "originalUrl": "https://www.jaquar.com/images/thumbs/0045256_1810-d-size-801-1000_960.jpeg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Jaquar",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-enclosure-5.jpeg",
+      "preview": {
+        "model": "enclosure-hinged",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 4
+      }
+    },
+    {
+      "id": "svc-wp-pidifin",
+      "name": "Pidifin 2K cementitious wet-area system",
+      "category": "waterproofing",
+      "subcategory": "bath-waterproofing",
+      "itemIds": [
+        "bath-waterproofing"
+      ],
+      "brand": "Dr. Fixit",
+      "productName": "Pidifin 2K cementitious wet-area system",
+      "material": "Cement/polymer system",
+      "style": "Waterproofing coating system",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "bath waterproofing"
+      ],
+      "suitableRooms": [
+        "As specified"
+      ],
+      "specification": "Provisional complete-system allowance on existing measured area. Follow the official technical sheet for substrate, primer, coats, curing and junctions; exploded layer thickness/colour is illustrative.",
+      "blenderMaterial": "exposed_concrete",
+      "sourceUrl": "https://www.drfixit.co.in/products/dr-fixit-pidifin-2k/detail",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "m2",
+        "material": 300,
+        "labour": 180,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "measured",
+        "note": "Provisional complete-system allowance on existing measured area. Follow the official technical sheet for substrate, primer, coats, curing and junctions; exploded layer thickness/colour is illustrative."
+      },
+      "facts": [
+        "Official Dr. Fixit catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Provisional installed allowance; confirm supplier quote"
+      ],
+      "image": {
+        "brand": "Dr. Fixit",
+        "productName": "Pidifin 2K cementitious wet-area system",
+        "sourceUrl": "https://www.drfixit.co.in/products/dr-fixit-pidifin-2k/detail",
+        "path": "public/specs/products/svc-wp-pidifin.webp",
+        "originalUrl": "https://drfixit-stg.s3.ap-south-1.amazonaws.com/assets/images/products/xhdpi/1715087528663a28a81cb0b.webp",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Dr. Fixit",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-wp-pidifin.webp",
+      "preview": {
+        "model": "waterproofing",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 0
+      }
+    },
+    {
+      "id": "svc-wp-urp",
+      "name": "Pidicrete URP polymer-modified wet-area system",
+      "category": "waterproofing",
+      "subcategory": "bath-waterproofing",
+      "itemIds": [
+        "bath-waterproofing"
+      ],
+      "brand": "Dr. Fixit",
+      "productName": "Pidicrete URP polymer-modified wet-area system",
+      "material": "Cement/polymer system",
+      "style": "Waterproofing coating system",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "bath waterproofing"
+      ],
+      "suitableRooms": [
+        "As specified"
+      ],
+      "specification": "Provisional complete-system allowance on existing measured area. Follow the official technical sheet for substrate, primer, coats, curing and junctions; exploded layer thickness/colour is illustrative.",
+      "blenderMaterial": "exposed_concrete",
+      "sourceUrl": "https://www.drfixit.co.in/products/dr-fixit-pidicrete-urp/detail",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "m2",
+        "material": 360,
+        "labour": 180,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "measured",
+        "note": "Provisional complete-system allowance on existing measured area. Follow the official technical sheet for substrate, primer, coats, curing and junctions; exploded layer thickness/colour is illustrative."
+      },
+      "facts": [
+        "Official Dr. Fixit catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Provisional installed allowance; confirm supplier quote"
+      ],
+      "image": {
+        "brand": "Dr. Fixit",
+        "productName": "Pidicrete URP polymer-modified wet-area system",
+        "sourceUrl": "https://www.drfixit.co.in/products/dr-fixit-pidicrete-urp/detail",
+        "path": "public/specs/products/svc-wp-urp.webp",
+        "originalUrl": "https://drfixit-stg.s3.ap-south-1.amazonaws.com/assets/images/products/xhdpi/16191739266082a22686c0b.webp",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Dr. Fixit",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-wp-urp.webp",
+      "preview": {
+        "model": "waterproofing",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 1
+      }
+    },
+    {
+      "id": "svc-wp-roof",
+      "name": "Roofseal Classic roof coating",
+      "category": "waterproofing",
+      "subcategory": "terrace-waterproofing",
+      "itemIds": [
+        "terrace-waterproofing"
+      ],
+      "brand": "Dr. Fixit",
+      "productName": "Roofseal Classic roof coating",
+      "material": "Cement/polymer system",
+      "style": "Waterproofing coating system",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "terrace waterproofing"
+      ],
+      "suitableRooms": [
+        "As specified"
+      ],
+      "specification": "Provisional complete-system allowance on existing measured area. Follow the official technical sheet for substrate, primer, coats, curing and junctions; exploded layer thickness/colour is illustrative.",
+      "blenderMaterial": "exposed_concrete",
+      "sourceUrl": "https://www.drfixit.co.in/products/dr-fixit-roofseal-classic/detail",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "m2",
+        "material": 420,
+        "labour": 180,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "measured",
+        "note": "Provisional complete-system allowance on existing measured area. Follow the official technical sheet for substrate, primer, coats, curing and junctions; exploded layer thickness/colour is illustrative."
+      },
+      "facts": [
+        "Official Dr. Fixit catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Provisional installed allowance; confirm supplier quote"
+      ],
+      "image": {
+        "brand": "Dr. Fixit",
+        "productName": "Roofseal Classic roof coating",
+        "sourceUrl": "https://www.drfixit.co.in/products/dr-fixit-roofseal-classic/detail",
+        "path": "public/specs/products/svc-wp-roof.webp",
+        "originalUrl": "https://drfixit-stg.s3.ap-south-1.amazonaws.com/assets/images/products/xhdpi/174462271967fcd47f3b0a3.webp",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Dr. Fixit",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-wp-roof.webp",
+      "preview": {
+        "model": "waterproofing",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 2
+      }
+    },
+    {
+      "id": "svc-wp-raincoat",
+      "name": "Raincoat Classic exterior waterproof coating",
+      "category": "painting",
+      "subcategory": "exterior-paint",
+      "itemIds": [
+        "exterior-paint"
+      ],
+      "brand": "Dr. Fixit",
+      "productName": "Raincoat Classic exterior waterproof coating",
+      "material": "Cement/polymer system",
+      "style": "Wall paint",
+      "finish": "Supplier catalogue finish",
+      "application": [
+        "exterior paint"
+      ],
+      "suitableRooms": [
+        "As specified"
+      ],
+      "specification": "Provisional complete-system allowance on existing measured area. Follow the official technical sheet for substrate, primer, coats, curing and junctions; exploded layer thickness/colour is illustrative.",
+      "blenderMaterial": "white_plaster",
+      "sourceUrl": "https://www.drfixit.co.in/products/dr-fixit-raincoat-classic/detail",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "m2",
+        "material": 480,
+        "labour": 180,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "measured",
+        "note": "Provisional complete-system allowance on existing measured area. Follow the official technical sheet for substrate, primer, coats, curing and junctions; exploded layer thickness/colour is illustrative."
+      },
+      "facts": [
+        "Official Dr. Fixit catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Provisional installed allowance; confirm supplier quote"
+      ],
+      "image": {
+        "brand": "Dr. Fixit",
+        "productName": "Raincoat Classic exterior waterproof coating",
+        "sourceUrl": "https://www.drfixit.co.in/products/dr-fixit-raincoat-classic/detail",
+        "path": "public/specs/products/svc-wp-raincoat.webp",
+        "originalUrl": "https://drfixit-stg.s3.ap-south-1.amazonaws.com/assets/images/products/xhdpi/1746689247681c5cdfdebbe.webp",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Dr. Fixit",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-wp-raincoat.webp",
+      "preview": {
+        "model": "paint",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 3
+      }
+    },
+    {
+      "id": "svc-paint-luxury",
+      "name": "Royale Luxury Emulsion",
+      "category": "painting",
+      "subcategory": "interior-paint",
+      "itemIds": [
+        "interior-paint"
+      ],
+      "brand": "Asian Paints",
+      "productName": "Royale Luxury Emulsion",
+      "material": "Paint",
+      "style": "Wall paint",
+      "finish": "Choose shade separately",
+      "application": [
+        "interior paint"
+      ],
+      "suitableRooms": [
+        "As specified"
+      ],
+      "specification": "Product/system allowance on existing painted area. Package image is not a shade sample; choose wall colour separately. Colour selection retains exact digital RGB in the preview.",
+      "blenderMaterial": "white_plaster",
+      "sourceUrl": "https://www.asianpaints.com/paint-products/interior-wall-paints/plain-finishes/royale-luxury-emulsion.html",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "m2",
+        "material": 220,
+        "labour": 80,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "measured",
+        "note": "Product/system allowance on existing painted area. Package image is not a shade sample; choose wall colour separately. Colour selection retains exact digital RGB in the preview."
+      },
+      "facts": [
+        "Official Asian Paints catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Provisional installed allowance; confirm supplier quote"
+      ],
+      "image": {
+        "brand": "Asian Paints",
+        "productName": "Royale Luxury Emulsion",
+        "sourceUrl": "https://www.asianpaints.com/paint-products/interior-wall-paints/plain-finishes/royale-luxury-emulsion.html",
+        "path": "public/specs/products/svc-paint-luxury.png",
+        "originalUrl": "https://www.asianpaints.com/content/dam/asian_paints/products/packshots/interior-walls-royale-luxury-emulsion-asian-paints.png",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Asian Paints",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-paint-luxury.png",
+      "preview": {
+        "model": "paint",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 2
+      }
+    },
+    {
+      "id": "svc-paint-matt",
+      "name": "Royale Matt",
+      "category": "painting",
+      "subcategory": "interior-paint",
+      "itemIds": [
+        "interior-paint"
+      ],
+      "brand": "Asian Paints",
+      "productName": "Royale Matt",
+      "material": "Paint",
+      "style": "Wall paint",
+      "finish": "Choose shade separately",
+      "application": [
+        "interior paint"
+      ],
+      "suitableRooms": [
+        "As specified"
+      ],
+      "specification": "Product/system allowance on existing painted area. Package image is not a shade sample; choose wall colour separately. Colour selection retains exact digital RGB in the preview.",
+      "blenderMaterial": "white_plaster",
+      "sourceUrl": "https://www.asianpaints.com/paint-products/interior-wall-paints/plain-finishes/royale-matt.html",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "m2",
+        "material": 260,
+        "labour": 80,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "measured",
+        "note": "Product/system allowance on existing painted area. Package image is not a shade sample; choose wall colour separately. Colour selection retains exact digital RGB in the preview."
+      },
+      "facts": [
+        "Official Asian Paints catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Provisional installed allowance; confirm supplier quote"
+      ],
+      "image": {
+        "brand": "Asian Paints",
+        "productName": "Royale Matt",
+        "sourceUrl": "https://www.asianpaints.com/paint-products/interior-wall-paints/plain-finishes/royale-matt.html",
+        "path": "public/specs/products/svc-paint-matt.png",
+        "originalUrl": "https://static.asianpaints.com/content/dam/asian_paints/products/packshots/interior-walls-royale-matt-asian-paints.png",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Asian Paints",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-paint-matt.png",
+      "preview": {
+        "model": "paint",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 3
+      }
+    },
+    {
+      "id": "svc-paint-aspira",
+      "name": "Royale Aspira",
+      "category": "painting",
+      "subcategory": "interior-paint",
+      "itemIds": [
+        "interior-paint"
+      ],
+      "brand": "Asian Paints",
+      "productName": "Royale Aspira",
+      "material": "Paint",
+      "style": "Wall paint",
+      "finish": "Choose shade separately",
+      "application": [
+        "interior paint"
+      ],
+      "suitableRooms": [
+        "As specified"
+      ],
+      "specification": "Product/system allowance on existing painted area. Package image is not a shade sample; choose wall colour separately. Colour selection retains exact digital RGB in the preview.",
+      "blenderMaterial": "white_plaster",
+      "sourceUrl": "https://www.asianpaints.com/paint-products/interior-wall-paints/plain-finishes/royale-aspira.html",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "m2",
+        "material": 140,
+        "labour": 80,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "measured",
+        "note": "Product/system allowance on existing painted area. Package image is not a shade sample; choose wall colour separately. Colour selection retains exact digital RGB in the preview."
+      },
+      "facts": [
+        "Official Asian Paints catalogue product",
+        "3D shape is illustrative; supplier image is the product reference",
+        "Provisional installed allowance; confirm supplier quote"
+      ],
+      "image": {
+        "brand": "Asian Paints",
+        "productName": "Royale Aspira",
+        "sourceUrl": "https://www.asianpaints.com/paint-products/interior-wall-paints/plain-finishes/royale-aspira.html",
+        "path": "public/specs/products/svc-paint-aspira.png",
+        "originalUrl": "https://www.asianpaints.com/content/dam/asian_paints/products/packshots/interior-walls-royale-aspira-luxury-emulsion-asian-paints.png",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Asian Paints",
+        "verifiedBy": "asset-audit:official-service-catalogues",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Unmodified official catalogue image. Photography method is not verified; manufacturer rights apply.",
+        "projection": "reference"
+      },
+      "thumbnail": "public/specs/products/svc-paint-aspira.png",
+      "preview": {
+        "model": "paint",
+        "color": "#f6f6f2",
+        "accent": "#aeb8bd",
+        "variant": 0
+      }
+    }
+  ]
+}

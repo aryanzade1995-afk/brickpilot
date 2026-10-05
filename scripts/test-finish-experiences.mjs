@@ -1,4 +1,5 @@
 import test from 'node:test'
+import { finishPreview } from '../src/lib/finishes/preview.ts'
 import assert from 'node:assert/strict'
 import { specsCatalogue, specificationRate } from '../src/lib/cost/catalogue.ts'
 import { detailedPreviewParts } from '../src/lib/finishes/previewGeometry.ts'
@@ -26,7 +27,7 @@ test('every ceiling pattern fits its host room with no pieces beyond width/depth
 })
 test('railing changes alter posts, infill and material geometry; each fitting tier is visibly different',()=>{
  for(const id of ['false-ceiling','balcony-railings','sanitary','cp-fittings','roof-type','landscaping','pool']){
-  const signatures=item(id).options.map(o=>JSON.stringify(detailedPreviewParts(item(id),o)))
+  const signatures=item(id).options.map(o=>JSON.stringify({parts:detailedPreviewParts(item(id),o),appearance:finishPreview(item(id),o)}))
   assert.ok(signatures.every(s=>s&&s!=='undefined'),id)
   assert.ok(new Set(signatures).size===signatures.length,id)
   assert.notEqual(signatures[0],signatures[1],id)

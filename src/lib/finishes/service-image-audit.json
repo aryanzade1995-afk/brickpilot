@@ -1,0 +1,513 @@
+[
+  {
+    "id": "svc-fans-4",
+    "url": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/Untitled-1_97065d67-d52a-4513-909c-454baab6fe97.png?v=1776751790",
+    "path": "public/specs/products/svc-fans-4.png",
+    "sha256": "3ed085d483586fe2d4438a2ea598c525ca4121bafe2d83a2bde2240b850252e3",
+    "bytes": 46667
+  },
+  {
+    "id": "svc-fans-3",
+    "url": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/1-Photoroom_3.png?v=1787562847",
+    "path": "public/specs/products/svc-fans-3.png",
+    "sha256": "57b98d7c2d7ef7bcc324f310a01c680f37a0f9a4fa689550be9cd6ee24fec8c3",
+    "bytes": 181426
+  },
+  {
+    "id": "svc-light-fittings-3",
+    "url": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/png_5bfd9d5f-fc45-49cc-98a1-d144eb3a8845.png?v=1715342617",
+    "path": "public/specs/products/svc-light-fittings-3.png",
+    "sha256": "5bc9cb5dcefba281a8c21b18d61402f4db1d007920874cf1201e6b0eb75c7231",
+    "bytes": 325623
+  },
+  {
+    "id": "svc-light-fittings-2",
+    "url": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/strglznxtpng_85823017-60a0-4d8f-94fd-bfa3f4c91d7d.png?v=1721624962",
+    "path": "public/specs/products/svc-light-fittings-2.png",
+    "sha256": "5c53230c79325c019c201b26f1bbb1d2ec2bdfedbdbdce69f4b3faba5bb32e39",
+    "bytes": 333354
+  },
+  {
+    "id": "svc-fans-2",
+    "url": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/Jupiter-Photoroom_1.png?v=1787651564",
+    "path": "public/specs/products/svc-fans-2.png",
+    "sha256": "4f1d0b593e8f68d81f3559d2cee992578d45a69ac593856de1b3fe3ddc766036",
+    "bytes": 389121
+  },
+  {
+    "id": "svc-fans-5",
+    "url": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/1_9352ed6d-106c-4141-a638-5c20b05e74c4.png?v=1772789704",
+    "path": "public/specs/products/svc-fans-5.png",
+    "sha256": "ad02c83276b849aa9522485f8bc83f8ac607cd36cd9759e9ec61385c1e2954de",
+    "bytes": 372348
+  },
+  {
+    "id": "svc-light-fittings-1",
+    "url": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/Artboard0_41798cad-9669-4e8e-b9f0-8172d8b2785f.png?v=1772704541",
+    "path": "public/specs/products/svc-light-fittings-1.png",
+    "sha256": "7d6723640d99102ebd9adca91916bd29a85e59eafbee7fdeff34f47b8c7081f4",
+    "bytes": 544336
+  },
+  {
+    "id": "svc-fans-1",
+    "url": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/Artboard0_abf66d1d-debf-4441-bc3e-4d4a0033a308.png?v=1787836433",
+    "path": "public/specs/products/svc-fans-1.png",
+    "sha256": "486729e5802f4ca4c546c189eac9ecc13c7930582c79f2b84f289b6a59237f48",
+    "bytes": 642106
+  },
+  {
+    "id": "svc-light-fittings-5",
+    "url": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/Copyof3_a76b7789-af3f-46d0-966f-9517c46435fd.png?v=1709284193",
+    "path": "public/specs/products/svc-light-fittings-5.png",
+    "sha256": "96f6ffc1114546289b413316b063d7fca73c3c5ac86ad92f37b33e0ddebbd2e3",
+    "bytes": 106668
+  },
+  {
+    "id": "svc-electrical-battens-1",
+    "url": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/png_e890389a-8f97-4e34-bcba-25e32b3e8d96.png?v=1721306081",
+    "path": "public/specs/products/svc-electrical-battens-1.png",
+    "sha256": "2e99ab3aacd2459ce06f693cdfa667d9d950e707944811276fc382ab6c7d6b09",
+    "bytes": 41973
+  },
+  {
+    "id": "svc-electrical-bulbs-1",
+    "url": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/Untitled-1_f3645859-f828-4ada-807c-23ca9c5d1f1b.png?v=1694779121",
+    "path": "public/specs/products/svc-electrical-bulbs-1.png",
+    "sha256": "05434795b64ab2f95e5a91b4e94346f9c07744ce15bd75d5121146b64af6afc1",
+    "bytes": 59009
+  },
+  {
+    "id": "svc-electrical-bulbs-5",
+    "url": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/4.5W_E27_Clear__1_-removebg-preview.png?v=1692611115",
+    "path": "public/specs/products/svc-electrical-bulbs-5.png",
+    "sha256": "c45f325ec964689a1f1350c638296712d294b0612e62d44d38105bd418c696e1",
+    "bytes": 28602
+  },
+  {
+    "id": "svc-electrical-bulbs-4",
+    "url": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/ImmensaE27_2df92a79-1a43-459d-ba62-2d8f7b5d4165.png?v=1702377085",
+    "path": "public/specs/products/svc-electrical-bulbs-4.png",
+    "sha256": "9038da038ea05632ac5a8e191955703965b54aa3fbe1aa2c3405eb330eb7e0ee",
+    "bytes": 363810
+  },
+  {
+    "id": "svc-electrical-bulbs-2",
+    "url": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/Untitled-1_ddce9bff-2646-43b1-a7ac-4cc9a224267d.png?v=1695203151",
+    "path": "public/specs/products/svc-electrical-bulbs-2.png",
+    "sha256": "194defa1b75dbb25409b02b7ea36da3137ee768465b7c34a70037916f9c5c9c8",
+    "bytes": 74887
+  },
+  {
+    "id": "svc-light-fittings-4",
+    "url": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/SDES_SQAURE_FRONT_940b06fb-d18c-4a78-b766-4188c759c708.png?v=1712915101",
+    "path": "public/specs/products/svc-light-fittings-4.png",
+    "sha256": "459632a9dd862f3872caf19e3b8fa5463d534dbbfe42652d59c568f9aa4693d3",
+    "bytes": 520864
+  },
+  {
+    "id": "svc-electrical-bulbs-3",
+    "url": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/LYOR_UPLOAD_1.png?v=1694003367",
+    "path": "public/specs/products/svc-electrical-bulbs-3.png",
+    "sha256": "441a6e749c6978a0f6edb700aea3a054d75284dce3aee87b07ce7d0c7089a0c3",
+    "bytes": 3150386
+  },
+  {
+    "id": "svc-electrical-battens-3",
+    "url": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/png_f32501ec-0131-47e4-83f1-e8fd1e6c7f65.png?v=1721018193",
+    "path": "public/specs/products/svc-electrical-battens-3.png",
+    "sha256": "a921b97acba0c38a91cb66b6d4e5374332659b52925ad9cc55c4af7af1694881",
+    "bytes": 25844
+  },
+  {
+    "id": "svc-electrical-battens-4",
+    "url": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/laserrayneomaxx_d36c4012-e1d4-4290-81c3-b5f6aab15949.png?v=1714201085",
+    "path": "public/specs/products/svc-electrical-battens-4.png",
+    "sha256": "b284fc0b9439604e4678d9c480b9006908c8c1ca8da05d25acb249a50c8c8b0c",
+    "bytes": 44985
+  },
+  {
+    "id": "svc-electrical-exhaust-2",
+    "url": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/Untitled-1_624b45f3-236a-452b-9504-43dd74b25275.png?v=1703656328",
+    "path": "public/specs/products/svc-electrical-exhaust-2.png",
+    "sha256": "cd6785a3f5ff1d895809901c89ab5bd705d0a0ce1c12acf994032425ed4baa55",
+    "bytes": 437316
+  },
+  {
+    "id": "svc-electrical-exhaust-1",
+    "url": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/Untitled-6.png?v=1721125805",
+    "path": "public/specs/products/svc-electrical-exhaust-1.png",
+    "sha256": "9b8bbaed6932d124a17bbdaf2188934d4b5519ad1cc61bc6b37e8909013007a5",
+    "bytes": 280610
+  },
+  {
+    "id": "svc-electrical-battens-2",
+    "url": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/slimo_1.png?v=1721887725",
+    "path": "public/specs/products/svc-electrical-battens-2.png",
+    "sha256": "0928618455c26bfe0cb18fe12403028ff6afb7e80541c23face5c14f4e616eb3",
+    "bytes": 242953
+  },
+  {
+    "id": "svc-electrical-battens-5",
+    "url": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/A_2df525de-bb8f-40b5-b11c-5589fdfa60b6.png?v=1703073265",
+    "path": "public/specs/products/svc-electrical-battens-5.png",
+    "sha256": "1761335709da0aefb309e2645264f33ef2fd743287a4d4c1e25bf09526a5c1d1",
+    "bytes": 406948
+  },
+  {
+    "id": "svc-electrical-exhaust-4",
+    "url": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/ivory100.png?v=1703483061",
+    "path": "public/specs/products/svc-electrical-exhaust-4.png",
+    "sha256": "37b1b9fc22bfc5c9ba18cc897f89ded8658b0bcdabf6cb5cca33bbb9cf6781d2",
+    "bytes": 436746
+  },
+  {
+    "id": "svc-electrical-exhaust-3",
+    "url": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/02_5c649056-effc-47a6-b827-d1e37a9a3edb.png?v=1703498609",
+    "path": "public/specs/products/svc-electrical-exhaust-3.png",
+    "sha256": "8c2dcdf0aa8c6a18709006dee317a58fa622431a73f6a41dde741880ff085361",
+    "bytes": 2941728
+  },
+  {
+    "id": "svc-water-heater-2",
+    "url": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/VersaDLX__1080x1080__1-removebg-preview-removebg-preview.png?v=1783933686",
+    "path": "public/specs/products/svc-water-heater-2.png",
+    "sha256": "9f191b996d7206b062fe4f1e1705a351b38ee54fad052e140e6ce7cc418ad2a2",
+    "bytes": 35096
+  },
+  {
+    "id": "svc-water-heater-4",
+    "url": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/PLBanner1_67f800d4-46a2-41c3-9f5d-2f70bb91eaf2.png?v=1769598204",
+    "path": "public/specs/products/svc-water-heater-4.png",
+    "sha256": "4718d82e6d3cc75f3adbca2db610499aa9230eb66fe47d666fb49dd244bfe1ae",
+    "bytes": 282840
+  },
+  {
+    "id": "svc-water-heater-3",
+    "url": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/CopyofRegeraRHSWaterHeaterPL.png?v=1783058753",
+    "path": "public/specs/products/svc-water-heater-3.png",
+    "sha256": "15810db63ddee8e8f4c992507c8dde9d7fa62543e827faf8b4972351430a035c",
+    "bytes": 133072
+  },
+  {
+    "id": "svc-water-heater-5",
+    "url": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/PLBanner1_8f6b4da1-a717-4f3e-847d-73e70c3093e9.png?v=1769598200",
+    "path": "public/specs/products/svc-water-heater-5.png",
+    "sha256": "b9a758b64a308620aa165946e066f7dd52d75e0b1538c34a229df7a60a591e02",
+    "bytes": 263185
+  },
+  {
+    "id": "svc-water-heater-1",
+    "url": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/SolariumDLX-WaterHeater____29-06-26______1X1__1.png?v=1784263760",
+    "path": "public/specs/products/svc-water-heater-1.png",
+    "sha256": "7d95e155dae04bb1ebb2479700f9f4d11b260b43dd21db75e7e672b7ef9f0db7",
+    "bytes": 125953
+  },
+  {
+    "id": "svc-electrical-exhaust-5",
+    "url": "https://cdn.shopify.com/s/files/1/0715/1704/5040/files/Briskairplus200mm_White__1angle_021133ac-1830-453a-9eb3-072d122c194a.png?v=1694084379",
+    "path": "public/specs/products/svc-electrical-exhaust-5.png",
+    "sha256": "f9a1055085aaeb4165e2162bbf17154538742e82fa5cf4b70c5f6c7dacac7525",
+    "bytes": 272428
+  },
+  {
+    "id": "svc-switches-1",
+    "url": "https://shop.schneider-electric.co.in/media/catalog/product/cache/957058827deea85a6c51d651d25db05e/e/8/e8331d45n_wg_g8.jpg",
+    "path": "public/specs/products/svc-switches-1.jpg",
+    "sha256": "8701856b5c2536f1181b48acc5ee8cce73746545c22e002224c6c221bb022510",
+    "bytes": 6959
+  },
+  {
+    "id": "svc-switches-2",
+    "url": "https://shop.schneider-electric.co.in/media/catalog/product/cache/957058827deea85a6c51d651d25db05e/e/8/e8331d20n_wg_g8.jpg",
+    "path": "public/specs/products/svc-switches-2.jpg",
+    "sha256": "873639545a47431eee5d0f506ee0aa78ecf3ce28f15d6dba021746d01ea0c7b1",
+    "bytes": 6930
+  },
+  {
+    "id": "svc-switches-4",
+    "url": "https://shop.schneider-electric.co.in/media/catalog/product/cache/957058827deea85a6c51d651d25db05e/e/8/e8331d20n_wd_g8.jpg",
+    "path": "public/specs/products/svc-switches-4.jpg",
+    "sha256": "7cdde6adbbd9f8936fe9478173811d20e53e56a1d26ee3fe87ab7b2aec832d9f",
+    "bytes": 11556
+  },
+  {
+    "id": "svc-switches-3",
+    "url": "https://shop.schneider-electric.co.in/media/catalog/product/cache/957058827deea85a6c51d651d25db05e/e/8/e8332c_gh_g8.jpg",
+    "path": "public/specs/products/svc-switches-3.jpg",
+    "sha256": "b7d245ce24712aeec9950b4dc3b1bc06628f7cc39c978bcffe15c9149fdf4e27",
+    "bytes": 12202
+  },
+  {
+    "id": "svc-switches-5",
+    "url": "https://shop.schneider-electric.co.in/media/catalog/product/cache/957058827deea85a6c51d651d25db05e/e/8/e8331ekt_dg_front.jpg",
+    "path": "public/specs/products/svc-switches-5.jpg",
+    "sha256": "f665a31f223cb2e00e22b203aa357cd9392efd62dcc9b6a20b18880a708dfe43",
+    "bytes": 6987
+  },
+  {
+    "id": "svc-toilet-5",
+    "url": "https://www.jaquar.com/images/thumbs/0053698_rimless-single-piece-wc_960.jpeg",
+    "path": "public/specs/products/svc-toilet-5.jpeg",
+    "sha256": "c4bbbaeb898d22b3bd341aaa594d1dd67301471e1b143ad0d122a572ac12134b",
+    "bytes": 72844
+  },
+  {
+    "id": "svc-toilet-1",
+    "url": "https://www.jaquar.com/images/thumbs/0009657_single-piece-wc_960.jpeg",
+    "path": "public/specs/products/svc-toilet-1.jpeg",
+    "sha256": "8e4c208ed03f442b2343e51a55c2caaef89fb475c173cfc412893f3bad79f03c",
+    "bytes": 58063
+  },
+  {
+    "id": "svc-toilet-4",
+    "url": "https://www.jaquar.com/images/thumbs/0043495_rimless-wall-hung-wc_960.jpeg",
+    "path": "public/specs/products/svc-toilet-4.jpeg",
+    "sha256": "1835edf8e3547d4f217962d080dd43710a5e7e359832020785322a3875d432a3",
+    "bytes": 65429
+  },
+  {
+    "id": "svc-toilet-2",
+    "url": "https://www.jaquar.com/images/thumbs/0009673_wall-hung-wc_960.jpeg",
+    "path": "public/specs/products/svc-toilet-2.jpeg",
+    "sha256": "afdae53662e7d5b7ac1412266440b0fe6e014f421c15415ea1fa7c629f580a02",
+    "bytes": 73133
+  },
+  {
+    "id": "svc-toilet-3",
+    "url": "https://www.jaquar.com/images/thumbs/0037449_bowl-with-cistern_960.jpeg",
+    "path": "public/specs/products/svc-toilet-3.jpeg",
+    "sha256": "bbcff29e419a8e1bde43d3c19692e0d5a9d24c8c8e687fe117377f4640a28fa6",
+    "bytes": 71628
+  },
+  {
+    "id": "svc-basin-2",
+    "url": "https://www.jaquar.com/images/thumbs/0009670_thin-rim-table-top-basin_960.jpeg",
+    "path": "public/specs/products/svc-basin-2.jpeg",
+    "sha256": "ff4db1deca5583bda260d921fd9a6a8b2f7d67250285d19ee7d395d6ab03cad6",
+    "bytes": 64871
+  },
+  {
+    "id": "svc-basin-1",
+    "url": "https://www.jaquar.com/images/thumbs/0049000_floor-standing-basin_960.jpeg",
+    "path": "public/specs/products/svc-basin-1.jpeg",
+    "sha256": "35cdf67d43dd6a7c77b109776ed6d773eda8761d54877e098a2771c2eb069970",
+    "bytes": 65089
+  },
+  {
+    "id": "svc-basin-5",
+    "url": "https://www.jaquar.com/images/thumbs/0050468_under-counter-basin_960.jpeg",
+    "path": "public/specs/products/svc-basin-5.jpeg",
+    "sha256": "885914fff86a4c4b7b510e96c4bbac72074604094a8dd9779f546f123ad23964",
+    "bytes": 123135
+  },
+  {
+    "id": "svc-basin-4",
+    "url": "https://www.jaquar.com/images/thumbs/0009676_table-top-basin_960.jpeg",
+    "path": "public/specs/products/svc-basin-4.jpeg",
+    "sha256": "78a7ab8f5635b732a20b28ec7dfc91138eb9288f2080b60bcb8522c3b1c15ba8",
+    "bytes": 74080
+  },
+  {
+    "id": "svc-basin-3",
+    "url": "https://www.jaquar.com/images/thumbs/0009671_table-top-basin_960.jpeg",
+    "path": "public/specs/products/svc-basin-3.jpeg",
+    "sha256": "ad99ea060b87d0964b1cb1713e1c8a1636e3eee10e0e333acb8d7053e42dc25a",
+    "bytes": 67919
+  },
+  {
+    "id": "svc-faucet-1",
+    "url": "https://www.jaquar.com/images/thumbs/0008546_single-lever-extended-basin-mixer_960.jpeg",
+    "path": "public/specs/products/svc-faucet-1.jpeg",
+    "sha256": "a54172d29d44c7144392a1b6ea7ff6c71d5207110ff0d50925d76b2c2084339f",
+    "bytes": 82307
+  },
+  {
+    "id": "svc-faucet-2",
+    "url": "https://www.jaquar.com/images/thumbs/0008553_exposed-part-kit-of-single-lever-basin-mixer_960.jpeg",
+    "path": "public/specs/products/svc-faucet-2.jpeg",
+    "sha256": "1417b2e99955e194f1c08500781ad5948950378833f0adad6c6ff53de9cc04b3",
+    "bytes": 86857
+  },
+  {
+    "id": "svc-toilet-indian",
+    "url": "https://global.esscobathware.com/image/cache/catalog/2020/ECS-WHT-451-1000x1000.jpg",
+    "path": "public/specs/products/svc-toilet-indian.jpg",
+    "sha256": "f6d4058dad5616764b60ad8e8764de5e1eb758ed1bbf6d765ee807f273c84ac8",
+    "bytes": 87708
+  },
+  {
+    "id": "svc-faucet-3",
+    "url": "https://www.jaquar.com/images/thumbs/0008617_single-lever-basin-mixer_960.jpeg",
+    "path": "public/specs/products/svc-faucet-3.jpeg",
+    "sha256": "01debc99f1d42df5708830ba336c801727210b2ca728dc972a2dc7b08e07fddb",
+    "bytes": 111619
+  },
+  {
+    "id": "svc-shower-2",
+    "url": "https://www.jaquar.com/images/thumbs/0009367_overhead-shower-o140mm-round-shape-single-flow_960.jpeg",
+    "path": "public/specs/products/svc-shower-2.jpeg",
+    "sha256": "64b8f46510f8b693999ebb315fdf0af84ced69583e067ebfcdfc8ac3d24e74c1",
+    "bytes": 129483
+  },
+  {
+    "id": "svc-faucet-4",
+    "url": "https://www.jaquar.com/images/thumbs/0008621_exposed-part-kit-of-single-lever-basin-mixer_960.jpeg",
+    "path": "public/specs/products/svc-faucet-4.jpeg",
+    "sha256": "d3ca22980cf29eaaf3fb3978af8535f621daa519bdd47359757895d0a8285c29",
+    "bytes": 104689
+  },
+  {
+    "id": "svc-shower-4",
+    "url": "https://www.jaquar.com/images/thumbs/0009391_round-shape-overhead-shower_960.jpeg",
+    "path": "public/specs/products/svc-shower-4.jpeg",
+    "sha256": "b8cc01b3894a32331d7d7f1b893d9e83c8ce0a53f218d6eb5db5e9083dfaed82",
+    "bytes": 82297
+  },
+  {
+    "id": "svc-shower-3",
+    "url": "https://www.jaquar.com/images/thumbs/0009371_overhead-shower-o180mm-round-shape-single-flow_960.jpeg",
+    "path": "public/specs/products/svc-shower-3.jpeg",
+    "sha256": "cd6f300d56b6742ea3721944bf7b6b53cfcbbbeeec99415bc793ecc873162c9e",
+    "bytes": 138172
+  },
+  {
+    "id": "svc-faucet-5",
+    "url": "https://www.jaquar.com/images/thumbs/0032813_single-lever-basin-mixer_960.jpeg",
+    "path": "public/specs/products/svc-faucet-5.jpeg",
+    "sha256": "a00675fcfc5cd4c463172341a703b2d950c8e14a1fddba07305932f0520d8c84",
+    "bytes": 92684
+  },
+  {
+    "id": "svc-shower-1",
+    "url": "https://www.jaquar.com/images/thumbs/0009363_overhead-shower-o105mm-round-shape-single-flow_960.jpeg",
+    "path": "public/specs/products/svc-shower-1.jpeg",
+    "sha256": "80be828cd268fcf776f7dff054c12ddd4dd297945e11f77650729a6bd8f0e931",
+    "bytes": 147504
+  },
+  {
+    "id": "svc-shower-5",
+    "url": "https://www.jaquar.com/images/thumbs/0070785_overhead-shower_960.jpeg",
+    "path": "public/specs/products/svc-shower-5.jpeg",
+    "sha256": "18de8d1910aad8213a50de6930b8db36aad6db79b80ff04d97c0d40b852c138f",
+    "bytes": 114043
+  },
+  {
+    "id": "svc-tub-1",
+    "url": "https://www.jaquar.com/images/thumbs/0037583_laguna-free-standing-bathtub_960.jpeg",
+    "path": "public/specs/products/svc-tub-1.jpeg",
+    "sha256": "4f26ca73d6969a098480f2f02292ce64aa60c86e79f59390f08e0bc4d82aaa4f",
+    "bytes": 52387
+  },
+  {
+    "id": "svc-enclosure-2",
+    "url": "https://www.jaquar.com/images/thumbs/0057355_optima-antique-copper_960.jpeg",
+    "path": "public/specs/products/svc-enclosure-2.jpeg",
+    "sha256": "a1c6fe42cdd950f173afcede1733a400ac0f0b643850968cc7c09a3d35f8946c",
+    "bytes": 392074
+  },
+  {
+    "id": "svc-tub-3",
+    "url": "https://www.jaquar.com/images/thumbs/0012239_queens_960.jpeg",
+    "path": "public/specs/products/svc-tub-3.jpeg",
+    "sha256": "2ccd06bcc383bf764c0377e90f5dd1d1792d689bdae174eb48263178a0001d27",
+    "bytes": 400018
+  },
+  {
+    "id": "svc-tub-4",
+    "url": "https://www.jaquar.com/images/thumbs/0009908_alaska_960.jpeg",
+    "path": "public/specs/products/svc-tub-4.jpeg",
+    "sha256": "45aed02a58c9075019e9586ce7c732fd1725a28b5a69d8566803c36cc72dc79d",
+    "bytes": 319562
+  },
+  {
+    "id": "svc-tub-5",
+    "url": "https://www.jaquar.com/images/thumbs/0009910_eggy_960.jpeg",
+    "path": "public/specs/products/svc-tub-5.jpeg",
+    "sha256": "7e9491eda5919d2649dfae0501c15a983e9f4b334772cb33c17fa89752696c83",
+    "bytes": 312098
+  },
+  {
+    "id": "svc-enclosure-1",
+    "url": "https://www.jaquar.com/images/thumbs/0057354_optima-antique-bronze_960.jpeg",
+    "path": "public/specs/products/svc-enclosure-1.jpeg",
+    "sha256": "63a9325dfa4c20d4f24a66c3f22dc80335286e3be485a991a0f4c0bd187a232e",
+    "bytes": 391173
+  },
+  {
+    "id": "svc-enclosure-3",
+    "url": "https://www.jaquar.com/images/thumbs/0041998_optima-chrome_960.jpeg",
+    "path": "public/specs/products/svc-enclosure-3.jpeg",
+    "sha256": "8c0fcab21965c45fc83f254f9b37097123fa6905c56e841ca35420c8620e31e0",
+    "bytes": 399950
+  },
+  {
+    "id": "svc-tub-2",
+    "url": "https://www.jaquar.com/images/thumbs/0011903_queens_960.jpeg",
+    "path": "public/specs/products/svc-tub-2.jpeg",
+    "sha256": "64a50d5b815974396542493b74f2938d50a49fd1c82145bfd3c71fa562753932",
+    "bytes": 401369
+  },
+  {
+    "id": "svc-enclosure-5",
+    "url": "https://www.jaquar.com/images/thumbs/0045256_1810-d-size-801-1000_960.jpeg",
+    "path": "public/specs/products/svc-enclosure-5.jpeg",
+    "sha256": "f8f8280fc219ce1dc5bbcbef48955e197e221c1e87b10f2e991d16d0c8627f40",
+    "bytes": 377423
+  },
+  {
+    "id": "svc-enclosure-4",
+    "url": "https://www.jaquar.com/images/thumbs/0045057_free-standing-bathscreen-with-stabilizer-width-1201-1600_960.jpeg",
+    "path": "public/specs/products/svc-enclosure-4.jpeg",
+    "sha256": "a7a18da50b0e8eb5a02a7c4d82fa76d1c973d7bf4a90431e02ee0140e942cb47",
+    "bytes": 577654
+  },
+  {
+    "id": "svc-wp-pidifin",
+    "url": "https://drfixit-stg.s3.ap-south-1.amazonaws.com/assets/images/products/xhdpi/1715087528663a28a81cb0b.webp",
+    "path": "public/specs/products/svc-wp-pidifin.webp",
+    "sha256": "47fbfef2627b159aee259bc1d139a9ce3f2f68c644948723aeb10813a4f33d4f",
+    "bytes": 14692
+  },
+  {
+    "id": "svc-wp-raincoat",
+    "url": "https://drfixit-stg.s3.ap-south-1.amazonaws.com/assets/images/products/xhdpi/1746689247681c5cdfdebbe.webp",
+    "path": "public/specs/products/svc-wp-raincoat.webp",
+    "sha256": "34bec5cc6548c6dd05e18a21fcf2212aa5829a7825c28f4e4ff5fac17bee438d",
+    "bytes": 9776
+  },
+  {
+    "id": "svc-wp-urp",
+    "url": "https://drfixit-stg.s3.ap-south-1.amazonaws.com/assets/images/products/xhdpi/16191739266082a22686c0b.webp",
+    "path": "public/specs/products/svc-wp-urp.webp",
+    "sha256": "aef46a4d714ab932e1c33a6468011ad4a8fd60b73e97b62f736aa93b0961006f",
+    "bytes": 24878
+  },
+  {
+    "id": "svc-wp-roof",
+    "url": "https://drfixit-stg.s3.ap-south-1.amazonaws.com/assets/images/products/xhdpi/174462271967fcd47f3b0a3.webp",
+    "path": "public/specs/products/svc-wp-roof.webp",
+    "sha256": "2f24854532757e19b314f9c3c68a72e8c45b9225af3cda4ff178332c4b1abb54",
+    "bytes": 307762
+  },
+  {
+    "id": "svc-paint-matt",
+    "url": "https://static.asianpaints.com/content/dam/asian_paints/products/packshots/interior-walls-royale-matt-asian-paints.png",
+    "path": "public/specs/products/svc-paint-matt.png",
+    "sha256": "6a61297c851f6f7f1e17ee0d894c38a81a0c7ffe5c6ac03a7120612e2ef694c8",
+    "bytes": 30566
+  },
+  {
+    "id": "svc-paint-luxury",
+    "url": "https://www.asianpaints.com/content/dam/asian_paints/products/packshots/interior-walls-royale-luxury-emulsion-asian-paints.png",
+    "path": "public/specs/products/svc-paint-luxury.png",
+    "sha256": "55ca699432ccfceaaa5ed0cdbd4ccff8bb9abfc2fdffad32f09515849779fd8b",
+    "bytes": 91034
+  },
+  {
+    "id": "svc-paint-aspira",
+    "url": "https://www.asianpaints.com/content/dam/asian_paints/products/packshots/interior-walls-royale-aspira-luxury-emulsion-asian-paints.png",
+    "path": "public/specs/products/svc-paint-aspira.png",
+    "sha256": "f18e5e3ba60caaf8861ff59be6ba32ee248a65d7c26237316d7070ad7d8f6d2f",
+    "bytes": 24802
+  }
+]

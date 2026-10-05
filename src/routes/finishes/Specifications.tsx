@@ -8,6 +8,7 @@ import { applicableRooms, applySpecification, changeCount, effectiveSpec, itemCh
 import { SpecificationPanel } from './SpecificationPanel.tsx'
 import { paintColour } from '@/lib/finishes/paint.ts'
 import { cx } from '@/lib/cx.ts'
+import { photographedOptions } from '@/lib/finishes/optionImage.ts'
 
 export function Specifications({ brief, cost, design, room, onRoom, onBrief }: { brief: Brief; cost: CostEstimate; design: Design; room?: string; onRoom: (id: string) => void; onBrief: (brief: Brief) => void }) {
   const [group, setGroup] = useState('flooring'), [technical, setTechnical] = useState(false)
@@ -16,7 +17,7 @@ export function Specifications({ brief, cost, design, room, onRoom, onBrief }: {
   const groups = [...new Set(specsCatalogue.items.filter(i => i.level !== 'auto' && i.level !== 'technical').map(i => i.group))]
   const groupLabel = (id: string) => id === 'technical' ? 'Technical' : specsCatalogue.groups.find(g => g.id === id)?.label ?? id
   const roomObject = cost.quantities.rooms.find(r => r.id === room)
-  const eligible = (i: SpecItem) => !room || i.scope === 'house' || applicableRooms(cost, i).some(r => r.id === room)
+  const eligible = (i: SpecItem) => photographedOptions(i).length > 0 && (!room || i.scope === 'house' || applicableRooms(cost, i).some(r => r.id === room))
   const hasMain = specsCatalogue.items.some(i => i.group === group && i.level === 'main' && eligible(i))
   const visible = specsCatalogue.items.filter(i => i.level !== 'auto' && eligible(i) && (group === 'technical' ? i.level === 'technical' : i.group === group && (i.level === 'main' || (!hasMain || more[group]) && i.level === 'more')))
   const changedGroup = (g: string) => specsCatalogue.items.some(i => (g === 'technical' ? i.level === 'technical' : i.group === g && i.level !== 'technical') && itemChanged(brief, cost, i, room))
@@ -31,7 +32,7 @@ export function Specifications({ brief, cost, design, room, onRoom, onBrief }: {
       <nav aria-label="Specification sections" className="min-w-0 border-b border-line pb-4 md:sticky md:top-6 md:max-h-[75vh] md:overflow-y-auto md:border-b-0 md:border-r md:pr-4"><div className="md:hidden"><label className="label">Section<select value={group} onChange={e => setGroup(e.target.value)} aria-label="Specification section" className="mt-2 w-full border border-line bg-bg p-3 text-sm normal-case tracking-normal">{groups.map(g => <option key={g} value={g}>{groupLabel(g)}{changedGroup(g) ? ' · changed' : ''}</option>)}<option value="technical">Technical</option></select></label></div>
         <div className="hidden md:block">{groups.map(nav)}<button type="button" onClick={() => setTechnical(!technical)} aria-expanded={technical} className="mt-4 w-full border-t border-line px-3 pt-4 text-left text-sm">Technical {technical ? '−' : '+'}{changedGroup('technical') ? ' ●' : ''}</button>{technical && <div className="mt-2">{nav('technical')}</div>}</div>
       </nav>
-      <section className="min-w-0"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-display text-2xl capitalize">{groupLabel(group)}</h2><span className="rounded-full border border-line px-3 py-1 text-xs text-ink-dim">{visible.length} specifications · {visible.reduce((n, i) => n + i.options.length, 0)} choices</span></div><p className="mt-2 text-sm text-ink-dim">Explore finishes and specifications for this section. Your quantities stay linked to the plan.</p>{roomObject && <p className="mt-2 text-xs text-ink-dim">{roomObject.floor} · {roomObject.name}. Whole-home choices also apply here.</p>}
+      <section className="min-w-0"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-display text-2xl capitalize">{groupLabel(group)}</h2><span className="rounded-full border border-line px-3 py-1 text-xs text-ink-dim">{visible.length} specifications · {visible.reduce((n, i) => n + photographedOptions(i).length, 0)} choices</span></div><p className="mt-2 text-sm text-ink-dim">Explore finishes and specifications for this section. Your quantities stay linked to the plan.</p>{roomObject && <p className="mt-2 text-xs text-ink-dim">{roomObject.floor} · {roomObject.name}. Whole-home choices also apply here.</p>}
         {group === 'technical' && <p className="mt-2 text-xs leading-relaxed text-ink-dim">Concept allowances only. Approximate; structural design by a licensed engineer required.</p>}
         <div className="mt-5 grid gap-4 lg:grid-cols-2">{visible.map(item => {
           const rooms = applicableRooms(cost, item), scoped = room ? rooms.filter(r => r.id === room) : rooms
@@ -40,7 +41,7 @@ export function Specifications({ brief, cost, design, room, onRoom, onBrief }: {
           const changed = itemChanged(brief, cost, item, room), suggestion = suggestionFor(brief, item.id)
           const suggestedAlready = (scoped.length ? scoped.every(r => effectiveSpec(brief, item.id, r.id).id === suggestion?.option) : option.id === suggestion?.option)
           return <article key={item.id} className="rounded-xl border border-line bg-bg p-4 sm:p-5"><div className="flex items-start gap-3 sm:gap-4">
-            <FinishSwatch item={item} option={option} className="h-20 w-20 flex-none rounded-lg object-cover" />
+            {photographedOptions(item).some(o=>o.id===option.id)?<FinishSwatch item={item} option={option} className="h-20 w-20 flex-none rounded-lg object-cover" />:<span className="flex h-20 w-20 flex-none items-center rounded-lg bg-bg-inset p-2 text-center text-xs text-ink-dim">Choose pictured product</span>}
             <div className="min-w-0 flex-1"><h3 className="text-sm">{item.label}</h3><p className="mt-1 text-xs text-ink-faint">{item.scope === 'house' ? 'Whole home' : scoped.length ? scoped.map(r => r.name).join(', ') : 'As applicable'}</p><p className="mt-2 text-sm text-ink-dim">{mixed ? 'Mixed room choices' : option.name}</p>{item.id === 'interior-paint' && <p className="mt-2 flex items-center gap-2 text-xs text-ink-dim"><span className="h-4 w-4 rounded border border-line" style={{ background: paintColour(brief, room ?? scoped[0]?.id).hex }} />{paintColour(brief, room ?? scoped[0]?.id).label}</p>}<p className="mt-1 text-xs text-ink-faint">{quantityLabel(itemLines(cost, item, room))}{item.id.startsWith('floor-') ? ' · flooring and skirting where measured' : ''}</p>
               {changed && <p className="mt-2 text-xs">Changed <button type="button" onClick={() => onBrief(undoSpecification(brief, cost, item, room))} className="ml-2 text-ink-dim underline">Undo</button></p>}</div>
             <button type="button" onClick={() => setEditing(item)} className="flex-none rounded-lg border border-line px-3 py-2 text-xs hover:bg-bg-inset">Change<span className="sr-only"> {item.label}</span></button>

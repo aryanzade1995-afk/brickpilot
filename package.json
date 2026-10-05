@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "test:interior": "node --experimental-strip-types --test scripts/test-interior-preview.mjs",
     "dev": "node scripts/dev.mjs",
     "dev:web": "vite",
     "dev:proxy": "node server/index.mjs",

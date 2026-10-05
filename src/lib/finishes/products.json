@@ -7435,6 +7435,982 @@
         "note": "Image unavailable: genuine matching product photography has not been verified. No render or substitute image."
       },
       "thumbnail": null
+    },
+    {
+      "id": "door-designer-panel",
+      "name": "Designer woodgrain panel door",
+      "category": "doors",
+      "subcategory": "Door type",
+      "itemIds": [
+        "main-door",
+        "internal-door"
+      ],
+      "brand": "Fenesta",
+      "productName": "Designer woodgrain panel door",
+      "material": "uPVC foam-core",
+      "style": "Woodgrain panel",
+      "finish": "Woodgrain",
+      "application": [
+        "Existing door opening"
+      ],
+      "suitableRooms": [
+        "Living room",
+        "Bedroom",
+        "Kitchen"
+      ],
+      "specification": "Size and configuration must fit the existing opening; hardware and glazing confirmed by supplier.",
+      "blenderMaterial": "teak_wood",
+      "sourceUrl": "https://www.fenesta.com/door/designer-doors",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "set",
+        "material": 26000,
+        "labour": 6500,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "measured",
+        "note": "Provisional installed concept allowance, not a manufacturer quote. Confirm size, safety and local supply."
+      },
+      "facts": [
+        "Material: uPVC foam-core.",
+        "Type: Woodgrain panel.",
+        "Finish shown: woodgrain.",
+        "Confirm dimensions, installation and final supplier quote."
+      ],
+      "image": {
+        "brand": "Fenesta",
+        "productName": "Designer woodgrain panel door",
+        "sourceUrl": "https://www.fenesta.com/door/designer-doors",
+        "path": "public/specs/products/door-engineered.webp",
+        "originalUrl": "https://assets.fenesta.com/desiner_door_0bd345f2f7.webp",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Fenesta",
+        "verifiedBy": "asset-audit:official-page-and-visual-review",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Official supplier product image, visually checked against its catalogue entry. Photography method is not verified. Manufacturer permission required before production redistribution."
+      },
+      "thumbnail": "public/specs/products/door-engineered.webp"
+    },
+    {
+      "id": "door-upvc-sliding",
+      "name": "uPVC sliding glazed door",
+      "category": "doors",
+      "subcategory": "Door type",
+      "itemIds": [
+        "internal-door"
+      ],
+      "brand": "Fenesta",
+      "productName": "uPVC sliding glazed door",
+      "material": "uPVC and glass",
+      "style": "Sliding glazed",
+      "finish": "White",
+      "application": [
+        "Existing door opening"
+      ],
+      "suitableRooms": [
+        "Living room",
+        "Bedroom",
+        "Kitchen"
+      ],
+      "specification": "Size and configuration must fit the existing opening; hardware and glazing confirmed by supplier.",
+      "blenderMaterial": "white_plaster",
+      "sourceUrl": "https://www.fenesta.com/door/upvc-doors/sliding",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "set",
+        "material": 24000,
+        "labour": 5000,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "measured",
+        "note": "Provisional installed concept allowance, not a manufacturer quote. Confirm size, safety and local supply."
+      },
+      "facts": [
+        "Material: uPVC and glass.",
+        "Type: Sliding glazed.",
+        "Finish shown: White.",
+        "Confirm dimensions, installation and final supplier quote."
+      ],
+      "image": {
+        "brand": "Fenesta",
+        "productName": "uPVC sliding glazed door",
+        "sourceUrl": "https://www.fenesta.com/door/upvc-doors/sliding",
+        "path": "public/specs/products/door-sliding.webp",
+        "originalUrl": "https://assets.fenesta.com/u_PVC_Slider_door_1_9d43730193.webp",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Fenesta",
+        "verifiedBy": "asset-audit:official-page-and-visual-review",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Official supplier product image, visually checked against its catalogue entry. Photography method is not verified. Manufacturer permission required before production redistribution."
+      },
+      "thumbnail": "public/specs/products/door-sliding.webp"
+    },
+    {
+      "id": "door-folding",
+      "name": "Aluminium slide and fold door",
+      "category": "doors",
+      "subcategory": "Door type",
+      "itemIds": [
+        "internal-door"
+      ],
+      "brand": "Fenesta",
+      "productName": "Aluminium slide and fold door",
+      "material": "Aluminium and glass",
+      "style": "Folding glazed",
+      "finish": "Black",
+      "application": [
+        "Existing door opening"
+      ],
+      "suitableRooms": [
+        "Living room",
+        "Bedroom",
+        "Kitchen"
+      ],
+      "specification": "Size and configuration must fit the existing opening; hardware and glazing confirmed by supplier.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.fenesta.com/door/aluminium-doors/slide-fold",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "set",
+        "material": 46000,
+        "labour": 9000,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "measured",
+        "note": "Provisional installed concept allowance, not a manufacturer quote. Confirm size, safety and local supply."
+      },
+      "facts": [
+        "Material: Aluminium and glass.",
+        "Type: Folding glazed.",
+        "Finish shown: Black.",
+        "Confirm dimensions, installation and final supplier quote."
+      ],
+      "image": {
+        "brand": "Fenesta",
+        "productName": "Aluminium slide and fold door",
+        "sourceUrl": "https://www.fenesta.com/door/aluminium-doors/slide-fold",
+        "path": "public/specs/products/door-folding.webp",
+        "originalUrl": "https://assets.fenesta.com/Aluminium_Slide_and_Fold_Doors_fc7f6fc577.webp",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Fenesta",
+        "verifiedBy": "asset-audit:official-page-and-visual-review",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Official supplier product image, visually checked against its catalogue entry. Photography method is not verified. Manufacturer permission required before production redistribution."
+      },
+      "thumbnail": "public/specs/products/door-folding.webp"
+    },
+    {
+      "id": "door-casement",
+      "name": "uPVC double casement glazed door",
+      "category": "doors",
+      "subcategory": "Door type",
+      "itemIds": [
+        "internal-door"
+      ],
+      "brand": "Fenesta",
+      "productName": "uPVC double casement glazed door",
+      "material": "uPVC and glass",
+      "style": "Double casement",
+      "finish": "White",
+      "application": [
+        "Existing door opening"
+      ],
+      "suitableRooms": [
+        "Living room",
+        "Bedroom",
+        "Kitchen"
+      ],
+      "specification": "Size and configuration must fit the existing opening; hardware and glazing confirmed by supplier.",
+      "blenderMaterial": "white_plaster",
+      "sourceUrl": "https://www.fenesta.com/door/upvc-doors/casement",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "set",
+        "material": 28000,
+        "labour": 6000,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "measured",
+        "note": "Provisional installed concept allowance, not a manufacturer quote. Confirm size, safety and local supply."
+      },
+      "facts": [
+        "Material: uPVC and glass.",
+        "Type: Double casement.",
+        "Finish shown: White.",
+        "Confirm dimensions, installation and final supplier quote."
+      ],
+      "image": {
+        "brand": "Fenesta",
+        "productName": "uPVC double casement glazed door",
+        "sourceUrl": "https://www.fenesta.com/door/upvc-doors/casement",
+        "path": "public/specs/products/door-casement.webp",
+        "originalUrl": "https://assets.fenesta.com/u_PVC_Casement_Door_u_PVC_Arch_Window_4183c676c0.webp",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Fenesta",
+        "verifiedBy": "asset-audit:official-page-and-visual-review",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Official supplier product image, visually checked against its catalogue entry. Photography method is not verified. Manufacturer permission required before production redistribution."
+      },
+      "thumbnail": "public/specs/products/door-casement.webp"
+    },
+    {
+      "id": "door-swing",
+      "name": "Aluminium swing glazed door",
+      "category": "doors",
+      "subcategory": "Door type",
+      "itemIds": [
+        "internal-door"
+      ],
+      "brand": "Fenesta",
+      "productName": "Aluminium swing glazed door",
+      "material": "Aluminium and glass",
+      "style": "Swing glazed",
+      "finish": "Black",
+      "application": [
+        "Existing door opening"
+      ],
+      "suitableRooms": [
+        "Living room",
+        "Bedroom",
+        "Kitchen"
+      ],
+      "specification": "Size and configuration must fit the existing opening; hardware and glazing confirmed by supplier.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.fenesta.com/door/aluminium-doors/swing",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "set",
+        "material": 30000,
+        "labour": 6000,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "measured",
+        "note": "Provisional installed concept allowance, not a manufacturer quote. Confirm size, safety and local supply."
+      },
+      "facts": [
+        "Material: Aluminium and glass.",
+        "Type: Swing glazed.",
+        "Finish shown: Black.",
+        "Confirm dimensions, installation and final supplier quote."
+      ],
+      "image": {
+        "brand": "Fenesta",
+        "productName": "Aluminium swing glazed door",
+        "sourceUrl": "https://www.fenesta.com/door/aluminium-doors/swing",
+        "path": "public/specs/products/door-swing.webp",
+        "originalUrl": "https://assets.fenesta.com/aluminium_swing_doors_1x_b8661cc28d.webp",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Fenesta",
+        "verifiedBy": "asset-audit:official-page-and-visual-review",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Official supplier product image, visually checked against its catalogue entry. Photography method is not verified. Manufacturer permission required before production redistribution."
+      },
+      "thumbnail": "public/specs/products/door-swing.webp"
+    },
+    {
+      "id": "door-lift-slide",
+      "name": "Aluminium lift and slide glazed door",
+      "category": "doors",
+      "subcategory": "Door type",
+      "itemIds": [
+        "internal-door"
+      ],
+      "brand": "Fenesta",
+      "productName": "Aluminium lift and slide glazed door",
+      "material": "Aluminium and glass",
+      "style": "Lift and slide glazed",
+      "finish": "Black",
+      "application": [
+        "Existing door opening"
+      ],
+      "suitableRooms": [
+        "Living room",
+        "Bedroom",
+        "Kitchen"
+      ],
+      "specification": "Size and configuration must fit the existing opening; hardware and glazing confirmed by supplier.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://www.fenesta.com/door/aluminium-doors/lift-slide",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "set",
+        "material": 52000,
+        "labour": 10000,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "measured",
+        "note": "Provisional installed concept allowance, not a manufacturer quote. Confirm size, safety and local supply."
+      },
+      "facts": [
+        "Material: Aluminium and glass.",
+        "Type: Lift and slide glazed.",
+        "Finish shown: Black.",
+        "Confirm dimensions, installation and final supplier quote."
+      ],
+      "image": {
+        "brand": "Fenesta",
+        "productName": "Aluminium lift and slide glazed door",
+        "sourceUrl": "https://www.fenesta.com/door/aluminium-doors/lift-slide",
+        "path": "public/specs/products/door-lift-slide.webp",
+        "originalUrl": "https://assets.fenesta.com/Aluminium_Lift_and_Slide_Doors_thumb_8b580c7a6b.webp",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Fenesta",
+        "verifiedBy": "asset-audit:official-page-and-visual-review",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Official supplier product image, visually checked against its catalogue entry. Photography method is not verified. Manufacturer permission required before production redistribution."
+      },
+      "thumbnail": "public/specs/products/door-lift-slide.webp"
+    },
+    {
+      "id": "rail-q-line",
+      "name": "Q-line cable post railing",
+      "category": "railings-gates",
+      "subcategory": "Railing system",
+      "itemIds": [
+        "balcony-railings"
+      ],
+      "brand": "Q-railing",
+      "productName": "Q-line cable post railing",
+      "material": "Stainless steel",
+      "style": "Cable post",
+      "finish": "Brushed steel",
+      "application": [
+        "Balcony edge"
+      ],
+      "suitableRooms": [
+        "Balcony",
+        "Terrace"
+      ],
+      "specification": "Guard height, glass thickness, anchors and loads require project-specific supplier design.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://q-railing.com/en-us/railings/systems/q-line/",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "m",
+        "material": 5500,
+        "labour": 1800,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "measured",
+        "note": "Provisional installed concept allowance, not a manufacturer quote. Confirm size, safety and local supply."
+      },
+      "facts": [
+        "Material: Stainless steel.",
+        "Type: Cable post.",
+        "Finish shown: Brushed steel.",
+        "Confirm dimensions, installation and final supplier quote."
+      ],
+      "image": {
+        "brand": "Q-railing",
+        "productName": "Q-line cable post railing",
+        "sourceUrl": "https://q-railing.com/en-us/railings/systems/q-line/",
+        "path": "public/specs/products/rail-q-line.webp",
+        "originalUrl": "https://strapiasi3pstore.blob.core.windows.net/strapi-uploads/assets/q_line_Card_Image_3x2_0107f0dd0a.webp",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Q-railing",
+        "verifiedBy": "asset-audit:official-page-and-visual-review",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Official supplier product image, visually checked against its catalogue entry. Photography method is not verified. Manufacturer permission required before production redistribution."
+      },
+      "thumbnail": "public/specs/products/rail-q-line.webp"
+    },
+    {
+      "id": "rail-alu",
+      "name": "Easy Alu vertical bar railing",
+      "category": "railings-gates",
+      "subcategory": "Railing system",
+      "itemIds": [
+        "balcony-railings"
+      ],
+      "brand": "Q-railing",
+      "productName": "Easy Alu vertical bar railing",
+      "material": "Aluminium",
+      "style": "Vertical bars",
+      "finish": "Black",
+      "application": [
+        "Balcony edge"
+      ],
+      "suitableRooms": [
+        "Balcony",
+        "Terrace"
+      ],
+      "specification": "Guard height, glass thickness, anchors and loads require project-specific supplier design.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://q-railing.com/en-us/railings/systems/easy-alu/",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "m",
+        "material": 6200,
+        "labour": 1900,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "measured",
+        "note": "Provisional installed concept allowance, not a manufacturer quote. Confirm size, safety and local supply."
+      },
+      "facts": [
+        "Material: Aluminium.",
+        "Type: Vertical bars.",
+        "Finish shown: Black.",
+        "Confirm dimensions, installation and final supplier quote."
+      ],
+      "image": {
+        "brand": "Q-railing",
+        "productName": "Easy Alu vertical bar railing",
+        "sourceUrl": "https://q-railing.com/en-us/railings/systems/easy-alu/",
+        "path": "public/specs/products/rail-alu.webp",
+        "originalUrl": "https://strapiasi3pstore.blob.core.windows.net/strapi-uploads/assets/easy_alu_Card_Image_3x2_f15e85862d.webp",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Q-railing",
+        "verifiedBy": "asset-audit:official-page-and-visual-review",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Official supplier product image, visually checked against its catalogue entry. Photography method is not verified. Manufacturer permission required before production redistribution."
+      },
+      "thumbnail": "public/specs/products/rail-alu.webp"
+    },
+    {
+      "id": "rail-square",
+      "name": "Square Line glass post railing",
+      "category": "railings-gates",
+      "subcategory": "Railing system",
+      "itemIds": [
+        "balcony-railings"
+      ],
+      "brand": "Q-railing",
+      "productName": "Square Line glass post railing",
+      "material": "Stainless steel and glass",
+      "style": "Square glass post",
+      "finish": "Brushed steel",
+      "application": [
+        "Balcony edge"
+      ],
+      "suitableRooms": [
+        "Balcony",
+        "Terrace"
+      ],
+      "specification": "Guard height, glass thickness, anchors and loads require project-specific supplier design.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://q-railing.com/en-us/railings/systems/square-line-baluster-railing/",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "m",
+        "material": 8200,
+        "labour": 2200,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "measured",
+        "note": "Provisional installed concept allowance, not a manufacturer quote. Confirm size, safety and local supply."
+      },
+      "facts": [
+        "Material: Stainless steel and glass.",
+        "Type: Square glass post.",
+        "Finish shown: Brushed steel.",
+        "Confirm dimensions, installation and final supplier quote."
+      ],
+      "image": {
+        "brand": "Q-railing",
+        "productName": "Square Line glass post railing",
+        "sourceUrl": "https://q-railing.com/en-us/railings/systems/square-line-baluster-railing/",
+        "path": "public/specs/products/rail-square.webp",
+        "originalUrl": "https://strapiasi3pstore.blob.core.windows.net/strapi-uploads/assets/square_line_baluster_railing_Card_Image_3x2_16ffaaabdd.webp",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Q-railing",
+        "verifiedBy": "asset-audit:official-page-and-visual-review",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Official supplier product image, visually checked against its catalogue entry. Photography method is not verified. Manufacturer permission required before production redistribution."
+      },
+      "thumbnail": "public/specs/products/rail-square.webp"
+    },
+    {
+      "id": "rail-smart",
+      "name": "Easy Glass Smart frameless railing",
+      "category": "railings-gates",
+      "subcategory": "Railing system",
+      "itemIds": [
+        "balcony-railings"
+      ],
+      "brand": "Q-railing",
+      "productName": "Easy Glass Smart frameless railing",
+      "material": "Laminated glass and aluminium",
+      "style": "Frameless base shoe",
+      "finish": "Black",
+      "application": [
+        "Balcony edge"
+      ],
+      "suitableRooms": [
+        "Balcony",
+        "Terrace"
+      ],
+      "specification": "Guard height, glass thickness, anchors and loads require project-specific supplier design.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://q-railing.com/en-us/railings/systems/easy-glass-smart/",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "m",
+        "material": 10500,
+        "labour": 2800,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "measured",
+        "note": "Provisional installed concept allowance, not a manufacturer quote. Confirm size, safety and local supply."
+      },
+      "facts": [
+        "Material: Laminated glass and aluminium.",
+        "Type: Frameless base shoe.",
+        "Finish shown: Black.",
+        "Confirm dimensions, installation and final supplier quote."
+      ],
+      "image": {
+        "brand": "Q-railing",
+        "productName": "Easy Glass Smart frameless railing",
+        "sourceUrl": "https://q-railing.com/en-us/railings/systems/easy-glass-smart/",
+        "path": "public/specs/products/rail-smart.webp",
+        "originalUrl": "https://strapiasi3pstore.blob.core.windows.net/strapi-uploads/assets/easy_glass_smart_Card_Image_3x2_7556adc9d0.webp",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Q-railing",
+        "verifiedBy": "asset-audit:official-page-and-visual-review",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Official supplier product image, visually checked against its catalogue entry. Photography method is not verified. Manufacturer permission required before production redistribution."
+      },
+      "thumbnail": "public/specs/products/rail-smart.webp"
+    },
+    {
+      "id": "rail-slim",
+      "name": "Easy Glass Slim framed railing",
+      "category": "railings-gates",
+      "subcategory": "Railing system",
+      "itemIds": [
+        "balcony-railings"
+      ],
+      "brand": "Q-railing",
+      "productName": "Easy Glass Slim framed railing",
+      "material": "Glass and aluminium",
+      "style": "Slim framed glass",
+      "finish": "White",
+      "application": [
+        "Balcony edge"
+      ],
+      "suitableRooms": [
+        "Balcony",
+        "Terrace"
+      ],
+      "specification": "Guard height, glass thickness, anchors and loads require project-specific supplier design.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://q-railing.com/en-us/railings/systems/easy-glass-slim/",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "m",
+        "material": 9000,
+        "labour": 2400,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "measured",
+        "note": "Provisional installed concept allowance, not a manufacturer quote. Confirm size, safety and local supply."
+      },
+      "facts": [
+        "Material: Glass and aluminium.",
+        "Type: Slim framed glass.",
+        "Finish shown: White.",
+        "Confirm dimensions, installation and final supplier quote."
+      ],
+      "image": {
+        "brand": "Q-railing",
+        "productName": "Easy Glass Slim framed railing",
+        "sourceUrl": "https://q-railing.com/en-us/railings/systems/easy-glass-slim/",
+        "path": "public/specs/products/rail-slim.webp",
+        "originalUrl": "https://strapiasi3pstore.blob.core.windows.net/strapi-uploads/assets/easy_glass_slim_Card_Image_3x2_77d63788c5.webp",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Q-railing",
+        "verifiedBy": "asset-audit:official-page-and-visual-review",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Official supplier product image, visually checked against its catalogue entry. Photography method is not verified. Manufacturer permission required before production redistribution."
+      },
+      "thumbnail": "public/specs/products/rail-slim.webp"
+    },
+    {
+      "id": "rail-clamps",
+      "name": "Easy Glass base clamp railing",
+      "category": "railings-gates",
+      "subcategory": "Railing system",
+      "itemIds": [
+        "balcony-railings"
+      ],
+      "brand": "Q-railing",
+      "productName": "Easy Glass base clamp railing",
+      "material": "Glass and stainless steel",
+      "style": "Base clamps glass",
+      "finish": "Brushed steel",
+      "application": [
+        "Balcony edge"
+      ],
+      "suitableRooms": [
+        "Balcony",
+        "Terrace"
+      ],
+      "specification": "Guard height, glass thickness, anchors and loads require project-specific supplier design.",
+      "blenderMaterial": "metal_plate",
+      "sourceUrl": "https://q-railing.com/en-us/railings/systems/easy-glass-mod-6000-6400/",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "m",
+        "material": 9500,
+        "labour": 2600,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "measured",
+        "note": "Provisional installed concept allowance, not a manufacturer quote. Confirm size, safety and local supply."
+      },
+      "facts": [
+        "Material: Glass and stainless steel.",
+        "Type: Base clamps glass.",
+        "Finish shown: Brushed steel.",
+        "Confirm dimensions, installation and final supplier quote."
+      ],
+      "image": {
+        "brand": "Q-railing",
+        "productName": "Easy Glass base clamp railing",
+        "sourceUrl": "https://q-railing.com/en-us/railings/systems/easy-glass-mod-6000-6400/",
+        "path": "public/specs/products/rail-clamps.webp",
+        "originalUrl": "https://strapiasi3pstore.blob.core.windows.net/strapi-uploads/assets/easy_glass_mod_6000_6400_Card_Image_3x2_277015dc39.webp",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Q-railing",
+        "verifiedBy": "asset-audit:official-page-and-visual-review",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "note": "Official supplier product image, visually checked against its catalogue entry. Photography method is not verified. Manufacturer permission required before production redistribution."
+      },
+      "thumbnail": "public/specs/products/rail-clamps.webp"
+    },
+    {
+      "id": "wall-calacatta-photo",
+      "name": "Calacatta Natura wall tile",
+      "category": "wall-tiles-cladding",
+      "subcategory": "Photographed surface",
+      "itemIds": [
+        "bath-wall-tiles",
+        "kitchen-wall-tiles"
+      ],
+      "brand": "Orientbell",
+      "productName": "PGVT Calacatta Natura",
+      "material": "PGVT",
+      "style": "Calacatta",
+      "finish": "Glossy",
+      "application": [
+        "Bathroom wall",
+        "Kitchen dado"
+      ],
+      "suitableRooms": [
+        "Bathrooms",
+        "Kitchen"
+      ],
+      "specification": "600 × 1200 mm; confirm wall adhesive, substrate and installation system.",
+      "blenderMaterial": "sandstone",
+      "sourceUrl": "https://www.orientbell.com/pgvt-calacatta-natura",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "m2",
+        "material": 1600,
+        "labour": 600,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "measured",
+        "note": "Installed concept allowance, not a manufacturer quote. Confirm specification, local supply and installation."
+      },
+      "facts": [
+        "Material: PGVT; finish: Glossy.",
+        "Product: PGVT Calacatta Natura.",
+        "Confirm adhesive, joints and support details with the installer."
+      ],
+      "image": {
+        "brand": "Orientbell",
+        "productName": "PGVT Calacatta Natura",
+        "sourceUrl": "https://www.orientbell.com/pgvt-calacatta-natura",
+        "path": "public/specs/products/calacatta-look.jpg",
+        "originalUrl": "https://images.orientbell.com/media/catalog/product/p/g/pgvt_calacatta_natura_f1.jpg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Orientbell",
+        "verifiedBy": "asset-audit:official-surface-swatch-and-product-page",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "projection": "surface",
+        "note": "Official product surface swatch; original colours are used in the 3D catalogue view. Photography method is not verified."
+      },
+      "thumbnail": "public/specs/products/calacatta-look.jpg"
+    },
+    {
+      "id": "wall-onyx-photo",
+      "name": "Onyx Pearl wall tile",
+      "category": "wall-tiles-cladding",
+      "subcategory": "Photographed surface",
+      "itemIds": [
+        "bath-wall-tiles",
+        "kitchen-wall-tiles"
+      ],
+      "brand": "Orientbell",
+      "productName": "PGVT ONYX PEARL",
+      "material": "PGVT",
+      "style": "Onyx",
+      "finish": "Glossy",
+      "application": [
+        "Bathroom wall",
+        "Kitchen dado"
+      ],
+      "suitableRooms": [
+        "Bathrooms",
+        "Kitchen"
+      ],
+      "specification": "800 × 1600 mm; confirm wall adhesive, substrate and installation system.",
+      "blenderMaterial": "sandstone",
+      "sourceUrl": "https://www.orientbell.com/pgvt-onyx-pearl",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "m2",
+        "material": 1600,
+        "labour": 600,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "measured",
+        "note": "Installed concept allowance, not a manufacturer quote. Confirm specification, local supply and installation."
+      },
+      "facts": [
+        "Material: PGVT; finish: Glossy.",
+        "Product: PGVT ONYX PEARL.",
+        "Confirm adhesive, joints and support details with the installer."
+      ],
+      "image": {
+        "brand": "Orientbell",
+        "productName": "PGVT ONYX PEARL",
+        "sourceUrl": "https://www.orientbell.com/pgvt-onyx-pearl",
+        "path": "public/specs/products/onyx-look.jpg",
+        "originalUrl": "https://images.orientbell.com/media/catalog/product/p/g/pgvt_onyx_pearl-1.jpg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Orientbell",
+        "verifiedBy": "asset-audit:official-surface-swatch-and-product-page",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "projection": "surface",
+        "note": "Official product surface swatch; original colours are used in the 3D catalogue view. Photography method is not verified."
+      },
+      "thumbnail": "public/specs/products/onyx-look.jpg"
+    },
+    {
+      "id": "counter-onyx-photo",
+      "name": "Onyx Pearl tiled countertop",
+      "category": "kitchen",
+      "subcategory": "Photographed surface",
+      "itemIds": [
+        "kitchen-counter"
+      ],
+      "brand": "Orientbell",
+      "productName": "PGVT ONYX PEARL",
+      "material": "PGVT",
+      "style": "Onyx",
+      "finish": "Glossy",
+      "application": [
+        "Kitchen countertop"
+      ],
+      "suitableRooms": [
+        "Bathrooms",
+        "Kitchen"
+      ],
+      "specification": "800 × 1600 mm; confirm wall adhesive, substrate and installation system.",
+      "blenderMaterial": "sandstone",
+      "sourceUrl": "https://www.orientbell.com/pgvt-onyx-pearl",
+      "sourceKind": "product",
+      "rate": {
+        "unit": "m2",
+        "material": 2600,
+        "labour": 1200,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "measured",
+        "note": "No separate charge. Existing measured cabinet run remains authoritative; island/peninsula additions are excluded until drawn and measured."
+      },
+      "facts": [
+        "Material: PGVT; finish: Glossy.",
+        "Product: PGVT ONYX PEARL.",
+        "Confirm adhesive, joints and support details with the installer."
+      ],
+      "image": {
+        "brand": "Orientbell",
+        "productName": "PGVT ONYX PEARL",
+        "sourceUrl": "https://www.orientbell.com/pgvt-onyx-pearl",
+        "path": "public/specs/products/onyx-look.jpg",
+        "originalUrl": "https://images.orientbell.com/media/catalog/product/p/g/pgvt_onyx_pearl-1.jpg",
+        "kind": "real-product-photo",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "permission-required",
+        "credit": "Orientbell",
+        "verifiedBy": "asset-audit:official-surface-swatch-and-product-page",
+        "verifiedAt": "2026-10-06",
+        "productionReady": false,
+        "projection": "surface",
+        "note": "Official product surface swatch; original colours are used in the 3D catalogue view. Photography method is not verified."
+      },
+      "thumbnail": "public/specs/products/onyx-look.jpg"
+    },
+    {
+      "id": "cab-teak-surface",
+      "name": "Teak veneer cabinet finish",
+      "category": "kitchen",
+      "subcategory": "Cabinet surface",
+      "itemIds": [
+        "kitchen-cabinets"
+      ],
+      "brand": "Generic natural-material specification",
+      "productName": "Teak veneer cabinet finish",
+      "material": "Solid teak",
+      "style": "Double leaf",
+      "finish": "PU sealed",
+      "application": [
+        "Kitchen cabinetry"
+      ],
+      "suitableRooms": [
+        "Kitchen"
+      ],
+      "specification": "Veneer surface reference on cabinetry; confirm the board substrate, edge sealing and hardware.",
+      "blenderMaterial": "teak_wood",
+      "sourceUrl": "https://polyhaven.com/a/teak_veneer",
+      "sourceKind": "generic-texture",
+      "rate": {
+        "unit": "m2",
+        "material": 4300,
+        "labour": 2000,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "measured",
+        "note": "Installed concept allowance, not a manufacturer quote. Confirm specification, local supply and installation."
+      },
+      "facts": [
+        "Real wood texture reference; not a supplier cabinet photograph.",
+        "Confirm moisture-resistant substrate and sealed edges."
+      ],
+      "image": {
+        "brand": "Generic natural-material specification",
+        "productName": "Teak veneer cabinet finish",
+        "sourceUrl": "https://polyhaven.com/a/teak_veneer",
+        "path": "public/specs/textures/teak_wood-800.jpg",
+        "originalUrl": null,
+        "kind": "generic-material-closeup",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "CC0-1.0",
+        "credit": "Poly Haven",
+        "verifiedBy": "asset-audit:Codex asset audit 2026-10-03: original texture provenance, file hash and dimensions (not a human product review)",
+        "verifiedAt": "2026-10-03",
+        "productionReady": true,
+        "note": "Real CC0 natural-material close-up, not a named manufacturer product or installed assembly. Blender uses this same texture.",
+        "projection": "surface"
+      },
+      "thumbnail": "public/specs/textures/teak_wood-800.jpg"
+    },
+    {
+      "id": "cab-dark-surface",
+      "name": "Dark wood veneer cabinet finish",
+      "category": "kitchen",
+      "subcategory": "Cabinet surface",
+      "itemIds": [
+        "kitchen-cabinets"
+      ],
+      "brand": "Generic natural-material specification",
+      "productName": "Dark wood veneer cabinet finish",
+      "material": "Solid hardwood",
+      "style": "Panelled",
+      "finish": "PU sealed",
+      "application": [
+        "Kitchen cabinetry"
+      ],
+      "suitableRooms": [
+        "Kitchen"
+      ],
+      "specification": "Veneer surface reference on cabinetry; confirm the board substrate, edge sealing and hardware.",
+      "blenderMaterial": "dark_wood",
+      "sourceUrl": "https://polyhaven.com/a/dark_wood",
+      "sourceKind": "generic-texture",
+      "rate": {
+        "unit": "m2",
+        "material": 4300,
+        "labour": 2000,
+        "city": "Pune",
+        "date": "2026-10-06",
+        "status": "provisional-allowance",
+        "basis": "measured",
+        "note": "Installed concept allowance, not a manufacturer quote. Confirm specification, local supply and installation."
+      },
+      "facts": [
+        "Real wood texture reference; not a supplier cabinet photograph.",
+        "Confirm moisture-resistant substrate and sealed edges."
+      ],
+      "image": {
+        "brand": "Generic natural-material specification",
+        "productName": "Dark wood veneer cabinet finish",
+        "sourceUrl": "https://polyhaven.com/a/dark_wood",
+        "path": "public/specs/textures/dark_wood-800.jpg",
+        "originalUrl": null,
+        "kind": "generic-material-closeup",
+        "sourceStatus": "source-and-visual-audited",
+        "licensingStatus": "CC0-1.0",
+        "credit": "Poly Haven",
+        "verifiedBy": "asset-audit:Codex asset audit 2026-10-03: original texture provenance, file hash and dimensions (not a human product review)",
+        "verifiedAt": "2026-10-03",
+        "productionReady": true,
+        "note": "Real CC0 natural-material close-up, not a named manufacturer product or installed assembly. Blender uses this same texture.",
+        "projection": "surface"
+      },
+      "thumbnail": "public/specs/textures/dark_wood-800.jpg"
     }
   ]
 }

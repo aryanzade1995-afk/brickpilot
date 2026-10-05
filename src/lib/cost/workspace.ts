@@ -7,6 +7,7 @@ import suggestionsRaw from './data/suggestions.json' with { type: 'json' }
 import samplesRaw from './data/samples.json' with { type: 'json' }
 import { photoSchema } from './data/schemas.ts'
 import { fnv } from '../engine/massing/rng.ts'
+import { serviceRoomSource } from '../finishes/services.ts'
 
 export type SpecItem = typeof specsCatalogue.items[number]
 export type SpecOption = SpecItem['options'][number]
@@ -23,7 +24,8 @@ export function itemLines(cost: CostEstimate, item: SpecItem, room?: string): Bo
   return cost.boq.filter(l => l.item === item.id && (!room || item.scope === 'house' || l.roomId === room))
 }
 export function applicableRooms(cost: CostEstimate, item: SpecItem) {
-  const ids = new Set(itemLines(cost, item).map(l => l.roomId).filter(Boolean))
+  const source = serviceRoomSource[item.id]
+  const ids = new Set((source ? cost.boq.filter(l=>l.item===source) : itemLines(cost, item)).map(l => l.roomId).filter(Boolean))
   return cost.quantities.rooms.filter(r => ids.has(r.id))
 }
 export function changeCount(brief: Brief) {

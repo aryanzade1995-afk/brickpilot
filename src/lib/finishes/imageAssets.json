@@ -1,0 +1,82 @@
+{
+  "https://images.orientbell.com/media/catalog/product/p/g/pgvt_calacatta_natura_f1.jpg": {
+    "path": "public/specs/products/calacatta-look.jpg",
+    "sha256": "f474e9b5e5c2054b35d067c75a810fbde5d538de92682174cf8104c3ba676de6"
+  },
+  "https://images.orientbell.com/media/catalog/product/p/g/pgvt_onyx_pearl-1.jpg": {
+    "path": "public/specs/products/onyx-look.jpg",
+    "sha256": "08e9a1973b091a6323dab85cd3efe2c8e98ff07225a9e49c04db49f4d3fe0124"
+  },
+  "https://images.orientbell.com/media/catalog/product/d/r/dr_dgvt_walnut_wood_wenge_f1.jpg": {
+    "path": "public/specs/products/walnut-look.jpg",
+    "sha256": "8060428ed236658ddd504864adddc63a5aedbc4d0fd6d821bd51e4fa0f39d8b2"
+  },
+  "https://images.orientbell.com/media/catalog/product/g/r/granalt_taupe_storm_matt_snp.jpg": {
+    "path": "public/specs/products/matte-porcelain.jpg",
+    "sha256": "120e87ffd59a0df3e5f0fe0fcb19215613f7d9af241c8b4223ecd98dc7fd3607"
+  },
+  "https://images.orientbell.com/media/catalog/product/g/r/granalt_grey_storm_matt_snp.jpg": {
+    "path": "public/specs/products/premium-slab.jpg",
+    "sha256": "67b2f706da41c7d82d9f04d3b6a9be4cabcc89169b0224d2c7a8a7e7db7b3ddf"
+  },
+  "https://images.orientbell.com/media/catalog/product/p/g/pgvt_armani_marble_crema_f1_inspire_collection_gloss_finish_800x1800_mm__floor_tiles.jpg": {
+    "path": "public/specs/products/marble-gvt.jpg",
+    "sha256": "b860bd41d041994c1623d6104628f7f06aa1434fcebd243f4fca47ae7bd5d8ca"
+  },
+  "https://images.orientbell.com/media/catalog/product/t/e/teak_natural_1.jpg": {
+    "path": "public/specs/products/teak-look.jpg",
+    "sha256": "4b891cd5f92fc8c59515bf683b3d08060e06349e17ac8fd18ade50712ac9f5c6"
+  },
+  "https://images.orientbell.com/media/catalog/product/h/f/hfa_anti-skid_rugged_slate_f1.jpg": {
+    "path": "public/specs/products/anti-skid-stone.jpg",
+    "sha256": "dc428a21869c5e51690347e5127da1b74d01e28d8fedd3bcb2df1c333497a3e4"
+  },
+  "https://www.geapl.com/cdn/product/133519309112675995.jpg": {
+    "path": "public/specs/products/gate-auto-swing.jpg",
+    "sha256": "7642f95131736670ea48928a14873bb076965524f693cb292cf2ee6cc9a66294"
+  },
+  "https://images.orientbell.com/media/catalog/product/p/g/pgvt_statuario_streak_vein_marble_f1_inspire_collection_gloss_finish_800x1600_mm__floor_tiles.jpg": {
+    "path": "public/specs/products/statuario-look.jpg",
+    "sha256": "f8a4c3f9855f8425bc0f838c3f5297bb43472c9fe476280c05bf714362813048"
+  },
+  "https://images.orientbell.com/media/catalog/product/b/d/bdp_rock_slate_grey.jpg": {
+    "path": "public/specs/products/slate-look.jpg",
+    "sha256": "a80407e05e3826eae866055353527e4be8e7a8822c91e6fe2bc961eebe811881"
+  },
+  "https://images.orientbell.com/media/catalog/product/d/g/dgvt_hickory_wood_brown_f1.jpg": {
+    "path": "public/specs/products/wood-porcelain.jpg",
+    "sha256": "233f23d5f64241c3e6ebaec9fccf4b352d37c12859ac1206afc5d14fe8376cf8"
+  },
+  "https://images.orientbell.com/media/catalog/product/o/y/oyster20terrazzo20ghr20matte_s2ce1jh5n2eu1xo1.jpg": {
+    "path": "public/specs/products/terrazzo-look.jpg",
+    "sha256": "9510ff37fea0d87ce1c20186b380eeeb3215a208e42b596b99ec1f9a643e7370"
+  },
+  "https://images.orientbell.com/media/catalog/product/d/g/dgvt_real_travertine_grey_f4_glazed_vitrified_tile_wall_floor_tile_600x1200mm.jpg": {
+    "path": "public/specs/products/travertine-look.jpg",
+    "sha256": "6c3a4cec416d6ca0dcd4ada378d63f19f65039d061c22aa4607b3f071a2ebdf5"
+  },
+  "https://images.orientbell.com/media/catalog/product/d/r/dr_dgvt_sandstone_grey_dk_f1.jpg": {
+    "path": "public/specs/products/stone-porcelain.jpg",
+    "sha256": "848955a45546b1bfdf8f5c00e3f94b9425f238f763d0b058f8fd116d3510ee55"
+  },
+  "https://images.orientbell.com/media/catalog/product/d/g/dgvt_cemento_grey_f1-min.jpg": {
+    "path": "public/specs/products/concrete-look.jpg",
+    "sha256": "7cc3a9407564a69724068b77c318499d5147dfa4bee644416c331f50393d238d"
+  },
+  "https://www.nitco.in/nitcomedia/marble/thumb/BSS1262616.jpg": {
+    "path": "public/specs/products/italian-marble.jpg",
+    "sha256": "114e03e94e44984e25d2185ef3b7146a74e0e72c37aa138cd995e98ddb47766e"
+  },
+  "https://images.orientbell.com/media/catalog/product/d/g/dgvt_safegrip_rustic_grey_dk_f1_1.jpg": {
+    "path": "public/specs/products/rustic-outdoor.jpg",
+    "sha256": "14c5834965f35369182f4f4b88fe229232a7e3e049b794bf0fb532a2ba1b3186"
+  },
+  "https://images.orientbell.com/media/catalog/product/t/l/tl_moroccan_art_black_white_400x400_mm_porcelain_tile_floor_tiles.png": {
+    "path": "public/specs/products/moroccan-pattern.png",
+    "sha256": "1e9ca653f191944d64f81fa40d3387ce79092238d23fb2c78bd835d72730630a"
+  },
+  "https://www.nitco.in/nitcomedia/marble/masters/TRAVERTINO-(-CLASSICO-).jpg": {
+    "path": "public/specs/products/natural-travertine.jpg",
+    "sha256": "e53c858450a0081309132f67a935ed6f95ccb7a74d17be4fd0b36cb93c8a17c0"
+  }
+}

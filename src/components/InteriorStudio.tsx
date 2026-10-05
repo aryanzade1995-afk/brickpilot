@@ -11,6 +11,7 @@ import { useStudio } from '@/state/studio.ts'
 import { useInterior } from '@/state/interior.ts'
 import { useRender } from '@/state/render.ts'
 import { cx } from '@/lib/cx.ts'
+import { FastInteriorPreview } from './FastInteriorPreview.tsx'
 
 export function InteriorStudio({
   design,
@@ -111,6 +112,7 @@ export function InteriorStudio({
 
   return (
     <div className="mt-6 space-y-6">
+      <FastInteriorPreview design={design} />
       <dialog ref={viewerRef} aria-label="Expanded interior image"
         className="fixed inset-0 m-auto h-[94dvh] w-[96vw] max-w-none border border-line bg-bg p-4 text-ink backdrop:bg-black/85"
         onClick={(event) => { if (event.target === event.currentTarget) viewerRef.current?.close() }}>

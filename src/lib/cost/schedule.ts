@@ -6,12 +6,14 @@ import type { specificationRowSchema } from './deliverySchemas.ts'
 import type { Brief } from '../model/brief.ts'
 import type { CostEstimate } from './boq.ts'
 import { specsCatalogue, specificationRate, resolveSpecification } from './catalogue.ts'
+import { serviceRoomSource } from '../finishes/services.ts'
 
 /** One measured-room entry per applicable finish, followed by house specifications. */
 export function specificationSchedule(brief: Brief, cost: CostEstimate): SpecificationRow[] {
   const rows = specsCatalogue.items.filter(i => i.level !== 'auto').flatMap(item => {
     const lines = cost.boq.filter(l => l.item === item.id)
-    const locations = item.scope === 'perRoom' ? cost.quantities.rooms.filter(r => lines.some(l => l.roomId === r.id)) : [null]
+    const locationLines = serviceRoomSource[item.id] ? cost.boq.filter(l=>l.item===serviceRoomSource[item.id]) : lines
+    const locations = item.scope === 'perRoom' ? cost.quantities.rooms.filter(r => locationLines.some(l => l.roomId === r.id)) : [null]
     return locations.map(room => {
       const own = lines.filter(l => !room || l.roomId === room.id)
       const current = resolveSpecification(brief, item.id, room && brief.specs.overrides[`${item.id}@${room.id}`] === undefined ? room.id.slice(room.id.indexOf(':') + 1) : room?.id)

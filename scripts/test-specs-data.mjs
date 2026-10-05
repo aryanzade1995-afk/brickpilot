@@ -29,7 +29,7 @@ test('all 19 groups, levels and presets have complete, valid option and rate ref
  for(const preset of presets.presets)assert.equal(Object.keys(preset.options).length,catalogue.items.length)
  for(const item of catalogue.items)for(const option of item.options)assert.ok(specificationRate(option.rateId).installed>=0)
  assert.ok(specificationChoices('main').every(i=>i.level==='main'))
- assert.ok(['sanitary','cp-fittings'].every(id=>catalogue.items.find(i=>i.id===id).options.length===3))
+ assert.ok(['sanitary','cp-fittings'].every(id=>catalogue.items.find(i=>i.id===id).options.length>=8))
  assert.ok(['lift','solar','automation','interiors','ev','cctv'].every(id=>catalogue.items.find(i=>i.id===id).control==='toggle'))
  assert.ok(!specificationChoices('more').some(i=>i.level==='auto'))
 })

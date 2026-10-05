@@ -109,8 +109,8 @@ function buildBoq(design: Design, brief: Brief, selection: CostSelection, quanti
     ...Object.entries(brief.specs.overrides).filter(([id]) => boqRules.unpricedItems[id]).map(([id]) => `${id}: ${boqRules.unpricedItems[id]}`),
   ]
   const disabledExtras = specsCatalogue.items.filter(i => i.group === 'extras' && resolveSpecification(brief, i.id).id === 'off').map(i => `${i.label} (not selected)`)
-  const unmeasuredSelections = specsCatalogue.items.filter(i => brief.specs.overrides[i.id] && finishProduct(resolveSpecification(brief, i.id).finishProductId)?.rate.basis === 'advisory')
-    .map(i => `${i.label}: ${boqRules.unpricedItems[i.id]}`)
+  const unmeasuredSelections = specsCatalogue.items.filter(i => Object.keys(brief.specs.overrides).some(k=>k===i.id||k.startsWith(`${i.id}@`)) && i.options.some(o=>finishProduct(o.finishProductId)?.rate.basis === 'advisory'))
+    .map(i => `${i.label}: ${boqRules.unpricedItems[i.id]??i.note}`)
   return { currency: 'INR', expected, total: band(expected), ratePerSqm: band(sqmRate), ratePerSqft, lines, boq, quantities, selection,
     label: estimateLabel(), qualification: policy.qualification, confidence: 'C', rateVersion: `${boqRules.version} · ${rateBook.settings.date}`,
     basis: `${quantities.floorArea.toFixed(1)} m² source-plan floor area · measured members, openings and room finishes · provisional ${rateBook.settings.city} rates`,

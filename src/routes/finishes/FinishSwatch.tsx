@@ -1,12 +1,11 @@
 import type { SpecItem, SpecOption } from '@/lib/cost/workspace.ts'
 import { finishPreview } from '@/lib/finishes/preview.ts'
-import { flooringProduct } from '@/lib/flooring/catalogue.ts'
-import { finishProduct } from '@/lib/finishes/catalogue.ts'
+import { optionImage } from '@/lib/finishes/optionImage.ts'
 import { SpecificationImage } from '@/components/SpecificationImage.tsx'
 /** Labelled illustrations are not supplier product photographs. */
 export function FinishSwatch({item,option,className=''}:{item:SpecItem;option:SpecOption;className?:string}) {
- const preview=finishPreview(item,option),floor=flooringProduct(option.flooringProductId),finish=finishProduct(option.finishProductId)
- const realImage=!!floor?.thumbnail||!!finish?.image.path
+ const preview=finishPreview(item,option)
+ const realImage=!!optionImage(option)
  if(realImage)return <SpecificationImage option={option} className={className}/>
  if(preview.texture&&!['ceiling','landscape','pool','roof','sanitary','fittings'].includes(preview.kind))return <img src={preview.texture} alt={`${option.name}: representative real texture close-up`} className={className}/>
  return <div className={`relative flex items-center justify-center overflow-hidden rounded-lg bg-bg-inset ${className}`} title="Indicative finish illustration · product photo unavailable">

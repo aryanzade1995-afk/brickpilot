@@ -1,12 +1,14 @@
 import { z } from 'zod'
 import raw from './products.json' with { type: 'json' }
+import services from './service-products.json' with { type: 'json' }
 
 const id = z.string().regex(/^[a-z][a-z0-9-]*$/)
 const hosts = ['orientbell.com', 'kajariaceramics.com', 'somanyceramics.com', 'nitco.in', 'simpolo.net', 'hrjohnson.com',
   'rakceramics.com', 'sleekworld.com', 'hafele.com', 'hettich.com', 'blum.com', 'greenply.com', 'centuryply.com',
   'godrej.com', 'dorsetindia.com', 'fenesta.com', 'aiswindows.com', 'tostemindia.com', 'saint-gobain.co.in',
   'drfixit.co.in', 'sika.com', 'fosroc.com', 'asianpaints.com', 'bergerpaints.com', 'nerolac.com', 'dulux.in',
-  'jswpaints.in', 'q-railing.com', 'geapl.com', 'polyhaven.com', 'ambientcg.com']
+  'jswpaints.in', 'q-railing.com', 'geapl.com', 'polyhaven.com', 'ambientcg.com', 'strapiasi3pstore.blob.core.windows.net',
+  'crompton.co.in', 'cdn.shopify.com', 'jaquar.com', 'esscobathware.com', 'se.com', 'schneider-electric.co.in', 'drfixit-stg.s3.ap-south-1.amazonaws.com']
 const official = z.url().refine(url => {
   try { const parsed = new URL(url); return parsed.protocol === 'https:' && hosts.some(h => parsed.hostname === h || parsed.hostname.endsWith(`.${h}`)) } catch { return false }
 }, 'Use an official supplier or natural-texture library source')
@@ -17,7 +19,8 @@ export const finishProductSchema = z.strictObject({
   finish: z.string().min(1), application: z.array(z.string()).min(1), suitableRooms: z.array(z.string()).min(1),
   specification: z.string().min(1), blenderMaterial: z.string().min(1),
   sourceUrl: official, sourceKind: z.enum(['product', 'collection', 'guidance', 'generic-texture']),
-  rate: z.strictObject({ unit: z.enum(['m2', 'm', 'set', 'item']), material: z.number().nonnegative().finite(),
+  preview: z.strictObject({model:z.enum(['fan','light-square','light-round','bulb','bulb-candle','batten','exhaust','heater','heater-horizontal','switch','toilet-floor','toilet-wall','toilet-indian','basin-pedestal','basin-oval','basin-rectangle','basin-square','basin-undermount','faucet','faucet-wall','shower','tub','tub-claw','enclosure-sliding','enclosure-screen','enclosure-hinged','waterproofing','paint']),color:z.string().regex(/^#[\da-f]{6}$/i),accent:z.string().regex(/^#[\da-f]{6}$/i),variant:z.number().int().min(0).max(9)}).optional(),
+  rate: z.strictObject({ unit: z.enum(['m2', 'm', 'set', 'item', 'point']), material: z.number().nonnegative().finite(),
     labour: z.number().nonnegative().finite(), city: z.literal('Pune'), date: z.iso.date(),
     status: z.literal('provisional-allowance'), basis: z.enum(['measured', 'allowance', 'advisory']), note: z.string().min(1) }),
   facts: z.array(z.string().min(1).max(110)).max(4),
@@ -25,7 +28,7 @@ export const finishProductSchema = z.strictObject({
     path: asset.nullable(), originalUrl: official.nullable(), kind: z.enum(['real-product-photo', 'generic-material-closeup', 'unavailable']),
     sourceStatus: z.enum(['source-and-visual-audited', 'unavailable']), licensingStatus: z.enum(['CC0-1.0', 'permission-required', 'not-applicable']),
     credit: z.string(), verifiedBy: z.string().nullable(), verifiedAt: z.iso.date().nullable(), productionReady: z.boolean(),
-    note: z.string().min(1) }), thumbnail: asset.nullable(),
+    note: z.string().min(1), projection: z.enum(['surface', 'reference']).optional() }), thumbnail: asset.nullable(),
 }).superRefine((p, ctx) => {
   const bad = (message: string) => ctx.addIssue({ code: 'custom', message })
   if (p.image.brand !== p.brand || p.image.productName !== p.productName || p.image.sourceUrl !== p.sourceUrl) bad('Image provenance must describe this specification')
@@ -39,7 +42,7 @@ export const finishProductSchema = z.strictObject({
   if (p.rate.basis === 'advisory' && p.rate.material + p.rate.labour !== 0) bad('Unmeasured preferences cannot invent a price')
 })
 export const finishCatalogue = z.strictObject({ schemaVersion: z.literal(1), products: z.array(finishProductSchema).min(1) })
-  .refine(v => new Set(v.products.map(p => p.id)).size === v.products.length, 'Duplicate specification product').parse(raw)
+  .refine(v => new Set(v.products.map(p => p.id)).size === v.products.length, 'Duplicate specification product').parse({...raw,products:[...raw.products,...services.products]})
 export type FinishProduct = z.infer<typeof finishProductSchema>
 export const finishProducts = finishCatalogue.products
 export const finishProduct = (id?: string) => finishProducts.find(p => p.id === id)
@@ -52,8 +55,8 @@ export function filterFinishProducts(itemId: string, filters: FinishFilters = {}
     (!filters.finish || p.finish === filters.finish) && (!filters.brand || p.brand === filters.brand) &&
     (!filters.application || p.application.includes(filters.application)) && (!filters.room || p.suitableRooms.includes(filters.room)))
 }
-export function finishFacets(itemId: string) {
-  const products = filterFinishProducts(itemId)
+export function finishFacets(itemId: string, availableIds?: string[]) {
+  const products = filterFinishProducts(itemId).filter(p => !availableIds || availableIds.includes(p.id))
   const values = (key: 'material' | 'style' | 'finish' | 'brand') => [...new Set(products.map(p => p[key]))].sort()
   return { material: values('material'), style: values('style'), finish: values('finish'), brand: values('brand'),
     application: [...new Set(products.flatMap(p => p.application))].sort(), room: [...new Set(products.flatMap(p => p.suitableRooms))].sort() }

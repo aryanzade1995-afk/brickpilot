@@ -1,6 +1,6 @@
 import type { SpecItem, SpecOption } from '../cost/workspace.ts'
 import { experienceOption } from './experiences.ts'
-export type PreviewPart={size:[number,number,number];at:[number,number,number];selected?:boolean;glass?:boolean;shape?:'box'|'cylinder'|'sphere'|'torus'|'bowl';rotation?:[number,number,number];color?:string;metallic?:number;roughness?:number;emissive?:string}
+export type PreviewPart={size:[number,number,number];at:[number,number,number];selected?:boolean;glass?:boolean;shape?:'box'|'cylinder'|'sphere'|'torus'|'bowl'|'shell';profile?:number[][];squareness?:number;rotation?:[number,number,number];color?:string;metallic?:number;roughness?:number;emissive?:string}
 const B=(size:PreviewPart['size'],at:PreviewPart['at'],extra:Partial<PreviewPart>={}):PreviewPart=>({size,at,selected:false,...extra})
 const C=(r:number,h:number,at:PreviewPart['at'],extra:Partial<PreviewPart>={})=>B([r,r,h],at,{shape:'cylinder',...extra})
 const S=(size:PreviewPart['size'],at:PreviewPart['at'],color:string)=>B(size,at,{shape:'sphere',color})
@@ -40,11 +40,13 @@ export function detailedPreviewParts(item:Pick<SpecItem,'id'|'group'>,option:Spe
   return p
  }
  if(item.id==='balcony-railings'){
-  const type=id==='premium'?'frameless':id==='mid'?'horizontal':id==='basic'?'vertical':/frameless/.test(named)?'frameless':/glass/.test(named)?'glass-post':/cable/.test(named)?'cable':/jali|laser/.test(named)?'jali':/wood|timber/.test(named)?'wood':/stainless/.test(named)?'horizontal':'vertical'
+  const type=id==='premium'?'frameless':id==='mid'?'horizontal':id==='basic'?'vertical':/frameless/.test(named)?'frameless':/base clamp/.test(named)?'clamps':/slim framed/.test(named)?'slim':/glass/.test(named)?'glass-post':/cable/.test(named)?'cable':/jali|laser/.test(named)?'jali':/wood|timber/.test(named)?'wood':/stainless/.test(named)?'horizontal':'vertical'
   const p:PreviewPart[]=[B([2.9,.12,.65],[0,-.7,0],{color:'#cbc7be'})]
-  if(type==='frameless')return [...p,B([2.6,.09,.09],[0,-.61,0],metal),B([2.58,1.08,.035],[0,-.02,0],{glass:true}),...(id==='premium'?[B([2.62,.035,.055],[0,.54,0],metal)]:[])]
-  const steel=/stainless|cable|glass/.test(named)||id==='mid'?metal:{color:'#343a3c',metallic:.45}
-  for(const x of id==='mid'?[-1.3,1.3]:[-1.3,0,1.3])p.push(C(.032,1.18,[x,-.02,0],steel))
+  if(type==='frameless')return [...p,B([2.6,.09,.09],[0,-.61,0],{...metal,selected:true,color:/black/.test(named)?'#242626':metal.color}),B([2.58,1.08,.035],[0,-.02,0],{glass:true,selected:true}),...(id==='premium'?[B([2.62,.035,.055],[0,.54,0],{...metal,selected:true})]:[])]
+  if(type==='clamps')return [...p,B([2.58,1.08,.035],[0,-.02,0],{glass:true}),...[-1.05,0,1.05].map(x=>B([.14,.17,.13],[x,-.54,0],{...metal,selected:true}))]
+  if(type==='slim')return [...p,B([2.58,1.08,.035],[0,-.02,0],{glass:true}),...[-1.32,1.32].map(x=>B([.04,1.16,.06],[x,-.02,0],{color:'#eeeeea',selected:true})),...[-.6,.56].map(y=>B([2.68,.04,.06],[0,y,0],{color:'#eeeeea',selected:true}))]
+  const steel={...(/stainless|cable|glass/.test(named)||id==='mid'?metal:{color:'#343a3c',metallic:.45}),selected:true}
+  for(const x of id==='mid'?[-1.3,1.3]:[-1.3,0,1.3])p.push(/square/.test(named)?B([.045,1.18,.045],[x,-.02,0],steel):C(.032,1.18,[x,-.02,0],steel))
   p.push(B([2.68,.055,.07],[0,.57,0],type==='wood'?{selected:true}:steel))
   if(type==='glass-post')for(const x of [-.65,.65])p.push(B([1.24,1.04,.028],[x,-.03,0],{glass:true}))
   else if(['horizontal','cable'].includes(type))for(let i=0;i<(type==='cable'?6:3);i++)p.push(C(type==='cable'?.007:.016,2.6,[0,-.46+i*(type==='cable'?.16:.33),0],{rotation:[0,0,Math.PI/2],...steel}))
