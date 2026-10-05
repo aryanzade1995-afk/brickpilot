@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { analyzeImage, toDetections } from '@/lib/existing/detect.ts'
-import { analyzePhoto, looksLikeColumn, looksLikeFooting, startSam, type MaskStats, type SamSession } from '@/lib/existing/vision.ts'
+import { analyzePhoto, findColumns, looksLikeColumn, looksLikeFooting, startSam, type MaskStats, type SamSession } from '@/lib/existing/vision.ts'
+import { autoCorners, carryBeams } from '@/lib/existing/auto.ts'
 import { sampleSite } from '@/lib/existing/sample.ts'
 import { buildAsBuilt, type AsBuiltResult } from '@/lib/existing/asBuilt.ts'
 import { planAroundStructure, type ExistingPlan } from '@/lib/existing/plan.ts'
@@ -25,6 +26,8 @@ type State = {
   pixels: Pixels | null
   engine: 'opencv' | 'basic' | null
   sam: SamState
+  /** the automatic analysis that runs when a photo is chosen */
+  auto: { pct: number; label: string } | null
   lastMask: { x: number; y: number }[] | null
   isSample: boolean
   detections: Detections
@@ -46,6 +49,7 @@ type State = {
   loadFile: (file: File) => Promise<void>
   loadSample: () => void
   enableSam: () => Promise<void>
+  autoAnalyze: () => Promise<void>
   verifyWithSam: () => Promise<void>
   segmentClick: (kind: 'column' | 'footing', at: Pt) => Promise<void>
   addColumn: (at: Pt) => void
@@ -88,7 +92,7 @@ async function pixelsOf(url: string): Promise<Pixels> {
 }
 
 export const useExisting = create<State>((set, get) => ({
-  step: 0, tool: 'move', imageUrl: null, imageSize: null, pixels: null, engine: null, sam: { state: 'idle', pct: 0, label: '' }, lastMask: null, isSample: false,
+  step: 0, tool: 'move', imageUrl: null, imageSize: null, pixels: null, engine: null, sam: { state: 'idle', pct: 0, label: '' }, auto: null, lastMask: null, isSample: false,
   detections: emptyDetections(), calibration: { mode: 'none' }, corners: [], answers: defaultAnswers(), align: true,
   beamFrom: null, asBuilt: null, plan: null, seed: 1, busy: null, message: null,
 
@@ -96,20 +100,57 @@ export const useExisting = create<State>((set, get) => ({
   setTool: (tool) => set({ tool, beamFrom: null }),
 
   loadFile: async (file) => {
-    set({ busy: 'Reading the photo and looking for columns and beams…', message: null })
+    set({ busy: 'Reading the photo…', message: null, auto: { pct: 0, label: 'Reading the photo' } })
     try {
       const url = URL.createObjectURL(file)
       const px = await pixelsOf(url)
       const raw = await analyzePhoto(px)
-      const detections = toDetections(raw)
       samSession = null
       set({ imageUrl: url, imageSize: { w: px.width, h: px.height }, pixels: px, engine: raw.engine ?? 'basic', sam: { state: 'idle', pct: 0, label: '' }, lastMask: null,
-        isSample: false, detections, calibration: { mode: 'none' }, corners: [], asBuilt: null, plan: null, step: 1, busy: null,
-        message: detections.columns.length || detections.footings.length
-          ? 'These are suggestions. Check each one, then confirm or fix it. For an exact result, turn on the AI segmentation and click a column or footing.'
-          : 'Nothing was found automatically. Turn on the AI segmentation and click each column, or add them by hand.' })
+        isSample: false, detections: toDetections(raw), calibration: { mode: 'none' }, corners: [], asBuilt: null, plan: null, step: 0, message: null })
     } catch {
-      set({ busy: null, message: 'That file could not be read as a picture. Try a JPG or PNG.' })
+      set({ busy: null, auto: null, message: 'That file could not be read as a picture. Try a JPG or PNG.' })
+      return
+    }
+    await get().autoAnalyze()
+  },
+
+  autoAnalyze: async () => {
+    const st = get()
+    if (!st.pixels || !st.imageSize) return
+    const { w, h } = st.imageSize
+    const fallback = (message: string) => set({ busy: null, auto: null, step: 1, message })
+    set({ busy: 'Starting the AI model…', auto: { pct: 0, label: 'Starting the AI model (the first time it downloads about 40 MB)' } })
+    try {
+      await get().enableSam()
+      if (get().sam.state !== 'ready' || !samSession) return fallback('The AI model could not start (it needs a connection the first time). The suggestions below are unchecked: confirm or fix them, or add columns by hand.')
+      const session = samSession
+      set({ busy: 'Finding every column…', auto: { pct: 0, label: 'Finding every column' } })
+      const masks = await findColumns(session, w, h, (pct) => set({ auto: { pct, label: 'Finding every column' } }))
+      const old = get().detections
+      const columns = masks.sort((a, b) => a.base.x - b.base.x || a.base.y - b.base.y).map((m, i) => ({
+        id: `col-${i + 1}`, img: m.base, top: m.top, widthPx: Math.round(m.widthPx), confidence: Math.round(Math.min(0.97, 0.8 + 0.17 * m.iou) * 100) / 100,
+        source: 'auto' as const, confirmed: true }))
+      // foundation pads the first analysis suspected are kept only when the model confirms them
+      set({ auto: { pct: 100, label: 'Checking footings and beams' } })
+      const footings: Detections['footings'] = []
+      for (const f of old.footings) {
+        let m: MaskStats | null = null
+        try { m = await session.segment(f.img) } catch { m = null }
+        if (m && looksLikeFooting(m, w, h) && !columns.some((c) => Math.abs(c.img.x - f.img.x) < c.widthPx * 2 && Math.abs(c.img.y - f.img.y) < c.widthPx * 2))
+          footings.push({ ...f, img: { x: Math.round((m.bbox.x0 + m.bbox.x1) / 2), y: Math.round((m.bbox.y0 + m.bbox.y1) / 2) }, confidence: 0.85, confirmed: true })
+      }
+      if (!columns.length && !footings.length) return fallback('No columns or footings could be found automatically in this photo. Add them by clicking on the photo, or try a clearer photo taken from further back.')
+      const beams = carryBeams(old.columns, old.beams, columns)
+      const corners = autoCorners(columns)
+      const calibration: Calibration = corners
+        ? { mode: 'corners', pts: corners, widthMm: 0, depthMm: 0 }
+        : { mode: 'scale', a: columns[0]?.id ?? '', b: columns[columns.length - 1]?.id ?? '', distanceMm: 0 }
+      set({ busy: null, auto: null, step: 2, corners: corners ?? [], calibration, asBuilt: null, plan: null, lastMask: null, tool: 'move',
+        detections: { columns, beams, footings, walls: old.walls, seen: { ...old.seen, columns: columns.length > 0, foundation: footings.length > 0 || old.seen.foundation } },
+        message: null })
+    } catch (error) {
+      fallback(`The automatic analysis stopped (${error instanceof Error ? error.message : 'unknown error'}). The suggestions are unchecked: confirm or fix them.`)
     }
   },
 
@@ -120,6 +161,7 @@ export const useExisting = create<State>((set, get) => ({
     const ctx = canvas.getContext('2d')!
     ctx.putImageData(new ImageData(new Uint8ClampedArray(s.data as Uint8ClampedArray), s.width, s.height), 0, 0)
     const detections = toDetections(analyzeImage(s))
+    for (const x of [...detections.columns, ...detections.beams, ...detections.footings]) x.confirmed = true
     samSession = null
     set({
       imageUrl: canvas.toDataURL('image/png'), imageSize: { w: s.width, h: s.height }, pixels: { data: new Uint8ClampedArray(s.data as Uint8ClampedArray), width: s.width, height: s.height }, engine: 'basic',
@@ -128,7 +170,7 @@ export const useExisting = create<State>((set, get) => ({
       calibration: { mode: 'corners', pts: [s.truth.backBase[0], s.truth.backBase[3], s.truth.frontBase[3], s.truth.frontBase[0]], widthMm: s.truth.widthMm, depthMm: s.truth.depthMm },
       corners: [s.truth.backBase[0], s.truth.backBase[3], s.truth.frontBase[3], s.truth.frontBase[0]],
       answers: { ...defaultAnswers(), plotWidthM: 22, plotDepthM: 22, storeysBuilt: 1, storeysWanted: 1, bedroomsWithBath: 1, bedroomsNoBath: 1, sharedBaths: 1 },
-      asBuilt: null, plan: null, step: 1, busy: null, message: 'Demo site loaded: a 15 m x 7.5 m frame. The scale is already set from its four corners.',
+      asBuilt: null, plan: null, step: 2, busy: null, auto: null, message: 'Demo site loaded: a 15 m x 7.5 m frame. The scale is already set from its four corners.',
     })
   },
 
@@ -269,6 +311,6 @@ export const useExisting = create<State>((set, get) => ({
     set({ plan, seed: use })
     return plan
   },
-  reset: () => { samSession = null; set({ step: 0, tool: 'move', imageUrl: null, imageSize: null, pixels: null, engine: null, sam: { state: 'idle', pct: 0, label: '' }, lastMask: null, isSample: false, detections: emptyDetections(), calibration: { mode: 'none' }, corners: [],
+  reset: () => { samSession = null; set({ auto: null, step: 0, tool: 'move', imageUrl: null, imageSize: null, pixels: null, engine: null, sam: { state: 'idle', pct: 0, label: '' }, lastMask: null, isSample: false, detections: emptyDetections(), calibration: { mode: 'none' }, corners: [],
     answers: defaultAnswers(), beamFrom: null, asBuilt: null, plan: null, seed: 1, busy: null, message: null }) },
 }))

@@ -122,3 +122,23 @@ test('an over-ambitious programme is reported, not silently squeezed in', () => 
   const tiny = planAroundStructure(buildAsBuilt(demo().det, demo().cal, ANSWERS).value, { ...ANSWERS, bedroomsWithBath: 4, bedroomsNoBath: 3, sharedBaths: 3, studies: 2, storeysWanted: 1 })
   assert.ok(tiny.ok ? !tiny.valid : true)
 })
+
+test('automatic clean-up: one mask per column, outliers dropped, corners and beams derived', async () => {
+  const { consistentColumns, autoCorners, carryBeams } = await import('../src/lib/existing/auto.ts')
+  const mask = (x, w = 40, h = 200, y = 500) => ({ base: { x, y }, top: { x, y: y - h }, widthPx: w, heightPx: h, bbox: { x0: x - w / 2, y0: y - h, x1: x + w / 2, y1: y } })
+  const row = [100, 200, 300, 400, 500].map((x) => mask(x))
+  const pole = mask(250, 18, 520)          // tall and thin: a pole, not a column
+  const twice = mask(102)                  // the same column found twice
+  const kept = consistentColumns([...row, pole, twice])
+  assert.equal(kept.length, 5)
+  assert.ok(!kept.includes(pole))
+  // two rows of bases give the four outer corners, one row gives none (the other side cannot be seen)
+  const col = (x, y, id) => ({ id, img: { x, y }, widthPx: 20, confidence: 0.9, source: 'auto', confirmed: true })
+  const grid = [col(100, 300, 'a'), col(300, 300, 'b'), col(500, 300, 'c'), col(60, 520, 'd'), col(300, 520, 'e'), col(540, 520, 'f')]
+  assert.deepEqual(autoCorners(grid), [grid[0].img, grid[2].img, grid[5].img, grid[3].img])
+  assert.equal(autoCorners([col(100, 400, 'a'), col(200, 402, 'b'), col(300, 401, 'c'), col(400, 399, 'd')]), null)
+  // beams found against the first columns follow the final ones
+  const beams = carryBeams([col(101, 301, 'o1'), col(299, 299, 'o2')], [{ id: 'x', a: 'o1', b: 'o2', confidence: 0.8, source: 'auto', confirmed: false }], grid)
+  assert.equal(beams.length, 1)
+  assert.deepEqual([beams[0].a, beams[0].b].sort(), ['a', 'b'])
+})

@@ -4,7 +4,7 @@ import { AlertTriangle, ArrowRight, Check, ImagePlus, Lock, MousePointer2, Plus,
 import { Button } from '@/components/ui/Button.tsx'
 import { PhotoEditor } from '@/components/existing/PhotoEditor.tsx'
 import { PlanLegend, PlanView } from '@/components/existing/PlanView.tsx'
-import { useExisting, STEPS, type Tool } from '@/state/existing.ts'
+import { useExisting, type Tool } from '@/state/existing.ts'
 import { useStudio } from '@/state/studio.ts'
 import { CONFIDENCE_FLOOR, type RoadSide } from '@/lib/existing/types.ts'
 import { buildMapping } from '@/lib/existing/calibrate.ts'
@@ -42,15 +42,21 @@ function Pipeline({ step }: { step: number }) {
 }
 
 function Stepper() {
-  const { step, setStep, imageUrl, asBuilt } = useExisting()
-  const reach = (i: number) => (i === 0 ? true : i <= 2 ? !!imageUrl : i === 3 ? !!imageUrl : !!asBuilt?.ok)
+  const { step, setStep, imageUrl, plan } = useExisting()
+  // three steps for the person; the review and map screens sit inside them
+  const items: { at: number; label: string; on: boolean }[] = [
+    { at: 0, label: 'Photo', on: step === 0 },
+    { at: 2, label: 'Measurements', on: step === 1 || step === 2 || step === 3 },
+    { at: 4, label: 'Plan', on: step === 4 },
+  ]
+  const reach = (at: number) => (at === 0 ? true : at === 2 ? !!imageUrl : !!plan)
   return (
     <div className="flex flex-wrap gap-1 border-b border-line pb-px">
-      {STEPS.map((s, i) => (
-        <button key={s} type="button" disabled={!reach(i)} onClick={() => setStep(i)}
+      {items.map((it, i) => (
+        <button key={it.label} type="button" disabled={!reach(it.at)} onClick={() => setStep(it.at)}
           className={cx('flex items-center gap-2 border-b-2 px-3 py-2.5 font-mono text-[0.7rem] uppercase tracking-[0.1em] transition-colors disabled:opacity-40',
-            i === step ? 'border-accent text-accent' : 'border-transparent text-ink-faint hover:text-ink-dim')}>
-          <span>{String(i + 1).padStart(2, '0')}</span>{s}
+            it.on ? 'border-accent text-accent' : 'border-transparent text-ink-faint hover:text-ink-dim')}>
+          <span>{String(i + 1).padStart(2, '0')}</span>{it.label}
         </button>
       ))}
     </div>
@@ -59,7 +65,7 @@ function Stepper() {
 
 /* ---------------------------------- step 1: photo ---------------------------------- */
 function PhotoStep() {
-  const { loadFile, loadSample, busy, message } = useExisting()
+  const { loadFile, loadSample, busy, message, auto, sam } = useExisting()
   const picker = useRef<HTMLInputElement>(null)
   const [over, setOver] = useState(false)
   return (
@@ -75,7 +81,15 @@ function PhotoStep() {
           <p className="max-w-sm text-sm text-ink-dim">or click to choose one. A JPG or PNG showing the columns, beams or foundation that are already built.</p>
           <input ref={picker} type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) void loadFile(f) }} />
         </div>
-        {busy && <p role="status" className="mt-4 text-sm text-ink-dim">{busy}</p>}
+        {busy && (
+          <div role="status" className="mt-4">
+            <p className="text-sm text-ink-dim">{sam.state === 'loading' ? sam.label : (auto?.label ?? busy)}…</p>
+            <div className="mt-2 h-1.5 w-full bg-line" role="progressbar" aria-valuenow={sam.state === 'loading' ? sam.pct : (auto?.pct ?? 0)} aria-valuemin={0} aria-valuemax={100}>
+              <div className="h-full bg-accent transition-all" style={{ width: `${sam.state === 'loading' ? sam.pct : (auto?.pct ?? 0)}%` }} />
+            </div>
+            <p className="mt-1 text-xs text-ink-faint">Columns and beams are found automatically. Nothing to click.</p>
+          </div>
+        )}
         {message && !busy && <p role="status" className="mt-4 text-sm text-bad">{message}</p>}
         <div className="mt-5 flex flex-wrap items-center gap-4">
           <Button variant="ghost" onClick={loadSample}><Sparkles size={13} /> Try a demo site</Button>
@@ -88,15 +102,15 @@ function PhotoStep() {
           <ul className="mt-3 space-y-2 text-sm text-ink-dim">
             <li className="flex gap-2"><Check size={14} className="mt-0.5 flex-none text-ok" /> Stand back so every column base is in the picture.</li>
             <li className="flex gap-2"><Check size={14} className="mt-0.5 flex-none text-ok" /> A drone or roof-top shot from above is easiest to measure.</li>
-            <li className="flex gap-2"><Check size={14} className="mt-0.5 flex-none text-ok" /> Note one real distance, for example between two columns.</li>
+            <li className="flex gap-2"><Check size={14} className="mt-0.5 flex-none text-ok" /> Know the real length and width of the built area.</li>
             <li className="flex gap-2"><Check size={14} className="mt-0.5 flex-none text-ok" /> Daylight, no heavy shadows across the columns.</li>
           </ul>
         </div>
         <div className="border border-line p-5">
           <p className="label">What happens next</p>
           <ol className="mt-3 space-y-2 text-sm text-ink-dim">
-            <li><b className="text-ink">1.</b> We look for columns and beams. You fix and confirm them.</li>
-            <li><b className="text-ink">2.</b> One known distance sets the scale.</li>
+            <li><b className="text-ink">1.</b> We find the columns and beams in the photo for you.</li>
+            <li><b className="text-ink">2.</b> You type the real length and width of what is built, and your plot size.</li>
             <li><b className="text-ink">3.</b> What is built becomes locked. We plan every room around it.</li>
             <li><b className="text-ink">4.</b> Rules check the plan. Then it goes into the normal 3D pipeline.</li>
           </ol>
@@ -215,66 +229,66 @@ function DetectStep() {
   )
 }
 
-/* ---------------------------------- step 3: scale + questions ---------------------------------- */
-function CalibrateStep() {
+/* ---------------------------------- step 2: measurements ---------------------------------- */
+/** The only thing asked of the person: real measurements. The columns, beams and corners were found from the photo. */
+function MeasureStep() {
   const s = useExisting()
   const { detections: d, answers: a, calibration: cal } = s
-  const [mode, setMode] = useState<'corners' | 'scale'>(cal.mode === 'scale' ? 'scale' : 'corners')
-  const scale = cal.mode === 'scale' ? cal : { mode: 'scale' as const, a: d.columns[0]?.id ?? '', b: d.columns[1]?.id ?? '', distanceMm: 0 }
-  const corner = cal.mode === 'corners' ? cal : { mode: 'corners' as const, pts: s.corners, widthMm: 0, depthMm: 0 }
+  const corners = cal.mode === 'corners' ? cal.pts : []
+  const widthMm = cal.mode === 'corners' ? cal.widthMm : cal.mode === 'scale' ? cal.distanceMm : 0
+  const depthMm = cal.mode === 'corners' ? cal.depthMm : 0
+  const single = cal.mode === 'scale'
   const mapping = useMemo(() => buildMapping(cal, d.columns), [cal, d.columns])
   const ready = !!mapping.toPlan
+  const [more, setMore] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const road: RoadSide[] = ['N', 'E', 'S', 'W']
   const steppers: [string, keyof typeof a][] = [['Bedrooms with bath', 'bedroomsWithBath'], ['Bedrooms, shared bath', 'bedroomsNoBath'], ['Shared bathrooms', 'sharedBaths'], ['Studies', 'studies']]
+  const setLength = (m: number) => s.setCalibration(cal.mode === 'corners' ? { ...cal, widthMm: Math.round(m * 1000) } : { ...cal, mode: 'scale', a: cal.mode === 'scale' ? cal.a : d.columns[0]?.id ?? '', b: cal.mode === 'scale' ? cal.b : d.columns.at(-1)?.id ?? '', distanceMm: Math.round(m * 1000) })
+  const setWidth = (m: number) => { if (cal.mode === 'corners') s.setCalibration({ ...cal, depthMm: Math.round(m * 1000) }) }
+  const build = () => {
+    setError(null)
+    const r = s.buildMap()
+    if (!r.ok) { setError(r.error); return }
+    s.generate(1)
+    s.setStep(4)
+  }
   return (
     <div className="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
       <div>
-        <PhotoEditor imageUrl={s.imageUrl!} size={s.imageSize!} detections={d} mode={mode === 'corners' ? 'calibrate' : 'edit'} tool="move" beamFrom={null}
-          corners={s.corners} calibration={cal} onAddColumn={() => {}} onAddFooting={() => {}} onMove={() => {}} onRemove={() => {}} onPickBeam={() => {}}
-          onAddCorner={(p) => { s.addCorner(p) }} onMoveCorner={s.moveCorner} />
-        {mode === 'corners' ? (
-          <p className="mt-2 text-xs text-ink-dim">Click the four ground corners of the structure in order: back-left, back-right, front-right, front-left. Drag to adjust.
-            {s.corners.length < 4 ? ` ${4 - s.corners.length} to go.` : ''} <button type="button" className="underline" onClick={s.clearCorners}>Start over</button></p>
-        ) : (
-          <p className="mt-2 text-xs text-ink-dim">Pick two columns whose real distance you know.</p>
+        <PhotoEditor imageUrl={s.imageUrl!} size={s.imageSize!} detections={d} mode="edit" tool="move" beamFrom={null} corners={[]} calibration={cal}
+          onAddColumn={() => {}} onAddFooting={() => {}} onMove={s.moveColumn} onRemove={() => {}} onPickBeam={() => {}} onAddCorner={() => {}} onMoveCorner={() => {}} />
+        {corners.length === 4 && (
+          <p className="mt-2 text-xs text-ink-faint">Measure between the numbered corners of the structure: 1 back-left, 2 back-right, 3 front-right.</p>
         )}
-        <p className={cx('mt-3 text-sm', ready ? 'text-ok' : 'text-ink-dim')} role="status">{ready ? <><Check size={13} className="mr-1 inline" />{mapping.note}</> : mapping.note}</p>
+        <p className="mt-3 flex flex-wrap items-center gap-x-3 text-sm text-ink-dim" role="status">
+          <span className="flex items-center gap-1.5 text-ok"><Check size={14} /> Found {d.columns.length} column{d.columns.length === 1 ? '' : 's'}, {d.beams.length} beam{d.beams.length === 1 ? '' : 's'}{d.footings.length ? `, ${d.footings.length} footing${d.footings.length === 1 ? '' : 's'}` : ''} automatically.</span>
+          <button type="button" className="underline" onClick={() => s.setStep(1)}>Review or fix what was found</button>
+        </p>
+        {single && <p className="mt-2 border-l-2 border-warn bg-warn/5 p-3 text-sm text-warn">Only one line of columns is visible, so the other side cannot be measured from this photo. A photo taken from a corner or from above shows both sides.</p>}
       </div>
       <div className="space-y-5">
         <div className="border border-line p-4">
-          <div className="flex gap-1.5">
-            {([['corners', 'Four corners (best)'], ['scale', 'One known distance']] as const).map(([k, l]) => (
-              <button key={k} type="button" onClick={() => setMode(k)} className={cx('border px-3 py-1.5 font-mono text-[0.66rem] uppercase tracking-[0.08em]', mode === k ? 'border-accent text-accent' : 'border-line text-ink-dim')}>{l}</button>
-            ))}
+          <p className="label">Measure the built structure</p>
+          <p className="mt-1 text-xs text-ink-dim">{single ? 'Distance between the first and last column.' : 'Real distances between the corner columns of what is already built.'}</p>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <Field label={single ? 'Distance (m)' : 'Length, corner 1 to 2 (m)'}>
+              <input className={input} type="number" min={1} step={0.1} value={widthMm ? widthMm / 1000 : ''} placeholder="e.g. 12" onChange={(e) => setLength(num(e.target.value, 0))} />
+            </Field>
+            {!single && (
+              <Field label="Width, corner 2 to 3 (m)">
+                <input className={input} type="number" min={1} step={0.1} value={depthMm ? depthMm / 1000 : ''} placeholder="e.g. 9" onChange={(e) => setWidth(num(e.target.value, 0))} />
+              </Field>
+            )}
           </div>
-          {mode === 'corners' ? (
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <Field label="Width, back to front-right (mm)" hint="Along corner 1 to 2">
-                <input className={input} type="number" min={1000} step={100} value={corner.widthMm || ''} placeholder="e.g. 12000"
-                  onChange={(e) => s.setCalibration({ mode: 'corners', pts: s.corners.length === 4 ? s.corners : corner.pts, widthMm: num(e.target.value, 0), depthMm: corner.depthMm })} />
-              </Field>
-              <Field label="Depth (mm)" hint="Along corner 2 to 3">
-                <input className={input} type="number" min={1000} step={100} value={corner.depthMm || ''} placeholder="e.g. 9000"
-                  onChange={(e) => s.setCalibration({ mode: 'corners', pts: s.corners.length === 4 ? s.corners : corner.pts, widthMm: corner.widthMm, depthMm: num(e.target.value, 0) })} />
-              </Field>
-              <p className="col-span-2 text-xs text-ink-faint">Four corners also fix the perspective, so a photo taken at an angle still gives true distances.</p>
-            </div>
-          ) : (
-            <div className="mt-4 grid grid-cols-3 gap-3">
-              <Field label="Column A"><select className={input} value={scale.a} onChange={(e) => s.setCalibration({ ...scale, a: e.target.value })}>{d.columns.map((c) => <option key={c.id} value={c.id}>{c.id}</option>)}</select></Field>
-              <Field label="Column B"><select className={input} value={scale.b} onChange={(e) => s.setCalibration({ ...scale, b: e.target.value })}>{d.columns.map((c) => <option key={c.id} value={c.id}>{c.id}</option>)}</select></Field>
-              <Field label="Distance (mm)"><input className={input} type="number" min={500} step={50} value={scale.distanceMm || ''} onChange={(e) => s.setCalibration({ ...scale, distanceMm: num(e.target.value, 0) })} /></Field>
-            </div>
-          )}
+          {!ready && <p className="mt-2 text-xs text-ink-faint">{mapping.note}</p>}
         </div>
 
         <div className="border border-line p-4">
-          <p className="label">Only what we cannot see</p>
+          <p className="label">Your plot</p>
           <div className="mt-3 grid grid-cols-2 gap-3">
             <Field label="Plot width (m)"><input className={input} type="number" min={6} step={0.5} value={a.plotWidthM} onChange={(e) => s.setAnswer('plotWidthM', num(e.target.value, a.plotWidthM))} /></Field>
             <Field label="Plot length (m)"><input className={input} type="number" min={6} step={0.5} value={a.plotDepthM} onChange={(e) => s.setAnswer('plotDepthM', num(e.target.value, a.plotDepthM))} /></Field>
-            <Field label="Column size (mm)" hint="Square side"><input className={input} type="number" min={150} step={5} value={a.columnSizeMm} onChange={(e) => s.setAnswer('columnSizeMm', num(e.target.value, a.columnSizeMm))} /></Field>
-            <Field label="Beam width (mm)"><input className={input} type="number" min={150} step={5} value={a.beamWidthMm} onChange={(e) => s.setAnswer('beamWidthMm', num(e.target.value, a.beamWidthMm))} /></Field>
           </div>
           <div className="mt-4">
             <span className="label">Road side (where is the entrance?)</span>
@@ -283,7 +297,7 @@ function CalibrateStep() {
                 <button key={r} type="button" onClick={() => s.setAnswer('roadSide', r)} aria-pressed={a.roadSide === r}
                   className={cx('w-12 border py-2 font-mono text-xs', a.roadSide === r ? 'border-accent bg-accent/5 text-accent' : 'border-line text-ink-dim')}>{r}</button>
               ))}
-              <span className="ml-2 self-center text-[0.72rem] text-ink-faint">As seen in the photo: top of the picture is N.</span>
+              <span className="ml-2 self-center text-[0.72rem] text-ink-faint">Top of the photo is N.</span>
             </div>
           </div>
           <div className="mt-4 grid grid-cols-2 gap-3">
@@ -293,21 +307,27 @@ function CalibrateStep() {
         </div>
 
         <div className="border border-line p-4">
-          <p className="label">Rooms you need</p>
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            {steppers.map(([l, k]) => (
-              <Field key={k} label={l}><input className={input} type="number" min={0} max={8} value={a[k] as number} onChange={(e) => s.setAnswer(k, num(e.target.value, 0) as never)} /></Field>
-            ))}
-          </div>
-          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm">
-            {([['parking', 'Covered parking'], ['pooja', 'Pooja room'], ['utility', 'Utility room']] as const).map(([k, l]) => (
-              <label key={k} className="flex items-center gap-2"><input type="checkbox" className="accent-accent" checked={a[k]} onChange={(e) => s.setAnswer(k, e.target.checked)} /> {l}</label>
-            ))}
-          </div>
-          <label className="mt-4 flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1 accent-accent" checked={s.align} onChange={(e) => s.setAlign(e.target.checked)} />
-            <span>Line up measured positions that are within 15 cm into one clean grid <span className="block text-[0.72rem] text-ink-faint">Photos are never perfect. Turn this off to keep the raw measurements.</span></span></label>
+          <button type="button" className="label flex w-full items-center justify-between" aria-expanded={more} onClick={() => setMore((v) => !v)}>
+            <span>Rooms you need</span><span className="text-ink-faint">{more ? 'Hide' : `${a.bedroomsWithBath + a.bedroomsNoBath} bedrooms · change`}</span>
+          </button>
+          {more && (
+            <div className="mt-3">
+              <div className="grid grid-cols-2 gap-3">
+                {steppers.map(([l, k]) => (
+                  <Field key={k} label={l}><input className={input} type="number" min={0} max={8} value={a[k] as number} onChange={(e) => s.setAnswer(k, num(e.target.value, 0) as never)} /></Field>
+                ))}
+              </div>
+              <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm">
+                {([['parking', 'Covered parking'], ['pooja', 'Pooja room'], ['utility', 'Utility room']] as const).map(([k, l]) => (
+                  <label key={k} className="flex items-center gap-2"><input type="checkbox" className="accent-accent" checked={a[k]} onChange={(e) => s.setAnswer(k, e.target.checked)} /> {l}</label>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
-        <Button disabled={!ready} onClick={() => { const r = s.buildMap(); if (r.ok) s.setStep(3) }}>Build the as-built map <ArrowRight size={13} /></Button>
+        {error && <p role="alert" className="border-l-2 border-bad bg-bad/5 p-3 text-sm text-bad">{error}</p>}
+        <Button disabled={!ready} onClick={build}>Build my plan <ArrowRight size={13} /></Button>
+        {!ready && <p className="text-xs text-ink-faint">Enter the measurements above to continue.</p>}
       </div>
     </div>
   )
@@ -456,7 +476,7 @@ export function ExistingMode() {
       <div className="mt-7" aria-busy={!!busy}>
         {step === 0 && <PhotoStep />}
         {step === 1 && <DetectStep />}
-        {step === 2 && <CalibrateStep />}
+        {step === 2 && <MeasureStep />}
         {step === 3 && <MapStep />}
         {step === 4 && <PlanStep />}
       </div>

@@ -158,3 +158,29 @@ export async function startSam(pixels: { data: Uint8ClampedArray; width: number;
     },
   }
 }
+
+/* ------------------------- automatic column search ------------------------- */
+
+import { consistentColumns, type Mask } from './auto.ts'
+
+/** Prompt the model over a grid of points; every mask that looks like a column is kept, then the set is made consistent.
+ *  Points that fall inside a column already found are skipped, so a row of columns costs little more than one prompt each. */
+export async function findColumns(session: SamSession, w: number, h: number, onProgress?: (pct: number) => void): Promise<MaskStats[]> {
+  const cols = 36, rows = [0.52, 0.62, 0.72, 0.82]
+  const found: MaskStats[] = []
+  const total = cols * rows.length
+  let done = 0
+  for (const r of rows) for (let i = 0; i < cols; i++) {
+    const x = Math.round(((i + 0.5) / cols) * w), y = Math.round(r * h)
+    done++
+    if (found.some((m) => x >= m.bbox.x0 && x <= m.bbox.x1 && y >= m.bbox.y0 && y <= m.bbox.y1)) continue
+    let m: MaskStats | null = null
+    try { m = await session.segment({ x, y }) } catch { m = null }
+    if (m && looksLikeColumn(m, w, h)) found.push(m)
+    onProgress?.(Math.round((done / total) * 100))
+    // let the page repaint between prompts so the progress bar keeps moving
+    await new Promise((resolve) => setTimeout(resolve, 0))
+  }
+  const keep = new Set(consistentColumns(found.map((m): Mask => ({ base: m.base, top: m.top, widthPx: m.widthPx, heightPx: m.heightPx, bbox: m.bbox }))))
+  return found.filter((m) => [...keep].some((k) => k.base === m.base))
+}
