@@ -92,23 +92,9 @@ export function createInteriorScene(design: Design, designId: string, config: In
   if (!design.floors.some(f => f.level === config.floor && f.rooms.some(r => r.id === config.roomId && !r.outdoor))) return null
   const shell = buildRoom(design, config.floor, config.roomId, character)
   if (!shell) return null
-  const architecture = sourceShell(design, config)
+  const { architecture, furniture, pieces, camera } = roomFurnishing(design, config.floor, config.roomId, config.furnitureDensity)
   shell.boxes = [...architecture.boxes, ...connectedShells(design,config)]
   shell.dims.h = architecture.height
-  const drop = DECOR[config.furnitureDensity]
-  const placed = furnishSingleRoom(design, config.floor, config.roomId)
-  const columns=architecture.boxes.filter(b=>b.id.startsWith('column'))
-  const unsafeGroups=new Set(placed.filter(b=>columns.some(c=>b.pos.every((v,i)=>Math.abs(v-c.pos[i])<(b.size[i]+c.size[i])/2-0.005))).map(b=>b.id.slice(config.roomId.length+1).split('-')[0]))
-  // living rooms, bedrooms, dining rooms and studies get a designed layout; wet rooms and kitchens keep their fitted fixtures
-  const kind = roomKindOf(config.roomId, shell.name)
-  const sparse = config.furnitureDensity === 'low' ? /^(plant|art|bookshelf|armchair|floor-lamp|side-table|sideboard|console)$/ : null
-  const pieces = kind ? layoutRoom(kind, config.roomId, shell.name, architecture.boxes, architecture.openings, shell.dims).filter((p) => !sparse || !sparse.test(p.type)) : []
-  const furniture = kind ? [] : [...placed, ...kitchenExtras(placed, architecture.boxes, shell.dims)].filter((b) => (!drop || !(drop.test(b.id) || drop.test(b.mat))) && !unsafeGroups.has(b.id.slice(config.roomId.length+1).split('-')[0]) && b.pos[1]+b.size[1]/2<shell.dims.h)
-  const solids = pieces.filter((p) => !['rug', 'curtain', 'art', 'pendant', 'tv', 'table-lamp'].includes(p.type)).map((p): DollBox => {
-    const [fw, fd] = p.face === 'N' || p.face === 'S' ? [p.w, p.d] : [p.d, p.w]
-    return { id: p.id, mat: 'wood', pos: [p.x, p.h / 2, p.z], size: [fw, p.h, fd] }
-  })
-  const camera = standingPoint(clearRoom(architecture.boxes, shell.dims), [...furniture, ...solids, ...shell.boxes.filter(b => b.id.startsWith('column'))] as DollBox[])
   const kitchenRun = furniture.filter(b => /-counter\d+$/.test(b.id)).sort((a,b) => Math.max(...b.size) - Math.max(...a.size))[0]
   return {
     designId,
@@ -123,6 +109,31 @@ export function createInteriorScene(design: Design, designId: string, config: In
     config,
     quality,
   }
+}
+
+/** What stands in one room, exactly as the 360 preview places it (room-local metres, x east, z south, y up from the
+ *  floor): living rooms, bedrooms, dining rooms and studies get the designed layout as `pieces`; kitchens, bathrooms,
+ *  lobbies and the rest keep their rule-fitted fixtures as `furniture`. The furnished 3D view uses this same result. */
+export function roomFurnishing(design: Design, level: number, roomId: string, density: InteriorConfiguration['furnitureDensity'], building = createBuildingModel(design)) {
+  const room = design.floors.find((f) => f.level === level)?.rooms.find((r) => r.id === roomId)
+  if (!room) throw new Error(`No room ${roomId} on floor ${level}`)
+  const architecture = sourceShell(design, { floor: level, roomId }, building)
+  const dims = { w: room.rect.w / 1000, d: room.rect.h / 1000, h: architecture.height }
+  const drop = DECOR[density]
+  const placed = furnishSingleRoom(design, level, roomId)
+  const columns=architecture.boxes.filter(b=>b.id.startsWith('column'))
+  const unsafeGroups=new Set(placed.filter(b=>columns.some(c=>b.pos.every((v,i)=>Math.abs(v-c.pos[i])<(b.size[i]+c.size[i])/2-0.005))).map(b=>b.id.slice(roomId.length+1).split('-')[0]))
+  // living rooms, bedrooms, dining rooms and studies get a designed layout; wet rooms and kitchens keep their fitted fixtures
+  const kind = roomKindOf(roomId, room.name)
+  const sparse = density === 'low' ? /^(plant|art|bookshelf|armchair|floor-lamp|side-table|sideboard|console)$/ : null
+  const pieces = kind ? layoutRoom(kind, roomId, room.name, architecture.boxes, architecture.openings, dims).filter((p) => !sparse || !sparse.test(p.type)) : []
+  const furniture = kind ? [] : [...placed, ...kitchenExtras(placed, architecture.boxes, dims)].filter((b) => (!drop || !(drop.test(b.id) || drop.test(b.mat))) && !unsafeGroups.has(b.id.slice(roomId.length+1).split('-')[0]) && b.pos[1]+b.size[1]/2<dims.h)
+  const solids = pieces.filter((p) => !['rug', 'curtain', 'art', 'pendant', 'tv', 'table-lamp'].includes(p.type)).map((p): DollBox => {
+    const [fw, fd] = p.face === 'N' || p.face === 'S' ? [p.w, p.d] : [p.d, p.w]
+    return { id: p.id, mat: 'wood', pos: [p.x, p.h / 2, p.z], size: [fw, p.h, fd] }
+  })
+  const camera = standingPoint(clearRoom(architecture.boxes, dims), [...furniture, ...solids, ...columns] as DollBox[])
+  return { architecture, dims, kind, furniture, pieces, camera }
 }
 
 /** where the photo is taken: a clear standing spot with real elbow-room (measured from the wall faces and every piece of
@@ -182,8 +193,7 @@ function kitchenExtras(furniture: DollBox[], shell: RoomBox[], dims: { w: number
 }
 
 /** Use the same source wall segments and vertical limits as the Blender building export. */
-function sourceShell(design: Design, config: InteriorConfiguration) {
-  const building = createBuildingModel(design)
+function sourceShell(design: Design, config: Pick<InteriorConfiguration, 'floor' | 'roomId'>, building = createBuildingModel(design)) {
   const floor = building.floors.find(f => f.level === config.floor)!
   const room = building.rooms.find(r => r.floorId === floor.id && r.id === config.roomId)!
   if(building.floors.some(f=>f.level>floor.level && f.doubleHeightVoids?.some(v=>v.sourceRoomId===room.semanticId))) throw new Error('Interior preview could not be prepared for this room: double-height galleries require full-height isolation.')

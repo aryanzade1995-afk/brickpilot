@@ -2,16 +2,19 @@ import { useStudio } from '@/state/studio.ts'
 import { finishSignature } from '@/lib/cost/finishAssignments.ts'
 import { newDesignSeed } from '@/lib/newDesignSeed.ts'
 import { Component, Suspense, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Canvas } from '@react-three/fiber'
+import { Canvas, useThree } from '@react-three/fiber'
+import * as THREE from 'three'
 import { Bounds, OrbitControls, useGLTF } from '@react-three/drei'
 import type { Design } from '@/lib/engine/types.ts'
 import { createBuildingModel } from '@/lib/engine/buildingModel.ts'
 import { useBlender, directionRenderKey } from '@/state/blender.ts'
 import { RenderProgress } from './RenderProgress.tsx'
 import { StudioReflections } from './StudioReflections.tsx'
+import { separateCoplanar } from '@/lib/three/separateCoplanar.ts'
 
 function Villa({ url }: { url: string }) {
   const gltf = useGLTF(url)
+  const maxAnisotropy = useThree((state) => state.gl.capabilities.getMaxAnisotropy())
   const scene = useMemo(() => {
     const clone = gltf.scene.clone(true)
     const remove: typeof clone.children = []
@@ -19,8 +22,38 @@ function Villa({ url }: { url: string }) {
       if (object.userData.presentation_only || object.name.startsWith('Ground_Context') ||
       'isLight' in object || 'isCamera' in object) remove.push(object) })
     remove.forEach((object) => object.removeFromParent())
+    // Thin layers laid on a wall or slab (cladding, tiles, glass, frames, sills) cast no shadow onto the face they sit on.
+    clone.updateMatrixWorld(true)
+    const size = new THREE.Vector3()
+    clone.traverse((object) => {
+      const mesh = object as THREE.Mesh
+      if (!mesh.isMesh) return
+      // fine cladding and tile textures seen at an angle: full anisotropic filtering and mipmaps, or their lines
+      // shimmer into moire as the view turns
+      for (const material of Array.isArray(mesh.material) ? mesh.material : [mesh.material])
+        for (const value of Object.values(material)) if (value instanceof THREE.Texture) {
+          value.anisotropy = maxAnisotropy; value.generateMipmaps = true; value.minFilter = THREE.LinearMipmapLinearFilter; value.needsUpdate = true
+        }
+      // Fluted stone is hundreds of centimetre-scale ribs: finer than a pixel here, they alias into lines that crawl
+      // as the view turns. The live viewer shows each fluted panel as one smooth slab of the same stone; the Blender
+      // renders and the downloadable scene keep every rib.
+      if (/_Flutes(\.\d+)?$/.test(mesh.name)) {
+        mesh.geometry.computeBoundingBox()
+        const box = mesh.geometry.boundingBox!, slab = new THREE.BoxGeometry(...box.getSize(new THREE.Vector3()).toArray())
+        slab.translate(...box.getCenter(new THREE.Vector3()).toArray())
+        mesh.geometry = slab
+        mesh.castShadow = false
+        return
+      }
+      new THREE.Box3().setFromObject(mesh).getSize(size)
+      if (Math.min(size.x, size.y, size.z) > 0.06) return
+      mesh.castShadow = false
+    })
+    // faces of different parts in one plane (a beam flush with its wall, a slab edge on the facade) fight for the
+    // same depth and flicker as the view turns: the lesser part's face steps back 1.5 mm
+    separateCoplanar(clone)
     return clone
-  }, [gltf.scene])
+  }, [gltf.scene, maxAnisotropy])
   return <Bounds fit clip observe margin={1.2}><primitive object={scene} /></Bounds>
 }
 class ModelBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
@@ -82,10 +115,10 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
       <p className="mt-4 font-mono text-xs text-ink-dim">Visualisation · Blender · Seed {result.seed} · {result.family.replaceAll('_', ' ')} · {result.quality === 'final' ? 'Final render' : 'Preview'}</p>
       <div className="mt-3 grid gap-4 lg:grid-cols-2">
         <div className="aspect-[4/3] overflow-hidden border border-line">
-          <ModelBoundary key={result.files.glb}><Canvas frameloop="demand" shadows camera={{ position: [20, 14, -25], fov: 40 }}>
+          <ModelBoundary key={result.files.glb}><Canvas frameloop="demand" shadows dpr={[1, 2]} gl={{ antialias: true, logarithmicDepthBuffer: true }} camera={{ position: [20, 14, -25], fov: 40 }}>
             <color attach="background" args={['#e5e5e5']} /><ambientLight intensity={.6} />
             <directionalLight position={[20, 30, -10]} intensity={2} castShadow shadow-mapSize={[2048, 2048]}
-              shadow-camera-left={-35} shadow-camera-right={35} shadow-camera-top={35} shadow-camera-bottom={-35} shadow-camera-far={100} shadow-normalBias={.025} />
+              shadow-camera-left={-35} shadow-camera-right={35} shadow-camera-top={35} shadow-camera-bottom={-35} shadow-camera-far={100} shadow-bias={-0.0005} shadow-normalBias={.05} />
             <Suspense fallback={null}><StudioReflections /><Villa url={result.files.glb} /></Suspense>
             <OrbitControls makeDefault minPolarAngle={0} maxPolarAngle={Math.PI / 2} />
           </Canvas></ModelBoundary>

@@ -631,17 +631,29 @@ def apply_finishes(data, box, principled, hex_rgb, kelvin_rgb, mats, shell_mats)
     if fan:
         col = product_colour(fan.get('image'), hex_rgb('#6B5B4E'))
         fmat = principled('finish-fan', col, .35, metal=0.3)
-        top = dims['h'] - (.25 if fin.get('ceiling',{}).get('type') not in ('plain','wooden') else .02)
+        # A ceiling fan hangs from the ceiling over the open middle of the room: false, cove and tray ceilings only drop
+        # a band round the edge, so there the downrod starts at the full ceiling height. The blades sit 2.45-2.75 m above
+        # the floor. The fan keeps 1.3 m from the panorama's standing point (straight overhead, the 360 would stretch its
+        # blades across the whole sky of the picture) and 1.1 m from a pendant light, inside the open ceiling.
+        top = dims['h'] - (.05 if fin.get('ceiling',{}).get('type') == 'wooden' else .0)
+        band = 0.0 if fin.get('ceiling',{}).get('type') in ('plain','wooden') else 0.25
+        ring = 0.0 if band == 0 else min(0.6, dims['w'] * 0.18, dims['d'] * 0.18)
+        reach_x, reach_z = max(0.0, dims['w'] / 2 - ring - 0.8), max(0.0, dims['d'] / 2 - ring - 0.8)
         cx, _, cz = data['camera']
+        keep_clear = [(cx, cz, 1.3)] + [(p['x'], p['z'], 1.1) for p in data.get('pieces', []) if p.get('type') == 'pendant']
+        def clearance(x, z):
+            return min(math.hypot(x - px, z - pz) - r for px, pz, r in keep_clear)
+        # the room centre when it is clear, otherwise the nearest clear spot to it on a 10 cm grid
         fx = fz = 0.0
-        if math.hypot(cx, cz) < 1.0:   # over the half of the room away from where the photo is taken
-            if dims['w'] >= dims['d']:
-                fx = -math.copysign(dims['w'] / 4, cx or 1)
-            else:
-                fz = -math.copysign(dims['d'] / 4, cz or 1)
-        box('fan-rod', (fx, top - 0.18, fz), (0.025, 0.36, 0.025), fmat)
+        if clearance(0.0, 0.0) < 0:
+            spots = [(i * 0.1, k * 0.1) for i in range(-int(reach_x * 10), int(reach_x * 10) + 1) for k in range(-int(reach_z * 10), int(reach_z * 10) + 1)]
+            clear = [s for s in spots if clearance(*s) >= 0]
+            fx, fz = min(clear, key=lambda s: math.hypot(*s)) if clear else max(spots or [(0.0, 0.0)], key=lambda s: clearance(*s))
+        hub_y = max(2.45, min(2.75, top - 0.45, dims['h'] - band - 0.15))
+        rod = max(0.05, top - (hub_y + 0.06))
+        box('fan-rod', (fx, top - rod / 2, fz), (0.025, rod, 0.025), fmat)
+        box('fan-canopy', (fx, top - 0.04, fz), (0.12, 0.08, 0.12), fmat)
         bx, by = fx, -fz   # Blender x / y of the fan centre
-        hub_y = top - 0.4
         bpy.ops.mesh.primitive_cylinder_add(radius=0.11, depth=0.12, location=(bx, by, hub_y))
         hub = bpy.context.active_object
         hub.data.materials.append(fmat)

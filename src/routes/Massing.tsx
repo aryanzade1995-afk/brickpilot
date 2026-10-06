@@ -9,6 +9,9 @@ import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { useStudio } from '@/state/studio.ts'
 import { MASSING_LABEL } from '@/lib/engine/index.ts'
 import { buildDollhouse } from '@/lib/three/buildDollhouse.ts'
+import { furnishedDresser } from '@/lib/three/dressRoom.ts'
+import { DENSITIES, INTERIOR_STYLES, type InteriorConfiguration } from '@/lib/interior/preview.ts'
+import { useInterior360 } from '@/state/interior360.ts'
 import { DollhouseModel, DollhouseEnv } from '@/lib/three/DollhouseScene.tsx'
 import { cx } from '@/lib/cx.ts'
 import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
@@ -30,10 +33,17 @@ export function Massing() {
   const [mode, setMode] = useState<ViewMode>('architecture')
   const [pendingView, setPendingView] = useState<CamKey | null>('iso')
   const [floorSel, setFloorSel] = useState<number | 'all'>('all')
-  const doll = useMemo(
-    () => (result?.shapeFingerprint && mode === 'furnished' ? buildDollhouse(result.design, floorSel === 'all' ? undefined : floorSel) : null),
-    [result, mode, floorSel],
-  )
+  // the furnished view is dressed like the 360 preview: the brief's Finishes & Cost choices room by room, and the
+  // interior style and furniture density chosen in the 360 panel. Any change rebuilds it at once.
+  const brief = useStudio((s) => s.brief)
+  const style = useInterior360((s) => s.style)
+  const density = useInterior360((s) => s.furnitureDensity) as InteriorConfiguration['furnitureDensity']
+  const setInterior = useInterior360((s) => s.set)
+  const doll = useMemo(() => {
+    if (!result?.shapeFingerprint || mode !== 'furnished') return null
+    const plan = { ...result.design, model: { ...result.design.model, brief } }
+    return buildDollhouse(plan, floorSel === 'all' ? undefined : floorSel, furnishedDresser(plan, style, density))
+  }, [result, brief, mode, floorSel, style, density])
 
   if (result && !result.report.hardChecksPass) return <InvalidPlanNotice report={result.report} />
   if (result && (mode === 'architecture' || !result.shapeFingerprint)) return <div className="mx-auto max-w-[1400px] px-6 py-8 md:px-10">
@@ -110,7 +120,8 @@ export function Massing() {
               shadows="soft"
               dpr={[1, 2]}
               gl={{ preserveDrawingBuffer: true, antialias: true }}
-              camera={{ fov: 37, near: 0.1, far: span * 40, position: [span * 1.1, span * 0.85, span * 1.1] }}
+              // a depth range fitted to the house: with near 0.1 the far walls ran out of depth precision and flickered
+              camera={{ fov: 37, near: Math.max(0.3, span * 0.02), far: span * 12, position: [span * 1.1, span * 0.85, span * 1.1] }}
               onCreated={({ gl }) => {
                 gl.toneMapping = THREE.NeutralToneMapping
                 gl.toneMappingExposure = 1.5
@@ -120,7 +131,7 @@ export function Massing() {
               <DollhouseModel doll={doll} />
 
               <EffectComposer enableNormalPass multisampling={4}>
-                <N8AO aoRadius={1.5} intensity={2.7} distanceFalloff={1.1} halfRes />
+                <N8AO aoRadius={1.5} intensity={2.7} distanceFalloff={1.1} quality="high" />
                 <BrightnessContrast brightness={0.015} contrast={0.09} />
                 <SMAA />
                 <Vignette eskil={false} offset={0.42} darkness={0.36} />
@@ -137,6 +148,23 @@ export function Massing() {
         </div>
 
         <div className="space-y-6">
+          <Panel title="Dressed as your 360">
+            <p className="text-[0.75rem] leading-relaxed text-ink-dim">
+              Every room shows the same furniture as its 360 preview, in your Finishes &amp; Cost choices. Change a finish
+              and this view follows at once; that room's 360 is marked to render again.
+            </p>
+            {([['Interior style', style, INTERIOR_STYLES, 'style'], ['Furniture density', density, DENSITIES, 'furnitureDensity']] as const).map(([label, value, list, key]) =>
+              <label key={key} className="block text-xs text-ink-dim">{label}
+                <select value={value} onChange={(e) => setInterior({ [key]: e.target.value })} className="mt-1 w-full border border-line bg-bg p-1.5 text-sm text-ink">
+                  {list.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+                </select>
+              </label>)}
+            <div className="flex gap-4 pt-1 text-xs">
+              <Link to="/workspace/finishes?tab=specifications" className="underline underline-offset-4">Change finishes</Link>
+              <Link to="/workspace/interior" className="underline underline-offset-4">Open 360 preview</Link>
+            </div>
+          </Panel>
+
           <Panel title="Model">
             <Stat k="Massing" v={MASSING_LABEL[result.design.massingType] ?? result.design.massingType} />
             <Stat k="Storeys" v={String(design.floors.length)} />

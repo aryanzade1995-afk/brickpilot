@@ -2,7 +2,7 @@ import { FloorDrawing } from '@/lib/draw/FloorDrawing.tsx'
 import type { Design } from '@/lib/engine/types.ts'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowRight, Check, ImagePlus, Pin } from 'lucide-react'
+import { ArrowRight, Check, Pin } from 'lucide-react'
 import { useStudio } from '@/state/studio.ts'
 import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
 import { VillaGenerationNotice } from '@/components/VillaGenerationNotice.tsx'
@@ -10,9 +10,6 @@ import { cx } from '@/lib/cx.ts'
 import { briefSiteIssues, compile } from '@/lib/model/canonical.ts'
 import { generate } from '@/lib/engine/generate.ts'
 import { validate } from '@/lib/rules/index.ts'
-import { prepareInspiration } from '@/lib/render/prepareInspiration.ts'
-import { analyzeInspiration } from '@/lib/engine/inspiration.ts'
-import { useRender } from '@/state/render.ts'
 import { RenderProgress } from '@/components/RenderProgress.tsx'
 import { useBlender, directionRenderKey } from '@/state/blender.ts'
 
@@ -23,13 +20,6 @@ export function Directions() {
   const pinned = useStudio((s) => s.pinned)
   const brief = useStudio((s) => s.brief)
   const generationNotice = useStudio((s) => s.generationNotice)
-  const referencePreferences = useStudio((s) => s.referencePreferences)
-  const setReferencePreferences = useStudio((s) => s.setReferencePreferences)
-  const setRenderInspiration = useRender((s) => s.setInspiration)
-  const [referenceImage, setReferenceImage] = useState<string | null>(null)
-  const [referenceBusy, setReferenceBusy] = useState(false)
-  const [referenceError, setReferenceError] = useState<string | null>(null)
-  const [analysisAvailable, setAnalysisAvailable] = useState<boolean | null>(null)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -42,13 +32,6 @@ export function Directions() {
     if (directions?.length) void previewDirections(directions.map((d) => ({ plan: d.design, seed: d.seed })))
   }, [directions, previewDirections])
 
-  useEffect(() => {
-    let active = true
-    fetch('/api/inspiration/health').then((response) => response.json())
-      .then((health) => { if (active) setAnalysisAvailable(Boolean(health.reachable)) })
-      .catch(() => { if (active) setAnalysisAvailable(false) })
-    return () => { active = false }
-  }, [])
 
   if (!directions) {
     // the directions are generated in the background: the page is usable and shows where they will appear
@@ -105,54 +88,6 @@ export function Directions() {
 
       <VillaGenerationNotice />
 
-      <div className="mt-7 border border-line p-5">
-        <div className="flex items-start gap-3">
-          <ImagePlus size={18} className="mt-0.5 text-accent" />
-          <div className="flex-1">
-            <div className="label">Use an inspiration image</div>
-            <p className="mt-2 max-w-2xl text-sm text-ink-dim">
-              An image can guide materials and façade details within your chosen style. The verified plan and its doors and windows stay fixed.
-            </p>
-            {analysisAvailable === false && <p className="mt-2 text-xs text-ink-dim" role="status">
-              AI style analysis is offline. You can still select an image as a visual reference.
-            </p>}
-            <input type="file" accept="image/png,image/jpeg,image/webp" disabled={referenceBusy}
-              className="mt-3 block w-full text-xs text-ink-dim"
-              onChange={async (event) => {
-                const file = event.target.files?.[0]
-                if (!file) return
-                setReferenceBusy(true)
-                setReferenceError(null)
-                try {
-                  const image = await prepareInspiration(file)
-                  setReferenceImage(image)
-                  setRenderInspiration(image)
-                  const preferences = await analyzeInspiration(image)
-                  setReferencePreferences(preferences)
-                } catch (error) {
-                  setReferenceError(error instanceof Error ? error.message : 'Could not read that image.')
-                } finally {
-                  setReferenceBusy(false)
-                  event.target.value = ''
-                }
-              }} />
-            {referenceImage && <div className="mt-3 flex items-center gap-3">
-              <img src={referenceImage} alt="Villa inspiration" className="h-16 w-20 object-cover" />
-              <button type="button" className="text-xs text-ink-dim underline" onClick={() => {
-                setReferenceImage(null)
-                setRenderInspiration(null)
-                setReferencePreferences(null)
-                setReferenceError(null)
-              }}>Remove inspiration</button>
-            </div>}
-            {referenceBusy && <p className="mt-3 text-xs text-ink-dim" role="status">Reading architectural style…</p>}
-            {referencePreferences?.styleFamily && <p className="mt-3 text-xs text-ok" role="status">
-              Reference cues: {referencePreferences.styleFamily.replaceAll('-', ' ')} · {referencePreferences.materialPalette?.replaceAll('-', ' ') ?? 'coordinated materials'}
-            </p>}
-            {referenceError && <p className="mt-3 text-xs text-bad" role="alert">{referenceError} The image stays selected, but automatic style analysis is unavailable right now.</p>}
-          </div>
-        </div>
-      </div>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
         {directions.map((d) => {

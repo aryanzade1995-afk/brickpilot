@@ -6,6 +6,7 @@
   "scripts": {
     "test:3d-edits": "node --experimental-strip-types --test scripts/test-outdoor-pillars.mjs",
     "test:interior": "node --experimental-strip-types --test scripts/test-interior-preview.mjs",
+    "test:furnished": "node --experimental-strip-types --test scripts/test-furnished-match.mjs",
     "dev": "node scripts/dev.mjs",
     "dev:web": "vite",
     "dev:proxy": "node server/index.mjs",
