@@ -15,7 +15,7 @@ export function FurniturePreview({room,character,furnished}:{room:BriefRoom;char
  const tint=THEMES[character].materials.clad.color
  return <div><div className="mb-2 flex gap-2">{(['top','3d'] as const).map(v=><button key={v} type="button" aria-pressed={view===v} className="border border-line px-3 py-1 text-xs" onClick={()=>setView(v)}>{v==='top'?'Top view':'3D view'}</button>)}</div>
   <div className="relative h-[220px] border border-line bg-bg-inset sm:h-[290px]">
-   <div className={view==='3d'?'absolute inset-0':'hidden'}><Canvas camera={camera} shadows dpr={[1,1.5]} aria-label={`${shown.name} furnished 3D preview`}>
+   <div className={view==='3d'?'absolute inset-0':'hidden'}><Canvas frameloop="demand" camera={camera} shadows dpr={[1,1.5]} aria-label={`${shown.name} furnished 3D preview`}>
     <ambientLight intensity={1.1}/><hemisphereLight intensity={0.7}/><directionalLight position={[4,7,5]} intensity={2} castShadow/>
     <RoomModelMesh model={model} character={character}/>
     {furnished&&shown.fit.placed.map(p=><mesh key={p.id} position={[p.x+p.width/2-shown.width/2,p.height/2,p.y+p.depth/2-shown.depth/2]} castShadow receiveShadow><boxGeometry args={[p.width,p.height,p.depth]}/><meshStandardMaterial color={tint} roughness={0.7}/></mesh>)}

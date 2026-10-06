@@ -71,7 +71,6 @@ export function Brief() {
     setSub(subStep)
   }
   const reset = useStudio((s) => s.reset)
-  const explore = useStudio((s) => s.explore)
   const brief = useStudio((s) => s.brief)
   const briefChoiceIssue = useStudio(s => s.briefChoiceIssue)
   const [formError, setFormError] = useState<string | null>(null)
@@ -97,10 +96,11 @@ export function Brief() {
       const issues = currentFit.fits ? [] : [CAPACITY_GUIDANCE, ...currentFit.issues.slice(0, 2)]
       if (checking || issues.length) { setFormError(issues.join(' ')); return }
       setFormError(null)
-      // let the loader paint (and its worker start) before the blocking generation
       setGenerating(true)
-      // a fresh brief leaves any Existing Structure Mode project behind
-      setTimeout(() => { useStudio.getState().clearExisting(); explore(); navigate('/workspace/directions') }, 450)
+      // a fresh brief leaves any Existing Structure Mode project behind; the directions are made in the background
+      useStudio.getState().clearExisting()
+      void useStudio.getState().exploreInBackground()
+      navigate('/workspace/directions')
     } else {
       setStep(step + 1)
     }

@@ -187,6 +187,7 @@ export function RoomViewport({
   return (
     <div data-room-capture className="relative aspect-[4/3] w-full overflow-hidden border border-line-strong bg-bg-inset">
       <Canvas
+              frameloop="demand"
         dpr={[1, 2]}
         shadows
         gl={{ preserveDrawingBuffer: true, antialias: true }}

@@ -18,7 +18,7 @@ import { useBlender, directionRenderKey } from '@/state/blender.ts'
 
 export function Directions() {
   const directions = useStudio((s) => s.directions)
-  const explore = useStudio((s) => s.explore)
+  const explore = useStudio((s) => s.exploreInBackground)
   const pin = useStudio((s) => s.pin)
   const pinned = useStudio((s) => s.pinned)
   const brief = useStudio((s) => s.brief)
@@ -33,7 +33,7 @@ export function Directions() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    if (!directions) explore()
+    if (!directions) void explore()
   }, [directions, explore])
 
   // each direction is rendered in Blender exactly as shown on its card
@@ -51,7 +51,19 @@ export function Directions() {
   }, [])
 
   if (!directions) {
-    return <div className="mx-auto max-w-[1400px] px-10 py-24 text-ink-dim">Engineering directions…</div>
+    // the directions are generated in the background: the page is usable and shows where they will appear
+    return <div className="mx-auto max-w-[1400px] px-6 py-8 md:px-10">
+      <WorkspaceTabs />
+      <p className="mt-8 label">Step 02 · Directions</p>
+      <h1 className="mt-3 font-display text-3xl">Engineering four directions…</h1>
+      <p role="status" className="mt-3 text-sm text-ink-dim">Each is a different plan shape for your brief, checked against every rule.</p>
+      <div className="mt-8 grid gap-6 md:grid-cols-2" aria-hidden>
+        {[0, 1, 2, 3].map((i) => <div key={i} className="overflow-hidden border border-line">
+          <div className="aspect-[16/10] animate-pulse bg-bg-inset" style={{ animationDelay: `${i * 150}ms` }} />
+          <div className="space-y-3 p-5"><div className="h-4 w-2/3 animate-pulse rounded bg-bg-inset" /><div className="h-3 w-1/2 animate-pulse rounded bg-bg-inset" /></div>
+        </div>)}
+      </div>
+    </div>
   }
 
   if (directions.length === 0) {

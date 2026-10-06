@@ -106,6 +106,7 @@ export function Massing() {
 
           <div className="relative aspect-[4/3] w-full overflow-hidden border border-line">
             <Canvas
+              frameloop="demand"
               shadows="soft"
               dpr={[1, 2]}
               gl={{ preserveDrawingBuffer: true, antialias: true }}

@@ -11,8 +11,8 @@ import { useInterior360 } from '@/state/interior360.ts'
 
 function Panorama({ url, fov }: {url:string;fov:number}) {
   const texture=useTexture(url, texture=>{if('colorSpace' in texture)texture.colorSpace=SRGBColorSpace})
-  const camera=useThree(s=>s.camera)
-  useEffect(()=>{if(camera instanceof PerspectiveCamera){camera.fov=fov;camera.updateProjectionMatrix()}},[camera,fov])
+  const camera=useThree(s=>s.camera), invalidate=useThree(s=>s.invalidate)
+  useEffect(()=>{if(camera instanceof PerspectiveCamera){camera.fov=fov;camera.updateProjectionMatrix();invalidate()}},[camera,fov,invalidate])
   return <><mesh scale={[-1,1,1]} rotation={[0,-Math.PI/2,0]}><sphereGeometry args={[10,64,32]} /><meshBasicMaterial map={texture} side={BackSide} /></mesh><OrbitControls enablePan={false} enableZoom={false} rotateSpeed={-0.4} target={[0,0,0]} /></>
 }
 
@@ -79,7 +79,7 @@ export function FastInteriorPreview({design}: {design:Design}) {
           onTouchStart={e=>{if(e.touches.length===2)pinch.current=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY)}}
           onTouchMove={e=>{if(e.touches.length===2 && pinch.current!==null){const distance=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);setFov(f=>Math.max(35,Math.min(100,f+(pinch.current!-distance)*0.15)));pinch.current=distance}}}
           onTouchEnd={()=>{pinch.current=null}}>
-          {result&&!busy?<Suspense fallback={<p className="p-5">Loading panorama…</p>}><Canvas key={result.url} camera={{position:[-Math.sin(result.initialYaw*Math.PI/180)*0.01,0,Math.cos(result.initialYaw*Math.PI/180)*0.01],fov:75}}><Panorama url={result.url} fov={fov} /></Canvas></Suspense>:<p role="status" className="p-6 text-ink-dim">{busy?stage:'Generate the 360° view of this room in your chosen finishes.'}</p>}
+          {result&&!busy?<Suspense fallback={<p className="p-5">Loading panorama…</p>}><Canvas frameloop="demand" key={result.url} camera={{position:[-Math.sin(result.initialYaw*Math.PI/180)*0.01,0,Math.cos(result.initialYaw*Math.PI/180)*0.01],fov:75}}><Panorama url={result.url} fov={fov} /></Canvas></Suspense>:<p role="status" className="p-6 text-ink-dim">{busy?stage:'Generate the 360° view of this room in your chosen finishes.'}</p>}
           {result && !busy && <div className="absolute bottom-3 left-3 right-3 flex flex-wrap gap-2 text-sm"><button className="bg-bg border border-line px-3 py-2" onClick={()=>setFov(f=>Math.max(35,f-10))} aria-label="Zoom in">+</button><button className="bg-bg border border-line px-3 py-2" onClick={()=>setFov(f=>Math.min(100,f+10))} aria-label="Zoom out">−</button><button className="bg-bg border border-line px-3 py-2" onClick={async()=>{if(fullscreen){if(document.fullscreenElement)await document.exitFullscreen();else setFullscreen(false)}else{setFullscreen(true);try{await viewer.current?.requestFullscreen()}catch{/* Embedded browsers use the full-window overlay. */}}}}>{fullscreen?'Exit full screen':'Full screen'}</button></div>}
         </div>
         {result && !busy && <p className="mt-3 text-sm">{fresh?'Preview ready and saved.':`Saved preview · ${new Date(saved!.savedAt).toLocaleString()}`} <a className="underline" href={result.url} download="interior-360.webp">Download panorama</a></p>}

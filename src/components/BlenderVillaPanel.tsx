@@ -80,7 +80,7 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
       <p className="mt-4 font-mono text-xs text-ink-dim">Visualisation · Blender · Seed {result.seed} · {result.family.replaceAll('_', ' ')} · {result.quality === 'final' ? 'Final render' : 'Preview'}</p>
       <div className="mt-3 grid gap-4 lg:grid-cols-2">
         <div className="aspect-[4/3] overflow-hidden border border-line">
-          <ModelBoundary key={result.files.glb}><Canvas shadows camera={{ position: [20, 14, -25], fov: 40 }}>
+          <ModelBoundary key={result.files.glb}><Canvas frameloop="demand" shadows camera={{ position: [20, 14, -25], fov: 40 }}>
             <color attach="background" args={['#e5e5e5']} /><ambientLight intensity={.6} />
             <directionalLight position={[20, 30, -10]} intensity={2} />
             <Suspense fallback={null}><Villa url={result.files.glb} /></Suspense>

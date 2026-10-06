@@ -28,7 +28,7 @@ export const VillaVisualizationViewport=forwardRef<VillaViewportHandle,{design:D
       return driver.current.capture()
     }}),[])
     return <div data-villa-visualization-model className="aspect-[4/3] max-h-[680px] w-full overflow-hidden border border-line bg-bg-inset">
-      <ModelBoundary key={url??design.id}><Canvas shadows dpr={[1,2]} camera={CAMERA}
+      <ModelBoundary key={url??design.id}><Canvas frameloop="demand" shadows dpr={[1,2]} camera={CAMERA}
         gl={GL} onCreated={({gl})=>{gl.toneMapping=THREE.NeutralToneMapping;gl.toneMappingExposure=1.2}}>
         <Suspense fallback={null}><BlenderSource url={url} setDriver={setDriver}/></Suspense>
         <OrbitControls makeDefault target={TARGET} minDistance={2} maxDistance={150} maxPolarAngle={Math.PI/2.02}/>

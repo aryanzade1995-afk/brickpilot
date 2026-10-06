@@ -172,6 +172,8 @@ type StudioState = {
   /** re-roll the geometry of the pinned massing (or the brief seed) and rebuild */
   reseed: () => Result
   explore: () => DirectionOption[]
+  /** the same directions, generated off the main thread; the store fills in when they are ready */
+  exploreInBackground: () => Promise<void>
   pin: (dir: PinnedDir) => Result
   run: () => Result
 }
@@ -297,6 +299,69 @@ function runPlanOp(get: () => StudioState, set: Setter, run: (layout: LayoutDoc,
     if (key !== oldKey && entries[oldKey] && !entries[key]) useFinishes.getState().setSelection(key, entries[oldKey])
   }
   return { ok: true, message, notes: checked.notes, layout: target, before: cur.layout }
+}
+
+export type DirectionsInput = Pick<StudioState, 'brief' | 'pinned' | 'referencePreferences' | 'recentVillaFingerprints' | 'diversityLimits'>
+/** The four design directions for a brief. Pure: it runs on the main thread or in the directions worker. */
+export function computeDirections(cur: DirectionsInput) {
+    const model = compile(cur.brief)
+    const plan = generate(model), dirs: DirectionOption[] = [], debug: FingerprintDebug[] = []
+    let history = cur.recentVillaFingerprints, notice: string | null = null
+    // every direction stands on its own plan shape, so the four houses differ
+    // in form, not only in trim; a shape the plot cannot take falls back to
+    // the brief's own plan
+    const plans: { plan: Design; massing: MassingType; planSeed?: number }[] = distinctDirectionPlans(model)
+    while (plans.length < 4) plans.push({ plan, massing: plan.massingType,planSeed:plan.planSeed })
+    const option = (r: Result, index: number, novelty: number, source?: (typeof plans)[number]): DirectionOption => ({
+      planFingerprint:planFingerprint(r.design),
+      massing: source?.massing ?? r.design.massingType, seed: r.design.dna.seed,
+      ...(source?.planSeed !== undefined ? { planSeed: source.planSeed } : {}),
+      label: `Direction ${'ABCD'[index]} — ${r.shapeFingerprint!.massingFamily.replaceAll('_', ' ').toLowerCase()}`,
+      blurb: `${r.shapeFingerprint!.heroFeature.replaceAll('_', ' ').toLowerCase()} · ${r.shapeFingerprint!.rooflineType.replaceAll('_', ' ').toLowerCase()}`,
+      novelty, design: r.design, report: r.report, buildingModel: r.buildingModel!, villaDesignDNA: r.villaDesignDNA!,
+      massingModel: r.massingModel!, facadeModel: r.facadeModel!, shapeFingerprint: r.shapeFingerprint! })
+    if (cur.pinned) {
+      const pinnedSource = { plan: pinnedPlan(model, cur.pinned), massing: cur.pinned.massing, planSeed: cur.pinned.planSeed }
+      if (validate(pinnedSource.plan).hardChecksPass) {
+        const replay = replayResult(pinnedSource.plan, cur.pinned.seed, cur.referencePreferences)
+        if (replay.result.shapeFingerprint) {
+          dirs.push(option(replay.result, 0, 0, pinnedSource))
+          // the pinned plan takes the first slot; drop the same plan from the rest
+          const same = plans.findIndex((p) => p.massing === pinnedSource.massing && p.planSeed === pinnedSource.planSeed)
+          plans.splice(same >= 0 ? same : plans.length - 1, 1)
+        } else debug.push(...replay.debug)
+      }
+    }
+    if (validate(plan).hardChecksPass || plans.some((p) => p.planSeed !== undefined)) for (let i = dirs.length; i < 4; i++) {
+      const source = plans[i - (4 - plans.length)] ?? plans.at(-1)!
+      const usedFamilies = new Set(dirs.map((d) => d.facadeModel.architecturalFamily))
+      const selection = generateDistinct(source.plan, cur.brief.variation + 1 + i * 977, cur.referencePreferences, history, cur.diversityLimits,
+        dirs.map((d) => fingerprintRecord(d.shapeFingerprint)))
+      // each direction leads with its own composition where one fits: when
+      // the search lands on a family already shown, a few further seeds are
+      // tried directly (one candidate each — cheap), else the first stands
+      let swap: Result | null = null
+      if (selection.accepted && usedFamilies.has(selection.accepted.candidate.facadeModel!.architecturalFamily)) {
+        const building = selection.accepted.candidate.buildingModel!
+        // the seed's family is known from its design record alone, so only
+        // seeds that would lead with a new family are built in full
+        const seeds = Array.from({ length: 24 }, (_, k) => cur.brief.variation + 1 + i * 977 + (k + 1) * 131)
+          .filter((s) => !usedFamilies.has(createVillaDesignDNA(building, s, cur.brief.style.character).architecturalFamily))
+        for (const s of seeds.slice(0, 3)) {
+          try {
+            const c = exactResult(source.plan, s, cur.referencePreferences, 'accepted')
+            if (c.facadeModel && !usedFamilies.has(c.facadeModel.architecturalFamily)) { swap = c; break }
+          } catch { /* an invalid candidate is simply skipped */ }
+        }
+      }
+      debug.push(...selection.debug)
+      if (!selection.accepted) { notice = exhaustedNotice(selection.debug.length); break }
+      const r = swap ?? selection.accepted.candidate
+      history = swap ? [...selection.history.slice(0, -1), fingerprintRecord(swap.shapeFingerprint!)] : selection.history
+      if (selection.debug.at(-1)?.reason.startsWith('Adaptive')) notice = 'Valid directions are shown. Uniqueness was relaxed because the fixed rooms and site limit architectural variation.'
+      dirs.push(option(r, i, 100 - selection.debug.at(-1)!.similarityPercent, source))
+    }
+  return { dirs, history, debug, notice }
 }
 
 export const useStudio = create<StudioState>()(
@@ -452,63 +517,7 @@ export const useStudio = create<StudioState>()(
       explore: () => {
         const cur = get()
         if (cur.directions !== null) return cur.directions
-        const model = compile(cur.brief)
-        const plan = generate(model), dirs: DirectionOption[] = [], debug: FingerprintDebug[] = []
-        let history = cur.recentVillaFingerprints, notice: string | null = null
-        // every direction stands on its own plan shape, so the four houses differ
-        // in form, not only in trim; a shape the plot cannot take falls back to
-        // the brief's own plan
-        const plans: { plan: Design; massing: MassingType; planSeed?: number }[] = distinctDirectionPlans(model)
-        while (plans.length < 4) plans.push({ plan, massing: plan.massingType,planSeed:plan.planSeed })
-        const option = (r: Result, index: number, novelty: number, source?: (typeof plans)[number]): DirectionOption => ({
-          planFingerprint:planFingerprint(r.design),
-          massing: source?.massing ?? r.design.massingType, seed: r.design.dna.seed,
-          ...(source?.planSeed !== undefined ? { planSeed: source.planSeed } : {}),
-          label: `Direction ${'ABCD'[index]} — ${r.shapeFingerprint!.massingFamily.replaceAll('_', ' ').toLowerCase()}`,
-          blurb: `${r.shapeFingerprint!.heroFeature.replaceAll('_', ' ').toLowerCase()} · ${r.shapeFingerprint!.rooflineType.replaceAll('_', ' ').toLowerCase()}`,
-          novelty, design: r.design, report: r.report, buildingModel: r.buildingModel!, villaDesignDNA: r.villaDesignDNA!,
-          massingModel: r.massingModel!, facadeModel: r.facadeModel!, shapeFingerprint: r.shapeFingerprint! })
-        if (cur.pinned) {
-          const pinnedSource = { plan: pinnedPlan(model, cur.pinned), massing: cur.pinned.massing, planSeed: cur.pinned.planSeed }
-          if (validate(pinnedSource.plan).hardChecksPass) {
-            const replay = replayResult(pinnedSource.plan, cur.pinned.seed, cur.referencePreferences)
-            if (replay.result.shapeFingerprint) {
-              dirs.push(option(replay.result, 0, 0, pinnedSource))
-              // the pinned plan takes the first slot; drop the same plan from the rest
-              const same = plans.findIndex((p) => p.massing === pinnedSource.massing && p.planSeed === pinnedSource.planSeed)
-              plans.splice(same >= 0 ? same : plans.length - 1, 1)
-            } else debug.push(...replay.debug)
-          }
-        }
-        if (validate(plan).hardChecksPass || plans.some((p) => p.planSeed !== undefined)) for (let i = dirs.length; i < 4; i++) {
-          const source = plans[i - (4 - plans.length)] ?? plans.at(-1)!
-          const usedFamilies = new Set(dirs.map((d) => d.facadeModel.architecturalFamily))
-          const selection = generateDistinct(source.plan, cur.brief.variation + 1 + i * 977, cur.referencePreferences, history, cur.diversityLimits,
-            dirs.map((d) => fingerprintRecord(d.shapeFingerprint)))
-          // each direction leads with its own composition where one fits: when
-          // the search lands on a family already shown, a few further seeds are
-          // tried directly (one candidate each — cheap), else the first stands
-          let swap: Result | null = null
-          if (selection.accepted && usedFamilies.has(selection.accepted.candidate.facadeModel!.architecturalFamily)) {
-            const building = selection.accepted.candidate.buildingModel!
-            // the seed's family is known from its design record alone, so only
-            // seeds that would lead with a new family are built in full
-            const seeds = Array.from({ length: 24 }, (_, k) => cur.brief.variation + 1 + i * 977 + (k + 1) * 131)
-              .filter((s) => !usedFamilies.has(createVillaDesignDNA(building, s, cur.brief.style.character).architecturalFamily))
-            for (const s of seeds.slice(0, 3)) {
-              try {
-                const c = exactResult(source.plan, s, cur.referencePreferences, 'accepted')
-                if (c.facadeModel && !usedFamilies.has(c.facadeModel.architecturalFamily)) { swap = c; break }
-              } catch { /* an invalid candidate is simply skipped */ }
-            }
-          }
-          debug.push(...selection.debug)
-          if (!selection.accepted) { notice = exhaustedNotice(selection.debug.length); break }
-          const r = swap ?? selection.accepted.candidate
-          history = swap ? [...selection.history.slice(0, -1), fingerprintRecord(swap.shapeFingerprint!)] : selection.history
-          if (selection.debug.at(-1)?.reason.startsWith('Adaptive')) notice = 'Valid directions are shown. Uniqueness was relaxed because the fixed rooms and site limit architectural variation.'
-          dirs.push(option(r, i, 100 - selection.debug.at(-1)!.similarityPercent, source))
-        }
+        const { dirs, history, debug, notice } = computeDirections(cur)
         set((s) => {
           s.directions = dirs
           s.recentVillaFingerprints = history
@@ -516,6 +525,23 @@ export const useStudio = create<StudioState>()(
           s.generationNotice = notice
         })
         return dirs
+      },
+
+      exploreInBackground: async () => {
+        const cur = get()
+        if (cur.directions !== null) return
+        const input: DirectionsInput = { brief: cur.brief, pinned: cur.pinned, referencePreferences: cur.referencePreferences,
+          recentVillaFingerprints: cur.recentVillaFingerprints, diversityLimits: cur.diversityLimits }
+        // the four houses are generated in a worker so the page stays responsive; without one, on the main thread
+        const out = await import('./directionsWorkerClient.ts').then((m) => m.runDirections(input)).catch(() => computeDirections(input))
+        const now = get()
+        if (now.directions !== null || now.brief !== cur.brief || now.pinned !== cur.pinned) return
+        set((s) => {
+          s.directions = out.dirs
+          s.recentVillaFingerprints = out.history
+          s.shapeDebug = out.debug
+          s.generationNotice = out.notice
+        })
       },
 
       pin: (dir) => {
