@@ -8,13 +8,15 @@ import type { Design } from '@/lib/engine/types.ts'
 import { createBuildingModel } from '@/lib/engine/buildingModel.ts'
 import { useBlender, directionRenderKey } from '@/state/blender.ts'
 import { RenderProgress } from './RenderProgress.tsx'
+import { StudioReflections } from './StudioReflections.tsx'
 
 function Villa({ url }: { url: string }) {
   const gltf = useGLTF(url)
   const scene = useMemo(() => {
     const clone = gltf.scene.clone(true)
     const remove: typeof clone.children = []
-    clone.traverse((object) => { if (object.userData.presentation_only || object.name.startsWith('Ground_Context') ||
+    clone.traverse((object) => { object.castShadow = true; object.receiveShadow = true
+      if (object.userData.presentation_only || object.name.startsWith('Ground_Context') ||
       'isLight' in object || 'isCamera' in object) remove.push(object) })
     remove.forEach((object) => object.removeFromParent())
     return clone
@@ -82,8 +84,9 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
         <div className="aspect-[4/3] overflow-hidden border border-line">
           <ModelBoundary key={result.files.glb}><Canvas frameloop="demand" shadows camera={{ position: [20, 14, -25], fov: 40 }}>
             <color attach="background" args={['#e5e5e5']} /><ambientLight intensity={.6} />
-            <directionalLight position={[20, 30, -10]} intensity={2} />
-            <Suspense fallback={null}><Villa url={result.files.glb} /></Suspense>
+            <directionalLight position={[20, 30, -10]} intensity={2} castShadow shadow-mapSize={[2048, 2048]}
+              shadow-camera-left={-35} shadow-camera-right={35} shadow-camera-top={35} shadow-camera-bottom={-35} shadow-camera-far={100} shadow-normalBias={.025} />
+            <Suspense fallback={null}><StudioReflections /><Villa url={result.files.glb} /></Suspense>
             <OrbitControls makeDefault minPolarAngle={0} maxPolarAngle={Math.PI / 2} />
           </Canvas></ModelBoundary>
         </div>
@@ -94,6 +97,7 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
       </div>
       <div className="mt-4 flex flex-wrap gap-4 text-sm">{(['blend', 'glb', 'hero', 'front', 'aerial'] as const).map((key) =>
         <a key={key} href={result.files[key]} download className="underline underline-offset-4">{key === 'blend' ? 'Editable Blender scene' : key === 'glb' ? 'Interactive 3D model' : `${key} image`}</a>)}</div>
+      <p className="mt-3 text-xs text-ink-faint">Car: <a href="https://sketchfab.com/models/57bf6cc56931426e87494f554df1dab6" target="_blank" rel="noreferrer" className="underline">Ferrari 458 Italia by vicent091036</a>, adapted under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer" className="underline">CC BY 4.0</a>. Trees: <a href="https://polyhaven.com/a/island_tree_01" target="_blank" rel="noreferrer" className="underline">Poly Haven</a> (CC0).</p>
     </>}
     {currentJob?.debug?.length ? <details className="mt-4 text-xs text-ink-dim"><summary>Design variation checks</summary>
       <ul className="mt-2 space-y-1">{currentJob.debug.map((entry, index) => <li key={index}>Seed {entry.seed} · {entry.family} · nearest seed {entry.nearestPreviousSeed ?? 'none'} · {entry.similarityPercent ?? 0}% similar · {entry.accepted ? 'Accepted' : 'Retried'}: {entry.reason}</li>)}</ul>

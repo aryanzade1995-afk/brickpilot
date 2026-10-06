@@ -127,6 +127,8 @@ export class ArchitectureValidator {
           add('structure', 'INVALID_ENVELOPE_SUPPORT', 'Exterior pier must bear at ground level with a usable section.', undefined, m.id)
         if (intersectionArea([r], building.rooms.map((room) => room.rect)) > EPS_AREA)
           add('plot', 'CIRCULATION_BLOCKED', 'An exterior pier intersects a room, parking or existing outdoor circulation.', undefined, m.id)
+        if (intersectionArea([r], (building.siteFeatures ?? []).filter(f => ['driveway', 'path', 'pool', 'utilityYard'].includes(f.kind)).map(f => f.rect)) > EPS_AREA)
+          add('plot', 'CIRCULATION_BLOCKED', 'An exterior pier intersects a driveway, path, pool or utility area.', undefined, m.id)
       }
       if (m.usage === 'canopy') {
         if (m.elevation < envelope.minCanopyClearanceMm || m.height > envelope.maxCanopyThicknessMm ||

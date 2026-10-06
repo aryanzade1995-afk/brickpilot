@@ -68,6 +68,8 @@ def planting_layout(payload, options):
     units = (payload["facadeGrammar"].get("specialized") or {}).get("assemblies", [])
     parts = [part["world"] for feature in payload["facadeGrammar"]["features"] for part in feature["parts"]]
     parts += [part["world"] for unit in units for part in unit["parts"] if part["operation"] == "ADD"]
+    parts += [{**mass_rect(mass), 'z': mass['elevation'], 'height': mass['height']}
+              for mass in m['masses'] if mass['usage'] == 'support']
     plans, omissions = [], []
     def accept(rect, z, category, source, plates=None, routes=()):
         # Reserve the complete foliage envelope, not only the planter base.

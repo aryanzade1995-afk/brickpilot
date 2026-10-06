@@ -11,8 +11,8 @@ import { validateExisting, type ExistingReport } from './validate.ts'
 export function briefFromAnswers(a: Answers): Brief {
   return briefSchema.parse({
     project: { name: 'My existing structure' },
-    site: { plotWidth: a.plotWidthM, plotDepth: a.plotDepthM },
-    levels: { storeys: Math.max(0, Math.min(3, a.storeysWanted - 1)) },
+    site: { plotWidth: a.plotWidthM, plotDepth: a.plotDepthM, facing:a.roadSide,roadEdges:[a.roadSide] },
+    levels: { storeys: Math.max(0, Math.min(3, a.storeysWanted - 1)), ...(a.floorHeightM ? {floorToFloor:a.floorHeightM}: {}) },
     rooms: {
       bedroomsWithBath: a.bedroomsWithBath, bedroomsNoBath: a.bedroomsNoBath, sharedBaths: a.sharedBaths, studies: a.studies,
       priorities: { coveredParking: a.parking, coveredVerandah: false, utility: a.utility, pooja: a.pooja, courtyard: false, garden: true, compoundWall: false },

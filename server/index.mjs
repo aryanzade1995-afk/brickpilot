@@ -1,5 +1,6 @@
 import { handleCostShareRequest } from './cost-shares.mjs'
 import { handleInteriorPreview } from './interior-preview.mjs'
+import { handleExistingPlan } from './existing-plan.mjs'
 /*
  * Formstead server — serves the built SPA and proxies the image-model API
  * so the key stays server-side. Zero dependencies (Node ≥ 18, global fetch).
@@ -16,7 +17,7 @@ import { createServer } from 'node:http'
 import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs'
 import { extname, join, normalize } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { generateInteriorWithFallback, generateBuildingWithFallback, buildingRenderHealth, providerName, resolveProvider } from './providers/index.mjs'
+import { generateBuildingWithFallback, buildingRenderHealth } from './providers/index.mjs'
 import { analyzeInspiration, healthy as geminiWebHealth } from './providers/gemini-web.mjs'
 import { handleVillaRequest } from './villa-jobs.mjs'
 import { generateVillaVisualizations, validateVillaReference } from './villa-visualizations.mjs'
@@ -148,6 +149,7 @@ const server = createServer(async (req, res) => {
 
   if (await handleCostShareRequest(req, res, readJson)) return
   if (await handleInteriorPreview(req, res, readJson)) return
+  if (await handleExistingPlan(req, res, readJson)) return
 
   if (await handleVillaRequest(req, res, readJson)) return
 
@@ -209,59 +211,6 @@ const server = createServer(async (req, res) => {
     } catch(error) {return send(res,400,{error:String(error?.message || error)})}
   }
 
-  // ---- AI interior render (SDXL + ControlNet via ComfyUI, modular provider) ----
-  if (req.method === 'GET' && req.url === '/api/interior/health') {
-    resolveProvider()
-      .then(({ activeId, reachable, note }) =>
-        send(res, 200, { provider: activeId, reachable, note }),
-      )
-      .catch((e) => send(res, 200, { provider: 'error', reachable: false, note: String(e?.message || e) }))
-    return
-  }
-
-  if (req.method === 'POST' && req.url === '/api/interior') {
-    readJson(req, 40e6)
-      .then(async (p) => {
-        const { beauty, depth, edge, positive, negative = '', params = {} } = p || {}
-        if (!beauty || !depth || !edge || !positive) {
-          return send(res, 400, { error: 'beauty, depth, edge and positive are required' })
-        }
-        res.writeHead(200, {
-          'content-type': 'text/event-stream',
-          'cache-control': 'no-cache, no-transform',
-          connection: 'keep-alive',
-          'access-control-allow-origin': '*',
-          'x-accel-buffering': 'no',
-        })
-        const sse = (event, data) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
-        let pct = 0
-        const onProgress = (p2, stage) => {
-          if (typeof p2 === 'number') pct = Math.max(pct, Math.min(99, p2))
-          sse('progress', { pct, stage: stage || '' })
-        }
-        const ping = setInterval(() => res.write(': keep-alive\n\n'), 15000)
-        try {
-          const out = await generateInteriorWithFallback({
-            beauty,
-            depth,
-            edge,
-            positive,
-            negative,
-            params,
-            onProgress,
-          }, (note) => sse('progress', { pct, stage: note }))
-          sse('done', { imageBase64: out.imageBase64, mimeType: out.mimeType || 'image/png', meta: out.meta || {} })
-        } catch (e) {
-          sse('error', { error: String(e?.message || e) })
-        } finally {
-          clearInterval(ping)
-          res.end()
-        }
-      })
-      .catch((e) => send(res, 400, { error: String(e?.message || e) }))
-    return
-  }
-
   if ((req.method === 'GET' || req.method === 'HEAD') && SERVE_STATIC) {
     return serveStatic(req, res)
   }
@@ -270,9 +219,8 @@ const server = createServer(async (req, res) => {
 })
 
 server.listen(PORT, () => {
-  const interior = providerName()
   console.log(
     `[formstead] http://localhost:${PORT}  static=${SERVE_STATIC ? 'dist' : 'off'}  ` +
-      `render=gemini-web/comfyui/mock  interior=${interior}`,
+      `render=gemini-web/comfyui/mock  interior=blender-360`,
   )
 })

@@ -108,15 +108,21 @@ export const MEMBER_ROLE_LABEL: Record<MemberRole, string> = {
   infant: 'Infant',
 }
 
-/** a senior needs the ground floor unless the brief says otherwise */
+/** a senior needs the ground floor unless the brief says otherwise. `floor` is the level the member's bedroom should
+ *  be on (0 = ground, 1 = first floor ...); absent means any floor. needsGroundFloor is kept equal to floor === 0. */
 export const memberSchema = z.preprocess(
-  (v) =>
-    v && typeof v === 'object' && !('needsGroundFloor' in v) && (v as { role?: unknown }).role === 'senior'
-      ? { ...v, needsGroundFloor: true }
-      : v,
+  (v) => {
+    if (!v || typeof v !== 'object') return v
+    let m = v as { role?: unknown; needsGroundFloor?: unknown; floor?: unknown }
+    if (!('needsGroundFloor' in m) && m.role === 'senior') m = { ...m, needsGroundFloor: true }
+    if (m.floor === undefined && m.needsGroundFloor === true) m = { ...m, floor: 0 }
+    if (typeof m.floor === 'number') m = { ...m, needsGroundFloor: m.floor === 0 }
+    return m
+  },
   z.object({
     role: memberRoleSchema.default('adult'),
     needsGroundFloor: z.boolean().default(false),
+    floor: z.number().int().min(0).max(3).optional(),
   }),
 )
 export type Member = z.infer<typeof memberSchema>

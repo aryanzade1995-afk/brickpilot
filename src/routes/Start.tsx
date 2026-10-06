@@ -1,9 +1,23 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight, Check, Home, HardHat } from 'lucide-react'
+import { ArrowRight, Check, Home, HardHat, PencilRuler } from 'lucide-react'
 import { useStudio } from '@/state/studio.ts'
 import { useProjects } from '@/state/projects.ts'
 
 /* The first page of the product: before the brief, choose how to begin. */
+
+function DrawingArt() {
+  return (
+    <svg viewBox="0 0 220 130" preserveAspectRatio="xMidYMid meet" className="h-full w-full" role="img" aria-label="A hand-drawn plan becoming a 3D house">
+      <rect x="14" y="14" width="86" height="102" fill="#FBFAF6" stroke="#9AA0A6" />
+      <path d="M24 26 H90 V106 H24 Z M24 64 H58 M58 26 V64 M70 64 V106 M58 64 H90" fill="none" stroke="#3B4A6B" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M58 64 a10 10 0 0 1 10 -10" fill="none" stroke="#3B4A6B" strokeWidth="1" />
+      <path d="M110 65 h22" stroke="#E0873A" strokeWidth="2.5" markerEnd="url(#arrowhead)" />
+      <defs><marker id="arrowhead" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 Z" fill="#E0873A" /></marker></defs>
+      <path d="M150 58 L178 44 L206 58 L206 98 L178 112 L150 98 Z" fill="#FDF1DD" stroke="#141414" strokeWidth="1.5" />
+      <path d="M150 58 L178 72 L206 58 M178 72 V112" fill="none" stroke="#141414" strokeWidth="1.5" />
+    </svg>
+  )
+}
 
 function NewVillaArt() {
   return (
@@ -47,6 +61,18 @@ const OPTIONS = [
     art: <NewVillaArt />,
   },
   {
+    id: 'drawing',
+    to: '/workspace/existing?input=drawing',
+    icon: PencilRuler,
+    eyebrow: 'I have a plan drawing',
+    title: 'Start from my plan',
+    body: 'Upload a photo of a hand-drawn or contractor plan. We read the rooms, walls, doors and size, draw it as a proper 2D plan and build it in 3D.',
+    points: ['Reads the sketch on this computer', 'Standard sizes filled in, all editable', 'Valid 2D plan, then 3D'],
+    cta: 'Upload my plan',
+    caption: 'Sketch → 2D plan → 3D',
+    art: <DrawingArt />,
+  },
+  {
     id: 'existing',
     to: '/workspace/existing',
     icon: HardHat,
@@ -75,13 +101,13 @@ export function Start() {
         <span className="label text-accent">Where would you like to begin?</span>
       </div>
       <h1 className="font-display text-[clamp(2.2rem,5vw,3.6rem)] font-medium leading-[1.05] tracking-[-0.02em]">
-        Two ways in<span className="text-accent">.</span>
+        Three ways in<span className="text-accent">.</span>
       </h1>
       <p className="mt-5 max-w-xl text-lg leading-relaxed text-ink-dim">
-        Design a new house from scratch, or carry on from a structure that is already partly built. You can always come back here.
+        Design a new house from scratch, start from a plan you already have, or carry on from a structure that is partly built. You can always come back here.
       </p>
 
-      <div className="mt-12 grid gap-6 md:grid-cols-2">
+      <div className="mt-12 grid gap-6 md:grid-cols-3">
         {OPTIONS.map((o) => (
           <Link key={o.id} to={o.to} onClick={() => { if (o.id === 'new') startNewVilla() }}
             className="group flex flex-col border border-line bg-bg-raised transition-colors hover:border-accent focus-visible:border-accent focus-visible:outline-none">

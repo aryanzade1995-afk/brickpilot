@@ -39,6 +39,7 @@ export type Calibration =
 export type RoadSide = 'N' | 'E' | 'S' | 'W'
 
 export type Answers = {
+  floorHeightM?: number
   plotWidthM: number
   plotDepthM: number
   columnSizeMm: number

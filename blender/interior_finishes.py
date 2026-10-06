@@ -310,6 +310,113 @@ def note(text):
     print(f'@@note {text}', flush=True)
 
 
+def kitchen_details(fin, furniture, dims, box, principled, hex_rgb, counter, cabinets, out):
+    """Dress the existing fitted runs; the room and its openings stay untouched."""
+    handles = principled('finish-kitchen-hardware', (0.55, 0.57, 0.59), .18, metal=1)
+    recess = principled('finish-kitchen-recess', (0.015, 0.018, 0.02), .6)
+    hardware = fin.get('kitchenHardware') or {}
+    for f in furniture:
+        if f['mat'] != 'panel' or not ('-counter' in f['id'] or '-upper' in f['id']):
+            continue
+        x, y, z = f['pos']
+        sx, sy, sz = f['size']
+        gaps = {'N': z + dims['d']/2, 'S': dims['d']/2-z, 'W': x+dims['w']/2, 'E': dims['w']/2-x}
+        side = min(gaps, key=gaps.get)
+        width, depth = (sx, sz) if side in 'NS' else (sz, sx)
+        n = max(1, math.ceil(width / .6))
+        upper = '-upper' in f['id'] or 'wall-cabinet' in f['id']
+        door_h = sy - (.04 if upper else .12)
+        door_y = y if upper else y + .04
+        for k in range(n):
+            along = -width/2 + (k+.5)*width/n
+            centre = (x+along, door_y, z) if side in 'NS' else (x, door_y, z+along)
+            front = front_of(side, centre, depth)
+            rows = 3 if hardware.get('drawers') and not upper else 1
+            for row in range(rows):
+                p = (front[0], door_y-door_h/2+(row+.5)*door_h/rows, front[2])
+                shutter = box(f'{f["id"]}-front-{k}-{row}', p, oriented(side, width/n-.006, door_h/rows-.006, .018), cabinets)
+                shutter['finish_item'] = 'kitchen-cabinets'
+                shutter['finish_name'] = fin['cabinets']['name']
+                hp = front_of(side, (p[0], p[1]+door_h/rows*.35, p[2]), .035)
+                box(f'{f["id"]}-handle-{k}-{row}', hp, oriented(side, min(.18,width/n*.5), .015, .025), recess if hardware.get('handleless') else handles)
+        if not upper:
+            box(f'{f["id"]}-toe', front_of(side,(x,.06,z),depth-.025), oriented(side,width-.02,.1,.015),recess)
+
+    sink_spec = fin.get('kitchenSink')
+    sink = next((f for f in furniture if f['id'].endswith('-sink')), None)
+    if not sink_spec or not sink or not counter:
+        return
+    x, _, z = sink['pos']
+    top = next((f for f in furniture if '-top' in f['id'] and f['mat']=='stone'
+                and abs(x-f['pos'][0]) < f['size'][0]/2 and abs(z-f['pos'][2]) < f['size'][2]/2), None)
+    if not top:
+        return
+    tx, ty, tz = top['pos']
+    tw, th, td = top['size']
+    sw, sd = min(sink['size'][0],tw-.06), min(sink['size'][2],td-.06)
+    if min(sw,sd) < .15:
+        return
+    left, right, near, far = tx-tw/2, tx+tw/2, tz-td/2, tz+td/2
+    a, b, c, d = x-sw/2, x+sw/2, z-sd/2, z+sd/2
+    if a <= left or b >= right or c <= near or d >= far:
+        return
+    out.setdefault('skip',set()).update((top['id'],sink['id']))
+    # Four worktop strips leave a real opening, so the selected sink is visible.
+    for tag,p,s in (
+        ('left',((left+a)/2,ty,tz),(a-left,th,td)),
+        ('right',((b+right)/2,ty,tz),(right-b,th,td)),
+        ('near',(x,ty,(near+c)/2),(sw,th,c-near)),
+        ('far',(x,ty,(d+far)/2),(sw,th,far-d)),
+    ):
+        obj=box(f'{top["id"]}-{tag}',p,s,counter)
+        obj['finish_item']='kitchen-counter'
+        obj['finish_name']=fin['counter']['name']
+    body=next((f for f in furniture if f['id']==top['id'].replace('-top','-counter')),None)
+    rim=ty+th/2+.006
+    bottom=rim-.14
+    if body:
+        h=min(body['size'][1],bottom-.04)
+        out.setdefault('reshape',{})[body['id']]=([body['pos'][0],h/2,body['pos'][2]],[body['size'][0],h,body['size'][2]])
+    finish=sink_spec.get('finish','steel')
+    material=principled('finish-kitchen-sink',hex_rgb('#252729' if finish=='black' else '#F2F2EE' if finish=='white' else '#BBC0C3'),.3,metal=.7 if finish=='steel' else 0)
+    for tag,p,s in (
+        ('n',(x,rim,c), (sw+.025,.012,.025)),
+        ('s',(x,rim,d), (sw+.025,.012,.025)),
+        ('w',(a,rim,z), (.025,.012,sd)),
+        ('e',(b,rim,z), (.025,.012,sd)),
+    ):
+        box(f'kitchen-sink-rim-{tag}',p,s,material,bevel=.002)
+    long_x=sw>=sd
+    bowls=sink_spec.get('bowls',1)
+    for k in range(bowls):
+        bw,bd=(sw/bowls,sd) if long_x else (sw,sd/bowls)
+        bx,bz=(a+(k+.5)*bw,z) if long_x else (x,c+(k+.5)*bd)
+        base=box(f'kitchen-sink-bowl-{k}',(bx,bottom,bz),(bw-.012,.012,bd-.012),material)
+        base['finish_item']='kitchen-sink'
+        base['finish_name']=sink_spec['name']
+        for tag,p,s in (
+            ('n',(bx,(rim+bottom)/2,bz-bd/2), (bw,.14,.012)),
+            ('s',(bx,(rim+bottom)/2,bz+bd/2), (bw,.14,.012)),
+            ('w',(bx-bw/2,(rim+bottom)/2,bz), (.012,.14,bd)),
+            ('e',(bx+bw/2,(rim+bottom)/2,bz), (.012,.14,bd)),
+        ):
+            box(f'kitchen-sink-{k}-{tag}',p,s,material)
+        bpy.ops.mesh.primitive_cylinder_add(vertices=32,radius=.023,depth=.003,location=to_blender((bx,bottom+.008,bz)))
+        bpy.context.object.name=f'kitchen-sink-drain-{k}'
+        bpy.context.object.data.materials.append(handles)
+    tap=next((f for f in furniture if f['id'].endswith('-tap')),None)
+    if tap:
+        out['skip'].add(tap['id'])
+        fx,_,fz=tap['pos']
+        curve=bpy.data.curves.new('kitchen-faucet','CURVE')
+        curve.dimensions='3D';curve.bevel_depth=.014;curve.bevel_resolution=4
+        spline=curve.splines.new('BEZIER');spline.bezier_points.add(3)
+        for p,co in zip(spline.bezier_points,[(fx,rim,fz),(fx,rim+.29,fz),(x,rim+.31,z),(x,rim+.22,z)]):
+            p.co=to_blender(co);p.handle_left_type=p.handle_right_type='AUTO'
+        obj=bpy.data.objects.new('kitchen-faucet',curve)
+        bpy.context.scene.collection.objects.link(obj);curve.materials.append(handles)
+
+
 def apply_finishes(data, box, principled, hex_rgb, kelvin_rgb, mats, shell_mats):
     """returns overrides the main renderer uses: fixture style for the ceiling lights and the lamp colour temperature"""
     fin = data.get('finishes')
@@ -324,6 +431,15 @@ def apply_finishes(data, box, principled, hex_rgb, kelvin_rgb, mats, shell_mats)
     if floor:
         shell_mats['slab'] = floor
 
+    wall = fin['walls']
+    shell_mats['wall'] = principled('finish-paint', hex_rgb(wall['color']), wall.get('rough', .78), metal=.35 if wall.get('metallic') else 0)
+    if wall.get('textured'):
+        nt = shell_mats['wall'].node_tree
+        noise, bump = nt.nodes.new('ShaderNodeTexNoise'), nt.nodes.new('ShaderNodeBump')
+        noise.inputs['Scale'].default_value = 140
+        bump.inputs['Strength'].default_value = .25; bump.inputs['Distance'].default_value = .004
+        nt.links.new(noise.outputs['Fac'], bump.inputs['Height']); nt.links.new(bump.outputs['Normal'], nt.nodes['Principled BSDF'].inputs['Normal'])
+
     # doors: the chosen internal door (texture, painted or glass leaf)
     door = fin['door']
     if door.get('glass'):
@@ -332,22 +448,72 @@ def apply_finishes(data, box, principled, hex_rgb, kelvin_rgb, mats, shell_mats)
         shell_mats['reveal'] = image_material('finish-door', door['image'], 1.0, 0.45, plank=True)
     else:
         shell_mats['reveal'] = principled('finish-door', hex_rgb(door['color']), .45)
+    main_door = fin.get('mainDoor', door)
+    if main_door.get('glass'):
+        main_mat = principled('finish-main-door', (.85,.92,.95), .03, transmission=1)
+    elif main_door.get('image'):
+        main_mat = image_material('finish-main-door',main_door['image'],1.0,.45,plank=True)
+    else: main_mat = principled('finish-main-door',hex_rgb(main_door['color']),.45)
+    out['trim_for'] = {}
+    glazing = fin.get('glazing', {})
+    shell_mats['glass'] = principled('finish-window-glass', (.65,.72,.76) if glazing.get('solar') else (.9,.95,.98), .65 if glazing.get('frosted') else .025, transmission=.4 if glazing.get('frosted') else 1)
+    for connected in data.get('connectedFinishes', []):
+        cf = connected.get('finishes')
+        if not cf: continue
+        prefix=connected['prefix']
+        materials={'slab':surface_material(prefix+'floor',cf['floor'],hex_rgb,'floor'),
+                   'wall':principled(prefix+'paint',hex_rgb(cf['walls']['color']),cf['walls'].get('rough',.78)),
+                   'ceil':principled(prefix+'ceiling',hex_rgb(cf['ceiling']['color']),.9)}
+        for b in shell:
+            if b['id'].startswith(prefix) and b['mat'] in materials: out['trim_for'][b['id']]=materials[b['mat']]
+    for b in shell:
+        if b['id'].startswith('connected-') or b['mat'] not in ('reveal','glass'):continue
+        side=wall_side(b)
+        if not side:continue
+        x,y,z=b['pos']; along=x if side in 'NS' else z
+        opening=next((o for o in data.get('openings',[]) if o['side']==side and abs(o.get('alongM',1e6)-along)<.04),None)
+        if not opening or opening['kind']=='window':continue
+        if opening['kind']=='entry':out['trim_for'][b['id']]=main_mat
+        hardware=fin.get('doorHardware',{})
+        metal_handle=principled('door-hardware-'+b['id'],(.18,.18,.18) if hardware.get('digital') else (.75,.77,.8),.18,metal=1)
+        width=b['size'][0] if side in 'NS' else b['size'][2]
+        pos=list(b['pos']);pos[1]=1.02;pos[0 if side in 'NS' else 2]+=width*.34
+        pos[2 if side in 'NS' else 0]+=.03 if side in 'NW' else -.03
+        obj=box('door-handle-'+b['id'],pos,oriented(side,.04,.22 if hardware.get('digital') else .12,.035),metal_handle,bevel=.007)
+        obj['finish_item']='door-hardware';obj['finish_name']=hardware.get('name','Standard')
 
     # window frames: trims around glass take the chosen frame colour, door trims stay with the walls
     frame = principled('finish-window-frame', hex_rgb(fin['windowFrame']['color']), .35, metal=0.6 if fin['windowFrame']['color'] == '#B9BDC1' else 0)
     for b in shell:
         side = wall_side(b)
-        if b['mat'] != 'glass' or not side:
+        if b['mat'] != 'glass' or not side or b['id'].startswith('connected-'):
             continue
         (x, y, z), (sx, sy, sz) = b['pos'], b['size']
         width = sx if side in 'NS' else sz
         along = x if side in 'NS' else z
-        bars = [(along, y + sy / 2 - 0.03, width + 0.1, 0.06), (along, y - sy / 2 + 0.03, width + 0.1, 0.06),
-                (along - width / 2 - 0.02, y, 0.06, sy), (along + width / 2 + 0.02, y, 0.06, sy), (along, y, 0.035, sy)]
+        thin=.025 if fin['windowFrame'].get('slim') else .06
+        bars = [(along, y + sy / 2 - thin/2, width, thin), (along, y - sy / 2 + thin/2, width, thin),
+                (along - width / 2 + thin/2, y, thin, sy), (along + width / 2 - thin/2, y, thin, sy)]
+        if fin['windowFrame'].get('style')!='fixed':bars.append((along,y,.035,sy))
+        if fin['windowFrame'].get('style')=='sliding':bars.append((along+.035,y,.025,sy))
         for k, (a, cy, w, h) in enumerate(bars):
             p = (a, cy, z) if side in 'NS' else (x, cy, a)
             box(f'frame-{b["id"]}-{k}', p, oriented(side, w, h, 0.07), frame)
-    out['trim_for'] = {}
+        if glazing.get('double'):
+            box('double-pane-'+b['id'],(x,y,z),oriented(side,width,sy,.008),shell_mats['glass'])
+        gr=fin.get('grills',{})
+        if gr.get('bars') or gr.get('mesh'):
+            mat=principled('grill-'+b['id'],(.70,.72,.74) if gr.get('stainless') else (.08,.09,.10),.25,metal=1)
+            spacing=.055 if gr.get('mesh') else .12 if gr.get('decorative') else .16
+            for k in range(1,max(2,int(width/spacing))):
+                a=along-width/2+k*width/max(2,int(width/spacing))
+                p=(a,y,z+.012) if side in 'NS' else (x+.012,y,a)
+                obj=box(f'grill-{b["id"]}-{k}',p,oriented(side,.0012 if gr.get('mesh') else .01,sy-.08,.0012 if gr.get('mesh') else .01),mat)
+                obj['finish_item']='window-grills';obj['finish_name']=gr.get('name','')
+            if gr.get('mesh') or gr.get('decorative'):
+                for k in range(1,max(2,int(sy/spacing))):
+                    cy=y-sy/2+k*sy/max(2,int(sy/spacing))
+                    box(f'grill-cross-{b["id"]}-{k}',(x,cy,z),oriented(side,width-.08,.0012 if gr.get('mesh') else .01,.008),mat)
 
     # wall tiles: full height in a bathroom, a backsplash over the counters in a kitchen
     tiles = fin.get('wallTiles')
@@ -370,7 +536,7 @@ def apply_finishes(data, box, principled, hex_rgb, kelvin_rgb, mats, shell_mats)
     cab_mat = None
     if cab:
         if cab.get('image') and Path(cab['image']).exists():
-            cab_mat = image_material('finish-cabinets', cab['image'], 0.8, 0.4)
+            cab_mat = image_material('finish-cabinets', cab['image'], 0.8, .18 if cab.get('gloss') else .4, gloss=cab.get('gloss',False))
         elif cab.get('glass'):
             cab_mat = principled('finish-cabinets', (0.8, 0.86, 0.88), .05, transmission=0.6)
         else:
@@ -387,7 +553,7 @@ def apply_finishes(data, box, principled, hex_rgb, kelvin_rgb, mats, shell_mats)
         fid = f['id']
         if counter and '-top' in fid and f['mat'] == 'stone':
             out.setdefault('furniture', {})[fid] = counter
-        elif cab_mat and ('-counter' in fid or 'wall-cabinet' in fid) and f['mat'] == 'panel':
+        elif cab_mat and ('-counter' in fid or '-upper' in fid or 'wall-cabinet' in fid) and f['mat'] == 'panel':
             out.setdefault('furniture', {})[fid] = cab_mat
         elif metal and f['mat'] == 'metal' and ('tap' in fid or 'shower' in fid or 'sink' in fid):
             out.setdefault('furniture', {})[fid] = metal
@@ -408,16 +574,23 @@ def apply_finishes(data, box, principled, hex_rgb, kelvin_rgb, mats, shell_mats)
                         size[1], pos[1] = 0.06, 0.03
                 out.setdefault('reshape', {})[fid] = (pos, size)
 
+    if cab_mat:
+        kitchen_details(fin, furniture, dims, box, principled, hex_rgb, counter, cab_mat, out)
+    if fin.get('sanitary'):
+        from interior_bathroom import apply_bathroom
+        apply_bathroom(data,box,principled,hex_rgb,out,metal)
+
     # bathroom: the chosen water heater on a clear wall, above head height
     heater = fin.get('waterHeater')
     if heater:
         spot = free_wall(shell, dims)
         if spot:
             side, along, _, _ = spot
-            w, h, d = (0.32, 0.42, 0.14) if heater['kind'] == 'instant' else (0.42, 0.5, 0.36)
+            w, h, d = (0.65,0.32,0.34) if (heater.get('profile') or {}).get('model')=='heater-horizontal' else (0.32, 0.42, 0.14) if heater['kind'] == 'instant' else (0.42, 0.5, 0.36)
             col = product_colour(heater.get('image'), hex_rgb('#F4F3F0'))
             c = on_wall(side, along, 2.0, dims, d)
-            box('water-heater', c, oriented(side, w, h, d), principled('finish-heater', col, .25), bevel=0.02)
+            obj=box('water-heater', c, oriented(side, w, h, d), principled('finish-heater', col, .25), bevel=0.02)
+            obj['finish_item']='water-heater';obj['finish_name']=heater['name']
             product_decal('water-heater-front', heater.get('image'), front_of(side, c, d), side, w * 0.98, h * 0.98)
             note(f'water heater on {side} wall at {along:.2f}')
         else:
@@ -458,7 +631,7 @@ def apply_finishes(data, box, principled, hex_rgb, kelvin_rgb, mats, shell_mats)
     if fan:
         col = product_colour(fan.get('image'), hex_rgb('#6B5B4E'))
         fmat = principled('finish-fan', col, .35, metal=0.3)
-        top = dims['h'] - 0.02
+        top = dims['h'] - (.25 if fin.get('ceiling',{}).get('type') not in ('plain','wooden') else .02)
         cx, _, cz = data['camera']
         fx = fz = 0.0
         if math.hypot(cx, cz) < 1.0:   # over the half of the room away from where the photo is taken
@@ -472,13 +645,17 @@ def apply_finishes(data, box, principled, hex_rgb, kelvin_rgb, mats, shell_mats)
         bpy.ops.mesh.primitive_cylinder_add(radius=0.11, depth=0.12, location=(bx, by, hub_y))
         hub = bpy.context.active_object
         hub.data.materials.append(fmat)
-        for k in range(3):
-            a = k * 2 * math.pi / 3
+        variant=(fan.get('profile') or {}).get('variant',0)
+        blades=5 if fan['style']=='chandelier' else 3
+        for k in range(blades):
+            a = k * 2 * math.pi / blades
             bpy.ops.mesh.primitive_cube_add(size=1, location=(bx + math.cos(a) * 0.45, by + math.sin(a) * 0.45, hub_y - 0.02))
             blade = bpy.context.active_object
-            blade.scale = (0.62, 0.11, 0.01)
+            blade.name=f'fan-blade-{k}'
+            blade.scale = (0.62, .11+.012*variant, 0.01)
             blade.rotation_euler = (0.08, 0, a)
             blade.data.materials.append(fmat)
+            blade['finish_item']='fans';blade['finish_name']=fan['name']
         if fan['style'] in ('underlight', 'chandelier'):
             glow = principled('fan-light', (1, 1, 1), .3, emission=kelvin_rgb(3500), strength=6)
             bpy.ops.mesh.primitive_uv_sphere_add(radius=0.1 if fan['style'] == 'underlight' else 0.16, location=(bx, by, hub_y - 0.12))
@@ -492,7 +669,9 @@ def apply_finishes(data, box, principled, hex_rgb, kelvin_rgb, mats, shell_mats)
             side, along, length, _ = spot
             glow = principled('finish-batten', (1, 1, 1), .3, emission=kelvin_rgb(6000), strength=8)
             note(f'batten on {side} wall')
-            box('batten', on_wall(side, along, min(dims['h'] - 0.3, 2.3), dims, 0.035), oriented(side, min(1.2, length - 0.2), 0.035, 0.035), glow)
+            variant=(batten.get('profile') or {}).get('variant',0)
+            obj=box('batten', on_wall(side, along, min(dims['h'] - 0.3, 2.3), dims, 0.035), oriented(side, min(1.2, length - 0.2), .035+.005*variant, .035+.005*variant), glow)
+            obj['finish_item']='electrical-battens';obj['finish_name']=batten['name']
 
     out['lights_kind'] = fin['lights']['kind']
     bulb = (fin.get('bulb') or {}).get('name', '')

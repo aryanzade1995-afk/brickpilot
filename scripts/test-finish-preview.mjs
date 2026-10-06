@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { existsSync } from 'node:fs'
 import { specsCatalogue } from '../src/lib/cost/catalogue.ts'
 import { finishPreview } from '../src/lib/finishes/preview.ts'
-import { optionImage, photographedOptions, photoRequiredGroups } from '../src/lib/finishes/optionImage.ts'
+import { optionImage, optionPhotos, photographedOptions, photoRequiredGroups } from '../src/lib/finishes/optionImage.ts'
 import { detailedPreviewParts } from '../src/lib/finishes/previewGeometry.ts'
 import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
@@ -18,6 +18,9 @@ test('surface previews use the same audited image as their option; installed pho
   const result=finishPreview(i,o)
   if(result.texture&&!result.texture.startsWith('https:'))assert.ok(existsSync(`public${result.texture}`),o.id)
   const image=optionImage(o)
+  assert.ok(!/metal_plate/i.test(image?.src??''),o.id)
+  assert.ok(!/metal_plate/i.test(result.texture??''),o.id)
+  assert.ok(optionPhotos(o).every(p=>![p.file,p.webFile,p.source].some(path=>/metal_plate/i.test(path))),o.id)
   if(result.catalogueColour&&image?.surface)assert.equal(result.texture,image.src,o.id)
   if(result.catalogueColour&&image&&!image.surface)assert.equal(result.texture,undefined,o.id)
  }
@@ -30,7 +33,8 @@ test('requested sections offer only photographed options; hidden IDs remain vali
  assert.ok(item('kitchen-layout').options.length>0)
  assert.equal(photographedOptions(item('kitchen-layout')).length,0)
  assert.ok(photographedOptions(item('internal-door')).length>=9)
- assert.ok(photographedOptions(item('balcony-railings')).length>=10)
+ // Retain the real railing references after retiring the three checker-plate placeholders.
+ assert.ok(photographedOptions(item('balcony-railings')).length>=7)
 })
 test('local supplier image copies are byte-identical to their audited download hashes',()=>{
  const assets=JSON.parse(readFileSync('src/lib/finishes/imageAssets.json','utf8'))

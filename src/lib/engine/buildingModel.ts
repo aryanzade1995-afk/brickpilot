@@ -9,6 +9,7 @@ import { fnv } from './massing/rng.ts'
 import { DOUBLE_HEIGHT_LIMITS } from './planner/doubleHeight.ts'
 import { sizeStructure, type StructuralSizing } from './structuralSizing.ts'
 import { quantityRules } from '../cost/data/quantityRules.ts'
+import { OUTDOOR_ASSET_VERSION } from './outdoorAssets.ts'
 
 /** A serialized view of the verified 2D plan. All plan coordinates are millimetres. */
 export type BuildingFloor = {
@@ -173,7 +174,8 @@ export function createBuildingModel(design: Design): BuildingModel {
     },
     setbacks,
   }
-  const signature = JSON.stringify(base)
+  // Retire cached meshes built before porch pillars were checked against the edited geometry.
+  const signature = JSON.stringify([OUTDOOR_ASSET_VERSION, base])
   const hash = (value: string) => fnv(value).toString(16).padStart(8, '0')
   // Preserve the original seed namespace projection. These historical sizes
   // are identity tokens only: no drawing, quantity or mesh uses them as dimensions.

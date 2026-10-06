@@ -112,9 +112,14 @@ test('the 360 room is dressed in exactly what was chosen on Finishes & Cost, and
   const l = interiorFinishes(chosen, living.floor, living.id)
   assert.match(l.fan.name, /Jupiter/); assert.match(l.fan.image, /svc-fans-2/)
   assert.ok(l.summary.some((s) => s.label === 'Fans' && /Jupiter/.test(s.value)))
-  // generic allowances never show a material texture as a fixture's picture
+  // generic allowances never show a material texture as a fixture's picture: they show the product their Finishes card pictures
   const p = interiorFinishes(plain, bath.floor, bath.id)
-  assert.equal(p.switches.image, undefined); assert.equal(p.sanitary.image, undefined)
+  const { representativeOption } = await import('../src/lib/finishes/optionImage.ts')
+  const { specsCatalogue, resolveSpecification } = await import('../src/lib/cost/catalogue.ts')
+  const card = representativeOption(specsCatalogue.items.find((i) => i.id === 'switches'), resolveSpecification(brief, 'switches'))
+  assert.notEqual(card.id, resolveSpecification(brief, 'switches').id)
+  assert.match(p.switches.image, new RegExp(card.id)); assert.ok(!/textures\//.test(p.sanitary.image ?? ''))
+  assert.equal(p.specifications.find((s) => s.item === 'switches').optionId, resolveSpecification(brief, 'switches').id, 'the saved choice stays the allowance itself')
   // the panorama's identity includes the finishes: change one and it is rendered again
   const scene = (d) => { const s = createInteriorScene(d, 'fixture', defaultConfiguration(kitchen.id, kitchen.floor), brief.style.character); s.finishes = interiorFinishes(d, kitchen.floor, kitchen.id); return s }
   assert.notEqual(previewKey(scene(plain)), previewKey(scene(chosen)))
@@ -156,4 +161,32 @@ test('rooms are furnished by rule: key pieces present, nothing in a door swing, 
     for (const p of pieces) { const f = fp(p); assert.ok(!(cx > f.x0 && cx < f.x1 && cz > f.z0 && cz < f.z1), `camera not inside ${p.id}`) }
   }
   assert.ok(checked >= 5, 'living, dining, bedrooms and study are all furnished')
+})
+
+test('kitchen selections include fitted sink and hardware and the opening view faces the fitted run', async () => {
+  const { interiorFinishes } = await import('../src/lib/interior/finishes.ts')
+  const kitchen = previewRooms(design).find(r => /kitchen/i.test(r.id))
+  const chosen = structuredClone(design)
+  chosen.model.brief.specs.overrides = { 'kitchen-counter': 'counter-onyx-photo', 'kitchen-cabinets': 'cab-dark-surface',
+    'kitchen-sink': 'premium', 'kitchen-hardware': 'hardware-blum', 'kitchen-wall-tiles': 'wall-subway' }
+  const finishes = interiorFinishes(chosen, kitchen.floor, kitchen.id)
+  assert.match(finishes.counter.image, /onyx-look/)
+  assert.match(finishes.cabinets.image, /dark_wood/)
+  assert.equal(finishes.kitchenSink.bowls, 2)
+  assert.equal(finishes.kitchenHardware.drawers, true)
+  assert.ok(finishes.summary.some(s => /sink/i.test(s.label) && s.value === 'Premium'))
+  assert.ok(finishes.summary.some(s => /hardware/i.test(s.label) && /Premium drawer/i.test(s.value)))
+  const scene = createInteriorScene(chosen, 'kitchen-spec-fixture', defaultConfiguration(kitchen.id,kitchen.floor),brief.style.character)
+  const run = scene.furniture.filter(b => /-counter\d+$/.test(b.id)).sort((a,b) => Math.max(...b.size)-Math.max(...a.size))[0]
+  assert.ok(run)
+  const angle = scene.initialYaw*Math.PI/180
+  const dx = run.pos[0]-scene.camera[0], dz = run.pos[2]-scene.camera[2]
+  assert.ok(Math.sin(angle)*dx-Math.cos(angle)*dz > .95*Math.hypot(dx,dz), 'initial panorama looks at the kitchen finishes')
+  for (const c of scene.furniture.filter(b => /-counter\d+$/.test(b.id)))
+    assert.ok(!(scene.furniture.some(b => b.id === c.id.replace('counter','upper')) && scene.furniture.some(b => b.id === `${c.id}-wall-cabinet`)), 'upper cabinets are not duplicated')
+  const base = createInteriorScene(design,'kitchen-spec-fixture',scene.config,brief.style.character)
+  assert.deepEqual(scene.shell,base.shell)
+  assert.deepEqual(scene.openings,base.openings)
+  assert.equal(JSON.stringify(design),original)
+  assert.notEqual(previewKey({...scene,finishes}),previewKey({...scene,finishes:interiorFinishes(design,kitchen.floor,kitchen.id)}))
 })

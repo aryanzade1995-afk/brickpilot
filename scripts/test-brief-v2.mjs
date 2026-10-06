@@ -197,3 +197,20 @@ test('GROUND_FLOOR_BEDROOM_MISSING is a hard error when a senior has no ground b
   const ok = validate(generate(compile(b)))
   assert.ok(!ok.findings.some((f) => f.code === 'GROUND_FLOOR_BEDROOM_MISSING'))
 })
+test('a member can ask for a bedroom on any floor the villa has; ground means needs the ground floor', () => {
+  const b = household(['adult', 'adult', 'child', 'child'])
+  b.levels.storeys = 2
+  b.rooms.bedroomsWithBath = 2
+  b.rooms.bedroomsNoBath = 1
+  b.household.members[0].floor = 2
+  b.household.members[1].floor = 2
+  const plain = compile(household(['adult', 'adult', 'child', 'child'])).floors.flatMap((f) => bedrooms(f)).length
+  const m = compile(b)
+  assert.ok(bedrooms(m.floors[2]).length >= 1, 'the couple asked for the 2nd floor')
+  assert.equal(m.floors.flatMap((f) => bedrooms(f)).length, 3, 'the brief decides how many bedrooms; floors only place them')
+  assert.ok(plain > 0)
+  const ground = briefSchema.parse({ ...b, household: { ...b.household, members: [{ role: 'adult', floor: 0 }] } })
+  assert.equal(ground.household.members[0].needsGroundFloor, true)
+  const legacy = briefSchema.parse({ ...b, household: { ...b.household, members: [{ role: 'senior' }] } })
+  assert.equal(legacy.household.members[0].floor, 0, 'a senior still defaults to the ground floor')
+})

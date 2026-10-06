@@ -16,7 +16,7 @@ import { applyPaintColour, paintColour, colourValue } from '@/lib/finishes/paint
 import { PaintColours } from './PaintColours.tsx'
 import { KitchenCounter } from './KitchenCounter.tsx'
 import { cx } from '@/lib/cx.ts'
-import { photographedOptions } from '@/lib/finishes/optionImage.ts'
+import { optionPhotos, photographedOptions } from '@/lib/finishes/optionImage.ts'
 
 export function SpecificationPanel({ item, brief, cost, design, room, onClose, onUse }: {
   item: SpecItem; brief: Brief; cost: CostEstimate; design: Design; room?: string; onClose: () => void; onUse: (brief: Brief) => void
@@ -99,7 +99,7 @@ function OptionDetails({ item, option }: { item: SpecItem; option: SpecOption })
   const product = flooringProduct(option.flooringProductId)
   const finish = finishProduct(option.finishProductId), experience = experienceOption(option.experienceOptionId)
   const rate = specificationRate(option.rateId)
-  const photos = ['windows-glass-grills','doors','railings-gates','plumbing-sanitary','false-ceiling','roof-exterior','external-works','painting'].includes(item.group) ? [] : option.photos.filter(p => p.kind === 'closeup' || p.kind === 'installed')
+  const photos = ['windows-glass-grills','doors','railings-gates','plumbing-sanitary','false-ceiling','roof-exterior','external-works','painting'].includes(item.group) ? [] : optionPhotos(option).filter(p => p.kind === 'closeup' || p.kind === 'installed')
   return <section className="min-w-0"><h3 className="font-display text-lg">{option.name}</h3>
     {experience && <div className="mt-3 space-y-2 text-xs leading-relaxed text-ink-dim"><p>{experience.note}</p><a href={experience.sourceUrl} target="_blank" rel="noopener noreferrer" className="underline">Official design / system reference</a><p>Product photograph unavailable: no verified matching installation photo. Interactive geometry above is a Visualisation, not a photograph or an AI-generated image.</p></div>}
     {product && <div className="mt-3 space-y-3 text-xs leading-relaxed text-ink-dim">

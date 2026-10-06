@@ -1,4 +1,5 @@
 import { newDesignSeed } from '@/lib/newDesignSeed.ts'
+import { measuredPlanSchema } from '@/lib/existing/survey.ts'
 import { selectAdaptiveVilla } from '@/lib/engine/fingerprint/AdaptiveVillaSearch.ts'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
@@ -222,9 +223,11 @@ function replayResult(plan: Design, seed: number, inspiration: InspirationPrefer
 function parseExisting(value: unknown): { structure: ExistingStructure; seed: number } | null {
   const v = value as { structure?: Partial<ExistingStructure>; seed?: unknown } | null
   const s = v?.structure
-  const point = (p: unknown) => !!p && typeof (p as { x: unknown }).x === 'number' && typeof (p as { y: unknown }).y === 'number'
+  const point = (p: unknown) => !!p && Number.isFinite((p as { x: unknown }).x) && Number.isFinite((p as { y: unknown }).y)
   if (!s || !Array.isArray(s.columns) || !Array.isArray(s.footings) || !Array.isArray(s.beams) || !Array.isArray(s.walls) || typeof s.storeysBuilt !== 'number') return null
   if (!s.columns.every((c) => point(c.at)) || !s.footings.every((f) => point(f.at)) || !s.beams.every((b) => point(b.a) && point(b.b))) return null
+  if(s.position&&!point(s.position))return null
+  if(s.measuredPlan&&!measuredPlanSchema.safeParse(s.measuredPlan).success)return null
   return { structure: s as ExistingStructure, seed: Number.isSafeInteger(v?.seed) ? (v!.seed as number) : 1 }
 }
 

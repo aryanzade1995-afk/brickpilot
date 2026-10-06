@@ -10,6 +10,8 @@ def export_glb(path):
     for material in bpy.data.materials:
         if not material.use_nodes:
             continue
+        if material.get('asset_pbr'):
+            continue  # Preserve real asset images and normal maps in the browser too.
         for shader in (n for n in material.node_tree.nodes if n.type == 'BSDF_PRINCIPLED'):
             for key in ('Base Color', 'Normal'):
                 for link in list(shader.inputs[key].links):

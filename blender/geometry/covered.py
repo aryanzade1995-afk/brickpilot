@@ -17,6 +17,7 @@ from .outdoor import boundary_edges, create_railing
 from .plates import subtract_rectangles
 from .site import SITE_LEVELS
 from .sizing import slab_thickness
+from .massing import mass_rect
 
 COVERED_ROOMS = ("parking", "verandah")
 SLAB = 200
@@ -87,31 +88,9 @@ def _sphere(scene, name, x, y, z, radius, material, source):
 
 
 def create_car(scene, name, x, y, grade, along_y):
-    """A plain saloon in the theme's metal, glass cabin and dark tyres."""
-    length, width, wheel = 4400, 1760, 310
-    w, d = (width, length) if along_y else (length, width)
-    # body on its wheels; a glass cabin set back from the bonnet under a
-    # painted roof, with slim pillars at its corners
-    scene.box(f"{name}_Body", "LANDSCAPE", x, y, grade + 260, w, d, 560, "metal", name, bevel=110)
-    back = 250  # the cabin sits slightly rearward of centre
-    cx, cy = (x, y + back) if along_y else (x + back, y)
-    cw, cd = (width - 200, 2300) if along_y else (2300, width - 200)
-    scene.box(f"{name}_Glass", "LANDSCAPE", cx, cy, grade + 820, cw, cd, 430, "glass", name, bevel=40)
-    rw, rd = (cw + 30, cd - 300) if along_y else (cw - 300, cd + 30)
-    scene.box(f"{name}_Roof", "LANDSCAPE", cx, cy, grade + 1250, rw, rd, 70, "metal", name, bevel=30)
-    for px in (-1, 1):
-        for py in (-1, 1):
-            ox = px * (cw / 2 - 40) if along_y else px * (cw / 2 - 150)
-            oy = py * (cd / 2 - 150) if along_y else py * (cd / 2 - 40)
-            scene.box(f"{name}_Pillar_{px}{py}", "LANDSCAPE", cx + ox, cy + oy, grade + 820,
-                      80, 80, 430, "metal", name, bevel=10)
-    for sx in (-1, 1):
-        for sy in (-1, 1):
-            ax = x + sx * (width / 2 - 90) if along_y else x + sx * (length / 2 - 780)
-            ay = y + sy * (length / 2 - 780) if along_y else y + sy * (width / 2 - 90)
-            # the axle runs across the car
-            _cylinder(scene, f"{name}_Wheel_{sx}{sy}", ax, ay, grade + wheel, wheel, 200,
-                      "x" if along_y else "y", "metal", name)
+    """A full-scale detailed real car; its mirrors are part of the checked envelope."""
+    from .realistic_props import create_real_car
+    return create_real_car(scene,name,x,y,grade,along_y)
 
 
 def _has_access(piece, doors, floor_id):
@@ -199,9 +178,14 @@ def create_covered_outdoor(scene, building, massing, facade=None):
     top = ground["elevationMm"] + ground["heightMm"]
     house = ground["footprint"]
     sheltering = [*(upper["footprint"] if upper else []),
-                  *[{"x": m["x"], "y": m["y"], "w": m["width"], "h": m["depth"]} for m in massing["masses"]
+                  *[mass_rect(m) for m in massing["masses"]
                     if m["usage"] in ("terrace", "canopy") and m["elevation"] < top + 400]]
     report = {"roofs": 0, "balconies": 0, "cars": 0}
+    checked = (facade or {}).get("coveredOutdoor")
+    if checked:
+        if checked.get("sourcePlanId") != building["planId"] or checked.get("issues"):
+            raise ValueError("Porch supports do not pass validation for the current plan")
+        scene.warnings.extend(checked.get("omissions", []))
     roofed = []
     for room in building["rooms"]:
         if room["floorId"] != ground["id"] or not room["outdoor"] or not (room["id"] in COVERED_ROOMS or room["id"].startswith("verandahWing")):
@@ -209,7 +193,15 @@ def create_covered_outdoor(scene, building, massing, facade=None):
         r = room["rect"]
         # the floor of the porch: paving, level with the approach
         scene.rect(f"GF_{room['id']}_Floor", "LANDSCAPE", r, grade + 10, 60, "paving", room["semanticId"], bevel=3)
-        if room["id"] == "parking":
+        if room["id"] == "parking" and checked:
+            for car in checked["cars"]:
+                if car["roomId"] != room["semanticId"]:
+                    continue
+                cr = car["rect"]
+                create_car(scene, car["id"], cr["x"] + cr["w"]/2, cr["y"] + cr["h"]/2,
+                           grade + 70, car["alongY"])
+                report["cars"] += 1
+        elif room["id"] == "parking":
             # cars face the driveway: nose-out along the axis it runs on
             drive = next((f["rect"] for f in building.get("siteFeatures", []) if f["kind"] == "driveway" and
                           _touch_length(r, [f["rect"]]) > 0), None)
@@ -230,7 +222,14 @@ def create_covered_outdoor(scene, building, massing, facade=None):
             if piece["w"] < 600 or piece["h"] < 600:
                 continue
             name = f"GF_{room['id']}_Roof_{index:02d}"
-            slabs = [s for s in subtract_rectangles(_inset_from(piece, house, WALL_CLEAR), cuts) if s["w"] >= 50 and s["h"] >= 50]
+            if checked and name in checked.get("openRoofs", []):
+                continue  # no safe pillar layout exists: this piece is deliberately left open to the sky
+            source_roof = next((roof for roof in checked["roofs"] if roof["id"] == name), None) if checked else None
+            if checked and source_roof is None:
+                raise ValueError(f"{name} has no checked support layout")
+            if source_roof and (source_roof["rect"] != piece or source_roof["roomId"] != room["semanticId"]):
+                raise ValueError(f"{name} support layout does not follow its current room")
+            slabs = source_roof["slabs"] if source_roof else [s for s in subtract_rectangles(_inset_from(piece, house, WALL_CLEAR), cuts) if s["w"] >= 50 and s["h"] >= 50]
             for s_index, s in enumerate(slabs, 1):
                 scene.rect(f"{name}_Slab_{s_index:02d}", "ROOF", s, top - SLAB, SLAB, "concrete", room["semanticId"])
             report["roofs"] += 1
@@ -246,6 +245,8 @@ def create_covered_outdoor(scene, building, massing, facade=None):
                 if (ax == bx or ay == by) and gap > MAX_POST_SPAN:
                     extra = int(gap // MAX_POST_SPAN)
                     posts += [(ax + (bx - ax) * k / (extra + 1), ay + (by - ay) * k / (extra + 1)) for k in range(1, extra + 1)]
+            if source_roof:
+                posts = [(p["x"] + p["w"]/2, p["y"] + p["h"]/2) for p in source_roof["posts"]]
             for p_index, (px, py) in enumerate(posts, 1):
                 scene.box(f"{name}_Post_{p_index:02d}", "ROOF", px, py, grade + 70, POST, POST,
                           top - SLAB - grade - 70, "concrete", room["semanticId"])
@@ -343,9 +344,8 @@ def create_garden_trees(scene, building, seed, stream_class, limit=10):
     ground = min(building["floors"], key=lambda f: f["level"])
     grade = ground["elevationMm"] - building.get("structuralSizing", {}).get("plinthHeightMm", -SITE_LEVELS["grade"])
     house = [room["rect"] for room in building["rooms"] if room["floorId"] == ground["id"]]
-    # the road is plan south (+y): no tree stands in front of the facade line,
-    # so the street view of the villa stays clear
-    facade_line = min(r["y"] + r["h"] for r in ground["footprint"]) - 1500
+    # Forecourt lawns can carry trees too; the complete crown must keep paths,
+    # parking, door approaches and the house clear below.
     lawns = sorted((f for f in building.get("siteFeatures", []) if f["kind"] == "lawn"),
                    key=lambda f: -f["rect"]["w"] * f["rect"]["h"])
     trees = []
@@ -363,14 +363,18 @@ def create_garden_trees(scene, building, seed, stream_class, limit=10):
                 cell_w, cell_h = r["w"] / nx, r["h"] / ny
                 x = r["x"] + cell_w * (i + .5) + (stream.next() - .5) * max(0, cell_w - 2400)
                 y = r["y"] + cell_h * (j + .5) + (stream.next() - .5) * max(0, cell_h - 2400)
-                if y > facade_line or _near(x, y, house, 1500) or any(math.hypot(x - tx, y - ty) < 3600 for tx, ty in trees):
+                if _near(x, y, house, 1500) or any(math.hypot(x - tx, y - ty) < 3600 for tx, ty in trees):
                     continue
                 height = 2600 + stream.next() * 1400
                 name = f"Garden_Tree_{len(trees) + 1:02d}"
-                scene.box(f"{name}_Trunk", "LANDSCAPE", x, y, grade + 50, 180, 180, height, "wood", lawn["id"], bevel=20)
-                crown = 900 + stream.next() * 450
-                _sphere(scene, f"{name}_Crown_1", x, y, grade + height + crown * .45, crown, "leaf", lawn["id"])
-                _sphere(scene, f"{name}_Crown_2", x + crown * .45, y - crown * .3, grade + height + crown * .1, crown * .7, "leaf", lawn["id"])
-                _sphere(scene, f"{name}_Crown_3", x - crown * .4, y + crown * .35, grade + height + crown * .2, crown * .65, "leaf", lawn["id"])
+                from .realistic_props import create_real_tree
+                boundary = {'x':0,'y':0,'w':building['plot']['widthMm'],'h':building['plot']['depthMm']}
+                reserved = house + [f['rect'] for f in building.get('siteFeatures',[]) if f['kind'] != 'lawn']
+                reserved += [{'x':o.location.x*1000-o.dimensions.x*500,'y':o.location.y*1000-o.dimensions.y*500,
+                              'w':o.dimensions.x*1000,'h':o.dimensions.y*1000}
+                             for o in scene.collections['MASSING'].objects if o.name.startswith('EnvelopePier_')]
+                objects = create_real_tree(scene,name,x,y,grade+10,height+1000,stream.next()*math.tau,lawn['id'],reserved,boundary)
+                if not objects:
+                    continue
                 trees.append((x, y))
     return len(trees)

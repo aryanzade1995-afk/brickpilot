@@ -49,6 +49,8 @@ export type InteriorConfiguration = {
   furnitureDensity: Id<typeof DENSITIES>
 }
 export type Quality = 'fast' | 'high'
+/** Also retires browser-saved panoramas when fitted kitchen rendering changes. */
+export const INTERIOR_PREVIEW_VERSION = 'resolved-finishes-v3'
 
 export const defaultConfiguration = (roomId: string, floor: number): InteriorConfiguration => ({
   roomId, floor, style: 'modern', flooring: { material: 'beige-marble', color: '#D8CBB8' }, walls: { color: '#F2EADC' },
@@ -107,6 +109,7 @@ export function createInteriorScene(design: Design, designId: string, config: In
     return { id: p.id, mat: 'wood', pos: [p.x, p.h / 2, p.z], size: [fw, p.h, fd] }
   })
   const camera = standingPoint(clearRoom(architecture.boxes, shell.dims), [...furniture, ...solids, ...shell.boxes.filter(b => b.id.startsWith('column'))] as DollBox[])
+  const kitchenRun = furniture.filter(b => /-counter\d+$/.test(b.id)).sort((a,b) => Math.max(...b.size) - Math.max(...a.size))[0]
   return {
     designId,
     room: { id: config.roomId, name: shell.name, floor: shell.floorLevel, floorName: shell.floorName, dims: shell.dims, focal: shell.focal },
@@ -115,7 +118,7 @@ export function createInteriorScene(design: Design, designId: string, config: In
     pieces,
     openings: architecture.openings,
     camera,
-    initialYaw: { N: 0, E: 90, S: 180, W: 270 }[shell.focal],
+    initialYaw: kitchenRun ? Math.atan2(kitchenRun.pos[0]-camera[0], -(kitchenRun.pos[2]-camera[2])) * 180 / Math.PI : { N: 0, E: 90, S: 180, W: 270 }[shell.focal],
     daylightDir: shell.daylightDir,
     config,
     quality,
@@ -160,7 +163,8 @@ function kitchenExtras(furniture: DollBox[], shell: RoomBox[], dims: { w: number
       const ox = Math.abs(o.pos[0] - pos[0]) < (o.size[0] + size[0]) / 2 + 0.05, oz = Math.abs(o.pos[2] - pos[2]) < (o.size[2] + size[2]) / 2 + 0.3
       return ox && oz && top > y0 && bottom < y1
     })
-    if (!blocked) extra.push({ id: `${c.id}-wall-cabinet`, mat: 'panel', pos, size })
+    const existingUpper = furniture.some(b => b.id === c.id.replace('counter', 'upper'))
+    if (!blocked && !existingUpper) extra.push({ id: `${c.id}-wall-cabinet`, mat: 'panel', pos, size })
     const top = furniture.find((b) => b.id === c.id.replace('counter', 'top'))
     const sink = furniture.find((b) => /-sink$/.test(b.id) && Math.abs(b.pos[1] - (top?.pos[1] ?? 0)) < 0.2)
     if (top && len >= 1.2) {

@@ -1,10 +1,15 @@
 # Fast 360° Interior Preview
 
-Open AI Interior and use the Fast 360° panel above the existing AI image workflow.
+Open AI Interior and use the Fast 360° panel. The former room-camera AI image
+workflow, its beauty/depth/edge controls and generated-image gallery have been removed.
 Choose floor and room; the room is dressed in exactly what was chosen on Finishes & Cost
 (listed in the panel): wall paint, flooring, bathroom wall tiles / kitchen backsplash, false
 ceiling, kitchen counter and cabinets, internal doors, window frames, toilet type and tap
 finish, water heater, exhaust fan, ceiling fan, light fittings, batten, bulbs and switch plates.
+Kitchen previews also carry the chosen sink/tap and hardware allowance. Base and wall
+cabinet fronts use the selected cabinet texture, the sink is visible in a worktop opening,
+and the panorama initially faces the fitted kitchen run. A changed selection invalidates
+the saved preview; retired kitchen renders are regenerated.
 Surfaces use the chosen product's texture; wall fixtures carry the chosen product's own photo
 on their front (background removed), and fans and fittings take their colour from it.
 Style, lighting, furniture density and quality remain panel choices. Each preview is saved

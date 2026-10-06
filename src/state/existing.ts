@@ -82,6 +82,7 @@ type State = {
   setSeen: (key: keyof Detections['seen'], v: boolean) => void
   buildMap: () => AsBuiltResult
   generate: (seed?: number) => ExistingPlan | null
+  acceptMeasured: (built: AsBuiltResult, answers: Answers) => void
   reset: () => void
 }
 
@@ -357,6 +358,11 @@ export const useExisting = create<State>((set, get) => ({
     const plan = planAroundStructure(built.value, s.answers, use)
     set({ plan, seed: use })
     return plan
+  },
+  acceptMeasured: (asBuilt, answers) => {
+    set({asBuilt,answers,plan:null,align:false,needsInput:false,message:null})
+    get().generate(1)
+    set({step:4})
   },
   reset: () => { samSession = null; set({ auto: null, confidence: null, needsInput: false, spec: defaultSpec(), step: 0, tool: 'move', imageUrl: null, imageSize: null, pixels: null, engine: null, sam: { state: 'idle', pct: 0, label: '' }, lastMask: null, isSample: false, detections: emptyDetections(), calibration: { mode: 'none' }, corners: [],
     answers: defaultAnswers(), beamFrom: null, asBuilt: null, plan: null, seed: 1, busy: null, message: null }) },

@@ -11,8 +11,9 @@ type State = {
   quality: 'fast' | 'high'
   room: { floor: number; roomId: string } | null
   saved: Record<string, SavedPanorama>
-  set: (patch: Partial<Omit<State, 'set' | 'remember'>>) => void
+  set: (patch: Partial<Omit<State, 'set' | 'remember' | 'forget'>>) => void
   remember: (key: string, pano: Omit<SavedPanorama, 'savedAt'>) => void
+  forget: (key: string) => void
 }
 
 export const useInterior360 = create<State>()(persist((set) => ({
@@ -20,4 +21,5 @@ export const useInterior360 = create<State>()(persist((set) => ({
   set: (patch) => set(patch),
   // keep the most recent 60 previews
   remember: (key, pano) => set((s) => ({ saved: Object.fromEntries([...Object.entries(s.saved).filter(([k]) => k !== key), [key, { ...pano, savedAt: new Date().toISOString() }]].slice(-60)) })),
+  forget: key => set(s => ({saved: Object.fromEntries(Object.entries(s.saved).filter(([k]) => k !== key))})),
 }), { name: 'brickpilot.interior360.v1' }))

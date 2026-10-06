@@ -110,6 +110,10 @@ export type Beam = { id: string; a: Point; b: Point; span: number; state?: Eleme
 
 /** What is already built on site, in plan millimetres (y grows toward the road). Nothing here is ever moved. */
 export type ExistingStructure = {
+  /** Surveyed drawing origin on the plot; never automatically centred when supplied. */
+  position?: Point
+  /** Confirmed traced ground floor; used verbatim instead of generating a replacement layout. */
+  measuredPlan?: { rooms: import('../types.ts').PlacedRoom[]; walls: import('../types.ts').Wall[]; openings: import('../types.ts').Opening[]; heightM: number; stairStartSide?: 'N'|'S'|'E'|'W' }
   columns: { id: string; at: Point; size: number }[]
   /** footings / pedestals with no column above yet: the position is fixed, the column is proposed on it */
   footings: { id: string; at: Point }[]

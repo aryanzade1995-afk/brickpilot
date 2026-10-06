@@ -91,6 +91,8 @@ export type ArchitecturalFeature = {
 
 export type FacadeIssue = { code: string; message: string; featureId?: string; zoneId?: string }
 export type ProceduralFacadeModel = {
+  /** Checked porch supports and display cars; never invented by the mesh exporter. */
+  coveredOutdoor?: import('../coveredOutdoor.ts').CoveredOutdoorModel
   schemaVersion: 2
   sourcePlanId: string
   massingSeed: number

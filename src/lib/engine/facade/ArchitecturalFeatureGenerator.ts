@@ -1,4 +1,5 @@
 import type { BuildingModel } from '../buildingModel.ts'
+import { planCoveredOutdoor } from '../coveredOutdoor.ts'
 import type { VillaDesignDNA } from '../villaDesignDna.ts'
 import { ArchitectureValidator } from '../massing/ArchitectureValidator.ts'
 import type { MassingModel } from '../massing/model.ts'
@@ -370,8 +371,11 @@ export class ArchitecturalFeatureGenerator {
     const families = options.architecturalFamily || options.heroFeature
       ? [selectedFamily] : [selectedFamily, ...fallbackFamilies]
     let attemptsTried = 0
+    let outdoorIssues: ProceduralFacadeModel['issues'] = []
     for (const family of families) {
       const recipe = ARCHITECTURAL_FAMILY_RECIPES[family]
+      // the first design of this family whose only problem is a porch that cannot take safe pillars
+      let partlyOpen: ProceduralFacadeModel | null = null
       for (const type of options.heroFeature ? [options.heroFeature] : recipe.heroes) {
         const candidates = zones.filter((zone) => eligible(type, zone) && (!options.usableTerrace || zone.kind !== 'ROOFLINE' || zone.anchorKind === 'roof-interior'))
           .map((zone) => ({ zone, key: makeRng(dna.seed, `facade-zone|${family}|${type}|${zone.id}`).next() }))
@@ -404,12 +408,19 @@ export class ArchitecturalFeatureGenerator {
             result.issues = result.specialized.issues.map((issue) => ({ code: issue.code, message: issue.message }))
           }
           if (result.status === 'rejected') continue
+          result.coveredOutdoor = planCoveredOutdoor(building, massing, result)
+          if (result.coveredOutdoor.issues.length) { outdoorIssues = result.coveredOutdoor.issues; partlyOpen ??= result; continue }
           return result
         }
       }
+      // keep the chosen family: rather than switching style or rejecting the villa, leave the unsafe roof piece open
+      if (partlyOpen) {
+        partlyOpen.coveredOutdoor = planCoveredOutdoor(building, massing, partlyOpen, false, true)
+        if (!partlyOpen.coveredOutdoor.issues.length) return partlyOpen
+      }
     }
     return { ...base, zones, status: 'rejected', attemptsTried,
-      issues: [{ code: 'HERO_UNAVAILABLE', message: options.heroFeature
+      issues: outdoorIssues.length ? outdoorIssues : [{ code: 'HERO_UNAVAILABLE', message: options.heroFeature
         ? `${options.heroFeature} has no opening-safe, setback-safe real facade host.`
         : `No ${selectedFamily} hero feature fits the validated exterior facades.` }] }
   }

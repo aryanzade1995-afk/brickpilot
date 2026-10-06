@@ -170,6 +170,15 @@ export function SiteStep() {
 /* -------------------------------------------------------------------------- */
 
 const QUICK_ADD: MemberRole[] = ['adult', 'senior', 'teen', 'child']
+/** Ground, 1st, 2nd ... for exactly the floors the villa has (levels.storeys floors above ground) */
+const FLOOR_NAMES = ['Ground', '1st floor', '2nd floor', '3rd floor']
+const floorOptions = (storeys: number) => [{ value: 'any', label: 'Any floor' },
+  ...FLOOR_NAMES.slice(0, storeys + 1).map((label, level) => ({ value: String(level), label }))]
+const setFloor = (m: Brief['household']['members'][number], floor: number | undefined) => {
+  if (floor === undefined) delete m.floor
+  else m.floor = floor
+  m.needsGroundFloor = floor === 0
+}
 const MAX_MEMBERS = 20
 const syncOccupants = (b: Brief) => void (b.spaces.occupants = Math.min(MAX_MEMBERS, Math.max(1, b.household.members.length)))
 
@@ -181,7 +190,7 @@ export function FamilyStep() {
   const add = (role: MemberRole) =>
     edit((b) => {
       if (!canAdd(role)) return
-      b.household.members.push({ role, needsGroundFloor: role === 'senior' })
+      b.household.members.push(role === 'senior' ? { role, needsGroundFloor: true, floor: 0 } : { role, needsGroundFloor: false })
       syncOccupants(b)
     })
   return (
@@ -200,15 +209,16 @@ export function FamilyStep() {
                 onChange={(v) =>
                   edit((b) => {
                     b.household.members[i].role = v
-                    b.household.members[i].needsGroundFloor = v === 'senior'
+                    setFloor(b.household.members[i], v === 'senior' ? 0 : undefined)
                   })}
                 options={(Object.keys(MEMBER_ROLE_LABEL) as MemberRole[]).map((value) => ({ value, label: MEMBER_ROLE_LABEL[value] }))}
               />
               <div className="min-w-[12rem] flex-1">
-                <Toggle
-                  checked={m.needsGroundFloor}
-                  onChange={(v) => edit((b) => void (b.household.members[i].needsGroundFloor = v))}
-                  label="Needs ground floor"
+                <p className="mb-1.5 font-mono text-[0.62rem] uppercase tracking-[0.1em] text-ink-faint">Bedroom on</p>
+                <Segmented
+                  value={m.floor === undefined || m.floor > brief.levels.storeys ? 'any' : String(m.floor)}
+                  onChange={(v) => edit((b) => setFloor(b.household.members[i], v === 'any' ? undefined : Number(v)))}
+                  options={floorOptions(brief.levels.storeys)}
                 />
               </div>
               <button
@@ -362,7 +372,11 @@ export function LevelsStep() {
       <Field label="Number of storeys">
         <Segmented
           value={l.storeys}
-          onChange={(v) => edit((b) => void (b.levels.storeys = v))}
+          onChange={(v) => edit((b) => {
+            b.levels.storeys = v
+            // a floor the villa no longer has: that member can be on any floor
+            for (const m of b.household.members) if (m.floor !== undefined && m.floor > v) setFloor(m, undefined)
+          })}
           options={[
             { value: 0, label: 'G' },
             { value: 1, label: 'G+1' },
@@ -683,13 +697,13 @@ export function ReviewStep() {
 /** every Household / Lifestyle answer, so nothing on a sub-tab is hidden at review */
 function AnswersSummary({ brief }: { brief: Brief }) {
   const { household: h, lifestyle: l } = brief
-  const ground = h.members.filter((m) => m.needsGroundFloor).length
+  const onFloor = (level: number) => h.members.filter((m) => m.floor === level && level <= brief.levels.storeys).length
   const sections: { title: string; stats: [string, string][]; note?: string }[] = [
     {
       title: 'Household',
       stats: [
         ...membersByRole(brief).map(([role, n]) => [role === 'child' ? 'Children' : `${MEMBER_ROLE_LABEL[role]}s`, String(n)] as [string, string]),
-        ['Ground floor', ground ? String(ground) : 'None'],
+        ...FLOOR_NAMES.slice(0, brief.levels.storeys + 1).map((name, level) => [name === 'Ground' ? 'Ground floor' : name, onFloor(level) ? String(onFloor(level)) : 'None'] as [string, string]),
         ['Guests', GUESTS_LABEL[h.guests]],
         ['Staff', STAFF_LABEL[h.staff]],
       ],

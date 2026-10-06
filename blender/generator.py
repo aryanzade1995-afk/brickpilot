@@ -18,6 +18,7 @@ import bpy
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from validation import validate_payload  # noqa: E402
+from covered_validation import validate_outdoor_meshes
 from geometry.common import SceneBuilder, MM  # noqa: E402
 from geometry.site import create_site  # noqa: E402
 from geometry.structure import (create_foundation, create_slab, create_wall, create_column,
@@ -166,6 +167,7 @@ def create_scene(payload, visualization=None):
     render = configure_render(options, dna["seed"])
     create_emergency_system(scene, building)
     cameras = create_cameras(scene, building, options)
+    covered['validatedPillars'] = validate_outdoor_meshes(payload)
     scene.visualization_report = {"palette": options["palette"], "options": options, "composition": composition,
                                   "finishes": finishes, "surfaces": surfaces, "landscape": landscape, "lighting": lighting,
                                   "render": render, "cameras": cameras, "outdoor": covered}
@@ -219,6 +221,7 @@ def main(argv):
     blend = out_dir / f"{args.name}.blend"
     glb = out_dir / f"{args.name}.glb"
     if args.resume:
+        validate_payload(payload)
         manifest = json.loads((out_dir / f"{args.name}.json").read_text(encoding="utf-8"))
         if manifest["planId"] != payload["buildingModel"]["planId"] or manifest["seed"] != payload["villaDesignDNA"]["seed"]:
             raise ValueError("Prepared scene belongs to another plan or seed")
@@ -227,6 +230,7 @@ def main(argv):
         bpy.ops.wm.open_mainfile(filepath=str(blend))
         if bpy.context.scene.get("source_plan_id") != manifest["planId"]:
             raise ValueError("Prepared scene source identity changed")
+        validate_outdoor_meshes(payload)
         scene = SimpleNamespace(visualization_report=manifest["visualization"])
         # Device preferences are process-local and must be resolved again in
         # the export process, even when the prepared .blend says GPU.

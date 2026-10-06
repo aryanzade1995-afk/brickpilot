@@ -219,6 +219,9 @@ export function compile(brief: Brief): CanonicalModel {
     Math.ceil(countRole('senior') / 2) + youngRooms
   const requestedBeds = brief.rooms.bedroomsWithBath + brief.rooms.bedroomsNoBath
   const frequentGuests = brief.household.guests === 'frequent'
+  // bedrooms the household asked for on each upper floor: members sharing two to a room
+  const wantOnFloor = (level: number) => Math.ceil(members.filter((m) => m.floor === level && level <= storeys).length / 2)
+  // (they only decide where the brief's bedrooms go, never how many there are)
   const totalBeds = requestedBeds + (frequentGuests && requestedBeds <= residentBeds ? 1 : 0)
   const studyCount = Math.max(brief.rooms.studies, Math.min(2, brief.lifestyle.wfhCount),
     brief.lifestyle.clientVisits || brief.household.guests === 'occasional' ? 1 : 0)
@@ -414,7 +417,10 @@ export function compile(brief: Brief): CanonicalModel {
       addRel(`lobby1`, 'familyLounge', 'connected')
     }
 
-    const take = Math.min(level === 1 ? Math.max(bedsPerUpper, 1 + youngRooms) : bedsPerUpper, bedsRemaining)
+    // at least the bedrooms asked for on this floor, while keeping those asked for on the floors above
+    const laterWanted = Array.from({ length: storeys - level }, (_, i) => wantOnFloor(level + 1 + i)).reduce((a, b) => a + b, 0)
+    const usual = level === 1 ? Math.max(bedsPerUpper, 1 + youngRooms) : bedsPerUpper
+    const take = Math.max(0, Math.min(Math.max(usual, wantOnFloor(level)), bedsRemaining - laterWanted, bedsRemaining))
     for (let i = 0; i < take; i++) {
       const b = nextBed(false)
       spaces.push(b)

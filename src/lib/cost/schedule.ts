@@ -7,6 +7,7 @@ import type { Brief } from '../model/brief.ts'
 import type { CostEstimate } from './boq.ts'
 import { specsCatalogue, specificationRate, resolveSpecification } from './catalogue.ts'
 import { serviceRoomSource } from '../finishes/services.ts'
+import { optionPhotos, usableFinishImage } from '../finishes/optionImage.ts'
 
 /** One measured-room entry per applicable finish, followed by house specifications. */
 export function specificationSchedule(brief: Brief, cost: CostEstimate): SpecificationRow[] {
@@ -18,10 +19,10 @@ export function specificationSchedule(brief: Brief, cost: CostEstimate): Specifi
       const own = lines.filter(l => !room || l.roomId === room.id)
       const current = resolveSpecification(brief, item.id, room && brief.specs.overrides[`${item.id}@${room.id}`] === undefined ? room.id.slice(room.id.indexOf(':') + 1) : room?.id)
       const option = item.options.find(o => o.id === own[0]?.specId.split('/')[1]) ?? current
-      const photo = option.photos.find(p => p.kind === 'closeup')
+      const photo = optionPhotos(option).find(p => p.kind === 'closeup')
       const product = flooringProduct(option.flooringProductId)
       const finish = finishProduct(option.finishProductId)
-      const cleared = finish?.image.productionReady && finish.image.kind === 'generic-material-closeup' ? finish : undefined
+      const cleared = finish?.image.productionReady && finish.image.kind === 'generic-material-closeup' && finish.thumbnail && usableFinishImage(finish.thumbnail) ? finish : undefined
       const rate = specificationRate(option.rateId)
       return { id: `${item.id}${room ? `@${room.id}` : ''}`, item: item.id, group: item.group,
         label: item.label, where: room ? `${room.floor} · ${room.name}` : 'Whole home', roomId: room?.id,

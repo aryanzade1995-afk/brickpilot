@@ -243,20 +243,13 @@ not `GEMINI_API_KEY`. If the bridge is unavailable, the uploaded image remains
 available as a visual reference, but automatic style classification cannot run;
 ComfyUI's installed workflow does not provide image classification.
 
-**Interior concepts:** [`src/components/InteriorStudio.tsx`](src/components/InteriorStudio.tsx)
-captures room views and edge/depth/beauty maps from the generated geometry.
-[`src/lib/render/interiorPrompt.ts`](src/lib/render/interiorPrompt.ts) writes the
-room prompt. `POST /api/interior` streams progress and the output image. The
-default provider is the local Gemini Web bridge. It reads the supplied room
-views and requests a furnished concept image. Its portable image endpoint is
-text-to-image, so exact opening positions are not guaranteed in that output.
-If the bridge is offline or image generation fails, the server switches to
-local ComfyUI with an SDXL/Canny workflow at
-[`server/workflows/interior-sdxl.json`](server/workflows/interior-sdxl.json).
-The provider registry is [`server/providers/index.mjs`](server/providers/index.mjs)
-(`gemini-web`, `comfyui`, `gemini`, `mock`). If both real providers are unavailable,
-generation stays unavailable instead of claiming the 3D reference is an AI image.
-`mock` remains an explicit development setting.
+**Interior preview:** [`src/components/FastInteriorPreview.tsx`](src/components/FastInteriorPreview.tsx)
+uses the validated plan to render a selected room as a cached Blender Eevee 360° panorama.
+Choose finishes, lighting, furniture style and fast or high quality, then explore the
+panorama in the browser. See [the workflow documentation](docs/interior-preview.md).
+The former single-room AI image, depth/edge capture and ControlNet controls are removed.
+Building image generation still uses the shared provider registry in
+[`server/providers/index.mjs`](server/providers/index.mjs).
 
 To enable the bridge, run the linked project's service locally on port `4981`
 and configure its Gemini Web session in that service only. Formstead never
@@ -272,8 +265,9 @@ The Node API and production static server are in [`server/index.mjs`](server/ind
 | `POST /api/render` | Building image edit from the captured model and prompt |
 | `POST /api/inspiration` | Classify a reference image into style preferences |
 | `GET /api/inspiration/health` | Local Gemini Web bridge availability |
-| `GET /api/interior/health` | Interior provider availability |
-| `POST /api/interior` | Stream interior render progress and result |
+| `POST /api/interior-preview` | Generate or reuse a room panorama |
+| `GET /api/interior-preview/status/:requestId` | Panorama job progress |
+| `GET /api/interior-preview/:hash.webp` | Cached panorama image |
 | `GET /api/villas/health` | Local Blender availability |
 | `POST /api/villas` | Queue `{ plan: Design, seed: number, quality: "preview" or "final" }` |
 | `GET /api/villas/:id` | Generation progress, similarity decisions and accepted artifacts |
@@ -311,9 +305,8 @@ store the generated images as part of a design.
 directions, pinned direction and generated result. It persists the brief and
 pinned choice in browser local storage under `brickpilot.studio`; changes to the
 brief invalidate cached geometry. [`src/state/designs.ts`](src/state/designs.ts)
-handles optional Supabase projects. Render and interior images live in ephemeral
-stores ([`render.ts`](src/state/render.ts), [`interior.ts`](src/state/interior.ts))
-because the base64 data can be large. The Report page can include current
+handles optional Supabase projects. Building render images live in the ephemeral
+[`render.ts`](src/state/render.ts) store because the base64 data can be large. The Report page can include current
 generated images in its PDF, but those images are not persisted across reloads.
 
 ## Costs, reports and deployment

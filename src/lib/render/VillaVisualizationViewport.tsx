@@ -6,6 +6,7 @@ import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import type { Design } from '../engine/types.ts'
 import { buildingEdgeMap } from './edgeMap.ts'
 import type { VillaReferenceView } from './villaVisualizations.ts'
+import { StudioReflections } from '../../components/StudioReflections.tsx'
 
 const CAMERA={fov:40,near:.1,far:2000}
 const GL={preserveDrawingBuffer:true,antialias:true}
@@ -30,7 +31,7 @@ export const VillaVisualizationViewport=forwardRef<VillaViewportHandle,{design:D
     return <div data-villa-visualization-model className="aspect-[4/3] max-h-[680px] w-full overflow-hidden border border-line bg-bg-inset">
       <ModelBoundary key={url??design.id}><Canvas frameloop="demand" shadows dpr={[1,2]} camera={CAMERA}
         gl={GL} onCreated={({gl})=>{gl.toneMapping=THREE.NeutralToneMapping;gl.toneMappingExposure=1.2}}>
-        <Suspense fallback={null}><BlenderSource url={url} setDriver={setDriver}/></Suspense>
+        <Suspense fallback={null}><StudioReflections/><BlenderSource url={url} setDriver={setDriver}/></Suspense>
         <OrbitControls makeDefault target={TARGET} minDistance={2} maxDistance={150} maxPolarAngle={Math.PI/2.02}/>
       </Canvas></ModelBoundary>
     </div>
@@ -40,7 +41,7 @@ function BlenderSource({url,setDriver}:SourceProps&{url:string}) {
   const gltf=useGLTF(url)
   const scene=useMemo(()=>{
     const clone=gltf.scene.clone(true),remove:THREE.Object3D[]=[]
-    clone.traverse(o=>{if(o.userData.presentation_only||o.name.startsWith('Ground_Context')||'isLight' in o||'isCamera' in o)remove.push(o)})
+    clone.traverse(o=>{o.castShadow=true;o.receiveShadow=true;if(o.userData.presentation_only||o.name.startsWith('Ground_Context')||'isLight' in o||'isCamera' in o)remove.push(o)})
     remove.forEach(o=>o.removeFromParent());return clone
   },[gltf.scene])
   const box=useMemo(()=>new THREE.Box3().setFromObject(scene),[scene])

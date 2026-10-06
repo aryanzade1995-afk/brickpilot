@@ -36,6 +36,16 @@ export function validateExisting(design: Design): ExistingReport {
   if (!meta) return { findings: [], errors: 0, warnings: 0, ok: true }
   const { structure, dx, dy } = meta
   const ground = design.floors[0]
+  for(const wall of structure.walls) {
+    const a={x:wall.a.x+dx,y:wall.a.y+dy},b={x:wall.b.x+dx,y:wall.b.y+dy}
+    const same=(p:Point,q:Point)=>Math.hypot(p.x-q.x,p.y-q.y)<2
+    if(!ground.walls.some(w=>w.thickness===wall.thickness&&((same(w.a,a)&&same(w.b,b))||(same(w.a,b)&&same(w.b,a)))))add('LOCKED_WALL_CHANGED','error',`Existing wall ${wall.id} was moved, resized or dropped.`,0,a)
+    for(const room of ground.rooms.filter(r=>!r.outdoor)) {
+      const horizontal=Math.abs(a.y-b.y)<2
+      const cuts=horizontal?a.y>room.rect.y+2&&a.y<rectBottom(room.rect)-2&&Math.min(Math.max(a.x,b.x),rectRight(room.rect))-Math.max(Math.min(a.x,b.x),room.rect.x)>100:b.x>room.rect.x+2&&b.x<rectRight(room.rect)-2&&Math.min(Math.max(a.y,b.y),rectBottom(room.rect))-Math.max(Math.min(a.y,b.y),room.rect.y)>100
+      if(cuts)add('LOCKED_WALL_ROOM_CONFLICT','error',`Existing wall ${wall.id} cuts through ${room.name}. Correct the room tracing or try another arrangement.`,0,a)
+    }
+  }
 
   // ---- LOCKED elements are exactly where and what they were ----
   for (const c of structure.columns) {
@@ -108,7 +118,7 @@ export function validateExisting(design: Design): ExistingReport {
       if (space && r.zone !== 'circulation' && space.min > 0 && r.area < space.min - 0.05)
         add('ROOM_TOO_SMALL', 'error', `${r.name} is ${r.area.toFixed(1)} m², under its ${space.min} m² minimum.`, lv, centre(r.rect))
       if (r.wantsWindow && !ops.some((o) => o.kind === 'window' && o.rooms?.includes(r.id)))
-        add('NO_VENTILATION', 'error', `${r.name} has no window for light and ventilation.`, lv, centre(r.rect))
+        add('NO_VENTILATION', design.existingStructure?.structure.measuredPlan ? 'warning' : 'error', `${r.name} has no window for light and ventilation.`, lv, centre(r.rect))
     }
     if (!floor.reachable) for (const id of floor.unreachableRooms) add('UNREACHABLE_ROOM', 'error', `${floor.rooms.find((r) => r.id === id)?.name ?? id} cannot be reached through a door.`, lv, floor.rooms.find((r) => r.id === id) ? centre(floor.rooms.find((r) => r.id === id)!.rect) : undefined)
     const spine = floor.rooms.find((r) => r.zone === 'circulation' && !['stair', 'foyer'].includes(r.id))

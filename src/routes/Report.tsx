@@ -14,7 +14,6 @@ import { Link } from 'react-router-dom'
 import { Download, FileText, Loader2, Trash2 } from 'lucide-react'
 import { useStudio } from '@/state/studio.ts'
 import { useRender, REF_LABEL, type RefKey } from '@/state/render.ts'
-import { useInterior } from '@/state/interior.ts'
 import { FloorDrawing, TerraceDrawing } from '@/lib/draw/FloorDrawing.tsx'
 import { MassingViewport, MASSING_CANVAS, type CaptureView } from '@/lib/render/CaptureCanvas.tsx'
 import { rasterizeSvg } from '@/lib/render/rasterizeSvg.ts'
@@ -68,8 +67,6 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
   const villaPairs=useVillaVisualizations(s=>s.pairs),resetVillaPairs=useVillaVisualizations(s=>s.reset)
   const renderJobs = useRender((s) => s.jobs)
   const resetRender = useRender((s) => s.reset)
-  const interiorResults = useInterior((s) => s.results)
-  const resetInterior = useInterior((s) => s.reset)
 
   const svgRefs = useRef<(SVGSVGElement | null)[]>([])
   // the 3D massing canvas is mounted only during a capture — no persistent WebGL context
@@ -95,18 +92,8 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
       const j = renderJobs[k]
       if (j.status === 'done' && j.url) out.push({ label: `Visualisation (${j.mock ? 'source preview' : 'AI'}) — ${REF_LABEL[k]}`, dataUrl: j.url })
     }
-    interiorResults.forEach((r, i) => {
-      r.urls.forEach((u, v) =>
-        out.push({
-          label: `Visualisation (AI interior) — ${r.roomLabel}${r.urls.length > 1 ? ` (view ${v + 1})` : ''}${
-            interiorResults.length > 1 ? ` #${i + 1}` : ''
-          }`,
-          dataUrl: u,
-        }),
-      )
-    })
     return out
-  }, [renderJobs, interiorResults, villaPairs, planId, brief, result, blender])
+  }, [renderJobs, villaPairs, planId, brief, result, blender])
 
   if (!result || !cost) {
     return <div className="mx-auto max-w-[1400px] px-10 py-24 text-ink-dim">Preparing report…</div>
@@ -203,7 +190,6 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
   const clearImages = () => {
     resetRender()
     resetVillaPairs()
-    resetInterior()
     setConfirmClear(false)
   }
 
@@ -369,7 +355,7 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
             <p className="text-[0.8rem] leading-relaxed text-ink-faint">
               {conceptImages.length > 0
                 ? `${conceptImages.length} generated image${conceptImages.length === 1 ? '' : 's'} held in this browser.`
-                : 'No generated concept or interior images yet.'}
+                : 'No generated concept images yet.'}
             </p>
             {confirmClear ? (
               <div className="mt-3 flex items-center gap-2">

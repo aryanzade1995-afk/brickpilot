@@ -56,7 +56,7 @@ export async function generateInteriorWithFallback(job, onFallback) {
   }
 }
 
-/** The Render page always tries this order. InteriorStudio retains its own policy. */
+/** Building renders try the configured provider order before the source-preview fallback. */
 export async function generateBuildingWithFallback(job, registry = REGISTRY) {
   const attempts = []
   for (const activeId of geminiFirst() ? ['gemini-web','comfyui','mock'] : ['comfyui','gemini-web','mock']) {

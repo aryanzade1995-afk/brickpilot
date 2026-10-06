@@ -179,6 +179,8 @@ def validate_payload(payload):
                 raise GeometryInputError(f"Invalid facade part {part['id']}")
     from specialized_validation import validate_specialized
     from element_validation import validate_elements
+    from covered_validation import validate_covered_outdoor
     validate_elements(payload)
     validate_specialized(payload, hosts)
+    validate_covered_outdoor(payload)
     return hosts

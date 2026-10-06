@@ -1,8 +1,9 @@
 import { useMemo, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { AlertTriangle, ArrowRight, Check, ImagePlus, Lock, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/Button.tsx'
 import { PhotoEditor } from '@/components/existing/PhotoEditor.tsx'
+import { SurveyInput } from '@/components/existing/SurveyInput.tsx'
 import { PlanLegend, PlanView } from '@/components/existing/PlanView.tsx'
 import { useExisting } from '@/state/existing.ts'
 import { useStudio } from '@/state/studio.ts'
@@ -27,7 +28,7 @@ const input = 'w-full border border-line-strong bg-bg-inset px-3 py-2 text-sm te
 
 /** the pipeline this mode runs, always visible so the user knows where they are */
 function Pipeline({ step }: { step: number }) {
-  const items = ['Site image', 'As-built model', 'Locked constraints', 'Valid 2D plan', 'BrickPilot 3D']
+  const items = ['Plan or measurements', 'As-built model', 'Locked constraints', 'Valid 2D plan', 'BrickPilot 3D']
   const at = [0, 1, 3, 4, 5][Math.min(step, 4)] ?? 0
   return (
     <ol className="flex flex-wrap items-center gap-x-2 gap-y-2 font-mono text-[0.68rem] uppercase tracking-[0.08em]">
@@ -42,14 +43,14 @@ function Pipeline({ step }: { step: number }) {
 }
 
 function Stepper() {
-  const { step, setStep, imageUrl, plan } = useExisting()
+  const { step, setStep, imageUrl, plan, asBuilt } = useExisting()
   // three steps for the person; the review and map screens sit inside them
   const items: { at: number; label: string; on: boolean }[] = [
-    { at: 0, label: 'Photo', on: step === 0 },
+    { at: 0, label: 'Input', on: step === 0 },
     { at: 2, label: 'Measurements', on: step === 1 || step === 2 || step === 3 },
     { at: 4, label: 'Plan', on: step === 4 },
   ]
-  const reach = (at: number) => (at === 0 ? true : at === 2 ? !!imageUrl : !!plan)
+  const reach = (at: number) => (at === 0 ? true : at === 2 ? !!imageUrl || !!asBuilt : !!plan)
   return (
     <div className="flex flex-wrap gap-1 border-b border-line pb-px">
       {items.map((it, i) => (
@@ -353,7 +354,7 @@ function PlanStep() {
           <p className={cx('flex items-center gap-2 font-medium', plan.valid ? 'text-ok' : 'text-bad')}>
             {plan.valid ? <Check size={16} /> : <AlertTriangle size={16} />}{plan.valid ? 'Valid plan around your structure' : 'This arrangement has conflicts'}
           </p>
-          <p className="mt-1 text-sm text-ink-dim">{lockedColumns} locked columns kept exactly where they are. {proposedColumns} new columns proposed where walls need them. {plan.passing} of {plan.tried} arrangements tried passed every rule.</p>
+          <p className="mt-1 text-sm text-ink-dim">{lockedColumns} locked columns kept exactly where they are. {plan.design.existingStructure?.structure.measuredPlan?'Your confirmed rooms, walls and openings were kept; this is the traced plan.':`${proposedColumns} new columns proposed where walls need them. ${plan.passing} of ${plan.tried} arrangements tried passed every rule.`}</p>
         </div>
         <div className="border border-line p-4">
           <p className="label">Checks</p>
@@ -376,7 +377,7 @@ function PlanStep() {
           </div>
         )}
         <div className="flex flex-wrap gap-3">
-          <Button variant="ghost" onClick={() => s.generate(s.seed + 1)}>Try another arrangement</Button>
+          {!plan.design.existingStructure?.structure.measuredPlan && <Button variant="ghost" onClick={() => s.generate(s.seed + 1)}>Try another arrangement</Button>}
           <Button variant="ghost" onClick={() => s.setStep(2)}>Edit rooms</Button>
         </div>
         <div className="flex flex-wrap gap-3 border-t border-line pt-4">
@@ -390,6 +391,8 @@ function PlanStep() {
 }
 
 export function ExistingMode() {
+  const [params]=useSearchParams()
+  const [inputMode,setInputMode]=useState<'photo'|'drawing'|'manual'|null>(()=>{const v=params.get('input');return v==='drawing'||v==='manual'||v==='photo'?v:null})
   const step = useExisting((s) => s.step)
   const busy = useExisting((s) => s.busy)
   const reset = useExisting((s) => s.reset)
@@ -400,18 +403,20 @@ export function ExistingMode() {
         <div>
           <p className="label">Existing structure mode</p>
           <h1 className="mt-2 font-display text-3xl md:text-4xl">Plan around what is already built</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-dim">Upload a site photo. What is already built becomes locked, and the rooms, walls, doors and stair are planned around it.</p>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-dim">Upload a house or foundation drawing, use a site photo, or enter the measured structure yourself. Confirm what is built before continuing to the normal 2D and 3D flow.</p>
         </div>
         <div className="flex gap-3">
-          {hasImage && <Button variant="quiet" size="sm" onClick={reset}>Start over</Button>}
+          {(hasImage || inputMode) && <Button variant="quiet" size="sm" onClick={()=>{reset();setInputMode(null)}}>Start over</Button>}
           <Link to="/start" className="font-mono text-xs uppercase tracking-[0.12em] text-ink-dim hover:text-ink">Back to start</Link>
         </div>
       </div>
       <div className="mt-6"><Pipeline step={step} /></div>
       <div className="mt-5"><Stepper /></div>
       <div className="mt-7" aria-busy={!!busy}>
-        {step === 0 && <PhotoStep />}
-        {step === 2 && <MeasureStep />}
+        {step === 0 && !inputMode && <div className="grid gap-4 md:grid-cols-3">{([['drawing','I have a rough plan','Upload a house layout or foundation / column drawing. Review the tracing and fill in missing measurements.'],['manual','I do not have a drawing','Enter individual column and footing positions, beam connections and existing walls.'],['photo','I have a site photo','Detect visible columns in a photograph and confirm their measurements.']] as const).map(([mode,label,description])=><button key={mode} type="button" onClick={()=>setInputMode(mode)} className="rounded-xl border border-line p-6 text-left hover:bg-bg-inset"><h2 className="font-display text-xl">{label}</h2><p className="mt-3 text-sm text-ink-dim">{description}</p></button>)}</div>}
+        {step === 0 && inputMode === 'photo' && <PhotoStep />}
+        {(inputMode === 'drawing' || inputMode === 'manual') && <div hidden={step!==0&&step!==2}><SurveyInput manual={inputMode==='manual'} /></div>}
+        {step === 2 && inputMode !== 'drawing' && inputMode !== 'manual' && <MeasureStep />}
         {step === 3 && <MapStep />}
         {step === 4 && <PlanStep />}
       </div>

@@ -86,7 +86,7 @@ export function planExisting(model: CanonicalModel, request: PlanRequest): PlanR
   const fits = (z: Rect) => W <= z.w && D <= z.h
   if (!fits(site.houseZone) && fits(site.envelope)) site = { ...site, frontStripMm: 0, houseZone: { ...site.envelope } }
   const zone = site.houseZone
-  const px = Math.round(zone.x + Math.max(0, (zone.w - W) / 2)), py = Math.round(zone.y + Math.max(0, zone.h - D))
+  const px = structure.position ? grid.x0+structure.position.x : Math.round(zone.x + Math.max(0, (zone.w - W) / 2)), py = structure.position ? grid.y0+structure.position.y : Math.round(zone.y + Math.max(0, zone.h - D))
   const dx = px - grid.x0, dy = py - grid.y0
 
   const hallMm = snapUp(Math.max(1800, nb.mainDoorMm + 600))
@@ -195,7 +195,29 @@ export function planExisting(model: CanonicalModel, request: PlanRequest): PlanR
     }
 
     // ---- walls first: a new column is only proposed where a wall already runs ----
+    // Newly proposed partitions near a measured support pass through its centre,
+    // rather than cutting through its edge. Shared boundaries move together;
+    // source house tracings never enter this generator.
+    if(level===0){
+      const anchors=[...structure.columns.map(c=>c.at),...structure.footings.map(f=>f.at)]
+      const snap=(value:number,axis:'x'|'y')=>{
+        const lo=axis==='x'?bbox.x:bbox.y,hi=axis==='x'?rectRight(bbox):rectBottom(bbox)
+        if(Math.abs(value-lo)<2||Math.abs(value-hi)<2)return value
+        const lines=anchors.map(p=>p[axis]+(axis==='x'?dx:dy)).filter(v=>v>lo+2&&v<hi-2&&Math.abs(v-value)<=250)
+        return lines.sort((a,b)=>Math.abs(a-value)-Math.abs(b-value))[0]??value
+      }
+      for(const room of rooms.filter(r=>!r.outdoor)){
+        const x=snap(room.rect.x,'x'),y=snap(room.rect.y,'y'),right=snap(rectRight(room.rect),'x'),bottom=snap(rectBottom(room.rect),'y')
+        if(right>x&&bottom>y){room.rect={x,y,w:right-x,h:bottom-y};room.area=toSqm(rectArea(room.rect))}
+      }
+    }
     const walls = wallGraph(rooms, prefix, axisLines)
+    if(level===0) for(const built of structure.walls) {
+      const a={x:built.a.x+dx,y:built.a.y+dy},b={x:built.b.x+dx,y:built.b.y+dy}
+      const same=walls.find(w=>near(w.a,a,1)&&near(w.b,b,1)||near(w.a,b,1)&&near(w.b,a,1))
+      if(same){same.thickness=built.thickness}
+      else walls.push({id:`${prefix}_EXISTING_${built.id}`,a,b,thickness:built.thickness,kind:'interior',structural:true})
+    }
     const onWall = (p: Point) => walls.some((w) => {
       const h = Math.abs(w.a.y - w.b.y) < 2
       return h ? Math.abs(p.y - w.a.y) < 2 && p.x >= Math.min(w.a.x, w.b.x) - 2 && p.x <= Math.max(w.a.x, w.b.x) + 2
@@ -215,12 +237,19 @@ export function planExisting(model: CanonicalModel, request: PlanRequest): PlanR
         ? { id: '', at: { ...builtColumn.at }, size: builtColumn.size, grid: '', state: 'LOCKED' }
         : { id: '', at, size: columnSizeMm(model.brief.levels.storeys, columnPosition(at, footprint)), grid: '', state: 'PROPOSED', ...(optional ? { optional: true } : {}) })
     }
+    if(level<structure.storeysBuilt) for(const built of lockedColumns) {
+      if(!columns.some(c=>near(c.at,built.at,1)))columns.push({id:'',at:{...built.at},size:built.size,grid:'',state:'LOCKED'})
+    }
     columns.sort((a, b) => a.at.y - b.at.y || a.at.x - b.at.x).forEach((c, i) => { c.id = `${prefix}_COLUMN_C${String(i + 1).padStart(2, '0')}`; c.grid = `GRID_${i + 1}` })
     const beams = beamsFor(columns, inPlate, prefix).map((b) => {
       const builtBeam = level < structure.storeysBuilt && structure.beams.some((s) => sameBeam(b, s, dx, dy))
       const optional = columns.some((c) => c.optional && (near(c.at, b.a, 1) || near(c.at, b.b, 1)))
       return { ...b, state: builtBeam ? ('LOCKED' as const) : ('PROPOSED' as const), ...(optional && !builtBeam ? { optional: true } : {}) }
     })
+    if(level<structure.storeysBuilt)for(const built of structure.beams){
+      const a={x:built.a.x+dx,y:built.a.y+dy},b={x:built.b.x+dx,y:built.b.y+dy}
+      if(!beams.some(v=>near(v.a,a,1)&&near(v.b,b,1)||near(v.a,b,1)&&near(v.b,a,1)))beams.push({id:`${prefix}_EXISTING_${built.id}`,a,b,span:Math.hypot(a.x-b.x,a.y-b.y),state:'LOCKED'})
+    }
     maxSpan = Math.max(maxSpan, ...beams.map((b) => b.span))
     const cells: Rect[] = []
     for (let i = 0; i < gx.length - 1; i++) for (let j = 0; j < gy.length - 1; j++) {

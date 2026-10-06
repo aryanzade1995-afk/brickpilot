@@ -102,7 +102,7 @@ export async function generateInterior({ beauty, edge, positive, negative = '', 
     meta: { provider: id, geometryGrounding: 'reference description' } }
 }
 
-/** Building concepts use the same bridge as InteriorStudio. Reference description
+/** Building concepts use the Gemini Web bridge. Reference description
  * is a soft constraint; ComfyUI uses the actual reference edge map. */
 export async function generateBuilding({ beauty, edge, positive, negative = '', inspiration, params = {} }) {
   const images = [{ data: beauty, mimeType: 'image/png' }]

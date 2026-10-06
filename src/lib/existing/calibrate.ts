@@ -34,6 +34,7 @@ export function homography(src: Pt[], widthMm: number, depthMm: number): ToPlan 
 /** Build the image → plan mapping, or say what is missing. */
 export function buildMapping(cal: Calibration, columns: DetColumn[]): { toPlan: ToPlan | null; note: string; mmPerPx?: number } {
   if (cal.mode === 'corners') {
+    if (!Number.isFinite(cal.widthMm+cal.depthMm) || cal.widthMm<=0 || cal.depthMm<=0) return {toPlan:null,note:'Enter both measured dimensions before continuing.'}
     const toPlan = homography(cal.pts, cal.widthMm, cal.depthMm)
     return toPlan ? { toPlan, note: 'Perspective corrected from the four corners you marked.' }
       : { toPlan: null, note: 'The four corners must form a four-sided shape.' }
