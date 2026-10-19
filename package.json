@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "test:solar-pipeline": "node --experimental-strip-types --test scripts/test-solar-pipeline.mjs",
     "test:solar-government": "node --experimental-strip-types --test scripts/test-solar-government.mjs",
     "test:solar-cost": "node --experimental-strip-types --test scripts/test-solar-cost.mjs",
     "test:solar-viewer": "node --experimental-strip-types --test scripts/test-solar-viewer.mjs",

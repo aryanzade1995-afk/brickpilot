@@ -1,17 +1,17 @@
 import { z } from 'zod'
 import { Matrix4 } from 'three'
-import { fnv } from '../engine/massing/rng.ts'
 import { solarConfigurationSignature, solarLayoutSignature, solarConfigurationSchema, type SolarConfiguration } from '../model/solar.ts'
 import { solarPanelWorldMatrix, solarSupportMatrices, solarReservationLines } from '../three/solarGeometry.ts'
 import { buildSolarRoofModel, type SolarRoofArchitecture } from './roofModel.ts'
 import { reviewSolarLayout, solarLayoutTotals } from './placement.ts'
 import type { Design } from '../engine/types.ts'
+import { polygonFitsRegions, rectanglePolygon } from './polygons.ts'
 
 export const SOLAR_RENDER_VERSION = 'canonical-pv-render-v1'
 /** Financial questionnaires do not change geometry. Layout validity and reservations do. */
 export function solarVisualSignature(solar: SolarConfiguration) {
-  return `solar-visual-v1-${fnv(JSON.stringify([SOLAR_RENDER_VERSION, solarConfigurationSignature(solar),
-    solar.calculated ? solarLayoutSignature(solar.calculated.layout) : null])).toString(16)}`
+  // Retain the complete versioned input/layout identities rather than compressing them to 32 bits.
+  return `${SOLAR_RENDER_VERSION}|${solarConfigurationSignature(solar)}|${solar.calculated ? solarLayoutSignature(solar.calculated.layout) : 'none'}`
 }
 const matrix = z.array(z.number().finite()).length(16)
 export const solarRenderContractSchema = z.strictObject({
@@ -38,7 +38,12 @@ export function createSolarRenderContract(design: Design, architecture: SolarRoo
   const roof = buildSolarRoofModel(design, { architecture, inputs: solar.inputs,
     policy: saved?.schemaVersion === 2 ? saved.allocationPolicy : undefined })
   const layout = solar.intention === 'install-now' && saved?.schemaVersion === 2 ? saved : null
-  if (solar.intention === 'install-now' && (!layout || !layout.panels.length || reviewSolarLayout(layout, solar, roof).state !== 'concept-valid'))
+  if (solar.intention === 'reserve-space' || solar.intention === 'install-now') for (const area of solar.inputs.reservedAreas) {
+    const surface = roof.surfaces.find(s => s.level === area.level && (!area.roofSurfaceId || s.id === area.roofSurfaceId || s.components.some(c => c.id === area.roofSurfaceId)))
+    if (!surface || surface.kind !== 'flat-top-roof' || surface.access.status !== 'modeled' || !polygonFitsRegions(rectanglePolygon(area.rectMm), surface.regionsMm))
+      throw new Error('A reserved area no longer matches an accessible supported roof. Review the solar layout before exporting.')
+  }
+  if (solar.intention === 'install-now' && (!layout || !layout.panels.length || layout.validity.state !== 'concept-valid' || reviewSolarLayout(layout, solar, roof).state !== 'concept-valid'))
     throw new Error('Apply a valid canonical solar layout against this accepted building before exporting.')
   const lines = solarReservationLines(solar.inputs.reservedAreas, roof), reservationLines: number[] = []
   if (solar.intention === 'reserve-space' || solar.intention === 'install-now')

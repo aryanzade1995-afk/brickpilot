@@ -68,7 +68,7 @@ export function AiVisualization({ design }: { design: Design }) {
     } finally { if (request.current === controller) { setPhase('idle'); request.current = null } }
   }
   return <section aria-label={translateUi("AI villa visualization")} className="mt-10 border-t border-line pt-6">
-    <p className="mb-3 text-xs text-ink-dim">{translateUi('Building-only reference and AI image · live rooftop PV and keep-free areas are not included.')}</p>
+    <p className="mb-3 text-xs text-ink-dim">{translateUi('Building-only AI reference · out of date for the solar design. Use the canonical solar render and combined export for current panels and keep-free areas.')}</p>
     {/* the Blender villa the image is made from, rendered off screen for the capture only */}
     {hasModel && phase === 'capture' && <div aria-hidden className="pointer-events-none h-px w-px overflow-hidden opacity-0">
       <div className="w-[800px]"><VillaVisualizationViewport key={sourceId} ref={viewport} design={plan} url={blender!.files.glb} onReady={readyChanged} /></div>

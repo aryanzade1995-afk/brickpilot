@@ -154,7 +154,7 @@ registerHooks({ resolve(s, c, next) { return s.startsWith('@/') ? { url: new URL
 const storage = new Map(); globalThis.localStorage = { getItem: k => storage.get(k) ?? null, setItem: (k, v) => storage.set(k, v), removeItem: k => storage.delete(k) }
 globalThis.window = { localStorage: globalThis.localStorage }
 const { useStudio } = await import('../src/state/studio.ts'), { useBlender } = await import('../src/state/blender.ts')
-test('atomic viewer edits preserve exact building result, pinned direction, plan edits, cost and accepted GLB without a fetch', () => {
+test('atomic viewer edits preserve exact building geometry, pinned direction, plan edits, prices and accepted GLB without a fetch', () => {
   useStudio.getState().loadSaved(brief, { massing: design.massingType, seed: 12, planSeed: design.planSeed, planner: 'baseline' })
   useStudio.getState().run(); useStudio.getState().updateSolar({ intention: inputs.intention, inputs: inputs.inputs })
   const initial = useStudio.getState().proposeSolarLayout(); assert.equal(initial.ok, true)
@@ -170,8 +170,10 @@ test('atomic viewer edits preserve exact building result, pinned direction, plan
   try {
     assert.equal(useStudio.getState().commitSolarLayoutEdit(checked.configuration, draft.baseSolarSignature, draft.roofSignature).ok, true)
     const after = useStudio.getState()
-    assert.equal(after.result, before.result); assert.equal(after.pinned, before.pinned); assert.equal(after.layout, before.layout)
-    assert.equal(after.result.cost, before.result.cost); assert.equal(useBlender.getState(), renders)
+    for (const key of ['design', 'buildingModel', 'massingModel', 'facadeModel', 'villaDesignDNA', 'shapeFingerprint']) assert.equal(after.result[key], before.result[key], key)
+    assert.equal(after.pinned, before.pinned); assert.equal(after.layout, before.layout)
+    assert.equal(after.result.cost.expected, before.result.cost.expected); assert.deepEqual(after.result.cost.boq, before.result.cost.boq)
+    assert.equal(after.result.cost.solar.delivery.layoutStatus, 'concept-valid'); assert.equal(useBlender.getState(), renders)
     assert.equal(after.brief.solar.inputs.placement.mode, 'manual')
     assert.equal(useStudio.getState().commitSolarLayoutEdit(checked.configuration, draft.baseSolarSignature, draft.roofSignature).ok, false, 'Old drafts are invalid after an Apply')
     const positions = JSON.stringify(after.brief.solar.calculated.layout.panels)

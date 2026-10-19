@@ -6,6 +6,7 @@ import { SpecificationSchedule } from '@/components/SpecificationSchedule.tsx'
 import { specificationSchedule } from '@/lib/cost/schedule.ts'
 import { QuantitiesView, EstimateView, AssumptionsView } from './finishes/CostViews.tsx'
 import { useBlender } from '@/state/blender.ts'
+import { useSolarArtifacts, solarArtifactKey, isCurrentSolarArtifact } from '@/state/solarArtifacts.ts'
 import { createBuildingModel } from '@/lib/engine/buildingModel.ts'
 import { finishSignature } from '@/lib/cost/finishAssignments.ts'
 import type { Result } from '@/state/studio.ts'
@@ -65,8 +66,15 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
 
   const planId = useMemo(() => result ? createBuildingModel({ ...result.design, model: { ...result.design.model, brief } }).planId : '', [result, brief])
   const blender = useBlender(s => s.accepted[planId])
+  const solarPreview = useSolarArtifacts(s => s.renders[solarArtifactKey(blender, brief.solar, 'preview')])
+  const solarFinal = useSolarArtifacts(s => s.renders[solarArtifactKey(blender, brief.solar, 'final')])
+  const currentSolar = isCurrentSolarArtifact(solarFinal, blender, brief.solar) ? solarFinal :
+    isCurrentSolarArtifact(solarPreview, blender, brief.solar) ? solarPreview : undefined
   const blenderImages = useMemo<ReportImage[]>(() => blender?.finishSignature === finishSignature(brief)
-    ? (['hero','front','aerial'] as const).map(view => ({label: `Building only · Visualisation (Blender) — ${view}`, dataUrl: blender.files[view]})) : visualisations, [blender, brief, visualisations])
+    ? (['hero','front','aerial'] as const).map(view => currentSolar ? ({ label: `Current applied solar · Blender — ${view}`, dataUrl: currentSolar.files[view],
+      artifactScope: 'building-plus-solar', solarVisualSignature: currentSolar.solarVisualSignature }) :
+      ({label: `Building-only reference · not current solar design — ${view}`, dataUrl: blender.files[view], artifactScope: 'building-only'})) : visualisations,
+    [blender, brief, visualisations, currentSolar])
   const villaPairs=useVillaVisualizations(s=>s.pairs),resetVillaPairs=useVillaVisualizations(s=>s.reset)
   const renderJobs = useRender((s) => s.jobs)
   const resetRender = useRender((s) => s.reset)
@@ -89,11 +97,11 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
     ]:[])
     for(const pair of Object.values(villaPairs).filter(p=>currentSources.has(p.sourceId))) {
       const label='Blender villa'
-      pair.images.forEach(image=>out.push({label:`Visualisation (AI · ${label}) — ${VILLA_VIEW_LABELS[image.view]}`,dataUrl:image.url}))
+      pair.images.forEach(image=>out.push({label:`Building-only AI reference · not current solar design (${label}) — ${VILLA_VIEW_LABELS[image.view]}`,dataUrl:image.url,artifactScope:'building-only'}))
     }
     for (const k of Object.keys(renderJobs) as RefKey[]) {
       const j = renderJobs[k]
-      if (j.status === 'done' && j.url) out.push({ label: `Visualisation (${j.mock ? 'source preview' : 'AI'}) — ${REF_LABEL[k]}`, dataUrl: j.url })
+      if (j.status === 'done' && j.url) out.push({ label: `Building/interior-only reference · not current solar design (${j.mock ? 'source preview' : 'AI'}) — ${REF_LABEL[k]}`, dataUrl: j.url, artifactScope: 'building-only' })
     }
     return out
   }, [renderJobs, villaPairs, planId, brief, result, blender])

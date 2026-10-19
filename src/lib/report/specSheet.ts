@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf'
 import { autoTable } from 'jspdf-autotable'
 import type { SpecificationRow } from '../cost/schedule.ts'
 import type { CostEstimate } from '../cost/boq.ts'
+import { appendSolarSchedule } from './solarSchedule.ts'
 
 export type SheetEstimate = Pick<CostEstimate, 'solar' | 'label' | 'qualification' | 'expected' | 'total' | 'ratePerSqft' | 'rateVersion' | 'tradeTotals' | 'included' | 'excluded' | 'assumptions' | 'sources'>
 export type SpecSheetData = { projectName: string; schedule: SpecificationRow[]; cost: SheetEstimate; photos?: Record<string, string> }
@@ -68,6 +69,7 @@ export async function buildSpecSheetPdf(data: SpecSheetData): Promise<Blob> {
       ['Backup configuration', solar.backup === 'pending' ? 'Pending; hybrid, battery and backup circuits not implemented or priced' : 'Not requested'],
       ['Annual energy', solar.energy.annualKwh ? `${solar.energy.annualKwh.low} - ${solar.energy.annualKwh.high} kWh/year; preliminary range` : solar.energy.state],
     ], styles: { fontSize: 9 }, headStyles: { fillColor: [51, 51, 51] } })
+    appendSolarSchedule(doc, solar, (doc.lastAutoTable?.finalY ?? 68) + 18)
   }
   doc.addPage(); doc.setFont('helvetica', 'bold').setFontSize(12); doc.text('ASSUMPTIONS, EXCLUSIONS & PHOTO CREDITS', 42, 50)
   autoTable(doc, { startY: 68, margin: { left: 42, right: 42, bottom: 60 }, body: [...notes.map(v => [v.replaceAll('₹', 'Rs ')]), ...[...new Map(data.schedule.filter(r => r.photo).map(r => [r.photo, `${r.photoSource} · ${r.credit} · CC0 texture close-up, not an installed product photograph`])).values()].map(v => [v])], styles: { fontSize: 8, cellPadding: 5 }, theme: 'plain' })

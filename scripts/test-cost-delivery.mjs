@@ -24,7 +24,7 @@ test('Excel has a summary plus every trade, numeric inputs, formula totals and m
  const {buildBoqExcel}=await server.ssrLoadModule('/src/lib/cost/exportExcel.ts')
  const blob=await buildBoqExcel(cost,'Cost integration review'),book=new ExcelJS.Workbook()
  await book.xlsx.load(Buffer.from(await blob.arrayBuffer()))
- assert.equal(book.worksheets.length,cost.tradeTotals.length+1)
+ assert.equal(book.worksheets.length,cost.tradeTotals.length+1+(cost.solar?1:0)+(cost.solar?.delivery?.arrays.length?1:0))
  for(let index=0;index<cost.tradeTotals.length;index++){
   const sheet=book.worksheets[index+1],trade=cost.tradeTotals[index],lines=cost.boq.filter(l=>l.group===trade.trade)
   assert.equal(sheet.getCell('A1').value,trade.trade)

@@ -1,4 +1,5 @@
 import type { CostEstimate } from './boq.ts'
+import { solarScheduleRows, SOLAR_SCHEDULE_HEADERS } from '../solar/delivery.ts'
 
 /** Browser-compatible workbook; quantities/rates are numbers and amounts are formulas. */
 export async function buildBoqExcel(cost: CostEstimate, projectName = 'Formstead project'): Promise<Blob> {
@@ -61,15 +62,24 @@ export async function buildBoqExcel(cost: CostEstimate, projectName = 'Formstead
   summary.getColumn(4).numFmt = money; summary.getColumn(5).numFmt = money
   decorate(summary, [76, 22, 20, 22, 22, 65], 6)
   for (let r = end + 6; r <= summary.rowCount; r++) { summary.mergeCells(r, 1, r, 6); summary.getRow(r).height = 48 }
-  if (cost.solar && (cost.solar.status !== 'undecided' || cost.solar.objective !== 'unknown')) {
+  if (cost.solar) {
     const solar = cost.solar, sheet = book.addWorksheet('Solar assessment')
     sheet.addRows([['Rooftop solar'], [cost.label], ['Gross direct solar cost before shared add-ons and unconfirmed tax; no subsidy deducted'], [], ['Assessment', 'Value / basis'],
       ['Status', solar.status], ['Goal', solar.objective], ['Applied PV panels', solar.panelCount], ['Applied DC kWp', solar.capacityKwp],
       ['Gross installation INR', solar.grossInstallationCost], ['Legacy allowance INR', solar.legacyAllowanceCost], ['Potential assistance', 'Unverified; INR 0 deducted'],
       ['Official scheme portal', solar.assistance.url], ['Backup configuration', solar.backup], ['Inverter compatibility', solar.inverter.state],
+      ['Layout status', solar.delivery?.layoutStatus ?? 'Historical schedule unavailable'], ['Roof signature', solar.delivery?.roofSignature ?? 'Not recorded'],
+      ['Layout signature', solar.delivery?.layoutSignature ?? 'Not recorded'], ['Reserved areas', solar.delivery?.reservedAreaCount ?? 'Not recorded'],
       ['Annual energy kWh', solar.energy.annualKwh ? `${solar.energy.annualKwh.low} - ${solar.energy.annualKwh.high}` : solar.energy.state],
-      ...[...solar.notes, ...solar.inverter.reasons, ...solar.energy.reasons, ...solar.energy.basis, ...solar.inclusions, ...solar.exclusions, ...solar.sources].map(v => ['Basis', v])])
+      ...[...solar.notes, ...solar.inverter.reasons, ...solar.energy.reasons, ...solar.energy.basis, ...solar.inclusions, ...solar.exclusions, ...(solar.delivery?.assumptions ?? []), ...solar.sources].map(v => ['Basis', v])])
     decorate(sheet, [36, 110], 5)
+    if (solar.delivery?.arrays.length) {
+      const schedule = book.addWorksheet('Solar panel schedule')
+      schedule.addRows([['Canonical rooftop PV inventory'], [`Layout: ${solar.delivery.layoutStatus}`],
+        [`Roof: ${solar.delivery.roofSignature}; layout: ${solar.delivery.layoutSignature}`], [], SOLAR_SCHEDULE_HEADERS, ...solarScheduleRows(solar.delivery)])
+      decorate(schedule, [20, 30, 45, 12, 14, 14, 32, 18, 12, 20, 22, 60], 5)
+      schedule.getColumn(6).numFmt = '0.000###'
+    }
   }
   book.calcProperties.fullCalcOnLoad = true
   const bytes = await book.xlsx.writeBuffer()

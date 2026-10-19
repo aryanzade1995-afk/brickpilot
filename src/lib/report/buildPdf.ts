@@ -1,4 +1,6 @@
 import { specificationSchedule } from '../cost/schedule.ts'
+import { appendSolarSchedule } from './solarSchedule.ts'
+import { solarVisualSignature } from '../solar/renderContract.ts'
 import { appendSpecificationSchedule, schedulePhotos } from './specSheet.ts'
 import { jsPDF } from 'jspdf'
 import { autoTable } from 'jspdf-autotable'
@@ -21,7 +23,7 @@ const moneyShort = (n: number) => fShort(n).replace('₹', 'Rs ')
 const moneyRange = (lo: number, hi: number, short = false) =>
   `${(short ? moneyShort : money)(lo)} – ${(short ? moneyShort : money)(hi)}`
 
-export type ReportImage = { label: string; dataUrl: string }
+export type ReportImage = { label: string; dataUrl: string; artifactScope?: 'building-only' | 'building-plus-solar'; solarVisualSignature?: string }
 
 export type ReportData = {
   projectName: string
@@ -97,7 +99,11 @@ export async function buildReportPdf(data: ReportData): Promise<Blob> {
     y = (doc.lastAutoTable?.finalY ?? y) + 18
   }
 
-  const image = ({ label, dataUrl }: ReportImage, maxH = 250) => {
+  const image = ({ label, dataUrl, artifactScope, solarVisualSignature: imageSolar }: ReportImage, maxH = 250) => {
+    if (artifactScope === 'building-plus-solar' && imageSolar !== solarVisualSignature(data.brief.solar)) {
+      paragraph(`OUT OF DATE: ${label}. This image is excluded because it does not match the current saved solar configuration.`)
+      return
+    }
     let props: { width: number; height: number }
     try {
       props = doc.getImageProperties(dataUrl)
@@ -210,7 +216,7 @@ export async function buildReportPdf(data: ReportData): Promise<Blob> {
   /* --------------------------------- massing ------------------------------ */
   if (data.massingImages.length) {
     heading('3D massing', 200)
-    paragraph('Building-only views. Live rooftop photovoltaic panels and keep-free areas are not included. See the interactive villa for the saved solar layout.')
+    paragraph('Image captions identify scope. Building-only references are not the current solar design. Combined solar images must match the saved solar signature; stale combined images are excluded.')
     data.massingImages.forEach((img) => image(img, 240))
   }
 
@@ -281,6 +287,8 @@ export async function buildReportPdf(data: ReportData): Promise<Blob> {
       ['Annual energy', solar.energy.annualKwh ? `${solar.energy.annualKwh.low} - ${solar.energy.annualKwh.high} kWh/year; preliminary scenario range` : solar.energy.state],
     ])
     paragraph('Gross solar subtotal is before shared project add-ons and unconfirmed solar tax. See itemized BOQ and assessment assumptions. 3D shadows are decorative, not energy analysis.')
+    appendSolarSchedule(doc, solar, y)
+    y = (doc.lastAutoTable?.finalY ?? y) + 18
   }
   heading('Measurement assumptions & scope', 90)
   cost.assumptions.forEach(a => paragraph(a))

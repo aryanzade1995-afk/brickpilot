@@ -8,6 +8,7 @@ import { buildSolarRoofModel, type SolarRoofArchitecture } from './roofModel.ts'
 import { reviewSolarLayout, solarLayoutTotals } from './placement.ts'
 import type { SolarLayoutV2, SolarConfiguration } from '../model/solar.ts'
 import { planAzimuthToTrue } from './coordinates.ts'
+import { solarDelivery, solarDeliverySchema } from './delivery.ts'
 
 export const SOLAR_RATE_VERSION = 'formstead-solar-concept-v1 · 2026-10-19'
 export const SOLAR_RATE_SOURCE = 'Formstead internal concept allowances; Pune, Maharashtra; 2026-10-19. Not a supplier quotation, government schedule or verified market rate. Obtain a local itemized quotation.'
@@ -17,6 +18,7 @@ export const SOLAR_BACKUP_SOURCE = 'https://www.sma.de/en/home/solar-system-powe
 const texts = z.array(z.string().max(12000)).max(200)
 const nonnegative = z.number().finite().nonnegative()
 export const solarEstimateSchema = z.object({
+  delivery: solarDeliverySchema.optional(),
   schemaVersion: z.literal(1), status: z.enum(['not-included', 'undecided', 'reservation-only', 'needs-review', 'applied', 'legacy-allowance']),
   panelCount: nonnegative.int(), capacityKwp: nonnegative, grossInstallationCost: nonnegative, legacyAllowanceCost: nonnegative,
   objective: z.enum(['unknown', 'bill-savings', 'outage-backup', 'both']),
@@ -26,6 +28,13 @@ export const solarEstimateSchema = z.object({
     annualKwh: z.object({ low: nonnegative, high: nonnegative }).nullable(), annualConsumptionKwh: nonnegative.nullable(), reasons: texts, basis: texts }),
   notes: texts, inclusions: texts, exclusions: texts, sources: texts,
   assistance: z.object({ status: z.literal('unverified'), deductedInr: z.literal(0), url: z.literal(SOLAR_SCHEME_URL) }),
+}).superRefine((value, ctx) => {
+  const d = value.delivery
+  if (!d) return // Pre-schedule saved records retain their original schema contract.
+  if ((value.status === 'applied') !== (d.layoutStatus === 'concept-valid') ||
+    d.arrays.reduce((n, a) => n + a.count, 0) !== value.panelCount ||
+    Math.abs(d.arrays.reduce((n, a) => n + a.capacityKwp, 0) - value.capacityKwp) > 1e-9)
+    ctx.addIssue({ code: 'custom', message: 'Solar summary disagrees with canonical delivery schedule' })
 })
 export type SolarEstimate = z.infer<typeof solarEstimateSchema>
 /** A full current Result may be supplied without importing the studio into the cost library. */
@@ -96,7 +105,7 @@ export function solarCostSchedule(design: Design, brief: Brief, context?: SolarC
   const solar = brief.solar ?? defaultSolarConfiguration(), assessment = solar.assessmentInputs ?? defaultSolarAssessmentInputs()
   const normalized = { ...solar, assessmentInputs: assessment }
   const legacy = brief.specs.overrides.solar === 'on' && solar.intention === 'undecided' && assessment.legacyAllowance === 'preserve'
-  const summary: SolarEstimate = { schemaVersion: 1,
+  const summary: SolarEstimate = { schemaVersion: 1, delivery: solarDelivery(normalized),
     status: legacy ? 'legacy-allowance' : solar.intention === 'reserve-space' ? 'reservation-only' : solar.intention === 'install-now' ? 'needs-review' : solar.intention,
     panelCount: 0, capacityKwp: 0, grossInstallationCost: 0, legacyAllowanceCost: legacy ? 250000 : 0,
     objective: assessment.objective, backup: ['both', 'outage-backup'].includes(assessment.objective) ? 'pending' : 'not-requested',
@@ -119,6 +128,7 @@ export function solarCostSchedule(design: Design, brief: Brief, context?: SolarC
   } catch { summary.notes.push('The current roof cannot be validated. Installation quantities are excluded.'); return { summary, lines, useLegacy: false } }
   const totals = solarLayoutTotals(layout)
   Object.assign(summary, { panelCount: totals.panelCount, capacityKwp: totals.capacityKwp, status: 'applied' })
+  summary.delivery = solarDelivery(normalized, layout)
   summary.inverter = assessInverter(layout, normalized)
   summary.energy = estimateSolarEnergy(layout, normalized)
   const add = (id: string, label: string, specification: string, qty: number, unit: string, materialRate: number, labourRate = 0) => lines.push({
