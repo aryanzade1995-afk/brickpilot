@@ -1,5 +1,5 @@
 import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
-import { Component, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Component, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Canvas, useThree } from '@react-three/fiber'
 import { OrbitControls, useTexture } from '@react-three/drei'
@@ -10,6 +10,7 @@ import { interiorFinishes } from '@/lib/interior/finishes.ts'
 import { createBuildingModel } from '@/lib/engine/buildingModel.ts'
 import { useInterior360 } from '@/state/interior360.ts'
 import { finishSignature } from '@/lib/cost/finishAssignments.ts'
+import { RoomPlan2D } from '@/components/RoomPlan2D.tsx'
 
 class PanoramaBoundary extends Component<{children:ReactNode; onError:()=>void}, {failed:boolean}> {
   state={failed:false}
@@ -18,13 +19,19 @@ class PanoramaBoundary extends Component<{children:ReactNode; onError:()=>void},
   render(){return this.state.failed?<p className="p-5">{translateUi("Panorama unavailable. Generate it again.")}</p>:this.props.children}
 }
 
-function Panorama({ url, fov }: {url:string;fov:number}) {
+function Panorama({ url, fov, onYawChange }: {url:string;fov:number;onYawChange?:(yaw:number)=>void}) {
   useLanguage(s => s.language);
 
   const texture=useTexture(url, texture=>{if('colorSpace' in texture)texture.colorSpace=SRGBColorSpace})
   const camera=useThree(s=>s.camera), invalidate=useThree(s=>s.invalidate)
   useEffect(()=>{if(camera instanceof PerspectiveCamera){camera.fov=fov;camera.updateProjectionMatrix();invalidate()}},[camera,fov,invalidate])
-  return <><mesh scale={[-1,1,1]} rotation={[0,-Math.PI/2,0]}><sphereGeometry args={[10,64,32]} /><meshBasicMaterial map={texture} side={BackSide} /></mesh><OrbitControls enablePan={false} enableZoom={false} rotateSpeed={-0.4} target={[0,0,0]} /></>
+  return <><mesh scale={[-1,1,1]} rotation={[0,-Math.PI/2,0]}><sphereGeometry args={[10,64,32]} /><meshBasicMaterial map={texture} side={BackSide} /></mesh><OrbitControls enablePan={false} enableZoom={false} rotateSpeed={-0.4} target={[0,-0.002,0]} onChange={()=>{
+    if (camera && onYawChange) {
+      let deg = Math.atan2(-camera.position.x, camera.position.z) * 180 / Math.PI
+      if (deg < 0) deg += 360
+      onYawChange(deg)
+    }
+  }} /></>
 }
 
 /** Fast 360 preview of one room, dressed in exactly what was chosen on Finishes & Cost. */
@@ -45,6 +52,24 @@ export function FastInteriorPreview({design}: {design:Design}) {
   const saved=store.saved[savedKey]
   const [busy,setBusy]=useState(false), [error,setError]=useState('')
   const [stage,setStage]=useState('Preparing selected room'), [fov,setFov]=useState(75), [fullscreen,setFullscreen]=useState(false)
+  const [showFullscreenMap, setShowFullscreenMap] = useState(true)
+  const [liveYaw, setLiveYaw] = useState<number | undefined>(undefined)
+  const rafId = useRef<number | null>(null)
+  const handleYawChange = useCallback((yaw: number) => {
+    if (rafId.current !== null) return
+    rafId.current = requestAnimationFrame(() => {
+      rafId.current = null
+      setLiveYaw(yaw)
+    })
+  }, [])
+  useEffect(() => {
+    return () => {
+      if (rafId.current !== null) cancelAnimationFrame(rafId.current)
+    }
+  }, [])
+  useEffect(() => {
+    setLiveYaw(undefined)
+  }, [room?.id, room?.floor])
   const viewer=useRef<HTMLDivElement>(null), panel=useRef<HTMLDivElement>(null), pinch=useRef<number|null>(null)
   const [fresh,setFresh]=useState(false)
   // a dropped graphics context (driver reset, GPU memory pressure) remounts the viewer instead of leaving it blank
@@ -92,16 +117,29 @@ export function FastInteriorPreview({design}: {design:Design}) {
     } catch(e) {if(currentKey.current===savedKey && activeRequest.current===controller && (!controller.signal.aborted || timedOut))setError(timedOut?'Rendering took too long. Please retry.':e instanceof Error?e.message:'Preview unavailable. Please retry.')}
     finally {clearTimeout(timer);clearInterval(progress);if(activeRequest.current===controller){activeRequest.current=null;setBusy(false)}}
   }
-  return <section className="border border-line p-5 mt-6" aria-label={translateUi("Fast 360 interior preview")}>
+  return <section className="border border-line p-5 mt-6 relative" aria-label={translateUi("Fast 360 interior preview")}>
     <h2 className="font-display text-2xl">{translateUi("Fast 360° Interior Preview")}</h2>
-    <p className="mt-2 text-sm text-ink-dim">{translateUi("The selected room from your validated plan, dressed in exactly what you chose on Finishes & Cost. Drag the panorama to look around.")}</p>
+    <p className="mt-2 text-sm text-ink-dim max-w-xl">{translateUi("The selected room from your validated plan, dressed in exactly what you chose on Finishes & Cost. Drag the panorama to look around.")}</p>
+    
+    {/* 2D Room Floor-Plan: strictly placed in the unused top-right header space */}
+    <div className="hidden lg:block absolute top-4 right-5 w-[260px] xl:w-[280px]">
+      <RoomPlan2D
+        design={design}
+        roomId={room?.id}
+        roomName={room?.name}
+        floorLevel={room?.floor}
+        density={store.furnitureDensity as InteriorConfiguration['furnitureDensity']}
+        initialYaw={liveYaw ?? result?.initialYaw}
+      />
+    </div>
+
     <div className="mt-5 grid gap-6 lg:grid-cols-[320px_1fr]">
       <div ref={panel} className="space-y-3">
         {translateUi(select('Floor',String(room?.floor??0),[...new Set(rooms.map(r=>r.floor))].map(f=>({id:String(f),label:rooms.find(r=>r.floor===f)!.floorName})),v=>{const r=rooms.find(r=>r.floor===Number(v))!;store.set({room:{floor:r.floor,roomId:r.id}})}))}
         {translateUi(select('Room',room?.id??'',rooms.filter(r=>r.floor===room?.floor).map(r=>({id:r.id,label:r.name})),v=>store.set({room:{floor:room!.floor,roomId:v}})))}
         {finishes && <div className="border border-line p-3" aria-label={translateUi("Finishes in this room")}>
           <div className="flex items-baseline justify-between gap-2"><p className="label">{translateUi("From your Finishes & Cost")}</p><Link to="/workspace/finishes?tab=specifications" className="text-xs underline">{translateUi("Change")}</Link></div>
-          <ul className="mt-2 space-y-1.5">{finishes.summary.map(s=><li key={s.label} className="flex items-center gap-2 text-xs">
+          <ul className="mt-2 space-y-1.5 max-h-48 overflow-y-auto pr-1">{finishes.summary.map(s=><li key={s.label} className="flex items-center gap-2 text-xs">
             {s.image?<img src={s.image} alt={translateUi("")} className="h-7 w-7 flex-none rounded border border-line bg-white object-contain"/>:<span className="h-7 w-7 flex-none rounded border border-line bg-bg-inset"/>}
             <span className="min-w-0"><span className="block text-ink-faint">{translateUi(s.label)}</span><span className="block truncate text-ink">{translateUi(s.value)}</span></span></li>)}</ul>
         </div>}
@@ -114,11 +152,53 @@ export function FastInteriorPreview({design}: {design:Design}) {
       </div>
       <div className="min-w-0">
         <p className="mb-3 text-sm text-ink-dim">{translateUi(room?.name)} · {translateUi(room?.w.toFixed(2))} × {translateUi(room?.d.toFixed(2))} {translateUi(" m")}</p>
-        <div ref={viewer} className="bg-bg" style={{height:fullscreen?'100vh':520,position:fullscreen?'fixed':'relative',inset:fullscreen?0:undefined,zIndex:fullscreen?1000:undefined,touchAction:'none'}} aria-label={translateUi("Interactive 360 panorama")}
+        <div
+          ref={viewer}
+          className="bg-bg border border-line"
+          style={{height:fullscreen?'100vh':520,position:fullscreen?'fixed':'relative',inset:fullscreen?0:undefined,zIndex:fullscreen?1000:undefined,touchAction:'none'}}
+          aria-label={translateUi("Interactive 360 panorama")}
           onTouchStart={e=>{if(e.touches.length===2)pinch.current=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY)}}
           onTouchMove={e=>{if(e.touches.length===2 && pinch.current!==null){const distance=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);setFov(f=>Math.max(35,Math.min(100,f+(pinch.current!-distance)*0.15)));pinch.current=distance}}}
-          onTouchEnd={()=>{pinch.current=null}}>
-          {result&&!busy?<PanoramaBoundary key={result.url} onError={()=>{useTexture.clear(result.url);store.forget(savedKey);setError('The saved panorama could not be loaded. Generate it again.')}}><Canvas key={glLoss} frameloop="demand" onCreated={({gl})=>gl.domElement.addEventListener('webglcontextlost',()=>setTimeout(()=>setGlLoss(n=>n+1),300),{once:true})} camera={{position:[-Math.sin(result.initialYaw*Math.PI/180)*0.01,0,Math.cos(result.initialYaw*Math.PI/180)*0.01],fov:75}}><Suspense fallback={null}><Panorama url={result.url} fov={fov} /></Suspense></Canvas></PanoramaBoundary>:<p role="status" className="p-6 text-ink-dim">{translateUi(busy?stage:checking?'Checking saved preview against your current finishes…':'Generate the 360° view of this room in your chosen finishes.')}</p>}
+          onTouchEnd={()=>{pinch.current=null}}
+        >
+          {/* Full-Screen Floating HUD Mini-Map: keeps 2D map visible when exploring in full-screen */}
+          {fullscreen && showFullscreenMap && (
+            <div className="absolute top-4 right-4 z-30 w-[240px] pointer-events-auto shadow-2xl bg-bg-raised/95 backdrop-blur-md rounded border border-line overflow-hidden">
+              <div className="flex items-center justify-between border-b border-line px-2.5 py-1 text-[11px] font-mono text-ink-dim bg-bg-inset/40">
+                <span className="flex items-center gap-1.5 font-medium text-ink text-[11px]">
+                  <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+                  {translateUi("Floor Plan HUD")}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowFullscreenMap(false)}
+                  className="hover:text-ink text-ink-dim transition-colors px-1 text-xs"
+                  title={translateUi("Minimize Map")}
+                >
+                  ✕
+                </button>
+              </div>
+              <RoomPlan2D
+                design={design}
+                roomId={room?.id}
+                roomName={room?.name}
+                floorLevel={room?.floor}
+                density={store.furnitureDensity as InteriorConfiguration['furnitureDensity']}
+                initialYaw={liveYaw ?? result?.initialYaw}
+              />
+            </div>
+          )}
+          {fullscreen && !showFullscreenMap && (
+            <button
+              type="button"
+              onClick={() => setShowFullscreenMap(true)}
+              className="absolute top-4 right-4 z-30 pointer-events-auto rounded border border-line bg-bg-raised/95 backdrop-blur-md px-3 py-1.5 text-xs font-mono text-ink shadow-lg hover:border-accent transition-colors flex items-center gap-2"
+            >
+              <span className="h-2 w-2 rounded-full bg-accent" />
+              {translateUi("Show 2D Map")}
+            </button>
+          )}
+          {result&&!busy?<PanoramaBoundary key={result.url} onError={()=>{useTexture.clear(result.url);store.forget(savedKey);setError('The saved panorama could not be loaded. Generate it again.')}}><Canvas key={glLoss} frameloop="demand" onCreated={({gl})=>gl.domElement.addEventListener('webglcontextlost',()=>setTimeout(()=>setGlLoss(n=>n+1),300),{once:true})} camera={{position:[-Math.sin(result.initialYaw*Math.PI/180)*0.01,0,Math.cos(result.initialYaw*Math.PI/180)*0.01],fov:75}}><Suspense fallback={null}><Panorama url={result.url} fov={fov} onYawChange={handleYawChange} /></Suspense></Canvas></PanoramaBoundary>:<p role="status" className="p-6 text-ink-dim">{translateUi(busy?stage:checking?'Checking saved preview against your current finishes…':'Generate the 360° view of this room in your chosen finishes.')}</p>}
           {result && !busy && <div className="absolute bottom-3 left-3 right-3 flex flex-wrap gap-2 text-sm"><button className="bg-bg border border-line px-3 py-2" onClick={()=>setFov(f=>Math.max(35,f-10))} aria-label={translateUi("Zoom in")}>+</button><button className="bg-bg border border-line px-3 py-2" onClick={()=>setFov(f=>Math.min(100,f+10))} aria-label={translateUi("Zoom out")}>−</button><button className="bg-bg border border-line px-3 py-2" onClick={async()=>{if(fullscreen){if(document.fullscreenElement)await document.exitFullscreen();else setFullscreen(false)}else{setFullscreen(true);try{await viewer.current?.requestFullscreen()}catch{/* Embedded browsers use the full-window overlay. */}}}}>{translateUi(fullscreen?'Exit full screen':'Full screen')}</button></div>}
         </div>
         {result && !busy && <p className="mt-3 text-sm">{translateUi(fresh?'Preview ready and saved.':`Saved preview · ${new Date(saved!.savedAt).toLocaleString()}`)} <a className="underline" href={result.url} download="interior-360.webp">{translateUi("Download panorama")}</a></p>}
