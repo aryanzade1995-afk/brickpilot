@@ -86,6 +86,17 @@ export async function handleVillaRequest(req, res, readJson) {
     if (req.method === 'POST' && path === '/api/villas/solar') {
       if (queue.length >= 8) { json(res, 429, { error: 'Render queue is full. Try after the current job finishes.' }); return true }
       const request = await readJson(req, 8e6), replay = await prepareSolarReplay(request)
+      // Persistent artifact identity survives server restart; it never keys on seed alone.
+      try {
+        const index = JSON.parse(await readFile(resolve(ROOT, 'solar-cache', `${replay.solarCacheKey}.json`), 'utf8'))
+        if (UUID.test(index.jobId)) {
+          const directory = resolve(ROOT, index.jobId), result = JSON.parse(await readFile(resolve(directory, 'accepted.json'), 'utf8'))
+          if (result.artifactScope === 'building-plus-solar' && result.solarCacheKey === replay.solarCacheKey && result.files.every(f => existsSync(resolve(result.directory, f)))) {
+            const job = { id: index.jobId, directory, mode: 'solar-replay', solarCacheKey: replay.solarCacheKey, status: 'complete', phase: 'Ready', result, debug: [] }
+            jobs.set(job.id, job); json(res, 200, publicJob(job)); return true
+          }
+        }
+      } catch { /* No matching completed solar export yet. */ }
       const cached = [...jobs.values()].find(j => j.mode === 'solar-replay' && j.solarCacheKey === replay.solarCacheKey && j.status !== 'failed')
       if (cached) { json(res, cached.status === 'complete' ? 200 : 202, publicJob(cached)); return true }
       const id = randomUUID(), directory = resolve(ROOT, id)
@@ -133,7 +144,9 @@ export async function handleVillaRequest(req, res, readJson) {
             let owner
             try { owner = JSON.parse(await readFile(resolve(PROJECT_ROOT, 'output/villa-production-history.json.lock'), 'utf8')) } catch { /* Not active. */ }
             let alive = false
-            if (owner?.directory === directory && Number.isInteger(owner.pid)) {
+            if (job.mode === 'solar-replay' && Number.isInteger(job.workerPid)) {
+              try { process.kill(job.workerPid, 0); alive = true } catch { /* Interrupted solar replay. */ }
+            } else if (owner?.directory === directory && Number.isInteger(owner.pid)) {
               try { process.kill(owner.pid, 0); alive = true } catch { /* Interrupted by a restart. */ }
             }
             if (!alive) { job.status = 'failed'; job.error = 'Generation was interrupted. Generate another design to resume.' }

@@ -202,7 +202,10 @@ test('editing inputs clears calculated data while a no-op retains it', () => {
   assert.equal(useStudio.getState(), before)
   useStudio.getState().updateSolar({ intention: 'install-now', inputs: { ...inputs, request: { kind: 'capacity', capacityKwp: 3 } } })
   assert.equal(useStudio.getState().brief.solar.calculated, null)
-  assert.equal(useStudio.getState().result, before.result)
+  for (const key of ['design', 'buildingModel', 'massingModel', 'facadeModel', 'villaDesignDNA', 'shapeFingerprint'])
+    assert.equal(useStudio.getState().result[key], before.result[key], key)
+  assert.equal(useStudio.getState().result.cost.expected, before.result.cost.expected)
+  assert.equal(useStudio.getState().result.cost.solar.delivery.layoutSignature, null)
 })
 
 test('studio reload, project switching, duplication and version restore keep solar isolated and replay the same villa', async () => {

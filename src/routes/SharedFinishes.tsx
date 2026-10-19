@@ -6,6 +6,7 @@ import type { PublicSheet } from '@/lib/cost/publicSheet.ts'
 import { SpecificationSchedule } from '@/components/SpecificationSchedule.tsx'
 import { formatINR, formatRange } from '@/lib/format.ts'
 import { LanguageSelector } from '@/components/LanguageSelector.tsx'
+import { SolarEstimateSummary } from '@/components/solar/SolarEstimateSummary.tsx'
 
 export function SharedFinishes() {
   useLanguage(s => s.language);
@@ -32,6 +33,16 @@ export function SharedFinishes() {
     <button type="button" disabled={exporting} onClick={()=>void download()} className="my-5 border border-line px-4 py-3 text-xs">{translateUi(exporting ? 'Preparing PDF…' : 'Download spec sheet PDF')}</button>
     {error && <p role="alert" className="mb-4 text-xs text-bad">{translateUi(error)}</p>}
     <SpecificationSchedule rows={sheet.schedule}/>
+    <SolarEstimateSummary solar={sheet.cost.solar}/>
+    {!!sheet.cost.solar?.delivery?.arrays.length && <details className="my-6 border border-line p-4">
+      <summary className="cursor-pointer text-sm">{translateUi('Canonical solar panel schedule')}</summary>
+      <div className="mt-4 overflow-x-auto"><table className="w-full text-left text-xs"><thead><tr className="border-b border-line">
+        {['Array / roof', 'Panel specification', 'Count / capacity', 'Dimensions / local pose'].map(h => <th key={h} scope="col" className="p-2">{translateUi(h)}</th>)}
+      </tr></thead><tbody>{sheet.cost.solar.delivery.arrays.map(a => <tr key={a.id} className="border-b border-line">
+        <td className="p-2">{a.id}<br/>{a.roofSurfaceId}</td><td className="p-2">{a.specificationName}<br/>{a.specificationId}@{a.specificationRevision ?? translateUi('Unknown')}<br/>{a.specificationSource}</td>
+        <td className="p-2">{a.count} × {a.ratedPowerW} W<br/>{a.capacityKwp} kWp</td><td className="p-2">{a.widthMm} × {a.slopeLengthMm} × {a.thicknessMm} mm<br/>{a.azimuthDeg}° / {a.tiltDeg}°</td>
+      </tr>)}</tbody></table></div>
+    </details>}
     <section className="mt-9 border-t border-line pt-5"><h2 className="font-display text-2xl">{translateUi("Concept estimate")}</h2><p className="mt-3 font-display text-3xl">{translateUi(formatINR(sheet.cost.expected))}</p><p className="mt-2 text-sm">{translateUi("Range ")}{translateUi(formatRange(sheet.cost.total.low,sheet.cost.total.high,formatINR))} · {translateUi(formatINR(sheet.cost.ratePerSqft))} {translateUi(" / sq ft")}</p><p className="mt-3 text-xs leading-relaxed text-ink-dim">{translateUi(sheet.cost.qualification)}</p><dl className="mt-5 divide-y divide-line">{sheet.cost.tradeTotals.map(t=><div key={t.trade} className="py-3 text-sm"><div className="flex flex-wrap justify-between gap-2"><dt>{translateUi(t.trade)}</dt><dd>{translateUi(formatINR(t.amount))} · {translateUi((t.share*100).toFixed(1))}%</dd></div><div className="mt-2 h-1.5 bg-bg-inset"><div className="h-full bg-ink-dim" style={{width:`${t.share*100}%`}}/></div></div>)}</dl><p className="mt-3 text-xs text-ink-faint">{translateUi("Trade amounts are works before project add-ons. The expected total includes fees, overhead, contingency, tax provision and allowances from the saved estimate.")}</p></section>
     <section className="mt-8 grid gap-6 md:grid-cols-2">{([['Included',sheet.cost.included],['Excluded',sheet.cost.excluded],['Assumptions',sheet.cost.assumptions],['Sources',sheet.cost.sources]] as const).map(([title,values])=><div key={title}><h2 className="font-display text-xl">{translateUi(title)}</h2><ul className="mt-3 space-y-2 text-xs leading-relaxed text-ink-dim [overflow-wrap:anywhere]">{values.map(v=><li key={v}>{translateUi(v)}</li>)}</ul></div>)}</section>
     <p className="mt-8 border-t border-line pt-5 text-xs text-ink-faint">{translateUi("Approximate concept only; no structural certification. Actual products, structural design, site conditions and contractor quotes determine final cost.")}</p>

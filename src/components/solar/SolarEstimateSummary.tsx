@@ -19,6 +19,7 @@ export function SolarEstimateSummary({ solar }: { solar?: SolarEstimate }) {
       {solar.energy.annualConsumptionKwh !== null && <p className="mt-2 text-xs text-ink-dim">{t('User consumption basis (12 × monthly kWh)')}: {solar.energy.annualConsumptionKwh.toLocaleString('en-IN')} kWh/year</p>}
       <p className="mt-2 text-xs text-ink-faint">{t('The 3D shadow preview is decorative, not a validated shading or energy analysis.')}</p>
     </div>
-    <details className="mt-4 text-xs"><summary className="cursor-pointer">{t('Solar basis, inclusions and exclusions')}</summary><div className="mt-3 space-y-3 break-words leading-relaxed text-ink-dim">{[...solar.notes, ...solar.inverter.reasons, ...solar.energy.reasons, ...solar.energy.basis, ...solar.inclusions, ...solar.exclusions, ...solar.sources].map((line, i) => <p key={i}>{t(line)}</p>)}</div></details>
+    {solar.delivery && <p className="mt-3 text-xs text-ink-dim">{t('Solar layout status')}: {t(solar.delivery.layoutStatus)} · {t('Reserved areas')}: {solar.delivery.reservedAreaCount}</p>}
+    <details className="mt-4 text-xs"><summary className="cursor-pointer">{t('Solar basis, inclusions and exclusions')}</summary><div className="mt-3 space-y-3 break-words leading-relaxed text-ink-dim">{[...solar.notes, ...solar.inverter.reasons, ...solar.energy.reasons, ...solar.energy.basis, ...solar.inclusions, ...solar.exclusions, ...(solar.delivery?.assumptions ?? []), ...solar.sources].map((line, i) => <p key={i}>{t(line)}</p>)}</div></details>
   </section>
 }

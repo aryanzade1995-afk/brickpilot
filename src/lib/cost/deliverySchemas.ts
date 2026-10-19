@@ -12,7 +12,16 @@ export const specificationRowSchema = z.object({ id: text, item: text, group: te
   city: text, date: z.iso.date(), photo: z.string().regex(/^public\/specs\/textures\/[a-z0-9_-]+\.jpg$/).nullable(),
   photoSource: z.string().regex(/^https:\/\/(polyhaven\.com|ambientcg\.com)\/a\/[a-zA-Z0-9_-]+$/).nullable(), credit: text.nullable(), note: text })
 export const publicSheetSchema = z.strictObject({ schemaVersion: z.literal(1), projectName: z.string().min(1).max(250), createdAt: z.iso.datetime(),
-  schedule: z.array(specificationRowSchema).min(1).max(4000), cost: sheetEstimateSchema })
+  schedule: z.array(specificationRowSchema).min(1).max(4000), cost: sheetEstimateSchema }).superRefine((sheet, ctx) => {
+    if (!sheet.cost.solar?.delivery) return
+    const solar = sheet.cost.solar, rows = sheet.schedule.filter(r => r.id.startsWith('solar-pv:'))
+    const panel = rows.find(r => r.id === 'solar-pv:panels')
+    if (rows.some(r => !Number.isFinite(Number.parseFloat(r.quantity)) || Number.parseFloat(r.quantity) < 0) ||
+      new Set(rows.map(r => r.id)).size !== rows.length || solar.status === 'applied' && (!panel || Number.parseFloat(panel.quantity) !== solar.panelCount ||
+      Math.abs(rows.reduce((n, r) => n + Number.parseFloat(r.quantity) * r.rate, 0) - solar.grossInstallationCost) > .01) ||
+      solar.status !== 'applied' && rows.length || solar.status === 'applied' && sheet.schedule.some(r => r.item === 'solar'))
+      ctx.addIssue({ code: 'custom', message: 'Public solar specification schedule disagrees with the applied inventory or cost' })
+  })
 
 const ifc = z.object({ NetVolume: number, NetSideArea: number, NetArea: number, Length: number, Count: number })
 const amounts = z.record(z.string(), number)

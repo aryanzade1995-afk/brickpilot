@@ -17,6 +17,7 @@ import { useSolarVillaEditor } from './solar/useSolarVillaEditor.ts'
 import { SolarVillaControls } from './solar/SolarVillaControls.tsx'
 import { SolarLayer } from '@/lib/three/SolarLayer.tsx'
 import { SolarCamera, FitAcceptedVilla } from '@/lib/three/SolarCamera.tsx'
+import { useSolarArtifacts, solarArtifactKey, isCurrentSolarArtifact } from '@/state/solarArtifacts.ts'
 
 // Stable Canvas options prevent React updates to solar controls from reconfiguring the camera.
 const VILLA_CAMERA = { position: [20, 14, -25] as [number, number, number], fov: 40 }
@@ -57,6 +58,12 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
   const ensureForPlan = useBlender((s) => s.ensureForPlan)
   const [quality, setQuality] = useState<'preview' | 'final'>('preview')
   const [view, setView] = useState<'hero' | 'front' | 'aerial'>('hero')
+  const solarKey = solarArtifactKey(result, solar.solar, quality)
+  const solarArtifact = useSolarArtifacts(s => s.renders[solarKey])
+  const solarJob = useSolarArtifacts(s => s.jobs[solarKey])
+  const renderSolar = useSolarArtifacts(s => s.render), resumeSolar = useSolarArtifacts(s => s.resume)
+  const currentSolar = isCurrentSolarArtifact(solarArtifact, result, solar.solar) ? solarArtifact : undefined
+  const solarBusy = !!solarJob && !['complete', 'failed'].includes(solarJob.status)
   const [findingShape, setFindingShape] = useState(false)
   const [fillingBalcony,setFillingBalcony]=useState(false)
   const fillBalconyArea=useStudio(s=>s.fillBalconyArea)
@@ -71,6 +78,7 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
   const currentJob = sourcePlanId === id ? job : null
   const displayJob = findingShape || fillingBalcony ? job : currentJob
   useEffect(() => { void resume() }, [resume])
+  useEffect(() => { void resumeSolar() }, [resumeSolar])
   useEffect(() => { if (autoGenerate) void ensureForPlan(finishedPlan, selectedSeed) }, [autoGenerate, finishedPlan, selectedSeed, ensureForPlan, busy])
   return <section className="mt-5 border border-line p-4 md:p-6">
     <div className="flex flex-wrap items-center justify-between gap-4">
@@ -147,14 +155,29 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
             <OrbitControls makeDefault minPolarAngle={0} maxPolarAngle={Math.PI / 2} />
           </Canvas></ModelBoundary>
         </div>
-        <div><p className="mb-2 text-xs text-ink-dim">{translateUi('Building only · live rooftop PV and keep-free areas are not included in this image.')}</p><img src={result.files[view]} alt={translateUi(`${view} view of architectural design ${result.seed}`)} className="aspect-[4/3] w-full object-contain" />
+        <div><p role="status" className="mb-2 text-xs text-ink-dim">{translateUi(currentSolar ? 'Current applied solar layout · accepted building unchanged.' : 'Building-only image · out of date for the current solar design. Render the applied solar layout to update.')}{solar.draft && ` ${translateUi('Unsaved layout preview is not included in exported images.')}`}</p><img src={(currentSolar ?? result).files[view]} alt={translateUi(currentSolar ? `${view} view with applied solar layout` : `${view} building-only reference; solar not current`)} className="aspect-[4/3] w-full object-contain" />
           <div className="mt-2 flex gap-2">{(['hero', 'front', 'aerial'] as const).map((key) =>
             <button type="button" key={key} onClick={() => setView(key)} className="border border-line px-3 py-1 text-xs uppercase">{translateUi(key)}</button>)}</div>
         </div>
       </div>
       <SolarVillaControls editor={solar}/>
+      <div className="mt-4 border border-line p-4">
+        <button type="button" disabled={busy || solarBusy || !!solar.draft || !!currentSolar || solar.solar.intention === 'install-now' && !solar.layout}
+          onClick={() => void renderSolar(result, solar.solar, quality)} className="border border-line-strong px-4 py-2 text-sm disabled:opacity-50">
+          {translateUi(solarBusy ? 'Rendering saved solar layout…' : currentSolar ? 'Solar exports are current' : 'Render applied solar layout')}
+        </button>
+        <p className="mt-2 text-xs text-ink-dim">{translateUi('Replays the accepted building and seed. Solar changes do not regenerate the architecture.')}</p>
+        {solarBusy && <p role="status" className="mt-2 text-sm">{translateUi(solarJob.phase)}</p>}
+        {solarJob?.error && <p role="alert" className="mt-2 text-sm text-bad">{translateUi(solarJob.error)}</p>}
+        {currentSolar && <div className="mt-3 flex flex-wrap gap-4 text-sm">
+          <a className="underline" href={currentSolar.files.glb} download>{translateUi('Building + solar GLB')}</a>
+          <a className="underline" href={currentSolar.files.blend} download>{translateUi('Building + solar Blender scene')}</a>
+          <a className="underline" href={currentSolar.files.solarLayout} download>{translateUi('Canonical solar layout JSON')}</a>
+          {(['hero', 'front', 'aerial'] as const).map(key => <a key={key} className="underline" href={currentSolar.files[key]} download>{translateUi(`${key} image with applied solar`)}</a>)}
+        </div>}
+      </div>
       <div className="mt-4 flex flex-wrap gap-4 text-sm">{(['blend', 'glb', 'hero', 'front', 'aerial'] as const).map((key) =>
-        <a key={key} href={result.files[key]} download className="underline underline-offset-4">{translateUi(key === 'blend' ? 'Editable Blender scene' : key === 'glb' ? 'Interactive 3D model' : `${key} image`)}</a>)}</div>
+        <a key={key} href={result.files[key]} download className="underline underline-offset-4">{translateUi(key === 'blend' ? 'Building-only Blender scene' : key === 'glb' ? 'Building-only GLB' : `${key} building-only image`)}</a>)}</div>
       <p className="mt-2 text-xs text-ink-dim">{translateUi('Building-only downloads. Rooftop PV and keep-free areas are shown in the live villa viewer.')}</p>
       <p className="mt-3 text-xs text-ink-faint">{translateUi("Car: ")}<a href="https://sketchfab.com/models/57bf6cc56931426e87494f554df1dab6" target="_blank" rel="noreferrer" className="underline">{translateUi("Ferrari 458 Italia by vicent091036")}</a>{translateUi(", adapted under ")}<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer" className="underline">{translateUi("CC BY 4.0")}</a>.</p>
     </>}

@@ -1,4 +1,5 @@
 import type { SolarCostContext } from '../solar/estimate.ts'
+import { solarScheduleRows, SOLAR_SCHEDULE_HEADERS } from '../solar/delivery.ts'
 import { replayedCost } from './replay.ts'
 import type { Design } from '../engine/types.ts'
 import type { Brief } from '../model/brief.ts'
@@ -34,6 +35,12 @@ export function boqCsv(cost: CostEstimate): string {
     ['INR / sq ft', cost.ratePerSqft], ['Turnkey works', cost.procurement.turnkey], ['Materials', cost.procurement.material], ['Labour', cost.procurement.labour],
     ['Default preset total', cost.defaultExpected],
     ...(cost.solar ? [['Solar status', cost.solar.status], ['Applied PV panels', cost.solar.panelCount], ['Applied DC capacity (kWp)', cost.solar.capacityKwp], ['Gross solar installation before shared add-ons and unconfirmed tax', cost.solar.grossInstallationCost], ['Legacy solar allowance', cost.solar.legacyAllowanceCost], ['Potential assistance', 'Unverified; INR 0 deducted', cost.solar.assistance.url], ['Solar goal', cost.solar.objective], ['Backup configuration', cost.solar.backup], ['Preliminary annual energy (kWh)', cost.solar.energy.annualKwh ? `${cost.solar.energy.annualKwh.low}–${cost.solar.energy.annualKwh.high}` : cost.solar.energy.state]] : []),
+    ...(cost.solar ? [['Solar layout status', cost.solar.delivery?.layoutStatus ?? 'Historical schedule unavailable'],
+      ['Solar roof signature', cost.solar.delivery?.roofSignature ?? 'Not recorded'], ['Solar layout signature', cost.solar.delivery?.layoutSignature ?? 'Not recorded'],
+      ['Solar reserved areas', cost.solar.delivery?.reservedAreaCount ?? 'Not recorded'],
+      ['Canonical solar panel schedule'], SOLAR_SCHEDULE_HEADERS, ...solarScheduleRows(cost.solar.delivery),
+      ...[...cost.solar.notes, ...cost.solar.inclusions, ...cost.solar.exclusions, ...cost.solar.inverter.reasons, ...cost.solar.energy.reasons, ...cost.solar.energy.basis,
+        ...(cost.solar.delivery?.assumptions ?? []), ...cost.solar.sources].map(n => ['Solar qualification', n])] : []),
     ...cost.topCostDrivers.map(d => ['Cost driver vs preset', d.label, '', '', '', '', d.amount, '', '', '', `Default ${d.defaultAmount}; difference ${d.difference}`]),
     ...cost.assumptions.map(a => ['Measurement assumption', a]),
     ...cost.excluded.map(a => ['Excluded', a]), ...cost.sources.map(a => ['Source', a])]

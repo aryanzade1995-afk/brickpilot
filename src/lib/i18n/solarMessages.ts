@@ -1,8 +1,10 @@
 import { solarCostMessages } from './solarCostMessages.ts'
 import { governmentSupportMessages } from './governmentSupportMessages.ts'
+import { solarPipelineMessages } from './solarPipelineMessages.ts'
 export const solarMessages: Record<string, readonly [string, string]> = {
   ...solarCostMessages,
   ...governmentSupportMessages,
+  ...solarPipelineMessages,
   'Building-only direction previews · rooftop PV is shown on the accepted villa in 3D Massing.': ['डिज़ाइन विकल्पों में केवल भवन है · छत के PV स्वीकृत विला के 3D भवन दृश्य में दिखते हैं।', 'डिझाइन पर्यायांत फक्त इमारत आहे · छतावरील PV स्वीकारलेल्या व्हिलाच्या 3D इमारत दृश्यात दिसतात.'],
   'Interior-only views · rooftop PV is shown in 3D Massing.': ['केवल अंदरूनी दृश्य · छत के PV 3D भवन दृश्य में दिखते हैं।', 'फक्त अंतर्गत दृश्ये · छतावरील PV 3D इमारत दृश्यात दिसतात.'],
   'Rooftop solar viewer': ['छत के सौर पैनलों का दृश्य', 'छतावरील सौर पॅनेलचे दृश्य'],

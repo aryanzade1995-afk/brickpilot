@@ -13,6 +13,7 @@ import {PLUMBING_SIZES} from './plumbingCatalogue.ts'
 /** One measured-room entry per applicable finish, followed by house specifications. */
 export function specificationSchedule(brief: Brief, cost: CostEstimate): SpecificationRow[] {
   const rows = specsCatalogue.items.filter(i => i.level !== 'auto' && !Object.hasOwn(PLUMBING_SIZES,i.id)).flatMap(item => {
+    if (item.id === 'solar' && cost.solar && cost.solar.status !== 'legacy-allowance') return []
     const lines = cost.boq.filter(l => l.item === item.id)
     if(item.id==='water-pipes'||item.id==='drain-pipes')return lines.map(line=>{
       const option=resolveSpecification(brief,item.id),rate=specificationRate(line.rateId)
@@ -42,6 +43,12 @@ export function specificationSchedule(brief: Brief, cost: CostEstimate): Specifi
           finish ? `${item.note} ${finish.specification} Source (${finish.sourceKind}): ${finish.brand} · ${finish.sourceUrl}. ${finish.image.note} ${finish.rate.note}` : item.note }
     })
   })
-  return rows.sort((a, b) => Number(!a.roomId) - Number(!b.roomId) || a.where.localeCompare(b.where) || a.group.localeCompare(b.group))
+  const solarRows: SpecificationRow[] = cost.boq.filter(l => l.id.startsWith('solar-pv:')).map(line => ({
+    id: line.id, item: line.item, group: line.group, label: line.label, where: 'Whole home · rooftop solar',
+    optionId: line.specId, choice: line.specification, material: 'Concept photovoltaic system', facts: ['Applied canonical layout', 'No subsidy deducted'],
+    quantity: `${line.qty} ${line.unit}`, rate: line.rate, unit: line.unit, city: 'Pune; internal concept allowance, confirm project location', date: '2026-10-19',
+    photo: null, photoSource: null, credit: null, note: line.note,
+  }))
+  return [...rows, ...solarRows].sort((a, b) => Number(!a.roomId) - Number(!b.roomId) || a.where.localeCompare(b.where) || a.group.localeCompare(b.group))
 }
 export type SpecificationRow = z.infer<typeof specificationRowSchema>
