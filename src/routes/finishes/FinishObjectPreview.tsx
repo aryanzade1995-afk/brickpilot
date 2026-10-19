@@ -1,3 +1,4 @@
+import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
 import { Component, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Environment, Lightformer, OrbitControls, RoundedBox } from '@react-three/drei'
@@ -45,6 +46,8 @@ function parts(kind: ReturnType<typeof finishPreview>['kind'], item: SpecItem, s
 }
 const bowlProfile = [[.02,0],[.28,.08],[.47,.35],[.50,.49],[.43,.49],[.38,.30],[.10,.07],[.02,0]].map(([x,y])=>new Vector2(x,y))
 function ShellMesh({part:p,children}:{part:PreviewPart;children:ReactNode}) {
+  useLanguage(s => s.language);
+
  const geometry=useMemo(()=>{
   const g=new BufferGeometry(),vertices:number[]=[],indices:number[]=[],segments=96,profile=p.profile!,power=p.squareness??1
   for(const [r,y] of profile)for(let i=0;i<=segments;i++){
@@ -55,27 +58,31 @@ function ShellMesh({part:p,children}:{part:PreviewPart;children:ReactNode}) {
   g.setAttribute('position',new Float32BufferAttribute(vertices,3));g.setIndex(indices);g.computeVertexNormals();return g
  },[p.profile,p.size,p.squareness])
  useEffect(()=>()=>geometry.dispose(),[geometry])
- return <mesh position={p.at} rotation={p.rotation} geometry={geometry} castShadow receiveShadow>{children}</mesh>
+ return <mesh position={p.at} rotation={p.rotation} geometry={geometry} castShadow receiveShadow>{translateUi(children)}</mesh>
 }
 function PartMesh({part:p,texture,style}: {part:PreviewPart;texture:ReturnType<TextureLoader['load']>|undefined;style:ReturnType<typeof finishPreview>}) {
+  useLanguage(s => s.language);
+
  // Catalogue surfaces are intentionally unlit: no exposure, tint, environment or tone mapping alters their RGB.
  const material=style.productPreview?.model==='paint'&&p.selected?<meshBasicMaterial color={style.color} toneMapped={false} side={2}/>:
   style.catalogueColour&&p.selected&&texture&&!p.glass?<meshBasicMaterial map={texture} color="#ffffff" toneMapped={false} side={2}/>:
   p.glass?<meshPhysicalMaterial color={p.color??(p.selected?style.color:'#a6cad2')} transparent opacity={p.color ? .5 : .25} roughness={p.roughness??.07} metalness={.08} clearcoat={1} side={2}/>:
   <meshStandardMaterial side={p.shape==='shell'?2:0} map={p.selected&&!p.color?texture:undefined} color={p.color??(p.selected?style.texture?'#ffffff':style.color:'#c4c4bf')} metalness={p.metallic??(p.selected?style.metallic:.05)} roughness={p.roughness??(p.selected?style.roughness:.65)} emissive={p.emissive??'#000000'} emissiveIntensity={p.emissive?2:0}/>
  const common={position:p.at,rotation:p.rotation,castShadow:!p.glass,receiveShadow:true}
- if(p.shape==='shell')return <ShellMesh part={p}>{material}</ShellMesh>
- if(p.shape==='sphere')return <mesh {...common} scale={p.size}><sphereGeometry args={[.5,48,32]}/>{material}</mesh>
- if(p.shape==='cylinder')return <mesh {...common}><cylinderGeometry args={[p.size[0],p.size[1],p.size[2],64]}/>{material}</mesh>
- if(p.shape==='torus')return <mesh {...common}><torusGeometry args={[p.size[0],p.size[1],12,48]}/>{material}</mesh>
- if(p.shape==='bowl')return <mesh {...common} scale={[p.size[0]*2,p.size[1]*2,p.size[2]*2]}><latheGeometry args={[bowlProfile,48]}/>{material}</mesh>
+ if(p.shape==='shell')return <ShellMesh part={p}>{translateUi(material)}</ShellMesh>
+ if(p.shape==='sphere')return <mesh {...common} scale={p.size}><sphereGeometry args={[.5,48,32]}/>{translateUi(material)}</mesh>
+ if(p.shape==='cylinder')return <mesh {...common}><cylinderGeometry args={[p.size[0],p.size[1],p.size[2],64]}/>{translateUi(material)}</mesh>
+ if(p.shape==='torus')return <mesh {...common}><torusGeometry args={[p.size[0],p.size[1],12,48]}/>{translateUi(material)}</mesh>
+ if(p.shape==='bowl')return <mesh {...common} scale={[p.size[0]*2,p.size[1]*2,p.size[2]*2]}><latheGeometry args={[bowlProfile,48]}/>{translateUi(material)}</mesh>
  // BoxGeometry normalises each face to [0,1]. Extruded rounded boxes use world-unit UVs,
  // which clamp most of the catalogue photo to its edge colour on large surfaces.
- if(style.catalogueColour&&!style.productPreview)return <mesh {...common}><boxGeometry args={p.size}/>{material}</mesh>
- return <RoundedBox {...common} args={p.size} radius={Math.min(.025,...p.size.map(v=>v*.15))} smoothness={2}>{material}</RoundedBox>
+ if(style.catalogueColour&&!style.productPreview)return <mesh {...common}><boxGeometry args={p.size}/>{translateUi(material)}</mesh>
+ return <RoundedBox {...common} args={p.size} radius={Math.min(.025,...p.size.map(v=>v*.15))} smoothness={2}>{translateUi(material)}</RoundedBox>
 }
 type TextureStatus = 'loading' | 'ready' | 'error'
 function PreviewScene({item,option,colour,roomSize,onStatus}:{item:SpecItem;option:SpecOption;colour?:string;roomSize?:[number,number];onStatus:(status:TextureStatus)=>void}) {
+  useLanguage(s => s.language);
+
  const original=finishPreview(item,option),style=colour?{...original,color:colour,texture:undefined}:original,invalidate=useThree(s=>s.invalidate)
  const [loaded,setLoaded]=useState<{src:string;texture:Texture<HTMLImageElement>}|undefined>()
  const texture=loaded?.src===style.texture?loaded?.texture:undefined
@@ -104,18 +111,20 @@ class PreviewBoundary extends Component<{children:ReactNode;resetKey:string},{fa
   state={failed:false,resetKey:this.props.resetKey}
   static getDerivedStateFromError(){return {failed:true}}
   static getDerivedStateFromProps(props:{resetKey:string},state:{resetKey:string}){return props.resetKey===state.resetKey?null:{failed:false,resetKey:props.resetKey}}
-  render(){return this.state.failed?<p className="p-6 text-sm text-ink-dim">3D preview unavailable on this device. Your finish selection still works.</p>:this.props.children}
+  render(){return this.state.failed?<p className="p-6 text-sm text-ink-dim">{translateUi("3D preview unavailable on this device. Your finish selection still works.")}</p>:this.props.children}
 }
 export function FinishObjectPreview({item,option,colour,roomSize}:{item:SpecItem;option:SpecOption;colour?:string;roomSize?:[number,number]}) {
+  useLanguage(s => s.language);
+
   const style=finishPreview(item,option),ceilingScale=Math.max(1,...(roomSize??[]).map(v=>v/4.5))
   const key=`${item.id}:${option.id}:${colour??''}`
   const [status,setStatus]=useState<{key:string;value:TextureStatus}>()
   const onStatus=useCallback((value:TextureStatus)=>setStatus({key,value}),[key])
-  if(style.kind==='system')return <p className="rounded-lg bg-bg-inset p-4 text-xs text-ink-dim">{style.caption} Your selection is included in the specification and estimate.</p>
-  return <figure data-preview-option={option.id} data-preview-image={style.image?.src} data-preview-colour={colour??style.color} data-preview-state={status?.key===key?status.value:'loading'} className="overflow-hidden rounded-xl border border-line bg-bg-inset"><div className="flex items-center justify-between px-4 py-3"><p className="label">{style.kind} preview</p><p className="text-xs text-ink-dim">Drag to rotate</p></div>
-    <div className="h-[310px] sm:h-[380px]" aria-label={`3D ${style.kind}: ${option.name}`}><PreviewBoundary key={item.id} resetKey={option.id}><Suspense fallback={<p className="p-5 text-xs">Loading preview…</p>}><Canvas frameloop="always" shadows dpr={[1,2]} camera={{position:style.kind==='ceiling'?[3*ceilingScale,-1.8*ceilingScale,4.8*ceilingScale]:['roof','pool','landscape','waterproofing'].includes(style.kind)||style.productPreview?.model?.startsWith('light')||style.productPreview?.model==='fan'?[3,2.9,4]:style.kind==='railing'?[2,1.1,3.5]:[2.5,1.6,4.8],fov:style.kind==='ceiling'?45:36}} gl={{antialias:true}}><PreviewScene key={item.id} item={item} option={option} colour={colour} roomSize={roomSize} onStatus={onStatus}/></Canvas></Suspense></PreviewBoundary></div>
-    {style.kind==='waterproofing'&&<div className="border-t border-line px-4 py-3 text-xs"><p className="mb-2 font-medium">System layers · bottom to top</p><ol className="list-inside list-decimal space-y-1"><li>Concrete substrate</li><li>Prepared / primed surface</li><li>Selected waterproofing coating</li><li>Protection / screed{item.id==='bath-waterproofing'?' and tile finish':''}</li></ol><p className="mt-2">{item.id==='bath-waterproofing'?'Includes wall upturn, junction band and floor drain context.':'Shows the coating turning up at the roof junction.'} Layers are separated for clarity.</p></div>}
-    {status?.key===key&&status.value==='error'&&<p role="alert" className="px-4 py-3 text-xs">The selected image could not load. Choose another finish or reload to retry.</p>}
-    {style.image&&!style.image.surface&&<div className="border-t border-line px-4 py-3"><p className="label mb-2">{item.id==='glass'?'Catalogue frame finish reference':'Selected product image'}</p><img src={style.image.src} alt={`${option.name} supplier reference`} className="max-h-64 w-full object-contain"/></div>}
-    <figcaption className="border-t border-line px-4 py-3 text-xs leading-relaxed text-ink-dim"><p className="mb-1 font-medium text-ink">{option.name}</p>{style.caption}</figcaption></figure>
+  if(style.kind==='system')return <p className="rounded-lg bg-bg-inset p-4 text-xs text-ink-dim">{translateUi(style.caption)} {translateUi(" Your selection is included in the specification and estimate.")}</p>
+  return <figure data-preview-option={option.id} data-preview-image={style.image?.src} data-preview-colour={colour??style.color} data-preview-state={status?.key===key?status.value:'loading'} className="overflow-hidden rounded-xl border border-line bg-bg-inset"><div className="flex items-center justify-between px-4 py-3"><p className="label">{translateUi(style.kind)} {translateUi(" preview")}</p><p className="text-xs text-ink-dim">{translateUi("Drag to rotate")}</p></div>
+    <div className="h-[310px] sm:h-[380px]" aria-label={translateUi(`3D ${style.kind}: ${option.name}`)}><PreviewBoundary key={item.id} resetKey={option.id}><Suspense fallback={<p className="p-5 text-xs">{translateUi("Loading preview…")}</p>}><Canvas frameloop="always" shadows dpr={[1,2]} camera={{position:style.kind==='ceiling'?[3*ceilingScale,-1.8*ceilingScale,4.8*ceilingScale]:['roof','pool','landscape','waterproofing'].includes(style.kind)||style.productPreview?.model?.startsWith('light')||style.productPreview?.model==='fan'?[3,2.9,4]:style.kind==='railing'?[2,1.1,3.5]:[2.5,1.6,4.8],fov:style.kind==='ceiling'?45:36}} gl={{antialias:true}}><PreviewScene key={item.id} item={item} option={option} colour={colour} roomSize={roomSize} onStatus={onStatus}/></Canvas></Suspense></PreviewBoundary></div>
+    {style.kind==='waterproofing'&&<div className="border-t border-line px-4 py-3 text-xs"><p className="mb-2 font-medium">{translateUi("System layers · bottom to top")}</p><ol className="list-inside list-decimal space-y-1"><li>{translateUi("Concrete substrate")}</li><li>{translateUi("Prepared / primed surface")}</li><li>{translateUi("Selected waterproofing coating")}</li><li>{translateUi("Protection / screed")}{translateUi(item.id==='bath-waterproofing'?' and tile finish':'')}</li></ol><p className="mt-2">{translateUi(item.id==='bath-waterproofing'?'Includes wall upturn, junction band and floor drain context.':'Shows the coating turning up at the roof junction.')} {translateUi(" Layers are separated for clarity.")}</p></div>}
+    {status?.key===key&&status.value==='error'&&<p role="alert" className="px-4 py-3 text-xs">{translateUi("The selected image could not load. Choose another finish or reload to retry.")}</p>}
+    {style.image&&!style.image.surface&&<div className="border-t border-line px-4 py-3"><p className="label mb-2">{translateUi(item.id==='glass'?'Catalogue frame finish reference':'Selected product image')}</p><img src={style.image.src} alt={translateUi(`${option.name} supplier reference`)} className="max-h-64 w-full object-contain"/></div>}
+    <figcaption className="border-t border-line px-4 py-3 text-xs leading-relaxed text-ink-dim"><p className="mb-1 font-medium text-ink">{translateUi(option.name)}</p>{translateUi(style.caption)}</figcaption></figure>
 }

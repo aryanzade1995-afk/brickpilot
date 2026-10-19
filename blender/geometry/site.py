@@ -34,6 +34,12 @@ def validate_site_features(building):
             raise ValueError(f"Site feature {feature['id']} intersects the source plan")
         if feature["kind"] == "pool" and min(r["w"], r["h"]) <= SITE_LEVELS["copingWidth"] * 2:
             raise ValueError("Source pool cannot fit its coping")
+        if feature['kind']=='pool' and feature.get('roomId')=='courtyard':
+            court=ground.get('courtyard')
+            if not court or min(r['w'],r['h'])<1800 or max(r['w'],r['h'])<2800 or \
+                    r['x']<court['x']+1000 or r['y']<court['y']+1000 or \
+                    r['x']+r['w']>court['x']+court['w']-1000 or r['y']+r['h']>court['y']+court['h']-1000:
+                raise ValueError('Courtyard pool must retain a clear 1000 mm route on every side')
 
 
 def create_site(scene, building):
@@ -57,22 +63,23 @@ def create_site(scene, building):
         if feature["covered"]:
             continue  # Already built from the authoritative outdoor room/slab.
         r, name, kind = feature["rect"], feature["id"], feature["kind"]
-        material = "landscape" if kind == "lawn" else "glass" if kind == "pool" else "paving"
-        bottom = grade - SITE_LEVELS["waterDepth"] if kind == "pool" else grade + 10
+        material = "landscape" if kind == "lawn" else "water" if kind == "pool" else "paving"
+        feature_grade = ground['elevationMm'] if feature.get('roomId')=='courtyard' else grade
+        bottom = feature_grade - SITE_LEVELS["waterDepth"] if kind == "pool" else feature_grade + 10
         height = SITE_LEVELS["waterThickness"] if kind == "pool" else SITE_LEVELS["pavingHeight"]
         obj = scene.rect(name, "LANDSCAPE", r, bottom, height, material, name, bevel=3)
         obj["site_feature_kind"] = kind
         if kind != "pool":
             continue
-        basin = grade - SITE_LEVELS["poolDepth"]
-        scene.rect(f"{name}_Basin", "LANDSCAPE", r, basin, SITE_LEVELS["basinThickness"], "secondary_wall", name, bevel=4)
+        basin = feature_grade - SITE_LEVELS["poolDepth"]
+        scene.rect(f"{name}_Basin", "LANDSCAPE", r, basin, SITE_LEVELS["basinThickness"], "pool_tile", name, bevel=4)
         rim = SITE_LEVELS["copingWidth"]
         edges = [dict(r, h=rim), dict(r, y=r["y"] + r["h"] - rim, h=rim),
                  dict(r, y=r["y"] + rim, w=rim, h=r["h"] - rim * 2),
                  dict(r, x=r["x"] + r["w"] - rim, y=r["y"] + rim, w=rim, h=r["h"] - rim * 2)]
         for index, edge in enumerate(edges):
-            scene.rect(f"{name}_Side_{index}", "LANDSCAPE", edge, basin, grade - basin, "secondary_wall", name, bevel=4)
-            scene.rect(f"{name}_Coping_{index}", "LANDSCAPE", edge, grade, SITE_LEVELS["copingHeight"], "stone", name, bevel=4)
+            scene.rect(f"{name}_Side_{index}", "LANDSCAPE", edge, basin, feature_grade - basin, "pool_tile", name, bevel=4)
+            scene.rect(f"{name}_Coping_{index}", "LANDSCAPE", edge, feature_grade, SITE_LEVELS["copingHeight"], "stone", name, bevel=4)
 
     if building.get("siteRequirements", {}).get("compoundWall"):
         pw, pd = plot["w"], plot["h"]

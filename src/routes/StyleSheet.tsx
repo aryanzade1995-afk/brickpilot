@@ -1,3 +1,4 @@
+import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { compile } from '@/lib/model/canonical.ts'
 import { defaultBrief, SELECTABLE_CHARACTERS, CHARACTER_LABEL } from '@/lib/model/brief.ts'
@@ -20,6 +21,8 @@ const LABEL_H = 34
 const SETTLE_MS = 3200
 
 export function StyleSheet() {
+  useLanguage(s => s.language);
+
   const designs = useMemo(() => {
     const b = defaultBrief()
     b.site.plotWidth = 19
@@ -72,9 +75,9 @@ export function StyleSheet() {
   return (
     <div style={{ background: '#12140f', minHeight: '100vh', padding: 16, color: '#e7e4dc', font: '13px system-ui' }}>
       <div style={{ display: 'flex', gap: 12, alignItems: 'baseline', marginBottom: 10 }}>
-        <b>Style contact sheet</b>
+        <b>{translateUi("Style contact sheet")}</b>
         <span style={{ color: '#9a978d' }}>
-          {i < STYLES.length ? `rendering ${i + 1}/${STYLES.length} — ${CHARACTER_LABEL[active.c]}` : 'done'}
+          {translateUi(i < STYLES.length ? `rendering ${i + 1}/${STYLES.length} — ${CHARACTER_LABEL[active.c]}` : 'done')}
         </span>
       </div>
 
@@ -86,7 +89,7 @@ export function StyleSheet() {
 
       {sheet && (
         <div style={{ marginTop: 14 }}>
-          <img src={sheet} alt="composite" style={{ maxWidth: '100%', border: '1px solid #2c2e26' }} />
+          <img src={sheet} alt={translateUi("composite")} style={{ maxWidth: '100%', border: '1px solid #2c2e26' }} />
         </div>
       )}
     </div>

@@ -19,6 +19,11 @@ const floor = z.object({ level: z.number().int(), name: text, items: z.record(z.
   members: z.array(z.object({ id: text, category: text, quantities: ifc, steelKg: number, formworkM2: number })), steelKg: amounts, formworkM2: amounts })
 const selection = z.object({ preset: text, catalogue: z.literal(true).optional(), choices: z.object({ floor: text, wall: text, door: text, window: text, roof: text }),
   roomFloors: z.record(z.string(), text), includeGst: z.boolean(), overheadPercent: number.max(100), contingencyPercent: number.max(100), feePercent: number.max(100), gstPercent: number.max(100) })
+const serviceTank=z.object({kind:z.enum(['water','chamber','septic','holding']),capacityLitres:number,lengthM:number.positive(),widthM:number.positive(),depthM:number.positive(),pricingUnits:number})
+const plumbing=z.object({schemaVersion:z.literal(1),occupants:number,overheadLitres:number,underground:serviceTank.nullable(),drain:serviceTank.nullable(),
+  runs:z.array(z.object({id:text,floor:z.number().int().nonnegative(),floorName:text,system:z.enum(['water','drain']),
+    purpose:z.enum(['Water branches','Water riser','Waste branches','Soil / drain stack']),diameterMm:number.positive(),lengthM:number,points:number,sizeBasis:z.enum(['nominal','outside'])})).max(400),
+  waterLengthM:number,drainLengthM:number,notes:texts})
 export const savedCostSchema = sheetEstimateSchema.extend({ currency: z.literal('INR'), confidence: z.literal('C'), ratePerSqm: band,
   lines: z.array(z.object({ label: text, note: text, low: number, high: number, expected: number })), basis: text,
   selection, sanityNote: text.nullable(), defaultExpected: number,
@@ -32,11 +37,20 @@ export const savedCostSchema = sheetEstimateSchema.extend({ currency: z.literal(
     rooms: z.array(z.object({ id: text, floor: text, name: text, area: number })), assumptions: texts,
     structureSizing: z.json(), perFloor: z.array(floor), total: floor,
     concreteMaterials: z.object({ grade: text, cementBags: number.nullable(), sandM3: number.nullable(), aggregateM3: number.nullable() }),
-    masonryMaterials: z.object({ type: text, Count: number }), tanks: z.object({ occupants: number, overheadLitres: number, undergroundLitres: number }) }),
+    masonryMaterials: z.object({ type: text, Count: number }), tanks: z.object({ occupants: number, overheadLitres: number, undergroundLitres: number }),plumbing:plumbing.optional() }),
 }).superRefine((cost, ctx) => {
   const fail = (message: string) => ctx.addIssue({ code: 'custom', message })
   if (Math.abs(cost.lines.reduce((sum, l) => sum + l.expected, 0) - cost.expected) > .01) fail('Saved cost summary does not add up')
   for (const line of cost.boq) if (Math.abs(line.qty * line.rate - line.amount) > .01 || Math.abs(line.materialAmount + line.labourAmount - line.amount) > .01) fail('Saved BOQ line does not add up')
   for (const t of cost.tradeTotals) if (Math.abs(cost.boq.filter(l => l.group === t.trade).reduce((sum, l) => sum + l.amount, 0) - t.amount) > .01) fail('Saved trade total does not add up')
+  const services=cost.quantities.plumbing
+  if(services){
+    for(const system of ['water','drain'] as const)if(Math.abs(services.runs.filter(r=>r.system===system).reduce((n,r)=>n+r.lengthM,0)-services[`${system}LengthM`])>.01)fail('Saved pipe length does not add up')
+    for(const run of services.runs){
+      const line=cost.boq.find(l=>l.id===`${run.system==='water'?'water-pipes':'drain-pipes'}:pipe:${run.id}`)
+      if(!line||Math.abs(line.qty-run.lengthM)>.01)fail('Saved pipe schedule does not match the BOQ')
+    }
+    if(cost.quantities.tanks.undergroundLitres!==(services.underground?.capacityLitres??0))fail('Saved underground capacity does not match the storage schedule')
+  }
 })
 export const costReplaySchema = z.object({ version: z.literal(1), geometryKey: z.string(), signature: z.string(), cost: savedCostSchema })

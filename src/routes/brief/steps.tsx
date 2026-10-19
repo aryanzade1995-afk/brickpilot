@@ -1,6 +1,8 @@
+import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
 import { BudgetNotice } from './BudgetNotice.tsx'
 import { RoomList, FurnitureReview } from './RoomPanel.tsx'
 import { useMemo } from 'react'
+import { MODERN_COMPOSITION_CHOICES, type ModernComposition } from '@/lib/model/modernCompositions.ts'
 import { assessShape, SHAPE_CHOICES } from '@/lib/engine/planner/fit.ts'
 import { resolveOpenSpace, OPEN_SPACE_LABEL } from '@/lib/model/openSpace.ts'
 import { PLANNING_LIMITS } from '@/lib/engine/planner/limits.ts'
@@ -49,6 +51,8 @@ function useBrief() {
 /* -------------------------------------------------------------------------- */
 
 export function ProjectStep() {
+  useLanguage(s => s.language);
+
   const [brief, edit] = useBrief()
   return (
     <div className="max-w-xl space-y-8">
@@ -56,10 +60,7 @@ export function ProjectStep() {
         <TextInput value={brief.project.name} onChange={(v) => edit((b) => void (b.project.name = v))} />
       </Field>
       <p className="border-l-2 border-line-strong pl-4 text-sm text-ink-dim">
-        Formstead produces a residential concept and feasibility package — a villa or bungalow,
-        ground-only through G+3. Pick the typology and character on the Style step. A licensed
-        architect and engineers must verify it before permits or construction.
-      </p>
+        {translateUi("Formstead produces a residential concept and feasibility package — a villa or bungalow, ground-only through G+3. Pick the typology and character on the Style step. A licensed architect and engineers must verify it before permits or construction.")}</p>
     </div>
   )
 }
@@ -67,6 +68,8 @@ export function ProjectStep() {
 /* -------------------------------------------------------------------------- */
 
 export function SiteStep() {
+  useLanguage(s => s.language);
+
   const [brief, edit] = useBrief()
   const s = brief.site
   const open = resolveOpenSpace(s)
@@ -107,7 +110,7 @@ export function SiteStep() {
                   : 'border-line-strong text-ink-dim hover:text-ink')
               }
             >
-              {DIRECTION_LABEL[d]}
+              {translateUi(DIRECTION_LABEL[d])}
             </button>
           ))}
         </div>
@@ -121,13 +124,13 @@ export function SiteStep() {
         />
       </Field>
       <Field label="Climate context" hint="Optional. Used for finish suggestions; your plan stays the same.">
-        <select aria-label="Climate context" value={s.climate ?? ''} onChange={e => edit(b => { b.site.climate = (e.target.value || undefined) as typeof s.climate })} className="w-full border border-line bg-bg px-3 py-2.5 text-sm">
-          <option value="">Not specified</option><option value="hot">Hot</option><option value="moderate">Moderate</option><option value="humid">Humid</option>
+        <select aria-label={translateUi("Climate context")} value={s.climate ?? ''} onChange={e => edit(b => { b.site.climate = (e.target.value || undefined) as typeof s.climate })} className="w-full border border-line bg-bg px-3 py-2.5 text-sm">
+          <option value="">{translateUi("Not specified")}</option><option value="hot">{translateUi("Hot")}</option><option value="moderate">{translateUi("Moderate")}</option><option value="humid">{translateUi("Humid")}</option>
         </select>
       </Field>
 
       <div>
-        <span className="label">Setbacks (m)</span>
+        <span className="label">{translateUi("Setbacks (m)")}</span>
         <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {DIRECTIONS.map((d) => (
             <Field key={d} label={DIRECTION_LABEL[d]}>
@@ -159,9 +162,9 @@ export function SiteStep() {
           })} />)}</div>
           <Field label="Open margin on chosen sides (m)"><NumberInput value={s.openSpace.amount} min={0} max={30} step={0.1} suffix="m" onChange={v => edit(b => void (b.site.openSpace.amount = v))} /></Field>
         </>}
-        <p className="text-xs text-ink-dim" role="status">{s.openSpace.mode === 'auto' ? 'The planner chooses an edge placement and sizes the house to the room programme.' : 'The planner fills the permitted area with connected rectilinear wings, while retaining room access and structure.'}</p>
-        {open.notes.map(note => <p key={note} role="status" className="text-xs text-warn">{note}</p>)}
-        {s.openSpace.mode === 'maxBuild' && maxBuildLimit < 0.85 && <p role="status" className="text-xs text-warn">The existing 60% plot coverage limit prevents 85% buildable-area use on this plot. Max build stops at the coverage limit; parking and room checks still apply.</p>}
+        <p className="text-xs text-ink-dim" role="status">{translateUi(s.openSpace.mode === 'auto' ? 'The planner chooses an edge placement and sizes the house to the room programme.' : 'The planner fills the permitted area with connected rectilinear wings, while retaining room access and structure.')}</p>
+        {open.notes.map(note => <p key={note} role="status" className="text-xs text-warn">{translateUi(note)}</p>)}
+        {s.openSpace.mode === 'maxBuild' && maxBuildLimit < 0.85 && <p role="status" className="text-xs text-warn">{translateUi("The existing 60% plot coverage limit prevents 85% buildable-area use on this plot. Max build stops at the coverage limit; parking and room checks still apply.")}</p>}
       </div>
     </div>
   )
@@ -183,6 +186,8 @@ const MAX_MEMBERS = 20
 const syncOccupants = (b: Brief) => void (b.spaces.occupants = Math.min(MAX_MEMBERS, Math.max(1, b.household.members.length)))
 
 export function FamilyStep() {
+  useLanguage(s => s.language);
+
   const [brief, edit] = useBrief()
   const h = brief.household
   const count = occupantCount(brief)
@@ -197,13 +202,13 @@ export function FamilyStep() {
     <div className="max-w-2xl space-y-10">
       <div className="space-y-4">
         <div className="flex items-baseline justify-between">
-          <span className="label">Household members</span>
-          <span className="font-mono text-xs text-ink-dim tnum">{count} {count === 1 ? 'person' : 'people'}</span>
+          <span className="label">{translateUi("Household members")}</span>
+          <span className="font-mono text-xs text-ink-dim tnum">{translateUi(count)} {translateUi(count === 1 ? 'person' : 'people')}</span>
         </div>
         <div className="space-y-2">
           {h.members.map((m, i) => (
             <div key={i} className="flex flex-wrap items-center gap-3 border border-line p-3">
-              <span className="w-6 font-mono text-xs text-ink-faint tnum">{String(i + 1).padStart(2, '0')}</span>
+              <span className="w-6 font-mono text-xs text-ink-faint tnum">{translateUi(String(i + 1).padStart(2, '0'))}</span>
               <Segmented
                 value={m.role}
                 onChange={(v) =>
@@ -214,7 +219,7 @@ export function FamilyStep() {
                 options={(Object.keys(MEMBER_ROLE_LABEL) as MemberRole[]).map((value) => ({ value, label: MEMBER_ROLE_LABEL[value] }))}
               />
               <div className="min-w-[12rem] flex-1">
-                <p className="mb-1.5 font-mono text-[0.62rem] uppercase tracking-[0.1em] text-ink-faint">Bedroom on</p>
+                <p className="mb-1.5 font-mono text-[0.62rem] uppercase tracking-[0.1em] text-ink-faint">{translateUi("Bedroom on")}</p>
                 <Segmented
                   value={m.floor === undefined || m.floor > brief.levels.storeys ? 'any' : String(m.floor)}
                   onChange={(v) => edit((b) => setFloor(b.household.members[i], v === 'any' ? undefined : Number(v)))}
@@ -223,7 +228,7 @@ export function FamilyStep() {
               </div>
               <button
                 type="button"
-                aria-label={`Remove member ${i + 1}`}
+                aria-label={translateUi(`Remove member ${i + 1}`)}
                 disabled={h.members.length <= 1}
                 onClick={() =>
                   edit((b) => {
@@ -245,8 +250,7 @@ export function FamilyStep() {
             className="inline-flex items-center gap-1.5 border border-line-strong px-3 py-2 font-mono text-xs uppercase tracking-[0.1em] text-ink transition-colors hover:border-accent disabled:opacity-30"
           >
             <Plus size={12} />
-            Add member
-          </button>
+            {translateUi("Add member")}</button>
           {QUICK_ADD.map((role) => (
             <button
               key={role}
@@ -255,7 +259,7 @@ export function FamilyStep() {
               onClick={() => add(role)}
               className="border border-line px-3 py-2 font-mono text-xs uppercase tracking-[0.1em] text-ink-dim transition-colors hover:border-line-strong hover:text-ink disabled:opacity-30"
             >
-              + {MEMBER_ROLE_LABEL[role]}
+              + {translateUi(MEMBER_ROLE_LABEL[role])}
             </button>
           ))}
         </div>
@@ -291,14 +295,16 @@ export function FamilyStep() {
 /* -------------------------------------------------------------------------- */
 
 export function LifestyleStep() {
+  useLanguage(s => s.language);
+
   const [brief, edit] = useBrief()
   const l = brief.lifestyle
   return (
     <div className="max-w-2xl space-y-10">
       <div className="space-y-4">
         <div>
-          <span className="label">Kitchen</span>
-          <p className="mt-1 text-sm text-ink-dim">How the kitchen meets the dining area.</p>
+          <span className="label">{translateUi("Kitchen")}</span>
+          <p className="mt-1 text-sm text-ink-dim">{translateUi("How the kitchen meets the dining area.")}</p>
         </div>
         <CardChoice
           value={l.kitchen}
@@ -317,7 +323,7 @@ export function LifestyleStep() {
         />
       </div>
 
-      <Field label="Living &amp; dining">
+      <Field label="Living & dining">
         <Segmented
           value={brief.spaces.livingDining}
           onChange={(v) => edit((b) => void (b.spaces.livingDining = v))}
@@ -365,6 +371,8 @@ export function LifestyleStep() {
 /* -------------------------------------------------------------------------- */
 
 export function LevelsStep() {
+  useLanguage(s => s.language);
+
   const [brief, edit] = useBrief()
   const l = brief.levels
   return (
@@ -406,6 +414,8 @@ export function LevelsStep() {
 /* -------------------------------------------------------------------------- */
 
 export function RoomsStep() {
+  useLanguage(s => s.language);
+
   const [brief, edit] = useBrief()
   const r = brief.rooms
   const p = r.priorities
@@ -440,7 +450,7 @@ export function RoomsStep() {
       </div>}
 
       <div>
-        <span className="label">Ground-floor priorities</span>
+        <span className="label">{translateUi("Ground-floor priorities")}</span>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           <Toggle checked={p.coveredParking} onChange={(v) => edit((b) => void (b.rooms.priorities.coveredParking = v))} label="Covered parking" />
           <Toggle checked={p.coveredVerandah} onChange={(v) => edit((b) => void (b.rooms.priorities.coveredVerandah = v))} label="Covered verandah" />
@@ -451,10 +461,10 @@ export function RoomsStep() {
       </div>
 
       <div>
-        <span className="label">Site</span>
+        <span className="label">{translateUi("Site")}</span>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          <Toggle checked={p.garden} onChange={(v) => edit((b) => void (b.rooms.priorities.garden = v))} label="Garden &amp; landscaping" hint="Lawn, hedges and driveway" />
-          <Toggle checked={r.pool} onChange={v => edit(b => void (b.rooms.pool = v))} label="Swimming pool" hint="A 2.5 × 5 m pool where the open space permits" />
+          <Toggle checked={p.garden} onChange={(v) => edit((b) => void (b.rooms.priorities.garden = v))} label="Garden & landscaping" hint="Lawn, hedges and driveway" />
+          <Toggle checked={r.pool} onChange={v => edit(b => void (b.rooms.pool = v))} label="Swimming pool" hint="A small courtyard plunge pool where it fits, or a 2.5 × 5 m garden pool" />
           <Toggle checked={p.compoundWall} onChange={(v) => edit((b) => void (b.rooms.priorities.compoundWall = v))} label="Compound wall" hint="Boundary wall with a gate" />
         </div>
       </div>
@@ -467,6 +477,8 @@ export function RoomsStep() {
 /* -------------------------------------------------------------------------- */
 
 export function StyleStep() {
+  useLanguage(s => s.language);
+
   const [brief, edit] = useBrief()
   // each shape is built by the production planner for this exact brief: one
   // the plot cannot take is shown, but cannot be chosen
@@ -479,10 +491,9 @@ export function StyleStep() {
     <div className="max-w-2xl space-y-10">
       <div className="space-y-4">
         <div>
-          <span className="label">Typology</span>
+          <span className="label">{translateUi("Typology")}</span>
           <p className="mt-1 text-sm text-ink-dim">
-            The scale and massing grammar of the house.
-          </p>
+            {translateUi("The scale and massing grammar of the house.")}</p>
         </div>
         <CardChoice
           value={brief.project.buildingType}
@@ -507,30 +518,34 @@ export function StyleStep() {
 
       <div className="space-y-4">
         <div>
-          <span className="label">Character</span>
+          <span className="label">{translateUi("Character")}</span>
           <p className="mt-1 text-sm text-ink-dim">
-            A design constraint, not a label — it drives elevation vocabulary, shade and roof
-            expression.
-          </p>
+            {translateUi("A design constraint, not a label — it drives elevation vocabulary, shade and roof expression.")}</p>
         </div>
         <CardChoice
           value={brief.style.character}
-          onChange={(v) => edit((b) => void (b.style.character = v))}
+          onChange={(v) => edit((b) => { b.style.character = v; if(v!=='modern-box')delete b.style.composition })}
           options={CHARACTER_CARDS}
         />
+        {brief.style.character==='modern-box'&&<div className="space-y-3">
+          <p className="label">{translateUi('Villa composition')}</p>
+          <CardChoice value={brief.style.composition??'auto'} onChange={v=>edit(b=>{
+            if(v==='auto')delete b.style.composition
+            else b.style.composition=v as ModernComposition
+            b.style.massing='auto'
+          })} options={[{value:'auto',title:'Automatic',body:'Choose a composition that fits the brief.'},...MODERN_COMPOSITION_CHOICES]}/>
+        </div>}
         {!SELECTABLE_CHARACTERS.some((value) => value === brief.style.character) && (
           <p className="text-sm text-ink-dim" role="status">
-            This saved brief uses {CHARACTER_LABEL[brief.style.character]}. Choose one of the three current styles to update it.
-          </p>
+            {translateUi("This saved brief uses ")}{translateUi(CHARACTER_LABEL[brief.style.character])}{translateUi(". Choose one of the three current styles to update it.")}</p>
         )}
       </div>
 
       <div className="space-y-4">
         <div>
-          <span className="label">Villa layout</span>
+          <span className="label">{translateUi("Villa layout")}</span>
           <p className="mt-1 text-sm text-ink-dim">
-            Choose the building shape for both your 2D plan and 3D villa. Auto chooses a layout that fits your rooms and plot.
-          </p>
+            {translateUi("Choose the building shape for both your 2D plan and 3D villa. Auto chooses a layout that fits your rooms and plot.")}</p>
         </div>
         <CardChoice
           value={brief.style.massing}
@@ -539,18 +554,17 @@ export function StyleStep() {
             // never blocked: a shape that may not fit says so, and the fit panel offers adjustments
             note: !shapeChecks[o.value as ShapeChoiceValue].ok ? 'May not fit this plot' : undefined })}
         />
-        <p className="text-xs text-ink-dim">Changing this layout creates a new floor plan. Generate another 3D design keeps your selected plan and varies its exterior.</p>
-        <ul className="space-y-1 text-xs" role="status" aria-label="Shape checks">
+        <p className="text-xs text-ink-dim">{translateUi("Changing this layout creates a new floor plan. Generate another 3D design keeps your selected plan and varies its exterior.")}</p>
+        <ul className="space-y-1 text-xs" role="status" aria-label={translateUi("Shape checks")}>
           {SHAPE_CHOICES.map((shape) => (
             <li key={shape} className={shapeChecks[shape].ok ? 'text-ok' : 'text-warn'}>
-              {shapeChecks[shape].ok ? '✓' : '!'} {SHAPE_LABEL[shape]} — {shapeChecks[shape].reason}
+              {translateUi(shapeChecks[shape].ok ? '✓' : '!')} {translateUi(SHAPE_LABEL[shape])} — {translateUi(shapeChecks[shape].reason)}
             </li>
           ))}
         </ul>
         {!['auto', ...SHAPE_CHOICES].includes(brief.style.massing) && (
           <p className="text-sm text-ink-dim" role="status">
-            This saved brief uses an older massing choice ({brief.style.massing.replaceAll('-', ' ')}). It still loads; choose Auto or one of the four wing designs above to change it.
-          </p>
+            {translateUi("This saved brief uses an older massing choice (")}{translateUi(brief.style.massing.replaceAll('-', ' '))}{translateUi("). It still loads; choose Auto or one of the four wing designs above to change it.")}</p>
         )}
         </div>
 
@@ -579,7 +593,7 @@ export function StyleStep() {
             ]}
           />
         </Field>
-        <p className="text-sm text-ink-dim">Every new 3D design gets an automatic variation. Your floor plan stays fixed.</p>
+        <p className="text-sm text-ink-dim">{translateUi("Every new 3D design gets an automatic variation. Your floor plan stays fixed.")}</p>
       </div>
     </div>
   )
@@ -588,7 +602,7 @@ export function StyleStep() {
 const CHARACTER_DETAILS: Record<typeof SELECTABLE_CHARACTERS[number], { title: string; body: string }> = {
   'modern-box': { title: 'Modern Box', body: 'Crisp white boxes, the upper floor oversailing full-height glass, glass rails and a roof terrace.' },
   'contemporary-indian': { title: 'Contemporary', body: 'Plaster planes over a stone-clad ground floor, wide sliding glass, deep flat hoods and a double-height entry.' },
-  'courtyard-indian': { title: 'Courtyard', body: 'Wings wrapping a courtyard behind a columned verandah and street-facing terracotta jaali screens.' },
+  'courtyard-indian': { title: 'Courtyard', body: 'An open-to-sky garden enclosed by room wings and inward-facing galleries, with warm stone and shaded screens.' },
 }
 const CHARACTER_CARDS: { value: Character; title: string; body: string }[] =
   SELECTABLE_CHARACTERS.map((value) => ({ value, ...CHARACTER_DETAILS[value] }))
@@ -609,6 +623,8 @@ const MASSING_CHOICES: { value: MassingChoice; title: string; body: string }[] =
 /* -------------------------------------------------------------------------- */
 
 export function EntryStep() {
+  useLanguage(s => s.language);
+
   const [brief, edit] = useBrief()
   const e = brief.entry
   return (
@@ -640,6 +656,8 @@ export function EntryStep() {
 /* -------------------------------------------------------------------------- */
 
 export function ReviewStep() {
+  useLanguage(s => s.language);
+
   const brief = useStudio((s) => s.brief)
   const model = compile(brief)
   const summary = canonicalSummary(model)
@@ -658,16 +676,15 @@ export function ReviewStep() {
       <FurnitureReview />
 
       <div className="border border-line p-5">
-        <div className="label text-accent">Programme capacity check</div>
+        <div className="label text-accent">{translateUi("Programme capacity check")}</div>
         <p className="mt-2 text-sm text-ink-dim">
-          Minimum room sizes, topology and geometry are checked live against the production planner.
-        </p>
+          {translateUi("Minimum room sizes, topology and geometry are checked live against the production planner.")}</p>
         <div className="mt-4 space-y-3">
           {capacity.map((c) => (
             <div key={c.level}>
               <div className="flex items-baseline justify-between text-sm">
-                <span>{c.name}</span>
-                <span className={c.pct > 100 ? 'text-warn tnum' : 'text-ok tnum'}>{c.pct}%</span>
+                <span>{translateUi(c.name)}</span>
+                <span className={c.pct > 100 ? 'text-warn tnum' : 'text-ok tnum'}>{translateUi(c.pct)}%</span>
               </div>
               <div className="mt-1 h-px w-full bg-line-strong">
                 <div
@@ -676,19 +693,16 @@ export function ReviewStep() {
                 />
               </div>
               <div className="mt-1 font-mono text-[0.7rem] text-ink-faint tnum">
-                {c.demand.toFixed(0)} m² of {c.usable.toFixed(0)} m² usable
-              </div>
+                {translateUi(c.demand.toFixed(0))} {translateUi(" m² of ")}{translateUi(c.usable.toFixed(0))} {translateUi(" m² usable")}</div>
             </div>
           ))}
         </div>
       </div>
 
       <div className="flex items-start gap-3 text-sm text-ink-dim">
-        <span className="label flex-none pt-1">Next</span>
+        <span className="label flex-none pt-1">{translateUi("Next")}</span>
         <p>
-          Formstead assigns a variation seed, generates a fixed candidate, normalises shared walls,
-          places doors, windows and stairs, then tests reachability and geometry.
-        </p>
+          {translateUi("Formstead assigns a variation seed, generates a fixed candidate, normalises shared walls, places doors, windows and stairs, then tests reachability and geometry.")}</p>
       </div>
     </div>
   )
@@ -696,6 +710,8 @@ export function ReviewStep() {
 
 /** every Household / Lifestyle answer, so nothing on a sub-tab is hidden at review */
 function AnswersSummary({ brief }: { brief: Brief }) {
+  useLanguage(s => s.language);
+
   const { household: h, lifestyle: l } = brief
   const onFloor = (level: number) => h.members.filter((m) => m.floor === level && level <= brief.levels.storeys).length
   const sections: { title: string; stats: [string, string][]; note?: string }[] = [
@@ -726,21 +742,23 @@ function AnswersSummary({ brief }: { brief: Brief }) {
     <div className="space-y-4">
       {sections.map((s) => (
         <div key={s.title} className="border border-line p-5">
-          <div className="label text-accent">{s.title}</div>
+          <div className="label text-accent">{translateUi(s.title)}</div>
           <div className="mt-3 grid grid-cols-2 gap-x-10 gap-y-5 sm:grid-cols-4">
             {s.stats.map(([k, v]) => <Stat key={k} k={k} v={v} />)}
           </div>
-          {s.note && <p className="mt-4 text-sm text-ink-dim">{s.note}</p>}
+          {s.note && <p className="mt-4 text-sm text-ink-dim">{translateUi(s.note)}</p>}
         </div>
       ))}
     </div>
   )
 }
 function Stat({ k, v }: { k: string; v: string }) {
+  useLanguage(s => s.language);
+
   return (
     <div>
-      <div className="label">{k}</div>
-      <div className="mt-1 font-display text-2xl tnum">{v}</div>
+      <div className="label">{translateUi(k)}</div>
+      <div className="mt-1 font-display text-2xl tnum">{translateUi(v)}</div>
     </div>
   )
 }

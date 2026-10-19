@@ -262,6 +262,7 @@ export const briefSchema = z
           .default('modern-box'),
         /** architectural massing archetype — `auto` picks by fit, `random` re-rolls */
         massing: massingSchema.default('auto'),
+        composition: z.enum(['glazed-bay','staggered-wings','terraced-villa']).optional(),
         /** how far the massing grammar pushes offsets / cantilevers / asymmetry */
         diversity: diversitySchema.default('medium'),
         personality: personalitySchema.default('balanced'),
@@ -309,7 +310,11 @@ export function geometryBrief(brief: Brief) {
   const { finish: _finish, specs: _specs, budget: _budget, ...geometry } = brief
   const { climate: _climate, ...site } = geometry.site
   const { sizes, starred: _starred, ...rooms } = geometry.rooms
-  return { ...geometry, site, rooms: Object.keys(sizes).length ? { ...rooms, sizes } : rooms }
+  // Optional choices may be appended by the editor or reordered by schema
+  // parsing. Give the composition one stable position in the seed input.
+  const {composition,...legacyStyle}=geometry.style
+  const style=composition?{...legacyStyle,composition}:legacyStyle
+  return { ...geometry, style, site, rooms: Object.keys(sizes).length ? { ...rooms, sizes } : rooms }
 }
 
 /** people in the household — `spaces.occupants` is kept only for old briefs */

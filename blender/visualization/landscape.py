@@ -125,9 +125,26 @@ def create_landscape(scene, payload, options):
             if min(inset["w"], inset["h"]) > 80:
                 foliage(scene, f"{obj.name}_Foliage", inset, r["z"] + r["height"], seed, options["landscape"]["leavesPerPlant"])
     building = payload["buildingModel"]
+    # A court is a source outdoor room, not an unallocated strip of lawn. Keep
+    # its floor flush with the gallery and a clear 1.2 m route around planting.
+    ground = min(building["floors"], key=lambda f: f["level"])
+    court = ground.get("courtyard")
+    if court:
+        from geometry.plates import subtract_rectangles
+        pools = [f['rect'] for f in building.get('siteFeatures',[]) if f['kind']=='pool' and f.get('roomId')=='courtyard']
+        source = next((room["semanticId"] for room in building["rooms"]
+                       if room["floorId"] == ground["id"] and room["id"] == "courtyard"), ground["id"])
+        z = ground["elevationMm"]
+        for index,piece in enumerate(subtract_rectangles(court,pools),1):
+            scene.rect(f"Courtyard_Paving_{index}", "LANDSCAPE", piece, z - 80, 80, "paving", source, bevel=0)
+        width, depth = min(2000, court["w"] - 2400), min(2400, court["h"] - 2400)
+        if not pools and min(width, depth) >= 500:
+            bed = {"x": court["x"] + (court["w"] - width) / 2,
+                   "y": court["y"] + (court["h"] - depth) / 2, "w": width, "h": depth}
+            planter(scene, "Courtyard_Garden", {"rect": bed, "z": z,
+                    "sourceId": source, "category": "courtyard"}, seed, options["landscape"]["leavesPerPlant"])
     if "siteFeatures" not in building:
         _entry_paving(scene, building)
-    from geometry.covered import create_garden_trees
-    layout["trees"] = create_garden_trees(scene, building, seed, SeedStream)
+    layout["trees"] = 0
     scene.warnings.extend(layout["omissions"])
     return layout

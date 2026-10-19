@@ -162,6 +162,20 @@ def validate_payload(payload):
     openings = [*building["doors"], *building["windows"]]
     for opening in openings:
         opening_vertical_span(opening, floors[opening["floorId"]])
+        if opening['kind']=='window':
+            if 'treatment' in opening or 'leaf' in opening or opening.get('rooms',[None,None])[1] is not None:
+                raise GeometryInputError('A window cannot be a sliding or hinged access door')
+            if opening.get('sill',900)<building.get('openingPolicy',{}).get('minWindowSillMm',0):
+                raise GeometryInputError('Window needs a visible sill; balcony access requires a door')
+        if opening.get('treatment')=='glazed-slide':
+            rooms=[r for r in building['rooms'] if r['floorId']==opening['floorId'] and r['id'] in opening.get('rooms',[])]
+            balcony=any(r['outdoor'] and r['id'].startswith('balcony') for r in rooms)
+            if (len(rooms)<2 or any(r['outdoor'] for r in rooms)) and not balcony:
+                raise GeometryInputError('Exterior sliding door has no balcony or accessible terrace')
+    for room in building['rooms']:
+        if room['outdoor'] and room['id'].startswith('balcony') and not any(
+                o['kind']=='door' and o['floorId']==room['floorId'] and room['id'] in o.get('rooms',[]) and o['width']>=900 for o in building['doors']):
+            raise GeometryInputError('Balcony requires a real access door, never a window')
     for index, first in enumerate(openings):
         for second in openings[index + 1:]:
             if hosts[first["id"]] != hosts[second["id"]]:

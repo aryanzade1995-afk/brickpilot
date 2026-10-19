@@ -27,7 +27,9 @@ export function restoreCostReplay(replay: CostReplay | null) {
 }
 export function replayedCost(design: Design, brief: Brief, preferences?: unknown): CostEstimate | null {
   const replay = loaded.get(geometryCostKey(design))
-  if (!replay || replay.signature !== pricingSignature(brief)) return null
+  // Historical snapshots remain readable, but a pre-services estimate cannot
+  // supply the new pipe/tank controls or their per-size cost lines.
+  if (!replay || !replay.cost.quantities.plumbing || replay.signature !== pricingSignature(brief)) return null
   if (preferences && JSON.stringify(parseSelection(preferences)) !== JSON.stringify(parseSelection(replay.cost.selection))) return null
   return replay.cost
 }

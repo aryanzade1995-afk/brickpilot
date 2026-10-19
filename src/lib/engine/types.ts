@@ -50,7 +50,7 @@ export type Opening = {
   hinge?: 'a' | 'b'
   /** false = a cased opening with no leaf */
   leaf?: boolean
-  /** how a leafless opening is finished: a wide open gap, or a glazed sliding screen */
+  /** Door-only treatment: an open gap or a sliding glazed door. Never a window. */
   treatment?: 'open' | 'glazed-slide'
   /** sill height (windows), mm */
   sill?: number
@@ -79,7 +79,7 @@ export type FloorPlan = {
   /** the real footprint: a union of axis-aligned blocks (the massing) */
   footprint: Rect[]
   roof: RoofSpec
-  /** open void inside the footprint (courtyard archetypes, ground floor) */
+  /** Source courtyard void, kept open through every storey and the roof. */
   courtyard?: Rect | null
   rooms: PlacedRoom[]
   walls: Wall[]
@@ -98,9 +98,13 @@ export type FloorPlan = {
 export type SiteFeature = { id: string; kind: 'parking' | 'driveway' | 'path' | 'lawn' | 'pool' | 'sitOut' | 'utilityYard'; rect: Rect; covered: boolean; roomId?: string }
 
 export type Design = {
+  balconyExtent?: 'full-slab'
+  /** Keep the selected exterior recipe while resizing outdoor source rooms. */
+  exteriorIdentity?: { planId: string; compositionId: string }
   planProposal?: import('./planner/ml/proposal.ts').PlanProposal
   planFamily?: import('./planner/types.ts').PlateFamily
   planRecipe?: {family: import('./planner/types.ts').PlateFamily;seed:number;version:'resplan-ridge-retrieval-v1'}
+  formVersion?: import('./siteForm.ts').FormVersion
   structuralSizing?: import('./structuralSizing.ts').StructuralSizing
   /** the rooms were arranged by the person (not generated): room-size guidance is advice, not a limit */
   userEdited?: boolean

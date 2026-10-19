@@ -1,3 +1,4 @@
+import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
 import { useDeferredValue, useMemo } from 'react'
 import { Check, AlertTriangle, Sparkles } from 'lucide-react'
 import { assessBriefFit, fitSuggestions, type FitSuggestion } from '@/lib/engine/planner/fit.ts'
@@ -13,6 +14,8 @@ const TONE = {
 
 /** The plot, the buildable area inside the setbacks, and a block for the rooms that grows as you add them. */
 function PlotDiagram({ plotSqm, w, d, need, tone }: { plotSqm: number; w: number; d: number; need: number; tone: Tone }) {
+  useLanguage(s => s.language);
+
   const W = 150, H = 110
   const aspect = Math.max(0.5, Math.min(2, w / Math.max(d, 1)))
   const bw = aspect >= 1 ? 110 : 110 * aspect, bh = aspect >= 1 ? 110 / aspect : 110
@@ -21,17 +24,19 @@ function PlotDiagram({ plotSqm, w, d, need, tone }: { plotSqm: number; w: number
   const hw = bw * 0.9 * f, hh = bh * 0.9 * f
   const cx = W / 2, cy = H / 2 - 4
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="h-28 w-36 flex-none" role="img" aria-label="Rooms against the buildable area">
+    <svg viewBox={`0 0 ${W} ${H}`} className="h-28 w-36 flex-none" role="img" aria-label={translateUi("Rooms against the buildable area")}>
       <rect x={cx - bw / 2 - 6} y={cy - bh / 2 - 6} width={bw + 12} height={bh + 12} fill="#F4F4F1" stroke="#9AA0A6" />
       <rect x={cx - bw / 2} y={cy - bh / 2} width={bw} height={bh} fill="#FDF1DD" stroke="#E0873A" strokeDasharray="4 3" />
       <rect x={cx - hw / 2} y={cy - hh / 2} width={hw} height={hh} fill={TONE[tone].fill} stroke={TONE[tone].bar} strokeWidth={1.5}
         style={{ transition: 'all 400ms ease' }} />
-      <text x={cx} y={H - 1} textAnchor="middle" fontSize="7" fill="#6B7280">{Math.round(plotSqm)} m² plot</text>
+      <text x={cx} y={H - 1} textAnchor="middle" fontSize="7" fill="#6B7280">{translateUi(Math.round(plotSqm))} {translateUi(" m² plot")}</text>
     </svg>
   )
 }
 
 export function FitMeter() {
+  useLanguage(s => s.language);
+
   const brief = useStudio((s) => s.brief)
   const edit = useStudio((s) => s.edit)
   const capacityBrief = useDeferredValue(brief)
@@ -56,40 +61,39 @@ export function FitMeter() {
         <PlotDiagram plotSqm={fit.plotSqm} w={fit.buildableWidthM} d={fit.buildableDepthM} need={need} tone={tone} />
         <div className="min-w-[16rem] flex-1">
           <p className={cx('flex items-center gap-2 font-medium', TONE[tone].text)}>
-            {tone === 'ok' ? <Check size={16} /> : <AlertTriangle size={16} />}{title}
-            {checking && <span className="font-mono text-[0.65rem] uppercase tracking-[0.1em] text-ink-faint">checking…</span>}
+            {tone === 'ok' ? <Check size={16} /> : <AlertTriangle size={16} />}{translateUi(title)}
+            {checking && <span className="font-mono text-[0.65rem] uppercase tracking-[0.1em] text-ink-faint">{translateUi("checking…")}</span>}
           </p>
-          <div className="mt-3" aria-label="Space used">
+          <div className="mt-3" aria-label={translateUi("Space used")}>
             <div className="flex justify-between text-xs text-ink-dim">
-              <span>Rooms need about {Math.round(need)} m² on {fit.busiestFloor.toLowerCase()}</span>
-              <span>{Math.round(buildable)} m² buildable per floor</span>
+              <span>{translateUi("Rooms need about ")}{translateUi(Math.round(need))} {translateUi(" m² on ")}{translateUi(fit.busiestFloor.toLowerCase())}</span>
+              <span>{translateUi(Math.round(buildable))} {translateUi(" m² buildable per floor")}</span>
             </div>
             <div className="relative mt-1 h-2.5 w-full overflow-hidden bg-bg-inset">
               <div className="h-full transition-[width] duration-500" style={{ width: `${pct}%`, background: TONE[tone].bar }} />
             </div>
             <p className="mt-1 text-[0.7rem] text-ink-faint">
-              Buildable: {fit.buildableWidthM.toFixed(1)} × {fit.buildableDepthM.toFixed(1)} m after setbacks. Choose freely; this updates as you go.
-            </p>
+              {translateUi("Buildable: ")}{translateUi(fit.buildableWidthM.toFixed(1))} × {translateUi(fit.buildableDepthM.toFixed(1))} {translateUi(" m after setbacks. Choose freely; this updates as you go.")}</p>
           </div>
-          {fit.issues.length > 0 && <p className="mt-2 text-xs text-bad">{fit.issues.slice(0, 2).join(' ')}</p>}
+          {fit.issues.length > 0 && <p className="mt-2 text-xs text-bad">{translateUi(fit.issues.slice(0, 2).join(' '))}</p>}
         </div>
       </div>
 
       {help && (
         <div className="mt-4 border-t border-line pt-3">
-          <p className="flex items-center gap-1.5 font-mono text-[0.68rem] uppercase tracking-[0.1em] text-ink-dim"><Sparkles size={12} /> Make it fit</p>
+          <p className="flex items-center gap-1.5 font-mono text-[0.68rem] uppercase tracking-[0.1em] text-ink-dim"><Sparkles size={12} /> {translateUi(" Make it fit")}</p>
           {help.single.length > 0 || help.combined ? (
             <div className="mt-2 flex flex-wrap gap-2">
               {[...help.single, ...(help.combined ? [help.combined] : [])].map((s) => (
                 <button key={s.id} type="button" onClick={() => apply(s)}
                   className="border border-line-strong bg-bg px-3 py-2 text-left text-xs transition-colors hover:border-accent">
-                  <span className="block font-medium text-ink">{s.label}</span>
-                  <span className="block text-ink-faint">{s.detail}. Tap to apply</span>
+                  <span className="block font-medium text-ink">{translateUi(s.label)}</span>
+                  <span className="block text-ink-faint">{translateUi(s.detail)}{translateUi(". Tap to apply")}</span>
                 </button>
               ))}
             </div>
           ) : (
-            <p className="mt-2 text-xs text-ink-dim">Try a larger plot, smaller setbacks, fewer rooms or another floor.</p>
+            <p className="mt-2 text-xs text-ink-dim">{translateUi("Try a larger plot, smaller setbacks, fewer rooms or another floor.")}</p>
           )}
         </div>
       )}

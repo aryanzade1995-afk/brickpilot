@@ -1,3 +1,4 @@
+import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
 import { createContext, useContext, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { Check } from 'lucide-react'
 import { cx } from '@/lib/cx.ts'
@@ -13,11 +14,13 @@ export function Field({
   hint?: string
   children: ReactNode
 }) {
+  useLanguage(s => s.language);
+
   return (
-    <div role="group" aria-label={label} className="block">
-      <span className="label">{label}</span>
-      <FieldLabel.Provider value={label}><div className="mt-2">{children}</div></FieldLabel.Provider>
-      {hint && <span className="mt-1.5 block text-xs text-ink-faint">{hint}</span>}
+    <div role="group" aria-label={translateUi(label)} className="block">
+      <span className="label">{translateUi(label)}</span>
+      <FieldLabel.Provider value={label}><div className="mt-2">{translateUi(children)}</div></FieldLabel.Provider>
+      {hint && <span className="mt-1.5 block text-xs text-ink-faint">{translateUi(hint)}</span>}
     </div>
   )
 }
@@ -39,13 +42,15 @@ export function TextInput({
   autoFocus?: boolean
   onKeyDown?: (e: KeyboardEvent<HTMLInputElement>) => void
 }) {
+  useLanguage(s => s.language);
+
   const fieldLabel = useContext(FieldLabel)
   return (
     <input
-      aria-label={fieldLabel ?? undefined}
+      aria-label={translateUi(fieldLabel ?? undefined)}
       type={type}
       value={value}
-      placeholder={placeholder}
+      placeholder={translateUi(placeholder)}
       autoComplete={autoComplete}
       autoFocus={autoFocus}
       onKeyDown={onKeyDown}
@@ -70,6 +75,8 @@ export function NumberInput({
   step?: number
   suffix?: string
 }) {
+  useLanguage(s => s.language);
+
   const fieldLabel = useContext(FieldLabel)
   const [draft, setDraft] = useState(String(value))
   const [editing, setEditing] = useState(false)
@@ -90,11 +97,11 @@ export function NumberInput({
   }
   return (
     <div className="flex items-center border border-line-strong bg-bg-inset focus-within:border-accent">
-      <button type="button" aria-label={`Decrease ${fieldLabel ?? 'value'} by ${step}`} disabled={min != null && value <= min}
+      <button type="button" aria-label={translateUi(`Decrease ${fieldLabel ?? 'value'} by ${step}`)} disabled={min != null && value <= min}
         onClick={() => changeBy(-step)}
         className="border-r border-line-strong px-2.5 py-2.5 text-sm text-ink-dim hover:bg-bg-raised hover:text-ink disabled:opacity-30">−</button>
       <input
-        aria-label={fieldLabel ?? 'Value'}
+        aria-label={translateUi(fieldLabel ?? 'Value')}
         type="text"
         inputMode="decimal"
         value={editing ? draft : String(value)}
@@ -111,8 +118,8 @@ export function NumberInput({
         onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
         className="min-w-0 w-full bg-transparent px-2 py-2.5 text-center text-sm text-ink outline-none tnum"
       />
-      {suffix && <span className="pr-1 font-mono text-xs text-ink-faint">{suffix}</span>}
-      <button type="button" aria-label={`Increase ${fieldLabel ?? 'value'} by ${step}`} disabled={max != null && value >= max}
+      {suffix && <span className="pr-1 font-mono text-xs text-ink-faint">{translateUi(suffix)}</span>}
+      <button type="button" aria-label={translateUi(`Increase ${fieldLabel ?? 'value'} by ${step}`)} disabled={max != null && value >= max}
         onClick={() => changeBy(step)}
         className="border-l border-line-strong px-2.5 py-2.5 text-sm text-ink-dim hover:bg-bg-raised hover:text-ink disabled:opacity-30">+</button>
     </div>
@@ -140,12 +147,14 @@ export function Stepper({
   increaseReason?: string
   max?: number
 }) {
+  useLanguage(s => s.language);
+
   const fieldLabel = useContext(FieldLabel)
   return (
     <div className="inline-flex items-stretch border border-line-strong bg-bg-inset">
       <button
         type="button"
-        aria-label={`Decrease ${fieldLabel ?? 'value'}`}
+        aria-label={translateUi(`Decrease ${fieldLabel ?? 'value'}`)}
         disabled={value <= min}
         onClick={() => onChange(Math.max(min, value - 1))}
         className="px-3.5 py-2 text-ink-dim hover:bg-bg-raised hover:text-ink disabled:opacity-30"
@@ -153,13 +162,13 @@ export function Stepper({
         –
       </button>
       <span className="flex min-w-10 items-center justify-center border-x border-line-strong px-2 text-sm tnum">
-        {value}
+        {translateUi(value)}
       </span>
       <button
         type="button"
-        aria-label={`Increase ${fieldLabel ?? 'value'}`}
+        aria-label={translateUi(`Increase ${fieldLabel ?? 'value'}`)}
         disabled={value >= max || increaseDisabled}
-        title={increaseDisabled ? increaseReason : undefined}
+        title={translateUi(increaseDisabled ? increaseReason : undefined)}
         onClick={() => onChange(Math.min(max, value + 1))}
         className="px-3.5 py-2 text-ink-dim hover:bg-bg-raised hover:text-ink disabled:opacity-30"
       >
@@ -179,6 +188,8 @@ export function Segmented<T extends string | number>({
   options: { value: T; label: string; disabled?: boolean; title?: string }[]
   onChange: (v: T) => void
 }) {
+  useLanguage(s => s.language);
+
   return (
     <div className="inline-flex flex-wrap border border-line-strong">
       {options.map((o, i) => (
@@ -186,7 +197,7 @@ export function Segmented<T extends string | number>({
           key={String(o.value)}
           type="button"
           disabled={o.disabled}
-          title={o.title}
+          title={translateUi(o.title)}
           onClick={() => onChange(o.value)}
           className={cx(
             'px-3.5 py-2 font-mono text-xs uppercase tracking-[0.1em] transition-colors',
@@ -194,7 +205,7 @@ export function Segmented<T extends string | number>({
             value === o.value ? 'bg-accent text-white' : o.disabled ? 'cursor-not-allowed text-ink-faint line-through' : 'text-ink-dim hover:bg-bg-raised hover:text-ink',
           )}
         >
-          {o.label}
+          {translateUi(o.label)}
         </button>
       ))}
     </div>
@@ -216,11 +227,13 @@ export function Toggle({
   disabled?: boolean
   disabledReason?: string
 }) {
+  useLanguage(s => s.language);
+
   return (
     <button
       type="button"
       disabled={disabled}
-      title={disabledReason}
+      title={translateUi(disabledReason)}
       aria-pressed={checked}
       onClick={() => onChange(!checked)}
       className={cx(
@@ -237,9 +250,9 @@ export function Toggle({
         {checked && <Check size={11} strokeWidth={3} />}
       </span>
       <span>
-        <span className="block text-sm text-ink">{label}</span>
-        {hint && <span className="mt-0.5 block text-xs text-ink-faint">{hint}</span>}
-        {disabled && disabledReason && <span className="mt-1 block text-xs text-ink-dim">{disabledReason}</span>}
+        <span className="block text-sm text-ink">{translateUi(label)}</span>
+        {hint && <span className="mt-0.5 block text-xs text-ink-faint">{translateUi(hint)}</span>}
+        {disabled && disabledReason && <span className="mt-1 block text-xs text-ink-dim">{translateUi(disabledReason)}</span>}
       </span>
     </button>
   )
@@ -254,6 +267,8 @@ export function CardChoice<T extends string>({
   onChange: (v: T) => void
   options: { value: T; title: string; body: string; soon?: boolean; disabled?: boolean; disabledReason?: string; note?: string }[]
 }) {
+  useLanguage(s => s.language);
+
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {options.map((o) => {
@@ -263,7 +278,7 @@ export function CardChoice<T extends string>({
             key={o.value}
             type="button"
             disabled={o.soon || o.disabled}
-            title={o.disabledReason}
+            title={translateUi(o.disabledReason)}
             aria-pressed={active}
             onClick={() => onChange(o.value)}
             className={cx(
@@ -274,18 +289,17 @@ export function CardChoice<T extends string>({
           >
             {o.soon && (
               <span className="absolute right-3 top-3 border border-line-strong px-1.5 py-0.5 font-mono text-[0.6rem] uppercase tracking-[0.1em] text-ink-faint">
-                Soon
-              </span>
+                {translateUi("Soon")}</span>
             )}
             {active && (
               <span className="absolute right-3 top-3 flex h-4 w-4 items-center justify-center bg-accent text-white">
                 <Check size={11} strokeWidth={3} />
               </span>
             )}
-            <div className="font-display text-lg">{o.title}</div>
-            <p className="mt-1.5 text-xs leading-relaxed text-ink-dim">{o.body}</p>
-            {o.disabledReason && <p className="mt-2 text-xs leading-relaxed text-ink-faint">{o.disabledReason}</p>}
-            {o.note && <p className="mt-2 inline-block bg-warn/10 px-2 py-0.5 text-[0.7rem] text-warn">{o.note}</p>}
+            <div className="font-display text-lg">{translateUi(o.title)}</div>
+            <p className="mt-1.5 text-xs leading-relaxed text-ink-dim">{translateUi(o.body)}</p>
+            {o.disabledReason && <p className="mt-2 text-xs leading-relaxed text-ink-faint">{translateUi(o.disabledReason)}</p>}
+            {o.note && <p className="mt-2 inline-block bg-warn/10 px-2 py-0.5 text-[0.7rem] text-warn">{translateUi(o.note)}</p>}
           </button>
         )
       })}

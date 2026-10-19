@@ -336,7 +336,7 @@ export const THEMES: Record<Character, ThemeDef> = {
   'courtyard-indian': theme(
     'courtyard-indian',
     'Courtyard Indian modern',
-    'Rooms wrap a planted courtyard behind a verandah and jaali screens.',
+    'An open-to-sky garden framed by inward-facing galleries, warm stone and jaali screens.',
     'Photorealistic architectural concept of a modern Indian courtyard house. Single- and double-height wings wrapping an open planted courtyard with a water body and a tree, a shaded verandah on square columns running around the court, large terracotta jaali screens to the street, flat roofs with thin fascias and deep chajja hoods, teak-framed openings onto the court. Warm morning light in the courtyard, dappled shade, a plain compound wall.',
     {
       roofBias: 'flat',

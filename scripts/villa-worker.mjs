@@ -9,6 +9,8 @@ import { fingerprintRecord, parseFingerprintHistory } from '../src/lib/engine/fi
 import { evaluateVillaFingerprint } from '../src/lib/engine/fingerprint/VillaDiversityGate.ts'
 import { evaluateRealizedVilla, productionDiversityPolicy, validRealizedShape } from '../server/villa-shape.mjs'
 import { PROJECT_ROOT, runBlender } from '../server/blender-process.mjs'
+import { readModernUsage, modernCandidateSeeds, alreadyBuiltModernDesign, alreadyBuiltModernMesh, modernRealizedHash, recordModernDesign, classifyModernCandidateFailure } from '../server/modern-villa-library.mjs'
+import { styleFamilyPool } from '../src/lib/engine/facade/architecturalFamilies.ts'
 
 const directory = resolve(process.argv[2])
 const progress = { id: directory.split(/[\\/]/).at(-1), status: 'generating', phase: 'Starting', debug: [] }
@@ -20,6 +22,7 @@ const emit = async (event) => {
   process.stdout.write(JSON.stringify(event) + '\n')
 }
 const historyPath = resolve(PROJECT_ROOT, 'output/villa-production-history.json')
+const modernUsagePath = resolve(PROJECT_ROOT, 'output/modern-villa-usage.json')
 let lock
 try {
   const request = JSON.parse(await readFile(resolve(directory, 'request.json'), 'utf8'))
@@ -43,6 +46,12 @@ try {
     if (!Array.isArray(items)) throw new Error('Malformed production history')
     history = items.slice(-50).filter((h) => parseFingerprintHistory([h.fingerprint], 1).length && validRealizedShape(h.geometry))
   } catch (error) { if (error.code !== 'ENOENT') throw error }
+  const modern = request.plan.model?.brief?.style?.character === 'modern-box'
+  const comparisonHistory = modern && !request.exact
+    ? history.filter(h => styleFamilyPool('modern-box').includes(h.fingerprint.facadeFamily)) : history
+  let modernUsage = modern ? await readModernUsage(modernUsagePath) : null
+  if (modernUsage) modernUsage.usedSeeds = [...new Set([...modernUsage.usedSeeds, ...history.map(h => h.fingerprint.seed)])]
+  if (modernUsage) modernUsage.realizedHashes = [...new Set([...modernUsage.realizedHashes, ...history.map(h => modernRealizedHash(h.geometry))])]
   const specifications = createFinishAssignments(request.plan)
   const rng = makeRng(request.seed, 'villa-production-retry-v1'), seen = new Set()
   let seed = request.seed, accepted = null, validFallback = null
@@ -50,8 +59,17 @@ try {
   const attempts = request.exact ? 1 : Number(process.env.VILLA_MAX_ATTEMPTS || 32)
   if (!Number.isInteger(attempts) || attempts < 1 || attempts > 64) throw new Error('VILLA_MAX_ATTEMPTS must be an integer from 1 to 64')
   const threshold = Number(process.env.VILLA_SIMILARITY_THRESHOLD || .75)
+  const policyAt = attempt => {
+    const policy = productionDiversityPolicy(attempt, attempts, threshold)
+    // A new modern design must retain a measurable difference even at the last
+    // retry. Saved exact-seed replays remain separate from fresh generation.
+    return modern && !request.exact ? { ...policy, threshold: Math.min(policy.threshold, .985),
+      limits: { ...policy.limits, maxSameMassingFamily: 10, maxSameRoofline: 10 } } : policy
+  }
   const finish = async (candidate, decision) => {
     const {payload,stage,name,options,seed} = candidate
+    if (modernUsage && !request.exact && alreadyBuiltModernDesign(modernUsage, payload)) throw new Error('Modern design already used')
+    if (modernUsage && !request.exact && alreadyBuiltModernMesh(modernUsage, candidate.manifest.realizedGeometry)) throw new Error('Modern design already used')
     // spare candidates still building would only compete with the render
     stopSpare.abort()
     await emit({debug:decision})
@@ -60,6 +78,10 @@ try {
       const final = JSON.parse(await readFile(resolve(stage, name + '.json'), 'utf8'))
       const files = [name + '.blend', name + '.glb', name + '_hero.png', name + '_front.png', name + '_aerial.png']
       for (const file of files) if (!(await stat(resolve(stage, file))).size) throw new Error('An output file is empty')
+      if (modernUsage) {
+        modernUsage = recordModernDesign(modernUsage, payload, final.realizedGeometry)
+        await writeAtomicJson(modernUsagePath, modernUsage)
+      }
       history = [...history, { fingerprint: fingerprintRecord(payload.shapeFingerprint), geometry: final.realizedGeometry }].slice(-50)
       await writeAtomicJson(historyPath, history)
       accepted = { finishSignature: payload.specifications?.signature, seed, requestedSeed: request.seed, planId: payload.buildingModel.planId, family: payload.massingModel.family,
@@ -78,6 +100,7 @@ try {
     seeds.push(seed); seen.add(seed)
     do { seed = rng.int(0, 0xffffffff) } while (seen.has(seed))
   }
+  if (modernUsage && !request.exact) seeds.splice(0, seeds.length, ...modernCandidateSeeds(request.seed, modernUsage, attempts))
   const cores = availableParallelism()
   const parallel = request.exact ? 1 : Math.max(1, Math.min(8, Number(process.env.VILLA_PARALLEL || Math.max(1, Math.floor(cores / 3)))))
   const prepareThreads = Math.max(1, Math.floor(cores / parallel))
@@ -85,7 +108,11 @@ try {
   const payloads = new Map(), prepared = new Map()
   const payloadAt = (i) => {
     if (!payloads.has(i)) {
-      try { payloads.set(i, { payload: { ...generateAlternativeDesign(request.plan, seeds[i]), specifications } }) }
+      try {
+        const payload = { ...generateAlternativeDesign(request.plan, seeds[i]), specifications }
+        if (modernUsage && !request.exact && alreadyBuiltModernDesign(modernUsage, payload)) throw new Error('Modern design already used')
+        payloads.set(i, { payload })
+      }
       catch (error) { payloads.set(i, { error }) }
     }
     return payloads.get(i)
@@ -101,7 +128,9 @@ try {
       await writeFile(input, JSON.stringify(p.payload))
       await runBlender([...options, '--prepare'], resolve(stage, 'blender.log'), undefined, prepareThreads, stopSpare.signal)
       return { manifest: JSON.parse(await readFile(resolve(stage, name + '.json'), 'utf8')), stage, name, options }
-    })().catch((error) => ({ error }))
+    })().catch(async (error) => ({ error: modern
+      ? classifyModernCandidateFailure(error, await readFile(resolve(stage, 'blender.log'), 'utf8').catch(() => ''))
+      : error }))
     prepared.set(i, work)
     return work
   }
@@ -112,9 +141,17 @@ try {
       const built = payloadAt(attempt)
       if (built.error) throw built.error
       const payload = built.payload
-      const policy = productionDiversityPolicy(attempt,attempts,threshold)
-      const quota = evaluateVillaFingerprint(payload.shapeFingerprint, history.map((h) => h.fingerprint), { ...policy.limits, similarityThreshold: 1 })
-      if (!quota.accepted && validFallback) { await emit({ debug: quota }); throw new Error('Diversity quota retry') }
+      const policy = policyAt(attempt)
+      if (modern && !request.exact && validFallback) {
+        const reconsidered = evaluateRealizedVilla(validFallback.payload, validFallback.manifest.realizedGeometry, comparisonHistory, policy.threshold, policy.limits)
+        if (reconsidered.accepted) {
+          await finish(validFallback, { ...reconsidered, relaxed: policy.stage > 0,
+            reason: 'A previously measured distinct modern candidate passed the current diversity preferences.' })
+          break
+        }
+      }
+      const quota = evaluateVillaFingerprint(payload.shapeFingerprint, comparisonHistory.map((h) => h.fingerprint), { ...policy.limits, similarityThreshold: 1 })
+      if (!quota.accepted && validFallback && !(modern && prepared.has(attempt))) { await emit({ debug: quota }); throw new Error('Diversity quota retry') }
       await emit({ status: 'generating', phase: 'Building and measuring the Blender scene', progress: Math.min(55, 10 + attempt * 5), seed, attempt: attempt + 1 })
       for (let j = attempt; j < Math.min(attempts, attempt + parallel); j++) void prepare(j)
       const ready = await prepare(attempt)
@@ -122,8 +159,9 @@ try {
       const { manifest, stage, name, options } = ready
       // Identity, mesh validity and all geometry checks must pass before retaining a fallback.
       evaluateRealizedVilla(payload,manifest.realizedGeometry,[],1)
+      if (modernUsage && !request.exact && alreadyBuiltModernMesh(modernUsage, manifest.realizedGeometry)) throw new Error('Modern design already used')
       const candidate = {payload,stage,name,options,seed,manifest,attempt:attempt+1}
-      let decision = evaluateRealizedVilla(payload, manifest.realizedGeometry, history, policy.threshold, policy.limits)
+      let decision = evaluateRealizedVilla(payload, manifest.realizedGeometry, comparisonHistory, policy.threshold, policy.limits)
       if (!validFallback || decision.similarityPercent < validFallback.similarity) validFallback={...candidate,similarity:decision.similarityPercent}
       if (policy.stage > 0 && decision.accepted) decision={...decision,relaxed:true,reason:`Valid architecture accepted after relaxing uniqueness to ${Math.round(policy.threshold*100)}%. Fixed rooms and a clear terrace constrain variation.`}
       await emit({ debug: decision })
@@ -132,18 +170,21 @@ try {
       break
     } catch (error) {
       if (!['Diversity quota retry', 'Similar shape retry'].includes(error.message)) {
-        if (/Blender/.test(error.message)) throw error
-        await emit({ debug: { seed, family: 'unknown', accepted: false, reason: error.message, code: 'INVALID_ARCHITECTURE' } })
+        if (/Blender/.test(error.message) && !error.candidateInvalid) throw error
+        await emit({ debug: { seed, family: 'unknown', accepted: false, reason: error.message,
+          code: error.message === 'Modern design already used' ? 'SIMILAR_SHAPE' : 'INVALID_ARCHITECTURE' } })
       }
     }
   }
   stopSpare.abort()
   if (!accepted && validFallback) {
-    const policy=productionDiversityPolicy(attempts,attempts,threshold)
-    const decision=evaluateRealizedVilla(validFallback.payload,validFallback.manifest.realizedGeometry,history,1,policy.limits)
+    const policy=policyAt(attempts)
+    const decision=evaluateRealizedVilla(validFallback.payload,validFallback.manifest.realizedGeometry,comparisonHistory,modern&&!request.exact?policy.threshold:1,policy.limits)
     if(decision.accepted) await finish(validFallback,{...decision,relaxed:true,reason:'Returning the best geometrically valid candidate. Uniqueness preferences were exhausted; the source plan and clear-terrace checks remain mandatory.'})
   }
-  if (!accepted) throw new Error('No valid Blender scene could be produced. Your current plan and design are retained.')
+  if (!accepted) throw new Error(modern && !request.exact
+    ? 'No further distinct modern villa fits this fixed plan in the current search. Your current design is retained; try another direction or adjust the plan.'
+    : 'No valid Blender scene could be produced. Your current plan and design are retained.')
 } catch (error) {
   await emit({ status: 'failed', phase: 'Generation stopped', error: error.message })
   process.exitCode = 1

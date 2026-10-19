@@ -29,12 +29,21 @@ PALETTES = {
     "CHARCOAL_WOOD_WHITE": palette("#E4E3DD", "#565A59", "#303938", "#898C83", "#866043"),
     "SANDSTONE_PLASTER": palette("#E3D8C4", "#C7B18B", "#AD895B", "#C4A475", "#795139", "#575049"),
     "CONCRETE_TIMBER_GREEN": palette("#D3D3C9", "#A4AAA1", "#5C7061", "#B9B9A7", "#876343"),
+    "SAGE_LIMESTONE": palette("#E9E5D9", "#829484", "#506B5B", "#CFC7AE", "#73543E", "#3C4540"),
+    "TERRACOTTA_CREAM": palette("#ECE0CB", "#BB7156", "#854B37", "#D3B38C", "#684734", "#594A3D"),
+    "SLATE_BLUE_OAK": palette("#E4E7E4", "#667E93", "#3F566B", "#B4BCC0", "#926D48", "#343F46"),
+    "GRAPHITE_SAND": palette("#DCD0BA", "#45494A", "#292F32", "#C6BCA7", "#735D45", "#282C2D"),
+    "OLIVE_STONE": palette("#E7E1CE", "#838465", "#555D40", "#C7BCA0", "#80613F", "#4D493B"),
+    "CLAY_COPPER": palette("#E4D3C5", "#AD7562", "#82553F", "#D3C3AA", "#74503C", "#8A6349"),
 }
 LEGACY_PALETTES = {
     "warm-stone": "WHITE_STONE_WOOD", "lime-plaster": "WHITE_FLUTED_STONE",
     "earth": "SANDSTONE_PLASTER", "travertine-bronze": "WARM_BEIGE_TIMBER",
     "charcoal-oak": "CHARCOAL_WOOD_WHITE", "kerala-laterite": "SANDSTONE_PLASTER",
     "tropical-cream": "CONCRETE_TIMBER_GREEN", "classical-stone": "WHITE_FLUTED_STONE",
+    "sage-limestone": "SAGE_LIMESTONE", "terracotta-cream": "TERRACOTTA_CREAM",
+    "slate-blue": "SLATE_BLUE_OAK", "graphite-sand": "GRAPHITE_SAND",
+    "olive-stone": "OLIVE_STONE", "clay-copper": "CLAY_COPPER",
 }
 ALIASES = {"wall": "primary_wall", "timber": "wood", "concrete": "secondary_wall"}
 

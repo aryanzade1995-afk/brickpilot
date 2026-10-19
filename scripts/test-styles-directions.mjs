@@ -11,6 +11,7 @@ import { styleFamilyPool } from '../src/lib/engine/facade/architecturalFamilies.
 import { ARCHITECTURAL_FEATURE_TYPES } from '../src/lib/engine/facade/proceduralTypes.ts'
 import { validate } from '../src/lib/rules/index.ts'
 import { rectUnionArea } from '../src/lib/geometry.ts'
+import { createBuildingModel } from '../src/lib/engine/buildingModel.ts'
 import { DEFAULT_DIVERSITY_LIMITS } from '../src/lib/engine/fingerprint/VillaDiversityGate.ts'
 
 /* Styles that look like themselves, four directions on four plans, and a
@@ -22,12 +23,58 @@ const PLOT = { plotWidth: 18, plotDepth: 24 }
 test('a courtyard house has a real courtyard; a contemporary house steps or wings', () => {
   for (const site of [PLOT, { plotWidth: 30, plotDepth: 40 }]) {
     const court = plan({ style: { character: 'courtyard-indian' }, site })
-    assert.equal(court.massingType, 'courtyard')
+    assert.equal(court.massingType, 'courtyard-ring')
     assert.ok(court.floors[0].courtyard, 'the court is part of the ground floor')
     assert.ok(validate(court).hardChecksPass)
     const contemporary = plan({ style: { character: 'contemporary-indian' }, site })
     assert.ok(['stepped', 'l-shape', 'courtyard'].includes(contemporary.massingType), contemporary.massingType)
   }
+})
+
+const overlap = (a,b) => Math.max(0,Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x))*Math.max(0,Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y))
+test('courtyard style encloses a usable garden and preserves its void through every storey', () => {
+  for(const site of [PLOT,{plotWidth:22,plotDepth:28}]) {
+    const d=plan({style:{character:'courtyard-indian'},site})
+    const court=d.floors[0].courtyard
+    assert.ok(court && Math.min(court.w,court.h)>=3000)
+    assert.ok(d.floors[0].rooms.some(r=>r.id==='courtyard'&&r.outdoor))
+    for(const f of d.floors){
+      assert.deepEqual(f.courtyard,court)
+      assert.ok(f.footprint.every(r=>overlap(r,court)===0),'no slab seals the court')
+      const sides=[{x:court.x-100,y:court.y,w:100,h:court.h},{x:court.x+court.w,y:court.y,w:100,h:court.h},
+        {x:court.x,y:court.y-100,w:court.w,h:100},{x:court.x,y:court.y+court.h,w:court.w,h:100}]
+      assert.ok(sides.every(side=>f.footprint.some(r=>overlap(r,side)>0)),'four built edges surround the garden')
+      const courtWindow=o=>o.kind==='window'&&(o.orient==='h'
+        ? (o.at.y===court.y||o.at.y===court.y+court.h)&&o.at.x>court.x&&o.at.x<court.x+court.w
+        : (o.at.x===court.x||o.at.x===court.x+court.w)&&o.at.y>court.y&&o.at.y<court.y+court.h)
+      assert.ok(f.openings.filter(courtWindow).length>=2,'galleries overlook the courtyard')
+    }
+    assert.ok(d.siteFeatures.filter(f=>f.kind!=='lawn').every(f=>overlap(f.rect,court)===0),'site allocations protect the garden')
+    const result=generateAlternativeDesign(d,41)
+    assert.equal(result.villaDesignDNA.compositionType,'courtyard-wrap')
+    assert.equal(result.villaDesignDNA.landscapeStyle,'courtyard')
+    assert.ok(result.buildingModel.floors.every(f=>f.courtyard))
+    for(const beam of result.buildingModel.beams){
+      const endSize=point=>result.buildingModel.columns.find(c=>c.floorId===beam.floorId&&c.at.x===point.x&&c.at.y===point.y)?.size??0
+      assert.ok(Math.hypot(beam.b.x-beam.a.x,beam.b.y-beam.a.y)>(endSize(beam.a)+endSize(beam.b))/2,
+        'gallery beams retain clear space between column faces')
+    }
+    assert.ok(result.massingModel.masses.every(m=>overlap({x:m.x,y:m.y,w:m.width,h:m.depth},court)===0),'exported volumes leave the sky void open')
+  }
+})
+
+test('explicit courtyard wings declare their void without needing the optional courtyard checkbox', () => {
+  const d=plan({site:PLOT,style:{massing:'courtyard-ring'}})
+  assert.ok(validate(d).hardChecksPass)
+  assert.ok(createBuildingModel(d).floors.every(f=>f.courtyard))
+  const broken=structuredClone(d)
+  broken.floors[1].footprint.push({...d.floors[0].courtyard})
+  assert.ok(validate(broken).findings.some(f=>f.code==='COURTYARD_BLOCKED'&&f.severity==='error'))
+})
+
+test('a courtyard style that cannot fit does not silently turn into a box', () => {
+  const d=plan({style:{character:'courtyard-indian'}})
+  assert.ok(!validate(d).hardChecksPass)
 })
 
 test('every exterior keeps to its own style, never borrowing another style\'s look', () => {
@@ -66,7 +113,7 @@ test('directions explore a different plan shape each where the plot allows', () 
   assert.equal(new Set(wants.map((w) => w.family)).size, 4)
   assert.deepEqual(directionPlans(model), wants, 'deterministic')
   const court = directionPlans(compile(briefSchema.parse({ style: { character: 'courtyard-indian' }, site: PLOT })))
-  assert.ok(court.every((w) => ['courtyard', 'l-shape'].includes(w.family)), 'a courtyard house explores only its own shapes')
+  assert.ok(court.every((w) => ['courtyard-ring', 'courtyard'].includes(w.family)), 'a courtyard house explores only its own shapes')
 })
 
 test('a large villa grows into its plot and the whole site is planned; a villa is unchanged', () => {

@@ -9,6 +9,7 @@ import { quantityRules } from './data/quantityRules.ts'
 import { estimateLabel, policy, type CostSelection } from './specifications.ts'
 import { selectionFromBrief } from './briefSelections.ts'
 import { finishProduct } from '../finishes/catalogue.ts'
+import {plumbingSchedule} from './plumbing.ts'
 
 export type Trade = typeof TRADES[number]
 export type Band = { low: number; high: number }
@@ -42,13 +43,20 @@ function roomSpec(brief: Brief, item: string, roomId?: string, semanticId?: stri
 }
 function priceLines(design: Design, brief: Brief, quantities: Quantities): BoqLine[] {
   const measures = boqMeasures(design, quantities), boq: BoqLine[] = []
+  const plumbing=plumbingSchedule(design,brief)
+  Object.assign(measures.extra,{tanks:plumbing.overheadLitres/boqRules.allowances.tankRateCapacityLitres,
+    undergroundTank:plumbing.underground?.pricingUnits??0,drainTank:plumbing.drain?.pricingUnits??0})
   for (const recipe of boqRules.recipes) {
+    if(recipe.item==='water-pipes'||recipe.item==='drain-pipes')continue
     const add = (key: string, qty: number, label: string, roomId?: string, semanticId?: string, floor?: number, item = recipe.item) => {
       if (qty <= 0) return
       const spec = roomSpec(brief, item, roomId, semanticId), rate = specificationRate(recipe.rateId ?? spec.rateId)
       const id = recipe.from === 'room' && recipe.key.startsWith('floor:') ? `floor:${roomId}` : `${item}:${recipe.from}:${key}${roomId ? `@${roomId}` : ''}`
       boq.push({ id, item, specId: `${item}/${spec.id}`, rateId: rate.id, group: recipe.trade, label,
-        specification: item === 'interior-paint' ? `${spec.name} · ${paintColour(brief, roomId ?? semanticId).label}` : spec.name, qty, quantity: qty, unit: units[rate.unit] ?? rate.unit,
+        specification: item === 'interior-paint' ? `${spec.name} · ${paintColour(brief, roomId ?? semanticId).label}` :
+          item==='underground-water-tank'?`${spec.name} · ${plumbing.underground?.capacityLitres??0} L usable storage`:
+          item==='drain-tank'&&plumbing.drain?.capacityLitres?`${spec.name} · ${plumbing.drain.capacityLitres} L`:
+          item==='water-tanks'?`${spec.name} · ${plumbing.overheadLitres} L overhead only`:spec.name, qty, quantity: qty, unit: units[rate.unit] ?? rate.unit,
         rate: rate.installed, amount: qty * rate.installed, materialRate: rate.material, labourRate: rate.labour,
         materialAmount: qty * rate.material, labourAmount: qty * rate.labour, roomId, floor, note: recipe.note })
     }
@@ -67,6 +75,14 @@ function priceLines(design: Design, brief: Brief, quantities: Quantities): BoqLi
         }
       }
     }
+  }
+  for(const run of plumbing.runs){
+    const item=run.system==='water'?'water-pipes':'drain-pipes',spec=resolveSpecification(brief,item)
+    const rate=specificationRate(`${spec.rateId}-${run.diameterMm}mm`),qty=run.lengthM
+    boq.push({id:`${item}:pipe:${run.id}`,item,specId:`${item}/${spec.id}`,rateId:rate.id,group:'Plumbing & sanitary',
+      label:`${run.floorName} · ${run.purpose} · ${run.diameterMm} mm`,specification:`${spec.name} · ${run.diameterMm} mm ${run.sizeBasis}`,
+      qty,quantity:qty,unit:'m',rate:rate.installed,amount:qty*rate.installed,materialRate:rate.material,labourRate:rate.labour,
+      materialAmount:qty*rate.material,labourAmount:qty*rate.labour,floor:run.floor,note:plumbing.notes[0]})
   }
   return boq
 }

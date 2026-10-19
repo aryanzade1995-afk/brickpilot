@@ -23,6 +23,19 @@ const reset = () => useBlender.setState({ accepted: {}, directionRenders: {}, se
   previews: {}, job: null, sourcePlanId: null, error: null })
 const respond = data => new Response(JSON.stringify(data), {headers: {'content-type': 'application/json'}})
 
+test('pipe sizes and underground tank choices reuse the accepted villa without a render request',async()=>{
+ reset();useBlender.setState({accepted:{[id]:result}})
+ const changed=structuredClone(plan)
+ Object.assign(changed.model.brief.specs.overrides,{'water-pipe-size':'mm32','water-riser-size':'mm50','underground-water-tank':'l5000','drain-tank':'septic3000'})
+ const original=globalThis.fetch
+ globalThis.fetch=async()=>{throw new Error('A service choice cannot regenerate the building')}
+ try{
+  await useBlender.getState().ensureForPlan(changed,result.seed)
+  assert.equal(useBlender.getState().accepted[id].files.glb,result.files.glb)
+  assert.equal(useBlender.getState().job,null)
+ }finally{globalThis.fetch=original}
+})
+
 test('default Massing generation submits the exact verified plan and numeric seed only once', async () => {
   reset()
   const before = JSON.stringify(plan), calls = [], original = globalThis.fetch
@@ -53,6 +66,19 @@ test('returning to an accepted plan reuses its model without a new request', asy
   globalThis.fetch = async () => { throw new Error('Must not request or regenerate') }
   try { await useBlender.getState().ensureForPlan(plan); assert.equal(useBlender.getState().accepted[id], result) }
   finally { globalThis.fetch = original }
+})
+
+test('reopening a refreshed direction does not restore its older cached model', async () => {
+  reset()
+  const key=directionRenderKey(id,result.seed)
+  const refreshed={...result,files:{...result.files,glb:'/refreshed-no-main-door-sign.glb'}}
+  useBlender.setState({accepted:{[id]:refreshed},directionRenders:{[key]:result},selectionKey:'another-direction'})
+  const original=globalThis.fetch
+  globalThis.fetch=async()=>{throw new Error('No new render is needed')}
+  try {
+    await useBlender.getState().ensureForPlan(plan,result.seed)
+    assert.equal(useBlender.getState().accepted[id].files.glb,refreshed.files.glb)
+  } finally {globalThis.fetch=original}
 })
 
 test('entering Massing while the pinned direction renders waits for that preview without queuing a second villa',async()=>{

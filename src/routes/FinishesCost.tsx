@@ -1,3 +1,4 @@
+import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useStudio, type Result } from '@/state/studio.ts'
@@ -14,12 +15,16 @@ import { Specifications } from './finishes/Specifications.tsx'
 import { QuantitiesView, EstimateView, AssumptionsView } from './finishes/CostViews.tsx'
 
 export function FinishesCost() {
+  useLanguage(s => s.language);
+
   const result = useStudio(s => s.result), run = useStudio(s => s.run)
   const brief = useStudio(s => s.brief), edit = useStudio(s => s.edit)
   useEffect(() => { if (!result) run() }, [result, run])
   return <FinishesCostView result={result} brief={brief} onBrief={next => edit(b => { b.finish = next.finish; b.specs = next.specs })} />
 }
 export function FinishesCostView({ result, brief, onBrief }: { result: Pick<Result, 'design' | 'report'> | null; brief?: Brief; onBrief?: (brief: Brief) => void }) {
+  useLanguage(s => s.language);
+
   const [localBrief, setLocal] = useState<Brief | null>(null), [params, setParams] = useSearchParams()
   const key = useMemo(() => result ? geometryCostKey(result.design) : '', [result])
   const saved = useFinishes(s => s.entries[key]), setSelection = useFinishes(s => s.setSelection)
@@ -43,12 +48,12 @@ export function FinishesCostView({ result, brief, onBrief }: { result: Pick<Resu
   const tab = COST_TABS.find(t => costTabId(t) === params.get('tab')) ?? 'Specifications'
   const room = cost?.quantities.rooms.some(r => r.id === params.get('room')) ? params.get('room')! : undefined
   const setTab = (label: string) => { const next = new URLSearchParams(params); next.set('tab', costTabId(label)); setParams(next) }
-  if (!result || !cost || !current) return <div className="mx-auto max-w-[1400px] px-6 py-8 md:px-10"><WorkspaceTabs /><p className="mt-8 text-sm text-ink-dim">Preparing your estimate…</p></div>
-  if (!result.report.hardChecksPass) return <div className="mx-auto max-w-[1400px] px-6 py-8 md:px-10"><WorkspaceTabs /><h1 className="mt-8 font-display text-2xl">Finishes & Cost</h1><p className="mt-3 text-sm text-ink-dim">Choose a valid floor plan first. We’ll measure it and prepare the estimate here.</p><Link to="/workspace" className="mt-5 inline-block text-sm underline">Review your brief</Link></div>
+  if (!result || !cost || !current) return <div className="mx-auto max-w-[1400px] px-6 py-8 md:px-10"><WorkspaceTabs /><p className="mt-8 text-sm text-ink-dim">{translateUi("Preparing your estimate…")}</p></div>
+  if (!result.report.hardChecksPass) return <div className="mx-auto max-w-[1400px] px-6 py-8 md:px-10"><WorkspaceTabs /><h1 className="mt-8 font-display text-2xl">{translateUi("Finishes & Cost")}</h1><p className="mt-3 text-sm text-ink-dim">{translateUi("Choose a valid floor plan first. We’ll measure it and prepare the estimate here.")}</p><Link to="/workspace" className="mt-5 inline-block text-sm underline">{translateUi("Review your brief")}</Link></div>
   return <div className="mx-auto max-w-[1400px] px-5 py-8 md:px-10"><WorkspaceTabs />
-    <header className="mt-6"><p className="label">Step 05 · Finishes & Cost</p><h1 className="mt-2 font-display text-3xl">The finishes for your home</h1><p className="mt-3 max-w-2xl text-sm leading-relaxed text-ink-dim">Choose finishes at your own pace. Quantities come from your plan; your estimate updates as you choose.</p><p className="mt-3 text-xs text-ink-faint">{cost.label}</p>{updated && <p role="status" className="mt-2 text-xs text-ink-dim">Updated after plan change</p>}</header>
-    <nav aria-label="Finishes & Cost sub-tabs" className="mt-6 flex gap-1 overflow-x-auto border-b border-line pb-px">{COST_TABS.map((label, i) => <button type="button" key={label} aria-current={tab === label ? 'page' : undefined} onClick={() => setTab(label)} className={cx('flex flex-none items-center gap-2 border-b-2 px-3 py-2.5 font-mono text-[0.7rem] uppercase tracking-[0.1em]', tab === label ? 'border-accent text-accent' : 'border-transparent text-ink-faint hover:text-ink')}><span>06.{i + 1}</span>{label}</button>)}</nav>
+    <header className="mt-6"><p className="label">{translateUi("Step 05 · Finishes & Cost")}</p><h1 className="mt-2 font-display text-3xl">{translateUi("The finishes for your home")}</h1><p className="mt-3 max-w-2xl text-sm leading-relaxed text-ink-dim">{translateUi("Choose finishes at your own pace. Quantities come from your plan; your estimate updates as you choose.")}</p><p className="mt-3 text-xs text-ink-faint">{translateUi(cost.label)}</p>{updated && <p role="status" className="mt-2 text-xs text-ink-dim">{translateUi("Updated after plan change")}</p>}</header>
+    <nav aria-label={translateUi("Finishes & Cost sub-tabs")} className="mt-6 flex gap-1 overflow-x-auto border-b border-line pb-px">{COST_TABS.map((label, i) => <button type="button" key={label} aria-current={tab === label ? 'page' : undefined} onClick={() => setTab(label)} className={cx('flex flex-none items-center gap-2 border-b-2 px-3 py-2.5 font-mono text-[0.7rem] uppercase tracking-[0.1em]', tab === label ? 'border-accent text-accent' : 'border-transparent text-ink-faint hover:text-ink')}><span>06.{translateUi(i + 1)}</span>{translateUi(label)}</button>)}</nav>
     <div className="mt-7">{tab === 'Specifications' ? <Specifications brief={current} cost={cost} design={result.design} room={room} onRoom={id => { const next = new URLSearchParams(params); if (id) next.set('room', id); else next.delete('room'); setParams(next) }} onBrief={update} /> : tab === 'Quantities' ? <QuantitiesView cost={cost} /> : tab === 'Estimate' ? <EstimateView cost={cost} onAllowances={change => setSelection(key, parseSelection({ ...cost.selection, ...change }))} /> : <AssumptionsView cost={cost} />}</div>
-    <footer className="mt-10 flex flex-wrap justify-between gap-4 border-t border-line pt-5 text-sm"><Link to="/workspace/massing" className="text-ink-dim underline">Back to 3D Massing</Link><Link to="/workspace/interior" className="underline">Continue to AI Interior →</Link></footer>
+    <footer className="mt-10 flex flex-wrap justify-between gap-4 border-t border-line pt-5 text-sm"><Link to="/workspace/massing" className="text-ink-dim underline">{translateUi("Back to 3D Massing")}</Link><Link to="/workspace/interior" className="underline">{translateUi("Continue to AI Interior →")}</Link></footer>
   </div>
 }

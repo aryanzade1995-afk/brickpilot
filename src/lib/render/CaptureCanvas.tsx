@@ -1,3 +1,4 @@
+import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
 import { useEffect, useMemo } from 'react'
 import { Canvas, useThree } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
@@ -31,6 +32,8 @@ export function MassingViewport({
   character: Character
   view: CaptureView
 }) {
+  useLanguage(s => s.language);
+
   const massing = useMemo(() => buildMassing(design), [design])
   // frame the building, not the plot
   const span = Math.max(massing.footprint.w, massing.footprint.d, massing.stats.heightM)
@@ -55,8 +58,7 @@ export function MassingViewport({
         <ViewRig center={massing.center} span={span} view={view} />
       </Canvas>
       <div className="pointer-events-none absolute bottom-2 left-3 font-mono text-[0.6rem] uppercase tracking-[0.1em] text-ink-faint">
-        verified massing · reference source
-      </div>
+        {translateUi("verified massing · reference source")}</div>
     </div>
   )
 }
@@ -70,6 +72,8 @@ function ViewRig({
   span: number
   view: CaptureView
 }) {
+  useLanguage(s => s.language);
+
   const camera = useThree((s) => s.camera)
   const controls = useThree((s) => s.controls) as OrbitControlsImpl | null
   const [tx, ty, tz] = center

@@ -18,6 +18,7 @@ from .plates import subtract_rectangles
 from .site import SITE_LEVELS
 from .sizing import slab_thickness
 from .massing import mass_rect
+from .roof_regions import roof_components, roof_has_access
 
 COVERED_ROOMS = ("parking", "verandah")
 SLAB = 200
@@ -160,6 +161,35 @@ def _inset_from(piece, rects, d):
     return {"x": x0, "y": y0, "w": x1 - x0, "h": y1 - y0}
 
 
+def _balcony_guard_exclusions(edge, balconies, max_gap=750):
+    """A balcony guard also protects the narrow, inaccessible roof lip outside it.
+
+    Setback terraces can stop up to 600 mm inside the lower roof. Adding a second
+    parapet on that lip hides the glass guard and creates a double enclosure.
+    Project only nearby balcony edges; distant roof edges retain their guard.
+    """
+    axis, fixed, _lo, _hi, outward = edge
+    result = []
+    for rect in balconies:
+        start = rect["y"] if axis == "h" else rect["x"]
+        end = start + (rect["h"] if axis == "h" else rect["w"])
+        gap = start - fixed if outward < 0 else fixed - end
+        if not 0 <= gap <= max_gap:
+            result.append(rect)
+            continue
+        expanded = dict(rect)
+        key, span = ("y", "h") if axis == "h" else ("x", "w")
+        expanded[key] = min(start, fixed)
+        expanded[span] = max(end, fixed) - expanded[key]
+        # The corner lip is inaccessible behind the same return rail too.
+        # Avoid leaving little second guard stubs beside its two ends.
+        along_key, along_span = ("x", "w") if axis == "h" else ("y", "h")
+        expanded[along_key] -= max_gap
+        expanded[along_span] += max_gap * 2
+        result.append(expanded)
+    return result
+
+
 def _drop_covered_entry_canopies(scene, roofed):
     """A main door under a porch roof needs no canopy of its own."""
     for obj in [o for o in scene.collections["FACADE"].objects if o.name.startswith("MainEntry_") and o.name.endswith("_Canopy")]:
@@ -281,8 +311,9 @@ def create_exposed_roofs(scene, building):
     """Close every lower floor the floor above does not cover.
 
     The part of a storey left open to the sky gets a roof slab at its ceiling.
-    Where the upper floor opens onto it, it is a usable balcony terrace —
-    paving and a glass rail on its open edges; elsewhere a parapet.
+    The source balcony owns its paving and glass boundary. The unused roof
+    beyond that boundary gets no second enclosure. A separate roof access door
+    retains an outer glass guard; roofs without access retain a parapet.
     """
     floors = sorted(building["floors"], key=lambda f: f["level"])
     report = {"exposedRoofs": 0, "terraces": 0}
@@ -294,28 +325,56 @@ def create_exposed_roofs(scene, building):
         if not pieces:
             continue
         name = f"{floor['id']}_ExposedRoof"
+        balconies = [r for r in building.get('rooms', []) if r['floorId'] == above['id'] and
+                     r.get('outdoor') and r['id'].startswith('balcony')]
+        balcony_rects = [r['rect'] for r in balconies]
         for index, piece in enumerate(pieces, 1):
             thickness = slab_thickness(floor, SLAB)
-            scene.rect(f"{name}_Slab_{index:02d}", "ROOF", piece, top - thickness, thickness, "concrete", floor["id"])
+            # The source balcony builder already owns its slab. Never stack
+            # a second lower-roof slab through the same occupied volume.
+            for part_index, part in enumerate(subtract_rectangles(piece, balcony_rects), 1):
+                scene.rect(f"{name}_Slab_{index:02d}_{part_index}", "ROOF", part, top - thickness, thickness, "concrete", floor["id"])
         report["exposedRoofs"] += len(pieces)
-        # usable when the upper floor runs alongside it for at least 1.2 m
-        terrace = any(_touch_length(p, above["footprint"]) >= 1200 and _has_access(p, building["doors"], above["id"]) for p in pieces)
-        if terrace:
-            for index, piece in enumerate(pieces, 1):
-                scene.rect(f"{name}_Deck_{index:02d}", "ROOF", _inset_from(piece, above["footprint"], WALL_CLEAR), top, 40, "paving", floor["id"], bevel=3)
-            report["terraces"] += 1
-        # the open edges of the exposed area: not where the upper floor's walls rise
-        for index, edge in enumerate(boundary_edges(pieces), 1):
-            axis, fixed, _lo, _hi, out = edge
-            for s_index, (lo, hi) in enumerate(_open_spans(edge, above["footprint"], 150), 1):
-                if terrace:
-                    if s_index == 1:
-                        _plant_edges(scene, f"{name}_E{index}", [(axis, fixed, lo, hi, out)], top, floor["id"], index)
-                    create_railing(scene, f"{name}_Rail_{index:03d}_{s_index}", floor, (axis, fixed, lo, hi, out), top + 40)
-                else:
+        for region_index, region in enumerate(roof_components(pieces), 1):
+            region_name = f"{name}_R{region_index}"
+            served = [r for r in balconies if any(_overlap(r['rect'], p) for p in region) and
+                      roof_has_access([r['rect']], building['doors'], above['id'])]
+            terrace = bool(served) and roof_has_access(region, building["doors"], above["id"])
+            if terrace:
+                for room_index, room in enumerate(served, 1):
+                    for index, piece in enumerate(region, 1):
+                        a, b = piece, room['rect']
+                        x, y = max(a['x'],b['x']), max(a['y'],b['y'])
+                        deck = {'x':x,'y':y,'w':min(a['x']+a['w'],b['x']+b['w'])-x,
+                                'h':min(a['y']+a['h'],b['y']+b['h'])-y}
+                        if deck['w']>0 and deck['h']>0:
+                            scene.rect(f"{region_name}_Deck_{room_index}_{index:02d}", "ROOF", _inset_from(deck, above["footprint"], WALL_CLEAR), top, 40, "paving", room['semanticId'], bevel=3)
+                report["terraces"] += 1
+                # The source balcony already encloses its walkable area with
+                # glass. The unused roof outside that enclosure must not add
+                # another parallel wall/rail. Keep an outer glass guard only
+                # when a separate door actually opens onto that roof area.
+                other_access = [door for door in building['doors'] if not any(
+                    room['id'] in (door.get('rooms') or []) for room in served)]
+                if not roof_has_access(region, other_access, above['id']):
+                    continue
+            # Every disconnected region owns its access and its perimeter.
+            for index, edge in enumerate(boundary_edges(region), 1):
+                axis, fixed, _lo, _hi, out = edge
+                # Source balcony assemblies own their rails. Remaining roof
+                # edges get a guard; no duplicate rails or planted barriers.
+                guarded = _balcony_guard_exclusions(edge, [room['rect'] for room in served])
+                for s_index, (lo, hi) in enumerate(_open_spans(edge, [*above["footprint"], *balcony_rects, *guarded], 150), 1):
                     cx, cy = ((lo + hi) / 2, fixed) if axis == "h" else (fixed, (lo + hi) / 2)
                     w, d = ((hi - lo, 120) if axis == "h" else (120, hi - lo))
-                    scene.box(f"{name}_Parapet_{index:03d}_{s_index}", "ROOF", cx, cy, top, w, d, 600, "wall", floor["id"])
+                    if terrace:
+                        # The accessible terrace has one glass boundary. The
+                        # source balcony owns nearby edges; any remaining roof
+                        # perimeter uses the same open guard, never a second wall.
+                        create_railing(scene, f"{region_name}_GlassGuard_{index:03d}_{s_index}",
+                                       above, (axis, fixed, lo, hi, out), top + 40)
+                    else:
+                        scene.box(f"{region_name}_Parapet_{index:03d}_{s_index}", "ROOF", cx, cy, top, w, d, 900, "wall", floor["id"])
     return report
 
 
@@ -324,17 +383,20 @@ def create_pool_deck(scene, building):
     ground = min(building["floors"], key=lambda f: f["level"])
     grade = ground["elevationMm"] - building.get("structuralSizing", {}).get("plinthHeightMm", -SITE_LEVELS["grade"])
     plot = {"x": 0, "y": 0, "w": building["plot"]["widthMm"], "h": building["plot"]["depthMm"]}
-    blocked = [room["rect"] for room in building["rooms"] if room["floorId"] == ground["id"]]
+    blocked = [room["rect"] for room in building["rooms"] if room["floorId"] == ground["id"] and room['id']!='courtyard']
     blocked += [f["rect"] for f in building.get("siteFeatures", []) if f["kind"] in ("parking", "driveway", "path", "pool")]
     count = 0
     for pool in (f for f in building.get("siteFeatures", []) if f["kind"] == "pool"):
         r = pool["rect"]
-        ring = {"x": max(0, r["x"] - 900), "y": max(0, r["y"] - 900), "w": 0, "h": 0}
-        ring["w"] = min(plot["w"], r["x"] + r["w"] + 900) - ring["x"]
-        ring["h"] = min(plot["h"], r["y"] + r["h"] + 900) - ring["y"]
+        boundary=ground.get('courtyard') if pool.get('roomId')=='courtyard' else plot
+        boundary=boundary or plot
+        ring = {"x": max(boundary['x'], r["x"] - 900), "y": max(boundary['y'], r["y"] - 900), "w": 0, "h": 0}
+        ring["w"] = min(boundary['x']+boundary["w"], r["x"] + r["w"] + 900) - ring["x"]
+        ring["h"] = min(boundary['y']+boundary["h"], r["y"] + r["h"] + 900) - ring["y"]
         for index, piece in enumerate(subtract_rectangles(ring, blocked), 1):
             if piece["w"] >= 200 and piece["h"] >= 200:
-                scene.rect(f"{pool['id']}_Deck_{index:02d}", "LANDSCAPE", piece, grade + 10, 70, "stone", pool["id"], bevel=3)
+                pool_grade=ground['elevationMm'] if pool.get('roomId')=='courtyard' else grade
+                scene.rect(f"{pool['id']}_Deck_{index:02d}", "LANDSCAPE", piece, pool_grade + 10, 70, "stone", pool["id"], bevel=3)
                 count += 1
     return count
 
@@ -372,7 +434,8 @@ def create_garden_trees(scene, building, seed, stream_class, limit=10):
                 reserved = house + [f['rect'] for f in building.get('siteFeatures',[]) if f['kind'] != 'lawn']
                 reserved += [{'x':o.location.x*1000-o.dimensions.x*500,'y':o.location.y*1000-o.dimensions.y*500,
                               'w':o.dimensions.x*1000,'h':o.dimensions.y*1000}
-                             for o in scene.collections['MASSING'].objects if o.name.startswith('EnvelopePier_')]
+                             for collection in ('STRUCTURE', 'MASSING')
+                             for o in scene.collections[collection].objects if o.name.startswith('EnvelopePier_')]
                 objects = create_real_tree(scene,name,x,y,grade+10,height+1000,stream.next()*math.tau,lawn['id'],reserved,boundary)
                 if not objects:
                     continue

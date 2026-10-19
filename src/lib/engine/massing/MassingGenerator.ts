@@ -109,6 +109,7 @@ export class MassingGenerator {
       // across whole program wings, producing real elevation silhouettes.
       const groups = dna.blockCount
       const roofHeights = Array.from({ length: groups }, (_, i) =>
+        building.modernComposition?250+i*150:
         Math.round(300 + i * 1200 / (groups - 1)) + attemptRng.int(0, 500))
       const roofRecesses = Array.from({ length: groups }, () => ({
         side: attemptRng.pick(['N', 'S', 'E', 'W'] as const),

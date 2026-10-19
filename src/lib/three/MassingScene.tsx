@@ -128,6 +128,12 @@ export function MassingModel({
     'kerala-laterite': '#a45e43',
     'tropical-cream': '#d0b991',
     'classical-stone': '#c9bcaa',
+    'sage-limestone': '#829484',
+    'terracotta-cream': '#bb7156',
+    'slate-blue': '#667e93',
+    'graphite-sand': '#45494a',
+    'olive-stone': '#838465',
+    'clay-copper': '#ad7562',
   }[massing.palette]
   const lift = explode * massing.floorHeight * 1.7
   const cutaway = explode > 0.04

@@ -1,7 +1,7 @@
 import type { Rect } from '../../geometry.ts'
 import type { CanonicalModel } from '../../model/canonical.ts'
 import type { FloorPlan, SiteFeature } from '../types.ts'
-import { SITE_LIMITS } from './limits.ts'
+import { SITE_LIMITS, COURTYARD_POOL_LIMITS } from './limits.ts'
 
 export const overlapsSite = (a: Rect, b: Rect) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y
 
@@ -33,9 +33,24 @@ export function freeSiteRects(plot: Rect, occupied: Rect[]): Rect[] {
   return free
 }
 
-export function placeSiteFeatures(model: CanonicalModel, ground: FloorPlan, fixed: Partial<Record<SiteFeature['kind'], Rect>> = {}): { features: SiteFeature[]; notes: string[] } {
+export function courtyardPoolRect(court:Rect):Rect|null {
+  const p=COURTYARD_POOL_LIMITS,g=p.clearPathMm
+  const options=[[p.widthMm,p.lengthMm],[p.lengthMm,p.widthMm],[p.minWidthMm,p.minLengthMm],[p.minLengthMm,p.minWidthMm]]
+  const size=options.find(([w,h])=>court.w>=w+g*2&&court.h>=h+g*2)
+  return size?{x:court.x+(court.w-size[0])/2,y:court.y+(court.h-size[1])/2,w:size[0],h:size[1]}:null
+}
+
+export function courtyardPoolFits(pool:Rect,court:Rect):boolean {
+  const p=COURTYARD_POOL_LIMITS,g=p.clearPathMm
+  return Math.min(pool.w,pool.h)>=p.minWidthMm&&Math.max(pool.w,pool.h)>=p.minLengthMm&&
+    pool.x>=court.x+g&&pool.y>=court.y+g&&pool.x+pool.w<=court.x+court.w-g&&pool.y+pool.h<=court.y+court.h-g
+}
+
+export function placeSiteFeatures(model: CanonicalModel, ground: FloorPlan, fixed: Partial<Record<SiteFeature['kind'], Rect>> = {}, courtyardPool=false): { features: SiteFeature[]; notes: string[] } {
   const plot = { x: 0, y: 0, w: model.plot.width, h: model.plot.depth }
-  const taken = ground.rooms.filter(r => r.id !== 'courtyard').map(r => r.rect)
+  // Reserve the courtyard from parking/service allocation. Its optional pool
+  // is placed separately, with a clear route around all four sides.
+  const taken = ground.rooms.map(r => r.rect)
   const features: SiteFeature[] = [], notes: string[] = []
   const add = (kind: SiteFeature['kind'], rect: Rect, covered = false, roomId?: string) => {
     features.push({ id: `SITE_${kind.toUpperCase()}_${features.length + 1}`, kind, rect: { ...rect }, covered, ...(roomId ? { roomId } : {}) })
@@ -76,7 +91,15 @@ export function placeSiteFeatures(model: CanonicalModel, ground: FloorPlan, fixe
   if (utility) allocate('utilityYard', 1500, 1800, utility.rect)
   const large = model.brief.project.buildingType === 'large-villa'
   if (model.brief.rooms.pool) {
-    if (!allocate('pool', SITE_LIMITS.poolWidthMm, SITE_LIMITS.poolDepthMm)) notes.push('The selected open space cannot fit a 2.5 × 5 m pool. Increase an open margin.')
+    const own=fixed.pool
+    const fixedGarden=own&&own.x>=0&&own.y>=0&&own.x+own.w<=plot.w&&own.y+own.h<=plot.h&&!taken.some(r=>overlapsSite(r,own))
+    const inCourt=courtyardPool&&ground.courtyard&&!fixedGarden?
+      own&&courtyardPoolFits(own,ground.courtyard)?own:courtyardPoolRect(ground.courtyard):null
+    if(inCourt) add('pool',inCourt,false,'courtyard')
+    else {
+      if(courtyardPool&&ground.courtyard)notes.push('The courtyard is too small for a plunge pool with a clear path around it. Looking for a garden pool instead.')
+      if (!allocate('pool', SITE_LIMITS.poolWidthMm, SITE_LIMITS.poolDepthMm)) notes.push('The selected open space cannot fit a 2.5 × 5 m pool. Increase an open margin.')
+    }
   }
   // a large villa holds its whole site: a paved garden terrace off the house,
   // and every remaining open area becomes lawn — no leftover land
@@ -85,7 +108,10 @@ export function placeSiteFeatures(model: CanonicalModel, ground: FloorPlan, fixe
     const deck = allocate('sitOut', 4800, 3600, living?.rect) ?? allocate('sitOut', 3600, 2400, living?.rect)
     if (!deck) notes.push('No open area left for a garden terrace; the house fills the buildable area.')
   }
-  if (large || model.brief.rooms.priorities.garden) for (const r of available()) if (r.w >= 500 && r.h >= 500) add('lawn', r)
+  if (large || model.brief.rooms.priorities.garden) {
+    for (const r of available()) if (r.w >= 500 && r.h >= 500) add('lawn', r)
+    if(ground.courtyard)for(const r of freeSiteRects(ground.courtyard,features.filter(f=>f.roomId==='courtyard').map(f=>f.rect)))add('lawn',r)
+  }
   return { features, notes }
 }
 
@@ -94,6 +120,7 @@ export function validateSiteFeatures(model: CanonicalModel, ground: FloorPlan, f
   for (let i = 0; i < features.length; i++) {
     const f = features[i], r = f.rect
     if (r.w <= 0 || r.h <= 0 || r.x < 0 || r.y < 0 || r.x + r.w > model.plot.width || r.y + r.h > model.plot.depth) errors.push(`${f.id} is outside the plot.`)
+    if(f.kind==='pool'&&f.roomId==='courtyard'&&(!ground.courtyard||!courtyardPoolFits(r,ground.courtyard)))errors.push(`${f.id} needs a clear path inside the source courtyard.`)
     if (ground.rooms.some(room => room.id !== f.roomId && room.id !== 'courtyard' && overlapsSite(room.rect, r))) errors.push(`${f.id} intersects a room.`)
     if (features.slice(0, i).some(other => overlapsSite(other.rect, r))) errors.push(`${f.id} intersects another site feature.`)
   }

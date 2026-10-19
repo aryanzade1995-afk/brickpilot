@@ -1,3 +1,4 @@
+import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
 import { FloorDrawing } from '@/lib/draw/FloorDrawing.tsx'
 import type { Design } from '@/lib/engine/types.ts'
 import { useEffect, useState } from 'react'
@@ -14,6 +15,8 @@ import { RenderProgress } from '@/components/RenderProgress.tsx'
 import { useBlender, directionRenderKey } from '@/state/blender.ts'
 
 export function Directions() {
+  useLanguage(s => s.language);
+
   const directions = useStudio((s) => s.directions)
   const explore = useStudio((s) => s.exploreInBackground)
   const pin = useStudio((s) => s.pin)
@@ -37,9 +40,9 @@ export function Directions() {
     // the directions are generated in the background: the page is usable and shows where they will appear
     return <div className="mx-auto max-w-[1400px] px-6 py-8 md:px-10">
       <WorkspaceTabs />
-      <p className="mt-8 label">Step 02 · Directions</p>
-      <h1 className="mt-3 font-display text-3xl">Engineering four directions…</h1>
-      <p role="status" className="mt-3 text-sm text-ink-dim">Each is a different plan shape for your brief, checked against every rule.</p>
+      <p className="mt-8 label">{translateUi("Step 02 · Directions")}</p>
+      <h1 className="mt-3 font-display text-3xl">{translateUi("Engineering four directions…")}</h1>
+      <p role="status" className="mt-3 text-sm text-ink-dim">{translateUi("Each is a different plan shape for your brief, checked against every rule.")}</p>
       <div className="mt-8 grid gap-6 md:grid-cols-2" aria-hidden>
         {[0, 1, 2, 3].map((i) => <div key={i} className="overflow-hidden border border-line">
           <div className="aspect-[16/10] animate-pulse bg-bg-inset" style={{ animationDelay: `${i * 150}ms` }} />
@@ -51,21 +54,21 @@ export function Directions() {
 
   if (directions.length === 0) {
     if (generationNotice) return <div className="mx-auto max-w-3xl px-6 py-12 md:px-10">
-      <WorkspaceTabs /><h1 className="mt-8 font-display text-3xl">No new distinct direction</h1>
+      <WorkspaceTabs /><h1 className="mt-8 font-display text-3xl">{translateUi("No new distinct direction")}</h1>
       <VillaGenerationNotice blocked />
-      <Link to="/workspace" className="text-sm text-ink underline">Edit brief</Link>
+      <Link to="/workspace" className="text-sm text-ink underline">{translateUi("Edit brief")}</Link>
     </div>
     const siteIssues = briefSiteIssues(brief)
     const errors = siteIssues.length ? siteIssues : validate(generate(compile(brief))).findings
       .filter((finding) => finding.severity === 'error').map((finding) => finding.message)
     return <div className="mx-auto max-w-3xl px-6 py-12 md:px-10">
       <WorkspaceTabs />
-      <h1 className="mt-8 font-display text-3xl">The saved brief needs adjustment</h1>
-      <p className="mt-3 text-sm text-ink-dim">This safety check protects older saved briefs and direct links. No generated direction passes the plan checks yet. Adjust the plot, setbacks, requested rooms or massing choice, then generate again.</p>
+      <h1 className="mt-8 font-display text-3xl">{translateUi("The saved brief needs adjustment")}</h1>
+      <p className="mt-3 text-sm text-ink-dim">{translateUi("This safety check protects older saved briefs and direct links. No generated direction passes the plan checks yet. Adjust the plot, setbacks, requested rooms or massing choice, then generate again.")}</p>
       <ul className="mt-6 space-y-2 border-y border-line py-4 text-sm text-bad">
-        {errors.slice(0, 8).map((message, index) => <li key={index}>• {message}</li>)}
+        {errors.slice(0, 8).map((message, index) => <li key={index}>• {translateUi(message)}</li>)}
       </ul>
-      <Link to="/workspace" className="mt-6 inline-block border border-line-strong px-5 py-3 font-mono text-xs uppercase text-ink hover:border-accent">Edit brief</Link>
+      <Link to="/workspace" className="mt-6 inline-block border border-line-strong px-5 py-3 font-mono text-xs uppercase text-ink hover:border-accent">{translateUi("Edit brief")}</Link>
     </div>
   }
 
@@ -79,11 +82,9 @@ export function Directions() {
       <WorkspaceTabs />
 
       <div className="mt-6 max-w-2xl">
-        <h1 className="font-display text-[clamp(1.8rem,3.5vw,2.6rem)]">Choose a design direction</h1>
+        <h1 className="font-display text-[clamp(1.8rem,3.5vw,2.6rem)]">{translateUi("Choose a design direction")}</h1>
         <p className="mt-3 text-ink-dim">
-          Each direction is a different house in your chosen style — its own plan shape where your plot allows,
-          with every room, door, window and stair checked. Pin the one you prefer.
-        </p>
+          {translateUi("Each direction is a different house in your chosen style — its own plan shape where your plot allows, with every room, door, window and stair checked. Pin the one you prefer.")}</p>
       </div>
 
       <VillaGenerationNotice />
@@ -103,20 +104,19 @@ export function Directions() {
               <div className="flex items-start justify-between gap-4 border-b border-line p-5">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="font-display text-xl">{d.label}</h2>
+                    <h2 className="font-display text-xl">{translateUi(d.label)}</h2>
                     {isPinned && (
                       <span className="inline-flex items-center gap-1 bg-accent px-1.5 py-0.5 font-mono text-[0.6rem] uppercase tracking-[0.1em] text-white">
-                        <Pin size={9} /> Pinned
-                      </span>
+                        <Pin size={9} /> {translateUi(" Pinned")}</span>
                     )}
                   </div>
-                  <p className="mt-1.5 max-w-sm text-sm text-ink-dim">{d.blurb}</p>
+                  <p className="mt-1.5 max-w-sm text-sm text-ink-dim">{translateUi(d.blurb)}</p>
                   <p className="mt-2 font-mono text-[0.65rem] uppercase tracking-[0.08em] text-ink-faint">
-                    {d.design.dna.styleFamily.replaceAll('-', ' ')} · {d.design.dna.roofDesign.replaceAll('-', ' ')} roof · novelty {Math.round(d.novelty)}/100
+                    {translateUi(d.design.dna.styleFamily.replaceAll('-', ' '))} · {translateUi(d.design.dna.roofDesign.replaceAll('-', ' '))} {translateUi(" roof · novelty ")}{translateUi(Math.round(d.novelty))}/100
                   </p>
                 </div>
                 <div className="flex-none text-right">
-                  <div className="font-display text-2xl tnum">{d.report.score}</div>
+                  <div className="font-display text-2xl tnum">{translateUi(d.report.score)}</div>
                   <div className="label">/ 100</div>
                 </div>
               </div>
@@ -127,14 +127,12 @@ export function Directions() {
 
               <div className="flex flex-wrap items-center gap-x-6 gap-y-2 p-5 font-mono text-[0.7rem] uppercase tracking-[0.08em]">
                 <span className={d.report.hardChecksPass ? 'text-ok' : 'text-bad'}>
-                  {d.report.hardChecksPass ? '● Hard checks pass' : '● Hard checks fail'}
+                  {translateUi(d.report.hardChecksPass ? '● Hard checks pass' : '● Hard checks fail')}
                 </span>
                 <span className="text-ink-faint">
-                  {d.report.counts.warning} advisories
-                </span>
+                  {translateUi(d.report.counts.warning)} {translateUi(" advisories")}</span>
                 <span className="text-ink-faint">
-                  {d.design.builtAreaSqm.toFixed(0)} m² · {d.design.floors.length} floors
-                </span>
+                  {translateUi(d.design.builtAreaSqm.toFixed(0))} {translateUi(" m² · ")}{translateUi(d.design.floors.length)} {translateUi(" floors")}</span>
               </div>
 
               <button
@@ -149,14 +147,12 @@ export function Directions() {
               >
                 {isPinned ? (
                   <>
-                    Continue to 2D plan
-                    <ArrowRight size={13} />
+                    {translateUi("Continue to 2D plan")}<ArrowRight size={13} />
                   </>
                 ) : (
                   <>
                     <Check size={13} />
-                    Pin this direction
-                  </>
+                    {translateUi("Pin this direction")}</>
                 )}
               </button>
             </div>
@@ -181,32 +177,36 @@ const FEATURE_LABEL: Partial<Record<string, string>> = {
 
 /** the direction's Blender villa: its hero render, or where the render stands */
 function DirectionRender({ planId, seed, label, elements }: { planId: string; seed: number; label: string; elements: string[] }) {
+  useLanguage(s => s.language);
+
   const key = directionRenderKey(planId, seed)
   const result = useBlender((s) => s.directionRenders[key])
   const preview = useBlender((s) => s.previews[key])
   return <div className="border-b border-line">
-    {result ? <img src={result.files.hero} alt={`${label} — Blender render`} className="aspect-[3/2] w-full object-cover" />
+    {result ? <img src={result.files.hero} alt={translateUi(`${label} — Blender render`)} className="aspect-[3/2] w-full object-cover" />
       : <div className="flex aspect-[3/2] w-full items-center justify-center bg-bg-inset p-6 text-center text-sm text-ink-dim" role="status">
         {!preview || ['queued', 'generating', 'rendering'].includes(preview.status)
           ? <div className="w-full"><RenderProgress progress={preview?.progress} label={preview?.phase || 'Building this villa in Blender…'} /></div>
           : preview.status === 'unavailable' ? `3D render unavailable: ${preview.phase}`
             : `The render stopped: ${preview.error ?? preview.phase}`}
       </div>}
-    <p className="px-5 py-2.5 font-mono text-[0.65rem] uppercase tracking-[0.08em] text-ink-faint">{result ? 'Visualisation · Blender · ' : ''}{elements.join(' · ')}</p>
+    <p className="px-5 py-2.5 font-mono text-[0.65rem] uppercase tracking-[0.08em] text-ink-faint">{translateUi(result ? 'Visualisation · Blender · ' : '')}{translateUi(elements.join(' · '))}</p>
   </div>
 }
 
 export function DirectionPlanPreview({ design, label }: { design: Design; label: string }) {
+  useLanguage(s => s.language);
+
  const [level, setLevel] = useState(0)
  const floor = design.floors[Math.min(level, design.floors.length - 1)]
  return <div className="border-b border-line">
-  <div className="flex flex-wrap gap-1 bg-bg-inset p-2" role="tablist" aria-label={`${label} floors`}>
+  <div className="flex flex-wrap gap-1 bg-bg-inset p-2" role="tablist" aria-label={translateUi(`${label} floors`)}>
    {design.floors.map((f,i)=><button key={f.level} type="button" role="tab" aria-selected={i===level}
     onClick={()=>setLevel(i)} className={cx('border px-3 py-2 font-mono text-xs',i===level?'border-accent bg-accent text-white':'border-line text-ink-dim')}>
-    {f.level===0?'Ground':`Floor ${f.level}`}
+    {translateUi(f.level===0?'Ground':`Floor ${f.level}`)}
    </button>)}
   </div>
-  <div className="aspect-[3/2] w-full" aria-label={`${label} ${floor.name} 2D plan`}>
+  <div className="aspect-[3/2] w-full" aria-label={translateUi(`${label} ${floor.name} 2D plan`)}>
    <FloorDrawing floor={floor} model={design.model} siteFeatures={design.siteFeatures} theme="paper" showDimensions={false} />
   </div>
  </div>

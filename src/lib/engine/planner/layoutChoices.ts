@@ -8,10 +8,14 @@ export type LayoutChoices = {
  kitchen: 'garden'|'service'
  verandah: 'none'|'front'|'wrap'
  doubleHeight: boolean
+ centralBay?: boolean
 }
 
 /** Independent stream: pinning a resolved family must replay the same choices. */
 export function layoutChoices(model: CanonicalModel, seed: number, sideWing: boolean): LayoutChoices {
+ const composition=model.brief.style.character==='modern-box'?model.brief.style.composition:undefined
+ if(composition)return {living:'front',stair:composition==='glazed-bay'?'front':'side',centralBay:composition==='glazed-bay',master:'upper',
+  kitchen:'service',verandah:model.brief.rooms.priorities.coveredVerandah?'front':'none',doubleHeight:composition==='glazed-bay'&&model.floors.length===2}
  if(model.envelope.width*model.envelope.depth<600e6)return {living:'front',stair:'side',master:'upper',
   kitchen:'garden',verandah:model.brief.rooms.priorities.coveredVerandah?'front':'none',doubleHeight:false}
  const rng=makeRng(seed,`${model.seed.split('-')[0]}|layout-choices`)

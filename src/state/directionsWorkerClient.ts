@@ -9,7 +9,10 @@ export function runDirections(input: DirectionsInput): Promise<Result> {
     try {
       worker = new Worker(new URL('./directions.worker.ts', import.meta.url), { type: 'module' })
     } catch (error) { reject(error); return }
-    const done = () => worker.terminate()
+    // Some embedded browsers create a worker but never deliver its result.
+    // Reject so the existing main-thread fallback can finish the directions.
+    const timeout = setTimeout(() => { done(); reject(new Error('Directions worker timed out.')) }, 30000)
+    const done = () => { clearTimeout(timeout); worker.terminate() }
     worker.onmessage = (event: MessageEvent<{ ok: boolean; result?: Result; error?: string }>) => {
       done()
       if (event.data.ok && event.data.result) resolve(event.data.result)

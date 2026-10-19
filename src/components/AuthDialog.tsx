@@ -1,3 +1,4 @@
+import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
 import { useEffect, useState } from 'react'
 import { Loader2, Lock, X } from 'lucide-react'
 import { useAuth } from '@/state/auth.ts'
@@ -9,6 +10,8 @@ type Mode = 'in' | 'up'
 
 /** Mounted by App only while `useAuth().dialogOpen` — so every open is fresh. */
 export function AuthDialog() {
+  useLanguage(s => s.language);
+
   const close = useAuth((s) => s.closeDialog)
   const signIn = useAuth((s) => s.signIn)
   const signUp = useAuth((s) => s.signUp)
@@ -55,18 +58,18 @@ export function AuthDialog() {
         className="w-full max-w-sm border border-line bg-bg-raised"
         role="dialog"
         aria-modal="true"
-        aria-label={mode === 'in' ? 'Sign in' : 'Create account'}
+        aria-label={translateUi(mode === 'in' ? 'Sign in' : 'Create account')}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-line px-5 py-3.5">
           <span className="flex items-center gap-2 font-display text-lg">
             <Lock size={15} className="text-accent" />
-            {confirmSent ? 'Check your inbox' : mode === 'in' ? 'Sign in' : 'Create account'}
+            {translateUi(confirmSent ? 'Check your inbox' : mode === 'in' ? 'Sign in' : 'Create account')}
           </span>
           <button
             type="button"
             onClick={close}
-            aria-label="Close"
+            aria-label={translateUi("Close")}
             className="text-ink-faint hover:text-ink"
           >
             <X size={16} />
@@ -76,12 +79,9 @@ export function AuthDialog() {
         {confirmSent ? (
           <div className="space-y-4 p-5 text-sm text-ink-dim">
             <p>
-              We sent a confirmation link to <span className="text-ink">{email}</span>. Open it, then
-              come back and sign in.
-            </p>
+              {translateUi("We sent a confirmation link to ")}<span className="text-ink">{translateUi(email)}</span>{translateUi(". Open it, then come back and sign in.")}</p>
             <Button variant="ghost" className="w-full" onClick={() => setConfirmSent(false)}>
-              Back to sign in
-            </Button>
+              {translateUi("Back to sign in")}</Button>
           </div>
         ) : (
           <form
@@ -96,7 +96,7 @@ export function AuthDialog() {
                 type="email"
                 value={email}
                 onChange={setEmail}
-                placeholder="you@example.com"
+                placeholder={translateUi("you@example.com")}
                 autoComplete="email"
                 autoFocus
               />
@@ -106,22 +106,22 @@ export function AuthDialog() {
                 type="password"
                 value={password}
                 onChange={setPassword}
-                placeholder="••••••••"
+                placeholder={translateUi("••••••••")}
                 autoComplete={mode === 'in' ? 'current-password' : 'new-password'}
               />
             </Field>
 
             {error && (
-              <p className="border-l-2 border-bad/60 bg-bad/5 px-3 py-2 text-xs text-bad">{error}</p>
+              <p className="border-l-2 border-bad/60 bg-bad/5 px-3 py-2 text-xs text-bad">{translateUi(error)}</p>
             )}
 
             <Button type="submit" disabled={!canSubmit || busy} className="w-full">
               {busy && <Loader2 size={13} className="animate-spin" />}
-              {mode === 'in' ? 'Sign in' : 'Create account'}
+              {translateUi(mode === 'in' ? 'Sign in' : 'Create account')}
             </Button>
 
             <p className="text-center text-xs text-ink-faint">
-              {mode === 'in' ? "No account yet?" : 'Already have an account?'}{' '}
+              {translateUi(mode === 'in' ? "No account yet?" : 'Already have an account?')}{translateUi(' ')}
               <button
                 type="button"
                 onClick={() => {
@@ -130,7 +130,7 @@ export function AuthDialog() {
                 }}
                 className={cx('font-mono uppercase tracking-[0.1em] text-ink-dim hover:text-ink')}
               >
-                {mode === 'in' ? 'Create one' : 'Sign in'}
+                {translateUi(mode === 'in' ? 'Create one' : 'Sign in')}
               </button>
             </p>
           </form>

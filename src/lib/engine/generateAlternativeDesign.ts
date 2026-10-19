@@ -40,7 +40,7 @@ export function generateAlternativeDesign(plan: Design, seed: number) {
   const base = MassingGenerator.generate(buildingModel, villaDesignDNA)
   ArchitectureValidator.assertReadyForGeometry(buildingModel, base)
   const top = buildingModel.floors.at(-1)!
-  const rng = makeRng(seed, `${buildingModel.planId}|plan-envelope-v1`)
+  const rng = makeRng(seed, `${buildingModel.exteriorSeedPlanId??buildingModel.planId}|plan-envelope-v1`)
   // The source plan determines the occupied composition. Seeded draws vary
   // permitted canopies and facade geometry without inventing another footprint.
   const family = productionMassingFamily(buildingModel)

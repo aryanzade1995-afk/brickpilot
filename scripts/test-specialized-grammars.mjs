@@ -25,6 +25,12 @@ test('all ten balcony grammars have distinct actual geometry on accessible sourc
     const unit = makeBalcony(ctx, ctx.building.rooms.find(r => r.id === 'balcony1'), type)
     assert.ok(valid(ctx, unit), `${type}: ${JSON.stringify(unit && validateSpecializedAssemblies(ctx, [unit]))}`)
     assert.ok(unit.openingIds.length); shapes.add(signature(unit))
+    assert.ok(unit.parts.filter(p=>p.role==='post').every(p=>p.local.z===0),`${type}: floating support post`)
+    assert.ok(unit.parts.filter(p=>p.role==='glass').every(p=>Math.max(p.local.w,p.local.d)<=1200),`${type}: unsupported glass span`)
+    assert.ok(unit.parts.some(p=>p.role==='glass'),`${type}: balcony boundary must be glass`)
+    assert.ok(unit.parts.filter(p=>p.role==='rail').every(p=>p.material==='metal'),`${type}: solid wall behind the glass guard`)
+    assert.ok(unit.parts.filter(p=>p.role==='post').every(p=>Math.min(p.local.w,p.local.d)<=130&&Math.max(p.local.w,p.local.d)<=180),`${type}: full side wall disguised as a post`)
+    if(type==='FRAME_INTEGRATED')assert.equal(unit.parts.filter(p=>p.role==='beam').length,3,'Frame connects back to both sides of the facade')
   }
   assert.equal(shapes.size, 10)
 })

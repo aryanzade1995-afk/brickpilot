@@ -1,3 +1,4 @@
+import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
 /**
  * Decorative "study sheet" shown in the landing hero — mirrors the real
  * output: a site-summary panel, a schematic ground-floor plan, a feasibility
@@ -13,12 +14,14 @@ const DRAWING_SET = [
 ]
 
 function Meter({ label, value, limit }: { label: string; value: number; limit: string }) {
+  useLanguage(s => s.language);
+
   return (
     <div className="space-y-1.5">
       <div className="flex items-baseline justify-between">
-        <span className="label">{label}</span>
+        <span className="label">{translateUi(label)}</span>
         <span className="font-mono text-xs text-ink-dim tnum">
-          <span className="text-ink">{value}%</span> · {limit}
+          <span className="text-ink">{translateUi(value)}%</span> · {translateUi(limit)}
         </span>
       </div>
       <div className="h-px w-full bg-line-strong">
@@ -29,6 +32,8 @@ function Meter({ label, value, limit }: { label: string; value: number; limit: s
 }
 
 export function HeroPreview() {
+  useLanguage(s => s.language);
+
   return (
     <div className="relative">
       {/* stacked-paper shadow */}
@@ -38,7 +43,7 @@ export function HeroPreview() {
       <div className="relative grid grid-cols-[1fr_1.15fr] gap-6 rounded-[var(--radius-card)] border border-line-strong bg-bg-raised/80 p-6 backdrop-blur-sm">
         {/* left: site summary */}
         <div className="space-y-5">
-          <div className="label text-accent">Site summary</div>
+          <div className="label text-accent">{translateUi("Site summary")}</div>
           <div className="space-y-3">
             <Row k="Site area" v="650.0 m²" />
             <Row k="Zoning" v="GRZ1" />
@@ -68,16 +73,16 @@ export function HeroPreview() {
               <div className="font-display text-2xl leading-none">
                 86<span className="text-ink-faint text-base">/100</span>
               </div>
-              <div className="label mt-1">Feasibility</div>
+              <div className="label mt-1">{translateUi("Feasibility")}</div>
             </div>
           </div>
 
           <div className="space-y-1.5 border-t border-line pt-4">
-            <div className="label">Drawing set</div>
+            <div className="label">{translateUi("Drawing set")}</div>
             {DRAWING_SET.map(([name, code], i) => (
               <div key={code} className="flex items-center justify-between">
-                <span className={i === 1 ? 'text-sm text-ink' : 'text-sm text-ink-dim'}>{name}</span>
-                <span className={i === 1 ? 'sheet-tag text-accent' : 'sheet-tag'}>{code}</span>
+                <span className={i === 1 ? 'text-sm text-ink' : 'text-sm text-ink-dim'}>{translateUi(name)}</span>
+                <span className={i === 1 ? 'sheet-tag text-accent' : 'sheet-tag'}>{translateUi(code)}</span>
               </div>
             ))}
           </div>
@@ -86,8 +91,8 @@ export function HeroPreview() {
         {/* right: schematic plan */}
         <div className="flex flex-col">
           <div className="flex items-baseline justify-between">
-            <span className="label">Ground floor plan</span>
-            <span className="sheet-tag">Sheet A·02 — 1:100</span>
+            <span className="label">{translateUi("Ground floor plan")}</span>
+            <span className="sheet-tag">{translateUi("Sheet A·02 — 1:100")}</span>
           </div>
 
           <div className="my-4 flex-1">
@@ -107,35 +112,43 @@ export function HeroPreview() {
 }
 
 function Row({ k, v }: { k: string; v: string }) {
+  useLanguage(s => s.language);
+
   return (
     <div className="flex items-baseline justify-between">
-      <span className="label">{k}</span>
-      <span className="font-mono text-xs text-ink tnum">{v}</span>
+      <span className="label">{translateUi(k)}</span>
+      <span className="font-mono text-xs text-ink tnum">{translateUi(v)}</span>
     </div>
   )
 }
 
 function Check({ label }: { label: string }) {
+  useLanguage(s => s.language);
+
   return (
     <div className="flex items-center justify-between">
-      <span className="label">{label}</span>
-      <span className="font-mono text-[0.7rem] uppercase tracking-[0.12em] text-ok">✓ OK</span>
+      <span className="label">{translateUi(label)}</span>
+      <span className="font-mono text-[0.7rem] uppercase tracking-[0.12em] text-ok">{translateUi("✓ OK")}</span>
     </div>
   )
 }
 
 function Stat({ k, v }: { k: string; v: string }) {
+  useLanguage(s => s.language);
+
   return (
     <div>
-      <div className="label mb-1 !text-[0.6rem]">{k}</div>
-      <div className="font-mono text-[0.8rem] text-ink tnum">{v}</div>
+      <div className="label mb-1 !text-[0.6rem]">{translateUi(k)}</div>
+      <div className="font-mono text-[0.8rem] text-ink tnum">{translateUi(v)}</div>
     </div>
   )
 }
 
 function PlanSketch() {
+  useLanguage(s => s.language);
+
   return (
-    <svg viewBox="0 0 320 300" className="h-full w-full" role="img" aria-label="Schematic floor plan">
+    <svg viewBox="0 0 320 300" className="h-full w-full" role="img" aria-label={translateUi("Schematic floor plan")}>
       <defs>
         <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
           <path d="M20 0H0V20" fill="none" stroke="var(--color-line)" strokeWidth="0.5" />
@@ -166,8 +179,7 @@ function PlanSketch() {
         <path d="M60 288 V296 M210 288 V296" />
       </g>
       <text x="135" y="286" textAnchor="middle" className="fill-[var(--color-ink-faint)] font-mono" fontSize="7">
-        18.20 M
-      </text>
+        {translateUi("18.20 M")}</text>
     </svg>
   )
 }

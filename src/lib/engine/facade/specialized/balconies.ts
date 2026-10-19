@@ -13,16 +13,26 @@ export function makeBalcony(ctx: GrammarContext, room: BuildingRoom, type: strin
   if ((type === 'CORNER' || type === 'WRAP') && !corner) return null
   if (D - (type === 'PLANTER' ? 260 : 130) < ctx.limits.minBalconyClearDepthMm || W < access.door.width + 400) return null
   const unit = assembly('BALCONY', type as Parameters<typeof assembly>[1], room.semanticId, [room.semanticId], [access.door.id!])
-  const rail = (u: number, v: number, w: number, d: number, solid = false) => {
-    add(ctx, unit, anchor, solid ? 'rail' : 'glass', u, v, 80, w, d, H - 140, solid ? 'wall' : 'glass')
+  const rail = (u: number, v: number, w: number, d: number) => {
+      const horizontal=w>=d,length=horizontal?w:d,bays=Math.max(1,Math.ceil(length/1200))
+      for(let i=0;i<=bays;i++){
+        const at=Math.min(length-40,Math.max(0,length*i/bays-20))
+        add(ctx,unit,anchor,'post',u+(horizontal?at:0),v+(horizontal?0:at),0,horizontal?40:w,horizontal?d:40,H,'metal')
+      }
+      for(let i=0;i<bays;i++){
+        const lo=length*i/bays+40,hi=length*(i+1)/bays-40
+        add(ctx,unit,anchor,'glass',u+(horizontal?lo:0),v+(horizontal?0:lo),80,horizontal?hi-lo:w,horizontal?d:hi-lo,H-140,'glass')
+      }
     add(ctx, unit, anchor, 'rail', u, v, H - 60, w, d, 60, 'metal')
   }
-  rail(40, D - 75, W - 80, 35, type === 'RECESSED')
-  rail(20, 160, 35, D - 235, type === 'BOXED')
-  rail(W - 55, 160, 35, D - 235, type === 'BOXED')
+  rail(40, D - 75, W - 80, 35)
+  rail(20, 160, 35, D - 235)
+  rail(W - 55, 160, 35, D - 235)
   // Open inner edge at v=0 preserves the exact source access door.
   if (type === 'RECESSED' || type === 'BOXED') {
-    for (const u of [0, W - 100]) add(ctx, unit, anchor, 'post', u, 160, 0, 100, D - 160, a.h - 260, 'wall')
+    // Framing can shade the balcony, but its sides remain glass. A full-depth
+    // wall here would enclose a second boundary beside the glass guard.
+    for (const u of [0, W - 100]) add(ctx, unit, anchor, 'post', u, D - 100, 0, 100, 100, a.h - 260, 'wall')
     add(ctx, unit, anchor, 'beam', 0, 160, a.h - 260, W, D - 160, 160, 'wall')
     if (type === 'BOXED') add(ctx, unit, anchor, 'slab', 0, D - 180, -220, W, 180, 160, 'stone')
   } else if (type === 'PROJECTED') {
@@ -34,10 +44,10 @@ export function makeBalcony(ctx: GrammarContext, room: BuildingRoom, type: strin
   } else if (type === 'CORNER' || type === 'WRAP' || type === 'FRAME_INTEGRATED') {
     for (const u of [0, W - 130]) add(ctx, unit, anchor, 'post', u, D - 130, 0, 130, 130, a.h - 280, 'stone')
     add(ctx, unit, anchor, 'beam', 0, D - 180, a.h - 280, W, 180, 180, 'stone')
-    if (type !== 'FRAME_INTEGRATED') add(ctx, unit, anchor, 'beam', 0, 100, a.h - 280, 180, D - 280, 180, 'stone')
-    if (type === 'WRAP') {
+    add(ctx, unit, anchor, 'beam', 0, 100, a.h - 280, 180, D - 280, 180, 'stone')
+    if (type === 'WRAP' || type==='FRAME_INTEGRATED') {
       add(ctx, unit, anchor, 'beam', W - 180, 100, a.h - 280, 180, D - 280, 180, 'stone')
-      for (let u = 240; u < W - 240; u += 400) add(ctx, unit, anchor, 'screen', u, D - 130, H + 150, 55, 120, 700, 'timber')
+      if(type==='WRAP')for (let u = 240; u < W - 240; u += 400) add(ctx, unit, anchor, 'screen', u, D - 130, H + 150, 55, 120, 700, 'timber')
     }
   } else if (type === 'PLANTER') {
     add(ctx, unit, anchor, 'planter', 140, D - 260, 0, W - 280, 220, 450, 'concrete')
@@ -45,7 +55,7 @@ export function makeBalcony(ctx: GrammarContext, room: BuildingRoom, type: strin
   } else {
     const width = type === 'PARTIAL_WIDTH' ? Math.max(1200, Math.round(W * 0.58)) : W
     add(ctx, unit, anchor, 'beam', 0, 160, a.h - 360, width, D - 160, 140, 'wall')
-    for (const u of [30, width - 100]) add(ctx, unit, anchor, 'post', u, D - 100, H, 70, 70, a.h - 360 - H, 'metal')
+    for (const u of [30, width - 100]) add(ctx, unit, anchor, 'post', u, D - 100, 0, 70, 70, a.h - 360, 'metal')
   }
   return unit
 }

@@ -17,6 +17,11 @@ def create_cameras(scene, building, options):
     span = max(hi.x - lo.x, hi.y - lo.y, hi.z - lo.z)
     directions = {"FrontCamera": Vector((0, 1, 0)), "HeroPerspectiveCamera": Vector((.75, 1, .16)),
                   "SideCamera": Vector((1, 0, 0)), "AerialCamera": Vector((.55, .8, 1.2))}
+    if any(floor.get("courtyard") for floor in building["floors"]):
+        # Show the home's defining outdoor room rather than hiding it behind
+        # the street wall. Camera framing still uses the complete source mesh.
+        directions["HeroPerspectiveCamera"] = Vector((.75, 1, 1.6))
+        directions["AerialCamera"] = Vector((.55, .8, 2.6))
     result = []
     for name in CAMERAS:
         data = bpy.data.cameras.new(name)

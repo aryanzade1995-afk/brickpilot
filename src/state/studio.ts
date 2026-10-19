@@ -1,4 +1,5 @@
 import { newDesignSeed } from '@/lib/newDesignSeed.ts'
+import type { ModernComposition } from '@/lib/model/modernCompositions.ts'
 import { measuredPlanSchema } from '@/lib/existing/survey.ts'
 import { selectAdaptiveVilla } from '@/lib/engine/fingerprint/AdaptiveVillaSearch.ts'
 import { create } from 'zustand'
@@ -13,6 +14,9 @@ import {
   type MassingType,
 } from '@/lib/engine/index.ts'
 import { distinctDirectionPlans } from '@/lib/engine/generate.ts'
+import { SITE_FORM_VERSION, parseFormVersion } from '@/lib/engine/siteForm.ts'
+import { expandBalconyArea } from '@/lib/engine/balconyExtent.ts'
+import { buildingShape, parseBuildingShapes, type BuildingShape } from '@/lib/engine/buildingShapes.ts'
 import { planFingerprint, type PlanFingerprint } from '@/lib/engine/planner/planFingerprint.ts'
 import { applyBriefChoice } from '@/lib/engine/planner/fit.ts'
 import { generateExisting } from '@/lib/engine/generateExisting.ts'
@@ -23,6 +27,7 @@ import { commit as commitLayout, replanNearby, type Notice, type OpResult } from
 import { parseLayout } from '@/lib/plan/parse.ts'
 import { geometryCostKey } from '@/lib/cost/quantities.ts'
 import { useFinishes } from '@/state/finishes.ts'
+import { useBlender } from '@/state/blender.ts'
 import { validate, type ValidationReport } from '@/lib/rules/index.ts'
 import { estimateBoq, type CostEstimate } from '@/lib/cost/index.ts'
 import { varyExterior } from '@/lib/engine/variation.ts'
@@ -54,6 +59,8 @@ export type Result = {
  *  massing archetype plus the seed that produced it. Together with the brief it
  *  fully and deterministically defines the canonical design. */
 export type PinnedDir = {
+  balconyExtent?: 'full-slab'
+  formVersion?: Design['formVersion']
   planner?: 'ml' | 'baseline'
   planFamily?: MassingType
   recipe?: Design['planRecipe']
@@ -94,6 +101,8 @@ export function parsePinned(v: unknown): PinnedDir | null {
         ['rectangular','stepped','l-shape','courtyard','twin-wing','u-wing','courtyard-ring','pavilion'].includes(String(recipe.family))
         ? {family:recipe.family,seed:recipe.seed,version:recipe.version} as Design['planRecipe'] : undefined
       return { massing: o.massing as MassingType, seed: o.seed,
+        ...(o.balconyExtent==='full-slab'?{balconyExtent:'full-slab' as const}:{}),
+        ...(parseFormVersion(o.formVersion)?{formVersion:parseFormVersion(o.formVersion)}:{}),
         ...(parsedRecipe?{recipe:parsedRecipe}:{}),
         ...(o.planner === 'ml' || o.planner === 'baseline' ? {planner:o.planner} : {}),
         ...(typeof o.planFamily==='string' && MASSING_TYPES.includes(o.planFamily as MassingType) ? {planFamily:o.planFamily as MassingType} : {}),
@@ -113,15 +122,15 @@ export function parsePinned(v: unknown): PinnedDir | null {
 }
 
 export const serializePinned = (p: PinnedDir | null): string | null =>
-  p ? p.inspiration || p.planSeed !== undefined || p.planner || p.planFamily || p.recipe ? JSON.stringify(p) : `${p.massing}:${p.seed}` : null
+  p ? p.inspiration || p.planSeed !== undefined || p.planner || p.planFamily || p.recipe || p.formVersion || p.balconyExtent ? JSON.stringify(p) : `${p.massing}:${p.seed}` : null
 
 /** the 2D plan a pin stands on: a direction's own plan shape and seed, or the
  *  brief's plan (an older pin of another shape regenerates that shape) */
 function pinnedPlan(model: CanonicalModel, pinned: PinnedDir): Design {
   const planner=pinned.planner??'baseline'
-  if (pinned.planSeed !== undefined) return generate(model, { massing: pinned.planFamily??pinned.massing, seed: pinned.planSeed,planner,recipe:pinned.recipe })
-  const plan = generate(model,{planner})
-  return plan.massingType === pinned.massing ? plan : generate(model, { massing: pinned.massing,planner })
+  if (pinned.planSeed !== undefined) return generate(model, { massing: pinned.planFamily??pinned.massing, seed: pinned.planSeed,planner,recipe:pinned.recipe,formVersion:pinned.formVersion })
+  const plan = generate(model,{planner,formVersion:pinned.formVersion})
+  return plan.massingType === pinned.massing ? plan : generate(model, { massing: pinned.massing,planner,formVersion:pinned.formVersion })
 }
 
 export type PlanOpOutcome = { ok: true; message: string; notes: Notice[]; layout: LayoutDoc | null; before: LayoutDoc | null } | { ok: false; reason: string }
@@ -130,7 +139,7 @@ let baseMemo: { key: string; plan: Design | null } | null = null
 /** the plan a layout stands on; cached because every edit asks for it */
 function basePlanOf(brief: Brief, pinned: PinnedDir | null, existing: { structure: ExistingStructure; seed: number } | null): Design | null {
   const model = compile(brief)
-  const key = JSON.stringify([model.seed, pinned && [pinned.massing, pinned.seed, pinned.planSeed, pinned.planner, pinned.planFamily, pinned.recipe], existing])
+  const key = JSON.stringify([model.seed, pinned && [pinned.massing, pinned.seed, pinned.planSeed, pinned.planner, pinned.planFamily, pinned.recipe,pinned.formVersion], existing])
   if (baseMemo?.key === key) return baseMemo.plan
   const plan = existing ? (generateExisting(model, existing.structure, existing.seed).design ?? null) : pinned ? pinnedPlan(model, pinned) : null
   baseMemo = { key, plan }
@@ -146,6 +155,9 @@ type StudioState = {
   pinned: PinnedDir | null
   referencePreferences: InspirationPreferences | null
   recentExteriorSeeds: number[]
+  recentBuildingShapes: BuildingShape[]
+  newBuildingShape: (quality?: 'preview' | 'final', composition?:ModernComposition|'auto') => Promise<boolean>
+  fillBalconyArea: (quality?: 'preview' | 'final') => Promise<boolean>
   recentVillaFingerprints: ShapeFingerprintRecord[]
   diversityLimits: VillaDiversityLimits
   shapeDebug: FingerprintDebug[]
@@ -192,7 +204,8 @@ function resultForPlan(design: Design): Result {
 
 function exactResult(plan: Design, seed: number, inspiration: InspirationPreferences | null,
   shapeStatus: 'accepted' | 'replay' = 'replay'): Result {
-  const design = varyExterior(plan, seed, variationLevel(plan.model.brief), inspiration)
+  const exterior = varyExterior(plan, seed, variationLevel(plan.model.brief), inspiration)
+  const design = plan.balconyExtent==='full-slab'?expandBalconyArea(exterior):exterior
   const architecture = generateAlternativeDesign(design, seed)
   return { ...resultForPlan(design), ...architecture, facadeModel: architecture.facadeGrammar, shapeStatus }
 }
@@ -237,13 +250,14 @@ function assemble(brief: Brief, pinned: PinnedDir | null, inspiration: Inspirati
   const model = compile(brief)
   // Existing Structure Mode plans around what is built; otherwise the normal planner runs
   const fromStructure = existing ? generateExisting(model, existing.structure, existing.seed).design : null
-  let plan = fromStructure ?? (pinned ? pinnedPlan(model, pinned) : generate(model))
+  let plan = fromStructure ?? (pinned ? pinnedPlan(model, pinned) : generate(model,{formVersion:SITE_FORM_VERSION}))
   // the person's room edits stand on exactly the plan they were made on; any other plan ignores them
   let layoutUsed: LayoutDoc | null = null
   if (layout && layout.signature === layoutSignature(plan)) {
     const edited = commitLayout(plan, layout)
     if (edited.ok) { plan = edited.design; layoutUsed = layout }
   }
+  if(pinned?.balconyExtent==='full-slab')plan={...plan,balconyExtent:'full-slab'}
   if (!validate(plan).hardChecksPass) return { result: resultForPlan(plan), history, debug: [], notice: null, layout: layoutUsed }
   if (pinned) {
     // Loading/pinning/navigation is an exact replay, not another new candidate.
@@ -308,12 +322,12 @@ export type DirectionsInput = Pick<StudioState, 'brief' | 'pinned' | 'referenceP
 /** The four design directions for a brief. Pure: it runs on the main thread or in the directions worker. */
 export function computeDirections(cur: DirectionsInput) {
     const model = compile(cur.brief)
-    const plan = generate(model), dirs: DirectionOption[] = [], debug: FingerprintDebug[] = []
+    const plan = generate(model,{formVersion:SITE_FORM_VERSION}), dirs: DirectionOption[] = [], debug: FingerprintDebug[] = []
     let history = cur.recentVillaFingerprints, notice: string | null = null
     // every direction stands on its own plan shape, so the four houses differ
     // in form, not only in trim; a shape the plot cannot take falls back to
     // the brief's own plan
-    const plans: { plan: Design; massing: MassingType; planSeed?: number }[] = distinctDirectionPlans(model)
+    const plans: { plan: Design; massing: MassingType; planSeed?: number }[] = distinctDirectionPlans(model,4,SITE_FORM_VERSION)
     while (plans.length < 4) plans.push({ plan, massing: plan.massingType,planSeed:plan.planSeed })
     const option = (r: Result, index: number, novelty: number, source?: (typeof plans)[number]): DirectionOption => ({
       planFingerprint:planFingerprint(r.design),
@@ -324,7 +338,8 @@ export function computeDirections(cur: DirectionsInput) {
       novelty, design: r.design, report: r.report, buildingModel: r.buildingModel!, villaDesignDNA: r.villaDesignDNA!,
       massingModel: r.massingModel!, facadeModel: r.facadeModel!, shapeFingerprint: r.shapeFingerprint! })
     if (cur.pinned) {
-      const pinnedSource = { plan: pinnedPlan(model, cur.pinned), massing: cur.pinned.massing, planSeed: cur.pinned.planSeed }
+      const sourcePlan=pinnedPlan(model,cur.pinned)
+      const pinnedSource = { plan: cur.pinned.balconyExtent?{...sourcePlan,balconyExtent:cur.pinned.balconyExtent}:sourcePlan, massing: cur.pinned.massing, planSeed: cur.pinned.planSeed }
       if (validate(pinnedSource.plan).hardChecksPass) {
         const replay = replayResult(pinnedSource.plan, cur.pinned.seed, cur.referencePreferences)
         if (replay.result.shapeFingerprint) {
@@ -378,6 +393,7 @@ export const useStudio = create<StudioState>()(
       pinned: null,
       referencePreferences: null,
       recentExteriorSeeds: [],
+      recentBuildingShapes: [],
       recentVillaFingerprints: [],
       diversityLimits: { ...DEFAULT_DIVERSITY_LIMITS },
       shapeDebug: [],
@@ -439,14 +455,20 @@ export const useStudio = create<StudioState>()(
 
       loadSaved: (brief, pinned, layout = null, existing = null) =>
         set((s) => {
+          const normalized=briefSchema.parse(brief)
+          // A short legacy pin for the currently known design must retain its
+          // recorded recipe/version instead of falling back to another planner.
+          const known=s.pinned&&pinned&&s.pinned.seed===pinned.seed&&s.pinned.massing===pinned.massing&&
+            compile(s.brief).seed===compile(normalized).seed?s.pinned:null
+          const restoredPin=known?{...known,...pinned}:pinned
           s.layout = layout
           s.existing = existing
-          s.brief = briefSchema.parse(brief)
+          s.brief = normalized
           s.briefChoiceIssue = null
           s.selectedRoomId = null
-          s.pinned = pinned
-          s.referencePreferences = parseInspirationPreferences(pinned?.inspiration)
-          s.recentExteriorSeeds = pinned ? [pinned.seed] : []
+          s.pinned = restoredPin
+          s.referencePreferences = parseInspirationPreferences(restoredPin?.inspiration)
+          s.recentExteriorSeeds = restoredPin ? [restoredPin.seed] : []
           s.directions = null
           s.result = null
           s.generationNotice = null
@@ -467,7 +489,7 @@ export const useStudio = create<StudioState>()(
       reroll: () => {
         const current = get()
         const brief = structuredClone(current.brief)
-        brief.variation = newDesignSeed(brief.variation)
+        brief.variation = newDesignSeed(brief.variation, brief.style.character)
         const assembled = assemble(brief, null, current.referencePreferences, current.recentVillaFingerprints, current.diversityLimits)
         set((s) => {
           s.brief = brief
@@ -475,7 +497,7 @@ export const useStudio = create<StudioState>()(
           s.pinned = assembled.result.shapeStatus === 'accepted'
             ? { massing: assembled.result.design.massingType, seed: assembled.result.design.dna.seed,
               planSeed:assembled.result.design.planSeed, planFamily:assembled.result.design.planFamily,
-              recipe:assembled.result.design.planRecipe,
+              recipe:assembled.result.design.planRecipe, formVersion:assembled.result.design.formVersion,
               planner:assembled.result.design.planProposal?'ml':'baseline', inspiration: current.referencePreferences } : null
           s.recentExteriorSeeds = []
           s.directions = null
@@ -489,7 +511,7 @@ export const useStudio = create<StudioState>()(
       reseed: () => {
         const cur = get()
         const base = cur.result?.design ?? generate(compile(cur.brief))
-        const selection = generateDistinct(base, newDesignSeed(cur.result?.design.dna.seed ?? cur.brief.variation),
+        const selection = generateDistinct(base, newDesignSeed(cur.result?.design.dna.seed ?? cur.brief.variation, cur.brief.style.character),
           cur.referencePreferences, cur.recentVillaFingerprints, cur.diversityLimits,
           cur.result?.shapeFingerprint ? [fingerprintRecord(cur.result.shapeFingerprint)] : [])
         if (!selection.accepted) {
@@ -503,7 +525,7 @@ export const useStudio = create<StudioState>()(
           planSeed:cur.pinned?.planSeed??base.planSeed,
           planner:cur.pinned?.planner??(base.planProposal?'ml':'baseline'),
           planFamily:cur.pinned?.planFamily??base.planFamily,
-          recipe:cur.pinned?.recipe??base.planRecipe,
+          recipe:cur.pinned?.recipe??base.planRecipe, formVersion:cur.pinned?.formVersion??base.formVersion,
           inspiration: cur.referencePreferences }
         set((s) => {
           s.pinned = pinned
@@ -515,6 +537,92 @@ export const useStudio = create<StudioState>()(
           s.generationNotice = null
         })
         return result
+      },
+
+      fillBalconyArea: async (quality = 'preview') => {
+        const cur=get()
+        if(!cur.result||cur.existing||useBlender.getState().job&&!['complete','failed'].includes(useBlender.getState().job!.status))return false
+        set(s=>{s.generationNotice=null})
+        try{
+          const expanded=expandBalconyArea(cur.result.design)
+          if(expanded===cur.result.design){set(s=>{s.generationNotice='The balcony already uses its available supported slab.'});return false}
+          if(!validate(expanded).hardChecksPass)throw new Error('This balcony cannot expand without crossing a room or unsupported edge.')
+          const seed=cur.result.villaDesignDNA?.seed??cur.result.design.dna.seed
+          const result=exactResult(expanded,seed,cur.referencePreferences)
+          await useBlender.getState().generate(result.design,seed,quality,true)
+          if(get().brief!==cur.brief||get().result!==cur.result)return false
+          const rendered=useBlender.getState().accepted[result.buildingModel!.planId]
+          if(!rendered||rendered.seed!==seed)throw new Error(useBlender.getState().error||'The expanded balcony could not be prepared. Your current design is preserved.')
+          const pinned:PinnedDir={...(cur.pinned??{massing:expanded.massingType,seed,planSeed:expanded.planSeed,planFamily:expanded.planFamily,
+            recipe:expanded.planRecipe,formVersion:expanded.formVersion,planner:expanded.planProposal?'ml':'baseline'}),balconyExtent:'full-slab'}
+          const oldKey=geometryCostKey(cur.result.design),key=geometryCostKey(result.design),entries=useFinishes.getState().entries
+          if(key!==oldKey&&entries[oldKey]&&!entries[key])useFinishes.getState().setSelection(key,entries[oldKey])
+          set(s=>{s.pinned=pinned;s.result=result;s.directions=null;s.selectedRoomId=null;s.generationNotice=null})
+          useBlender.getState().selectDirection(result.design,seed)
+          return true
+        }catch(error){
+          if(get().result===cur.result)set(s=>{s.generationNotice=error instanceof Error?error.message:'Could not expand the balcony.'})
+          return false
+        }
+      },
+
+      newBuildingShape: async (quality = 'preview', composition) => {
+        const cur = get()
+        if (!cur.result || cur.existing) return false
+        const nextBrief=composition===undefined?cur.brief:structuredClone(cur.brief)
+        if(composition!==undefined){
+          if(composition==='auto')delete nextBrief.style.composition
+          else nextBrief.style.composition=composition
+          nextBrief.style.massing='auto'
+        }
+        set(s => { s.generationNotice = null })
+        try {
+          const { useBlender } = await import('./blender.ts')
+          if (useBlender.getState().job && !['complete', 'failed'].includes(useBlender.getState().job!.status)) return false
+          const { runBuildingShapeSearch } = await import('./buildingShapeWorkerClient.ts')
+          const history = [...cur.recentBuildingShapes]
+          let previousSeed = cur.result.design.dna.seed
+          for (let attempt = 0; attempt < 3; attempt++) {
+          const seed = newDesignSeed(previousSeed, cur.brief.style.character)
+          previousSeed = seed
+          const selected = await runBuildingShapeSearch({ brief: nextBrief, seed, current: cur.result.design, history })
+          if (get().brief !== cur.brief || get().result !== cur.result) return false
+          if (!selected) {
+            set(s => { s.generationNotice = 'No new building shape fits this brief yet. Your current design is preserved. Try a larger plot or different room requirements.' })
+            return false
+          }
+          const result = exactResult(selected.design, seed, cur.referencePreferences, 'accepted')
+          // Commit the new 2D source only once its exact 3D model has succeeded.
+          // A renderer rejection must not leave the person with a changed plan
+          // and an empty viewer. Keep displaying the old accepted villa meanwhile.
+          await useBlender.getState().generate(result.design, seed, quality, true)
+          if (get().brief !== cur.brief || get().result !== cur.result) return false
+          const rendered = useBlender.getState().accepted[result.buildingModel!.planId]
+          if (!rendered || rendered.seed !== seed) {
+            const state = useBlender.getState()
+            const geometryRejected = state.job?.debug.some(entry => /geometry rejected|INVALID_ARCHITECTURE|intersects|overlap/i.test(entry.reason))
+            if (geometryRejected && attempt < 2) { history.push(buildingShape(selected.design)); continue }
+            throw new Error(state.error || 'The replacement 3D model could not be prepared. Your current design is preserved.')
+          }
+          const pinned: PinnedDir = { massing: selected.design.massingType, seed,
+            planSeed: selected.design.planSeed, planFamily: selected.design.planFamily, recipe: selected.design.planRecipe,formVersion:selected.design.formVersion,
+            planner: selected.design.planProposal ? 'ml' : 'baseline', inspiration: cur.referencePreferences }
+          set(s => {
+            s.brief = nextBrief
+            s.pinned = pinned; s.layout = null; s.directions = null; s.selectedRoomId = null
+            s.result = result; s.generationNotice = null; s.shapeDebug = []
+            s.recentBuildingShapes = [...s.recentBuildingShapes, buildingShape(cur.result!.design), buildingShape(result.design)]
+              .filter((shape, index, all) => all.findIndex(other => other.key === shape.key) === index).slice(-1000)
+            s.recentVillaFingerprints = [...s.recentVillaFingerprints, fingerprintRecord(result.shapeFingerprint!)].slice(-s.diversityLimits.recentLimit)
+          })
+          return true
+          }
+          return false
+        } catch (error) {
+          if (get().brief === cur.brief && get().result === cur.result)
+            set(s => { s.generationNotice = error instanceof Error ? error.message : 'Could not plan a new building shape.' })
+          return false
+        }
       },
 
       explore: () => {
@@ -548,12 +656,25 @@ export const useStudio = create<StudioState>()(
       },
 
       pin: (dir) => {
-        const source=get().directions?.find(d=>d.massing===dir.massing&&d.seed===dir.seed&&d.planSeed===dir.planSeed)
-        const pinned:PinnedDir = { ...dir, planFamily:dir.planFamily??source?.design.planFamily,
-          recipe:dir.recipe??source?.design.planRecipe,
+        const source=get().directions?.find(d=>d.massing===dir.massing&&d.seed===dir.seed&&(dir.planSeed===undefined||d.planSeed===dir.planSeed))
+        const pinned:PinnedDir = { ...dir, planSeed:dir.planSeed??source?.planSeed??source?.design.planSeed,planFamily:dir.planFamily??source?.design.planFamily,
+          balconyExtent:dir.balconyExtent??source?.design.balconyExtent,
+          recipe:dir.recipe??source?.design.planRecipe,formVersion:dir.formVersion??source?.design.formVersion,
           planner:dir.planner??(source?.design.planProposal?'ml':'baseline'), inspiration: get().referencePreferences }
         const cur = get()
-        const assembled = assemble(cur.brief, pinned, cur.referencePreferences, cur.recentVillaFingerprints, cur.diversityLimits, cur.existing, cur.layout)
+        const same=cur.pinned?.massing===pinned.massing&&cur.pinned.seed===pinned.seed&&cur.pinned.planSeed===pinned.planSeed&&cur.pinned.balconyExtent===pinned.balconyExtent
+        if(same&&cur.result){
+          useBlender.getState().selectDirection(cur.result.design,cur.result.villaDesignDNA?.seed??pinned.seed)
+          return cur.result
+        }
+        // The card already owns a checked, concrete plan. Keep those exact
+        // objects and their render identity when pinning; don't replan the card
+        // or carry room edits from a previously selected direction into it.
+        const assembled = source&&!cur.existing
+          ? {result:{...resultForPlan(source.design),buildingModel:source.buildingModel,villaDesignDNA:source.villaDesignDNA,
+              massingModel:source.massingModel,facadeModel:source.facadeModel,shapeFingerprint:source.shapeFingerprint,shapeStatus:'replay' as const},
+              layout:null,notice:null,debug:[] as FingerprintDebug[]}
+          : assemble(cur.brief, pinned, cur.referencePreferences, cur.recentVillaFingerprints, cur.diversityLimits, cur.existing, null)
         const result = assembled.result
         set((s) => {
           s.pinned = pinned
@@ -563,6 +684,7 @@ export const useStudio = create<StudioState>()(
           s.generationNotice = assembled.notice
           if (assembled.debug.length) s.shapeDebug = assembled.debug
         })
+        useBlender.getState().selectDirection(result.design,pinned.seed)
         return result
       },
 
@@ -579,7 +701,7 @@ export const useStudio = create<StudioState>()(
           if (assembled.result.shapeStatus === 'accepted') s.pinned = { massing: assembled.result.design.massingType,
             seed: assembled.result.design.dna.seed,planSeed:assembled.result.design.planSeed,
             planFamily:assembled.result.design.planFamily,
-            recipe:assembled.result.design.planRecipe,
+            recipe:assembled.result.design.planRecipe,formVersion:assembled.result.design.formVersion,
             planner:assembled.result.design.planProposal?'ml':'baseline', inspiration: cur.referencePreferences }
         })
         return assembled.result
@@ -588,7 +710,7 @@ export const useStudio = create<StudioState>()(
     {
       name: 'brickpilot.studio',
       partialize: (s) => ({ brief: s.brief, pinned: s.pinned, existing: s.existing, layout: s.layout,
-        referencePreferences: s.referencePreferences, recentExteriorSeeds: s.recentExteriorSeeds,
+        referencePreferences: s.referencePreferences, recentExteriorSeeds: s.recentExteriorSeeds, recentBuildingShapes: s.recentBuildingShapes,
         recentVillaFingerprints: s.recentVillaFingerprints, diversityLimits: s.diversityLimits }),
       // re-parse the persisted brief through the schema on every rehydrate, so a
       // partial or stale payload is completed with defaults rather than
@@ -596,7 +718,7 @@ export const useStudio = create<StudioState>()(
       // add `version` + `migrate` only for a real breaking change.
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<{ brief: unknown; pinned: unknown; existing: unknown; layout: unknown;
-          referencePreferences: unknown; recentExteriorSeeds: unknown; recentVillaFingerprints: unknown; diversityLimits: unknown }>
+          referencePreferences: unknown; recentExteriorSeeds: unknown; recentBuildingShapes: unknown; recentVillaFingerprints: unknown; diversityLimits: unknown }>
         const parsed = briefSchema.safeParse(p.brief)
         let limits = { ...DEFAULT_DIVERSITY_LIMITS }
         try { if (p.diversityLimits && typeof p.diversityLimits === 'object') limits = diversityLimits(p.diversityLimits as Partial<VillaDiversityLimits>) } catch { /* Repair stale configuration. */ }
@@ -611,6 +733,7 @@ export const useStudio = create<StudioState>()(
           recentExteriorSeeds: Array.isArray(p.recentExteriorSeeds)
             ? p.recentExteriorSeeds.filter((x): x is number => Number.isSafeInteger(x)).slice(-50) : [],
           recentVillaFingerprints: parseFingerprintHistory(p.recentVillaFingerprints, limits.recentLimit),
+          recentBuildingShapes: parseBuildingShapes(p.recentBuildingShapes),
           diversityLimits: limits,
         }
       },

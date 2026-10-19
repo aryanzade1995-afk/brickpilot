@@ -1,3 +1,4 @@
+import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Check, ChevronDown, FolderOpen, History, Loader2, Save } from 'lucide-react'
@@ -13,6 +14,8 @@ const when = (iso: string) => new Date(iso).toLocaleString([], { day: 'numeric',
 /** Workspace-header "Save": keeps the villa as a project on this device (plot, plan, 3D design, rooms, style, stage and locks),
  *  and also to the account when signed in. It saves automatically after every major change; this is the explicit save. */
 export function SaveDesignButton() {
+  useLanguage(s => s.language);
+
   const user = useAuth((s) => s.user)
   const saveCloud = useDesigns((s) => s.saveCurrent)
   const hasDesign = useStudio((s) => !!s.result)
@@ -53,45 +56,43 @@ export function SaveDesignButton() {
 
   return (
     <div ref={ref} className="relative flex items-stretch">
-      <button type="button" onClick={() => save()} disabled={!hasDesign} title={!hasDesign ? 'Choose a direction first' : (sub ?? 'Save this design on this device')}
+      <button type="button" onClick={() => save()} disabled={!hasDesign} title={translateUi(!hasDesign ? 'Choose a direction first' : (sub ?? 'Save this design on this device'))}
         className={cx('flex items-center gap-1.5 border border-r-0 px-3 py-1.5 font-mono text-[0.7rem] uppercase tracking-[0.12em] transition-colors disabled:cursor-not-allowed disabled:opacity-40',
           state === 'error' ? 'border-bad/60 text-bad' : state === 'saved' ? 'border-ok/60 text-ok' : 'border-line-strong text-ink-dim hover:border-ink-dim hover:text-ink')}>
         {state === 'saving' ? <Loader2 size={12} className="animate-spin" /> : state === 'saved' ? <Check size={12} /> : <Save size={12} />}
-        {label}
+        {translateUi(label)}
       </button>
-      <button type="button" aria-label="Project options" aria-expanded={open} onClick={() => setOpen((o) => !o)}
+      <button type="button" aria-label={translateUi("Project options")} aria-expanded={open} onClick={() => setOpen((o) => !o)}
         className={cx('flex items-center border px-1.5 text-ink-dim hover:text-ink', state === 'saved' ? 'border-ok/60' : 'border-line-strong')}>
         <ChevronDown size={13} className={cx('transition-transform', open && 'rotate-180')} />
       </button>
 
       {open && (
-        <div role="dialog" aria-label="Project" className="absolute right-0 top-full z-30 mt-2 w-80 border border-line bg-bg-raised p-4 text-sm shadow-xl">
-          <label className="block text-xs text-ink-dim">Project name
-            <input value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') save(name) }} onBlur={() => { if (current && name.trim() && name.trim() !== current.name) act.rename(current.id, name); setDraft(null) }}
-              placeholder="Untitled villa" className="mt-1 w-full border border-line-strong bg-bg-inset px-2 py-1.5 text-ink outline-none focus:border-accent" />
+        <div role="dialog" aria-label={translateUi("Project")} className="absolute right-0 top-full z-30 mt-2 w-80 border border-line bg-bg-raised p-4 text-sm shadow-xl">
+          <label className="block text-xs text-ink-dim">{translateUi("Project name")}<input value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') save(name) }} onBlur={() => { if (current && name.trim() && name.trim() !== current.name) act.rename(current.id, name); setDraft(null) }}
+              placeholder={translateUi("Untitled villa")} className="mt-1 w-full border border-line-strong bg-bg-inset px-2 py-1.5 text-ink outline-none focus:border-accent" />
           </label>
-          <label className="mt-3 block text-xs text-ink-dim">Construction stage
-            <select aria-label="Construction stage" value={stage} onChange={(e) => act.setStage(e.target.value as StageId)} className="mt-1 w-full border border-line-strong bg-bg-inset px-2 py-1.5 text-ink">
-              {STAGES.map((s) => <option key={s.id} value={s.id}>{s.label} — {s.hint}</option>)}
+          <label className="mt-3 block text-xs text-ink-dim">{translateUi("Construction stage")}<select aria-label={translateUi("Construction stage")} value={stage} onChange={(e) => act.setStage(e.target.value as StageId)} className="mt-1 w-full border border-line-strong bg-bg-inset px-2 py-1.5 text-ink">
+              {STAGES.map((s) => <option key={s.id} value={s.id}>{translateUi(s.label)} — {translateUi(s.hint)}</option>)}
             </select>
           </label>
           <p className="mt-3 text-xs text-ink-faint" role="status">
-            {error ? <span className="text-bad">{error}</span> : lastSavedAt ? `Saved on this device at ${clock(lastSavedAt)}. Changes save automatically.` : 'Not saved yet. Changes save automatically once you choose a direction.'}
+            {error ? <span className="text-bad">{translateUi(error)}</span> : lastSavedAt ? `Saved on this device at ${clock(lastSavedAt)}. Changes save automatically.` : 'Not saved yet. Changes save automatically once you choose a direction.'}
           </p>
           {current && current.versions.length > 0 && (
             <div className="mt-3 border-t border-line pt-3">
-              <p className="label mb-1.5 flex items-center gap-1.5"><History size={11} /> Version history</p>
+              <p className="label mb-1.5 flex items-center gap-1.5"><History size={11} /> {translateUi(" Version history")}</p>
               <ul className="max-h-40 space-y-1 overflow-y-auto">
                 {current.versions.slice(0, 8).map((v) => (
                   <li key={v.id} className="flex items-center justify-between gap-2 text-xs">
-                    <span className="min-w-0"><span className="block truncate text-ink">{v.label}</span><span className="text-ink-faint">{when(v.at)}</span></span>
-                    <button type="button" className="flex-none border border-line-strong px-2 py-1 font-mono text-[0.6rem] uppercase tracking-[0.08em] text-ink-dim hover:text-ink" onClick={() => { act.restore(current.id, v.id); setOpen(false) }}>Restore</button>
+                    <span className="min-w-0"><span className="block truncate text-ink">{translateUi(v.label)}</span><span className="text-ink-faint">{translateUi(when(v.at))}</span></span>
+                    <button type="button" className="flex-none border border-line-strong px-2 py-1 font-mono text-[0.6rem] uppercase tracking-[0.08em] text-ink-dim hover:text-ink" onClick={() => { act.restore(current.id, v.id); setOpen(false) }}>{translateUi("Restore")}</button>
                   </li>
                 ))}
               </ul>
             </div>
           )}
-          <Link to="/designs" onClick={() => setOpen(false)} className="mt-3 flex items-center gap-1.5 border-t border-line pt-3 text-xs text-ink-dim hover:text-ink"><FolderOpen size={12} /> My designs</Link>
+          <Link to="/designs" onClick={() => setOpen(false)} className="mt-3 flex items-center gap-1.5 border-t border-line pt-3 text-xs text-ink-dim hover:text-ink"><FolderOpen size={12} /> {translateUi(" My designs")}</Link>
         </div>
       )}
     </div>

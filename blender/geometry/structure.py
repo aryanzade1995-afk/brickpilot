@@ -39,6 +39,7 @@ def create_slab(scene, slab, floor, voids=()):
 
 
 def create_roof_slab(scene, floor, voids=()):
+    voids = [*voids, *([floor["courtyard"]] if floor.get("courtyard") else [])]
     top = floor["elevationMm"] + floor["heightMm"]
     thickness = slab_thickness(floor)
     for index, rect in enumerate(floor["footprint"], 1):

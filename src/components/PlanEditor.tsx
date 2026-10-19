@@ -1,3 +1,4 @@
+import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeftRight, Lock, LockOpen, Maximize2, Move, Plus, Redo2, RotateCcw, Trash2, Undo2, Wand2 } from 'lucide-react'
 import type { Design } from '@/lib/engine/types.ts'
@@ -32,6 +33,8 @@ function sideRect(r: Rect, side: Side, dx: number, dy: number): Rect {
 }
 
 export function PlanEditor({ design }: { design: Design }) {
+  useLanguage(s => s.language);
+
   const layoutNow = useStudio((s) => s.layout)
   const pinned = useStudio((s) => s.pinned)
   const existing = useStudio((s) => s.existing)
@@ -169,21 +172,21 @@ export function PlanEditor({ design }: { design: Design }) {
   return (
     <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]" data-testid="plan-editor">
       <div className="min-w-0">
-        <div role="tablist" aria-label="Floors" className="mb-3 flex flex-wrap items-center gap-1">
+        <div role="tablist" aria-label={translateUi("Floors")} className="mb-3 flex flex-wrap items-center gap-1">
           {design.floors.map((f) => (
             <button key={f.level} role="tab" aria-selected={f.level === floor.level} onClick={() => { setLevel(f.level); setSelected(null) }}
               className={cx('border border-line-strong px-2 py-2 text-xs text-ink-dim hover:text-ink', f.level === floor.level && 'border-ink text-ink')}>
-              {f.level === 0 ? 'Ground' : `Floor ${f.level}`}
-              {Ops.vacantRooms(layout, f.level).some((v) => !v.accepted) && <span className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-warn align-middle" title="Has vacant space" />}
+              {translateUi(f.level === 0 ? 'Ground' : `Floor ${f.level}`)}
+              {Ops.vacantRooms(layout, f.level).some((v) => !v.accepted) && <span className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-warn align-middle" title={translateUi("Has vacant space")} />}
             </button>
           ))}
           <span className="ml-auto flex items-center gap-1">
-            <button className={btn} disabled={!past.length} onClick={() => act.undo()} aria-label="Undo"><Undo2 size={12} /> Undo</button>
-            <button className={btn} disabled={!future.length} onClick={() => act.redo()} aria-label="Redo"><Redo2 size={12} /> Redo</button>
+            <button className={btn} disabled={!past.length} onClick={() => act.undo()} aria-label={translateUi("Undo")}><Undo2 size={12} /> {translateUi(" Undo")}</button>
+            <button className={btn} disabled={!future.length} onClick={() => act.redo()} aria-label={translateUi("Redo")}><Redo2 size={12} /> {translateUi(" Redo")}</button>
           </span>
         </div>
 
-        <div className="relative w-full overflow-hidden border border-line bg-white" style={{ aspectRatio: `${W} / ${H}` }} tabIndex={0} onKeyDown={onKey} aria-label="Plan editor. Select a room, drag it to move, drag an edge to resize, use arrow keys to nudge.">
+        <div className="relative w-full overflow-hidden border border-line bg-white" style={{ aspectRatio: `${W} / ${H}` }} tabIndex={0} onKeyDown={onKey} aria-label={translateUi("Plan editor. Select a room, drag it to move, drag an edge to resize, use arrow keys to nudge.")}>
           <div className="absolute inset-0">
             <FloorDrawing floor={floor} model={design.model} siteFeatures={design.siteFeatures} theme="paper" presentation
               layers={{ ...DRAWING_PRESETS.Presentation, safety: false, dimensions: false }} />
@@ -204,7 +207,7 @@ export function PlanEditor({ design }: { design: Design }) {
                     fill={vac ? 'url(#vacantHatch)' : isSel ? 'rgba(29,78,137,0.14)' : swapFrom && !(swapFrom.level === floor.level && swapFrom.id === r.id) && !r.locked ? 'rgba(29,78,137,0.12)' : 'transparent'}
                     stroke={isSel ? '#1D4E89' : vac ? '#D97706' : r.locked ? '#B45309' : 'transparent'} strokeWidth={isSel ? 90 : 50} strokeDasharray={vac || r.locked ? '180 120' : undefined}
                     className={cx(editable ? 'cursor-move' : 'cursor-pointer', 'hover:fill-[rgba(29,78,137,0.08)]')}
-                    role="button" tabIndex={-1} aria-label={`${r.name}, ${sqm(r.rect)} square metres${r.locked ? ', locked' : ''}`}
+                    role="button" tabIndex={-1} aria-label={translateUi(`${r.name}, ${sqm(r.rect)} square metres${r.locked ? ', locked' : ''}`)}
                     data-room={r.id} onPointerDown={(e) => down(e, r)} />
                   {r.locked && (
                     <g transform={`translate(${rectRight(r.rect) - 900} ${r.rect.y + 150})`} pointerEvents="none">
@@ -219,7 +222,7 @@ export function PlanEditor({ design }: { design: Design }) {
             {floor.level === 0 && siteParts.map((f) => (
               <rect key={f.id} x={f.rect.x} y={f.rect.y} width={f.rect.w} height={f.rect.h} data-feature={f.kind}
                 fill={feat === f.kind ? 'rgba(15,118,110,0.10)' : 'transparent'} stroke={feat === f.kind ? '#0F766E' : 'transparent'} strokeWidth={feat === f.kind ? 90 : 60}
-                className="cursor-move hover:stroke-[#0F766E]/60" onPointerDown={(e) => startFeature(e, f.kind, f.rect)}><title>{`${siteName(f.kind)}: drag to move`}</title></rect>
+                className="cursor-move hover:stroke-[#0F766E]/60" onPointerDown={(e) => startFeature(e, f.kind, f.rect)}><title>{translateUi(`${siteName(f.kind)}: drag to move`)}</title></rect>
             ))}
             {floor.level === 0 && feat && !drag && (() => {
               const f = siteParts.find((x) => x.kind === feat)
@@ -229,7 +232,7 @@ export function PlanEditor({ design }: { design: Design }) {
                 <EdgeStrips rect={f.rect} t={hs} color="#0F766E" name="feature" onDown={(e, side) => startFeature(e, f.kind, f.rect, side)} />
                 <g pointerEvents="none" transform={`translate(${f.rect.x + f.rect.w / 2} ${Math.max(f.rect.y - fs * 1.3, -PAD.t + fs)})`}>
                   <rect x={-tag.length * fs * 0.32} y={-fs * 0.8} width={tag.length * fs * 0.64} height={fs * 1.5} rx={fs * 0.3} fill="#0F766E" />
-                  <text textAnchor="middle" dominantBaseline="middle" y={-fs * 0.05} fill="#fff" fontSize={fs} fontFamily="'IBM Plex Mono', monospace">{tag}</text>
+                  <text textAnchor="middle" dominantBaseline="middle" y={-fs * 0.05} fill="#fff" fontSize={fs} fontFamily="'IBM Plex Mono', monospace">{translateUi(tag)}</text>
                 </g>
               </g>
             })()}
@@ -240,7 +243,7 @@ export function PlanEditor({ design }: { design: Design }) {
               const cy0 = side === 'W' || side === 'E' ? box.y + box.h / 2 : side === 'N' ? box.y : box.y + box.h
               const horizontal = side === 'N' || side === 'S'
               return <rect key={`o${side}`} x={cx0 - (horizontal ? hs * 1.6 : hs / 2)} y={cy0 - (horizontal ? hs / 2 : hs * 1.6)} width={horizontal ? hs * 3.2 : hs} height={horizontal ? hs : hs * 3.2} rx={hs / 4}
-                fill="#C2410C" stroke="#fff" strokeWidth="35" className={horizontal ? 'cursor-ns-resize' : 'cursor-ew-resize'} data-outline={side} onPointerDown={(e) => downOutline(e, side)}><title>Drag to resize the whole villa</title></rect>
+                fill="#C2410C" stroke="#fff" strokeWidth="35" className={horizontal ? 'cursor-ns-resize' : 'cursor-ew-resize'} data-outline={side} onPointerDown={(e) => downOutline(e, side)}><title>{translateUi("Drag to resize the whole villa")}</title></rect>
             })}
             {/* the selected room's edges sit above the villa's wall handles, so a room on the outer wall is still resized as a room */}
             {room && canEdit(room) && !drag && <EdgeStrips rect={room.rect} t={hs} color="#1D4E89" name="room" onDown={(e, side) => downHandle(e, room, side)} />}
@@ -256,96 +259,94 @@ export function PlanEditor({ design }: { design: Design }) {
             {ghost && drag && (
               <text x={ghost.x + ghost.w / 2} y={ghost.y + ghost.h / 2} textAnchor="middle" dominantBaseline="middle" fontSize={W / 48} fontFamily="'IBM Plex Mono', monospace"
                 fill="#0B2545" stroke="#fff" strokeWidth={W / 400} paintOrder="stroke" pointerEvents="none">
-                {drag.kind === 'move' && dropOn ? (Ops.isVacant(dropOn) ? 'Move into vacant space' : `Swap with ${dropOn.name}`) : `${m(ghost.w)} × ${m(ghost.h)} m`}
+                {translateUi(drag.kind === 'move' && dropOn ? (Ops.isVacant(dropOn) ? 'Move into vacant space' : `Swap with ${dropOn.name}`) : `${m(ghost.w)} × ${m(ghost.h)} m`)}
               </text>
             )}
           </svg>
         </div>
-        <p className="mt-2 text-xs text-ink-faint">Drag a room onto another room to swap them, or onto hatched vacant space to move it there. Select a room and drag any of its edges to resize; connected rooms are pushed along. Drag the orange outline to resize the whole villa. {design.candidate} · {floor.name}</p>
+        <p className="mt-2 text-xs text-ink-faint">{translateUi("Drag a room onto another room to swap them, or onto hatched vacant space to move it there. Select a room and drag any of its edges to resize; connected rooms are pushed along. Drag the orange outline to resize the whole villa. ")}{translateUi(design.candidate)} · {translateUi(floor.name)}</p>
       </div>
 
-      <aside aria-label="Edit rooms" className="space-y-4 border border-line p-4 text-sm">
+      <aside aria-label={translateUi("Edit rooms")} className="space-y-4 border border-line p-4 text-sm">
         <div>
-          <h2 className="font-display text-xl">Edit rooms</h2>
+          <h2 className="font-display text-xl">{translateUi("Edit rooms")}</h2>
           <label className="mt-2 flex cursor-pointer items-start gap-2 text-xs text-ink-dim">
             <input type="checkbox" className="mt-0.5 accent-neutral-500" checked={autoReplan} onChange={(e) => act.setAutoReplan(e.target.checked)} />
-            <span><span className="text-ink">Replan nearby automatically.</span> When an edit frees space, only the rooms beside it are adjusted. Everything else stays as it is.</span>
+            <span><span className="text-ink">{translateUi("Replan nearby automatically.")}</span> {translateUi(" When an edit frees space, only the rooms beside it are adjusted. Everything else stays as it is.")}</span>
           </label>
         </div>
 
         {swapFrom && (
           <p role="status" className="border border-accent/50 bg-accent/5 px-3 py-2 text-xs text-accent">
-            Swapping <b>{swapFrom.name}</b>. Click the room to swap it with, on this floor or any other floor. <button type="button" className="underline" onClick={() => setSwapFrom(null)}>Cancel</button>
+            {translateUi("Swapping ")}<b>{translateUi(swapFrom.name)}</b>{translateUi(". Click the room to swap it with, on this floor or any other floor. ")}<button type="button" className="underline" onClick={() => setSwapFrom(null)}>{translateUi("Cancel")}</button>
           </p>
         )}
 
         {feedback && (
           <div role="status" className={cx('border px-3 py-2 text-xs', feedback.kind === 'error' ? 'border-bad/50 text-bad' : 'border-ok/50 text-ink-dim')}>
-            <p className={feedback.kind === 'ok' ? 'text-ok' : ''}>{feedback.kind === 'error' ? 'Not applied. ' : ''}{feedback.text}</p>
-            {feedback.notes.slice(0, 4).map((n, i) => <p key={i} className={cx('mt-1', n.severity === 'warning' ? 'text-warn' : 'text-ink-faint')}>{n.message}</p>)}
+            <p className={feedback.kind === 'ok' ? 'text-ok' : ''}>{translateUi(feedback.kind === 'error' ? 'Not applied. ' : '')}{translateUi(feedback.text)}</p>
+            {feedback.notes.slice(0, 4).map((n, i) => <p key={i} className={cx('mt-1', n.severity === 'warning' ? 'text-warn' : 'text-ink-faint')}>{translateUi(n.message)}</p>)}
           </div>
         )}
 
         {/* ------------------------------ selected room ------------------------------ */}
-        <section aria-label="Selected room">
-          <h3 className="label mb-2">Selected</h3>
-          {!room ? <p className="text-xs text-ink-faint">Nothing selected. Click a room in the plan.</p> : (
+        <section aria-label={translateUi("Selected room")}>
+          <h3 className="label mb-2">{translateUi("Selected")}</h3>
+          {!room ? <p className="text-xs text-ink-faint">{translateUi("Nothing selected. Click a room in the plan.")}</p> : (
             <div className="space-y-3">
               <div>
-                <p className="font-display text-lg leading-tight">{room.name}</p>
-                <p className="mt-0.5 font-mono text-[0.7rem] text-ink-dim">{m(room.rect.w)} × {m(room.rect.h)} m · {sqm(room.rect)} m²{room.locked ? ' · locked' : ''}</p>
-                {fixedReason(room) && <p className="mt-1 text-xs text-ink-faint">{fixedReason(room)}</p>}
+                <p className="font-display text-lg leading-tight">{translateUi(room.name)}</p>
+                <p className="mt-0.5 font-mono text-[0.7rem] text-ink-dim">{translateUi(m(room.rect.w))} × {translateUi(m(room.rect.h))} {translateUi(" m · ")}{translateUi(sqm(room.rect))} {translateUi(" m²")}{translateUi(room.locked ? ' · locked' : '')}</p>
+                {fixedReason(room) && <p className="mt-1 text-xs text-ink-faint">{translateUi(fixedReason(room))}</p>}
               </div>
               {room.type !== 'fixed' && !room.outdoor && !Ops.isVacant(room) && (
-                <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 border-y border-line py-2 text-xs" aria-label="Room constraints">
-                  <dt className="text-ink-faint">Recommended</dt><dd>at least {room.constraints.minSqm} m² · {m(room.constraints.minWidthMm)} m wide (advice)</dd>
-                  <dt className="text-ink-faint">Ventilation</dt><dd>{room.constraints.ventilation === 'none' ? 'not required' : room.constraints.ventilation === 'ventilator' ? 'ventilator on an outside wall' : 'window on an outside wall'}</dd>
-                  <dt className="text-ink-faint">Door / windows</dt><dd>{room.constraints.doors} door · windows {room.constraints.windows}</dd>
-                  <dt className="text-ink-faint">Plumbing</dt><dd>{room.constraints.plumbing ? 'needs a wet wall' : 'none'}</dd>
-                  <dt className="text-ink-faint">Floor</dt><dd>{room.constraints.floor === 'any' ? 'any floor' : room.constraints.floor === 'ground' ? 'best on the ground floor' : 'upper floors'}</dd>
+                <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 border-y border-line py-2 text-xs" aria-label={translateUi("Room constraints")}>
+                  <dt className="text-ink-faint">{translateUi("Recommended")}</dt><dd>{translateUi("at least ")}{translateUi(room.constraints.minSqm)} {translateUi(" m² · ")}{translateUi(m(room.constraints.minWidthMm))} {translateUi(" m wide (advice)")}</dd>
+                  <dt className="text-ink-faint">{translateUi("Ventilation")}</dt><dd>{translateUi(room.constraints.ventilation === 'none' ? 'not required' : room.constraints.ventilation === 'ventilator' ? 'ventilator on an outside wall' : 'window on an outside wall')}</dd>
+                  <dt className="text-ink-faint">{translateUi("Door / windows")}</dt><dd>{translateUi(room.constraints.doors)} {translateUi(" door · windows ")}{translateUi(room.constraints.windows)}</dd>
+                  <dt className="text-ink-faint">{translateUi("Plumbing")}</dt><dd>{translateUi(room.constraints.plumbing ? 'needs a wet wall' : 'none')}</dd>
+                  <dt className="text-ink-faint">{translateUi("Floor")}</dt><dd>{translateUi(room.constraints.floor === 'any' ? 'any floor' : room.constraints.floor === 'ground' ? 'best on the ground floor' : 'upper floors')}</dd>
                 </dl>
               )}
               {!Ops.isVacant(room) && (
                 <div className="grid grid-cols-2 gap-2">
-                  <button className={cx(btn, pad === 'move' && 'border-accent text-accent')} disabled={!canEdit(room)} aria-pressed={pad === 'move'} onClick={() => setPad(pad === 'move' ? null : 'move')}><Move size={12} /> Move</button>
-                  <button className={cx(btn, pad === 'resize' && 'border-accent text-accent')} disabled={!canEdit(room)} aria-pressed={pad === 'resize'} onClick={() => setPad(pad === 'resize' ? null : 'resize')}><Maximize2 size={12} /> Resize</button>
-                  <button className={cx(btn, swapping && 'border-accent text-accent')} disabled={!canEdit(room)} aria-pressed={swapping} onClick={() => setSwapping((v) => !v)}><ArrowLeftRight size={12} /> {swapping ? 'Pick a room' : 'Swap'}</button>
-                  <button className={btn} disabled={!canEdit(room)} onClick={() => act.run((l, p) => Ops.deleteRoom(l, p, floor.level, room.id))}><Trash2 size={12} /> Delete</button>
+                  <button className={cx(btn, pad === 'move' && 'border-accent text-accent')} disabled={!canEdit(room)} aria-pressed={pad === 'move'} onClick={() => setPad(pad === 'move' ? null : 'move')}><Move size={12} /> {translateUi(" Move")}</button>
+                  <button className={cx(btn, pad === 'resize' && 'border-accent text-accent')} disabled={!canEdit(room)} aria-pressed={pad === 'resize'} onClick={() => setPad(pad === 'resize' ? null : 'resize')}><Maximize2 size={12} /> {translateUi(" Resize")}</button>
+                  <button className={cx(btn, swapping && 'border-accent text-accent')} disabled={!canEdit(room)} aria-pressed={swapping} onClick={() => setSwapping((v) => !v)}><ArrowLeftRight size={12} /> {translateUi(swapping ? 'Pick a room' : 'Swap')}</button>
+                  <button className={btn} disabled={!canEdit(room)} onClick={() => act.run((l, p) => Ops.deleteRoom(l, p, floor.level, room.id))}><Trash2 size={12} /> {translateUi(" Delete")}</button>
                   <button className={cx(btn, 'col-span-2')} onClick={() => act.run((l) => Ops.toggleLock(l, floor.level, room.id))}>
-                    {room.locked ? <><LockOpen size={12} /> Unlock</> : <><Lock size={12} /> Lock in place</>}
+                    {room.locked ? <><LockOpen size={12} /> {translateUi(" Unlock")}</> : <><Lock size={12} /> {translateUi(" Lock in place")}</>}
                   </button>
                   {!room.fixed && !room.outdoor && !room.locked && others.length > 0 && (
-                    <label className="col-span-2 text-xs text-ink-dim">Move to floor
-                      <select aria-label="Move to floor" className="mt-1 w-full border border-line-strong bg-bg-inset px-2 py-2 text-ink" value=""
+                    <label className="col-span-2 text-xs text-ink-dim">{translateUi("Move to floor")}<select aria-label={translateUi("Move to floor")} className="mt-1 w-full border border-line-strong bg-bg-inset px-2 py-2 text-ink" value=""
                         onChange={(e) => { const to = Number(e.target.value); if (!Number.isNaN(to) && act.run((l, p) => Ops.moveToFloor(l, p, floor.level, room.id, to))) setLevel(to) }}>
-                        <option value="">Choose a floor…</option>
-                        {others.map((f) => <option key={f.level} value={f.level}>{f.name}</option>)}
+                        <option value="">{translateUi("Choose a floor…")}</option>
+                        {others.map((f) => <option key={f.level} value={f.level}>{translateUi(f.name)}</option>)}
                       </select>
                     </label>
                   )}
                 </div>
               )}
               {pad && canEdit(room) && (
-                <div className="border border-line p-2" aria-label={pad === 'move' ? 'Move controls' : 'Resize controls'}>
-                  <label className="flex items-center justify-between text-xs text-ink-dim">Step
-                    <select aria-label="Step" className="border border-line-strong bg-bg-inset px-2 py-1 text-ink" value={step} onChange={(e) => setStep(Number(e.target.value))}>
-                      {[100, 300, 600, 900].map((v) => <option key={v} value={v}>{v / 1000} m</option>)}
+                <div className="border border-line p-2" aria-label={translateUi(pad === 'move' ? 'Move controls' : 'Resize controls')}>
+                  <label className="flex items-center justify-between text-xs text-ink-dim">{translateUi("Step")}<select aria-label={translateUi("Step")} className="border border-line-strong bg-bg-inset px-2 py-1 text-ink" value={step} onChange={(e) => setStep(Number(e.target.value))}>
+                      {[100, 300, 600, 900].map((v) => <option key={v} value={v}>{translateUi(v / 1000)} {translateUi(" m")}</option>)}
                     </select>
                   </label>
                   {pad === 'move' ? (
                     <div className="mx-auto mt-2 grid w-32 grid-cols-3 gap-1">
-                      <span /><button className={btn} aria-label="Move up" onClick={() => nudge(0, -step)}>↑</button><span />
-                      <button className={btn} aria-label="Move left" onClick={() => nudge(-step, 0)}>←</button><span />
-                      <button className={btn} aria-label="Move right" onClick={() => nudge(step, 0)}>→</button>
-                      <span /><button className={btn} aria-label="Move down" onClick={() => nudge(0, step)}>↓</button><span />
+                      <span /><button className={btn} aria-label={translateUi("Move up")} onClick={() => nudge(0, -step)}>↑</button><span />
+                      <button className={btn} aria-label={translateUi("Move left")} onClick={() => nudge(-step, 0)}>←</button><span />
+                      <button className={btn} aria-label={translateUi("Move right")} onClick={() => nudge(step, 0)}>→</button>
+                      <span /><button className={btn} aria-label={translateUi("Move down")} onClick={() => nudge(0, step)}>↓</button><span />
                     </div>
                   ) : (
                     <div className="mt-2 grid gap-1">
                       {([['N', 'Top edge'], ['S', 'Bottom edge'], ['W', 'Left edge'], ['E', 'Right edge']] as [Side, string][]).map(([side, label]) => (
-                        <div key={side} className="flex items-center justify-between text-xs text-ink-dim">{label}
+                        <div key={side} className="flex items-center justify-between text-xs text-ink-dim">{translateUi(label)}
                           <span className="flex gap-1">
-                            <button className={btn} aria-label={`${label} in`} onClick={() => resizeTo(room.id, room.rect, sideRect(room.rect, side, side === 'S' || side === 'E' ? -step : step, side === 'S' || side === 'E' ? -step : step))}>−</button>
-                            <button className={btn} aria-label={`${label} out`} onClick={() => resizeTo(room.id, room.rect, sideRect(room.rect, side, side === 'S' || side === 'E' ? step : -step, side === 'S' || side === 'E' ? step : -step))}>+</button>
+                            <button className={btn} aria-label={translateUi(`${label} in`)} onClick={() => resizeTo(room.id, room.rect, sideRect(room.rect, side, side === 'S' || side === 'E' ? -step : step, side === 'S' || side === 'E' ? -step : step))}>−</button>
+                            <button className={btn} aria-label={translateUi(`${label} out`)} onClick={() => resizeTo(room.id, room.rect, sideRect(room.rect, side, side === 'S' || side === 'E' ? step : -step, side === 'S' || side === 'E' ? step : -step))}>+</button>
                           </span>
                         </div>
                       ))}
@@ -364,91 +365,89 @@ export function PlanEditor({ design }: { design: Design }) {
           const set = (r: Rect) => act.run((l, p) => Ops.setFeature(l, p, feat as never, r))
           const hand = !!layout.features?.[feat as never]
           return (
-            <section aria-label="Site feature" className="border border-line p-3">
-              <h3 className="label mb-1">Site · {name}</h3>
-              <p className="font-mono text-[0.75rem] text-ink-dim">{m(f.rect.w)} × {m(f.rect.h)} m · {sqm(f.rect)} m²{hand ? ' · placed by you' : ' · automatic'}</p>
-              <p className="mt-1 text-xs text-ink-faint">Drag it on the plan to move it; drag any of its edges to resize. Or use the buttons.</p>
-              <div className="mx-auto mt-2 grid w-32 grid-cols-3 gap-1" aria-label="Move site feature">
-                <span /><button className={btn} aria-label="Feature up" onClick={() => set({ ...f.rect, y: f.rect.y - step })}>↑</button><span />
-                <button className={btn} aria-label="Feature left" onClick={() => set({ ...f.rect, x: f.rect.x - step })}>←</button><span />
-                <button className={btn} aria-label="Feature right" onClick={() => set({ ...f.rect, x: f.rect.x + step })}>→</button>
-                <span /><button className={btn} aria-label="Feature down" onClick={() => set({ ...f.rect, y: f.rect.y + step })}>↓</button><span />
+            <section aria-label={translateUi("Site feature")} className="border border-line p-3">
+              <h3 className="label mb-1">{translateUi("Site · ")}{translateUi(name)}</h3>
+              <p className="font-mono text-[0.75rem] text-ink-dim">{translateUi(m(f.rect.w))} × {translateUi(m(f.rect.h))} {translateUi(" m · ")}{translateUi(sqm(f.rect))} {translateUi(" m²")}{translateUi(hand ? ' · placed by you' : ' · automatic')}</p>
+              <p className="mt-1 text-xs text-ink-faint">{translateUi("Drag it on the plan to move it; drag any of its edges to resize. Or use the buttons.")}</p>
+              <div className="mx-auto mt-2 grid w-32 grid-cols-3 gap-1" aria-label={translateUi("Move site feature")}>
+                <span /><button className={btn} aria-label={translateUi("Feature up")} onClick={() => set({ ...f.rect, y: f.rect.y - step })}>↑</button><span />
+                <button className={btn} aria-label={translateUi("Feature left")} onClick={() => set({ ...f.rect, x: f.rect.x - step })}>←</button><span />
+                <button className={btn} aria-label={translateUi("Feature right")} onClick={() => set({ ...f.rect, x: f.rect.x + step })}>→</button>
+                <span /><button className={btn} aria-label={translateUi("Feature down")} onClick={() => set({ ...f.rect, y: f.rect.y + step })}>↓</button><span />
               </div>
               <div className="mt-2 grid grid-cols-2 gap-1.5">
-                <button className={btn} aria-label="Feature wider" onClick={() => set({ ...f.rect, w: f.rect.w + step })}>Wider +</button>
-                <button className={btn} aria-label="Feature narrower" onClick={() => set({ ...f.rect, w: f.rect.w - step })}>Narrower −</button>
-                <button className={btn} aria-label="Feature longer" onClick={() => set({ ...f.rect, h: f.rect.h + step })}>Longer +</button>
-                <button className={btn} aria-label="Feature shorter" onClick={() => set({ ...f.rect, h: f.rect.h - step })}>Shorter −</button>
+                <button className={btn} aria-label={translateUi("Feature wider")} onClick={() => set({ ...f.rect, w: f.rect.w + step })}>{translateUi("Wider +")}</button>
+                <button className={btn} aria-label={translateUi("Feature narrower")} onClick={() => set({ ...f.rect, w: f.rect.w - step })}>{translateUi("Narrower −")}</button>
+                <button className={btn} aria-label={translateUi("Feature longer")} onClick={() => set({ ...f.rect, h: f.rect.h + step })}>{translateUi("Longer +")}</button>
+                <button className={btn} aria-label={translateUi("Feature shorter")} onClick={() => set({ ...f.rect, h: f.rect.h - step })}>{translateUi("Shorter −")}</button>
               </div>
-              {hand && <button className={cx(btn, 'mt-2 w-full')} onClick={() => act.run((l) => Ops.resetFeature(l, feat as never))}>Back to automatic</button>}
+              {hand && <button className={cx(btn, 'mt-2 w-full')} onClick={() => act.run((l) => Ops.resetFeature(l, feat as never))}>{translateUi("Back to automatic")}</button>}
             </section>
           )
         })()}
 
         {/* --------------------------------- the site ---------------------------------- */}
         {floor.level === 0 && siteParts.length > 0 && (
-          <section aria-label="Site">
-            <h3 className="label mb-2">Site</h3>
+          <section aria-label={translateUi("Site")}>
+            <h3 className="label mb-2">{translateUi("Site")}</h3>
             <div className="grid grid-cols-2 gap-1.5">
               {siteParts.map((f) => (
                 <button key={f.id} type="button" aria-pressed={feat === f.kind} onClick={() => { setSelected(null); setFeat(feat === f.kind ? null : f.kind) }}
                   className={cx('flex items-center gap-2 border px-2 py-1.5 text-left text-xs', feat === f.kind ? 'border-[#0F766E] text-ink' : 'border-line text-ink-dim hover:text-ink')}>
                   <span className="h-3.5 w-3.5 flex-none rounded-sm border" style={{ background: SITE_STYLE[f.kind].fill, borderColor: SITE_STYLE[f.kind].edge }} />
-                  <span className="truncate">{siteName(f.kind)}</span>
-                  <span className="ml-auto font-mono text-[0.65rem] text-ink-faint">{sqm(f.rect)} m²</span>
+                  <span className="truncate">{translateUi(siteName(f.kind))}</span>
+                  <span className="ml-auto font-mono text-[0.65rem] text-ink-faint">{translateUi(sqm(f.rect))} {translateUi(" m²")}</span>
                 </button>
               ))}
               <span className="flex items-center gap-2 px-2 py-1.5 text-xs text-ink-faint">
-                <span className="h-3.5 w-3.5 flex-none rounded-sm" style={{ background: SITE_STYLE.lawn.fill }} />Garden fills the rest
-              </span>
+                <span className="h-3.5 w-3.5 flex-none rounded-sm" style={{ background: SITE_STYLE.lawn.fill }} />{translateUi("Garden fills the rest")}</span>
             </div>
-            <p className="mt-2 text-xs text-ink-faint">Pick one here or click it on the plan, then drag it to move or drag its edges to resize.</p>
+            <p className="mt-2 text-xs text-ink-faint">{translateUi("Pick one here or click it on the plan, then drag it to move or drag its edges to resize.")}</p>
           </section>
         )}
 
         {/* ------------------------------- villa outer walls ------------------------------ */}
-        <section aria-label="Villa size">
-          <h3 className="label mb-2">Villa size</h3>
-          <p className="font-mono text-[0.75rem] text-ink-dim">{m(box.w)} × {m(box.h)} m · {(Math.round((box.w * box.h) / 1e5) / 10)} m² footprint</p>
-          <p className="mt-1 text-xs text-ink-faint">Drag the orange handles on the plan, or use the buttons. Every floor, its rooms, columns and beams follow the wall.</p>
-          <label className="mt-2 flex items-center justify-between text-xs text-ink-dim">Step
-            <select aria-label="Wall step" className="border border-line-strong bg-bg-inset px-2 py-1 text-ink" value={wallStep} onChange={(e) => setWallStep(Number(e.target.value))}>
-              {[100, 300, 600, 900, 1500].map((v) => <option key={v} value={v}>{v / 1000} m</option>)}
+        <section aria-label={translateUi("Villa size")}>
+          <h3 className="label mb-2">{translateUi("Villa size")}</h3>
+          <p className="font-mono text-[0.75rem] text-ink-dim">{translateUi(m(box.w))} × {translateUi(m(box.h))} {translateUi(" m · ")}{translateUi((Math.round((box.w * box.h) / 1e5) / 10))} {translateUi(" m² footprint")}</p>
+          <p className="mt-1 text-xs text-ink-faint">{translateUi("Drag the orange handles on the plan, or use the buttons. Every floor, its rooms, columns and beams follow the wall.")}</p>
+          <label className="mt-2 flex items-center justify-between text-xs text-ink-dim">{translateUi("Step")}<select aria-label={translateUi("Wall step")} className="border border-line-strong bg-bg-inset px-2 py-1 text-ink" value={wallStep} onChange={(e) => setWallStep(Number(e.target.value))}>
+              {[100, 300, 600, 900, 1500].map((v) => <option key={v} value={v}>{translateUi(v / 1000)} {translateUi(" m")}</option>)}
             </select>
           </label>
           <div className="mt-2 grid gap-1.5">
             {([['N', 'North wall'], ['S', 'South (road) wall'], ['W', 'West wall'], ['E', 'East wall']] as [keyof Outline, string][]).map(([side, label]) => (
               <div key={side} className="flex items-center justify-between text-xs text-ink-dim">
-                <span>{label}<span className="ml-1.5 text-ink-faint">{(limits[side].min / 1000).toFixed(1)} to +{(limits[side].max / 1000).toFixed(1)} m</span></span>
+                <span>{translateUi(label)}<span className="ml-1.5 text-ink-faint">{translateUi((limits[side].min / 1000).toFixed(1))} {translateUi(" to +")}{translateUi((limits[side].max / 1000).toFixed(1))} {translateUi(" m")}</span></span>
                 <span className="flex gap-1">
-                  <button className={btn} aria-label={`${label} in`} disabled={limits[side].min >= 0} onClick={() => moveWall(side, -Math.min(wallStep, -limits[side].min))}>−</button>
-                  <button className={btn} aria-label={`${label} out`} disabled={limits[side].max <= 0} onClick={() => moveWall(side, Math.min(wallStep, limits[side].max))}>+</button>
+                  <button className={btn} aria-label={translateUi(`${label} in`)} disabled={limits[side].min >= 0} onClick={() => moveWall(side, -Math.min(wallStep, -limits[side].min))}>−</button>
+                  <button className={btn} aria-label={translateUi(`${label} out`)} disabled={limits[side].max <= 0} onClick={() => moveWall(side, Math.min(wallStep, limits[side].max))}>+</button>
                 </span>
               </div>
             ))}
           </div>
-          <p className="mt-2 text-xs text-ink-faint">The walls can go out as far as the plot's setback line. Every change is checked; if the whole step does not fit, the wall goes as far as the plan stays valid.</p>
+          <p className="mt-2 text-xs text-ink-faint">{translateUi("The walls can go out as far as the plot's setback line. Every change is checked; if the whole step does not fit, the wall goes as far as the plan stays valid.")}</p>
         </section>
 
         {/* -------------------------------- add a room -------------------------------- */}
-        <section aria-label="Add a room">
-          <h3 className="label mb-2">Add a room</h3>
+        <section aria-label={translateUi("Add a room")}>
+          <h3 className="label mb-2">{translateUi("Add a room")}</h3>
           <div className="grid grid-cols-2 gap-2">
-            {[...ADDABLE_TYPES, ...(floor.level === 0 ? ADDABLE_OUTDOOR : [])].map((t) => <button key={t} className={btn} onClick={() => act.run((l, p) => Ops.addRoom(l, p, floor.level, t))} title={TYPE_SPEC[t].note}><Plus size={11} /> {TYPE_SPEC[t].label}</button>)}
+            {[...ADDABLE_TYPES, ...(floor.level === 0 ? ADDABLE_OUTDOOR : [])].map((t) => <button key={t} className={btn} onClick={() => act.run((l, p) => Ops.addRoom(l, p, floor.level, t))} title={translateUi(TYPE_SPEC[t].note)}><Plus size={11} /> {translateUi(TYPE_SPEC[t].label)}</button>)}
           </div>
-          <p className="mt-2 text-xs text-ink-faint">A new room goes into vacant space on this floor. Parking and verandah go on the plot beside the house.</p>
+          <p className="mt-2 text-xs text-ink-faint">{translateUi("A new room goes into vacant space on this floor. Parking and verandah go on the plot beside the house.")}</p>
         </section>
 
         {/* -------------------------------- vacant space ------------------------------- */}
-        <section aria-label="Vacant space optimizer">
-          <h3 className="label mb-2">Vacant space{vacants.length ? ` · ${vacants.length}` : ''}</h3>
-          {!vacants.length ? <p className="text-xs text-ink-faint">None on this floor. Every square metre has a use.</p> : vacants.map((v) => (
+        <section aria-label={translateUi("Vacant space optimizer")}>
+          <h3 className="label mb-2">{translateUi("Vacant space")}{translateUi(vacants.length ? ` · ${vacants.length}` : '')}</h3>
+          {!vacants.length ? <p className="text-xs text-ink-faint">{translateUi("None on this floor. Every square metre has a use.")}</p> : vacants.map((v) => (
             <VacantCard key={v.id} v={v} level={floor.level} plan={design} layout={layout} selected={v.id === selected} onSelect={() => setSelected(v.id)} btn={btn} />
           ))}
-          {unaccepted.length > 1 && <button className={cx(btn, 'mt-2 w-full')} onClick={() => unaccepted.forEach((v) => act.run((l, p) => Ops.autoOptimize(l, p, floor.level, Ops.vacantRooms(l, floor.level).find((x) => !x.accepted)?.id ?? v.id)))}><Wand2 size={12} /> Auto-optimize all</button>}
+          {unaccepted.length > 1 && <button className={cx(btn, 'mt-2 w-full')} onClick={() => unaccepted.forEach((v) => act.run((l, p) => Ops.autoOptimize(l, p, floor.level, Ops.vacantRooms(l, floor.level).find((x) => !x.accepted)?.id ?? v.id)))}><Wand2 size={12} /> {translateUi(" Auto-optimize all")}</button>}
         </section>
 
-        <button className={cx(btn, 'w-full')} disabled={!layoutNow} onClick={() => act.resetToGenerated()}><RotateCcw size={12} /> Reset to the generated plan</button>
+        <button className={cx(btn, 'w-full')} disabled={!layoutNow} onClick={() => act.resetToGenerated()}><RotateCcw size={12} /> {translateUi(" Reset to the generated plan")}</button>
       </aside>
     </div>
   )
@@ -456,17 +455,21 @@ export function PlanEditor({ design }: { design: Design }) {
 
 /** invisible grab strips along all four edges of a rectangle: the whole edge can be dragged, not only a small handle */
 function EdgeStrips({ rect: r, t, color, name, onDown }: { rect: Rect; t: number; color: string; name: string; onDown: (e: React.PointerEvent, side: Side) => void }) {
+  useLanguage(s => s.language);
+
   const strips: [Side, Rect][] = [
     ['N', { x: r.x + t / 2, y: r.y - t / 2, w: Math.max(0, r.w - t), h: t }], ['S', { x: r.x + t / 2, y: r.y + r.h - t / 2, w: Math.max(0, r.w - t), h: t }],
     ['W', { x: r.x - t / 2, y: r.y + t / 2, w: t, h: Math.max(0, r.h - t) }], ['E', { x: r.x + r.w - t / 2, y: r.y + t / 2, w: t, h: Math.max(0, r.h - t) }],
   ]
   return <g>{strips.map(([side, q]) => (
     <rect key={side} x={q.x} y={q.y} width={q.w} height={q.h} fill={color} fillOpacity={0} className={cx('transition-[fill-opacity] hover:[fill-opacity:0.35]', side === 'N' || side === 'S' ? 'cursor-ns-resize' : 'cursor-ew-resize')}
-      data-edge={`${name}-${side}`} onPointerDown={(e) => onDown(e, side)}><title>Drag to resize</title></rect>
+      data-edge={`${name}-${side}`} onPointerDown={(e) => onDown(e, side)}><title>{translateUi("Drag to resize")}</title></rect>
   ))}</g>
 }
 
 function VacantCard({ v, level, plan, layout, selected, onSelect, btn }: { v: LayoutRoom; level: number; plan: Design; layout: ReturnType<typeof extractLayout>; selected: boolean; onSelect: () => void; btn: string }) {
+  useLanguage(s => s.language);
+
   const act = usePlanEdit.getState()
   const options = useMemo(() => Ops.vacantOptions(layout, plan, level, v.id), [layout, plan, level, v.id])
   const expand = options.filter((o): o is Extract<typeof o, { kind: 'expand' }> => o.kind === 'expand')
@@ -474,29 +477,29 @@ function VacantCard({ v, level, plan, layout, selected, onSelect, btn }: { v: La
   const canOpen = options.some((o) => o.kind === 'open')
   return (
     <div className={cx('mb-3 border p-3', selected ? 'border-accent' : 'border-line')} onClick={onSelect}>
-      <p className="font-mono text-[0.7rem] text-ink-dim">{sqm(v.rect)} m² · {m(v.rect.w)} × {m(v.rect.h)} m{v.accepted ? ' · kept vacant' : ''}</p>
+      <p className="font-mono text-[0.7rem] text-ink-dim">{translateUi(sqm(v.rect))} {translateUi(" m² · ")}{translateUi(m(v.rect.w))} × {translateUi(m(v.rect.h))} {translateUi(" m")}{translateUi(v.accepted ? ' · kept vacant' : '')}</p>
       <div className="mt-2 grid gap-1.5">
-        <button className={btn} onClick={() => act.run((l, p) => Ops.autoOptimize(l, p, level, v.id))}><Wand2 size={12} /> Auto-optimize</button>
+        <button className={btn} onClick={() => act.run((l, p) => Ops.autoOptimize(l, p, level, v.id))}><Wand2 size={12} /> {translateUi(" Auto-optimize")}</button>
         {expand.length > 0 && (
           <div>
-            <p className="label mb-1">Expand a nearby room</p>
+            <p className="label mb-1">{translateUi("Expand a nearby room")}</p>
             <div className="grid gap-1">
               {expand.map((o) => <button key={o.roomId} className={cx(btn, 'justify-between normal-case tracking-normal')} onClick={() => act.run((l, p) => Ops.expandNeighbour(l, p, level, v.id, o.roomId))}>
-                <span>{o.roomName}</span><span className={cx('font-mono text-[0.65rem]', o.withinMax ? 'text-ink-faint' : 'text-warn')}>+{o.gainSqm} → {o.resultSqm} m²</span></button>)}
+                <span>{translateUi(o.roomName)}</span><span className={cx('font-mono text-[0.65rem]', o.withinMax ? 'text-ink-faint' : 'text-warn')}>+{translateUi(o.gainSqm)} → {translateUi(o.resultSqm)} {translateUi(" m²")}</span></button>)}
             </div>
           </div>
         )}
         {add.length > 0 && (
           <div>
-            <p className="label mb-1">Add a new room</p>
+            <p className="label mb-1">{translateUi("Add a new room")}</p>
             <div className="flex flex-wrap gap-1">
-              {add.map((o) => <button key={o.type} title={o.reason} className={cx(btn, 'px-2')} onClick={() => act.run((l, p) => Ops.addRoom(l, p, level, o.type as RoomType, v.id))}>{o.label} · {o.areaSqm} m²</button>)}
+              {add.map((o) => <button key={o.type} title={translateUi(o.reason)} className={cx(btn, 'px-2')} onClick={() => act.run((l, p) => Ops.addRoom(l, p, level, o.type as RoomType, v.id))}>{translateUi(o.label)} · {translateUi(o.areaSqm)} {translateUi(" m²")}</button>)}
             </div>
           </div>
         )}
         <div className="grid grid-cols-2 gap-1.5">
-          <button className={btn} disabled={!canOpen} onClick={() => act.run((l, p) => Ops.openSpace(l, p, level, v.id))}>Open space</button>
-          <button className={btn} disabled={v.accepted} onClick={() => act.run((l) => Ops.keepVacant(l, level, v.id))}>Keep vacant</button>
+          <button className={btn} disabled={!canOpen} onClick={() => act.run((l, p) => Ops.openSpace(l, p, level, v.id))}>{translateUi("Open space")}</button>
+          <button className={btn} disabled={v.accepted} onClick={() => act.run((l) => Ops.keepVacant(l, level, v.id))}>{translateUi("Keep vacant")}</button>
         </div>
       </div>
     </div>

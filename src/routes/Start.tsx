@@ -1,3 +1,4 @@
+import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
 import { Link } from 'react-router-dom'
 import { ArrowRight, Check, Home, HardHat, PencilRuler } from 'lucide-react'
 import { useStudio } from '@/state/studio.ts'
@@ -6,8 +7,10 @@ import { useProjects } from '@/state/projects.ts'
 /* The first page of the product: before the brief, choose how to begin. */
 
 function DrawingArt() {
+  useLanguage(s => s.language);
+
   return (
-    <svg viewBox="0 0 220 130" preserveAspectRatio="xMidYMid meet" className="h-full w-full" role="img" aria-label="A hand-drawn plan becoming a 3D house">
+    <svg viewBox="0 0 220 130" preserveAspectRatio="xMidYMid meet" className="h-full w-full" role="img" aria-label={translateUi("A hand-drawn plan becoming a 3D house")}>
       <rect x="14" y="14" width="86" height="102" fill="#FBFAF6" stroke="#9AA0A6" />
       <path d="M24 26 H90 V106 H24 Z M24 64 H58 M58 26 V64 M70 64 V106 M58 64 H90" fill="none" stroke="#3B4A6B" strokeWidth="1.6" strokeLinecap="round" />
       <path d="M58 64 a10 10 0 0 1 10 -10" fill="none" stroke="#3B4A6B" strokeWidth="1" />
@@ -20,8 +23,10 @@ function DrawingArt() {
 }
 
 function NewVillaArt() {
+  useLanguage(s => s.language);
+
   return (
-    <svg viewBox="0 0 220 130" preserveAspectRatio="xMidYMid meet" className="h-full w-full" role="img" aria-label="A plot, its buildable area and a new house">
+    <svg viewBox="0 0 220 130" preserveAspectRatio="xMidYMid meet" className="h-full w-full" role="img" aria-label={translateUi("A plot, its buildable area and a new house")}>
       <rect x="20" y="10" width="180" height="110" fill="#F4F4F1" stroke="#9AA0A6" />
       <rect x="38" y="24" width="144" height="78" fill="#FDF1DD" stroke="#E0873A" strokeDasharray="5 4" />
       <rect x="56" y="38" width="92" height="52" fill="#BCD6EC" stroke="#1D4E89" strokeWidth="2" />
@@ -33,9 +38,11 @@ function NewVillaArt() {
 }
 
 function ExistingArt() {
+  useLanguage(s => s.language);
+
   const cols = [[60, 40], [110, 40], [160, 40], [60, 90], [110, 90], [160, 90]]
   return (
-    <svg viewBox="0 0 220 130" preserveAspectRatio="xMidYMid meet" className="h-full w-full" role="img" aria-label="Locked columns with proposed walls planned around them">
+    <svg viewBox="0 0 220 130" preserveAspectRatio="xMidYMid meet" className="h-full w-full" role="img" aria-label={translateUi("Locked columns with proposed walls planned around them")}>
       <rect x="20" y="10" width="180" height="110" fill="#F4F4F1" stroke="#9AA0A6" />
       <rect x="60" y="40" width="100" height="50" fill="#EAF1FA" stroke="#1D4E89" strokeWidth="1.5" strokeDasharray="5 4" />
       <line x1="110" y1="40" x2="110" y2="90" stroke="#1D4E89" strokeWidth="2.4" />
@@ -94,33 +101,34 @@ function startNewVilla() {
 }
 
 export function Start() {
+  useLanguage(s => s.language);
+
   return (
     <div className="mx-auto max-w-[1100px] px-6 py-14 md:px-10 md:py-20">
       <div className="mb-3 flex items-center gap-3">
         <span className="h-px w-8 bg-accent" />
-        <span className="label text-accent">Where would you like to begin?</span>
+        <span className="label text-accent">{translateUi("Where would you like to begin?")}</span>
       </div>
       <h1 className="font-display text-[clamp(2.2rem,5vw,3.6rem)] font-medium leading-[1.05] tracking-[-0.02em]">
-        Three ways in<span className="text-accent">.</span>
+        {translateUi("Three ways in")}<span className="text-accent">.</span>
       </h1>
       <p className="mt-5 max-w-xl text-lg leading-relaxed text-ink-dim">
-        Design a new house from scratch, start from a plan you already have, or carry on from a structure that is partly built. You can always come back here.
-      </p>
+        {translateUi("Design a new house from scratch, start from a plan you already have, or carry on from a structure that is partly built. You can always come back here.")}</p>
 
       <div className="mt-12 grid gap-6 md:grid-cols-3">
         {OPTIONS.map((o) => (
           <Link key={o.id} to={o.to} onClick={() => { if (o.id === 'new') startNewVilla() }}
             className="group flex flex-col border border-line bg-bg-raised transition-colors hover:border-accent focus-visible:border-accent focus-visible:outline-none">
-            <div className="border-b border-line bg-bg-inset p-5"><div className="aspect-[11/6.5]">{o.art}</div><p className="mt-3 text-center font-mono text-[0.62rem] uppercase tracking-[0.1em] text-ink-faint">{o.caption}</p></div>
+            <div className="border-b border-line bg-bg-inset p-5"><div className="aspect-[11/6.5]">{translateUi(o.art)}</div><p className="mt-3 text-center font-mono text-[0.62rem] uppercase tracking-[0.1em] text-ink-faint">{translateUi(o.caption)}</p></div>
             <div className="flex flex-1 flex-col p-6">
-              <p className="label flex items-center gap-2 text-ink-faint"><o.icon size={14} className="text-accent" /> {o.eyebrow}</p>
-              <h2 className="mt-3 font-display text-2xl md:text-[1.7rem]">{o.title}</h2>
-              <p className="mt-3 text-sm leading-relaxed text-ink-dim">{o.body}</p>
+              <p className="label flex items-center gap-2 text-ink-faint"><o.icon size={14} className="text-accent" /> {translateUi(o.eyebrow)}</p>
+              <h2 className="mt-3 font-display text-2xl md:text-[1.7rem]">{translateUi(o.title)}</h2>
+              <p className="mt-3 text-sm leading-relaxed text-ink-dim">{translateUi(o.body)}</p>
               <ul className="mt-4 space-y-2 text-sm text-ink-dim">
-                {o.points.map((pt) => <li key={pt} className="flex items-start gap-2"><Check size={14} className="mt-0.5 flex-none text-accent" />{pt}</li>)}
+                {o.points.map((pt) => <li key={pt} className="flex items-start gap-2"><Check size={14} className="mt-0.5 flex-none text-accent" />{translateUi(pt)}</li>)}
               </ul>
               <span className="mt-7 inline-flex items-center gap-2 font-mono text-xs font-medium uppercase tracking-[0.12em] text-accent">
-                {o.cta}
+                {translateUi(o.cta)}
                 <ArrowRight size={14} strokeWidth={2.5} className="transition-transform group-hover:translate-x-1" />
               </span>
             </div>

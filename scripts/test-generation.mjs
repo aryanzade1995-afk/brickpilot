@@ -198,6 +198,8 @@ test('exterior roof DNA matches the roof geometry and window surrounds clear the
 test('reference cues guide details without changing the chosen style or plan', () => {
   const brief = defaultBrief()
   brief.style.character = 'courtyard-indian'
+  brief.site.plotWidth = 18
+  brief.site.plotDepth = 24
   const model = compile(brief)
   const normal = generateDirections(model)
   const preferences = parseInspirationPreferences({

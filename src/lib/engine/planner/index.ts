@@ -21,10 +21,13 @@ import { planExisting } from './existing.ts'
 import type { LayoutChoices } from './layoutChoices.ts'
 import type { PlanProposal } from './ml/proposal.ts'
 import { PLAN_LEARNING_LIMITS } from './ml/proposal.ts'
+import { upperProfile, usesSetbackTerraces, type FormVersion } from '../siteForm.ts'
 
 export type { PlateFamily } from './types.ts'
 
 export type PlanRequest = {
+  formVersion?: FormVersion
+  formSeed?: number
   /** Existing Structure Mode: plan around what is already built */
   existing?: ExistingStructure
   proposal?: PlanProposal
@@ -76,11 +79,25 @@ export function planVilla(model: CanonicalModel, request: PlanRequest): PlanResu
     reorder(floors, request.order)
     const courtReq = courtOf(floors)
     const input: LayoutInput = {
+      courtyardPool: request.formVersion==='site-form-v3'&&model.brief.rooms.pool&&request.family==='courtyard',
+      ...(request.formVersion ? { upperProfile: upperProfile(model, request.formSeed ?? request.order) } : {}),
       floors, site, family: request.family, large: nb.large, stairDepth: stair.depth,
-      hasStair: floors[0].rooms.some((r) => r.kind === 'stair'), courtSqm: courtReq?.targetSqm ?? 12,
+      hasStair: floors[0].rooms.some((r) => r.kind === 'stair'), courtSqm: request.formVersion==='site-form-v3'&&model.brief.rooms.pool ? Math.max(20,courtReq?.targetSqm??12) : courtReq?.targetSqm ?? 12,
       singleLoaded: single, hallMm,
     }
-    return { site, floors, courtReq, input, all: plateCandidates(input) }
+    const all = plateCandidates(input)
+    if (request.formVersion) {
+      // Prefer a long axis that follows the actual buildable site; compare
+      // both front/side parking strategies before committing to either.
+      const target = Math.max(.4, Math.min(2.5, site.houseZone.w / site.houseZone.h))
+      for (const c of all) {
+        const v = c.depthA + c.spine + c.depthB
+        const aspect = c.orientation === 'x' ? c.length / v : v / c.length
+        c.score += 22 * Math.abs(Math.log(aspect / target))
+      }
+      all.sort((a,b) => a.score-b.score)
+    }
+    return { site, floors, courtReq, input, all }
   })
   const real = (x: (typeof strategies)[number]) => x.all.filter((c) => !c.relaxed)
   const learnedScore=(c:PlateCandidate)=>{
@@ -96,10 +113,12 @@ export function planVilla(model: CanonicalModel, request: PlanRequest): PlanResu
       PLAN_LEARNING_LIMITS.livingWeight*Math.abs(livingY-p.living[1])+
       PLAN_LEARNING_LIMITS.kitchenWeight*Math.abs(kitchenY-p.kitchen[1])
   }
-  if(request.proposal)strategies.sort((a,b)=>{
+  if(request.proposal || request.formVersion)strategies.sort((a,b)=>{
     const ac=real(a).find(c=>c.atTarget)??real(a).find(c=>c.atMin)
     const bc=real(b).find(c=>c.atTarget)??real(b).find(c=>c.atMin)
-    return (ac?learnedScore(ac):Infinity)-(bc?learnedScore(bc):Infinity)
+    const rank = (c:PlateCandidate|undefined) => c ? request.formVersion
+      ? (c.atTarget ? 0 : 500) + c.score + learnedScore(c) * .1 : learnedScore(c) : Infinity
+    return rank(ac)-rank(bc)
   })
   const chosen = strategies.find((x) => real(x).some((c) => c.atMin)) ??
     strategies.find((x) => real(x).length) ?? strategies.find((x) => x.all.length)
@@ -214,8 +233,8 @@ export function planVilla(model: CanonicalModel, request: PlanRequest): PlanResu
         bbox, site, nb.twoCar, nb.large, outdoorRoom)
     } else {
       for (const r of req.outdoor.filter((x) => x.kind === 'balcony')) {
-        const b = placeBalcony(rooms, bbox, site, kindOf, lowerPlate)
-        if (b) rooms.push(outdoorRoom(r, b))
+        const b = placeBalcony(rooms, bbox, site, kindOf, lowerPlate,usesSetbackTerraces(request.formVersion))
+        if (b) rooms.push(outdoorRoom(usesSetbackTerraces(request.formVersion)&&covered(b,lowerPlate)?{...r,name:'Setback terrace'}:r, b))
       }
     }
 
@@ -250,8 +269,10 @@ export function planVilla(model: CanonicalModel, request: PlanRequest): PlanResu
       ? { x: stairRoom.rect.x + stairRoom.rect.w / 2, y: stairRoom.rect.y + stairRoom.rect.h / 2 }
       : { x: spineRoom.rect.x, y: spineRoom.rect.y }
     const { openings: doors, failed } = placeDoors(rooms, req.spine.id, prefix, columns, occ, kindOf, parentOf,
-      level === 0 ? { width: nb.mainDoorMm } : null, coreTarget, model.brief.lifestyle.kitchen)
-    const windows = placeWindows(rooms, walls, columns, occ, kindOf, request.themeWindowMm, request.dna, lowerOpenings)
+      level === 0 ? { width: nb.mainDoorMm } : null, coreTarget, model.brief.lifestyle.kitchen,
+      model.brief.style.character==='modern-box'?'sliding':'hinged')
+    const windows = placeWindows(rooms, walls, columns, occ, kindOf, request.themeWindowMm, request.dna, lowerOpenings,undefined,
+      model.brief.style.character==='modern-box'&&!!model.brief.style.composition?Math.round(model.brief.levels.floorToFloor*1000):undefined)
     const openings = [...doors, ...windows]
     const shafts = planShafts(rooms, walls, openings, kindOf, lowerRooms)
 
@@ -271,7 +292,8 @@ export function planVilla(model: CanonicalModel, request: PlanRequest): PlanResu
       level, name: model.floors[fi].name, prefix,
       outline: bbox, footprint,
       roof: request.roofFor(level, fi === layout.plates.length - 1),
-      courtyard: level === 0 ? rooms.find((r) => r.id === 'courtyard' && request.family === 'courtyard')?.rect ?? null : null,
+      courtyard: layout.court && request.family === 'courtyard'
+        ? toPlanRect(frame,layout.court[0],layout.court[1],vLines[0],vLines[1]) : null,
       rooms, walls, openings,
       stair: stairRunOut,
       reachable: reach.length === 0 && failed.length === 0,
@@ -406,7 +428,7 @@ export function frontYard(
  * roof of the floor below (fully supported), then any other face (a declared
  * cantilever). Habitable rooms host first; a lobby only when nothing else can.
  */
-export function placeBalcony(rooms: PlacedRoom[], house: Rect, site: SiteModel, kindOf: (id: string) => string, lowerPlate: Rect[]): Rect | null {
+export function placeBalcony(rooms: PlacedRoom[], house: Rect, site: SiteModel, kindOf: (id: string) => string, lowerPlate: Rect[], preferSetback=false): Rect | null {
   const enclosed = rooms.filter((r) => !r.outdoor)
   const clear = (b: Rect) => rooms.every((o) => {
     const ox = Math.min(rectRight(b), rectRight(o.rect)) - Math.max(b.x, o.rect.x)
@@ -416,6 +438,29 @@ export function placeBalcony(rooms: PlacedRoom[], house: Rect, site: SiteModel, 
   const inEnv = (b: Rect) => b.x >= site.envelope.x && b.y >= site.envelope.y &&
     rectRight(b) <= rectRight(site.envelope) && rectBottom(b) <= rectBottom(site.envelope)
   const options: { rect: Rect; rank: number }[] = []
+  if(preferSetback){
+    for(const host of enclosed){
+      const kind=kindOf(host.id)
+      if(!['lounge','lobby','corridor','bed','study'].includes(kind))continue
+      const r=host.rect
+      for(const side of ['S','N','E','W'] as const){
+        const length=side==='N'||side==='S'?r.w:r.h
+        const width=snap(Math.min(6000,length-600))
+        if(width<1800)continue
+        const offset=snap((length-width)/2)
+        for(const depth of [3600,3000,2400,1800]){
+          const b:Rect=side==='S'?{x:r.x+offset,y:rectBottom(r),w:width,h:depth}
+            :side==='N'?{x:r.x+offset,y:r.y-depth,w:width,h:depth}
+            :side==='E'?{x:rectRight(r),y:r.y+offset,w:depth,h:width}
+            :{x:r.x-depth,y:r.y+offset,w:depth,h:width}
+          if(rectArea(b)<6e6||!clear(b)||!inEnv(b)||!covered(b,lowerPlate))continue
+          const publicAccess=['lounge','lobby','corridor'].includes(kind)
+          options.push({rect:b,rank:-100+(publicAccess?0:10)-rectArea(b)/1e7})
+          break
+        }
+      }
+    }
+  }
   for (const h of enclosed) {
     const kind = kindOf(h.id)
     const hostRank = ['lounge', 'bed', 'study'].includes(kind) ? 0 : kind === 'lobby' ? 1 : -1

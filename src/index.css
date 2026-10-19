@@ -1,5 +1,13 @@
 @import 'tailwindcss';
 
+/* Devanagari needs a full glyph family and comfortable line spacing. */
+html:lang(hi), html:lang(mr) {
+  --font-display: 'Nirmala UI', 'Noto Sans Devanagari', Mangal, sans-serif;
+  --font-sans: 'Nirmala UI', 'Noto Sans Devanagari', Mangal, sans-serif;
+  --font-mono: 'Nirmala UI', 'Noto Sans Devanagari', Mangal, sans-serif;
+}
+html:lang(hi) .uppercase, html:lang(mr) .uppercase { letter-spacing: normal; }
+
 /* ------------------------------------------------------------------ *
  *  Formstead theme — monochrome drafting-studio palette
  *  warm white ground · charcoal ink · black accent

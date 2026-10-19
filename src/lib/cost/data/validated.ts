@@ -10,6 +10,7 @@ import { ratesSchema, specsCatalogueSchema, presetsSchema, materialRegistrySchem
 import { flooringProducts, flooringRates, flooringSpecificationOptions } from '../../flooring/catalogue.ts'
 import { finishProducts, finishRates, finishSpecificationOptions } from '../../finishes/catalogue.ts'
 import serviceItems from '../../finishes/service-items.json' with { type: 'json' }
+import {plumbingItems,plumbingDefaults,plumbingTankRates,plumbingPipeRates} from '../plumbingCatalogue.ts'
 
 export function validateSpecificationData(r: unknown, s: unknown, p: unknown, m: unknown) {
   const rates = ratesSchema.parse(r), catalogue = specsCatalogueSchema.parse(s), presets = presetsSchema.parse(p), materials = materialRegistrySchema.parse(m)
@@ -44,13 +45,13 @@ export function validateSpecificationData(r: unknown, s: unknown, p: unknown, m:
   if (errors.length) throw new Error(`Invalid specification references:\n${errors.join('\n')}`)
   return { rates, catalogue, presets, materials }
 }
-export const specificationData = validateSpecificationData({ ...ratesRaw, items: [...ratesRaw.items, ...flooringRates(), ...finishRates(), ...experienceRates()] },
-  { ...specsRaw, items: [...specsRaw.items,...serviceItems.map(({roomSource: _roomSource,...item})=>item)].map(i => ({ ...i,
-    label: i.id==='sanitary'?'Toilets & sanitary allowance':i.id==='cp-fittings'?'Basin faucets & fittings allowance':i.id==='light-fittings'?'Ceiling lights & downlights':i.label,
+export const specificationData = validateSpecificationData({ ...ratesRaw, items: [...ratesRaw.items, ...flooringRates(), ...finishRates(), ...experienceRates(),...plumbingTankRates,...plumbingPipeRates(ratesRaw.items)] },
+  { ...specsRaw, items: [...specsRaw.items,...plumbingItems,...serviceItems.map(({roomSource: _roomSource,...item})=>item)].map(i => ({ ...i,
+    label: i.id==='water-tanks'?'Overhead water tank':i.id==='sanitary'?'Toilets & sanitary allowance':i.id==='cp-fittings'?'Basin faucets & fittings allowance':i.id==='light-fittings'?'Ceiling lights & downlights':i.label,
     level: ['fans','light-fittings','switches','water-heater','terrace-waterproofing','bath-waterproofing'].includes(i.id)?'main':i.level,
     control: i.id === 'pool' ? 'dropdown' : i.control, options: [...i.options,
     ...(i.group === 'flooring' && i.level !== 'auto' ? flooringSpecificationOptions() : []), ...finishSpecificationOptions(i.id), ...experienceChoices(i.id)] })) },
-  {...presetsRaw,presets:presetsRaw.presets.map(p=>({...p,options:{...p.options,...Object.fromEntries(serviceItems.map(i=>[i.id,finishSpecificationOptions(i.id)[0].id]))}}))}, materialsRaw)
+  {...presetsRaw,presets:presetsRaw.presets.map(p=>({...p,options:{...p.options,...plumbingDefaults,...Object.fromEntries(serviceItems.map(i=>[i.id,finishSpecificationOptions(i.id)[0].id]))}}))}, materialsRaw)
 const installedRate = (id: string) => {
   const rate = specificationData.rates.items.find(r => r.id === id)
   if (!rate) throw new Error(`Missing deployed BOQ rate ${id}`)

@@ -21,6 +21,8 @@ type State = {
   directionRenders: Record<string, BlenderResult>
   selectionKey: string | null
   previews: Record<string, Preview>
+  /** Carry a card's existing render/job into the pinned workspace without submitting a job. */
+  selectDirection: (plan: Design, seed: number) => void
   generate: (plan: Design, seed: number, quality?: 'preview' | 'final', exact?: boolean) => Promise<void>
   ensureForPlan: (plan: Design, preferredSeed?: number) => Promise<void>
   /** render each direction exactly as shown (its own seed, no look-alike retries) */
@@ -52,7 +54,9 @@ export const useBlender = create<State>()(persist((set, get) => {
           if (expectedSeed !== undefined && job.result.seed !== expectedSeed)
             throw new Error('The backend returned another seed instead of your selected direction. Restart the backend with the current project code.')
           const result = job.result
-          set({ accepted: { ...get().accepted, [result.planId]: result }, error: null })
+          set({ accepted: { ...get().accepted, [result.planId]: result }, error: null,
+            ...(expectedSeed !== undefined ? { directionRenders: { ...get().directionRenders,
+              [directionRenderKey(result.planId, result.seed)]: result } } : {}) })
           break
         }
         await new Promise((resolve) => setTimeout(resolve, 2500))
@@ -75,7 +79,9 @@ export const useBlender = create<State>()(persist((set, get) => {
             if (job.status === 'complete' && job.result) {
               if (job.result.planId !== preview.planId || job.result.seed !== preview.seed)
                 throw new Error('The render does not match this direction’s plan and seed')
-              set({ directionRenders: { ...get().directionRenders, [key]: job.result } })
+              const selected = get().selectionKey === `${key}:${job.result.finishSignature}`
+              set({ directionRenders: { ...get().directionRenders, [key]: job.result },
+                ...(selected ? {accepted:{...get().accepted,[preview.planId]:job.result},error:null} : {}) })
               setPreview(key, { ...preview, status: 'complete', phase: 'Ready' })
             } else if (job.status === 'failed') setPreview(key, { ...preview, status: 'failed', phase: 'Stopped', error: job.error || 'Generation failed' })
             else setPreview(key, { ...preview, status: job.status === 'rendering' ? 'rendering' : job.status === 'queued' ? 'queued' : 'generating', phase: job.phase, progress: job.progress })
@@ -89,6 +95,15 @@ export const useBlender = create<State>()(persist((set, get) => {
     } finally { previewPolling = false }
   }
   return { accepted: {}, directionRenders: {}, selectionKey: null, job: null, sourcePlanId: null, error: null, previews: {},
+    selectDirection: (plan, seed) => {
+      const id=createBuildingModel(plan).planId,signature=finishSignature(plan.model.brief)
+      const key=directionRenderKey(id,seed)
+      const accepted=get().accepted[id],cached=get().directionRenders[key]
+      const ready=accepted?.seed===seed&&accepted.finishSignature===signature?accepted:
+        cached?.finishSignature===signature?cached:undefined
+      set({selectionKey:`${key}:${signature}`,error:null,...(!active(get().job)?{sourcePlanId:id}:{}),
+        ...(ready?{accepted:{...get().accepted,[id]:ready}}:{})})
+    },
     resume: async () => { await Promise.all([poll(), pollPreviews()]) },
     previewDirections: async (items) => {
       const keyed = items.map(item => { const id = createBuildingModel(item.plan).planId
@@ -121,7 +136,11 @@ export const useBlender = create<State>()(persist((set, get) => {
       const key = `${preferredSeed === undefined ? `${id}:auto` : directionRenderKey(id, preferredSeed)}:${signature}`
       if (get().accepted[id]?.finishSignature === signature && (preferredSeed === undefined || get().selectionKey === key)) return
       const cached = preferredSeed === undefined ? undefined : get().directionRenders[directionRenderKey(id, preferredSeed)]
-      const exact = cached?.finishSignature === signature ? cached : undefined
+      const accepted = get().accepted[id]
+      // A refreshed render of this exact seed supersedes an older direction
+      // thumbnail (including renderer fixes and a higher-quality render).
+      const exact = preferredSeed !== undefined && accepted?.seed === preferredSeed && accepted.finishSignature === signature
+        ? accepted : cached?.finishSignature === signature ? cached : undefined
       if (exact || preferredSeed !== undefined && get().accepted[id]?.seed === preferredSeed && get().accepted[id]?.finishSignature === signature) {
         set({ accepted: { ...get().accepted, [id]: exact ?? get().accepted[id] }, selectionKey: key, error: null })
         return
@@ -129,6 +148,14 @@ export const useBlender = create<State>()(persist((set, get) => {
       const preview = preferredSeed === undefined ? undefined : get().previews[directionRenderKey(id, preferredSeed)]
       if (preview && ['queued', 'generating', 'rendering'].includes(preview.status)) {
         await pollPreviews()
+        return
+      }
+      if(preview&&(preview.jobId||preview.status==='unavailable')&&['failed','unavailable'].includes(preview.status)){
+        if(active(get().job))return
+        // Navigation must never retry a direction or replace it with a new job.
+        // The existing Generate button is the explicit retry action.
+        set({sourcePlanId:id,selectionKey:key,error:preview.error||preview.phase,
+          job:{id:preview.jobId??'',status:'failed',phase:preview.phase,debug:[]}})
         return
       }
       // Navigation, React Strict Mode and view changes must not queue another villa.
@@ -150,7 +177,7 @@ export const useBlender = create<State>()(persist((set, get) => {
         if (!active(get().job) && !(pending && ['queued', 'generating', 'rendering'].includes(pending.status))) {
           set({ selectionKey: key })
           const existing = get().accepted[id]
-          await get().generate(plan, preferredSeed ?? existing?.seed ?? newDesignSeed(plan.dna.seed), 'preview', preferredSeed !== undefined || Boolean(existing))
+          await get().generate(plan, preferredSeed ?? existing?.seed ?? newDesignSeed(plan.dna.seed, plan.model.brief.style.character), 'preview', preferredSeed !== undefined || Boolean(existing))
         }
       } catch (error) {
         if (!active(get().job)) set({ sourcePlanId: id, selectionKey: key, error: error instanceof Error ? error.message : 'Could not start Blender',

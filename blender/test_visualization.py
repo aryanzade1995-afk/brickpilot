@@ -17,10 +17,10 @@ class VisualizationTest(unittest.TestCase):
     def setUpClass(cls):
         cls.payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
 
-    def test_seven_curated_palettes_have_all_semantic_pbr_roles(self):
+    def test_thirteen_curated_palettes_have_all_semantic_pbr_roles(self):
         roles = {"primary_wall", "secondary_wall", "accent", "stone", "wood", "metal", "glass", "door", "railing"}
-        self.assertEqual(len(PALETTES), 7)
-        self.assertEqual(len({json.dumps(palette_specs(name), sort_keys=True) for name in PALETTES}), 7)
+        self.assertEqual(len(PALETTES), 13)
+        self.assertEqual(len({json.dumps(palette_specs(name), sort_keys=True) for name in PALETTES}), 13)
         for name in PALETTES:
             specs = palette_specs(name)
             self.assertEqual(set(specs), roles)

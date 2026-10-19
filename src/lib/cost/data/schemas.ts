@@ -46,7 +46,7 @@ export const ratesSchema = z.strictObject({
     s.contingencyPct >= s.percentageLimits.contingency[0] && s.contingencyPct <= s.percentageLimits.contingency[1], 'Default allowance outside configured limits'),
   sanityBands: z.strictObject({ basic: sanityBand, mid: sanityBand, premium: sanityBand }),
   items: z.array(z.strictObject({ id, unit: z.enum(['m2', 'm3', 'm', 'kg', 'bag', 'item', 'set', 'point', 'percent']), material: amount, labour: amount,
-    city: z.literal('Pune'), date, source: z.literal('Maharashtra PWD SOR + market, approximate'), verification: z.literal('provisional-allowance'),
+    city: z.literal('Pune'), date, source: z.enum(['Maharashtra PWD SOR + market, approximate','Concept plumbing allowance; supplier quote required']), verification: z.literal('provisional-allowance'),
   })).min(1),
 }).refine(v => unique(v.items.map(i => i.id)), 'Duplicate rate id')
 

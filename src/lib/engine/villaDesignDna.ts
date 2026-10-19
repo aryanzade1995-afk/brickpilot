@@ -44,6 +44,11 @@ export type VillaDesignDNA = {
 }
 
 const round = (value: number, places = 3) => Number(value.toFixed(places))
+export const MODERN_EXTERIOR_PALETTES = [
+  'warm-stone', 'lime-plaster', 'earth', 'travertine-bronze', 'charcoal-oak',
+  'tropical-cream', 'sage-limestone', 'terracotta-cream', 'slate-blue',
+  'graphite-sand', 'olive-stone', 'clay-copper',
+] as const satisfies readonly DesignDNA['materialPalette'][]
 const center = (r: { x: number; y: number; w: number; h: number }) =>
   ({ x: r.x + r.w / 2, y: r.y + r.h / 2 })
 
@@ -74,8 +79,10 @@ export function createVillaDesignDNA(building: BuildingModel, seed: number, char
   const compositions: VillaDesignDNA['compositionType'][] = [
     'layered-terrace', 'tower-and-wing', 'interlocking-frames', 'split-canopy',
   ]
-  if (building.orientation.plateFamily === 'courtyard') compositions.push('courtyard-wrap')
-  const compositionType = rng.pick(compositions)
+  const courtStyle=character==='courtyard-indian' && building.floors.some(f=>f.courtyard)
+  if (building.floors.some(f=>f.courtyard)) compositions.push('courtyard-wrap')
+  const chosenComposition = rng.pick(compositions)
+  const compositionType = courtStyle ? 'courtyard-wrap' : chosenComposition
   const blockCount = rng.int(2, 4)
   const rawRatios = Array.from({ length: blockCount }, () => rng.range(0.6, 1.4))
   const ratioTotal = rawRatios.reduce((sum, ratio) => sum + ratio, 0)
@@ -88,7 +95,7 @@ export function createVillaDesignDNA(building: BuildingModel, seed: number, char
   const blockRotations = Array.from({ length: blockCount }, () => rng.pick([0, 90, 180, 270] as const))
   const hasBalcony = building.rooms.some((room) => room.outdoor && room.id.startsWith('balcony'))
 
-  return {
+  const result:VillaDesignDNA = {
     schemaVersion: 3,
     sourcePlanId: building.planId,
     seed,
@@ -119,13 +126,24 @@ export function createVillaDesignDNA(building: BuildingModel, seed: number, char
     ] as const),
     roofType: rng.pick(['flat-terrace', 'raised-parapet', 'mono-slope', 'gable', 'hip', 'pergola-terrace'] as const),
     glazingPattern: rng.pick(['paired', 'ribbon', 'vertical', 'corner', 'regular'] as const),
-    materialPalette: rng.pick([
+    materialPalette: rng.pick(courtStyle ? ['warm-stone','lime-plaster','earth','kerala-laterite','tropical-cream'] as const : [
       'warm-stone', 'lime-plaster', 'earth', 'travertine-bronze', 'charcoal-oak',
       'kerala-laterite', 'tropical-cream', 'classical-stone',
     ] as const),
     asymmetry: round(rng.range(0.15, 0.9), 4),
-    landscapeStyle: rng.pick(['minimal', 'formal', 'natural', 'lush-tropical', 'courtyard'] as const),
+    landscapeStyle: courtStyle ? 'courtyard' : rng.pick(['minimal', 'formal', 'natural', 'lush-tropical', 'courtyard'] as const),
   }
+  if(building.modernComposition){
+    const composition=building.modernComposition.id
+    result.compositionType=composition==='glazed-bay'?'tower-and-wing':composition==='staggered-wings'?'split-canopy':'layered-terrace'
+    result.architecturalFamily=composition==='glazed-bay'?'FRAMED_MODERN':composition==='staggered-wings'?'HORIZONTAL_LAYERED':'MINIMAL_LUXURY'
+    result.roofType='flat-terrace';result.glazingPattern='vertical'
+    result.balconyType=hasBalcony?'glass-floating':'none';result.landscapeStyle='minimal'
+  }
+  // Finishes use their own seed stream, so adding colours cannot move rooms,
+  // windows, canopies or any of the building's exterior geometry.
+  if(character==='modern-box')result.materialPalette=makeRng(seed,'modern-exterior-colours-v1').pick(MODERN_EXTERIOR_PALETTES)
+  return result
 }
 
 /** Excludes finishes so a caller can compare architectural proposals. */

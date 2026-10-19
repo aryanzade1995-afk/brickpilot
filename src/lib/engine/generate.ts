@@ -1,6 +1,6 @@
 import { withEmergencyExit } from './safety.ts'
 import { placeSiteFeatures } from './planner/siteFeatures.ts'
-import { exposeStructuralSizing } from './structuralSizing.ts'
+import { beamDepthMm, exposeStructuralSizing } from './structuralSizing.ts'
 import { rectArea, rectUnionArea, toSqm } from '../geometry.ts'
 import type { CanonicalModel } from '../model/canonical.ts'
 import { themeOf } from '../model/themes.ts'
@@ -17,6 +17,7 @@ import { preferenceScore, strictVastuFailures, type PreferenceScore } from './sc
 import { planFingerprint } from './planner/planFingerprint.ts'
 import { diversePlans } from './planner/planDiversity.ts'
 import { proposePlan } from './planner/ml/proposal.ts'
+import { SITE_FORM_VERSION, compositionFamilies, siteFamilyOrder, siteFormScore, type FormVersion } from './siteForm.ts'
 
 /* ------------------------------------------------------------------ *
  *  generate() — the deterministic rule + constraint planner
@@ -42,6 +43,7 @@ export const STRATEGIES: { id: Strategy; label: string; blurb: string }[] = [
 ]
 
 export type GenerateOpts = {
+  formVersion?: FormVersion
   /** Internal benchmark/replay switch; new plans use the learned guidance. */
   planner?: 'ml' | 'baseline'
   recipe?: Design['planRecipe']
@@ -94,27 +96,28 @@ const largeWings = (model:CanonicalModel) => model.brief.project.buildingType===
 
 /** The plan shapes a style is built from, most characteristic first. A style
  *  listed here always gets one of these when one fits the plot: a courtyard
- *  house has a real court, a contemporary house steps or wings. Modern box is
+ *  house prefers enclosed courtyard wings, a contemporary house steps or wings. Modern box is
  *  absent on purpose — it keeps its free choice of bar and stepped plates. */
 export const STYLE_PLAN_FAMILIES: Partial<Record<CanonicalModel['brief']['style']['character'], PlateFamily[]>> = {
-  'courtyard-indian': ['courtyard', 'l-shape'],
+  'courtyard-indian': ['courtyard-ring', 'courtyard'],
   'contemporary-indian': ['stepped', 'l-shape', 'courtyard'],
 }
 
 /** The four plans the Directions page explores: a different plan shape for
  *  each where the style allows it, style-characteristic first. A courtyard
  *  house only ever explores its own shapes, each again with a fresh plan seed. */
-export function directionPlans(model: CanonicalModel, count = 4): { family: PlateFamily; seed: number }[] {
+export function directionPlans(model: CanonicalModel, count = 4, formVersion?: FormVersion): { family: PlateFamily; seed: number }[] {
   const style = STYLE_PLAN_FAMILIES[model.brief.style.character]
   const chosen = model.brief.style.massing
   // a shape the user chose is kept: four directions of that shape, each its own plan seed
   const order = chosen !== 'auto' && chosen !== 'random' ? [FAMILY_OF[chosen]]
-    : largeWings(model) ? ['u-wing','courtyard-ring','pavilion','twin-wing'] as PlateFamily[]
     : model.brief.style.character === 'courtyard-indian' ? style!
+    : largeWings(model) ? ['u-wing','courtyard-ring','pavilion','twin-wing'] as PlateFamily[]
     : [...(style ?? ['rectangular', 'stepped', 'l-shape']), ...FAMILIES.filter((f) => !(style ?? ['rectangular', 'stepped', 'l-shape']).includes(f))]
+  const ranked = compositionFamilies(model)??(formVersion && chosen === 'auto' ? siteFamilyOrder(model, order) : order)
   return Array.from({ length: count }, (_, i) => ({
-    family: order[i % order.length],
-    seed: model.brief.variation + Math.floor(i / order.length) * 7919,
+    family: ranked[i % ranked.length],
+    seed: model.brief.variation + Math.floor(i / ranked.length) * 7919,
   }))
 }
 
@@ -136,10 +139,10 @@ export function generateDirections(model: CanonicalModel, inspiration?: Inspirat
 
 /** Explore plan variety before exterior novelty. The recorded seed is the
  * actual passing plan seed, so pinning never re-runs a different search. */
-export function distinctDirectionPlans(model:CanonicalModel,count=4):{plan:Design;massing:MassingType;planSeed:number}[]{
+export function distinctDirectionPlans(model:CanonicalModel,count=4,formVersion?:FormVersion):{plan:Design;massing:MassingType;planSeed:number}[]{
   const plans:{plan:Design;massing:MassingType;planSeed:number}[]=[],seen=new Set<string>()
-  for(const want of directionPlans(model,count*4)){
-    const plan=generate(model,{massing:want.family,seed:want.seed})
+  for(const want of directionPlans(model,count*4,formVersion)){
+    const plan=generate(model,{massing:want.family,seed:want.seed,formVersion})
     if(!validate(plan).hardChecksPass)continue
     const fingerprint=planFingerprint(plan)
     if(seen.has(fingerprint.key))continue
@@ -160,6 +163,7 @@ export function generateCandidates(model: CanonicalModel, opts: Strategy | Gener
   fallback: Design
 } {
   const o: GenerateOpts = typeof opts === 'string' ? { strategy: opts } : opts
+  if(!o.formVersion&&compositionFamilies(model))return generateCandidates(model,{...o,formVersion:SITE_FORM_VERSION})
   const requested = o.massing ??
     (o.strategy === 'wing-split' ? 'stepped' : o.strategy === 'orthogonal-core' ? 'rectangular' : model.brief.style.massing)
   const seed = o.seed ?? model.brief.variation
@@ -167,7 +171,9 @@ export function generateCandidates(model: CanonicalModel, opts: Strategy | Gener
 
   let families: PlateFamily[]
   const styleFamilies = STYLE_PLAN_FAMILIES[model.brief.style.character]
+  const courtyardStyle = model.brief.style.character === 'courtyard-indian' && (requested === 'auto' || requested === 'random')
   if (WING_FAMILIES.includes(requested as PlateFamily)) families = [requested as PlateFamily]
+  else if (courtyardStyle) families = [...STYLE_PLAN_FAMILIES['courtyard-indian']!]
   else if ((requested==='auto'||requested==='random') && largeWings(model)) families = ['u-wing','courtyard-ring','pavilion','twin-wing',...(styleFamilies??FAMILIES)]
   else if (model.brief.rooms.priorities.courtyard) families = ['courtyard']
   else if ((requested === 'auto' || requested === 'random') && styleFamilies) {
@@ -190,6 +196,9 @@ export function generateCandidates(model: CanonicalModel, opts: Strategy | Gener
     if(learnedFamily && families.includes(learnedFamily) && model.brief.style.character!=='courtyard-indian')
       families=[learnedFamily,...families.filter(f=>f!==learnedFamily)]
   }
+  const composition=compositionFamilies(model)
+  if(composition)families=composition.includes(requested as PlateFamily)?[requested as PlateFamily]:composition
+  else if (o.formVersion) families = siteFamilyOrder(model, families)
 
   // Vastu needs more orientations / mirrors to choose from
   const attempts = families.some(f=>WING_FAMILIES.includes(f)) ? 24 : model.brief.lifestyle.vastu === 'ignore' ? 6 : 12
@@ -200,21 +209,23 @@ export function generateCandidates(model: CanonicalModel, opts: Strategy | Gener
   let bestErrors = Infinity
   let bestWarnings = Infinity
   for (const family of families) {
+    const familyStart = passing.length
     // If a seed's local wing search fails, try a shared deterministic range
     // of the SAME family. Record its actual seed so pinning still replays it.
     const wing=WING_FAMILIES.includes(family)
     const searchCount=attempts+(wing&&seed!==0?attempts:0)
     for (let attempt = 0; attempt < searchCount && passing.length < cap; attempt++) {
+      if (o.formVersion && families.length > 1 && passing.length-familyStart >= 3) break
       if(attempt>=attempts&&passing.length)break
       const trialSeed=attempt<attempts?seed+attempt*31:(attempt-attempts)*31
-      const d = generateOne(model, family, trialSeed, briefKey, false, o.planner!=='baseline')
+      const d = generateOne(model, family, trialSeed, briefKey, false, o.planner!=='baseline', undefined, o.formVersion)
       if (!d) continue
       // Bar plans choose the best scored candidate across a search. Their pin
       // must retain that search's starting seed; wings take the first passing
       // candidate and can replay its actual passing seed directly.
       if(!WING_FAMILIES.includes(d.massingType as PlateFamily))d.planSeed=seed
       const report = validate(d, { checkFacade: false })
-      if (report.hardChecksPass) {
+      if (report.hardChecksPass && (!courtyardStyle || d.floors[0].courtyard)) {
         // different seeds can land on the same layout; score each layout once
         const key = layoutKey(d)
         if (seen.has(key)) continue
@@ -232,9 +243,10 @@ export function generateCandidates(model: CanonicalModel, opts: Strategy | Gener
   // Guidance is optional: it must never make a previously buildable brief fail.
   // Retry the unchanged planner, with the same family/seed and all hard checks.
   if(!passing.length && o.planner!=='baseline') return generateCandidates(model,{...o,planner:'baseline'})
-  const fallback=best ?? generateOne(model, 'rectangular', seed, briefKey, true)!
+  const fallback=best ?? generateOne(model, 'rectangular', seed, briefKey, true, false, undefined, o.formVersion)!
   if(WING_FAMILIES.includes(requested as PlateFamily)&&fallback.massingType!==requested)
     fallback.requestedMassing=requested as MassingType
+  if(courtyardStyle && !fallback.floors[0].courtyard) fallback.requestedMassing='courtyard-ring'
   return { passing, fallback }
 }
 
@@ -259,40 +271,44 @@ export const MAX_CANDIDATES_STRICT = 24
  * least-failing plan is returned and reported as failing.
  */
 export function generate(model: CanonicalModel, opts: Strategy | GenerateOpts = {}): Design {
+  if(compositionFamilies(model)&&(typeof opts==='string'||!opts.formVersion))
+    return generate(model,{...(typeof opts==='string'?{strategy:opts}:opts),formVersion:SITE_FORM_VERSION})
   if(typeof opts!=='string' && opts.recipe){
     const recipe=opts.recipe
-    const replay=generateOne(model,recipe.family,recipe.seed,model.seed.split('-')[0])
+    const replay=generateOne(model,recipe.family,recipe.seed,model.seed.split('-')[0],false,true,undefined,opts.formVersion)
     if(replay && validate(replay).hardChecksPass){replay.planSeed=opts.seed??recipe.seed;return replay}
     // Stale/invalid recipes do not bypass any hard check.
     return generate(model,{...opts,recipe:undefined})
   }
   const { passing, fallback } = generateCandidates(model, opts)
   if (!passing.length) return fallback
-  if ((typeof opts !== 'string' && WING_FAMILIES.includes(opts.massing as PlateFamily)) || WING_FAMILIES.includes(model.brief.style.massing as PlateFamily)) return passing[0].design
-  if (largeWings(model) && (typeof opts === 'string' || !opts.massing || opts.massing==='auto'||opts.massing==='random')) {
-    const wings=passing.find(c=>WING_FAMILIES.includes(c.design.massingType as PlateFamily))
+  if (!compositionFamilies(model)&&((typeof opts !== 'string' && WING_FAMILIES.includes(opts.massing as PlateFamily)) || WING_FAMILIES.includes(model.brief.style.massing as PlateFamily))) return passing[0].design
+  if ((typeof opts === 'string' || !opts.formVersion) && largeWings(model) && (typeof opts === 'string' || !opts.massing || opts.massing==='auto'||opts.massing==='random')) {
+    const wings=passing.find(c=>model.brief.style.character==='courtyard-indian'
+      ? c.design.massingType==='courtyard-ring' : WING_FAMILIES.includes(c.design.massingType as PlateFamily))
     if(wings)return wings.design
   }
   const strict = model.brief.lifestyle.vastu === 'strict'
   // a style with characteristic plan shapes keeps them whenever one passed:
   // a better-scoring bar must not turn a courtyard house into a box
   const o = typeof opts === 'string' ? { strategy: opts } : opts
-  const styleFamilies = (o.massing ?? model.brief.style.massing) === 'auto' && !o.strategy
+  const styleFamilies = ['auto', 'random'].includes(o.massing ?? model.brief.style.massing) && !o.strategy
     ? STYLE_PLAN_FAMILIES[model.brief.style.character] : undefined
   if(o.planner!=='baseline' && styleFamilies && model.brief.style.character==='courtyard-indian' &&
-    !passing.some(c=>c.design.massingType==='courtyard')){
+    !passing.some(c=>c.design.floors[0].courtyard)){
     const previous=generate(model,{...o,planner:'baseline'})
-    if(previous.massingType==='courtyard'&&validate(previous).hardChecksPass)return previous
+    if(previous.floors[0].courtyard&&validate(previous).hardChecksPass)return previous
   }
   const styled = styleFamilies ? passing.filter((c) => (styleFamilies as string[]).includes(c.design.massingType)) : []
   const courtyardPlans=styleFamilies && model.brief.style.character==='courtyard-indian'
-    ? styled.filter(c=>c.design.massingType==='courtyard') : []
+    ? styled.filter(c=>c.design.massingType===(styled.some(p=>p.design.massingType==='courtyard-ring')?'courtyard-ring':'courtyard')) : []
   const shaped = courtyardPlans.length ? courtyardPlans : styled.length ? styled : passing
   const pool = strict && shaped.some((c) => c.strictOk) ? shaped.filter((c) => c.strictOk) : shaped
-  return pool.reduce((a, b) => ((model.brief.site.openSpace?.mode === 'maxBuild' ? b.design.coveredFootprintSqm > a.design.coveredFootprintSqm : b.score.total > a.score.total) ? b : a)).design
+  const score = (c: Candidate) => c.score.total + (o.formVersion ? siteFormScore(c.design) : 0)
+  return pool.reduce((a, b) => ((model.brief.site.openSpace?.mode === 'maxBuild' ? b.design.coveredFootprintSqm > a.design.coveredFootprintSqm : score(b) > score(a)) ? b : a)).design
 }
 
-export function generateOne(model: CanonicalModel, family: PlateFamily, seed: number, briefKey: string, force = false, learned = true, existing?: ExistingStructure): Design | null {
+export function generateOne(model: CanonicalModel, family: PlateFamily, seed: number, briefKey: string, force = false, learned = true, existing?: ExistingStructure, formVersion?: FormVersion): Design | null {
   const proposal = learned && !force && !existing ? proposePlan(model,seed) : null
   const choices = WING_FAMILIES.includes(family) ? layoutChoices(model, seed, family!=='twin-wing') : undefined
   if (choices) model = layoutProgramme(model,choices)
@@ -307,6 +323,7 @@ export function generateOne(model: CanonicalModel, family: PlateFamily, seed: nu
   const provisional = deriveDesignDNA(briefKey, seed, model.brief.style.character, 'rectangular', 'balanced', model.brief.style.personality)
 
   const plan = planVilla(model, {
+    ...(formVersion && !existing ? {formVersion,formSeed:seed}:{}),
     ...(existing ? {existing} : {}),
     ...(proposal ? {proposal}:{}),
     ...(choices ? {layoutChoices:choices}:{}),
@@ -324,6 +341,16 @@ export function generateOne(model: CanonicalModel, family: PlateFamily, seed: nu
   if (!force && massingType !== family && !(family === 'stepped' && massingType === 'rectangular')) return null
   const dna = deriveDesignDNA(briefKey, seed, model.brief.style.character, massingType, 'balanced', model.brief.style.personality)
   const floors = plan.floors
+  if(model.brief.style.character==='modern-box'&&model.brief.style.composition)for(const floor of floors){
+    for(const window of floor.openings.filter(o=>o.kind==='window'&&o.head!==undefined)){
+      const horizontal=window.orient==='h',fixed=horizontal?window.at.y:window.at.x,at=horizontal?window.at.x:window.at.y
+      const depths=(floor.beams??[]).filter(b=>(Math.abs(b.a.y-b.b.y)<2)===horizontal&&
+        Math.abs((horizontal?b.a.y:b.a.x)-fixed)<2&&
+        Math.min(horizontal?b.a.x:b.a.y,horizontal?b.b.x:b.b.y)<at+window.width/2&&
+        Math.max(horizontal?b.a.x:b.a.y,horizontal?b.b.x:b.b.y)>at-window.width/2).map(b=>beamDepthMm(b.span))
+      window.head=Math.min(window.head!,Math.round(model.brief.levels.floorToFloor*1000)-Math.max(300,...depths)-60)
+    }
+  }
   for (const floor of floors) for (const door of floor.openings.filter(o => o.kind === 'entry')) {
     const requested = model.brief.entry.design
     door.entranceDesign = requested && requested !== 'auto' ? requested : model.brief.style.character === 'modern-box' ? 'wide-pivot' : model.brief.style.character === 'contemporary-indian' ? 'framed-portico' : model.brief.style.character === 'courtyard-indian' ? 'indian-carved' : 'stone-surround'
@@ -338,8 +365,9 @@ export function generateOne(model: CanonicalModel, family: PlateFamily, seed: nu
   const doors = floors.reduce((n, f) => n + f.openings.filter((op) => op.kind === 'door' || op.kind === 'entry').length, 0)
   const windows = floors.reduce((n, f) => n + f.openings.filter((op) => op.kind === 'window').length, 0)
 
-  const site = placeSiteFeatures(model, floors[0])
+  const site = placeSiteFeatures(model, floors[0],{},formVersion==='site-form-v3')
   return exposeStructuralSizing(withEmergencyExit({
+    ...(formVersion && !existing ? {formVersion}:{}),
     planSeed:seed,
     ...(existing && plan.existingOffset ? { existingStructure: { structure: existing, ...plan.existingOffset } } : {}),
     ...(choices ? {layoutChoices:choices}:{}),

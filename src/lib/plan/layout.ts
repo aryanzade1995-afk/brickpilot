@@ -230,7 +230,8 @@ function rebuildFloor(plan: Design, floor: FloorPlan, layout: FloorLayout, lower
   const coreTarget = stair ? { x: stair.rect.x + stair.rect.w / 2, y: stair.rect.y + stair.rect.h / 2 } : { x: spine.rect.x, y: spine.rect.y }
   const mainEntry = floor.openings.find((o) => o.kind === 'entry' && !o.emergencyExit)
   const { openings: doors, failed } = placeDoors(rooms, spineId, prefix, columns, occ, kindOf, parentOf,
-    floor.level === 0 && mainEntry ? { width: mainEntry.width } : null, coreTarget, model.brief.lifestyle.kitchen)
+    floor.level === 0 && mainEntry ? { width: mainEntry.width } : null, coreTarget, model.brief.lifestyle.kitchen,
+    model.brief.style.character==='modern-box'?'sliding':'hinged')
   const lonely = connectLeft(failed, rooms, kinds, spineId, columns, occ, doors)
   const windows = placeWindows(rooms, walls, columns, occ, kindOf, themeOf(model.brief).windows.widthMm, plan.dna, lower?.openings ?? [])
   const openings = [...doors, ...windows]
@@ -300,7 +301,7 @@ export function applyLayout(plan: Design, layout: LayoutDoc): Design {
   }
   const doors = floors.reduce((n, f) => n + f.openings.filter((o) => o.kind === 'door' || o.kind === 'entry').length, 0)
   const windows = floors.reduce((n, f) => n + f.openings.filter((o) => o.kind === 'window').length, 0)
-  const site = placeSiteFeatures(model, floors[0], layout.features ?? {})
+  const site = placeSiteFeatures(model, floors[0], layout.features ?? {},plan.formVersion==='site-form-v3')
   // the emergency exit is placed on the plan as built; rebuild it for the new ground floor
   const ground = { ...floors[0], openings: floors[0].openings.filter((o) => !o.emergencyExit) }
   const all = [ground, ...floors.slice(1)]

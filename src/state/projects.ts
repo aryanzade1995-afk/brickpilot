@@ -46,7 +46,7 @@ export type Summary = {
   heightM: number
   character: string
   /** the 3D design: massing archetype and the seeds that define it */
-  design: { massing: string; planSeed: number | null; seed: number | null; family: string | null; architecturalFamily: string | null; roof: string | null } | null
+  design: { massing: string; planSeed: number | null; seed: number | null; family: string | null; architecturalFamily: string | null; roof: string | null; formVersion?: string | null } | null
   floors: { level: number; name: string; rooms: RoomSummary[] }[]
   /** ids of rooms (and built columns) that must not change */
   locked: string[]
@@ -88,7 +88,7 @@ export function summarise(): Summary | null {
     builtAreaSqm: d.builtAreaSqm,
     heightM: d.heightM,
     character: brief.style.character,
-    design: pinned || d ? { massing: d.massingType, planSeed: d.planSeed ?? null, seed: d.dna.seed ?? null, family: d.planFamily ?? null,
+    design: pinned || d ? { massing: d.massingType, planSeed: d.planSeed ?? null, seed: d.dna.seed ?? null, family: d.planFamily ?? null,formVersion:d.formVersion??null,
       architecturalFamily: result.villaDesignDNA?.architecturalFamily ?? null, roof: d.floors.at(-1)?.roof.kind ?? null } : null,
     floors: d.floors.map((f) => ({
       level: f.level, name: f.name,

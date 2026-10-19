@@ -1,3 +1,4 @@
+import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
 import { Link } from 'react-router-dom'
 import type { ComponentProps, ReactNode } from 'react'
 import { cx } from '@/lib/cx.ts'
@@ -34,9 +35,11 @@ export function Button({
   children,
   ...rest
 }: CommonProps & ComponentProps<'button'>) {
+  useLanguage(s => s.language);
+
   return (
     <button className={cx(base, sizes[size], variants[variant], className)} {...rest}>
-      {children}
+      {translateUi(children)}
     </button>
   )
 }
@@ -49,9 +52,11 @@ export function ButtonLink({
   to,
   ...rest
 }: CommonProps & { to: string } & Omit<ComponentProps<typeof Link>, 'to'>) {
+  useLanguage(s => s.language);
+
   return (
     <Link to={to} className={cx(base, sizes[size], variants[variant], className)} {...rest}>
-      {children}
+      {translateUi(children)}
     </Link>
   )
 }

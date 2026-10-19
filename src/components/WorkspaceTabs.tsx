@@ -1,5 +1,7 @@
+import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
 import { NavLink } from 'react-router-dom'
 import { cx } from '@/lib/cx.ts'
+import { preloadWorkspacePage } from '@/lib/workspacePages.ts'
 
 const TABS = [
   { to: '/workspace', label: 'Brief', n: '01' },
@@ -13,24 +15,28 @@ const TABS = [
 ]
 
 export function WorkspaceTabs() {
+  useLanguage(s => s.language);
+
   return (
     <div className="flex gap-1 overflow-x-auto border-b border-line pb-px">
       {TABS.map((t) => (
         <NavLink
           key={t.to}
           to={t.to}
+          onPointerEnter={() => preloadWorkspacePage(t.to)}
+          onFocus={() => preloadWorkspacePage(t.to)}
+          onTouchStart={() => preloadWorkspacePage(t.to)}
           end={t.to === '/workspace'}
-          className={({ isActive }) =>
+          className={({ isActive, isPending }) =>
             cx(
               'flex flex-none items-center gap-2 border-b-2 px-3 py-2.5 font-mono text-[0.7rem] uppercase tracking-[0.1em] transition-colors',
-              isActive
+              isActive || isPending
                 ? 'border-accent text-accent'
                 : 'border-transparent text-ink-faint hover:text-ink-dim',
             )
           }
         >
-          <span>{t.n}</span>
-          {t.label}
+          {({ isPending }) => <><span className={isPending ? 'animate-pulse' : undefined}>{translateUi(t.n)}</span>{translateUi(t.label)}</>}
         </NavLink>
       ))}
     </div>

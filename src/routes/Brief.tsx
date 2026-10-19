@@ -1,3 +1,4 @@
+import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
 import { RoomPanel } from './brief/RoomPanel.tsx'
 import { SelectionsBar } from './brief/SelectionsBar.tsx'
 import { useDeferredValue, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
@@ -55,6 +56,8 @@ const SUBSTEPS: Partial<Record<number, SubStep[]>> = {
 }
 
 export function Brief() {
+  useLanguage(s => s.language);
+
   const rail = useRef<HTMLDivElement>(null)
   const [railHeight,setRailHeight] = useState(150)
   useEffect(() => {
@@ -114,11 +117,11 @@ export function Brief() {
   return (
     <div style={{ "--brief-rail-height": `${railHeight}px` } as CSSProperties}>
       {generating && <GenerationOverlay label="Generating your concepts" />}
-      {briefChoiceIssue && <p role="status" className="mx-auto max-w-[1400px] px-6 py-3 text-sm text-ink-dim md:px-10">{briefChoiceIssue}</p>}
+      {briefChoiceIssue && <p role="status" className="mx-auto max-w-[1400px] px-6 py-3 text-sm text-ink-dim md:px-10">{translateUi(briefChoiceIssue)}</p>}
       {/* wizard rail */}
       <div ref={rail} className="sticky top-0 z-10 border-b border-line bg-bg/90 backdrop-blur">
         <div className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-3 px-6 py-3 md:px-10">
-          <span className="label text-accent">Guided Residential Brief</span>
+          <span className="label text-accent">{translateUi("Guided Residential Brief")}</span>
 
           <div className="order-3 flex w-full items-center gap-1 overflow-x-auto md:order-2 md:w-auto md:flex-1 md:justify-center">
             {BRIEF_STEPS.map((s, i) => (
@@ -135,8 +138,8 @@ export function Brief() {
                       : 'border-line text-ink-faint',
                 )}
               >
-                <span>{String(i + 1).padStart(2, '0')}</span>
-                <span className={cx(i === step ? 'inline' : 'hidden md:inline')}>{s.label}</span>
+                <span>{translateUi(String(i + 1).padStart(2, '0'))}</span>
+                <span className={cx(i === step ? 'inline' : 'hidden md:inline')}>{translateUi(s.label)}</span>
               </button>
             ))}
           </div>
@@ -151,18 +154,15 @@ export function Brief() {
               className="inline-flex items-center gap-1.5 font-mono text-[0.7rem] uppercase tracking-[0.1em] text-ink-dim hover:text-ink"
             >
               <RotateCcw size={12} />
-              Reset
-            </button>
+              {translateUi("Reset")}</button>
             <Button size="sm" onClick={next} disabled={last && (checking || !fit.fits)}>
               {last ? (
                 <>
-                  Generate concept
-                  <Sparkles size={13} />
+                  {translateUi("Generate concept")}<Sparkles size={13} />
                 </>
               ) : (
                 <>
-                  Confirm &amp; continue
-                  <ArrowRight size={13} />
+                  {translateUi("Confirm & continue")}<ArrowRight size={13} />
                 </>
               )}
             </Button>
@@ -174,9 +174,9 @@ export function Brief() {
       {/* step body */}
       <div className="mx-auto max-w-[1400px] px-6 py-12 md:px-10 md:py-16">
         <FitMeter />
-        {formError && <p role="alert" className="mb-6 border-l-2 border-bad bg-bad/5 px-4 py-3 text-sm text-bad">{formError}</p>}
-        <p className="label">Step {step + 1} of {BRIEF_STEPS.length}</p>
-        <h1 className="mt-3 font-display text-[clamp(2rem,4vw,3rem)]">{title}</h1>
+        {formError && <p role="alert" className="mb-6 border-l-2 border-bad bg-bad/5 px-4 py-3 text-sm text-bad">{translateUi(formError)}</p>}
+        <p className="label">{translateUi("Step ")}{translateUi(step + 1)} {translateUi(" of ")}{translateUi(BRIEF_STEPS.length)}</p>
+        <h1 className="mt-3 font-display text-[clamp(2rem,4vw,3rem)]">{translateUi(title)}</h1>
 
         {subs && (
           <div className="mt-6 flex gap-1 overflow-x-auto border-b border-line pb-px">
@@ -190,10 +190,10 @@ export function Brief() {
                   i === sub ? 'border-accent text-accent' : 'border-transparent text-ink-faint hover:text-ink-dim',
                 )}
               >
-                <span>{String(step + 1).padStart(2, '0')}.{i + 1}</span>
-                {s.label}
+                <span>{translateUi(String(step + 1).padStart(2, '0'))}.{translateUi(i + 1)}</span>
+                {translateUi(s.label)}
                 {s.isNew && (
-                  <span className="border border-accent px-1 py-px text-[0.55rem] leading-none text-accent">New</span>
+                  <span className="border border-accent px-1 py-px text-[0.55rem] leading-none text-accent">{translateUi("New")}</span>
                 )}
               </button>
             ))}
@@ -211,18 +211,15 @@ export function Brief() {
             className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.12em] text-ink-dim hover:text-ink disabled:opacity-30"
           >
             <ArrowLeft size={13} />
-            Back
-          </button>
+            {translateUi("Back")}</button>
           <Button onClick={next} disabled={last && (checking || !fit.fits)}>
             {last ? (
               <>
-                Generate verified concept
-                <Sparkles size={14} />
+                {translateUi("Generate verified concept")}<Sparkles size={14} />
               </>
             ) : (
               <>
-                Confirm &amp; continue
-                <ArrowRight size={14} />
+                {translateUi("Confirm & continue")}<ArrowRight size={14} />
               </>
             )}
           </Button>

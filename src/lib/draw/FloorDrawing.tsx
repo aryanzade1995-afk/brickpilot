@@ -1,3 +1,4 @@
+import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
 import { floorEscapeRoutes, type EmergencyPlan } from '../engine/safety.ts'
 import { QuantityHighlight } from './QuantityHighlight.tsx'
 import { DRAWING_PRESETS, type DrawingLayers } from './layers.ts'
@@ -54,6 +55,8 @@ export function FloorDrawing({
   highlightCategory?: string
   svgRef?: React.Ref<SVGSVGElement>
 }) {
+  useLanguage(s => s.language);
+
   const ink = INK[theme]
   const faint = FAINT[theme]
   const bg = BG[theme]
@@ -109,8 +112,7 @@ export function FloorDrawing({
           strokeDasharray="120 90"
         />
         <text x={0} y={-700} fill={faint} fontSize={520} fontFamily="'IBM Plex Mono', monospace">
-          SITE BOUNDARY
-        </text>
+          {translateUi("SITE BOUNDARY")}</text>
         <NorthArrow x={model.plot.width + 500} y={900} entrySide={model.entrySide} ink={faint} />
       </g>
 
@@ -187,11 +189,11 @@ export function FloorDrawing({
       </g>}
       {active.openings && <g data-layer="openings">{floor.openings.map((o, i) => <OpeningMark key={o.id ?? `op-${i}`} o={o} ink={ink} bg={bg} theme={theme} />)}</g>}
       {active.supports && <g data-layer="supports" fill="none" stroke={faint} strokeWidth={35}>
-        <g data-layer="footings" strokeDasharray="100 70">{supports.footings?.map(f=><rect key={f.id} x={f.rect.x} y={f.rect.y} width={f.rect.w} height={f.rect.h}><title>{`${f.id}: ${f.rect.w} × ${f.rect.h} × ${f.thicknessMm} mm · approximate`}</title></rect>)}</g>
-        <g data-layer="plinth-beams" strokeDasharray="140 90">{supports.plinthBeams?.map(b=><line key={b.id} x1={b.a.x} y1={b.a.y} x2={b.b.x} y2={b.b.y} strokeWidth={b.widthMm}><title>{`Plinth beam ${b.widthMm} × ${b.depthMm} mm · approximate`}</title></line>)}</g>
-        {supports.beams.map(b=><line key={b.id} x1={b.a.x} y1={b.a.y} x2={b.b.x} y2={b.b.y} strokeWidth={b.widthMm} strokeDasharray="180 90"><title>{`${b.id}: ${b.widthMm} × ${b.depthMm} mm`}</title></line>)}
-        <text data-layer="structural-note" x={0} y={model.plot.depth+2900} fill={faint} stroke="none" fontSize={200}>approximate; structural design by a licensed engineer required</text>
-        {supports.plinthHeightMm!==undefined&&<text data-layer="plinth-height" x={0} y={model.plot.depth+2550} fill={faint} stroke="none" fontSize={240}>Plinth +{(supports.plinthHeightMm/1000).toFixed(2)} m above site grade</text>}
+        <g data-layer="footings" strokeDasharray="100 70">{supports.footings?.map(f=><rect key={f.id} x={f.rect.x} y={f.rect.y} width={f.rect.w} height={f.rect.h}><title>{translateUi(`${f.id}: ${f.rect.w} × ${f.rect.h} × ${f.thicknessMm} mm · approximate`)}</title></rect>)}</g>
+        <g data-layer="plinth-beams" strokeDasharray="140 90">{supports.plinthBeams?.map(b=><line key={b.id} x1={b.a.x} y1={b.a.y} x2={b.b.x} y2={b.b.y} strokeWidth={b.widthMm}><title>{translateUi(`Plinth beam ${b.widthMm} × ${b.depthMm} mm · approximate`)}</title></line>)}</g>
+        {supports.beams.map(b=><line key={b.id} x1={b.a.x} y1={b.a.y} x2={b.b.x} y2={b.b.y} strokeWidth={b.widthMm} strokeDasharray="180 90"><title>{translateUi(`${b.id}: ${b.widthMm} × ${b.depthMm} mm`)}</title></line>)}
+        <text data-layer="structural-note" x={0} y={model.plot.depth+2900} fill={faint} stroke="none" fontSize={200}>{translateUi("approximate; structural design by a licensed engineer required")}</text>
+        {supports.plinthHeightMm!==undefined&&<text data-layer="plinth-height" x={0} y={model.plot.depth+2550} fill={faint} stroke="none" fontSize={240}>{translateUi("Plinth +")}{translateUi((supports.plinthHeightMm/1000).toFixed(2))} {translateUi(" m above site grade")}</text>}
       </g>}
       {active.circulation && <g data-layer="circulation" fill="none" stroke={theme === 'cad' ? '#c5e2f0' : '#546c7b'} strokeWidth={50} strokeDasharray="140 90">
         {floor.rooms.filter(r => r.zone === 'circulation').map(r => <rect key={r.id} x={r.rect.x + 100} y={r.rect.y + 100} width={Math.max(0, r.rect.w - 200)} height={Math.max(0, r.rect.h - 200)} />)}
@@ -259,7 +261,7 @@ export function FloorDrawing({
                   strokeWidth={nameSize / 5}
                   paintOrder="stroke"
                 >
-                  {r.name}
+                  {translateUi(r.name)}
                 </text>
                 {showArea && (
                   <text
@@ -272,8 +274,7 @@ export function FloorDrawing({
                     strokeWidth={nameSize / 6}
                     paintOrder="stroke"
                   >
-                    {r.area.toFixed(1)} m²
-                  </text>
+                    {translateUi(r.area.toFixed(1))} {translateUi(" m²")}</text>
                 )}
               </Fragment>
             )
@@ -295,22 +296,24 @@ export function FloorDrawing({
         </g>
       )}
       {highlightCategory && <QuantityHighlight floor={floor} model={model} siteFeatures={siteFeatures} category={highlightCategory} />}
-      {onRoomClick && <g data-layer="room-actions">{floor.rooms.filter(r => !r.outdoor).map(r => <rect key={r.id} x={r.rect.x} y={r.rect.y} width={r.rect.w} height={r.rect.h} fill="transparent" role="button" tabIndex={0} aria-label={`Choose finishes for ${r.name}`} className="cursor-pointer focus:stroke-amber-700 focus:stroke-[60]" onClick={() => onRoomClick(r.id)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onRoomClick(r.id) } }} />)}</g>}
+      {onRoomClick && <g data-layer="room-actions">{floor.rooms.filter(r => !r.outdoor).map(r => <rect key={r.id} x={r.rect.x} y={r.rect.y} width={r.rect.w} height={r.rect.h} fill="transparent" role="button" tabIndex={0} aria-label={translateUi(`Choose finishes for ${r.name}`)} className="cursor-pointer focus:stroke-amber-700 focus:stroke-[60]" onClick={() => onRoomClick(r.id)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onRoomClick(r.id) } }} />)}</g>}
       {active.safety && <g data-layer="safety" fill="none" stroke="#278259" pointerEvents="none">
         <defs><marker id={`escape-arrow-${floor.level}`} markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7" fill="#278259" /></marker></defs>
         {floorEscapeRoutes(floor).filter(r=>floor.rooms.find(room=>room.id===r.roomId)?.zone!=='service').map(r=><polyline key={r.roomId} points={r.points.map(p=>`${p.x},${p.y}`).join(' ')} strokeWidth="32" strokeDasharray="100 80" opacity=".6" markerEnd={`url(#escape-arrow-${floor.level})`} />)}
-        {floor.openings.filter(o=>o.kind==='entry').map((o,i)=><g key={o.id??i}><rect x={o.at.x-450} y={o.at.y-180} width="900" height="360" rx="40" fill="#278259" stroke="none"/><text x={o.at.x} y={o.at.y+65} textAnchor="middle" fill="white" stroke="none" fontSize="180">{o.emergencyExit?'EXIT 2':'EXIT 1'}</text></g>)}
-        {floor.rooms.filter(r=>!r.outdoor&&(r.zone==='private'||r.zone==='circulation'||r.zone==='social')).map(r=>{const c=rectCenter(r.rect),tagY=c.y-r.rect.h*.3;return <g key={r.id}><line x1={c.x} y1={c.y} x2={c.x} y2={tagY} strokeWidth="14" opacity=".3"/><circle cx={c.x} cy={tagY} r="110" fill={bg} strokeWidth="24"/><text x={c.x} y={tagY+50} textAnchor="middle" fill="#278259" stroke="none" fontSize="150">S</text></g>})}
+        {floor.openings.filter(o=>o.kind==='entry').map((o,i)=><g key={o.id??i}><rect x={o.at.x-450} y={o.at.y-180} width="900" height="360" rx="40" fill="#278259" stroke="none"/><text x={o.at.x} y={o.at.y+65} textAnchor="middle" fill="white" stroke="none" fontSize="180">{translateUi(o.emergencyExit?'EXIT 2':'EXIT 1')}</text></g>)}
+        {floor.rooms.filter(r=>!r.outdoor&&(r.zone==='private'||r.zone==='circulation'||r.zone==='social')).map(r=>{const c=rectCenter(r.rect),tagY=c.y-r.rect.h*.3;return <g key={r.id}><line x1={c.x} y1={c.y} x2={c.x} y2={tagY} strokeWidth="14" opacity=".3"/><circle cx={c.x} cy={tagY} r="110" fill={bg} strokeWidth="24"/><text x={c.x} y={tagY+50} textAnchor="middle" fill="#278259" stroke="none" fontSize="150">{translateUi("S")}</text></g>})}
         {floor.level===0 && emergency?.outsideRoute.length ? <polyline points={emergency.outsideRoute.map(p=>`${p.x},${p.y}`).join(' ')} strokeWidth="45" strokeDasharray="130 80" markerEnd={`url(#escape-arrow-${floor.level})`}/>:null}
-        {floor.level===0 && emergency?.meetingPoint ? <g><circle cx={emergency.meetingPoint.x} cy={emergency.meetingPoint.y} r="250" fill={bg} strokeWidth="30"/><text x={emergency.meetingPoint.x} y={emergency.meetingPoint.y+60} fill="#278259" stroke="none" textAnchor="middle" fontSize="180">MEET</text></g>:null}
-        {emergency?.markers.filter(m=>m.level===floor.level&&m.kind==='extinguisher').map(m=><g key={m.id}><circle cx={m.at.x} cy={m.at.y} r="140" fill="#b6342f" stroke="none"/><text x={m.at.x} y={m.at.y+65} textAnchor="middle" fill="white" stroke="none" fontSize="180">F</text></g>)}
-        <text x={0} y={model.plot.depth+1700} fill="#278259" stroke="none" fontSize="210">EXIT = escape door · S = smoke alarm · F = extinguisher · dashed = indicative route</text>
+        {floor.level===0 && emergency?.meetingPoint ? <g><circle cx={emergency.meetingPoint.x} cy={emergency.meetingPoint.y} r="250" fill={bg} strokeWidth="30"/><text x={emergency.meetingPoint.x} y={emergency.meetingPoint.y+60} fill="#278259" stroke="none" textAnchor="middle" fontSize="180">{translateUi("MEET")}</text></g>:null}
+        {emergency?.markers.filter(m=>m.level===floor.level&&m.kind==='extinguisher').map(m=><g key={m.id}><circle cx={m.at.x} cy={m.at.y} r="140" fill="#b6342f" stroke="none"/><text x={m.at.x} y={m.at.y+65} textAnchor="middle" fill="white" stroke="none" fontSize="180">{translateUi("F")}</text></g>)}
+        <text x={0} y={model.plot.depth+1700} fill="#278259" stroke="none" fontSize="210">{translateUi("EXIT = escape door · S = smoke alarm · F = extinguisher · dashed = indicative route")}</text>
       </g>}
     </svg>
   )
 }
 
 function OpeningMark({ o, ink, bg, theme }: { o: Opening; ink: string; bg: string; theme: Theme }) {
+  useLanguage(s => s.language);
+
   const faint = FAINT[theme]
   const half = o.width / 2
   const eraseW = o.kind === 'window' ? 260 : 340
@@ -333,9 +336,9 @@ function OpeningMark({ o, ink, bg, theme }: { o: Opening; ink: string; bg: strin
         {/* glazed sliding screen: two thin overlapping panels + a slide arrow */}
         {o.treatment === 'glazed-slide' && (
           <g stroke={ink} strokeWidth={18} fill="none">
-            {L(P(-half, -45), P(half * 0.1, -45), {})}
-            {L(P(-half * 0.1, 45), P(half, 45), {})}
-            {L(P(-half * 0.45, -130), P(half * 0.05, -130), {})}
+            {translateUi(L(P(-half, -45), P(half * 0.1, -45), {}))}
+            {translateUi(L(P(-half * 0.1, 45), P(half, 45), {}))}
+            {translateUi(L(P(-half * 0.45, -130), P(half * 0.05, -130), {}))}
             <path d={(() => {
               const tip = P(half * 0.05, -130)
               const a = P(half * 0.05 - 110, -190)
@@ -345,7 +348,7 @@ function OpeningMark({ o, ink, bg, theme }: { o: Opening; ink: string; bg: strin
           </g>
         )}
         {/* fully open to the next room: a dashed line where the wall would be */}
-        {o.treatment === 'open' && L(P(-half, 0), P(half, 0), { stroke: ink, strokeWidth: 22, strokeDasharray: '90 70' })}
+        {translateUi(o.treatment === 'open' && L(P(-half, 0), P(half, 0), { stroke: ink, strokeWidth: 22, strokeDasharray: '90 70' }))}
         {o.orient === 'h' ? (
           <>
             <line x1={x1} y1={y1 - t} x2={x1} y2={y1 + t} stroke={ink} strokeWidth={30} />
@@ -371,7 +374,7 @@ function OpeningMark({ o, ink, bg, theme }: { o: Opening; ink: string; bg: strin
       </g>)}
       <rect x={-half-160} y={160} width={o.width+320} height={750} fill="none" stroke={faint} strokeWidth={25} strokeDasharray="100 60" />
       <line x1={-half} y1={100} x2={half} y2={100} stroke={ink} strokeWidth={30} />
-      <text x={0} y={1160} textAnchor="middle" fill={ink} fontSize={220}>MAIN ENTRY · SHADE</text>
+      <text x={0} y={1160} textAnchor="middle" fill={ink} fontSize={220}>{translateUi("MAIN ENTRY · SHADE")}</text>
     </g>
   }
   if (o.orient === 'h') {
@@ -425,19 +428,23 @@ function OpeningMark({ o, ink, bg, theme }: { o: Opening; ink: string; bg: strin
 }
 
 function DimH({ y, x1, x2, label }: { y: number; x1: number; x2: number; label: string }) {
+  useLanguage(s => s.language);
+
   return (
     <g>
       <line x1={x1} y1={y} x2={x2} y2={y} />
       <line x1={x1} y1={y - 160} x2={x1} y2={y + 160} />
       <line x1={x2} y1={y - 160} x2={x2} y2={y + 160} />
       <text x={(x1 + x2) / 2} y={y - 220} textAnchor="middle" fontSize={460} stroke="none">
-        {label}
+        {translateUi(label)}
       </text>
     </g>
   )
 }
 
 function DimV({ x, y1, y2, label }: { x: number; y1: number; y2: number; label: string }) {
+  useLanguage(s => s.language);
+
   return (
     <g>
       <line x1={x} y1={y1} x2={x} y2={y2} />
@@ -451,13 +458,15 @@ function DimV({ x, y1, y2, label }: { x: number; y1: number; y2: number; label: 
         stroke="none"
         transform={`rotate(-90 ${x - 240} ${(y1 + y2) / 2})`}
       >
-        {label}
+        {translateUi(label)}
       </text>
     </g>
   )
 }
 
 function NorthArrow({ x, y, entrySide, ink }: { x: number; y: number; entrySide: string; ink: string }) {
+  useLanguage(s => s.language);
+
   // entry is drawn at the south; rotate the N marker so it reflects the real facing
   const rot = { S: 0, W: 90, N: 180, E: 270 }[entrySide] ?? 0
   return (
@@ -465,8 +474,7 @@ function NorthArrow({ x, y, entrySide, ink }: { x: number; y: number; entrySide:
       <circle r={520} fill="none" strokeWidth={25} />
       <path d="M0 -520 L 150 120 L 0 0 L -150 120 Z" strokeWidth={20} />
       <text y={-720} textAnchor="middle" fontSize={440} stroke="none" fontFamily="'IBM Plex Mono', monospace">
-        N
-      </text>
+        {translateUi("N")}</text>
     </g>
   )
 }
@@ -481,6 +489,8 @@ const GLASS = '#6fb3d6'
 
 /** floor finishes as tiling patterns, in plan millimetres */
 function PresentationDefs() {
+  useLanguage(s => s.language);
+
   return (
     <defs>
       <pattern id="fin-wood" width={1200} height={200} patternUnits="userSpaceOnUse">
@@ -525,6 +535,8 @@ const PIECE: Record<Role, { fill: string; stroke: string }> = {
 }
 
 function Piece({ s }: { s: FurnitureShape }) {
+  useLanguage(s => s.language);
+
   const st = PIECE[s.role]
   return s.kind === 'rect' ? (
     <rect x={s.x} y={s.y} width={s.w} height={s.h} rx={s.rx ?? 0} fill={st.fill} stroke={st.stroke} strokeWidth={s.role === 'car' ? 35 : 18} />
@@ -535,19 +547,23 @@ function Piece({ s }: { s: FurnitureShape }) {
 
 /** "BEDROOM 2" over "3.6 X 4.0 m", the way a presentation plan names a room */
 function RoomTag({ name, rect, size, ink = '#1a1a1a', bg = '#ffffff' }: { name: string; rect: Rect; size: number; ink?: string; bg?: string }) {
+  useLanguage(s => s.language);
+
   const c = rectCenter(rect)
   const dims = `${(rect.w / 1000).toFixed(1)} X ${(rect.h / 1000).toFixed(1)} m`
   const halo = { stroke: bg, strokeWidth: size / 4, paintOrder: 'stroke' as const }
   return (
     <g fontFamily="'Inter', sans-serif" textAnchor="middle">
-      <text x={c.x} y={c.y - size * 0.15} fontSize={size} fontWeight={600} fill={ink} {...halo}>{name.toUpperCase()}</text>
-      <text x={c.x} y={c.y + size * 1.05} fontSize={size * 0.82} fill={ink} {...halo}>{dims}</text>
+      <text x={c.x} y={c.y - size * 0.15} fontSize={size} fontWeight={600} fill={ink} {...halo}>{translateUi(name.toUpperCase())}</text>
+      <text x={c.x} y={c.y + size * 1.05} fontSize={size * 0.82} fill={ink} {...halo}>{translateUi(dims)}</text>
     </g>
   )
 }
 
 /** Plain site ground and a clear approach path, without tree symbols. */
 function Landscape({ floor, model }: { floor: FloorPlan; model: CanonicalModel }) {
+  useLanguage(s => s.language);
+
   const garden = model.brief.rooms.priorities.garden
   const W = model.plot.width
   const H = model.plot.depth
@@ -569,6 +585,8 @@ function Landscape({ floor, model }: { floor: FloorPlan; model: CanonicalModel }
  * stair headroom room, water tank and pergola the 3D model builds.
  */
 export function TerraceDrawing({ design, svgRef, theme = 'presentation', layers }: { design: Design; svgRef?: React.Ref<SVGSVGElement>; theme?: Theme; layers?: Partial<DrawingLayers> }) {
+  useLanguage(s => s.language);
+
   const model = design.model
   const layout = terraceLayout(design)
   const top = design.floors[design.floors.length - 1]
@@ -586,7 +604,7 @@ export function TerraceDrawing({ design, svgRef, theme = 'presentation', layers 
     <svg ref={svgRef} viewBox={vb} className="h-full w-full" xmlns="http://www.w3.org/2000/svg" style={{ background: BG[theme] }}>
       <PresentationDefs />
       {active.site && <g data-layer="site"><rect x={0} y={0} width={model.plot.width} height={model.plot.depth} fill="none" stroke={faint} strokeWidth={40} /><rect x={model.setbacksMm.W} y={model.setbacksMm.N} width={model.envelope.width} height={model.envelope.depth} fill="none" stroke={faint} strokeWidth={25} strokeDasharray="120 90" /></g>}
-      {active.supports && <g data-layer="supports" stroke={faint} strokeWidth={35} strokeDasharray="180 90">{supports.beams.map(b => <line key={b.id} x1={b.a.x} y1={b.a.y} x2={b.b.x} y2={b.b.y} strokeWidth={b.widthMm} />)}{supports.columns.map(c => <rect key={c.id} x={c.at.x - c.size / 2} y={c.at.y - c.size / 2} width={c.size} height={c.size} fill={ink} />)}<text x={0} y={model.plot.depth+2900} fill={faint} stroke="none" fontSize={200}>approximate; structural design by a licensed engineer required</text></g>}
+      {active.supports && <g data-layer="supports" stroke={faint} strokeWidth={35} strokeDasharray="180 90">{supports.beams.map(b => <line key={b.id} x1={b.a.x} y1={b.a.y} x2={b.b.x} y2={b.b.y} strokeWidth={b.widthMm} />)}{supports.columns.map(c => <rect key={c.id} x={c.at.x - c.size / 2} y={c.at.y - c.size / 2} width={c.size} height={c.size} fill={ink} />)}<text x={0} y={model.plot.depth+2900} fill={faint} stroke="none" fontSize={200}>{translateUi("approximate; structural design by a licensed engineer required")}</text></g>}
       {active.circulation && top.stair && <rect data-layer="circulation" x={top.stair.rect.x} y={top.stair.rect.y} width={top.stair.rect.w} height={top.stair.rect.h} fill="none" stroke={faint} strokeWidth={60} strokeDasharray="120 90" />}
       {active.dimensions && <g data-layer="dimensions" fill={faint} stroke={faint} strokeWidth={22} fontFamily="monospace">
         <DimH y={model.plot.depth + 1500} x1={0} x2={model.plot.width} label={`${(model.plot.width / 1000).toFixed(2)} m`} />
@@ -646,6 +664,8 @@ export function TerraceDrawing({ design, svgRef, theme = 'presentation', layers 
 }
 
 export function SiteFeatureDrawing({ features, ink, showLabels = true, showFurniture = true, dark = false }: { features: SiteFeature[]; ink: string; faint?: string; showLabels?: boolean; showFurniture?: boolean; dark?: boolean }) {
+  useLanguage(s => s.language);
+
   // the garden is one continuous ground under everything else: no outline between its pieces, one name
   const lawns = features.filter(f => f.kind === 'lawn')
   const hard = features.filter(f => f.kind !== 'lawn')
@@ -655,11 +675,11 @@ export function SiteFeatureDrawing({ features, ink, showLabels = true, showFurni
     const text = texts.find(t => t && fitLabel(rect, t, max)) ?? ''
     const at = text ? fitLabel(rect, text, max) : null
     return at && <text x={at.x} y={at.y} transform={at.rotate ? `rotate(${at.rotate} ${at.x} ${at.y})` : undefined} textAnchor="middle" dominantBaseline="middle"
-      fill={color} fontSize={at.size} fontFamily="'IBM Plex Mono', monospace" letterSpacing={at.size * 0.08} fontWeight={600}>{text}</text>
+      fill={color} fontSize={at.size} fontFamily="'IBM Plex Mono', monospace" letterSpacing={at.size * 0.08} fontWeight={600}>{translateUi(text)}</text>
   }
   return <g data-layer="outdoor">
     {lawns.map(f => <rect key={f.id} x={f.rect.x} y={f.rect.y} width={f.rect.w} height={f.rect.h} fill={dark ? SITE_STYLE.lawn.dark : SITE_STYLE.lawn.fill} stroke={dark ? SITE_STYLE.lawn.dark : SITE_STYLE.lawn.fill} strokeWidth={30} />)}
-    {gardenLabel && <text x={gardenLabel.x} y={gardenLabel.y} textAnchor="middle" dominantBaseline="middle" fill={dark ? '#7f9a86' : '#7d9470'} fontSize={gardenLabel.size} fontFamily="'IBM Plex Mono', monospace" letterSpacing={gardenLabel.size * 0.3}>{SITE_STYLE.lawn.short}</text>}
+    {gardenLabel && <text x={gardenLabel.x} y={gardenLabel.y} textAnchor="middle" dominantBaseline="middle" fill={dark ? '#7f9a86' : '#7d9470'} fontSize={gardenLabel.size} fontFamily="'IBM Plex Mono', monospace" letterSpacing={gardenLabel.size * 0.3}>{translateUi(SITE_STYLE.lawn.short)}</text>}
     {hard.map(f => {
       const st = SITE_STYLE[f.kind], r = f.rect, long = r.w >= r.h
       return <g key={f.id} data-site={f.kind}>
@@ -670,10 +690,10 @@ export function SiteFeatureDrawing({ features, ink, showLabels = true, showFurni
           const at = showLabels && !f.covered ? fitLabel(r, st.short) : null, gap = at ? at.size * st.short.length * 0.42 : 0
           const c = long ? r.x + r.w / 2 : r.y + r.h / 2, a = long ? r.x + 300 : r.y + 300, b = long ? r.x + r.w - 300 : r.y + r.h - 300
           const seg = (p: number, q: number, k: string) => q - p > 200 && <line key={k} x1={long ? p : r.x + r.w / 2} y1={long ? r.y + r.h / 2 : p} x2={long ? q : r.x + r.w / 2} y2={long ? r.y + r.h / 2 : q} stroke="#fff" strokeWidth={70} strokeDasharray="500 350" opacity={0.9} />
-          return <>{seg(a, c - gap, 'a')}{seg(c + gap, b, 'b')}</>
+          return <>{translateUi(seg(a, c - gap, 'a'))}{translateUi(seg(c + gap, b, 'b'))}</>
         })()}
         {showFurniture && !f.covered && f.kind === 'parking' && <rect x={r.x + 500} y={r.y + 400} width={1900} height={4200} rx={240} fill="none" stroke={ink} strokeWidth={35} />}
-        {showLabels && !f.covered && label(r, [st.short, st.alt], dark ? '#e7e5e0' : '#3f4a55')}
+        {translateUi(showLabels && !f.covered && label(r, [st.short, st.alt], dark ? '#e7e5e0' : '#3f4a55'))}
       </g>
     })}
   </g>

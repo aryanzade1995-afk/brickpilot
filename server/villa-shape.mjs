@@ -1,9 +1,12 @@
 import { evaluateVillaFingerprint } from '../src/lib/engine/fingerprint/VillaDiversityGate.ts'
 
 export const REALIZED_WEIGHTS = { front: .15, side: .15, roof: .25, roofFront: .225, roofSide: .225 }
+export const REALIZED_FACADE_WEIGHTS = { front: .10, side: .10, roof: .20, roofFront: .05, roofSide: .05,
+  facadeFront: .25, facadeSide: .25 }
+const weightsFor = shape => shape?.schemaVersion === 4 ? REALIZED_FACADE_WEIGHTS : REALIZED_WEIGHTS
 export function validRealizedShape(value) {
-  return [1, 2, 3].includes(value?.schemaVersion) && value.grid === 32 && Number.isSafeInteger(value.seed) &&
-    typeof value.planId === 'string' && Object.keys(REALIZED_WEIGHTS).every((key) =>
+  return [1, 2, 3, 4].includes(value?.schemaVersion) && value.grid === 32 && Number.isSafeInteger(value.seed) &&
+    typeof value.planId === 'string' && Object.keys(weightsFor(value)).every((key) =>
       Array.isArray(value.parts?.[key]) && value.parts[key].length === 1024 &&
       value.parts[key].every((n) => n === 0 || n === 1))
 }
@@ -14,7 +17,7 @@ export function realizedSimilarity(a, b) {
   // The roof and envelope carry most weight; unchanged occupied rooms do not
   // drown out large differences in the permitted exterior composition.
   let score = 0
-  for (const [key, weight] of Object.entries(REALIZED_WEIGHTS)) {
+  for (const [key, weight] of Object.entries(weightsFor(a))) {
     let overlap = 0, union = 0
     for (let i = 0; i < 1024; i++) { overlap += Math.min(a.parts[key][i], b.parts[key][i]); union += Math.max(a.parts[key][i], b.parts[key][i]) }
     score += weight * (union ? overlap / union : 1)

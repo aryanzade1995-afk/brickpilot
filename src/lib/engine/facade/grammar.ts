@@ -91,7 +91,9 @@ export function planFacade(design: Design): FacadePlan {
     const [lo, hi] = interval(host)
     const jambClear = [middle - half, middle + half].every((at) =>
       !(ground.columns ?? []).some((c) => Math.abs((entry.orient === 'h' ? c.at.y : c.at.x) - fixed(host)) < 2 &&
-        Math.abs((entry.orient === 'h' ? c.at.x : c.at.y) - at) < c.size / 2 + thickness / 2))
+        Math.abs((entry.orient === 'h' ? c.at.x : c.at.y) - at) < c.size / 2 + thickness / 2) &&
+      !ground.openings.some((o) => o !== entry && o.orient === entry.orient && Math.abs(cross(o) - fixed(host)) < 2 &&
+        Math.abs(along(o) - at) < o.width / 2 + thickness / 2 + 150))
     const canopy = ['horizontal-canopy', 'deep-shadow-entry', 'recessed-entry'].includes(dna.entranceDesign)
     if (!canopy && jambClear && middle - half - thickness / 2 >= lo && middle + half + thickness / 2 <= hi) {
       addOnWall(features, ground, host, 'entry-jamb', middle - half, thickness, 0, 2650, 220 + Math.round(dna.frameDepthM * 500), 'main-door', 1)

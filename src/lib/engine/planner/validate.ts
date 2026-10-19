@@ -3,6 +3,7 @@ import type { Design, FloorPlan, Opening, PlacedRoom } from '../types.ts'
 import { MAX_BEAM_SPAN, MAX_CANTILEVER, normalizeBrief, stairGeometry } from './program.ts'
 import { reachability } from './index.ts'
 import { DOUBLE_HEIGHT_LIMITS } from './doubleHeight.ts'
+import { setbackTerraceArea } from '../siteForm.ts'
 
 /* ------------------------------------------------------------------ *
  *  Mandatory plan validators. Any finding here is an `error`: the plan
@@ -45,12 +46,24 @@ export function planFindings(design: Design): PlanFinding[] {
     out.push({ code, category, message, roomId })
   const ids = new Map<string, number>()
   const env = design.model
+  if(env.brief.style.character==='modern-box'&&env.brief.style.composition==='terraced-villa'&&setbackTerraceArea(design)<6)
+    add('COMPOSITION_TERRACE_MISSING','planning','Terraced villa needs at least 6 m² of upper terrace with a real access door.')
+  if(env.brief.style.character==='modern-box'&&env.brief.style.composition==='glazed-bay'){
+    const ground=design.floors[0],core=ground.rooms.find(r=>r.id==='stair')
+    if(!core||Math.abs(core.rect.x+core.rect.w/2-ground.outline.x-ground.outline.w/2)>ground.outline.w*.18||
+      !design.floors.every(f=>f.openings.some(o=>o.kind==='window'&&o.rooms?.includes('stair')&&(o.head??2250)-(o.sill??900)>=1500)))
+      add('COMPOSITION_BAY_MISSING','planning','Glazed central bay needs a central stair and tall source glazing on each floor.')
+  }
   const envRect: Rect = {
     x: env.setbacksMm.W, y: env.setbacksMm.N, w: env.envelope.width, h: env.envelope.depth,
   }
 
   design.floors.forEach((floor, fi) => {
     const lower: FloorPlan | undefined = design.floors[fi - 1]
+    const court=design.floors[0].courtyard
+    if(court && (floor.footprint.some(r=>overlapArea(r,court)>10_000) ||
+      floor.rooms.some(r=>!r.outdoor && overlapArea(r.rect,court)>10_000)))
+      add('COURTYARD_BLOCKED','vertical','The source courtyard must stay open through every floor and the roof.')
     for(const voidSpace of floor.doubleHeightVoids??[]){
       const r=voidSpace.rect,host=lower?.rooms.find(room=>room.semanticId===voidSpace.sourceRoomId)
       if(!host||!['living','livingDining'].includes(host.id)||overlapArea(r,host.rect)!==rectArea(r)||
@@ -141,6 +154,13 @@ export function planFindings(design: Design): PlanFinding[] {
       const a = aId ? byId.get(aId) : undefined
       const b = bId ? byId.get(bId) : undefined
       const label = o.id ?? `${o.kind} on ${floor.name}`
+      if(o.kind==='window'&&(o.treatment!==undefined||o.leaf!==undefined||o.rooms?.[1]!=null))
+        add('WINDOW_IS_NOT_ACCESS','topology',`${label} is a window and cannot be used as a sliding or hinged access door.`,a?.id)
+      if(o.kind==='window'&&!design.existingStructure&&(o.sill??900)<900)
+        add('WINDOW_SILL_TOO_LOW','planning',`${label} needs a visible window sill; balcony access must use a door.`,a?.id)
+      const balcony=[a,b].find(r=>r?.outdoor&&r.id.startsWith('balcony'))
+      if(o.treatment==='glazed-slide'&&(a?.outdoor||b?.outdoor||!a||!b)&&!balcony)
+        add('SLIDER_WITHOUT_BALCONY','topology',`${label} needs a real balcony or accessible terrace outside.`,a?.id)
       if (o.kind === 'door' && (!a || !b)) {
         add('DOOR_WRONG_WALL', 'topology', `${label} does not join two spaces.`)
         continue
@@ -160,7 +180,7 @@ export function planFindings(design: Design): PlanFinding[] {
         const kitchenDining = ids.includes('kitchen') && (ids.includes('dining') || ids.includes('livingDining'))
         if (o.orient === 'v' && !isCirculation(a) && !isCirculation(b) && !attachedBath && !kitchenDining && !a.outdoor && !b.outdoor)
           add('VERTICAL_ROOM_PARTITION_DOOR', 'topology', `${label} cuts the vertical partition between ${a.name} and ${b.name}.`, a.id)
-        if (o.width > 1000 && !(o.treatment && ids.includes('kitchen')))
+        if (o.width > 1000 && !(o.treatment && ids.includes('kitchen')) && !(balcony&&o.treatment==='glazed-slide'&&o.width<=2400))
           add('DOOR_TOO_WIDE', 'topology', `${label} is ${o.width} mm wide; internal openings are limited to 1000 mm.`, a.id)
       }
       if ((o.kind === 'window' || o.kind === 'entry') && a) {
@@ -186,6 +206,11 @@ export function planFindings(design: Design): PlanFinding[] {
         mine.push(box)
         leafBoxes.set(a.id, mine)
       }
+    }
+    for(const balcony of floor.rooms.filter(r=>r.outdoor&&r.id.startsWith('balcony'))){
+      const access=floor.openings.find(o=>o.kind==='door'&&o.width>=900&&o.rooms?.includes(balcony.id)&&
+        o.rooms.some(id=>id!==balcony.id&&!!id&&!byId.get(id)?.outdoor))
+      if(!access)add('BALCONY_ACCESS_MISSING','topology',`${balcony.name} needs a hinged door or sliding door from an indoor room.`,balcony.id)
     }
     for (let i = 0; i < floor.openings.length; i++) {
       for (let j = i + 1; j < floor.openings.length; j++) {

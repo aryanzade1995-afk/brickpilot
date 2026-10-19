@@ -11,6 +11,7 @@ import { beamsFor, occupy, placeDoors, placeWindows, planShafts, stairRun, suppo
 import type { Column, LocalRoom, RoomReq, Unit } from './types.ts'
 import { PLANNING_LIMITS } from './limits.ts'
 import { createDoubleHeightGallery, DOUBLE_HEIGHT_LIMITS } from './doubleHeight.ts'
+import { upperProfile, usesSetbackTerraces } from '../siteForm.ts'
 
 export const WING_LIMITS = { linkWidthMm: 1800, hallWidthMm: 1500, courtWidthMm: 3000, maximumDepthMm: 5400,
   maximumRoomGrowth: 1.5, minimumBarLengthMm: 6000 } as const
@@ -93,7 +94,8 @@ export function planWings(model: CanonicalModel, request: PlanRequest): PlanResu
  const sideStart = linkRect.y + (request.family==='pavilion' ? snap((linkRect.h-sideLength)/2) : 0)
  if(third && (sideLength<6000 || groups.some(g=>g.side.reduce((n,u)=>n+unitLength(u,sideDepth,'min'),0)>sideLength)))return null
  const coreWidth=stair.slotWidth+(nb.lift?1800:0)
- const coreStart=choices?.stair==='centre'?snap((length-coreWidth)/2):0
+ const coreStart=choices?.centralBay?snap((length-coreWidth)*(.42+(request.pick%3)*.08)):
+  choices?.stair==='centre'?snap((length-coreWidth)/2):0
  const stops=[...new Set([0,coreStart,coreStart+coreWidth,length])].sort((a,b)=>a-b),localAxes=[0]
  for(let j=1;j<stops.length;j++){
   const begin=stops[j-1],end=stops[j],bays=Math.ceil((end-begin)/MAX_SPAN)
@@ -101,7 +103,13 @@ export function planWings(model: CanonicalModel, request: PlanRequest): PlanResu
  }
  const ys=[y,y+d,y+d+s,southY,southY+s,southY+s+d]
  const galleryYs=[northHall.y]
- while(galleryYs.at(-1)!<southY+s)galleryYs.push(Math.min(southY+s,galleryYs.at(-1)!+MAX_SPAN))
+ // Subdivide between the actual wing/gallery corners. Stepping a fixed span
+ // across them can leave two touching columns and a zero-clear-span beam.
+ const galleryStops=ys.filter(at=>at>=northHall.y&&at<=southY+s)
+ for(let j=1;j<galleryStops.length;j++){
+  const begin=galleryStops[j-1],end=galleryStops[j],bays=Math.ceil((end-begin)/MAX_SPAN)
+  for(let i=1;i<=bays;i++)galleryYs.push(i===bays?end:begin+snap((end-begin)*i/bays))
+ }
  const axes=[...localAxes.map((u,i)=>({id:`WING_X${i}`,orient:'v' as const,at:x+u})),
   ...ys.map((at,i)=>({id:`WING_Y${i}`,orient:'h' as const,at}))]
  const points:Point[]=[]
@@ -114,10 +122,25 @@ export function planWings(model: CanonicalModel, request: PlanRequest): PlanResu
  const floors:FloorPlan[]=[], kinds=new Map<string,string>(), parents=new Map<string,string>()
  for(const f of reqs)for(const r of [...f.rooms,...f.outdoor,f.spine]){kinds.set(r.id,r.kind);if(r.parent)parents.set(r.id,r.parent)}
  let maxSpan=0
+ const profile=request.formVersion?upperProfile(model,request.formSeed??request.order):undefined
+ const previousLengths=[length,length,sideLength]
  for(const [fi,f] of reqs.entries()){
   const rooms:PlacedRoom[]=[], subsets:PlacedRoom[][]=[]
   for(const [wi,units] of [groups[fi].north,groups[fi].south,...(third?[groups[fi].side]:[])].entries()){
-   const runLength=wi===2?sideLength:length, runDepth=wi===2?sideDepth:d, runAxes=wi===2?sideAxes:localAxes
+   const runDepth=wi===2?sideDepth:d, runAxes=wi===2?sideAxes:localAxes
+   let runLength=previousLengths[wi]
+   if(fi>0&&profile&&wi<2){
+    const target=Math.max(...groups.slice(fi).map(g=>(wi===0?g.north:g.south).reduce((n,u)=>n+unitLength(u,runDepth,'target'),0)))
+    const coreEnd=units.some(u=>u.key==='core')?coreStart+coreWidth:0
+    const options=runAxes.filter(at=>at>=Math.max(6000,target,coreEnd)&&at<=previousLengths[wi])
+    // Unequal wing ends create real roof terraces. The enclosed courtyard's
+    // gallery stays connected around all four sides, even when rooms recede.
+    if(options.length){
+     const offset=profile==='staggered'||profile==='recessed'?(wi+fi)%2:0
+     runLength=options[Math.min(offset,options.length-1)]
+    }
+   }
+   previousLengths[wi]=runLength
    const fill=(us:Unit[],lo:number,hi:number,serial:string):LocalRoom[]=>{
     const rs=us.flatMap(u=>u.rooms),span=hi-lo
     if(span<=0)return []
@@ -154,7 +177,8 @@ export function planWings(model: CanonicalModel, request: PlanRequest): PlanResu
    const hall=wi===0?f.spine:hallReq(wi===1?'privateHall':'link',f.prefix,wi===1?'Private wing hall':'Connecting gallery')
    kinds.set(hall.id,hall.kind)
    rooms.push(...subset)
-   subset.push(placed(hall,wi===0?northHall:wi===1?southHall:linkRect));subsets.push(subset)
+   const hallRect=wi===0?northHall:wi===1?southHall:linkRect
+   subset.push(placed(hall,wi<2&&!ring?{...hallRect,w:runLength}:hallRect));subsets.push(subset)
    if(wi!==2)rooms.push(subset.at(-1)!)
   }
   const link=placed(hallReq('link',f.prefix,'Connecting gallery'),linkRect)
@@ -184,10 +208,18 @@ export function planWings(model: CanonicalModel, request: PlanRequest): PlanResu
    }
    const courtReq=f.outdoor.find(r=>r.kind==='courtyard')
    if(courtReq)rooms.push(outdoor(courtReq,court))
+   else if(ring){
+    rooms.push({id:'courtyard',semanticId:`${f.prefix}_COURTYARD`,name:'Open courtyard',zone:'outdoor',
+     rect:{...court},area:toSqm(rectArea(court)),outdoor:true,wantsWindow:false})
+    kinds.set('courtyard','courtyard')
+   }
    frontYard(rooms,f.outdoor.filter(r=>r.kind!=='courtyard'&&!r.id.startsWith('verandahWing')),outline,site,nb.twoCar,nb.large,outdoor)
   }else for(const r of f.outdoor.filter(r=>r.kind==='balcony')){
-   const rect=placeBalcony(rooms,outline,site,id=>kinds.get(id)??'',floors[fi-1].footprint)
-   if(rect)rooms.push(outdoor(r,rect))
+   const rect=placeBalcony(rooms,outline,site,id=>kinds.get(id)??'',floors[fi-1].footprint,usesSetbackTerraces(request.formVersion))
+   if(rect){
+    const supported=floors[fi-1].footprint.reduce((n,p)=>n+Math.max(0,Math.min(rect.x+rect.w,p.x+p.w)-Math.max(rect.x,p.x))*Math.max(0,Math.min(rect.y+rect.h,p.y+p.h)-Math.max(rect.y,p.y)),0)>=rectArea(rect)-1000
+    rooms.push(outdoor(usesSetbackTerraces(request.formVersion)&&supported?{...r,name:'Setback terrace'}:r,rect))
+   }
   }
   if(fi===0 && rectUnionArea([...footprint,...rooms.filter(r=>r.outdoor&&r.id!=='courtyard').map(r=>r.rect)])>
    site.plot.w*site.plot.h*PLANNING_LIMITS.maxCoverage)return null
@@ -226,14 +258,16 @@ export function planWings(model: CanonicalModel, request: PlanRequest): PlanResu
    // reached through that verandah rather than an invented wall aperture.
    if(out.id==='courtyard'&&choices?.verandah==='wrap')continue
    const result=placeDoors([...subset,out],out.id==='courtyard'?f.spine.id:'privateHall',f.prefix,columns,occ,
-    ()=>'',()=>undefined,null,target)
+    ()=>'',()=>undefined,null,target,model.brief.lifestyle.kitchen,model.brief.style.character==='modern-box'?'sliding':'hinged')
    for(const o of result.openings){if(!doors.some(d=>d.id===o.id)){doors.push(o);occupy(occ,o.orient,o.orient==='h'?o.at.y:o.at.x,o.orient==='h'?o.at.x:o.at.y,o.width)}}
   }
-  const windows=placeWindows(rooms,walls,columns,occ,id=>kinds.get(id)??'',request.themeWindowMm,request.dna,floors.at(-1)?.openings??[])
+  const windows=placeWindows(rooms,walls,columns,occ,id=>kinds.get(id)??'',request.themeWindowMm,request.dna,floors.at(-1)?.openings??[],ring?court:undefined,
+   model.brief.style.character==='modern-box'&&!!model.brief.style.composition?Math.round(model.brief.levels.floorToFloor*1000):undefined)
   const openings=[...doors,...windows],unreachable=reachability(rooms,openings,fi)
   floors.push({level:fi,name:model.floors[fi].name,prefix:f.prefix,outline,footprint,rooms,walls,openings,
    ...(doubleHeight?{doubleHeightVoids:[doubleHeight]}:{}),
-   courtyard:fi===0&&rooms.some(r=>r.id==='courtyard')?court:null,roof:request.roofFor(fi,fi===reqs.length-1),
+   // The same open-to-sky void is authoritative on every storey and its roof.
+   courtyard:ring||rooms.some(r=>r.id==='courtyard')?{...court}:null,roof:request.roofFor(fi,fi===reqs.length-1),
    columns,beams,shafts:planShafts(rooms,walls,openings,id=>kinds.get(id)??'',floors.at(-1)?.rooms??[]),
    supportZones:supportZonesFor(footprint,f.prefix,[]),stair:stairRun(core.rect,choices?.stair==='front'?'N':'S',stair.perFlight,GOING),
    reachable:!failed.length&&!unreachable.length,unreachableRooms:[...new Set([...failed,...unreachable])]})

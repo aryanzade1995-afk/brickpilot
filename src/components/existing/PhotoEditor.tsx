@@ -1,3 +1,4 @@
+import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
 import { useRef, useState } from 'react'
 import { CONFIDENCE_FLOOR, type Calibration, type Detections, type Pt } from '@/lib/existing/types.ts'
 import type { Tool } from '@/state/existing.ts'
@@ -34,6 +35,8 @@ const tone = (conf: number, confirmed: boolean) =>
 
 /** The photo with its detections drawn on top. Everything is clickable and draggable so every detection can be corrected. */
 export function PhotoEditor(p: Props) {
+  useLanguage(s => s.language);
+
   const svg = useRef<SVGSVGElement>(null)
   const [drag, setDrag] = useState<{ kind: 'el' | 'corner'; id: string | number } | null>(null)
   const r = Math.max(7, Math.round(p.size.w / 90))
@@ -70,7 +73,7 @@ export function PhotoEditor(p: Props) {
 
   return (
     <div className="relative select-none overflow-hidden border border-line-strong bg-bg-inset">
-      <img src={p.imageUrl} alt="Site photo" className="block h-auto w-full" draggable={false} />
+      <img src={p.imageUrl} alt={translateUi("Site photo")} className="block h-auto w-full" draggable={false} />
       <svg ref={svg} viewBox={`0 0 ${p.size.w} ${p.size.h}`} className="absolute inset-0 h-full w-full touch-none"
         style={{ cursor: p.readOnly ? 'default' : p.mode === 'calibrate' ? (p.corners.length < 4 ? 'crosshair' : 'default') : p.tool === 'column' || p.tool === 'footing' || p.tool === 'seg-column' || p.tool === 'seg-footing' ? 'crosshair' : p.tool === 'remove' ? 'not-allowed' : 'default' }}
         onPointerDown={background} onPointerMove={move} onPointerUp={() => setDrag(null)} onPointerLeave={() => setDrag(null)}>
@@ -98,7 +101,7 @@ export function PhotoEditor(p: Props) {
               {c.top && <line x1={c.img.x} y1={c.top.y} x2={c.img.x} y2={c.img.y} stroke={col} strokeOpacity={0.45} strokeWidth={Math.max(3, c.widthPx * 0.55)} />}
               <circle cx={c.img.x} cy={c.img.y} r={r + (picked || glow ? 4 : 0)} fill="#fff" fillOpacity={0.9} stroke={col} strokeWidth={3}
                 strokeDasharray={!c.confirmed && c.confidence < CONFIDENCE_FLOOR ? '5 4' : undefined} />
-              <text x={c.img.x} y={c.img.y + r * 0.4} textAnchor="middle" fontSize={r * 1.15} fontWeight={700} fill="#111">{c.id.replace('col-', '')}</text>
+              <text x={c.img.x} y={c.img.y + r * 0.4} textAnchor="middle" fontSize={r * 1.15} fontWeight={700} fill="#111">{translateUi(c.id.replace('col-', ''))}</text>
             </g>
           )
         })}
@@ -106,7 +109,7 @@ export function PhotoEditor(p: Props) {
         {p.detections.footings.map((f) => (
           <g key={f.id} onPointerDown={(e) => grab(e, f.id)} style={{ cursor: 'pointer' }}>
             <rect x={f.img.x - r} y={f.img.y - r} width={r * 2} height={r * 2} fill="#fff" fillOpacity={0.9} stroke={tone(f.confidence, f.confirmed)} strokeWidth={3} />
-            <text x={f.img.x} y={f.img.y + r * 0.4} textAnchor="middle" fontSize={r} fontWeight={700} fill="#111">F</text>
+            <text x={f.img.x} y={f.img.y + r * 0.4} textAnchor="middle" fontSize={r} fontWeight={700} fill="#111">{translateUi("F")}</text>
           </g>
         ))}
         {/* calibration corners */}
@@ -115,7 +118,7 @@ export function PhotoEditor(p: Props) {
           {p.corners.map((c, i) => (
             <g key={i} onPointerDown={(e) => { e.stopPropagation(); (e.target as Element).setPointerCapture(e.pointerId); setDrag({ kind: 'corner', id: i }) }} style={{ cursor: 'grab' }}>
               <circle cx={c.x} cy={c.y} r={r + 2} fill="#1D4E89" fillOpacity={0.85} stroke="#fff" strokeWidth={2} />
-              <text x={c.x + r + 6} y={c.y - r} fontSize={r * 1.3} fontWeight={700} fill="#1D4E89" stroke="#fff" strokeWidth={4} paintOrder="stroke">{CORNER_LABELS[i]}</text>
+              <text x={c.x + r + 6} y={c.y - r} fontSize={r * 1.3} fontWeight={700} fill="#1D4E89" stroke="#fff" strokeWidth={4} paintOrder="stroke">{translateUi(CORNER_LABELS[i])}</text>
             </g>
           ))}
         </>}

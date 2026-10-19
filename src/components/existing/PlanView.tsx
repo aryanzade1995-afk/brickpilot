@@ -1,3 +1,4 @@
+import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
 import type { Design } from '@/lib/engine/types.ts'
 import type { MapElement } from '@/lib/existing/types.ts'
 import type { ExistingFinding } from '@/lib/existing/validate.ts'
@@ -18,7 +19,9 @@ type Props = {
 }
 
 export function PlanLegend() {
-  const item = (label: string, el: React.ReactNode) => <span className="flex items-center gap-2">{el}<span>{label}</span></span>
+  useLanguage(s => s.language);
+
+  const item = (label: string, el: React.ReactNode) => <span className="flex items-center gap-2">{translateUi(el)}<span>{translateUi(label)}</span></span>
   return (
     <div className="flex flex-wrap gap-x-5 gap-y-2 font-mono text-[0.68rem] uppercase tracking-[0.08em] text-ink-dim">
       {item('Existing, locked', <span className="inline-block h-3 w-3" style={{ background: LOCKED }} />)}
@@ -30,6 +33,8 @@ export function PlanLegend() {
 }
 
 export function PlanView({ design, level = 0, elements, findings = [], className }: Props) {
+  useLanguage(s => s.language);
+
   const floor = design?.floors.find((f) => f.level === level)
   // world bounds
   let x0 = 0, y0 = 0, w = 1, h = 1
@@ -46,7 +51,7 @@ export function PlanView({ design, level = 0, elements, findings = [], className
   const labelSize = unit * 11
 
   return (
-    <svg viewBox={`${x0} ${y0} ${w} ${h}`} className={className ?? 'h-auto w-full border border-line bg-bg'} role="img" aria-label="Plan with existing structure marked">
+    <svg viewBox={`${x0} ${y0} ${w} ${h}`} className={className ?? 'h-auto w-full border border-line bg-bg'} role="img" aria-label={translateUi("Plan with existing structure marked")}>
       {design && <>
         <rect x={0} y={0} width={w} height={h} fill="#F9F9F7" stroke="#8A8F96" strokeWidth={unit * 1.5} />
         <rect x={design.model.setbacksMm.W} y={design.model.setbacksMm.N} width={design.model.envelope.width} height={design.model.envelope.depth}
@@ -60,7 +65,7 @@ export function PlanView({ design, level = 0, elements, findings = [], className
           <rect x={r.rect.x} y={r.rect.y} width={r.rect.w} height={r.rect.h} fill={ZONE[r.outdoor ? 'outdoor' : r.zone] ?? '#EEE'}
             stroke={r.outdoor ? '#8A9A78' : '#5B6168'} strokeWidth={unit * (r.outdoor ? 0.8 : 1.1)} strokeDasharray={r.outdoor ? `${unit * 4} ${unit * 3}` : undefined} />
           {r.rect.w > 1500 && r.rect.h > 1100 && (
-            <text x={r.rect.x + r.rect.w / 2} y={r.rect.y + r.rect.h / 2} textAnchor="middle" fontSize={labelSize} fill="#2A2D31">{r.name.split(' · ')[0]}</text>
+            <text x={r.rect.x + r.rect.w / 2} y={r.rect.y + r.rect.h / 2} textAnchor="middle" fontSize={labelSize} fill="#2A2D31">{translateUi(r.name.split(' · ')[0])}</text>
           )}
         </g>
       ))}
@@ -91,7 +96,7 @@ export function PlanView({ design, level = 0, elements, findings = [], className
           <g key={e.id}>
             <rect x={e.at.x - e.size / 2} y={e.at.y - e.size / 2} width={e.size} height={e.size} fill={LOCKED} />
             {warn && <circle cx={e.at.x} cy={e.at.y} r={unit * 14} fill="none" stroke="#C77700" strokeWidth={unit * 1.5} strokeDasharray={`${unit * 3} ${unit * 2}`} />}
-            <text x={e.at.x + unit * 14} y={e.at.y - unit * 12} fontSize={labelSize * 0.9} fill="#555">{e.id.replace('col-', 'C')}</text>
+            <text x={e.at.x + unit * 14} y={e.at.y - unit * 12} fontSize={labelSize * 0.9} fill="#555">{translateUi(e.id.replace('col-', 'C'))}</text>
           </g>
         )
       })}
@@ -99,7 +104,7 @@ export function PlanView({ design, level = 0, elements, findings = [], className
       {findings.filter((f) => f.at && f.level === level && f.severity === 'error').map((f, i) => (
         <g key={i}>
           <circle cx={f.at!.x} cy={f.at!.y} r={unit * 15} fill={CONFLICT} fillOpacity={0.18} stroke={CONFLICT} strokeWidth={unit * 2.4} />
-          <title>{f.message}</title>
+          <title>{translateUi(f.message)}</title>
         </g>
       ))}
     </svg>

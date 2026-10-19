@@ -52,6 +52,33 @@ class EvaluatedShapeTests(unittest.TestCase):
         cube.location.x += 2
         self.assertNotEqual(before['vector'], measure_shape(payload)['vector'])
 
+    def test_facade_changes_are_measured_even_inside_the_unchanged_shell_silhouette(self):
+        bpy.ops.wm.read_factory_settings(use_empty=True)
+        structure = bpy.data.collections.new('STRUCTURE')
+        facade = bpy.data.collections.new('FACADE')
+        bpy.context.scene.collection.children.link(structure)
+        bpy.context.scene.collection.children.link(facade)
+        bpy.ops.mesh.primitive_cube_add(size=8, location=(5, 5, 4))
+        shell = bpy.context.object
+        for collection in list(shell.users_collection):
+            collection.objects.unlink(shell)
+        structure.objects.link(shell)
+        bpy.ops.mesh.primitive_cube_add(size=1, location=(3, 3, 2))
+        feature = bpy.context.object
+        for collection in list(feature.users_collection):
+            collection.objects.unlink(feature)
+        facade.objects.link(feature)
+        payload = {'buildingModel': {'planId': 'fixed-shell',
+                   'floors': [{'elevationMm': 0, 'heightMm': 8000}],
+                   'plot': {'widthMm': 10000, 'depthMm': 10000}},
+                   'villaDesignDNA': {'seed': 17}}
+        before = measure_shape(payload)
+        feature.location.x += 3
+        after = measure_shape(payload)
+        self.assertEqual(before['parts']['front'], after['parts']['front'])
+        self.assertNotEqual(before['parts']['facadeFront'], after['parts']['facadeFront'])
+        self.assertEqual(after['schemaVersion'], 4)
+
 
 result = unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromTestCase(EvaluatedShapeTests))
 if not result.wasSuccessful():

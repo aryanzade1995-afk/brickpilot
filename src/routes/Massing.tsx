@@ -1,3 +1,4 @@
+import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Canvas, useThree } from '@react-three/fiber'
@@ -24,6 +25,8 @@ type ViewMode = 'architecture' | 'furnished'
 type CamKey = 'front' | 'rear' | 'left' | 'right' | 'iso' | 'top'
 
 export function Massing() {
+  useLanguage(s => s.language);
+
   const result = useStudio((s) => s.result)
   const run = useStudio((s) => s.run)
   useEffect(() => {
@@ -31,6 +34,7 @@ export function Massing() {
   }, [result, run])
 
   const [mode, setMode] = useState<ViewMode>('architecture')
+  const [furnishedVisited, setFurnishedVisited] = useState(false)
   const [pendingView, setPendingView] = useState<CamKey | null>('iso')
   const [floorSel, setFloorSel] = useState<number | 'all'>('all')
   // the furnished view is dressed like the 360 preview: the brief's Finishes & Cost choices room by room, and the
@@ -40,43 +44,42 @@ export function Massing() {
   const density = useInterior360((s) => s.furnitureDensity) as InteriorConfiguration['furnitureDensity']
   const setInterior = useInterior360((s) => s.set)
   const doll = useMemo(() => {
-    if (!result?.shapeFingerprint || mode !== 'furnished') return null
+    if (!result?.shapeFingerprint || !furnishedVisited) return null
     const plan = { ...result.design, model: { ...result.design.model, brief } }
     return buildDollhouse(plan, floorSel === 'all' ? undefined : floorSel, furnishedDresser(plan, style, density))
-  }, [result, brief, mode, floorSel, style, density])
+  }, [result, brief, furnishedVisited, floorSel, style, density])
 
   if (result && !result.report.hardChecksPass) return <InvalidPlanNotice report={result.report} />
-  if (result && (mode === 'architecture' || !result.shapeFingerprint)) return <div className="mx-auto max-w-[1400px] px-6 py-8 md:px-10">
-    <WorkspaceTabs />
-    <h1 className="mt-5 font-display text-2xl">3D massing · {result.model.brief.project.name}</h1>
-    <MassingViewTabs mode="architecture" onChange={setMode} furnishedAvailable={Boolean(result.shapeFingerprint)} />
-    <BlenderVillaPanel plan={result.design} selectedSeed={result.villaDesignDNA?.seed ?? result.design.dna.seed} autoGenerate />
-    <div className="mt-6 flex gap-6 text-sm">
-      <Link to="/workspace/plan" className="underline underline-offset-4">View the 2D plan</Link>
-      <Link to="/workspace/finishes" className="underline underline-offset-4">Continue to finishes & cost</Link>
-    </div>
-    <AiVisualization design={result.design} />
-  </div>
-  if (!result || !doll) {
-    return <div className="mx-auto max-w-[1400px] px-10 py-24 text-ink-dim">Preparing model…</div>
+  if (!result) {
+    return <div className="mx-auto max-w-[1400px] px-10 py-24 text-ink-dim">{translateUi("Preparing model…")}</div>
   }
 
   const levels = result.design.floors.map((f) => f.level)
-  const span = Math.max(doll.bounds.w, doll.bounds.d)
-  const center = doll.center
+  const span = doll ? Math.max(doll.bounds.w, doll.bounds.d) : 1
+  const center: [number, number, number] = doll?.center ?? [0, 0, 0]
   const switchMode = (mm: ViewMode) => {
+    if (mm === 'furnished') setFurnishedVisited(true)
     setMode(mm)
-    setPendingView('iso')
   }
   const design = result.design
 
   return (
     <div className="mx-auto max-w-[1400px] px-6 py-8 md:px-10">
       <WorkspaceTabs />
-      <MassingViewTabs mode={mode} onChange={switchMode} furnishedAvailable />
-      <div className="mt-4 flex items-center justify-between">
-        <h1 className="font-display text-2xl">Furnished · {result.model.brief.project.name}</h1>
-        <div className="font-mono text-[0.7rem] uppercase tracking-[0.1em] text-ok">● Geometry verified</div>
+      <h1 className="mt-5 font-display text-2xl">{translateUi(mode === 'furnished' ? 'Furnished · ' : '3D massing · ')}{result.model.brief.project.name}</h1>
+      <MassingViewTabs mode={mode} onChange={switchMode} furnishedAvailable={Boolean(result.shapeFingerprint)} />
+      {/* Keep both visited viewers mounted: tab switches retain their GPU data,
+          camera and controls. The furnished scene is created on its first visit. */}
+      <div hidden={mode !== 'architecture'}>
+        <BlenderVillaPanel plan={result.design} selectedSeed={result.villaDesignDNA?.seed ?? result.design.dna.seed} autoGenerate={mode === 'architecture'} />
+        <div className="mt-6 flex gap-6 text-sm">
+          <Link to="/workspace/plan" className="underline underline-offset-4">{translateUi("View the 2D plan")}</Link>
+          <Link to="/workspace/finishes" className="underline underline-offset-4">{translateUi("Continue to finishes & cost")}</Link>
+        </div>
+      </div>
+      {doll && <div hidden={mode !== 'furnished'}>
+      <div className="mt-4 flex items-center justify-end">
+        <div className="font-mono text-[0.7rem] uppercase tracking-[0.1em] text-ok">{translateUi("● Geometry verified")}</div>
       </div>
 
       <div className="mt-5 grid gap-6 lg:grid-cols-[1fr_280px]">
@@ -97,7 +100,7 @@ export function Massing() {
                       floorSel === l ? 'bg-bg-raised text-ink' : 'text-ink-dim hover:text-ink',
                     )}
                   >
-                    {l === 'all' ? 'All' : l === 0 ? 'G' : `F${l}`}
+                    {translateUi(l === 'all' ? 'All' : l === 0 ? 'G' : `F${l}`)}
                   </button>
                 ))}
               </div>
@@ -109,7 +112,7 @@ export function Massing() {
                 onClick={() => setPendingView(k)}
                 className="border border-line px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.1em] text-ink-dim hover:border-ink-dim hover:text-ink"
               >
-                {k}
+                {translateUi(k)}
               </button>
             ))}
           </div>
@@ -141,31 +144,28 @@ export function Massing() {
             </Canvas>
 
             <div className="pointer-events-none absolute bottom-2 left-3 font-mono text-[0.6rem] uppercase tracking-[0.1em] text-ink-faint">
-              drag rotate · wheel zoom · right-drag pan
-            </div>
+              {translateUi("drag rotate · wheel zoom · right-drag pan")}</div>
           </div>
 
         </div>
 
         <div className="space-y-6">
-          <Panel title="Dressed as your 360">
+          <Panel title={translateUi("Dressed as your 360")}>
             <p className="text-[0.75rem] leading-relaxed text-ink-dim">
-              Every room shows the same furniture as its 360 preview, in your Finishes &amp; Cost choices. Change a finish
-              and this view follows at once; that room's 360 is marked to render again.
-            </p>
+              {translateUi("Every room shows the same furniture as its 360 preview, in your Finishes & Cost choices. Change a finish and this view follows at once; that room's 360 is marked to render again.")}</p>
             {([['Interior style', style, INTERIOR_STYLES, 'style'], ['Furniture density', density, DENSITIES, 'furnitureDensity']] as const).map(([label, value, list, key]) =>
-              <label key={key} className="block text-xs text-ink-dim">{label}
+              <label key={key} className="block text-xs text-ink-dim">{translateUi(label)}
                 <select value={value} onChange={(e) => setInterior({ [key]: e.target.value })} className="mt-1 w-full border border-line bg-bg p-1.5 text-sm text-ink">
-                  {list.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+                  {list.map((o) => <option key={o.id} value={o.id}>{translateUi(o.label)}</option>)}
                 </select>
               </label>)}
             <div className="flex gap-4 pt-1 text-xs">
-              <Link to="/workspace/finishes?tab=specifications" className="underline underline-offset-4">Change finishes</Link>
-              <Link to="/workspace/interior" className="underline underline-offset-4">Open 360 preview</Link>
+              <Link to="/workspace/finishes?tab=specifications" className="underline underline-offset-4">{translateUi("Change finishes")}</Link>
+              <Link to="/workspace/interior" className="underline underline-offset-4">{translateUi("Open 360 preview")}</Link>
             </div>
           </Panel>
 
-          <Panel title="Model">
+          <Panel title={translateUi("Model")}>
             <Stat k="Massing" v={MASSING_LABEL[result.design.massingType] ?? result.design.massingType} />
             <Stat k="Storeys" v={String(design.floors.length)} />
             <Stat k="Height" v={`${design.heightM} m`} />
@@ -176,35 +176,35 @@ export function Massing() {
 
           <div className="border border-line">
             <div className="label flex items-center justify-between border-b border-line px-4 py-2.5">
-              Next step
-              <Grid3x3 size={12} />
+              {translateUi("Next step")}<Grid3x3 size={12} />
             </div>
             <div className="space-y-3 p-4">
               <p className="text-[0.8rem] leading-relaxed text-ink-dim">
-                This furnished view follows the floor plan. The AI visualization of the villa is below.
-              </p>
+                {translateUi("This furnished view follows the floor plan. The AI visualization of the villa is below.")}</p>
               <Link
                 to="/workspace/finishes"
                 className="flex w-full items-center justify-center gap-2 border border-line-strong py-3 font-mono text-xs uppercase tracking-[0.12em] text-ink-dim hover:border-ink-dim hover:text-ink"
               >
-                Continue to finishes & cost
-                <ArrowRight size={13} />
+                {translateUi("Continue to finishes & cost")}<ArrowRight size={13} />
               </Link>
             </div>
           </div>
         </div>
       </div>
+      </div>}
       <AiVisualization design={result.design} />
     </div>
   )
 }
 
 function MassingViewTabs({ mode, onChange, furnishedAvailable }: { mode: ViewMode; onChange: (mode: ViewMode) => void; furnishedAvailable: boolean }) {
-  return <div className="mt-5 flex flex-wrap gap-1" role="tablist" aria-label="3D views">
+  useLanguage(s => s.language);
+
+  return <div className="mt-5 flex flex-wrap gap-1" role="tablist" aria-label={translateUi("3D views")}>
     {([['architecture', 'Blender design'], ['furnished', 'Furnished']] as const).map(([key, label]) =>
       <button key={key} type="button" role="tab" aria-selected={mode === key} disabled={key !== 'architecture' && !furnishedAvailable}
         onClick={() => onChange(key)} className={cx('border border-line px-3 py-2 text-xs disabled:opacity-40',
-          mode === key ? 'border-ink text-ink' : 'text-ink-dim hover:text-ink')}>{label}</button>)}
+          mode === key ? 'border-ink text-ink' : 'text-ink-dim hover:text-ink')}>{translateUi(label)}</button>)}
   </div>
 }
 
@@ -219,6 +219,8 @@ function CameraRig({
   pendingView: CamKey | null
   onApplied: () => void
 }) {
+  useLanguage(s => s.language);
+
   const camera = useThree((s) => s.camera)
   const controls = useThree((s) => s.controls) as OrbitControlsImpl | null
   const [tx, ty, tz] = center
@@ -255,19 +257,23 @@ function CameraRig({
 }
 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+  useLanguage(s => s.language);
+
   return (
     <div className="border border-line">
-      <div className="label border-b border-line px-4 py-2.5">{title}</div>
-      <div className="space-y-2 p-4">{children}</div>
+      <div className="label border-b border-line px-4 py-2.5">{translateUi(title)}</div>
+      <div className="space-y-2 p-4">{translateUi(children)}</div>
     </div>
   )
 }
 
 function Stat({ k, v }: { k: string; v: string }) {
+  useLanguage(s => s.language);
+
   return (
     <div className="flex items-baseline justify-between gap-3">
-      <span className="text-xs text-ink-dim">{k}</span>
-      <span className="font-mono text-[0.8rem] text-ink tnum">{v}</span>
+      <span className="text-xs text-ink-dim">{translateUi(k)}</span>
+      <span className="font-mono text-[0.8rem] text-ink tnum">{translateUi(v)}</span>
     </div>
   )
 }

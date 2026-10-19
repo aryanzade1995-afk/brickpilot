@@ -8,11 +8,18 @@ import type { CostEstimate } from './boq.ts'
 import { specsCatalogue, specificationRate, resolveSpecification } from './catalogue.ts'
 import { serviceRoomSource } from '../finishes/services.ts'
 import { optionPhotos, usableFinishImage } from '../finishes/optionImage.ts'
+import {PLUMBING_SIZES} from './plumbingCatalogue.ts'
 
 /** One measured-room entry per applicable finish, followed by house specifications. */
 export function specificationSchedule(brief: Brief, cost: CostEstimate): SpecificationRow[] {
-  const rows = specsCatalogue.items.filter(i => i.level !== 'auto').flatMap(item => {
+  const rows = specsCatalogue.items.filter(i => i.level !== 'auto' && !Object.hasOwn(PLUMBING_SIZES,i.id)).flatMap(item => {
     const lines = cost.boq.filter(l => l.item === item.id)
+    if(item.id==='water-pipes'||item.id==='drain-pipes')return lines.map(line=>{
+      const option=resolveSpecification(brief,item.id),rate=specificationRate(line.rateId)
+      return {id:line.id,item:item.id,group:item.group,label:line.label,where:cost.quantities.perFloor.find(f=>f.level===line.floor)?.name??'Whole home',roomId:undefined,
+        optionId:option.id,choice:line.specification,material:option.blenderMaterial,facts:option.facts,quantity:`${line.qty.toFixed(2)} ${line.unit}`,
+        rate:line.rate,unit:rate.unit,city:rate.city,date:rate.date,photo:null,photoSource:null,credit:null,note:line.note}
+    })
     const locationLines = serviceRoomSource[item.id] ? cost.boq.filter(l=>l.item===serviceRoomSource[item.id]) : lines
     const locations = item.scope === 'perRoom' ? cost.quantities.rooms.filter(r => locationLines.some(l => l.roomId === r.id)) : [null]
     return locations.map(room => {
@@ -26,7 +33,8 @@ export function specificationSchedule(brief: Brief, cost: CostEstimate): Specifi
       const rate = specificationRate(option.rateId)
       return { id: `${item.id}${room ? `@${room.id}` : ''}`, item: item.id, group: item.group,
         label: item.label, where: room ? `${room.floor} · ${room.name}` : 'Whole home', roomId: room?.id,
-        optionId: option.id, choice: item.id === 'interior-paint' ? `${option.name} · ${paintColour(brief, room?.id).label} (${paintColour(brief, room?.id).hex})` : option.name, material: option.blenderMaterial, facts: option.facts,
+        optionId: option.id, choice: item.id === 'interior-paint' ? `${option.name} · ${paintColour(brief, room?.id).label} (${paintColour(brief, room?.id).hex})` :
+          ['water-tanks','underground-water-tank','drain-tank'].includes(item.id)&&own[0]?own[0].specification:option.name, material: option.blenderMaterial, facts: option.facts,
         quantity: own.length ? `${own.reduce((sum, l) => sum + l.qty, 0).toFixed(2)} ${own[0].unit}` : 'As specified',
         rate: rate.installed, unit: rate.unit, city: rate.city, date: rate.date,
         photo: photo?.webFile ?? cleared?.thumbnail ?? null, photoSource: photo?.source ?? cleared?.sourceUrl ?? null, credit: photo?.credit ?? cleared?.image.credit ?? null,

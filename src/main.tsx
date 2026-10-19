@@ -3,19 +3,21 @@ import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
 import { App } from './App.tsx'
 import './index.css'
+import { LanguageDocument } from './components/LanguageDocument.tsx'
+import { workspacePages } from './lib/workspacePages.ts'
 // each page's code loads when it is first opened (the current page stays on screen meanwhile), so the first visit is fast
 const page = <T extends Record<string, unknown>>(load: () => Promise<T>, name: keyof T) => async () => ({ Component: (await load())[name] as React.ComponentType })
 const Landing = page(() => import('./routes/Landing.tsx'), 'Landing')
 const Start = page(() => import('./routes/Start.tsx'), 'Start')
 const ExistingMode = page(() => import('./routes/ExistingMode.tsx'), 'ExistingMode')
-const Brief = page(() => import('./routes/Brief.tsx'), 'Brief')
-const Directions = page(() => import('./routes/Directions.tsx'), 'Directions')
-const Plan = page(() => import('./routes/Plan.tsx'), 'Plan')
-const Massing = page(() => import('./routes/Massing.tsx'), 'Massing')
-const FinishesCost = page(() => import('./routes/FinishesCost.tsx'), 'FinishesCost')
-const VillaDataset = page(() => import('./routes/VillaDataset.tsx'), 'VillaDataset')
-const Interior = page(() => import('./routes/Interior.tsx'), 'Interior')
-const Report = page(() => import('./routes/Report.tsx'), 'Report')
+const Brief = page(workspacePages['/workspace'], 'Brief')
+const Directions = page(workspacePages['/workspace/directions'], 'Directions')
+const Plan = page(workspacePages['/workspace/plan'], 'Plan')
+const Massing = page(workspacePages['/workspace/massing'], 'Massing')
+const FinishesCost = page(workspacePages['/workspace/finishes'], 'FinishesCost')
+const VillaDataset = page(workspacePages['/workspace/dataset'], 'VillaDataset')
+const Interior = page(workspacePages['/workspace/interior'], 'Interior')
+const Report = page(workspacePages['/workspace/report'], 'Report')
 const Designs = page(() => import('./routes/Designs.tsx'), 'Designs')
 const SharedFinishes = page(() => import('./routes/SharedFinishes.tsx'), 'SharedFinishes')
 const StyleSheet = page(() => import('./routes/StyleSheet.tsx'), 'StyleSheet')
@@ -48,6 +50,6 @@ const router = createBrowserRouter([
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    <LanguageDocument><RouterProvider router={router} /></LanguageDocument>
   </StrictMode>,
 )

@@ -29,7 +29,11 @@ export class SpecializedGrammarGenerator {
       const requested = options[category]
       if (requested && !GRAMMAR_TYPES[category].some((type) => type === requested)) throw new RangeError(`Unknown ${category} grammar`)
       const rng = makeRng(dna.seed, `${building.compositionId ?? building.planId}|specialized-v1|${category}|${sourceId}`)
-      const types = requested ? [requested] : [...GRAMMAR_TYPES[category]].map((type) => ({ type, key: rng.next() })).sort((a, b) => a.key - b.key).map((v) => v.type)
+      const shuffled=[...GRAMMAR_TYPES[category]].map((type) => ({ type, key: rng.next() })).sort((a, b) => a.key - b.key).map((v) => v.type)
+      const preferred:Partial<Record<GrammarCategory,string[]>>=building.modernComposition?{
+        BALCONY:['FRAME_INTEGRATED','PROJECTED','FLOATING'],ENTRANCE:['FLOATING_CANOPY','RECESSED_ENTRY'],
+        WINDOW:['VERTICAL_STACK','FLOOR_TO_CEILING','ALIGNED'],ROOFLINE:['FLAT_PARAPET'],DEPTH:['ARCHITECTURAL_FRAME','MAIN_FACADE_PLANE']}:{}
+      const types = requested ? [requested] : [...(preferred[category]??[]),...shuffled.filter(type=>!preferred[category]?.includes(type))]
       for (const type of types) {
         const candidate = recipe(type)
         if (!candidate) continue
@@ -53,7 +57,7 @@ export class SpecializedGrammarGenerator {
     choose('ROOFLINE', building.floors.at(-1)!.id, (type) => makeRoofline(ctx, type))
     // One depth treatment complements the existing hero budget.
     const zones = facade.zones.filter((z) => z.wallId).sort((a, b) => b.endMm - b.startMm - (a.endMm - a.startMm))
-    choose('DEPTH', building.planId, (type) => {
+    choose('DEPTH', building.exteriorSeedPlanId??building.planId, (type) => {
       for (const zone of zones) {
         const unit = makeDepth(ctx, zone.id, type)
         if (unit && !validateSpecializedAssemblies(ctx, [...model.assemblies, unit]).length) return unit

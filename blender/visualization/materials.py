@@ -19,17 +19,29 @@ def _material(name, spec):
     links.new(shader.outputs["BSDF"], output.inputs["Surface"])
     material["surface_type"], material["roughness"] = spec["surface"], spec["roughness"]
     surface = spec["surface"]
-    if surface == "glass":
+    if surface in ("glass", "water"):
         shader.inputs["Transmission Weight"].default_value = spec["transmission"]
         shader.inputs["IOR"].default_value = spec["ior"]
         if hasattr(material, "use_raytrace_refraction"):
             material.use_raytrace_refraction = True
         if hasattr(material, "thickness_mode"):
             material.thickness_mode = "SLAB"
-        absorption = nodes.new("ShaderNodeVolumeAbsorption")
-        absorption.inputs["Color"].default_value = color
-        absorption.inputs["Density"].default_value = .08
-        links.new(absorption.outputs["Volume"], output.inputs["Volume"])
+        if surface == "glass":
+            absorption = nodes.new("ShaderNodeVolumeAbsorption")
+            absorption.inputs["Color"].default_value = color
+            absorption.inputs["Density"].default_value = .08
+            links.new(absorption.outputs["Volume"], output.inputs["Volume"])
+        else:
+            geometry = nodes.new("ShaderNodeNewGeometry")
+            ripples = nodes.new("ShaderNodeTexNoise")
+            ripples.inputs["Scale"].default_value = 9
+            ripples.inputs["Detail"].default_value = 2
+            bump = nodes.new("ShaderNodeBump")
+            bump.inputs["Strength"].default_value = .22
+            bump.inputs["Distance"].default_value = .003
+            links.new(geometry.outputs["Position"], ripples.inputs["Vector"])
+            links.new(ripples.outputs["Fac"], bump.inputs["Height"])
+            links.new(bump.outputs["Normal"], shader.inputs["Normal"])
         return material
     if surface == "emission":
         shader.inputs["Emission Color"].default_value = color
@@ -80,6 +92,8 @@ def create_materials(palette):
     resolved = resolve_palette(palette)
     specs = palette_specs(resolved)
     specs.update({"landscape": finish("#607553", "grass", .92),
+                  "water": finish("#55BFCB", "water", .14, transmission=.65, ior=1.333),
+                  "pool_tile": finish("#B6DCE0", "stone", .32),
                   "leaf": finish("#477448", "leaf", .58),
                   "soil": finish("#41372A", "soil", .96),
                   "paving": finish("#A7A49B", "paving", .8),

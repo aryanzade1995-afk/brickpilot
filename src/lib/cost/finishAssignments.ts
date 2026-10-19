@@ -3,10 +3,12 @@ import type { Brief } from '../model/brief.ts'
 import { estimateBoq } from './boq.ts'
 import { resolveSpecification, specsCatalogue } from './catalogue.ts'
 import { fnv } from '../engine/massing/rng.ts'
+import {PLUMBING_CONTROL_IDS} from './plumbingCatalogue.ts'
 
 /** Finishes are downstream of plan identity and architectural randomness. */
 export function finishSignature(brief: Brief) {
-  return `finishes-${fnv(JSON.stringify([brief.finish ?? 'mid', Object.entries(brief.specs?.overrides ?? {}).sort(([a], [b]) => a.localeCompare(b))])).toString(16)}`
+  return `finishes-${fnv(JSON.stringify([brief.finish ?? 'mid', Object.entries(brief.specs?.overrides ?? {})
+    .filter(([id])=>!PLUMBING_CONTROL_IDS.includes(id.split('@')[0])).sort(([a], [b]) => a.localeCompare(b))])).toString(16)}`
 }
 export function createFinishAssignments(design: Design, brief: Brief = design.model.brief) {
   brief = { ...brief, finish: brief.finish ?? 'mid', specs: { overrides: brief.specs?.overrides ?? {} } }

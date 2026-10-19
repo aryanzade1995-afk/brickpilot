@@ -2,6 +2,7 @@ import { z } from 'zod'
 import raw from './boq-rules.json' with { type: 'json' }
 import { rateBook, specsCatalogue } from '../catalogue.ts'
 import serviceItems from '../../finishes/service-items.json' with {type:'json'}
+import {PLUMBING_SIZES} from '../plumbingCatalogue.ts'
 
 const positive = z.number().positive().finite(), nonnegative = z.number().nonnegative().finite()
 export const TRADES = ['Civil & structure', 'Flooring & tiling', 'Doors & windows', 'Plumbing & sanitary', 'Electrical', 'Painting', 'Waterproofing', 'Exterior & site', 'Extras'] as const
@@ -27,4 +28,7 @@ export const boqRulesSchema = z.strictObject({
   for (const item of specsCatalogue.items) if (!v.recipes.some(r => r.item === item.id) && !v.unpricedItems[item.id])
     ctx.addIssue({ code: 'custom', message: `Missing BOQ scope decision for ${item.id}` })
 })
-export const boqRules = boqRulesSchema.parse({...raw,unpricedItems:{...raw.unpricedItems,...Object.fromEntries(serviceItems.map(i=>[i.id,i.note]))}})
+export const boqRules = boqRulesSchema.parse({...raw,recipes:[...raw.recipes.map(r=>r.item==='water-tanks'?{...r,label:'Overhead water storage',note:'Overhead storage only, priced per configured capacity unit; underground storage is separate.'}:r),
+  {item:'underground-water-tank',key:'undergroundTank',label:'Underground clean-water tank',trade:'Plumbing & sanitary',from:'extra',measure:'Count',note:'Capacity units of 1,000 L. Normal excavation, RCC shell, waterproofing and cover allowance; pump and difficult ground excluded.'},
+  {item:'drain-tank',key:'drainTank',label:'Drain / septic tank',trade:'Plumbing & sanitary',from:'extra',measure:'Count',note:'One inspection chamber, or capacity units of 1,000 L for a selected sewage tank. Disposal field, pumping and approvals excluded.'}],
+  unpricedItems:{...raw.unpricedItems,...Object.fromEntries(Object.keys(PLUMBING_SIZES).map(id=>[id,'Diameter selector; priced in the water and drain pipe schedule, without an additional charge.'])),...Object.fromEntries(serviceItems.map(i=>[i.id,i.note]))}})

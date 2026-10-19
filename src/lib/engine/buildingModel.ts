@@ -10,6 +10,8 @@ import { DOUBLE_HEIGHT_LIMITS } from './planner/doubleHeight.ts'
 import { sizeStructure, type StructuralSizing } from './structuralSizing.ts'
 import { quantityRules } from '../cost/data/quantityRules.ts'
 import { OUTDOOR_ASSET_VERSION } from './outdoorAssets.ts'
+import { modernCanopies, type CompositionCanopy } from './modernCanopies.ts'
+import type { ModernComposition } from '../model/modernCompositions.ts'
 
 /** A serialized view of the verified 2D plan. All plan coordinates are millimetres. */
 export type BuildingFloor = {
@@ -45,6 +47,8 @@ export type BuildingSupportZone = SupportZone & { floorId: string }
 export type BuildingSlab = { id: string; floorId: string; rect: Rect; topMm: number; thicknessMm: number }
 
 export type BuildingModel = {
+  openingPolicy?: {version:'window-access-v1';minWindowSillMm:number}
+  modernComposition?: {id:ModernComposition;canopies:CompositionCanopy[]}
   emergency: EmergencyPlan
   quantityRules?: typeof quantityRules
   structuralSizing?: StructuralSizing
@@ -54,6 +58,7 @@ export type BuildingModel = {
   planId: string
   /** Stable seed namespace; technical sizing does not select another composition. */
   compositionId?: string
+  exteriorSeedPlanId?: string
   units: 'mm'
   /** Plan x grows east, plan y grows south; ground-floor finished level is z = 0. */
   coordinates: 'plan-x-east-y-south-z-up'
@@ -147,6 +152,10 @@ export function createBuildingModel(design: Design): BuildingModel {
 
   const setbacks: Record<Direction, number> = { ...model.setbacksMm }
   const base = {
+    ...(!design.existingStructure?{openingPolicy:{version:'window-access-v1' as const,minWindowSillMm:900}}:{}),
+    ...(model.brief.style.character==='modern-box'&&model.brief.style.composition?
+      {modernComposition:{id:model.brief.style.composition,canopies:modernCanopies({floors,rooms,walls,windows,plot:{widthMm:model.plot.width,depthMm:model.plot.depth,
+       buildable:{x:setbacks.W,y:setbacks.N,w:model.envelope.width,h:model.envelope.depth}}},model.brief.style.composition)}}:{}),
     emergency: emergencyPlan(design),
     quantityRules:structuredClone(quantityRules),
     structuralSizing:sizing,
@@ -179,12 +188,13 @@ export function createBuildingModel(design: Design): BuildingModel {
   const hash = (value: string) => fnv(value).toString(16).padStart(8, '0')
   // Preserve the original seed namespace projection. These historical sizes
   // are identity tokens only: no drawing, quantity or mesh uses them as dimensions.
-  const {quantityRules:_rules,structuralSizing:_sizing,emergency:_emergency,siteGate:_gate,...original}=base
+  const {quantityRules:_rules,structuralSizing:_sizing,emergency:_emergency,siteGate:_gate,openingPolicy:_openingPolicy,...original}=base
   const originalSignature=JSON.stringify({...original,
     floors:original.floors.map(({slabThicknessMm:_thickness,openingLimits:_openings,...floor})=>floor),
     columns:original.columns.map(c=>({...c,size:quantityRules.seedIdentityDefaults.columnMm})),
     beams:original.beams.map(({widthMm:_width,depthMm:_depth,...beam})=>beam),
     slabs:original.slabs.map(s=>({...s,thicknessMm:quantityRules.seedIdentityDefaults.slabMm}))})
   return { ...base, planId: `plan-${hash(signature)}${hash(`building|${signature}`)}`,
-    compositionId:`plan-${hash(originalSignature)}${hash(`building|${originalSignature}`)}` }
+    ...(design.exteriorIdentity?{exteriorSeedPlanId:design.exteriorIdentity.planId}:{}),
+    compositionId:design.exteriorIdentity?.compositionId??`plan-${hash(originalSignature)}${hash(`building|${originalSignature}`)}` }
 }

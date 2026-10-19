@@ -1,3 +1,4 @@
+import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
 import { useVillaVisualizations } from '@/state/villaVisualizations.ts'
 import { VILLA_VIEW_LABELS, visualizationSourceId } from '@/lib/render/villaVisualizations.ts'
 import { CostShareButton } from '@/components/CostShareButton.tsx'
@@ -48,6 +49,8 @@ function triggerDownload(blob: Blob, name: string) {
 }
 
 export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sourceResult?: Result; sourceBrief?: Brief; visualisations?: ReportImage[] } = {}) {
+  useLanguage(s => s.language);
+
   const storedResult = useStudio((s) => s.result)
   const result = sourceResult ?? storedResult
   const run = useStudio((s) => s.run)
@@ -96,7 +99,7 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
   }, [renderJobs, villaPairs, planId, brief, result, blender])
 
   if (!result || !cost) {
-    return <div className="mx-auto max-w-[1400px] px-10 py-24 text-ink-dim">Preparing report…</div>
+    return <div className="mx-auto max-w-[1400px] px-10 py-24 text-ink-dim">{translateUi("Preparing report…")}</div>
   }
   if (!result.report.hardChecksPass) return <InvalidPlanNotice report={result.report} />
 
@@ -199,7 +202,7 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-2xl">{model.brief.project.name}</h1>
-        <div className="label text-accent">Step 7 · Report</div>
+        <div className="label text-accent">{translateUi("Step 7 · Report")}</div>
       </div>
 
       {/* metric bar */}
@@ -211,7 +214,7 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
             report.hardChecksPass ? 'text-ok' : 'text-bad',
           )}
         >
-          {report.hardChecksPass ? '● Hard checks pass' : '● Hard checks fail'}
+          {translateUi(report.hardChecksPass ? '● Hard checks pass' : '● Hard checks fail')}
         </div>
         <Metric k="Built area" v={`${design.builtAreaSqm.toFixed(1)} m²`} />
         <Metric k="Coverage" v={`${(design.coverage * 100).toFixed(0)} %`} />
@@ -222,7 +225,7 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
           {/* plan preview + floor picker */}
           <section>
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="font-display text-xl">{floor.name} plan</h2>
+              <h2 className="font-display text-xl">{translateUi(floor.name)} {translateUi(" plan")}</h2>
               <div className="flex gap-1">
                 {design.floors.map((f, i) => (
                   <button
@@ -234,7 +237,7 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
                       i === floorIdx ? 'border-accent text-accent' : 'border-line text-ink-dim hover:text-ink',
                     )}
                   >
-                    {f.name}
+                    {translateUi(f.name)}
                   </button>
                 ))}
               </div>
@@ -246,21 +249,20 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
               <table className="w-full min-w-[480px] text-sm">
                 <thead>
                   <tr className="label [&>th]:py-2 [&>th]:pr-6 [&>th]:text-left">
-                    <th>Space</th>
-                    <th>Zone</th>
-                    <th className="text-right">Size</th>
-                    <th className="text-right">Area</th>
+                    <th>{translateUi("Space")}</th>
+                    <th>{translateUi("Zone")}</th>
+                    <th className="text-right">{translateUi("Size")}</th>
+                    <th className="text-right">{translateUi("Area")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {floor.rooms.map((r) => (
                     <tr key={r.id} className="border-t border-line [&>td]:py-2 [&>td]:pr-6">
-                      <td className="text-ink">{r.name}</td>
-                      <td className="text-ink-dim">{ZONE_LABEL[r.zone]}</td>
+                      <td className="text-ink">{translateUi(r.name)}</td>
+                      <td className="text-ink-dim">{translateUi(ZONE_LABEL[r.zone])}</td>
                       <td className="text-right font-mono text-xs text-ink-dim tnum">
-                        {(r.rect.w / 1000).toFixed(1)} × {(r.rect.h / 1000).toFixed(1)} m
-                      </td>
-                      <td className="text-right font-mono text-xs text-ink tnum">{r.area.toFixed(1)} m²</td>
+                        {translateUi((r.rect.w / 1000).toFixed(1))} × {translateUi((r.rect.h / 1000).toFixed(1))} {translateUi(" m")}</td>
+                      <td className="text-right font-mono text-xs text-ink tnum">{translateUi(r.area.toFixed(1))} {translateUi(" m²")}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -268,19 +270,19 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
             </div>
           </section>
 
-          <section><h2 className="font-display text-xl">3D & renders</h2>
-            {blenderImages.length ? <div className="mt-4 grid gap-3 sm:grid-cols-2">{blenderImages.map(img => <figure key={img.label} className="border border-line"><img src={img.dataUrl} alt={img.label} className="aspect-[4/3] w-full object-contain"/><figcaption className="p-3 text-xs text-ink-dim">{img.label}</figcaption></figure>)}</div> : <p className="mt-3 text-sm text-ink-dim">Generate views on <Link to="/workspace/massing" className="underline">3D Massing</Link>. Your report can also capture the current 3D study.</p>}
+          <section><h2 className="font-display text-xl">{translateUi("3D & renders")}</h2>
+            {blenderImages.length ? <div className="mt-4 grid gap-3 sm:grid-cols-2">{blenderImages.map(img => <figure key={img.label} className="border border-line"><img src={img.dataUrl} alt={translateUi(img.label)} className="aspect-[4/3] w-full object-contain"/><figcaption className="p-3 text-xs text-ink-dim">{translateUi(img.label)}</figcaption></figure>)}</div> : <p className="mt-3 text-sm text-ink-dim">{translateUi("Generate views on ")}<Link to="/workspace/massing" className="underline">{translateUi("3D Massing")}</Link>{translateUi(". Your report can also capture the current 3D study.")}</p>}
           </section>
 
           {conceptImages.length > 0 && (
             <section>
-              <h2 className="font-display text-xl">Generated concepts</h2>
+              <h2 className="font-display text-xl">{translateUi("Generated concepts")}</h2>
               <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {conceptImages.map((img, i) => (
                   <figure key={i} className="border border-line">
-                    <img src={img.dataUrl} alt={img.label} className="aspect-[3/2] w-full object-cover" />
+                    <img src={img.dataUrl} alt={translateUi(img.label)} className="aspect-[3/2] w-full object-cover" />
                     <figcaption className="border-t border-line px-2 py-1.5 font-mono text-[0.6rem] uppercase tracking-[0.08em] text-ink-faint">
-                      {img.label}
+                      {translateUi(img.label)}
                     </figcaption>
                   </figure>
                 ))}
@@ -288,14 +290,14 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
             </section>
           )}
           <SpecificationSchedule rows={specificationSchedule(brief, cost)} />
-          <details className="border-t border-line pt-4"><summary className="cursor-pointer font-display text-xl">Quantities summary</summary><div className="mt-5"><QuantitiesView cost={cost}/></div></details>
-          <section><h2 className="mb-5 font-display text-xl">Estimate by trade</h2><EstimateView cost={cost}/><Link to="/workspace/finishes?tab=estimate" className="mt-4 inline-block text-sm underline">Edit finishes & view BOQ</Link></section>
+          <details className="border-t border-line pt-4"><summary className="cursor-pointer font-display text-xl">{translateUi("Quantities summary")}</summary><div className="mt-5"><QuantitiesView cost={cost}/></div></details>
+          <section><h2 className="mb-5 font-display text-xl">{translateUi("Estimate by trade")}</h2><EstimateView cost={cost}/><Link to="/workspace/finishes?tab=estimate" className="mt-4 inline-block text-sm underline">{translateUi("Edit finishes & view BOQ")}</Link></section>
           <AssumptionsView cost={cost}/>
           {/* findings */}
           <section>
-            <h2 className="font-display text-xl">Validation findings</h2>
+            <h2 className="font-display text-xl">{translateUi("Validation findings")}</h2>
             {report.findings.length === 0 ? (
-              <p className="mt-3 text-sm text-ok">No findings — the concept passes every rule in this pack.</p>
+              <p className="mt-3 text-sm text-ok">{translateUi("No findings — the concept passes every rule in this pack.")}</p>
             ) : (
               <ul className="mt-4 divide-y divide-line border-y border-line">
                 {report.findings.map((f, i) => (
@@ -306,27 +308,25 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
                         SEV_COLOR[f.severity],
                       )}
                     >
-                      {f.severity}
+                      {translateUi(f.severity)}
                     </span>
-                    <span className="text-ink-dim">{f.message}</span>
+                    <span className="text-ink-dim">{translateUi(f.message)}</span>
                   </li>
                 ))}
               </ul>
             )}
           </section>
 
-          <section className="border-t border-line pt-4"><h2 className="font-display text-xl">Disclaimer</h2><p className="mt-3 text-sm leading-relaxed text-ink-dim">Concept feasibility and approximate quantities only. No structural engineering certification. A licensed architect and engineers must verify the design before construction. Final cost depends on structural design, site conditions, actual products and contractor quotes.</p></section>
+          <section className="border-t border-line pt-4"><h2 className="font-display text-xl">{translateUi("Disclaimer")}</h2><p className="mt-3 text-sm leading-relaxed text-ink-dim">{translateUi("Concept feasibility and approximate quantities only. No structural engineering certification. A licensed architect and engineers must verify the design before construction. Final cost depends on structural design, site conditions, actual products and contractor quotes.")}</p></section>
         </div>
 
         {/* actions */}
         <div className="space-y-4">
           <div className="border border-line p-4">
             <div className="flex items-center gap-2 font-display text-lg">
-              <FileText size={16} className="text-accent" /> Project report
-            </div>
+              <FileText size={16} className="text-accent" /> {translateUi(" Project report")}</div>
             <p className="mt-1.5 text-[0.8rem] leading-relaxed text-ink-faint">
-              Plans, room schedules, visualisations, room-by-room finishes, measured quantities, the estimate and its assumptions.
-            </p>
+              {translateUi("Plans, room schedules, visualisations, room-by-room finishes, measured quantities, the estimate and its assumptions.")}</p>
 
             <button
               type="button"
@@ -338,24 +338,24 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
               )}
             >
               {busy ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
-              {busy ?? 'Download PDF'}
+              {translateUi(busy ?? 'Download PDF')}
             </button>
 
-            <button type="button" disabled={!!busy} onClick={()=>void downloadExtra('xlsx')} className="mt-3 w-full border border-line px-4 py-3 text-xs disabled:opacity-50">Download BOQ Excel</button>
-            <button type="button" disabled={!!busy} onClick={()=>void downloadExtra('spec')} className="mt-3 w-full border border-line px-4 py-3 text-xs disabled:opacity-50">Download spec sheet PDF</button>
+            <button type="button" disabled={!!busy} onClick={()=>void downloadExtra('xlsx')} className="mt-3 w-full border border-line px-4 py-3 text-xs disabled:opacity-50">{translateUi("Download BOQ Excel")}</button>
+            <button type="button" disabled={!!busy} onClick={()=>void downloadExtra('spec')} className="mt-3 w-full border border-line px-4 py-3 text-xs disabled:opacity-50">{translateUi("Download spec sheet PDF")}</button>
 
             {error && (
-              <p className="mt-3 border-l-2 border-bad/60 bg-bad/5 px-3 py-2 text-xs text-bad">{error}</p>
+              <p className="mt-3 border-l-2 border-bad/60 bg-bad/5 px-3 py-2 text-xs text-bad">{translateUi(error)}</p>
             )}
           </div>
 
           <CostShareButton brief={brief} cost={cost}/>
           <div className="border border-line p-4">
-            <div className="label mb-2">Generated images</div>
+            <div className="label mb-2">{translateUi("Generated images")}</div>
             <p className="text-[0.8rem] leading-relaxed text-ink-faint">
-              {conceptImages.length > 0
+              {translateUi(conceptImages.length > 0
                 ? `${conceptImages.length} generated image${conceptImages.length === 1 ? '' : 's'} held in this browser.`
-                : 'No generated concept images yet.'}
+                : 'No generated concept images yet.')}
             </p>
             {confirmClear ? (
               <div className="mt-3 flex items-center gap-2">
@@ -364,15 +364,13 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
                   onClick={clearImages}
                   className="border border-bad/60 px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.1em] text-bad"
                 >
-                  Clear them
-                </button>
+                  {translateUi("Clear them")}</button>
                 <button
                   type="button"
                   onClick={() => setConfirmClear(false)}
                   className="font-mono text-[0.65rem] uppercase tracking-[0.1em] text-ink-faint hover:text-ink"
                 >
-                  Cancel
-                </button>
+                  {translateUi("Cancel")}</button>
               </div>
             ) : (
               <button
@@ -381,12 +379,10 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
                 disabled={conceptImages.length === 0}
                 className="mt-3 flex items-center gap-1.5 border border-line-strong px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.1em] text-ink-dim hover:border-ink-dim hover:text-ink disabled:opacity-40"
               >
-                <Trash2 size={12} /> Clear
-              </button>
+                <Trash2 size={12} /> {translateUi(" Clear")}</button>
             )}
             <p className="mt-2 text-[0.7rem] text-ink-faint">
-              Clears only the generated images — the brief, plan, findings and cost stay.
-            </p>
+              {translateUi("Clears only the generated images — the brief, plan, findings and cost stay.")}</p>
           </div>
         </div>
       </div>
@@ -425,10 +421,12 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
 }
 
 function Metric({ k, v }: { k: string; v: string }) {
+  useLanguage(s => s.language);
+
   return (
     <div>
-      <span className="label">{k}</span>
-      <div className="mt-0.5 font-mono text-sm text-ink tnum">{v}</div>
+      <span className="label">{translateUi(k)}</span>
+      <div className="mt-0.5 font-mono text-sm text-ink tnum">{translateUi(v)}</div>
     </div>
   )
 }

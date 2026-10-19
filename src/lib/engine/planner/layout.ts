@@ -3,6 +3,7 @@ import { rectUnionBBox } from '../../geometry.ts'
 import type { FloorPlan } from '../types.ts'
 import type { Band, FloorPlate, FloorRequirements, LocalRoom, Orientation, PlateFamily, RoomReq, SiteModel, Unit } from './types.ts'
 import { MAX_SPAN, MIN_BAND, MIN_SPAN, clamp, roomWidths, snap, snapUp, unitLength } from './program.ts'
+import type { UpperProfile } from '../siteForm.ts'
 
 /* ------------------------------------------------------------------ *
  *  FloorPlatePlan + RoomPlacement + StructuralGrid (cross axes).
@@ -30,6 +31,8 @@ export type PlateCandidate = {
 }
 
 export type LayoutInput = {
+  courtyardPool?: boolean
+  upperProfile?: UpperProfile
   /** Existing Structure Mode: cross axes (local u) already built; walls slide onto them and they stay the grid */
   lockedAxes?: number[]
   floors: FloorRequirements[]
@@ -107,12 +110,12 @@ function search(input: LayoutInput, relaxed: boolean): PlateCandidate[] {
   for (const orientation of ['x', 'y'] as Orientation[]) {
     const lMax = Math.min(orientation === 'x' ? site.houseZone.w : site.houseZone.h, large ? 32000 : 24000)
     const vMax = orientation === 'x' ? site.houseZone.h : site.houseZone.w
-    const aLo = Math.max(MIN_BAND, input.hasStair ? input.stairDepth : 0)
+    const aLo = Math.max(MIN_BAND, input.hasStair ? input.stairDepth : 0, input.courtyardPool?3900:0)
     for (let dA = aLo; dA <= Math.max(aLo, dMax); dA += 300) {
       for (const dB of bDepths) {
         const v = dA + spine + dB
         if (v > vMax && !(relaxed && dA === aLo && dB === bDepths[0])) continue
-        const gapA = family === 'courtyard' ? courtFor(input.courtSqm, dA) : 0
+        const gapA = family === 'courtyard' ? Math.max(courtFor(input.courtSqm, dA),input.courtyardPool?4800:0) : 0
         const need = (which: 'min' | 'target') => Math.max(...input.floors.map((f) => {
           const s = balance(f.units, dA, dB, -gapA, 0, which)
           const a = sum(s.A.map((u) => unitLength(u, dA, which))) + gapA
@@ -327,7 +330,7 @@ export function placeFloors(input: LayoutInput, cand: PlateCandidate): LayoutRes
   const ground = input.floors[0]
 
   // ---- ground: bands, then court / notch placement ----
-  const gapA0 = family === 'courtyard' ? courtFor(input.courtSqm, dA) : 0
+  const gapA0 = family === 'courtyard' ? Math.max(courtFor(input.courtSqm, dA),input.courtyardPool?4800:0) : 0
   const split0 = balance(ground.units, dA, dB, L - gapA0, L)
   const bNeed = sum(split0.B.map((u) => unitLength(u, dB, 'target')))
   let notch: [number, number] | null = null
@@ -407,7 +410,48 @@ export function placeFloors(input: LayoutInput, cand: PlateCandidate): LayoutRes
   const rooms: LocalRoom[][] = [g.rooms]
   let prev = L
   for (const f of input.floors.slice(1)) {
-    const at = (len: number) => floorRooms(f, len, clip(aSegs, 0, len), clip(bSegs, 0, len), uLines)
+    if (input.upperProfile) {
+      const lower = plates.at(-1)!
+      const lines = uLines.filter(u => u >= 4800 && u <= lower.length)
+      if (!lines.includes(lower.length)) lines.push(lower.length)
+      const profile = input.upperProfile
+      const choices: { r: ReturnType<typeof floorRooms>; score: number }[] = []
+      // A contains the fixed stair/lift. Only B may recess from its start.
+      // Every new edge lands on the original structural grid and every
+      // occupied interval is clipped to the floor immediately underneath.
+      const starts = profile === 'recessed' && lower.segments.B.length
+        ? [lower.segments.B[0][0], ...uLines.filter(u => u >= lower.segments.B[0][0]+1200 && u <= Math.min(4800, lower.length*.35)).slice(0,1)] : [0]
+      for (const a of lines) for (const b of lines) for (const start of starts) {
+        if (profile === 'compact' && a !== b) continue
+        const r = floorRooms(f, Math.max(a,b), clip(lower.segments.A,0,a), clip(lower.segments.B,start,b),uLines)
+        if (!r.fitsMin || r.rooms.length !== f.rooms.length + 1) continue
+        const area = sum(r.plate.segments.A.map(([s,e])=>(e-s)*dA)) +
+          sum(r.plate.segments.B.map(([s,e])=>(e-s)*dB)) + r.plate.length*cand.spine
+        const endA=Math.max(0,...r.plate.segments.A.map(([,e])=>e)),endB=Math.max(0,...r.plate.segments.B.map(([,e])=>e))
+        const stagger = Math.abs(endA-endB)>=1200
+        const recess = start>0
+        const lowerArea = sum(lower.segments.A.map(([s,e])=>(e-s)*dA)) +
+          sum(lower.segments.B.map(([s,e])=>(e-s)*dB)) + lower.length*cand.spine
+        const changed = lowerArea-area>=6e6
+        const preferred = profile==='staggered' ? stagger&&changed : profile==='recessed' ? recess&&changed
+          : profile==='terraced' ? Math.max(endA,endB)<=lower.length-1200 : a===b
+        choices.push({r,score:(r.fitsTarget?0:100)+(preferred?0:10000)+area/1e6})
+      }
+      choices.sort((a,b)=>a.score-b.score)
+      const roofClear = (r:ReturnType<typeof floorRooms>) => roofRatio(r) >= TERRACE_LIMITS.minFreeRatio + TERRACE_LIMITS.planningClearanceMargin
+      const selected = choices.find(c => roofClear(c.r) && input.floors.filter(next=>next.level>f.level).every(next=>{
+        const future=floorRooms(next,c.r.plate.length,c.r.plate.segments.A,c.r.plate.segments.B,uLines)
+        return future.fitsMin&&future.rooms.length===next.rooms.length+1&&roofClear(future)
+      }))?.r
+      if (selected) {
+        plates.push(selected.plate);rooms.push(selected.rooms);prev=selected.plate.length
+        continue
+      }
+      // An impossible setback never removes a requested room. The unchanged
+      // valid stack is available to the generator's mandatory checks.
+    }
+    const lower = input.upperProfile ? plates.at(-1)!.segments : {A:aSegs,B:bSegs}
+    const at = (len: number) => floorRooms(f, len, clip(lower.A, 0, len), clip(lower.B, 0, len), uLines)
     let len = prev
     // upper floors step back to the shortest cross axis that holds their
     // programme; only the 'rectangular' family keeps a full-height stack

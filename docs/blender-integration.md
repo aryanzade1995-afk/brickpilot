@@ -113,10 +113,12 @@ fingerprints are discarded when their schema is stale.
 
 Production additionally measures the evaluated Blender triangles, including
 modifiers and actual openings. Fixed frames covering the complete property rasterize front, side,
-roof plan, roof-front and roof-side projections at 32×32. Comparison uses weighted
-intersection/union: front 15%, side 15%, roof plan 25%, roof-front 22.5%, roof-side
-22.5%. The permitted envelope carries most weight; unchanged occupied rooms do
-not swamp exterior changes. Colors, materials, planting and arbitrary labels have
+  roof plan, roof-front and roof-side projections at 32×32. Schema 4 also measures
+  evaluated facade and balcony triangles separately so the fixed shell does not
+  obscure different exterior frames and screens. Weighted intersection/union uses
+  front 10%, side 10%, roof plan 20%, roof-front 5%, roof-side 5%, facade-front 25%
+  and facade-side 25%. Older sampling versions remain readable but are compared
+  only with their own version. Colors, materials, planting and arbitrary labels have
 zero weight. Identical actual meshes score 100% even with a new palette.
 
 Default rejection threshold: greater than 75% nearest similarity, configurable

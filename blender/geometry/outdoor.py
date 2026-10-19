@@ -1,5 +1,7 @@
 """Plan-anchored balconies, accessible terraces, parapets, railings and planters."""
 
+import math
+
 from .common import floor_prefix
 from .sizing import slab_thickness
 from .plates import create_plate
@@ -87,13 +89,18 @@ def create_railing(scene, name, floor, edge, elevation, height_mm=980):
     width, depth = ((hi - lo, 42) if axis == "h" else (42, hi - lo))
     scene.box(f"{name}_Top", "BALCONIES", x, y, elevation + height_mm - 45,
               width, depth, 45, "railing", name)
-    for at in (lo, hi):
+    bays=max(1,math.ceil((hi-lo)/1200))
+    for index in range(bays+1):
+        at=lo+(hi-lo)*index/bays
         px, py = (at, fixed) if axis == "h" else (fixed, at)
         scene.box(f"{name}_Post_{int(at)}", "BALCONIES", px, py, elevation,
                   50, 50, height_mm, "railing", name)
-    pane_w, pane_d = ((hi - lo - 80, 24) if axis == "h" else (24, hi - lo - 80))
-    scene.box(f"{name}_Glass", "BALCONIES", x, y, elevation + 90,
-              pane_w, pane_d, height_mm - 160, "glass", name, bevel=2)
+    for index in range(bays):
+        a,b=lo+(hi-lo)*index/bays,lo+(hi-lo)*(index+1)/bays
+        cx,cy=((a+b)/2,fixed) if axis=='h' else (fixed,(a+b)/2)
+        pane_w, pane_d = ((b-a-80, 24) if axis == "h" else (24, b-a-80))
+        scene.box(f"{name}_Glass_{index}", "BALCONIES", cx, cy, elevation + 90,
+                  pane_w, pane_d, height_mm - 160, "glass", name, bevel=2)
 
 
 def create_planter(scene, name, x, y, z, width=1100, depth=340):
@@ -132,6 +139,8 @@ def create_terrace(scene, floor, stairs, shafts=()):
     top = floor["elevationMm"] + floor["heightMm"]
     opening = stair_opening(stair)
     voids = [opening, *[shaft["rect"] for shaft in shafts if shaft["floorId"] == floor["id"]]]
+    if floor.get("courtyard"):
+        voids.append(floor["courtyard"])
     for index, rect in enumerate(floor["footprint"], 1):
         create_plate(scene, f"{floor_prefix(floor)}_Terrace_Deck_{index:03d}", "ROOF",
                      rect, top - slab_thickness(floor), slab_thickness(floor), floor["id"], voids)

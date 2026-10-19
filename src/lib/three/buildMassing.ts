@@ -126,7 +126,7 @@ type Vec3 = [number, number, number]
 type Push = (id: string, kind: MassKind, level: number, pos: Vec3, size: Vec3, prism?: RoofPrism) => void
 type XF = (mm: number) => number
 type Side = 'N' | 'S' | 'E' | 'W'
-type FaceOp = { at: number; width: number; sill: number; head: number }
+type FaceOp = { kind: Opening['kind']; at: number; width: number; sill: number; head: number }
 
 /** the real footprint of a storey — a union of axis-aligned blocks (the massing
  *  grammar); falls back to the bounding box for any legacy plan */
@@ -211,7 +211,7 @@ export function buildMassing(design: Design): Massing {
     const TOL = 2
     for (const op of floor.openings) {
       const band = op.kind === 'window' ? winBand : BAND[op.kind]
-      const rec = { width: op.width, sill: op.kind === 'window' && op.sill !== undefined ? op.sill / 1000 : band.sill,
+      const rec = { kind: op.kind, width: op.width, sill: op.kind === 'window' && op.sill !== undefined ? op.sill / 1000 : band.sill,
         head: op.head !== undefined ? Math.min(op.head / 1000, H - 0.12) : band.head }
       const edge = boundary.find((e) => {
         const horizontal = e.side === 'N' || e.side === 'S'
@@ -447,7 +447,11 @@ export function buildMassing(design: Design): Massing {
   } else buildLandscape(model, floors[0], T, push, wx, wz, m, siteGate(design))
 
   const storeys = floors.length
+  const mainEntryIds = new Set(floors.flatMap(floor => floor.openings
+    .filter(opening => opening.kind === 'entry' && !opening.emergencyExit)
+    .map(opening => opening.id ?? 'main-entry')))
   for (const marker of emergencyPlan(design).markers) {
+    if (marker.kind === 'exit' && mainEntryIds.has(marker.sourceId)) continue
     const level=marker.level, baseY=y0+level*H, horizontal=marker.orient==='h'
     const sizes:Vec3=marker.kind==='exit'?(horizontal?[.6,.24,.08]:[.08,.24,.6]):marker.kind==='alarm'?[.14,.05,.14]:[.15,.42,.15]
     const elevation=marker.kind==='exit'?ESCAPE_LIMITS.signHeightMm:marker.kind==='alarm'?ESCAPE_LIMITS.alarmHeightMm:ESCAPE_LIMITS.equipmentHeightMm
@@ -542,7 +546,7 @@ function addWall(
   }
 
   const clean = ops
-    .map((o) => ({ s: o.at - o.width / 2, e: o.at + o.width / 2, sill: o.sill, head: o.head }))
+    .map((o) => ({ kind: o.kind, s: o.at - o.width / 2, e: o.at + o.width / 2, sill: o.sill, head: o.head }))
     .filter((o) => o.e > a0 + 150 && o.s < a1 - 150)
     .sort((p, q) => p.s - q.s)
 
@@ -577,7 +581,7 @@ function addWall(
       )
 
       // teak frame at the wall face + vertical mullions on wide (grouped) panes
-      const isWindow = o.head - o.sill < 2.0 // doors/entry keep an open reveal
+      const isWindow = o.kind === 'window' // Height does not turn a window into a door.
       if (isWindow) {
         const fr = 0.08 // frame member size
         const ff = fixed + outward * (HT_MM - fr * 500) // sits in the reveal, flush-ish

@@ -3,7 +3,7 @@ from mathutils import Vector
 import bpy
 
 GRID = 32
-MEASUREMENT_SCHEMA_VERSION = 3
+MEASUREMENT_SCHEMA_VERSION = 4
 
 
 def _above_plane(points, z):
@@ -48,6 +48,7 @@ def measure_shape(payload):
     # Include the complete plot so supported forecourt additions are not clipped.
     span = (0, 0, building['plot']['widthMm'] * .001, building['plot']['depthMm'] * .001)
     front, side, roof, roof_front, roof_side = [], [], [], [], []
+    facade_front, facade_side = [], []
     graph = bpy.context.evaluated_depsgraph_get()
     count = 0
     for obj in bpy.context.scene.objects:
@@ -55,6 +56,7 @@ def measure_shape(payload):
                 c.name in ("STRUCTURE", "WALLS", "OPENINGS", "WINDOWS", "DOORS", "MASSING", "FACADE", "BALCONIES", "ROOF") for c in obj.users_collection):
             continue
         evaluated = obj.evaluated_get(graph)
+        facade = any(c.name in ("FACADE", "BALCONIES") for c in obj.users_collection)
         mesh = evaluated.to_mesh()
         try:
             mesh.calc_loop_triangles()
@@ -63,6 +65,12 @@ def measure_shape(payload):
                 pts = [vertices[i] for i in tri.vertices]
                 front.append([(v.x, v.z) for v in pts])
                 side.append([(v.y, v.z) for v in pts])
+                # Measure the permitted exterior separately: projecting the
+                # complete solid shell hides frames/screens behind its walls.
+                # Neither finish shaders, planting nor requested labels enter.
+                if facade:
+                    facade_front.append([(v.x, v.z) for v in pts])
+                    facade_side.append([(v.y, v.z) for v in pts])
                 clipped = _above_plane(pts, top + .1)
                 for i in range(1, len(clipped) - 1):
                     face = [clipped[0], clipped[i], clipped[i + 1]]
@@ -78,6 +86,8 @@ def measure_shape(payload):
         "roof": _raster(roof, span),
         "roofFront": _raster(roof_front, (span[0], top, span[2], 5)),
         "roofSide": _raster(roof_side, (span[1], top, span[3], 5)),
+        "facadeFront": _raster(facade_front, (span[0], -.5, span[2], top + .5)),
+        "facadeSide": _raster(facade_side, (span[1], -.5, span[3], top + .5)),
     }
     return {"schemaVersion": MEASUREMENT_SCHEMA_VERSION, "planId": building["planId"], "seed": payload["villaDesignDNA"]["seed"],
             "grid": GRID, "meshCount": count, "parts": parts,

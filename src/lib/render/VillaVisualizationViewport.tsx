@@ -1,3 +1,4 @@
+import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
 import { Component, Suspense, forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useCallback, type ReactNode } from 'react'
 import { Canvas, useThree } from '@react-three/fiber'
 import { OrbitControls, useGLTF } from '@react-three/drei'
@@ -16,7 +17,7 @@ type Driver={capture:()=>Promise<VillaReferenceView[]>}
 class ModelBoundary extends Component<{children:ReactNode},{failed:boolean}> {
   state={failed:false}
   static getDerivedStateFromError(){return {failed:true}}
-  render(){return this.state.failed?<p role="status" className="p-8 text-sm text-ink-dim">This model could not load. Reopen 3D Massing to prepare it.</p>:this.props.children}
+  render(){return this.state.failed?<p role="status" className="p-8 text-sm text-ink-dim">{translateUi("This model could not load. Reopen 3D Massing to prepare it.")}</p>:this.props.children}
 }
 
 /** Both source tabs use the actual editable model, not a generic villa or image substitute. */
@@ -38,6 +39,8 @@ export const VillaVisualizationViewport=forwardRef<VillaViewportHandle,{design:D
   })
 type SourceProps={setDriver:(value:Driver|null)=>void}
 function BlenderSource({url,setDriver}:SourceProps&{url:string}) {
+  useLanguage(s => s.language);
+
   const gltf=useGLTF(url)
   const scene=useMemo(()=>{
     const clone=gltf.scene.clone(true),remove:THREE.Object3D[]=[]

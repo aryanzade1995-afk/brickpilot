@@ -6,6 +6,8 @@ import { quantityRules as rules } from './data/quantityRules.ts'
 import { sizeStructure, type StructuralSizing } from '../engine/structuralSizing.ts'
 import { resolveSpecification } from './catalogue.ts'
 import { occupantCount } from '../model/brief.ts'
+import {plumbingSchedule,type PlumbingSchedule} from './plumbing.ts'
+import {PLUMBING_ITEM_IDS} from './plumbingCatalogue.ts'
 
 export type RoomQuantity = { id: string; floor: string; name: string; area: number }
 type EnvelopeQuantities = {
@@ -92,7 +94,7 @@ export type QuantityMember = {id:string;category:string;quantities:IFCQuantities
 export type FloorQuantities = {level:number;name:string;items:Record<string,IFCQuantities>;members:QuantityMember[];steelKg:Record<string,number>;formworkM2:Record<string,number>}
 export type Quantities = EnvelopeQuantities & {structureSizing:StructuralSizing;perFloor:FloorQuantities[];
   total:FloorQuantities;concreteMaterials:{grade:string;cementBags:number|null;sandM3:number|null;aggregateM3:number|null};
-  masonryMaterials:{type:string;Count:number};tanks:{occupants:number;overheadLitres:number;undergroundLitres:number}}
+  masonryMaterials:{type:string;Count:number};tanks:{occupants:number;overheadLitres:number;undergroundLitres:number};plumbing:PlumbingSchedule}
 const zero=():IFCQuantities=>({NetVolume:0,NetSideArea:0,NetArea:0,Length:0,Count:0})
 const perimeter=(rects:Rect[],hole?:Rect|null)=>rectUnionEdges(rects,hole).reduce((n,e)=>n+Math.hypot(e.b.x-e.a.x,e.b.y-e.a.y)/1000,0)
 function add(f:FloorQuantities,id:string,values:Partial<IFCQuantities>) {
@@ -136,7 +138,7 @@ function quantitiesKey(design:Design):string {
   // Include room names (schedules/point rules), occupants and technical specs.
   return JSON.stringify({geometry:geometryCostKey(design),floors:design.floors.map(f=>({level:f.level,name:f.name,columns:f.columns,beams:f.beams,shafts:f.shafts,stair:f.stair,rooms:f.rooms.map(r=>({id:r.id,name:r.name,zone:r.zone,semanticId:r.semanticId}))})),
     plot:design.model.plot,compound:design.model.brief.rooms.priorities.compoundWall,
-    occupants:occupantCount(design.model.brief),technical:['soil-type','plinth-height','concrete-grade','masonry-type'].map(id=>resolveSpecification(design.model.brief,id).id),version:rules.version})
+    occupants:occupantCount(design.model.brief),technical:['soil-type','plinth-height','concrete-grade','masonry-type',...PLUMBING_ITEM_IDS].map(id=>resolveSpecification(design.model.brief,id).id),version:rules.version})
 }
 const cache=new Map<string,Quantities>()
 function freeze<T>(value:T):T {
@@ -154,6 +156,7 @@ export function measureDesign(design:Design):Quantities {
 }
 /** Uncached, side-effect-free take-off; does not generate or modify a plan. */
 export function calculateQuantities(design:Design):Quantities {
+  const plumbing=plumbingSchedule(design)
   const envelope=measureEnvelope(design),sizing=sizeStructure(design),ordered=[...design.floors].sort((a,b)=>a.level-b.level)
   const h=design.model.brief.levels.floorToFloor,perFloor:FloorQuantities[]=[]
   const voids=(f:Design['floors'][number])=>[...(f.courtyard?[f.courtyard]:[]),...(f.doubleHeightVoids??[]).map(v=>v.rect)]
@@ -295,8 +298,11 @@ export function calculateQuantities(design:Design):Quantities {
       add(f,'external.driveway',{NetArea:area(['driveway'])});add(f,'external.lawn',{NetArea:area(['lawn'])});add(f,'external.pool',{NetArea:area(['pool']),Count:features.filter(s=>s.kind==='pool').length})
       const length=design.model.brief.rooms.priorities.compoundWall?Math.max(0,2*(design.model.plot.width+design.model.plot.depth)-rules.site.gateWidthMm)/1000:0
       add(f,'external.compoundWall',{Length:length,NetSideArea:length*rules.site.compoundHeightMm/1000,NetVolume:length*rules.site.compoundHeightMm*rules.site.compoundThicknessMm/1e6})
+      if(plumbing.underground)add(f,'plumbing.tank.underground',{Count:1,NetVolume:plumbing.underground.capacityLitres/1000})
+      if(plumbing.drain)add(f,`plumbing.tank.${plumbing.drain.kind}`,{Count:1,NetVolume:plumbing.drain.capacityLitres/1000})
     }
     if(f.items['paint.walls'])f.items['paint.walls'].NetSideArea=Math.max(0,f.items['paint.walls'].NetSideArea-(f.items['wallTiles.wetRooms']?.NetSideArea??0)-(f.items['wallTiles.kitchenDado']?.NetSideArea??0))
+    for(const run of plumbing.runs.filter(r=>r.floor===floor.level))add(f,`plumbing.pipe.${run.purpose.toLowerCase().replaceAll(' / ','-').replaceAll(' ','-')}.${run.diameterMm}mm`,{Length:run.lengthM})
     perFloor.push(f)
   }
   const total:FloorQuantities={level:-1,name:'Total',items:{},members:perFloor.flatMap(f=>f.members),steelKg:{},formworkM2:{}}
@@ -310,13 +316,11 @@ export function calculateQuantities(design:Design):Quantities {
   const grade=resolveSpecification(design.model.brief,'concrete-grade').id
   const parts=rules.concrete.m20Parts, dry=rcc*rules.concrete.dryFactor,sum=parts.reduce((a,b)=>a+b,0)
   const masonryType=resolveSpecification(design.model.brief,'masonry-type').id as keyof typeof rules.masonryUnitsPerM3
-  const occupants=occupantCount(design.model.brief),tank=rules.tanks,storage=occupants*tank.litresPerOccupant*tank.storageDays
-  const capacity=(factor:number)=>Math.max(tank.minLitres,Math.ceil(storage*factor/tank.roundLitres)*tank.roundLitres)
   return {...envelope,structureSizing:sizing,perFloor,total,
     concreteMaterials:{grade,cementBags:grade==='m20'?dry*parts[0]/sum*rules.concrete.cementDensityKgM3/rules.concrete.bagKg:null,sandM3:grade==='m20'?dry*parts[1]/sum:null,aggregateM3:grade==='m20'?dry*parts[2]/sum:null},
     masonryMaterials:{type:masonryType,Count:Math.ceil(masonry*rules.masonryUnitsPerM3[masonryType])},
-    tanks:{occupants,overheadLitres:capacity(tank.overheadFraction),undergroundLitres:capacity(1)},
-    assumptions:[...envelope.assumptions,rules.qualification,...rules.notes,
+    plumbing,tanks:{occupants:plumbing.occupants,overheadLitres:plumbing.overheadLitres,undergroundLitres:plumbing.underground?.capacityLitres??0},
+    assumptions:[...envelope.assumptions,rules.qualification,...rules.notes,...plumbing.notes,
       'RCC includes the ground/plinth floor plate and exposed roof plates once; intermediate stair landings remain, stair/shaft voids are deducted. No pile or raft design is inferred.',
       'Columns stop at slab soffits; beams use clear spans and exclude slab depth. Masonry deducts the union of openings, columns, beams and lintels; plaster includes RCC faces.',
       'Stair RCC uses inclined waist slabs, triangular treads and a turning landing. Points, glazing fraction, grills, skirting and tank capacities are configurable allowances.',

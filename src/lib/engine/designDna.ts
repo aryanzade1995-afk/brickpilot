@@ -25,6 +25,12 @@ export const PALETTE_MATERIALS: Record<DesignDNA['materialPalette'], string> = {
   'kerala-laterite': 'warm white plaster, laterite stone, teak timber, terracotta roof tiles',
   'tropical-cream': 'cream plaster, natural timber, natural stone, deep green accents, dark metal',
   'classical-stone': 'warm stone, cream plaster, muted timber, dark metal, clear glass',
+  'sage-limestone': 'soft ivory plaster, sage green volumes, pale limestone, walnut timber, graphite frames',
+  'terracotta-cream': 'cream plaster, terracotta volumes, warm sandstone, dark timber, bronze frames',
+  'slate-blue': 'chalk white plaster, slate blue volumes, cool grey stone, warm oak, dark frames',
+  'graphite-sand': 'sand plaster, graphite volumes, pale stone, smoked oak, black frames',
+  'olive-stone': 'warm ivory plaster, olive green volumes, beige limestone, teak, dark bronze frames',
+  'clay-copper': 'pale clay plaster, muted rust volumes, cream stone, walnut, copper bronze frames',
 }
 
 export type DesignDNA = {
@@ -49,6 +55,7 @@ export type DesignDNA = {
   windowTreatment: 'flush-frame' | 'deep-reveal' | 'projecting-frame' | 'timber-surround' | 'stone-surround' | 'sunshade'
   shadingSystem: 'none' | 'vertical-fins' | 'horizontal-louvers' | 'deep-overhang' | 'jaali'
   materialPalette: 'warm-stone' | 'lime-plaster' | 'earth' | 'travertine-bronze' | 'charcoal-oak' | 'kerala-laterite' | 'tropical-cream' | 'classical-stone'
+    | 'sage-limestone' | 'terracotta-cream' | 'slate-blue' | 'graphite-sand' | 'olive-stone' | 'clay-copper'
   landscapeMood: 'minimal' | 'formal' | 'natural' | 'lush-tropical' | 'courtyard'
   frameThicknessMm: number
   finSpacingMm: number

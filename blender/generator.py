@@ -47,6 +47,7 @@ from exporters.glb import export_glb  # noqa: E402
 from geometry.roof_services import create_roof_services
 from geometry.terrace_objects import create_terrace_objects
 from geometry.covered import create_covered_outdoor, create_exposed_roofs, create_pool_deck
+from geometry.compositions import create_composition_canopies
 
 
 def payload_digest(payload):
@@ -115,6 +116,9 @@ def create_scene(payload, visualization=None):
         # Roof caps must not seal the stair exit or service shafts.
         voids = [stair["rect"] for stair in building["stairs"] if flat_roof and stair["floorId"] == mass["sourceFloorId"]]
         voids += [shaft["rect"] for shaft in building["shafts"] if shaft["floorId"] == mass["sourceFloorId"]]
+        source_floor = by_floor[mass["sourceFloorId"]]
+        if source_floor.get("courtyard"):
+            voids.append(source_floor["courtyard"])
         create_massing_volume(scene, mass, dna["roofType"], voids)
     for room in building["rooms"]:
         if room["outdoor"] and room["id"].startswith("balcony"):
@@ -130,6 +134,7 @@ def create_scene(payload, visualization=None):
     covered = create_covered_outdoor(scene, building, massing, facade)
     covered.update(create_exposed_roofs(scene, building))
     covered["poolDeck"] = create_pool_deck(scene, building)
+    covered['compositionCanopies'] = create_composition_canopies(scene, building)
     top = floors[-1]
     roof_level = top["elevationMm"] + top["heightMm"]
     accessible = create_terrace(scene, top, building["stairs"], building["shafts"]) if flat_roof else False

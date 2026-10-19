@@ -48,9 +48,37 @@ def create_window_opening(scene, opening, wall, floor):
     for label, z in (("Sill", base), ("Head", base + height - jamb)):
         _bar(scene, f"Window_{opening['id']}_{label}", "WINDOWS", axis,
              along, fixed, z, width, jamb, depth, "metal", opening["id"])
-    _bar(scene, f"Window_{opening['id']}_Glass", "WINDOWS", axis,
+    glass = _bar(scene, f"Window_{opening['id']}_Glass", "WINDOWS", axis,
          along, fixed, base + jamb, width - 2 * jamb, height - 2 * jamb,
          26, "glass", opening["id"])
+    glass['opening_operation'] = 'fixed-window'
+    if width >= 1800:
+        _bar(scene, f"Window_{opening['id']}_Transom", "WINDOWS", axis,
+             along, fixed, base + height * .55, width - 2 * jamb, 35, depth, "metal", opening['id'])
+
+
+def _sliding_door(scene, opening, axis, along, fixed, base, height, width, jamb):
+    """Two independently editable overlapping panels, with tracks and pulls."""
+    clear = width - 2*jamb
+    panel_width = (clear + 80)/2
+    panel_height = height - jamb - 35
+    frame = 38
+    for label, sign in (('Left', -1), ('Right', 1)):
+        center = along + sign * (clear-panel_width)/2
+        plane = fixed + sign * 24
+        name = f"Door_{opening['id']}_Sliding{label}"
+        glass = _bar(scene, name+'_Glass', 'DOORS', axis, center, plane, base+35+frame,
+                     panel_width-2*frame, panel_height-2*frame, 20, 'glass', opening['id'])
+        glass['opening_operation'] = 'sliding-door'
+        for side in (-1, 1):
+            _bar(scene, name+f'_Stile_{side}', 'DOORS', axis, center+side*(panel_width-frame)/2, plane,
+                 base+35, frame, panel_height, 35, 'metal', opening['id'])
+        for label2, z in (('Bottom', base+35), ('Top', base+35+panel_height-frame)):
+            _bar(scene, name+'_'+label2, 'DOORS', axis, center, plane, z, panel_width, frame, 35, 'metal', opening['id'])
+        _bar(scene, name+'_Handle', 'DOORS', axis, center-sign*(panel_width/2-90), plane+28,
+             base+900, 20, 300, 25, 'metal', opening['id'])
+    _bar(scene, f"Door_{opening['id']}_SlidingTrack", 'DOORS', axis, along, fixed, base+5,
+         clear, 25, 115, 'metal', opening['id'])
 
 
 def create_door_opening(scene, opening, wall, floor):
@@ -94,8 +122,11 @@ def create_door_opening(scene, opening, wall, floor):
         shade_depth = max(150, shade_depth)
         _bar(scene, f"MainEntry_{opening['id']}_Canopy", "FACADE", axis,
              along, fixed+shade_depth/2, base+height+240, width+320, 120, shade_depth, "concrete", opening["id"])
-    elif opening.get("leaf", True) or opening.get("treatment") == "glazed-slide":
-        material = "glass" if opening.get("treatment") == "glazed-slide" else "door"
+    elif opening.get('treatment') == 'glazed-slide':
+        _sliding_door(scene, opening, axis, along, fixed, base, height, width, jamb)
+    elif opening.get("leaf", True):
         _bar(scene, f"Door_{opening['id']}_Leaf", "DOORS", axis,
              along, fixed, base + 35, width - 2 * jamb - 15, height - jamb - 55,
-             40, material, opening["id"])
+             40, 'door', opening["id"])
+        _bar(scene, f"Door_{opening['id']}_Handle", 'DOORS', axis, along+width/2-140, fixed+35,
+             base+950, 100, 25, 30, 'metal', opening['id'])
