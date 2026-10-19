@@ -1,3 +1,4 @@
+import { SolarEstimateSummary } from '@/components/solar/SolarEstimateSummary.tsx'
 import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -34,7 +35,7 @@ export function EstimateView({ cost, onAllowances }: { cost: CostEstimate; onAll
   const [split, setSplit] = useState(false), [exporting, setExporting] = useState(false), [error, setError] = useState('')
   const excel = async () => { setExporting(true); setError(''); try { const blob = await (await import('@/lib/cost/exportExcel.ts')).buildBoqExcel(cost); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download='formstead-concept-boq.xlsx'; a.click(); setTimeout(()=>URL.revokeObjectURL(url),4000) } catch(e) { setError(e instanceof Error ? e.message : 'The Excel export could not be prepared.') } finally { setExporting(false) } }
   const download = () => { const url = URL.createObjectURL(new Blob(['\uFEFF', boqCsv(cost)], { type: 'text/csv;charset=utf-8' })); const a = document.createElement('a'); a.href = url; a.download = 'formstead-concept-boq.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 4000) }
-  return <section><div className="grid items-start gap-8 lg:grid-cols-[1fr_320px]"><div>
+  return <section><SolarEstimateSummary solar={cost.solar}/><div className="grid items-start gap-8 lg:grid-cols-[1fr_320px]"><div>
     <p className="label">{translateUi("Expected total")}</p><h2 className="mt-2 font-display text-4xl">{translateUi(formatINR(cost.expected))}</h2><p className="mt-3 text-sm text-ink-dim">{translateUi("Range ")}{translateUi(formatRange(cost.total.low, cost.total.high, formatINR))}</p><p className="mt-2 text-sm">{translateUi(formatINR(cost.ratePerSqft))} {translateUi(" / sq ft")}</p><p className="mt-3 text-xs leading-relaxed text-ink-faint">{translateUi(cost.qualification)}</p>
     <div aria-label={translateUi("Contract view")} className="mt-6 flex gap-2">{['Turnkey', 'Material + labour'].map((v, i) => <button type="button" key={v} aria-pressed={split === !!i} onClick={() => setSplit(!!i)} className={cx('border px-3 py-2 text-xs', split === !!i ? 'border-ink bg-bg-inset' : 'border-line')}>{translateUi(v)}</button>)}</div>
     <p className="mt-3 text-xs text-ink-dim">{translateUi(split ? `Materials ${formatINR(cost.procurement.material)} · Labour ${formatINR(cost.procurement.labour)} · Overhead ${formatINR(cost.procurement.overhead)}` : `Turnkey works ${formatINR(cost.procurement.turnkey)}, including overhead.`)}</p><p className="mt-2 text-xs text-ink-faint">{translateUi(cost.procurement.note)} {translateUi(" This view does not change the estimated project total.")}</p>

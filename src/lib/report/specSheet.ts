@@ -3,7 +3,7 @@ import { autoTable } from 'jspdf-autotable'
 import type { SpecificationRow } from '../cost/schedule.ts'
 import type { CostEstimate } from '../cost/boq.ts'
 
-export type SheetEstimate = Pick<CostEstimate, 'label' | 'qualification' | 'expected' | 'total' | 'ratePerSqft' | 'rateVersion' | 'tradeTotals' | 'included' | 'excluded' | 'assumptions' | 'sources'>
+export type SheetEstimate = Pick<CostEstimate, 'solar' | 'label' | 'qualification' | 'expected' | 'total' | 'ratePerSqft' | 'rateVersion' | 'tradeTotals' | 'included' | 'excluded' | 'assumptions' | 'sources'>
 export type SpecSheetData = { projectName: string; schedule: SpecificationRow[]; cost: SheetEstimate; photos?: Record<string, string> }
 const rupees = (n: number) => `Rs ${new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(n)}`
 type Pdf = jsPDF & { lastAutoTable?: { finalY: number } }
@@ -58,6 +58,17 @@ export async function buildSpecSheetPdf(data: SpecSheetData): Promise<Blob> {
   doc.text(`${rupees(data.cost.ratePerSqft)} / sq ft`, 42, y); y += 20
   autoTable(doc, { startY: y, margin: { left: 42, right: 42, bottom: 60 }, head: [['Trade', 'Amount (INR)', 'Share of works']], body: data.cost.tradeTotals.map(t => [t.trade, rupees(t.amount), `${(t.share * 100).toFixed(1)}%`]), styles: { fontSize: 9 }, headStyles: { fillColor: [51, 51, 51] } })
   const notes = [...data.cost.assumptions, ...data.cost.excluded.map(v => `Excluded: ${v}`), ...data.cost.sources.map(v => `Source: ${v}`)]
+  if (data.cost.solar) {
+    const solar = data.cost.solar
+    doc.addPage(); doc.setFont('helvetica', 'bold').setFontSize(12); doc.text('ROOFTOP SOLAR ASSESSMENT', 42, 50)
+    autoTable(doc, { startY: 68, margin: { left: 42, right: 42, bottom: 60 }, head: [['Assessment', 'Basis']], body: [
+      ['Status / goal', `${solar.status} / ${solar.objective}`], ['Applied panels / DC capacity', `${solar.panelCount} / ${solar.capacityKwp} kWp`],
+      ['Gross solar installation', `${rupees(solar.grossInstallationCost)} before shared add-ons and unconfirmed tax`],
+      ['Legacy allowance', rupees(solar.legacyAllowanceCost)], ['Potential government assistance', `Unverified; INR 0 deducted. ${solar.assistance.url}`],
+      ['Backup configuration', solar.backup === 'pending' ? 'Pending; hybrid, battery and backup circuits not implemented or priced' : 'Not requested'],
+      ['Annual energy', solar.energy.annualKwh ? `${solar.energy.annualKwh.low} - ${solar.energy.annualKwh.high} kWh/year; preliminary range` : solar.energy.state],
+    ], styles: { fontSize: 9 }, headStyles: { fillColor: [51, 51, 51] } })
+  }
   doc.addPage(); doc.setFont('helvetica', 'bold').setFontSize(12); doc.text('ASSUMPTIONS, EXCLUSIONS & PHOTO CREDITS', 42, 50)
   autoTable(doc, { startY: 68, margin: { left: 42, right: 42, bottom: 60 }, body: [...notes.map(v => [v.replaceAll('₹', 'Rs ')]), ...[...new Map(data.schedule.filter(r => r.photo).map(r => [r.photo, `${r.photoSource} · ${r.credit} · CC0 texture close-up, not an installed product photograph`])).values()].map(v => [v])], styles: { fontSize: 8, cellPadding: 5 }, theme: 'plain' })
   const pages = doc.getNumberOfPages()

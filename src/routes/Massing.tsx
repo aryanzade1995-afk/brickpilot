@@ -19,6 +19,7 @@ import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
 import { InvalidPlanNotice } from '@/components/InvalidPlanNotice.tsx'
 import { BlenderVillaPanel } from '@/components/BlenderVillaPanel.tsx'
 import { AiVisualization } from '@/components/AiVisualization.tsx'
+import { SOLAR_URL } from '@/lib/solar/editor.ts'
 
 type ViewMode = 'architecture' | 'furnished'
 
@@ -43,11 +44,13 @@ export function Massing() {
   const style = useInterior360((s) => s.style)
   const density = useInterior360((s) => s.furnitureDensity) as InteriorConfiguration['furnitureDensity']
   const setInterior = useInterior360((s) => s.set)
+  const sourcePlan = result?.design, shapeFingerprint = result?.shapeFingerprint
+  const furnishedPlan = useMemo(() => sourcePlan ? { ...sourcePlan, model: { ...sourcePlan.model, brief: { ...sourcePlan.model.brief, finish: brief.finish, specs: brief.specs } } } : null, [sourcePlan, brief.finish, brief.specs])
   const doll = useMemo(() => {
-    if (!result?.shapeFingerprint || !furnishedVisited) return null
-    const plan = { ...result.design, model: { ...result.design.model, brief } }
+    if (!shapeFingerprint || !furnishedPlan || !furnishedVisited) return null
+    const plan = furnishedPlan
     return buildDollhouse(plan, floorSel === 'all' ? undefined : floorSel, furnishedDresser(plan, style, density))
-  }, [result, brief, furnishedVisited, floorSel, style, density])
+  }, [shapeFingerprint, furnishedPlan, furnishedVisited, floorSel, style, density])
 
   if (result && !result.report.hardChecksPass) return <InvalidPlanNotice report={result.report} />
   if (!result) {
@@ -67,6 +70,7 @@ export function Massing() {
     <div className="mx-auto max-w-[1400px] px-6 py-8 md:px-10">
       <WorkspaceTabs />
       <h1 className="mt-5 font-display text-2xl">{translateUi(mode === 'furnished' ? 'Furnished · ' : '3D massing · ')}{result.model.brief.project.name}</h1>
+      <Link to={SOLAR_URL} className="mt-3 inline-flex rounded-lg border border-line px-4 py-2 text-sm hover:bg-bg-inset">{translateUi(brief.solar.intention === 'undecided' ? 'Add rooftop solar' : 'Edit rooftop solar')}</Link>
       <MassingViewTabs mode={mode} onChange={switchMode} furnishedAvailable={Boolean(result.shapeFingerprint)} />
       {/* Keep both visited viewers mounted: tab switches retain their GPU data,
           camera and controls. The furnished scene is created on its first visit. */}
@@ -78,6 +82,7 @@ export function Massing() {
         </div>
       </div>
       {doll && <div hidden={mode !== 'furnished'}>
+      <p className="mt-4 text-xs text-ink-dim">{translateUi('Building only · the furnished cutaway does not show rooftop PV. Use the Blender design tab for solar.')}</p>
       <div className="mt-4 flex items-center justify-end">
         <div className="font-mono text-[0.7rem] uppercase tracking-[0.1em] text-ok">{translateUi("● Geometry verified")}</div>
       </div>

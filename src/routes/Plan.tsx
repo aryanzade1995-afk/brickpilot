@@ -41,7 +41,7 @@ export function Plan() {
   const toggleEdit = () => { const next = new URLSearchParams(params); if (editing) next.delete('edit'); else next.set('edit', '1'); setParams(next, { replace: true }) }
 
   const saved = useFinishes(s => s.entries[result ? geometryCostKey(result.design) : ''])
-  const cost = useMemo(() => result?.report.hardChecksPass ? estimateProjectBoq(result.design, brief, saved) : null, [result, brief, saved])
+  const cost = useMemo(() => result?.report.hardChecksPass ? estimateProjectBoq(result.design, brief, saved, result) : null, [result, brief, saved])
   const drawingDesign = useMemo(() => result ? { ...result.design, model: { ...result.design.model, brief } } : null, [result, brief])
   useEffect(() => {
     if (!result) run()

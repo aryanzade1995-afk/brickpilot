@@ -44,6 +44,7 @@ export function MassingViewport({
       className="relative aspect-[3/2] w-full overflow-hidden border border-line-strong bg-bg-inset"
     >
       <Canvas
+        frameloop="demand"
         dpr={[1, 2]}
         shadows="soft"
         gl={{ preserveDrawingBuffer: true, antialias: true }}
@@ -58,7 +59,7 @@ export function MassingViewport({
         <ViewRig center={massing.center} span={span} view={view} />
       </Canvas>
       <div className="pointer-events-none absolute bottom-2 left-3 font-mono text-[0.6rem] uppercase tracking-[0.1em] text-ink-faint">
-        {translateUi("verified massing · reference source")}</div>
+        {translateUi("Building only · rooftop PV is not included")}</div>
     </div>
   )
 }
@@ -75,6 +76,7 @@ function ViewRig({
   useLanguage(s => s.language);
 
   const camera = useThree((s) => s.camera)
+  const invalidate = useThree((s) => s.invalidate)
   const controls = useThree((s) => s.controls) as OrbitControlsImpl | null
   const [tx, ty, tz] = center
 
@@ -101,7 +103,8 @@ function ViewRig({
       controls.target.set(tx, aimY, tz)
       controls.update()
     }
-  }, [view, camera, controls, span, tx, ty, tz])
+    invalidate()
+  }, [view, camera, controls, span, tx, ty, tz, invalidate])
 
   return (
     <OrbitControls

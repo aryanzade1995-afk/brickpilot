@@ -4,6 +4,7 @@ import { existsSync, createReadStream, statSync } from 'node:fs'
 import { mkdir, writeFile, readFile, stat } from 'node:fs/promises'
 import { resolve, basename, extname } from 'node:path'
 import { PROJECT_ROOT, blenderExecutable } from './blender-process.mjs'
+import { prepareSolarReplay } from './solar-replay.mjs'
 
 const ROOT = resolve(PROJECT_ROOT, 'output/villa-jobs')
 const jobs = new Map(), queue = []
@@ -11,10 +12,14 @@ let running = false
 const UUID = /^[a-f0-9-]{36}$/
 const json = (res, code, value) => { res.writeHead(code, { 'content-type': 'application/json', 'cache-control': 'no-store' }); res.end(JSON.stringify(value)) }
 const publicJob = (job) => {
-  const result = job.result && { seed: job.result.seed, requestedSeed: job.result.requestedSeed, planId: job.result.planId,
+  const result = job.result && { jobId: job.id, artifactScope: job.result.artifactScope ?? 'building-only',
+    baseJobId: job.result.baseJobId, buildingCacheKey: job.result.buildingCacheKey, solarCacheKey: job.result.solarCacheKey,
+    solarVisualSignature: job.result.solarVisualSignature, roofSignature: job.result.roofSignature,
+    panelCount: job.result.panelCount, capacityKwp: job.result.capacityKwp,
+    seed: job.result.seed, requestedSeed: job.result.requestedSeed, planId: job.result.planId,
     finishSignature: job.result.finishSignature, family: job.result.family, hero: job.result.hero, roofline: job.result.roofline, quality: job.result.quality,
     warnings: job.result.warnings, files: Object.fromEntries(job.result.files.map((file) =>
-      [extname(file) === '.blend' ? 'blend' : extname(file) === '.glb' ? 'glb' : file.match(/_(hero|front|aerial)\.png$/)[1],
+      [file === 'solar-layout.json' ? 'solarLayout' : extname(file) === '.blend' ? 'blend' : extname(file) === '.glb' ? 'glb' : file.match(/_(hero|front|aerial)\.png$/)[1],
         `/api/villas/${job.id}/files/${file}`])) }
   return { id: job.id, status: job.status, phase: job.phase, progress: job.progress, seed: job.seed, attempt: job.attempt,
     error: job.error, debug: job.debug, result }
@@ -23,8 +28,9 @@ async function drain() {
   if (running || !queue.length) return
   running = true
   const job = queue.shift()
-  job.status = 'generating'; job.phase = 'Checking architecture'; job.progress = 3
-  const child = spawn(process.execPath, ['--experimental-strip-types', resolve(PROJECT_ROOT, 'scripts/villa-worker.mjs'), job.directory],
+  job.status = 'generating'; job.phase = job.mode === 'solar-replay' ? 'Opening accepted building' : 'Checking architecture'; job.progress = 3
+  const worker = job.mode === 'solar-replay' ? 'scripts/solar-villa-worker.mjs' : 'scripts/villa-worker.mjs'
+  const child = spawn(process.execPath, ['--experimental-strip-types', resolve(PROJECT_ROOT, worker), job.directory],
     { cwd: PROJECT_ROOT, shell: false, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] })
   let pending = '', errors = ''
   child.stderr.on('data', (chunk) => { errors = (errors + chunk).slice(-3000) })
@@ -76,6 +82,20 @@ export async function handleVillaRequest(req, res, readJson) {
       json(res, 200, { available: supported && installed,
         note: !supported ? 'Blender generation requires Node.js 24 or newer' : installed ? 'Local Blender procedural generation' : 'Set BLENDER_BIN to your Blender executable' })
       return true
+    }
+    if (req.method === 'POST' && path === '/api/villas/solar') {
+      if (queue.length >= 8) { json(res, 429, { error: 'Render queue is full. Try after the current job finishes.' }); return true }
+      const request = await readJson(req, 8e6), replay = await prepareSolarReplay(request)
+      const cached = [...jobs.values()].find(j => j.mode === 'solar-replay' && j.solarCacheKey === replay.solarCacheKey && j.status !== 'failed')
+      if (cached) { json(res, cached.status === 'complete' ? 200 : 202, publicJob(cached)); return true }
+      const id = randomUUID(), directory = resolve(ROOT, id)
+      await mkdir(directory, { recursive: true })
+      await writeFile(resolve(directory, 'request.json'), JSON.stringify({ baseJobId: request.baseJobId, solar: request.solar, quality: replay.quality }))
+      const job = { id, directory, mode: 'solar-replay', solarCacheKey: replay.solarCacheKey, status: 'queued',
+        phase: 'Waiting to replay accepted building', seed: replay.accepted.seed, debug: [] }
+      await writeFile(resolve(directory, 'status.json'), JSON.stringify(job))
+      jobs.set(id, job); queue.push(job); void drain()
+      json(res, 202, publicJob(job)); return true
     }
     if (req.method === 'POST' && path === '/api/villas') {
       if (queue.length >= 8) { json(res, 429, { error: 'Generation queue is full. Try after the current design finishes.' }); return true }

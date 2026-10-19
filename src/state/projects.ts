@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { briefSchema, type Brief } from '@/lib/model/brief.ts'
+import { parseStoredBrief, type Brief } from '@/lib/model/brief.ts'
 import type { LayoutDoc } from '@/lib/plan/layout.ts'
 import { parseLayout } from '@/lib/plan/parse.ts'
 import type { ExistingStructure } from '@/lib/engine/planner/types.ts'
@@ -112,7 +112,7 @@ function currentCore(stage: StageId): Core {
 export function parseCore(value: unknown): Core | null {
   const v = value as Partial<Core> | null
   if (!v || typeof v !== 'object') return null
-  const brief = briefSchema.safeParse(v.brief)
+  const brief = parseStoredBrief(v.brief)
   if (!brief.success) return null
   const stage = STAGES.some((s) => s.id === v.stage) ? (v.stage as StageId) : 'concept'
   const ex = v.existing as Core['existing']
@@ -296,7 +296,7 @@ let pendingLabel: string | undefined
 export function noteChange(label: string) { pendingLabel = label }
 export function startAutosave(): () => void {
   let last = ''
-  const sign = () => { const s = useStudio.getState(); return JSON.stringify([s.pinned, s.layout, s.existing, s.brief.site, s.brief.rooms, s.brief.levels, s.brief.style, s.brief.project.name]) }
+  const sign = () => { const s = useStudio.getState(); return JSON.stringify([s.pinned, s.layout, s.existing, s.brief.site, s.brief.rooms, s.brief.levels, s.brief.style, s.brief.project.name, s.brief.solar]) }
   last = sign()
   const unsub = useStudio.subscribe(() => {
     const now = sign()

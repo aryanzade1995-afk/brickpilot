@@ -61,6 +61,16 @@ export async function buildBoqExcel(cost: CostEstimate, projectName = 'Formstead
   summary.getColumn(4).numFmt = money; summary.getColumn(5).numFmt = money
   decorate(summary, [76, 22, 20, 22, 22, 65], 6)
   for (let r = end + 6; r <= summary.rowCount; r++) { summary.mergeCells(r, 1, r, 6); summary.getRow(r).height = 48 }
+  if (cost.solar && (cost.solar.status !== 'undecided' || cost.solar.objective !== 'unknown')) {
+    const solar = cost.solar, sheet = book.addWorksheet('Solar assessment')
+    sheet.addRows([['Rooftop solar'], [cost.label], ['Gross direct solar cost before shared add-ons and unconfirmed tax; no subsidy deducted'], [], ['Assessment', 'Value / basis'],
+      ['Status', solar.status], ['Goal', solar.objective], ['Applied PV panels', solar.panelCount], ['Applied DC kWp', solar.capacityKwp],
+      ['Gross installation INR', solar.grossInstallationCost], ['Legacy allowance INR', solar.legacyAllowanceCost], ['Potential assistance', 'Unverified; INR 0 deducted'],
+      ['Official scheme portal', solar.assistance.url], ['Backup configuration', solar.backup], ['Inverter compatibility', solar.inverter.state],
+      ['Annual energy kWh', solar.energy.annualKwh ? `${solar.energy.annualKwh.low} - ${solar.energy.annualKwh.high}` : solar.energy.state],
+      ...[...solar.notes, ...solar.inverter.reasons, ...solar.energy.reasons, ...solar.energy.basis, ...solar.inclusions, ...solar.exclusions, ...solar.sources].map(v => ['Basis', v])])
+    decorate(sheet, [36, 110], 5)
+  }
   book.calcProperties.fullCalcOnLoad = true
   const bytes = await book.xlsx.writeBuffer()
   return new Blob([new Uint8Array(bytes)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })

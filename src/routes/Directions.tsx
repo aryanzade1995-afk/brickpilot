@@ -83,6 +83,7 @@ export function Directions() {
 
       <div className="mt-6 max-w-2xl">
         <h1 className="font-display text-[clamp(1.8rem,3.5vw,2.6rem)]">{translateUi("Choose a design direction")}</h1>
+        <p className="mt-2 text-xs text-ink-dim">{translateUi('Building-only direction previews · rooftop PV is shown on the accepted villa in 3D Massing.')}</p>
         <p className="mt-3 text-ink-dim">
           {translateUi("Each direction is a different house in your chosen style — its own plan shape where your plot allows, with every room, door, window and stair checked. Pin the one you prefer.")}</p>
       </div>

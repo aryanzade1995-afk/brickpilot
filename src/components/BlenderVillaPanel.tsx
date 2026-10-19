@@ -4,7 +4,7 @@ import { finishSignature } from '@/lib/cost/finishAssignments.ts'
 import { newDesignSeed } from '@/lib/newDesignSeed.ts'
 import { Component, memo, Suspense, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Canvas, useThree } from '@react-three/fiber'
-import { Bounds, OrbitControls, useGLTF } from '@react-three/drei'
+import { OrbitControls, useGLTF } from '@react-three/drei'
 import type { Design } from '@/lib/engine/types.ts'
 import { createBuildingModel } from '@/lib/engine/buildingModel.ts'
 import { useBlender, directionRenderKey } from '@/state/blender.ts'
@@ -13,12 +13,21 @@ import { StudioReflections } from './StudioReflections.tsx'
 import { prepareVillaScene } from '@/lib/three/prepareVillaScene.ts'
 import { BuildingFormSummary } from './BuildingFormSummary.tsx'
 import { MODERN_COMPOSITION_CHOICES, type ModernComposition } from '@/lib/model/modernCompositions.ts'
+import { useSolarVillaEditor } from './solar/useSolarVillaEditor.ts'
+import { SolarVillaControls } from './solar/SolarVillaControls.tsx'
+import { SolarLayer } from '@/lib/three/SolarLayer.tsx'
+import { SolarCamera, FitAcceptedVilla } from '@/lib/three/SolarCamera.tsx'
+
+// Stable Canvas options prevent React updates to solar controls from reconfiguring the camera.
+const VILLA_CAMERA = { position: [20, 14, -25] as [number, number, number], fov: 40 }
+const VILLA_GL = { antialias: true, logarithmicDepthBuffer: true }
+const VILLA_DPR: [number, number] = [1, 2]
 
 const Villa = memo(function Villa({ url }: { url: string }) {
   const gltf = useGLTF(url)
   const maxAnisotropy = useThree((state) => state.gl.capabilities.getMaxAnisotropy())
   const scene = useMemo(() => prepareVillaScene(gltf.scene, maxAnisotropy), [gltf.scene, maxAnisotropy])
-  return <Bounds fit clip observe margin={1.2}><primitive object={scene} dispose={null} /></Bounds>
+  return <><primitive object={scene} dispose={null} /><FitAcceptedVilla scene={scene}/></>
 })
 class ModelBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false }
@@ -30,7 +39,8 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
   useLanguage(s => s.language);
 
   const brief = useStudio(s => s.result?.design === plan ? s.brief : plan.model.brief)
-  const finishedPlan = useMemo(() => ({ ...plan, model: { ...plan.model, brief } }), [plan, brief])
+  // Solar is a sibling scene layer, never an input to the prepared building or its render effect.
+  const finishedPlan = useMemo(() => ({ ...plan, model: { ...plan.model, brief: { ...plan.model.brief, finish: brief.finish, specs: brief.specs } } }), [plan, brief.finish, brief.specs])
   const signature = finishSignature(brief)
   const id = useMemo(() => createBuildingModel(finishedPlan).planId, [finishedPlan])
   const accepted = useBlender((s) => s.accepted[id])
@@ -39,6 +49,7 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
   const sourcePlanId = useBlender((s) => s.sourcePlanId)
   const previewKey = selectedSeed === undefined ? '' : directionRenderKey(id, selectedSeed)
   const result = selectedSeed === undefined || selectionKey === `${previewKey}:${signature}` || accepted?.seed === selectedSeed ? accepted : undefined
+  const solar = useSolarVillaEditor(plan, result?.seed)
   const preview = useBlender((s) => s.previews[previewKey])
   const error = useBlender((s) => s.error)
   const generate = useBlender((s) => s.generate)
@@ -124,22 +135,27 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
       {result.finishSignature !== signature && <p className="mt-3 text-sm text-ink-dim">{translateUi("Updating selected finishes on this same design…")}</p>}
       <p className="mt-4 font-mono text-xs text-ink-dim">{translateUi("Visualisation · Blender · Seed ")}{translateUi(result.seed)} · {translateUi(result.family.replaceAll('_', ' '))} · {translateUi(result.quality === 'final' ? 'Final render' : 'Preview')}</p>
       <div className="mt-3 grid gap-4 lg:grid-cols-2">
-        <div className="aspect-[4/3] overflow-hidden border border-line">
-          <ModelBoundary key={result.files.glb}><Canvas frameloop="demand" shadows dpr={[1, 2]} gl={{ antialias: true, logarithmicDepthBuffer: true }} camera={{ position: [20, 14, -25], fov: 40 }}>
+        <div id="villa-interactive-view" role="region" aria-label={translateUi('Interactive villa with rooftop solar')} className="aspect-[4/3] overflow-hidden border border-line">
+          <ModelBoundary key={result.files.glb}><Canvas frameloop="demand" shadows dpr={VILLA_DPR} gl={VILLA_GL} camera={VILLA_CAMERA}>
             <color attach="background" args={['#e5e5e5']} /><ambientLight intensity={.6} />
             <directionalLight position={[20, 30, -10]} intensity={2} castShadow shadow-mapSize={[2048, 2048]}
               shadow-camera-left={-35} shadow-camera-right={35} shadow-camera-top={35} shadow-camera-bottom={-35} shadow-camera-far={100} shadow-bias={-0.0005} shadow-normalBias={.05} />
-            <Suspense fallback={null}><StudioReflections /><Villa url={result.files.glb} /></Suspense>
+            <Suspense fallback={null}><StudioReflections /><Villa url={result.files.glb} />
+              <SolarLayer layout={solar.displayLayout} roof={solar.displayRoof} reservedAreas={solar.displayConfiguration.inputs.reservedAreas} selectedIds={solar.selectedIds} onSelect={solar.pickPanel}/>
+              <SolarCamera request={solar.camera} roof={solar.displayRoof} layout={solar.displayLayout} selectedIds={solar.selectedIds}/>
+            </Suspense>
             <OrbitControls makeDefault minPolarAngle={0} maxPolarAngle={Math.PI / 2} />
           </Canvas></ModelBoundary>
         </div>
-        <div><img src={result.files[view]} alt={translateUi(`${view} view of architectural design ${result.seed}`)} className="aspect-[4/3] w-full object-contain" />
+        <div><p className="mb-2 text-xs text-ink-dim">{translateUi('Building only · live rooftop PV and keep-free areas are not included in this image.')}</p><img src={result.files[view]} alt={translateUi(`${view} view of architectural design ${result.seed}`)} className="aspect-[4/3] w-full object-contain" />
           <div className="mt-2 flex gap-2">{(['hero', 'front', 'aerial'] as const).map((key) =>
             <button type="button" key={key} onClick={() => setView(key)} className="border border-line px-3 py-1 text-xs uppercase">{translateUi(key)}</button>)}</div>
         </div>
       </div>
+      <SolarVillaControls editor={solar}/>
       <div className="mt-4 flex flex-wrap gap-4 text-sm">{(['blend', 'glb', 'hero', 'front', 'aerial'] as const).map((key) =>
         <a key={key} href={result.files[key]} download className="underline underline-offset-4">{translateUi(key === 'blend' ? 'Editable Blender scene' : key === 'glb' ? 'Interactive 3D model' : `${key} image`)}</a>)}</div>
+      <p className="mt-2 text-xs text-ink-dim">{translateUi('Building-only downloads. Rooftop PV and keep-free areas are shown in the live villa viewer.')}</p>
       <p className="mt-3 text-xs text-ink-faint">{translateUi("Car: ")}<a href="https://sketchfab.com/models/57bf6cc56931426e87494f554df1dab6" target="_blank" rel="noreferrer" className="underline">{translateUi("Ferrari 458 Italia by vicent091036")}</a>{translateUi(", adapted under ")}<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer" className="underline">{translateUi("CC BY 4.0")}</a>.</p>
     </>}
     {currentJob?.debug?.length ? <details className="mt-4 text-xs text-ink-dim"><summary>{translateUi("Design variation checks")}</summary>

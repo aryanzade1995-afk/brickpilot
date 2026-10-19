@@ -14,7 +14,9 @@ export function prepareVillaScene(source: THREE.Object3D, anisotropy: number) {
     template = source.clone(true)
     const remove: THREE.Object3D[] = []
     template.traverse(object => {
-      if (object.userData.presentation_only || object.name.startsWith('Ground_Context') ||
+      // Combined GLBs carry tagged PV. Strip before caching the architecture;
+      // the current canonical SolarLayer is then attached exactly once.
+      if (object.userData.formstead_solar || object.userData.presentation_only || object.name.startsWith('Ground_Context') ||
         'isLight' in object || 'isCamera' in object) remove.push(object)
     })
     remove.forEach(object => object.removeFromParent())

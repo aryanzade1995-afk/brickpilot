@@ -9,6 +9,7 @@ import { quantityRules } from './data/quantityRules.ts'
 import { estimateLabel, policy, type CostSelection } from './specifications.ts'
 import { selectionFromBrief } from './briefSelections.ts'
 import { finishProduct } from '../finishes/catalogue.ts'
+import { solarCostSchedule, SOLAR_RATE_VERSION, type SolarEstimate, type SolarCostContext } from '../solar/estimate.ts'
 import {plumbingSchedule} from './plumbing.ts'
 
 export type Trade = typeof TRADES[number]
@@ -21,7 +22,7 @@ export type BoqLine = {
   roomId?: string; floor?: number; note: string
 }
 export type CostEstimate = {
-  currency: 'INR'; total: Band; expected: number; ratePerSqm: Band; ratePerSqft: number; lines: CostLine[]
+  solar?: SolarEstimate; currency: 'INR'; total: Band; expected: number; ratePerSqm: Band; ratePerSqft: number; lines: CostLine[]
   basis: string; label: string; qualification: string; confidence: 'C'; rateVersion: string
   included: string[]; excluded: string[]; assumptions: string[]; sources: string[]
   quantities: Quantities; selection: CostSelection; boq: BoqLine[]; sanityNote: string | null
@@ -41,13 +42,13 @@ function roomSpec(brief: Brief, item: string, roomId?: string, semanticId?: stri
   if (roomId && saved[`${item}@${roomId}`] !== undefined) return resolveSpecification(brief, item, roomId)
   return resolveSpecification(brief, item, semanticId)
 }
-function priceLines(design: Design, brief: Brief, quantities: Quantities): BoqLine[] {
+function priceLines(design: Design, brief: Brief, quantities: Quantities, useLegacySolar = true): BoqLine[] {
   const measures = boqMeasures(design, quantities), boq: BoqLine[] = []
   const plumbing=plumbingSchedule(design,brief)
   Object.assign(measures.extra,{tanks:plumbing.overheadLitres/boqRules.allowances.tankRateCapacityLitres,
     undergroundTank:plumbing.underground?.pricingUnits??0,drainTank:plumbing.drain?.pricingUnits??0})
   for (const recipe of boqRules.recipes) {
-    if(recipe.item==='water-pipes'||recipe.item==='drain-pipes')continue
+    if(recipe.item==='water-pipes'||recipe.item==='drain-pipes'||recipe.item==='solar'&&!useLegacySolar)continue
     const add = (key: string, qty: number, label: string, roomId?: string, semanticId?: string, floor?: number, item = recipe.item) => {
       if (qty <= 0) return
       const spec = roomSpec(brief, item, roomId, semanticId), rate = specificationRate(recipe.rateId ?? spec.rateId)
@@ -86,26 +87,27 @@ function priceLines(design: Design, brief: Brief, quantities: Quantities): BoqLi
   }
   return boq
 }
-function summaries(direct: number, selection: CostSelection): CostLine[] {
+function summaries(direct: number, selection: CostSelection, untaxedSolar = 0): CostLine[] {
   const overhead = direct * selection.overheadPercent / 100, contingency = (direct + overhead) * selection.contingencyPercent / 100
+  const taxableBase = (direct - untaxedSolar) * (1 + selection.overheadPercent / 100) * (1 + selection.contingencyPercent / 100)
   const values = [
     ['Measured works & allowances', 'Materials and labour; excludes the add-ons below', direct],
     ['Contractor overhead & profit', `${selection.overheadPercent}% of works`, overhead],
     ['Contingency', `${selection.contingencyPercent}% of works plus overhead`, contingency],
     ['Professional fees allowance', `${selection.feePercent}% of works; taxes on fees excluded`, direct * selection.feePercent / 100],
-    ['GST provision', selection.includeGst ? `${selection.gstPercent}% of works, overhead and contingency; confirm applicability` : 'Excluded; confirm contractor tax treatment', selection.includeGst ? (direct + overhead + contingency) * selection.gstPercent / 100 : 0],
+    ['GST provision', selection.includeGst ? `${selection.gstPercent}% of non-solar works, overhead and contingency; solar tax excluded pending basis` : 'Excluded; confirm contractor tax treatment', selection.includeGst ? taxableBase * selection.gstPercent / 100 : 0],
     ['Approvals allowance', 'Provisional authority charges; separate from professional fees', rateBook.settings.allowances.approvals],
     ['Connections allowance', 'Provisional water / power connection charges', rateBook.settings.allowances.connections],
   ] as const
   return values.map(([label, note, expected]) => ({ label, note, expected, ...band(expected) }))
 }
-function buildBoq(design: Design, brief: Brief, selection: CostSelection, quantities: Quantities): CostEstimate {
-  const boq = priceLines(design, brief, quantities), direct = boq.reduce((n, l) => n + l.amount, 0)
-  const lines = summaries(direct, selection), expected = lines.reduce((n, l) => n + l.expected, 0)
-  const baseline = priceLines(design, { ...brief, specs: { overrides: {} } }, quantities)
+function buildBoq(design: Design, brief: Brief, selection: CostSelection, quantities: Quantities, solar: ReturnType<typeof solarCostSchedule>): CostEstimate {
+  const boq = [...priceLines(design, brief, quantities, solar.useLegacy), ...solar.lines], direct = boq.reduce((n, l) => n + l.amount, 0)
+  const lines = summaries(direct, selection, solar.summary.grossInstallationCost), expected = lines.reduce((n, l) => n + l.expected, 0)
+  const baseline = [...priceLines(design, { ...brief, specs: { overrides: {} } }, quantities, solar.useLegacy), ...solar.lines]
   const baseMap = new Map(baseline.map(l => [l.id, l.amount])), drivers = new Map<string, { item: string; label: string; amount: number; defaultAmount: number; difference: number }>()
   for (const l of boq) {
-    const driver = drivers.get(l.item) ?? { item: l.item, label: specsCatalogue.items.find(i => i.id === l.item)!.label, amount: 0, defaultAmount: 0, difference: 0 }
+    const driver = drivers.get(l.item) ?? { item: l.item, label: specsCatalogue.items.find(i => i.id === l.item)?.label ?? l.label, amount: 0, defaultAmount: 0, difference: 0 }
     driver.amount += l.amount; driver.defaultAmount += baseMap.get(l.id) ?? 0; driver.difference = driver.amount - driver.defaultAmount
     drivers.set(l.item, driver)
   }
@@ -117,41 +119,42 @@ function buildBoq(design: Design, brief: Brief, selection: CostSelection, quanti
   const material = tradeTotals.reduce((n, t) => n + t.material, 0), labour = tradeTotals.reduce((n, t) => n + t.labour, 0)
   const sqmRate = quantities.floorArea ? expected / quantities.floorArea : 0, ratePerSqft = sqmRate / rateBook.settings.sqftPerSqm
   const sanity = rateBook.sanityBands[brief.finish], soil = resolveSpecification(brief, 'soil-type'), sizes = quantities.structureSizing
-  const assumptions = [...quantities.assumptions, ...boqRules.notes,
+  const assumptions = [...quantities.assumptions, ...boqRules.notes.map(note => solar.lines.length && note.startsWith('Trade shares use direct works') ? 'Trade shares use direct works only. The project GST provision excludes structured solar works and attributable overhead/contingency until a solar tax basis is provided; fees and authority allowances remain excluded.' : note),
     `Soil: ${soil.name}. Plinth: ${sizes.plinthHeightMm} mm. Footings and member sizes are approximate, not engineering certification.`,
     ...sizes.floors.map(f => `${quantities.perFloor.find(p => p.level === f.level)?.name ?? `Floor ${f.level}`}: columns ${[...new Set(f.columns.map(c => c.size))].join('/')} mm; beam depths ${[...new Set(f.beams.map(b => b.depthMm))].join('/')} mm; slab ${f.slabThicknessMm} mm.`),
     `Steel kg/m³: ${Object.entries(quantityRules.steelKgPerM3).map(([k, v]) => `${k} ${v}`).join(', ')}.`,
     `Approvals allowance INR ${rateBook.settings.allowances.approvals}; connections INR ${rateBook.settings.allowances.connections}.`,
     ...Object.entries(brief.specs.overrides).filter(([id]) => boqRules.unpricedItems[id]).map(([id]) => `${id}: ${boqRules.unpricedItems[id]}`),
   ]
-  const disabledExtras = specsCatalogue.items.filter(i => i.group === 'extras' && resolveSpecification(brief, i.id).id === 'off').map(i => `${i.label} (not selected)`)
+  const disabledExtras = specsCatalogue.items.filter(i => i.group === 'extras' && !(i.id === 'solar' && solar.summary.status !== 'undecided') && resolveSpecification(brief, i.id).id === 'off').map(i => `${i.label} (not selected)`)
   const unmeasuredSelections = specsCatalogue.items.filter(i => Object.keys(brief.specs.overrides).some(k=>k===i.id||k.startsWith(`${i.id}@`)) && i.options.some(o=>finishProduct(o.finishProductId)?.rate.basis === 'advisory'))
     .map(i => `${i.label}: ${boqRules.unpricedItems[i.id]??i.note}`)
-  return { currency: 'INR', expected, total: band(expected), ratePerSqm: band(sqmRate), ratePerSqft, lines, boq, quantities, selection,
-    label: estimateLabel(), qualification: policy.qualification, confidence: 'C', rateVersion: `${boqRules.version} · ${rateBook.settings.date}`,
+  return { solar: solar.summary, currency: 'INR', expected, total: band(expected), ratePerSqm: band(sqmRate), ratePerSqft, lines, boq, quantities, selection,
+    label: estimateLabel(), qualification: policy.qualification, confidence: 'C', rateVersion: `${boqRules.version} · ${rateBook.settings.date}${solar.lines.length ? ` · ${SOLAR_RATE_VERSION}` : ''}`,
     basis: `${quantities.floorArea.toFixed(1)} m² source-plan floor area · measured members, openings and room finishes · provisional ${rateBook.settings.city} rates`,
-    included: [...boqRules.included], excluded: [...boqRules.excluded, ...disabledExtras, ...unmeasuredSelections, ...(!selection.includeGst ? ['GST provision (not enabled)'] : [])],
-    assumptions, sources: [rateBook.status, ...policy.sources.map(s => `${s.label} — ${s.url}`)],
+    included: [...boqRules.included, ...solar.summary.inclusions], excluded: [...boqRules.excluded, ...solar.summary.exclusions, ...disabledExtras, ...unmeasuredSelections, ...(!selection.includeGst ? ['GST provision (not enabled)'] : [])],
+    assumptions: [...assumptions, ...solar.summary.notes, ...solar.summary.energy.reasons, ...solar.summary.energy.basis], sources: [rateBook.status, ...solar.summary.sources, ...policy.sources.map(s => `${s.label} — ${s.url}`)],
     sanityNote: sqmRate && (ratePerSqft < sanity.min || ratePerSqft > sanity.max) ? 'This estimate is outside the configured reference range. Check measured scope, optional extras and provisional rates with a local contractor.' : null,
     tradeTotals, procurement: { contractType: resolveSpecification(brief, 'contract-type').name, turnkey: direct + lines[1].expected,
       material, labour, overhead: lines[1].expected, projectAddOns: expected - direct - lines[1].expected, total: expected,
       note: 'Same project scope: material + labour + overhead + project add-ons equals the expected total. Owner procurement does not remove material costs.' },
-    defaultExpected: summaries(baseline.reduce((n, l) => n + l.amount, 0), selection).reduce((n, l) => n + l.expected, 0), topCostDrivers,
+    defaultExpected: summaries(baseline.reduce((n, l) => n + l.amount, 0), selection, solar.summary.grossInstallationCost).reduce((n, l) => n + l.expected, 0), topCostDrivers,
   }
 }
 const cache = new Map<string, CostEstimate>()
 const quantityIds = new WeakMap<Quantities, number>()
 let nextId = 0
 /** Geometry → quantities → preset + overrides → rates → BOQ. Bounded content memo; no RNG. */
-export function estimateBoq(design: Design, brief: Brief = design.model.brief, allowances?: CostSelection): CostEstimate {
+export function estimateBoq(design: Design, brief: Brief = design.model.brief, allowances?: CostSelection, solarContext?: SolarCostContext): CostEstimate {
   const selection = selectionFromBrief(brief, design, allowances)
+  const solar = solarCostSchedule(design, brief, solarContext)
   const projected = { ...design, model: { ...design.model, brief } }
   const quantities = measureDesign(projected)
   if (!quantityIds.has(quantities)) quantityIds.set(quantities, ++nextId)
-  const key = JSON.stringify([quantityIds.get(quantities), brief.finish, Object.entries(brief.specs.overrides).sort(([a], [b]) => a.localeCompare(b)), selection])
+  const key = JSON.stringify([quantityIds.get(quantities), brief.finish, Object.entries(brief.specs.overrides).sort(([a], [b]) => a.localeCompare(b)), selection, solar])
   const cached = cache.get(key)
   if (cached) return cached
-  const result = freeze(buildBoq(projected, brief, selection, quantities))
+  const result = freeze(buildBoq(projected, brief, selection, quantities, solar))
   cache.set(key, result)
   if (cache.size > boqRules.memoEntries) cache.delete(cache.keys().next().value!)
   return result

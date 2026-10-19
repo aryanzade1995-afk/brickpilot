@@ -1,3 +1,4 @@
+import type { SolarCostContext } from '@/lib/solar/estimate.ts'
 import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import type { Brief } from '@/lib/model/brief.ts'
@@ -19,8 +20,8 @@ import { KitchenCounter } from './KitchenCounter.tsx'
 import { cx } from '@/lib/cx.ts'
 import { optionPhotos, photographedOptions } from '@/lib/finishes/optionImage.ts'
 
-export function SpecificationPanel({ item, brief, cost, design, room, onClose, onUse }: {
-  item: SpecItem; brief: Brief; cost: CostEstimate; design: Design; room?: string; onClose: () => void; onUse: (brief: Brief) => void
+export function SpecificationPanel({ item, brief, cost, design, room, onClose, onUse, solarContext }: {
+  solarContext?: SolarCostContext; item: SpecItem; brief: Brief; cost: CostEstimate; design: Design; room?: string; onClose: () => void; onUse: (brief: Brief) => void
 }) {
   useLanguage(s => s.language);
 
@@ -62,7 +63,7 @@ export function SpecificationPanel({ item, brief, cost, design, room, onClose, o
   }, [])
   const differences = useMemo(() => Object.fromEntries(item.options.map(o => {
     const next = applySpecification(brief, cost, item, o.id, selectedRooms)
-    return [o.id, estimateBoq(design, next, cost.selection).expected - cost.expected]
+    return [o.id, estimateBoq(design, next, cost.selection, solarContext).expected - cost.expected]
   })), [item, brief, cost, design, selectedRooms])
   const selected = options.find(o => o.id === optionId)!
   const current = (id: string) => item.scope === 'perRoom' && selectedRooms.length

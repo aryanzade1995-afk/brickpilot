@@ -4,6 +4,13 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "test:solar-government": "node --experimental-strip-types --test scripts/test-solar-government.mjs",
+    "test:solar-cost": "node --experimental-strip-types --test scripts/test-solar-cost.mjs",
+    "test:solar-viewer": "node --experimental-strip-types --test scripts/test-solar-viewer.mjs",
+    "test:solar-editor": "node --experimental-strip-types --test scripts/test-solar-editor.mjs",
+    "test:solar-placement": "node --experimental-strip-types --test scripts/test-solar-placement.mjs",
+    "test:solar-roof": "node --experimental-strip-types --test scripts/test-solar-roof.mjs",
+    "test:solar-state": "node --experimental-strip-types --test scripts/test-solar-state.mjs",
     "test:3d-edits": "node --experimental-strip-types --test scripts/test-outdoor-pillars.mjs",
     "test:interior": "node --experimental-strip-types --test scripts/test-interior-preview.mjs",
     "test:furnished": "node --experimental-strip-types --test scripts/test-furnished-match.mjs",

@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "pm-surya-ghar-capex-cfa",
+  "revision": "official-source-review-2026-10-19",
+  "authority": "Ministry of New and Renewable Energy, Government of India",
+  "verifiedOn": "2026-10-19",
+  "reviewAfterDays": 90,
+  "schemePeriodEnd": "2027-03-31",
+  "applyUrl": "https://pmsuryaghar.gov.in/",
+  "scope": "Residential consumer-owned CAPEX rooftop PV guidance. RESCO/utility-led models and personalized claims are not assessed.",
+  "consumerCategories": ["individual-residential", "housing-association"],
+  "excludedCategories": ["non-residential"],
+  "individual": {
+    "capacityBasis": "installed-module-DC-kWp",
+    "firstBandKwp": 2,
+    "additionalBandKwp": 1,
+    "general": {"firstBandInrPerKwp": 30000, "additionalBandInrPerKwp": 18000, "maximumInr": 78000},
+    "special": {"firstBandInrPerKwp": 33000, "additionalBandInrPerKwp": 19800, "maximumInr": 85800},
+    "fractionalCapacity": "pro-rata",
+    "additionalAbove3Kwp": 0
+  },
+  "association": {"capacityLimitKwp": 500, "capacityPerDwellingKwp": 3, "generalInrPerKwp": 18000, "specialInrPerKwp": 19800, "includesIndividualInstallationsInCapacityLimit": true},
+  "specialCategoryStateCodes": ["UK", "HP", "JK", "LA", "AR", "AS", "MN", "ML", "MZ", "NL", "SK", "TR", "AN", "LD"],
+  "conditions": [
+    {"id": "residential-connection", "source": "residential-guidelines", "section": "5(b,d)", "summary": "CFA is for eligible residential grid-connected consumers; non-residential segments are excluded."},
+    {"id": "dcr", "source": "residential-guidelines", "section": "5(m)", "summary": "CFA requires domestically manufactured modules made with domestically manufactured cells; non-DCR equipment is not eligible."},
+    {"id": "technical", "source": "july-2025-amendment", "section": "6(f), Annexure 3", "summary": "Check current MNRE technical specifications, applicable ALMM requirements, exact equipment and vendor/DISCOM acceptance; illustrative models are not certified eligible."},
+    {"id": "previous-cfa", "source": "residential-guidelines", "section": "5(n,o)", "summary": "Earlier subsidized capacity affects any incremental claim; relocation does not create a new CFA entitlement."},
+    {"id": "vendor-portal", "source": "residential-guidelines", "section": "6(a,c)", "summary": "Use the National Portal and a vendor registered there; inspection and commissioning precede the applicable claim process."},
+    {"id": "state-separate", "source": "july-2025-amendment", "section": "5(i)", "summary": "Any state/UT support is separate and should be updated on the National Portal; it is not automatically added to central assistance."}
+  ],
+  "sources": [
+    {"id": "residential-guidelines", "label": "MNRE residential CFA guidelines · sections 5–6", "publishedOn": "2024-06-07", "verifiedOn": "2026-10-19", "url": "https://cdnbbsr.s3waas.gov.in/s3716e1b8c6cd17b771da77391355749f3/uploads/2024/07/202407021768035484.pdf"},
+    {"id": "july-2025-amendment", "label": "MNRE amendment · state assistance and technical specifications", "publishedOn": "2025-07-07", "verifiedOn": "2026-10-19", "url": "https://mnre.gov.in/en/notice/amendment-in-guidelines-for-implementation-of-pm-surya-ghar-muft-bijli-yojana-for-the-component-of-cfa-to-residential-consumers/"},
+    {"id": "dcr-clarification", "label": "MNRE domestic-content clarification", "publishedOn": "2025-03-11", "verifiedOn": "2026-10-19", "url": "https://mnre.gov.in/en/notice/domestic-content-requirement-dcr-norms-for-solar-pv-cells/"},
+    {"id": "almm-2026", "label": "MNRE/PIB · 2026 equipment policy clarification", "publishedOn": "2026-05-25", "verifiedOn": "2026-10-19", "url": "https://www.pib.gov.in/newsite/erelcontent.aspx?lang=2&reg=48&relid=289229"},
+    {"id": "scheme-2026", "label": "MNRE/PIB · residential grid connection and National Portal", "publishedOn": "2026-03-24", "verifiedOn": "2026-10-19", "url": "https://www.pib.gov.in/PressReleasePage.aspx?PRID=2244670&lang=1&reg=3"},
+    {"id": "msedcl", "label": "MSEDCL rooftop solar guidance · Maharashtra consumers of MSEDCL", "publishedOn": null, "verifiedOn": "2026-10-19", "url": "https://www.mahadiscom.in/ismart/"}
+  ],
+  "stateSupport": {"status": "not-assessed", "amountInr": null, "sourceIds": [], "note": "No state subsidy amount or eligibility is verified in this rules pack. Check the National Portal and the relevant state/DISCOM; no state amount is added."},
+  "msedclGuidance": {"stateCode": "MH", "discom": "MSEDCL", "sourceId": "msedcl", "url": "https://www.mahadiscom.in/ismart/"}
+}

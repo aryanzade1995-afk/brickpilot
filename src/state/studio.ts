@@ -6,7 +6,11 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 import { compile, type CanonicalModel } from '@/lib/model/canonical.ts'
-import { briefSchema, defaultBrief, geometryBrief, type Brief } from '@/lib/model/brief.ts'
+import { briefSchema, defaultBrief, geometryBrief, parseStoredBrief, type Brief } from '@/lib/model/brief.ts'
+import { solarConfigurationSchema, solarConfigurationSignature, solarUpdateSchema, solarLayoutV2Schema } from '@/lib/model/solar.ts'
+import { validateSolarLayoutCommit } from '@/lib/solar/layoutEditing.ts'
+import { buildSolarRoofModel, type SolarRoofOptions } from '@/lib/solar/roofModel.ts'
+import { proposeSolarPlacement as createSolarProposal, reviewSolarLayout, type SolarPlacementOptions, type SolarPlacementProposal } from '@/lib/solar/placement.ts'
 import {
   generate,
   MASSING_TYPES,
@@ -165,6 +169,11 @@ type StudioState = {
   setDiversityLimits: (limits: Partial<VillaDiversityLimits>) => void
   result: Result | null
   edit: (recipe: (b: Brief) => void) => void
+  /** Validated solar inputs only. Preserves architecture and accepted render state; refreshes the solar estimate. */
+  updateSolar: (value: unknown) => { ok: true } | { ok: false; error: string }
+  proposeSolarLayout: (options?: SolarPlacementOptions & { allocationPolicy?: SolarRoofOptions['policy'] }) => { ok: true; proposal: SolarPlacementProposal } | { ok: false; error: string }
+  applySolarLayout: (layout: unknown) => { ok: true } | { ok: false; error: string }
+  commitSolarLayoutEdit: (configuration: unknown, expectedSolarSignature: string, expectedRoofSignature: string) => { ok: true } | { ok: false; error: string }
   reset: () => void
   /** replace the working brief + pinned direction (loading a saved design) */
   loadSaved: (brief: Brief, pinned: PinnedDir | null, layout?: LayoutDoc | null, existing?: { structure: ExistingStructure; seed: number } | null) => void
@@ -191,6 +200,15 @@ type StudioState = {
   run: () => Result
 }
 
+function currentSolarRoof(state: Pick<StudioState, 'brief' | 'result'>, policy?: SolarRoofOptions['policy']) {
+  const result = state.result
+  if (!result?.buildingModel || !result.massingModel || !result.facadeModel || !result.villaDesignDNA) return null
+  try { return buildSolarRoofModel(result.design, { inputs: state.brief.solar.inputs, policy,
+    architecture: { buildingModel: result.buildingModel, massingModel: result.massingModel,
+      facadeGrammar: result.facadeModel, villaDesignDNA: result.villaDesignDNA } }) }
+  catch { return null }
+}
+
 function variationLevel(brief: Brief) {
   return brief.style.diversity === 'low' ? 'subtle' :
     brief.style.diversity === 'high' || brief.style.diversity === 'extreme' ? 'bold' : 'balanced'
@@ -207,7 +225,9 @@ function exactResult(plan: Design, seed: number, inspiration: InspirationPrefere
   const exterior = varyExterior(plan, seed, variationLevel(plan.model.brief), inspiration)
   const design = plan.balconyExtent==='full-slab'?expandBalconyArea(exterior):exterior
   const architecture = generateAlternativeDesign(design, seed)
-  return { ...resultForPlan(design), ...architecture, facadeModel: architecture.facadeGrammar, shapeStatus }
+  const result = { ...resultForPlan(design), ...architecture, facadeModel: architecture.facadeGrammar, shapeStatus }
+  result.cost = estimateBoq(design, design.model.brief, undefined, result)
+  return result
 }
 
 function generateDistinct(plan: Design, seed: number, inspiration: InspirationPreferences | null,
@@ -414,6 +434,50 @@ export const useStudio = create<StudioState>()(
         set((s) => { s.diversityLimits = limits })
       },
 
+      updateSolar: (value) => {
+        const parsed = solarUpdateSchema.safeParse(value)
+        if (!parsed.success) return { ok: false, error: parsed.error.issues.map(issue => `${issue.path.join('.')}: ${issue.message}`).join('; ') }
+        const previous = get().brief.solar
+        const next = solarConfigurationSchema.parse({ schemaVersion: 1, ...parsed.data, assessmentInputs: previous.assessmentInputs, calculated: null })
+        if (solarConfigurationSignature(previous) === solarConfigurationSignature(next)) return { ok: true }
+        set(s => { s.brief.solar = next; if (s.result) s.result.cost = estimateBoq(s.result.design, s.brief, undefined, s.result) })
+        return { ok: true }
+      },
+
+      proposeSolarLayout: (options = {}) => {
+        const state = get(), previous = state.brief.solar.calculated?.layout
+        const roof = currentSolarRoof(state, options.allocationPolicy ?? (previous?.schemaVersion === 2 ? previous.allocationPolicy : undefined))
+        if (!roof) return { ok: false, error: 'A current accepted source plan is required to propose a solar layout.' }
+        try { return { ok: true, proposal: createSolarProposal(state.brief.solar, roof, { ...options,
+          policy: options.policy ?? (previous?.schemaVersion === 2 ? previous.placementPolicy : undefined) }) } }
+        catch (error) { return { ok: false, error: error instanceof Error ? error.message : 'Invalid solar placement settings.' } }
+      },
+      applySolarLayout: (value) => {
+        const parsed = solarLayoutV2Schema.safeParse(value)
+        if (!parsed.success) return { ok: false, error: 'The proposed solar layout is invalid or uses an unsupported version.' }
+        const state = get(), roof = currentSolarRoof(state, parsed.data.allocationPolicy)
+        if (!roof) return { ok: false, error: 'The source roof is not ready. Your saved solar layout is preserved.' }
+        const validity = reviewSolarLayout(parsed.data, state.brief.solar, roof)
+        if (validity.state !== 'concept-valid') return { ok: false, error: `Review the solar proposal: ${validity.reasonCodes.join(', ')}` }
+        const solar = solarConfigurationSchema.safeParse({ ...state.brief.solar, calculated: {
+          configurationSignature: solarConfigurationSignature(state.brief.solar), layout: { ...parsed.data, validity } } })
+        if (!solar.success) return { ok: false, error: 'The solar proposal does not match the current inputs.' }
+        set(s => { s.brief.solar = solar.data; if (s.result) s.result.cost = estimateBoq(s.result.design, s.brief, undefined, s.result) })
+        return { ok: true }
+      },
+
+      commitSolarLayoutEdit: (value, expectedSolarSignature, expectedRoofSignature) => {
+        const state = get(), result = state.result
+        if (!result?.buildingModel || !result.massingModel || !result.facadeModel || !result.villaDesignDNA) return { ok: false, error: 'SOLAR_LAYOUT_REQUIRED' }
+        try {
+          const solar = validateSolarLayoutCommit(result.design, state.brief.solar, {
+            buildingModel: result.buildingModel, massingModel: result.massingModel, facadeGrammar: result.facadeModel, villaDesignDNA: result.villaDesignDNA,
+          }, value, expectedSolarSignature, expectedRoofSignature)
+          set(s => { s.brief.solar = solar; if (s.result) s.result.cost = estimateBoq(s.result.design, s.brief, undefined, s.result) })
+          return { ok: true }
+        } catch (error) { return { ok: false, error: error instanceof Error ? error.message : 'INVALID_SOLAR_EDIT' } }
+      },
+
       edit: (recipe) => {
         // Choices are never blocked: the Brief page shows how the brief fits and how to adjust it.
         const choice = { brief: applyBriefChoice(get().brief, recipe), reason: null as string | null }
@@ -423,7 +487,7 @@ export const useStudio = create<StudioState>()(
           s.briefChoiceIssue = choice.reason
           // Finish/specification edits save in the brief without regenerating rooms or a villa.
           if (geometryBefore === JSON.stringify(geometryBrief(s.brief))) {
-            if (s.result) s.result.cost = estimateBoq(s.result.design, s.brief)
+            if (s.result) s.result.cost = estimateBoq(s.result.design, s.brief, undefined, s.result)
             return
           }
           // Only geometry-relevant brief changes invalidate the generated plan.
@@ -719,7 +783,7 @@ export const useStudio = create<StudioState>()(
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<{ brief: unknown; pinned: unknown; existing: unknown; layout: unknown;
           referencePreferences: unknown; recentExteriorSeeds: unknown; recentBuildingShapes: unknown; recentVillaFingerprints: unknown; diversityLimits: unknown }>
-        const parsed = briefSchema.safeParse(p.brief)
+        const parsed = parseStoredBrief(p.brief)
         let limits = { ...DEFAULT_DIVERSITY_LIMITS }
         try { if (p.diversityLimits && typeof p.diversityLimits === 'object') limits = diversityLimits(p.diversityLimits as Partial<VillaDiversityLimits>) } catch { /* Repair stale configuration. */ }
         return {
@@ -740,3 +804,29 @@ export const useStudio = create<StudioState>()(
     },
   ),
 )
+
+/** Invalidate only solar metadata when source architecture changes. Preserve every
+ * saved panel position until an explicit proposal is accepted. No render request. */
+function refreshSolarValidity(state: StudioState, previous?: StudioState) {
+  const layout = state.brief.solar?.calculated?.layout
+  if (layout?.schemaVersion !== 2 || previous && state.result === previous.result && state.brief.solar.calculated === previous.brief.solar?.calculated) return
+  const roof = currentSolarRoof(state, layout.allocationPolicy)
+  const validity = roof ? reviewSolarLayout(layout, state.brief.solar, roof) :
+    { state: 'needs-review' as const, reasonCodes: ['SOURCE_ROOF_NOT_READY'] }
+  if (JSON.stringify(layout.validity) === JSON.stringify(validity)) return
+  useStudio.setState(s => { if (s.brief.solar.calculated?.layout.schemaVersion === 2) s.brief.solar.calculated.layout.validity = validity })
+}
+useStudio.subscribe(refreshSolarValidity)
+refreshSolarValidity(useStudio.getState())
+
+/** Recompute from the live roof on reload, project switch and version restore as well as edits. */
+function refreshSolarEstimate(state: StudioState, previous?: StudioState) {
+  if (!state.result) return
+  if (previous && state.brief === previous.brief && state.result.design === previous.result?.design &&
+    state.result.buildingModel === previous.result?.buildingModel && state.result.massingModel === previous.result?.massingModel &&
+    state.result.facadeModel === previous.result?.facadeModel && state.result.villaDesignDNA === previous.result?.villaDesignDNA) return
+  const cost = estimateBoq(state.result.design, state.brief, undefined, state.result)
+  if (cost !== state.result.cost) useStudio.setState(s => { if (s.result) s.result.cost = cost })
+}
+useStudio.subscribe(refreshSolarEstimate)
+refreshSolarEstimate(useStudio.getState())

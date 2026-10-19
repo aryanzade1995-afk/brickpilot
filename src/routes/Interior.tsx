@@ -21,6 +21,7 @@ export function Interior() {
       <div className="mt-8">
         <p className="label">{translateUi("Step 06 · AI Interior")}</p>
         <h1 className="mt-3 font-display text-3xl md:text-4xl">{translateUi("See each room in your finishes")}</h1>
+        <p className="mt-2 text-xs text-ink-dim">{translateUi('Interior-only views · rooftop PV is shown in 3D Massing.')}</p>
         <p className="mt-3 max-w-3xl text-sm leading-relaxed text-ink-dim">
           {translateUi("Choose a room and explore a 360° preview using your selected finishes, lighting and furniture style.")}</p>
       </div>

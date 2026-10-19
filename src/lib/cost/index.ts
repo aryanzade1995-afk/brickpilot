@@ -1,3 +1,4 @@
+import type { SolarCostContext } from '../solar/estimate.ts'
 import { replayedCost } from './replay.ts'
 import type { Design } from '../engine/types.ts'
 import type { Brief } from '../model/brief.ts'
@@ -8,19 +9,19 @@ export { estimateBoq } from './boq.ts'
 export type { Band, CostLine, BoqLine, CostEstimate } from './boq.ts'
 
 /** Saved pre-catalogue controls migrate into a copy, never into source geometry. */
-export function estimateSelectedBoq(design: Design, preferences?: unknown, brief: Brief = design.model.brief): CostEstimate {
-  if (!preferences) return estimateBoq(design, brief)
+export function estimateSelectedBoq(design: Design, preferences?: unknown, brief: Brief = design.model.brief, context?: SolarCostContext): CostEstimate {
+  if (!preferences) return estimateBoq(design, brief, undefined, context)
   const projected = { ...brief, specs: { overrides: { ...brief.specs.overrides } } }
   const selection = parseSelection(preferences)
   writeSelectionToBrief(projected, design, selection)
-  return estimateBoq(design, projected, selection)
+  return estimateBoq(design, projected, selection, context)
 }
 /** Full current Brief wins; only untouched legacy projects import browser-only finish choices. */
-export function estimateProjectBoq(design: Design, brief: Brief = design.model.brief, saved?: unknown): CostEstimate {
+export function estimateProjectBoq(design: Design, brief: Brief = design.model.brief, saved?: unknown, context?: SolarCostContext): CostEstimate {
   const restored = replayedCost(design, brief, saved)
   if (restored) return restored
-  if (saved && !parseSelection(saved).catalogue && brief.finish === 'mid' && !Object.keys(brief.specs.overrides).length) return estimateSelectedBoq(design, saved, brief)
-  return estimateBoq(design, brief, saved ? parseSelection(saved) : undefined)
+  if (saved && !parseSelection(saved).catalogue && brief.finish === 'mid' && !Object.keys(brief.specs.overrides).length) return estimateSelectedBoq(design, saved, brief, context)
+  return estimateBoq(design, brief, saved ? parseSelection(saved) : undefined, context)
 }
 /** Export the same calculation as screen/PDF, including assumptions and provenance. */
 export function boqCsv(cost: CostEstimate): string {
@@ -32,6 +33,7 @@ export function boqCsv(cost: CostEstimate): string {
     ['Expected total', cost.expected], ['Low', cost.total.low], ['High', cost.total.high],
     ['INR / sq ft', cost.ratePerSqft], ['Turnkey works', cost.procurement.turnkey], ['Materials', cost.procurement.material], ['Labour', cost.procurement.labour],
     ['Default preset total', cost.defaultExpected],
+    ...(cost.solar ? [['Solar status', cost.solar.status], ['Applied PV panels', cost.solar.panelCount], ['Applied DC capacity (kWp)', cost.solar.capacityKwp], ['Gross solar installation before shared add-ons and unconfirmed tax', cost.solar.grossInstallationCost], ['Legacy solar allowance', cost.solar.legacyAllowanceCost], ['Potential assistance', 'Unverified; INR 0 deducted', cost.solar.assistance.url], ['Solar goal', cost.solar.objective], ['Backup configuration', cost.solar.backup], ['Preliminary annual energy (kWh)', cost.solar.energy.annualKwh ? `${cost.solar.energy.annualKwh.low}–${cost.solar.energy.annualKwh.high}` : cost.solar.energy.state]] : []),
     ...cost.topCostDrivers.map(d => ['Cost driver vs preset', d.label, '', '', '', '', d.amount, '', '', '', `Default ${d.defaultAmount}; difference ${d.difference}`]),
     ...cost.assumptions.map(a => ['Measurement assumption', a]),
     ...cost.excluded.map(a => ['Excluded', a]), ...cost.sources.map(a => ['Source', a])]

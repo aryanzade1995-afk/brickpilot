@@ -1,0 +1,22 @@
+from playwright.sync_api import sync_playwright
+with sync_playwright() as p:
+    b = p.chromium.launch(executable_path=r"C:\Program Files\Google\Chrome\Application\chrome.exe", headless=True)
+    page = b.new_context(viewport={"width": 1440, "height": 900}).new_page()
+    errs = []; page.on("pageerror", lambda e: errs.append(str(e)[:200]))
+    page.goto("http://localhost:3000/workspace/plan?edit=1"); page.wait_for_load_state("networkidle"); page.wait_for_timeout(3500)
+    def sel(room_id):
+        page.evaluate("""(id) => { const el = document.querySelector(`[data-room="${id}"]`); const b = el.getBoundingClientRect(); el.dispatchEvent(new PointerEvent('pointerdown', {bubbles:true, clientX: b.x+b.width/2, clientY: b.y+b.height/2, pointerId:1})) }""", room_id)
+        page.wait_for_timeout(400)
+    sel("parking"); print("selected:", page.locator("[aria-label='Selected room']").inner_text()[:90].replace(chr(10), " | "), flush=True)
+    page.get_by_role("button", name="Resize").click()
+    page.get_by_role("button", name="Right edge in").click(); page.wait_for_timeout(3000)
+    print("after resize:", page.locator("[role=status]").first.inner_text()[:110].replace(chr(10), " "), flush=True)
+    page.evaluate("""() => { const el = document.querySelector('[data-feature="driveway"]'); const b = el.getBoundingClientRect(); el.dispatchEvent(new PointerEvent('pointerdown', {bubbles:true, clientX: b.x+b.width/2, clientY: b.y+b.height/2, pointerId:1})) }""")
+    page.wait_for_timeout(400)
+    print("feature:", page.locator("[aria-label='Site feature']").inner_text()[:110].replace(chr(10), " | "), flush=True)
+    page.get_by_role("button", name="Feature wider").click(); page.wait_for_timeout(3000)
+    print("after wider:", page.locator("[role=status]").first.inner_text()[:140].replace(chr(10), " "), flush=True)
+    page.get_by_role("button", name="Parking").last.click(); page.wait_for_timeout(2500)
+    print("add parking:", page.locator("[role=status]").first.inner_text()[:120].replace(chr(10), " "), flush=True)
+    page.locator("[data-testid=plan-editor]").scroll_into_view_if_needed(); page.screenshot(path=r"C:\Users\aryan\Documents\projects\brick-pilot-final\presentation-assets\outdoor_probe.png")
+    print(errs); b.close()

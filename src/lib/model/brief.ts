@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { solarConfigurationSchema, recoverStoredSolar } from './solar.ts'
 
 /** Compass edges of a plot. */
 export const directionSchema = z.enum(['N', 'E', 'S', 'W'])
@@ -295,6 +296,8 @@ export const briefSchema = z
     budget: z.preprocess(v => v && typeof v === 'object' && 'amount' in v ? v : undefined, z.object({ amount: z.number().finite().positive() }).optional()),
     finish: finishSchema.default('mid'),
     specs: z.object({ overrides: z.record(z.string().min(1).max(160), z.string().min(1).max(100)).default({}) }).prefault({}),
+    /** Optional service planning; never part of architectural randomness or the legacy solar allowance. */
+    solar: solarConfigurationSchema,
     /** internal variation index — bumped to reroll geometry from the same brief */
     variation: z.number().int().min(0).default(0),
   })
@@ -305,9 +308,15 @@ export type Brief = z.infer<typeof briefSchema>
 
 export const defaultBrief = (): Brief => briefSchema.parse({})
 
+/** Tolerant only at storage boundaries; live solar updates use the strict schema. */
+export function parseStoredBrief(value: unknown) {
+  return briefSchema.safeParse(value && typeof value === 'object' && !Array.isArray(value)
+    ? { ...value, solar: recoverStoredSolar((value as { solar?: unknown }).solar) } : value)
+}
+
 /** Excludes cost preferences, preserving pre-specification saved-project seeds. */
 export function geometryBrief(brief: Brief) {
-  const { finish: _finish, specs: _specs, budget: _budget, ...geometry } = brief
+  const { finish: _finish, specs: _specs, budget: _budget, solar: _solar, ...geometry } = brief
   const { climate: _climate, ...site } = geometry.site
   const { sizes, starred: _starred, ...rooms } = geometry.rooms
   // Optional choices may be appended by the editor or reordered by schema

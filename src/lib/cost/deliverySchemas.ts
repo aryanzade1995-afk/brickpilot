@@ -1,10 +1,11 @@
 import { z } from 'zod'
+import { solarEstimateSchema } from '../solar/estimate.ts'
 import { TRADES } from './data/boqRules.ts'
 
 const number = z.number().nonnegative().finite(), text = z.string().max(12000), texts = z.array(text).max(2000)
 const band = z.object({ low: number, high: number }).refine(v => v.high >= v.low)
 const trade = z.object({ trade: z.enum(TRADES), amount: number, share: number.max(1), material: number, labour: number })
-export const sheetEstimateSchema = z.object({ label: text, qualification: text, expected: number, total: band, ratePerSqft: number,
+export const sheetEstimateSchema = z.object({ solar: solarEstimateSchema.optional(), label: text, qualification: text, expected: number, total: band, ratePerSqft: number,
   rateVersion: text, tradeTotals: z.array(trade).length(TRADES.length), included: texts, excluded: texts, assumptions: texts, sources: texts })
 export const specificationRowSchema = z.object({ id: text, item: text, group: text, label: text, where: text, roomId: text.optional(),
   optionId: text, choice: text, material: text, facts: z.array(text).max(4), quantity: text, rate: number, unit: text,
@@ -40,6 +41,15 @@ export const savedCostSchema = sheetEstimateSchema.extend({ currency: z.literal(
     masonryMaterials: z.object({ type: text, Count: number }), tanks: z.object({ occupants: number, overheadLitres: number, undergroundLitres: number }),plumbing:plumbing.optional() }),
 }).superRefine((cost, ctx) => {
   const fail = (message: string) => ctx.addIssue({ code: 'custom', message })
+  if (cost.solar) {
+    const solarLines = cost.boq.filter(l => l.id.startsWith('solar-pv:'))
+    if (Math.abs(solarLines.reduce((n, l) => n + l.amount, 0) - cost.solar.grossInstallationCost) > .01) fail('Solar gross cost does not match itemized solar BOQ')
+    if (cost.solar.status === 'applied') {
+      if (cost.boq.some(l => l.item === 'solar' && l.amount > 0)) fail('Solar allowance is counted twice')
+      const panels = solarLines.find(l => l.id === 'solar-pv:panels')
+      if (!panels || panels.qty !== cost.solar.panelCount) fail('Solar panel inventory does not match BOQ')
+    } else if (solarLines.length || cost.solar.panelCount || cost.solar.capacityKwp) fail('Unapplied solar cannot have installation quantities')
+  }
   if (Math.abs(cost.lines.reduce((sum, l) => sum + l.expected, 0) - cost.expected) > .01) fail('Saved cost summary does not add up')
   for (const line of cost.boq) if (Math.abs(line.qty * line.rate - line.amount) > .01 || Math.abs(line.materialAmount + line.labourAmount - line.amount) > .01) fail('Saved BOQ line does not add up')
   for (const t of cost.tradeTotals) if (Math.abs(cost.boq.filter(l => l.group === t.trade).reduce((sum, l) => sum + l.amount, 0) - t.amount) > .01) fail('Saved trade total does not add up')

@@ -4,7 +4,7 @@ import { geometryCostKey } from '@/lib/cost/quantities.ts'
 import { useFinishes } from '@/state/finishes.ts'
 import { create } from 'zustand'
 import { supabase } from '@/lib/supabase.ts'
-import { briefSchema, type Brief } from '@/lib/model/brief.ts'
+import { parseStoredBrief, type Brief } from '@/lib/model/brief.ts'
 import { useStudio, parsePinned, serializePinned, type PinnedDir } from '@/state/studio.ts'
 import { useAuth } from '@/state/auth.ts'
 import { parseLayout } from '@/lib/plan/parse.ts'
@@ -36,7 +36,7 @@ export function parseSavedDesignRow(row: {
   created_at: string
   updated_at: string
 }): SavedDesign | null {
-  const brief = briefSchema.safeParse(row.brief)
+  const brief = parseStoredBrief(row.brief)
   if (!brief.success) return null
   let savedCost: unknown, savedLayout: unknown
   if (row.pinned?.startsWith('{')) { try { const j = JSON.parse(row.pinned); savedCost = j.costReplay; savedLayout = j.planLayout } catch { /* Legacy pin. */ } }
@@ -97,7 +97,7 @@ export const useDesigns = create<DesignsState>((set, get) => ({
 
     const { brief, pinned, result, layout } = useStudio.getState()
     const savedSelection = result ? useFinishes.getState().entries[geometryCostKey(result.design)] : undefined
-    const replay = result?.report.hardChecksPass ? snapshotCost(result.design, brief, estimateProjectBoq(result.design, brief, savedSelection)) : null
+    const replay = result?.report.hardChecksPass ? snapshotCost(result.design, brief, estimateProjectBoq(result.design, brief, savedSelection, result)) : null
     const { currentId } = get()
     const payload = {
       user_id: user.id,

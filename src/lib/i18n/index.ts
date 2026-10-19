@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { messages } from './messages.ts'
 import { extraMessages } from './extraMessages.ts'
 import {plumbingMessages} from './plumbingMessages.ts'
+import { solarMessages } from './solarMessages.ts'
 
 export type Language = 'en' | 'hi' | 'mr'
 export const LANGUAGES = [{ code: 'en', label: 'English' }, { code: 'hi', label: 'हिन्दी' }, { code: 'mr', label: 'मराठी' }] as const
@@ -20,7 +21,7 @@ export const useLanguage = create<{ language: Language; setLanguage: (language: 
 }))
 
 const normalize = (text: string) => text.replace(/\s+/g, ' ').trim()
-const entries = Object.entries({ ...messages, ...extraMessages,...plumbingMessages })
+const entries = Object.entries({ ...messages, ...extraMessages,...plumbingMessages, ...solarMessages })
 const lookup = new Map(entries.map(([key, translations]) => [normalize(key).toLowerCase(), translations]))
 const patterns = entries.filter(([key]) => /\{\d+\}/.test(key)).sort(([a], [b]) => b.length - a.length).map(([key, translations]) => ({
   regex: new RegExp('^' + key.split(/\{\d+\}/).map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('(.+?)') + '$', 'i'), translations,

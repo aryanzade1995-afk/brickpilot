@@ -52,7 +52,7 @@ def measure_shape(payload):
     graph = bpy.context.evaluated_depsgraph_get()
     count = 0
     for obj in bpy.context.scene.objects:
-        if obj.type != "MESH" or obj.get("presentation_only") or not any(
+        if obj.type != "MESH" or obj.get("formstead_solar") or obj.get("presentation_only") or not any(
                 c.name in ("STRUCTURE", "WALLS", "OPENINGS", "WINDOWS", "DOORS", "MASSING", "FACADE", "BALCONIES", "ROOF") for c in obj.users_collection):
             continue
         evaluated = obj.evaluated_get(graph)

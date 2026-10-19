@@ -210,12 +210,14 @@ export async function buildReportPdf(data: ReportData): Promise<Blob> {
   /* --------------------------------- massing ------------------------------ */
   if (data.massingImages.length) {
     heading('3D massing', 200)
+    paragraph('Building-only views. Live rooftop photovoltaic panels and keep-free areas are not included. See the interactive villa for the saved solar layout.')
     data.massingImages.forEach((img) => image(img, 240))
   }
 
   /* -------------------------------- concepts ------------------------------ */
   if (data.conceptImages.length) {
     heading('Generated concepts', 200)
+    paragraph('Building-only concepts. Rooftop photovoltaic equipment is not represented or verified in these images.')
     paragraph('Visualisations, not photographs. Generated materials, lighting and furnishing are assumptions, not measured output.')
     data.conceptImages.forEach((img) => image(img, 250))
   }
@@ -266,6 +268,20 @@ export async function buildReportPdf(data: ReportData): Promise<Blob> {
     `${l.label} - ${l.specification}`, `${l.quantity.toFixed(2)} ${l.unit.replaceAll('²', '2').replaceAll('³', '3')}`, `${money(l.rate)} / ${l.unit.replaceAll('²', '2').replaceAll('³', '3')}`, money(l.amount),
   ]), [0.50, 0.13, 0.18, 0.19])
   paragraph('BOQ works subtotal excludes contractor overhead, fees, contingency and GST; these are shown in the summary above.')
+  if (cost.solar) {
+    const solar = cost.solar
+    heading('Rooftop solar', 90)
+    table(['Solar assessment', 'Basis'], [
+      ['State / goal', `${solar.status} / ${solar.objective}`],
+      ['Applied PV inventory', `${solar.panelCount} panels; ${solar.capacityKwp} kWp DC`],
+      ['Gross direct installation', money(solar.grossInstallationCost)],
+      ['Historical allowance', money(solar.legacyAllowanceCost)],
+      ['Government assistance', `Unverified; INR 0 deducted. ${solar.assistance.url}`],
+      ['Backup', solar.backup === 'pending' ? 'Pending; hybrid, battery and backup circuits not implemented or priced' : 'Not requested'],
+      ['Annual energy', solar.energy.annualKwh ? `${solar.energy.annualKwh.low} - ${solar.energy.annualKwh.high} kWh/year; preliminary scenario range` : solar.energy.state],
+    ])
+    paragraph('Gross solar subtotal is before shared project add-ons and unconfirmed solar tax. See itemized BOQ and assessment assumptions. 3D shadows are decorative, not energy analysis.')
+  }
   heading('Measurement assumptions & scope', 90)
   cost.assumptions.forEach(a => paragraph(a))
   table(

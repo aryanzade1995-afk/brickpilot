@@ -1,0 +1,147 @@
+ blender/interior_preview.py                        |  535 [32m+++[m
+ docs/finish-preview.md                             |   31 [32m+[m
+ docs/interior-preview.md                           |   45 [32m+[m
+ package.json                                       |    1 [32m+[m
+ public/specs/products/anti-skid-stone.jpg          |  Bin [31m0[m -> [32m426486[m bytes
+ public/specs/products/calacatta-look.jpg           |  Bin [31m0[m -> [32m31577[m bytes
+ public/specs/products/concrete-look.jpg            |  Bin [31m0[m -> [32m228138[m bytes
+ public/specs/products/door-casement.webp           |  Bin [31m0[m -> [32m281348[m bytes
+ public/specs/products/door-engineered.webp         |  Bin [31m0[m -> [32m125114[m bytes
+ public/specs/products/door-folding.webp            |  Bin [31m0[m -> [32m140516[m bytes
+ public/specs/products/door-lift-slide.webp         |  Bin [31m0[m -> [32m34181[m bytes
+ public/specs/products/door-sliding.webp            |  Bin [31m0[m -> [32m112398[m bytes
+ public/specs/products/door-swing.webp              |  Bin [31m0[m -> [32m24412[m bytes
+ public/specs/products/gate-auto-swing.jpg          |  Bin [31m0[m -> [32m101239[m bytes
+ public/specs/products/italian-marble.jpg           |  Bin [31m0[m -> [32m145183[m bytes
+ public/specs/products/marble-gvt.jpg               |  Bin [31m0[m -> [32m63040[m bytes
+ public/specs/products/matte-porcelain.jpg          |  Bin [31m0[m -> [32m95671[m bytes
+ public/specs/products/moroccan-pattern.png         |  Bin [31m0[m -> [32m997823[m bytes
+ public/specs/products/natural-travertine.jpg       |  Bin [31m0[m -> [32m142510[m bytes
+ public/specs/products/onyx-look.jpg                |  Bin [31m0[m -> [32m29768[m bytes
+ public/specs/products/premium-slab.jpg             |  Bin [31m0[m -> [32m72233[m bytes
+ public/specs/products/rail-alu.webp                |  Bin [31m0[m -> [32m30264[m bytes
+ public/specs/products/rail-clamps.webp             |  Bin [31m0[m -> [32m31100[m bytes
+ public/specs/products/rail-q-line.webp             |  Bin [31m0[m -> [32m43550[m bytes
+ public/specs/products/rail-slim.webp               |  Bin [31m0[m -> [32m35894[m bytes
+ public/specs/products/rail-smart.webp              |  Bin [31m0[m -> [32m42006[m bytes
+ public/specs/products/rail-square.webp             |  Bin [31m0[m -> [32m36142[m bytes
+ public/specs/products/rustic-outdoor.jpg           |  Bin [31m0[m -> [32m483310[m bytes
+ public/specs/products/slate-look.jpg               |  Bin [31m0[m -> [32m127615[m bytes
+ public/specs/products/statuario-look.jpg           |  Bin [31m0[m -> [32m20965[m bytes
+ public/specs/products/stone-porcelain.jpg          |  Bin [31m0[m -> [32m212389[m bytes
+ public/specs/products/svc-basin-1.jpeg             |  Bin [31m0[m -> [32m65089[m bytes
+ public/specs/products/svc-basin-2.jpeg             |  Bin [31m0[m -> [32m64871[m bytes
+ public/specs/products/svc-basin-3.jpeg             |  Bin [31m0[m -> [32m67919[m bytes
+ public/specs/products/svc-basin-4.jpeg             |  Bin [31m0[m -> [32m74080[m bytes
+ public/specs/products/svc-basin-5.jpeg             |  Bin [31m0[m -> [32m123135[m bytes
+ public/specs/products/svc-electrical-battens-1.png |  Bin [31m0[m -> [32m41973[m bytes
+ public/specs/products/svc-electrical-battens-2.png |  Bin [31m0[m -> [32m242953[m bytes
+ public/specs/products/svc-electrical-battens-3.png |  Bin [31m0[m -> [32m25844[m bytes
+ public/specs/products/svc-electrical-battens-4.png |  Bin [31m0[m -> [32m44985[m bytes
+ public/specs/products/svc-electrical-battens-5.png |  Bin [31m0[m -> [32m406948[m bytes
+ public/specs/products/svc-electrical-bulbs-1.png   |  Bin [31m0[m -> [32m59009[m bytes
+ public/specs/products/svc-electrical-bulbs-2.png   |  Bin [31m0[m -> [32m74887[m bytes
+ public/specs/products/svc-electrical-bulbs-3.png   |  Bin [31m0[m -> [32m3150386[m bytes
+ public/specs/products/svc-electrical-bulbs-4.png   |  Bin [31m0[m -> [32m363810[m bytes
+ public/specs/products/svc-electrical-bulbs-5.png   |  Bin [31m0[m -> [32m28602[m bytes
+ public/specs/products/svc-electrical-exhaust-1.png |  Bin [31m0[m -> [32m280610[m bytes
+ public/specs/products/svc-electrical-exhaust-2.png |  Bin [31m0[m -> [32m437316[m bytes
+ public/specs/products/svc-electrical-exhaust-3.png |  Bin [31m0[m -> [32m2941728[m bytes
+ public/specs/products/svc-electrical-exhaust-4.png |  Bin [31m0[m -> [32m436746[m bytes
+ public/specs/products/svc-electrical-exhaust-5.png |  Bin [31m0[m -> [32m272428[m bytes
+ public/specs/products/svc-enclosure-1.jpeg         |  Bin [31m0[m -> [32m391173[m bytes
+ public/specs/products/svc-enclosure-2.jpeg         |  Bin [31m0[m -> [32m392074[m bytes
+ public/specs/products/svc-enclosure-3.jpeg         |  Bin [31m0[m -> [32m399950[m bytes
+ public/specs/products/svc-enclosure-4.jpeg         |  Bin [31m0[m -> [32m577654[m bytes
+ public/specs/products/svc-enclosure-5.jpeg         |  Bin [31m0[m -> [32m377423[m bytes
+ public/specs/products/svc-fans-1.png               |  Bin [31m0[m -> [32m642106[m bytes
+ public/specs/products/svc-fans-2.png               |  Bin [31m0[m -> [32m389121[m bytes
+ public/specs/products/svc-fans-3.png               |  Bin [31m0[m -> [32m181426[m bytes
+ public/specs/products/svc-fans-4.png               |  Bin [31m0[m -> [32m46667[m bytes
+ public/specs/products/svc-fans-5.png               |  Bin [31m0[m -> [32m372348[m bytes
+ public/specs/products/svc-faucet-1.jpeg            |  Bin [31m0[m -> [32m82307[m bytes
+ public/specs/products/svc-faucet-2.jpeg            |  Bin [31m0[m -> [32m86857[m bytes
+ public/specs/products/svc-faucet-3.jpeg            |  Bin [31m0[m -> [32m111619[m bytes
+ public/specs/products/svc-faucet-4.jpeg            |  Bin [31m0[m -> [32m104689[m bytes
+ public/specs/products/svc-faucet-5.jpeg            |  Bin [31m0[m -> [32m92684[m bytes
+ public/specs/products/svc-light-fittings-1.png     |  Bin [31m0[m -> [32m544336[m bytes
+ public/specs/products/svc-light-fittings-2.png     |  Bin [31m0[m -> [32m333354[m bytes
+ public/specs/products/svc-light-fittings-3.png     |  Bin [31m0[m -> [32m325623[m bytes
+ public/specs/products/svc-light-fittings-4.png     |  Bin [31m0[m -> [32m520864[m bytes
+ public/specs/products/svc-light-fittings-5.png     |  Bin [31m0[m -> [32m106668[m bytes
+ public/specs/products/svc-paint-aspira.png         |  Bin [31m0[m -> [32m24802[m bytes
+ public/specs/products/svc-paint-luxury.png         |  Bin [31m0[m -> [32m91034[m bytes
+ public/specs/products/svc-paint-matt.png           |  Bin [31m0[m -> [32m30566[m bytes
+ public/specs/products/svc-shower-1.jpeg            |  Bin [31m0[m -> [32m147504[m bytes
+ public/specs/products/svc-shower-2.jpeg            |  Bin [31m0[m -> [32m129483[m bytes
+ public/specs/products/svc-shower-3.jpeg            |  Bin [31m0[m -> [32m138172[m bytes
+ public/specs/products/svc-shower-4.jpeg            |  Bin [31m0[m -> [32m82297[m bytes
+ public/specs/products/svc-shower-5.jpeg            |  Bin [31m0[m -> [32m114043[m bytes
+ public/specs/products/svc-switches-1.jpg           |  Bin [31m0[m -> [32m6959[m bytes
+ public/specs/products/svc-switches-2.jpg           |  Bin [31m0[m -> [32m6930[m bytes
+ public/specs/products/svc-switches-3.jpg           |  Bin [31m0[m -> [32m12202[m bytes
+ public/specs/products/svc-switches-4.jpg           |  Bin [31m0[m -> [32m11556[m bytes
+ public/specs/products/svc-switches-5.jpg           |  Bin [31m0[m -> [32m6987[m bytes
+ public/specs/products/svc-toilet-1.jpeg            |  Bin [31m0[m -> [32m58063[m bytes
+ public/specs/products/svc-toilet-2.jpeg            |  Bin [31m0[m -> [32m73133[m bytes
+ public/specs/products/svc-toilet-3.jpeg            |  Bin [31m0[m -> [32m71628[m bytes
+ public/specs/products/svc-toilet-4.jpeg            |  Bin [31m0[m -> [32m65429[m bytes
+ public/specs/products/svc-toilet-5.jpeg            |  Bin [31m0[m -> [32m72844[m bytes
+ public/specs/products/svc-toilet-indian.jpg        |  Bin [31m0[m -> [32m87708[m bytes
+ public/specs/products/svc-tub-1.jpeg               |  Bin [31m0[m -> [32m52387[m bytes
+ public/specs/products/svc-tub-2.jpeg               |  Bin [31m0[m -> [32m401369[m bytes
+ public/specs/products/svc-tub-3.jpeg               |  Bin [31m0[m -> [32m400018[m bytes
+ public/specs/products/svc-tub-4.jpeg               |  Bin [31m0[m -> [32m319562[m bytes
+ public/specs/products/svc-tub-5.jpeg               |  Bin [31m0[m -> [32m312098[m bytes
+ public/specs/products/svc-water-heater-1.png       |  Bin [31m0[m -> [32m125953[m bytes
+ public/specs/products/svc-water-heater-2.png       |  Bin [31m0[m -> [32m35096[m bytes
+ public/specs/products/svc-water-heater-3.png       |  Bin [31m0[m -> [32m133072[m bytes
+ public/specs/products/svc-water-heater-4.png       |  Bin [31m0[m -> [32m282840[m bytes
+ public/specs/products/svc-water-heater-5.png       |  Bin [31m0[m -> [32m263185[m bytes
+ public/specs/products/svc-wp-pidifin.webp          |  Bin [31m0[m -> [32m14692[m bytes
+ public/specs/products/svc-wp-raincoat.webp         |  Bin [31m0[m -> [32m9776[m bytes
+ public/specs/products/svc-wp-roof.webp             |  Bin [31m0[m -> [32m307762[m bytes
+ public/specs/products/svc-wp-urp.webp              |  Bin [31m0[m -> [32m24878[m bytes
+ public/specs/products/teak-look.jpg                |  Bin [31m0[m -> [32m261550[m bytes
+ public/specs/products/terrazzo-look.jpg            |  Bin [31m0[m -> [32m159925[m bytes
+ public/specs/products/travertine-look.jpg          |  Bin [31m0[m -> [32m317027[m bytes
+ public/specs/products/walnut-look.jpg              |  Bin [31m0[m -> [32m74165[m bytes
+ public/specs/products/wood-porcelain.jpg           |  Bin [31m0[m -> [32m338802[m bytes
+ scripts/test-finish-catalogue.mjs                  |   11 [32m+[m[31m-[m
+ scripts/test-finish-experiences.mjs                |    3 [32m+[m[31m-[m
+ scripts/test-finish-preview.mjs                    |   40 [32m+[m[31m-[m
+ scripts/test-interior-preview.mjs                  |   95 [32m+[m
+ scripts/test-service-finishes.mjs                  |   69 [32m+[m
+ scripts/test-specs-data.mjs                        |    2 [32m+[m[31m-[m
+ server/blender-process.mjs                         |    9 [32m+[m[31m-[m
+ server/index.mjs                                   |    2 [32m+[m
+ server/interior-preview.mjs                        |   96 [32m+[m
+ src/components/FastInteriorPreview.tsx             |   78 [32m+[m
+ src/components/InteriorStudio.tsx                  |    2 [32m+[m
+ src/components/SpecificationImage.tsx              |    7 [32m+[m[31m-[m
+ src/lib/cost/boq.ts                                |    4 [32m+[m[31m-[m
+ src/lib/cost/data/boqRules.ts                      |    3 [32m+[m[31m-[m
+ src/lib/cost/data/validated.ts                     |    9 [32m+[m[31m-[m
+ src/lib/cost/schedule.ts                           |    4 [32m+[m[31m-[m
+ src/lib/cost/workspace.ts                          |    4 [32m+[m[31m-[m
+ src/lib/finishes/catalogue.ts                      |   15 [32m+[m[31m-[m
+ src/lib/finishes/imageAssets.json                  |   82 [32m+[m
+ src/lib/finishes/optionImage.ts                    |   28 [32m+[m
+ src/lib/finishes/preview.ts                        |   19 [32m+[m[31m-[m
+ src/lib/finishes/previewGeometry.ts                |   12 [32m+[m[31m-[m
+ src/lib/finishes/products.json                     |  976 [32m+++++[m
+ src/lib/finishes/service-image-audit.json          |  513 [32m+++[m
+ src/lib/finishes/service-items.json                |   79 [32m+[m
+ src/lib/finishes/service-products.json             | 4531 [32m++++++++++++++++++++[m
+ src/lib/finishes/servicePreviewGeometry.ts         |  148 [32m+[m
+ src/lib/finishes/services.ts                       |    3 [32m+[m
+ src/lib/interior/preview.ts                        |  116 [32m+[m[31m-[m
+ src/routes/finishes/FinishFilters.tsx              |    6 [32m+[m[31m-[m
+ src/routes/finishes/FinishObjectPreview.tsx        |   99 [32m+[m[31m-[m
+ src/routes/finishes/FinishSwatch.tsx               |    7 [32m+[m[31m-[m
+ src/routes/finishes/FlooringFilters.tsx            |    8 [32m+[m[31m-[m
+ src/routes/finishes/KitchenCounter.tsx             |   10 [32m+[m[31m-[m
+ src/routes/finishes/PaintColours.tsx               |    2 [32m+[m[31m-[m
+ src/routes/finishes/SpecificationPanel.tsx         |   29 [32m+[m[31m-[m
+ src/routes/finishes/Specifications.tsx             |    7 [32m+[m[31m-[m
+ 146 files changed, 7636 insertions(+), 104 deletions(-)

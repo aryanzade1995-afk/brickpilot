@@ -58,7 +58,7 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
   const brief = sourceBrief ?? storedBrief
   const costKey = useMemo(() => result ? geometryCostKey(result.design) : '', [result])
   const selection = useFinishes(s => s.entries[costKey])
-  const cost = useMemo(() => result ? estimateProjectBoq(result.design, brief, selection) : null, [result, selection, brief])
+  const cost = useMemo(() => result ? estimateProjectBoq(result.design, brief, selection, result) : null, [result, selection, brief])
   useEffect(() => {
     if (!result) run()
   }, [result, run])
@@ -66,7 +66,7 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
   const planId = useMemo(() => result ? createBuildingModel({ ...result.design, model: { ...result.design.model, brief } }).planId : '', [result, brief])
   const blender = useBlender(s => s.accepted[planId])
   const blenderImages = useMemo<ReportImage[]>(() => blender?.finishSignature === finishSignature(brief)
-    ? (['hero','front','aerial'] as const).map(view => ({label: `Visualisation (Blender) — ${view}`, dataUrl: blender.files[view]})) : visualisations, [blender, brief, visualisations])
+    ? (['hero','front','aerial'] as const).map(view => ({label: `Building only · Visualisation (Blender) — ${view}`, dataUrl: blender.files[view]})) : visualisations, [blender, brief, visualisations])
   const villaPairs=useVillaVisualizations(s=>s.pairs),resetVillaPairs=useVillaVisualizations(s=>s.reset)
   const renderJobs = useRender((s) => s.jobs)
   const resetRender = useRender((s) => s.reset)
@@ -115,8 +115,8 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
       if (!canvas()?.width) return []
       const out: ReportImage[] = []
       for (const [key, label] of [
-        ['front', 'Visualisation (3D) — front'],
-        ['top', 'Visualisation (3D) — roof + site'],
+        ['front', 'Building only · Visualisation (3D) — front'],
+        ['top', 'Building only · Visualisation (3D) — roof + site'],
       ] as const) {
         setView(key)
         await wait(1000)
@@ -270,13 +270,13 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
             </div>
           </section>
 
-          <section><h2 className="font-display text-xl">{translateUi("3D & renders")}</h2>
+          <section><h2 className="font-display text-xl">{translateUi("3D & renders")}</h2><p className="mt-2 text-xs text-ink-dim">{translateUi('Building-only report images · the live rooftop PV layout is not included.')}</p>
             {blenderImages.length ? <div className="mt-4 grid gap-3 sm:grid-cols-2">{blenderImages.map(img => <figure key={img.label} className="border border-line"><img src={img.dataUrl} alt={translateUi(img.label)} className="aspect-[4/3] w-full object-contain"/><figcaption className="p-3 text-xs text-ink-dim">{translateUi(img.label)}</figcaption></figure>)}</div> : <p className="mt-3 text-sm text-ink-dim">{translateUi("Generate views on ")}<Link to="/workspace/massing" className="underline">{translateUi("3D Massing")}</Link>{translateUi(". Your report can also capture the current 3D study.")}</p>}
           </section>
 
           {conceptImages.length > 0 && (
             <section>
-              <h2 className="font-display text-xl">{translateUi("Generated concepts")}</h2>
+              <h2 className="font-display text-xl">{translateUi("Generated concepts")}</h2><p className="mt-2 text-xs text-ink-dim">{translateUi('Building-only reference and AI image · live rooftop PV and keep-free areas are not included.')}</p>
               <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {conceptImages.map((img, i) => (
                   <figure key={i} className="border border-line">

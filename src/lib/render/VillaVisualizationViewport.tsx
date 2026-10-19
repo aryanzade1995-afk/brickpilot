@@ -29,7 +29,7 @@ export const VillaVisualizationViewport=forwardRef<VillaViewportHandle,{design:D
       if(!driver.current)throw new Error('Model not ready')
       return driver.current.capture()
     }}),[])
-    return <div data-villa-visualization-model className="aspect-[4/3] max-h-[680px] w-full overflow-hidden border border-line bg-bg-inset">
+    return <div data-villa-visualization-model aria-label={translateUi('Building-only reference and AI image · live rooftop PV and keep-free areas are not included.')} className="aspect-[4/3] max-h-[680px] w-full overflow-hidden border border-line bg-bg-inset">
       <ModelBoundary key={url??design.id}><Canvas frameloop="demand" shadows dpr={[1,2]} camera={CAMERA}
         gl={GL} onCreated={({gl})=>{gl.toneMapping=THREE.NeutralToneMapping;gl.toneMappingExposure=1.2}}>
         <Suspense fallback={null}><StudioReflections/><BlenderSource url={url} setDriver={setDriver}/></Suspense>

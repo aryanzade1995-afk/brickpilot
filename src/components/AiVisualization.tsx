@@ -18,7 +18,7 @@ export function AiVisualization({ design }: { design: Design }) {
   useLanguage(s => s.language);
 
   const brief = useStudio((s) => s.brief)
-  const plan = useMemo(() => ({ ...design, model: { ...design.model, brief } }), [design, brief])
+  const plan = useMemo(() => ({ ...design, model: { ...design.model, brief: { ...design.model.brief, finish: brief.finish, specs: brief.specs } } }), [design, brief.finish, brief.specs])
   const planId = useMemo(() => createBuildingModel(plan).planId, [plan])
   const blender = useBlender((s) => s.accepted[planId])
   const captureReady = useRef<(() => void) | null>(null)
@@ -52,7 +52,7 @@ export function AiVisualization({ design }: { design: Design }) {
       const views = await viewport.current.capture(); controller.signal.throwIfAborted(); setPhase('generate')
       const response = await fetch('/api/villa-visualizations', { method: 'POST', headers: { 'content-type': 'application/json' },
         signal: AbortSignal.any([controller.signal, AbortSignal.timeout(340000)]),
-        body: JSON.stringify({ sourceId, source, seed, views, facts: `${plan.floors.length} occupied floors. Keep the supplied accepted Blender villa unchanged. ${plan.openingCounts.windows} planned windows, ${plan.openingCounts.doors} planned doors. ${plan.siteFeatures?.some((f) => f.kind === 'pool') ? 'The site has a swimming pool.' : 'The site has NO swimming pool.'}${plan.floors[0]?.rooms.some((r) => /parking/i.test(r.id + r.name)) ? ' Cars stand under the covered car porch.' : ''}` }) })
+        body: JSON.stringify({ sourceId, source, seed, views, facts: `Building-only reference: user rooftop PV and keep-free markings are not included. Do not invent photovoltaic panels. ${plan.floors.length} occupied floors. Keep the supplied accepted Blender villa unchanged. ${plan.openingCounts.windows} planned windows, ${plan.openingCounts.doors} planned doors. ${plan.siteFeatures?.some((f) => f.kind === 'pool') ? 'The site has a swimming pool.' : 'The site has NO swimming pool.'}${plan.floors[0]?.rooms.some((r) => /parking/i.test(r.id + r.name)) ? ' Cars stand under the covered car porch.' : ''}` }) })
       const data = await response.json(); controller.signal.throwIfAborted()
       if (!response.ok) throw new Error('Visualizations are unavailable right now. Your 3D model is ready.')
       const pair = readVisualizationPair(data, sourceId)
@@ -68,6 +68,7 @@ export function AiVisualization({ design }: { design: Design }) {
     } finally { if (request.current === controller) { setPhase('idle'); request.current = null } }
   }
   return <section aria-label={translateUi("AI villa visualization")} className="mt-10 border-t border-line pt-6">
+    <p className="mb-3 text-xs text-ink-dim">{translateUi('Building-only reference and AI image · live rooftop PV and keep-free areas are not included.')}</p>
     {/* the Blender villa the image is made from, rendered off screen for the capture only */}
     {hasModel && phase === 'capture' && <div aria-hidden className="pointer-events-none h-px w-px overflow-hidden opacity-0">
       <div className="w-[800px]"><VillaVisualizationViewport key={sourceId} ref={viewport} design={plan} url={blender!.files.glb} onReady={readyChanged} /></div>
