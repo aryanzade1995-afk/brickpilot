@@ -4,7 +4,9 @@ import { useRef, useState } from 'react'
 import type { Design } from '@/lib/engine/types.ts'
 import { FloorDrawing, TerraceDrawing, type Theme } from '@/lib/draw/FloorDrawing.tsx'
 import { DRAWING_PRESETS, LAYER_LABELS, drawingLayerCounts, terraceLayerCounts, type DrawingPreset, type LayerId } from '@/lib/draw/layers.ts'
-import { downloadSheetPdf, downloadSheetSvg } from '@/lib/draw/exportSheet.ts'
+import { downloadSheetPdf } from '@/lib/draw/exportSheet.ts'
+import { downloadSvg, downloadSvgAsPng } from '@/lib/export/index.ts'
+import { ExportDropdown } from '@/components/export/ExportDropdown.tsx'
 
 /** Display state is local to the sheet. No studio edit/run/reroll is called. */
 export function DrawingWorkspace({ design, onFloorChange, initialFloorLevel, highlightCategory, onRoomClick }: { design: Design; onFloorChange?: (index: number) => void; initialFloorLevel?: number; highlightCategory?: string; onRoomClick?: (id: string) => void }) {
@@ -22,12 +24,25 @@ export function DrawingWorkspace({ design, onFloorChange, initialFloorLevel, hig
   const terrace = floorIdx >= design.floors.length
   const counts = terrace ? terraceLayerCounts(design) : drawingLayerCounts(floor, design.siteFeatures)
   const name = `plan_${design.dna.seed}_${terrace ? 'terrace' : floor.prefix ?? floor.level}`
+  const bg = theme === 'cad' ? '#11161c' : '#ffffff'
   const button = 'border border-line-strong px-2 py-2 text-xs text-ink-dim hover:text-ink'
   return <div className="drawing-workspace grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
     <div className="min-w-0">
-      <div role="tablist" aria-label={translateUi("Floors")} className="mb-3 flex flex-wrap gap-1">
-        {design.floors.map((f, i) => <button key={f.level} role="tab" aria-selected={floorIdx === i} onClick={() => { setFloorIdx(i); onFloorChange?.(i); setZoom(1) }} className={`${button} ${floorIdx === i ? 'border-ink text-ink' : ''}`}>{translateUi(f.level === 0 ? 'Ground' : `Floor ${f.level}`)}</button>)}
-        <button role="tab" aria-selected={terrace} onClick={() => { setFloorIdx(design.floors.length); onFloorChange?.(design.floors.length); setZoom(1) }} className={`${button} ${terrace ? 'border-ink text-ink' : ''}`}>{translateUi("Terrace")}</button>
+      <div role="tablist" aria-label={translateUi("Floors")} className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap gap-1">
+          {design.floors.map((f, i) => <button key={f.level} role="tab" aria-selected={floorIdx === i} onClick={() => { setFloorIdx(i); onFloorChange?.(i); setZoom(1) }} className={`${button} ${floorIdx === i ? 'border-ink text-ink' : ''}`}>{translateUi(f.level === 0 ? 'Ground' : `Floor ${f.level}`)}</button>)}
+          <button role="tab" aria-selected={terrace} onClick={() => { setFloorIdx(design.floors.length); onFloorChange?.(design.floors.length); setZoom(1) }} className={`${button} ${terrace ? 'border-ink text-ink' : ''}`}>{translateUi("Terrace")}</button>
+        </div>
+        <ExportDropdown
+          label="Download CAD"
+          size="sm"
+          title="Download 2D Drawing"
+          items={[
+            { id: 'svg', label: 'Vector Plan', ext: 'SVG', onExport: () => { if (svgRef.current) downloadSvg(svgRef.current, name, { background: bg }) } },
+            { id: 'png', label: 'High-DPI Sheet', ext: 'PNG', onExport: () => { if (svgRef.current) return downloadSvgAsPng(svgRef.current, name, { background: bg, scale: 2 }) } },
+            { id: 'pdf', label: 'A3 Print Sheet', ext: 'PDF', onExport: () => { if (svgRef.current) return downloadSheetPdf(svgRef.current, name) } },
+          ]}
+        />
       </div>
       <div className="drawing-viewport aspect-[4/3] overflow-auto border border-line" style={{ background: theme === 'cad' ? '#11161c' : '#fff' }}>
         <div className="drawing-sheet h-full" style={{ width: `${zoom * 100}%`, height: `${zoom * 100}%`, margin: '0 auto' }}>
@@ -59,9 +74,10 @@ export function DrawingWorkspace({ design, onFloorChange, initialFloorLevel, hig
       </div>
       <p className="my-2 text-center font-mono text-[10px] text-ink-faint">{translateUi(Math.round(zoom * 100))}%</p>
       <div className="grid grid-cols-2 gap-2">
-        <button className={button} onClick={() => svgRef.current && downloadSheetSvg(svgRef.current, name)}>{translateUi("SVG download")}</button>
+        <button className={button} onClick={() => svgRef.current && downloadSvg(svgRef.current, name, { background: bg })}>{translateUi("Download SVG")}</button>
+        <button className={button} onClick={() => svgRef.current && void downloadSvgAsPng(svgRef.current, name, { background: bg, scale: 2 })}>{translateUi("Download PNG")}</button>
         <button className={button} onClick={() => window.print()}>{translateUi("Print")}</button>
-        <button className={`${button} col-span-2`} onClick={() => { setExportError(''); if (svgRef.current) void downloadSheetPdf(svgRef.current, name).catch(e => setExportError(String(e.message))) }}>{translateUi("Download PDF")}</button>
+        <button className={button} onClick={() => { setExportError(''); if (svgRef.current) void downloadSheetPdf(svgRef.current, name).catch(e => setExportError(String(e.message))) }}>{translateUi("Download PDF")}</button>
       </div>
       {exportError && <p role="alert" className="mt-2 text-xs text-bad">{translateUi(exportError)}</p>}
     </aside>

@@ -1,7 +1,10 @@
 import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
+import { useRef } from 'react'
 import type { Design } from '@/lib/engine/types.ts'
 import type { MapElement } from '@/lib/existing/types.ts'
 import type { ExistingFinding } from '@/lib/existing/validate.ts'
+import { ExportDropdown } from '@/components/export/ExportDropdown.tsx'
+import { downloadSvg, downloadSvgAsPng } from '@/lib/export/index.ts'
 
 /* Existing structure = dark and locked. Proposed = blue. Optional = dashed. Conflict = red. */
 const LOCKED = '#141414'
@@ -49,9 +52,48 @@ export function PlanView({ design, level = 0, elements, findings = [], className
   }
   const unit = Math.max(w, h) / 1000   // 1 drawing unit ~ 0.1% of the larger side
   const labelSize = unit * 11
+  const svgRef = useRef<SVGSVGElement>(null)
+  const title = design ? `Floor ${level} with Existing Structure` : 'As-Built Structural Map'
 
   return (
-    <svg viewBox={`${x0} ${y0} ${w} ${h}`} className={className ?? 'h-auto w-full border border-line bg-bg'} role="img" aria-label={translateUi("Plan with existing structure marked")}>
+    <div className="relative group">
+      <div className="absolute top-2 right-2 z-10 pointer-events-auto">
+        <ExportDropdown
+          size="sm"
+          floating
+          label="Download Plan"
+          title="Download As-Built Plan"
+          items={[
+            {
+              id: 'plan-svg',
+              label: 'Vector Plan',
+              ext: '.svg',
+              onExport: async () => {
+                if (svgRef.current) {
+                  await downloadSvg(svgRef.current, `${design ? `floor-${level}-existing` : 'as-built-map'}.svg`, {
+                    title,
+                    background: '#F9F9F7',
+                  })
+                }
+              },
+            },
+            {
+              id: 'plan-png',
+              label: 'High-DPI Sheet',
+              ext: '.png',
+              onExport: async () => {
+                if (svgRef.current) {
+                  await downloadSvgAsPng(svgRef.current, `${design ? `floor-${level}-existing` : 'as-built-map'}.png`, {
+                    scale: 2,
+                    background: '#F9F9F7',
+                  })
+                }
+              },
+            },
+          ]}
+        />
+      </div>
+      <svg ref={svgRef} viewBox={`${x0} ${y0} ${w} ${h}`} className={className ?? 'h-auto w-full border border-line bg-bg'} role="img" aria-label={translateUi("Plan with existing structure marked")}>
       {design && <>
         <rect x={0} y={0} width={w} height={h} fill="#F9F9F7" stroke="#8A8F96" strokeWidth={unit * 1.5} />
         <rect x={design.model.setbacksMm.W} y={design.model.setbacksMm.N} width={design.model.envelope.width} height={design.model.envelope.depth}
@@ -108,5 +150,6 @@ export function PlanView({ design, level = 0, elements, findings = [], className
         </g>
       ))}
     </svg>
+    </div>
   )
 }

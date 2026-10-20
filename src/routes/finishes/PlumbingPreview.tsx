@@ -1,9 +1,11 @@
 import {Canvas} from '@react-three/fiber'
 import {Bounds,OrbitControls} from '@react-three/drei'
-import {Component,type ReactNode,useMemo} from 'react'
+import {Component,type ReactNode,useMemo,useRef} from 'react'
 import {Vector3,CatmullRomCurve3} from 'three'
 import type {PlumbingSchedule,ServiceTank} from '@/lib/cost/plumbing.ts'
 import {translate as t,useLanguage} from '@/lib/i18n/index.ts'
+import { ExportDropdown } from '@/components/export/ExportDropdown.tsx'
+import { captureCanvasPng } from '@/lib/export/index.ts'
 
 function Pipe({points,color,radius}:{points:[number,number,number][];color:string;radius:number}){
   const path=useMemo(()=>new CatmullRomCurve3(points.map(p=>new Vector3(...p)),false,'catmullrom',0),[points])
@@ -34,6 +36,7 @@ class Boundary extends Component<{children:ReactNode},{failed:boolean}>{
 }
 export default function PlumbingPreview({schedule,waterMaterial}:{schedule:PlumbingSchedule;waterMaterial:string}){
   useLanguage(s=>s.language)
+  const canvasContainerRef = useRef<HTMLDivElement>(null)
   const water=schedule.underground,drain=schedule.drain
   const left=water?-Math.max(2.5,water.lengthM/2+1.5):-2.5,right=drain?Math.max(2.5,drain.lengthM/2+1.5):2.5
   const span=Math.max(6,Math.abs(left)+(water?.lengthM??0)/2,right+(drain?.lengthM??0)/2)
@@ -43,9 +46,32 @@ export default function PlumbingPreview({schedule,waterMaterial}:{schedule:Plumb
   const waste=schedule.runs.find(r=>r.purpose==='Waste branches')?.diameterMm??75
   const soil=schedule.runs.find(r=>r.purpose==='Soil / drain stack')?.diameterMm??110
   return <figure className="mt-5 overflow-hidden rounded-lg border border-line bg-bg-inset">
-    <div className="flex justify-between gap-3 px-4 py-3 text-xs"><p>{t('Plumbing system preview')}</p><p className="text-ink-dim">{t('Drag to rotate')}</p></div>
-    <div className="h-72 sm:h-80" role="img" aria-label={t('3D water supply, underground storage and drainage schematic')}>
-      <Boundary><Canvas frameloop="demand" dpr={[1,1.5]} camera={{position:[span*.65,span*.5,span*.95],fov:42}}>
+    <div className="flex justify-between items-center gap-3 px-4 py-3 text-xs">
+      <p>{t('Plumbing system preview')}</p>
+      <div className="flex items-center gap-2">
+        <p className="text-ink-dim hidden sm:block">{t('Drag to rotate')}</p>
+        <ExportDropdown
+          size="sm"
+          label="Download 3D"
+          title="Download Plumbing Schematic"
+          items={[
+            {
+              id: 'plumbing-png',
+              label: '3D Schematic',
+              ext: '.png',
+              onExport: async () => {
+                const canvas = canvasContainerRef.current?.querySelector('canvas')
+                if (canvas) {
+                  await captureCanvasPng(canvas, 'plumbing-schematic.png')
+                }
+              },
+            },
+          ]}
+        />
+      </div>
+    </div>
+    <div ref={canvasContainerRef} className="h-72 sm:h-80" role="img" aria-label={t('3D water supply, underground storage and drainage schematic')}>
+      <Boundary><Canvas frameloop="demand" dpr={[1,1.5]} gl={{ preserveDrawingBuffer: true }} camera={{position:[span*.65,span*.5,span*.95],fov:42}}>
         <color attach="background" args={['#e8e8e0']}/><ambientLight intensity={1.5}/><directionalLight position={[3,8,4]} intensity={2}/>
         <Bounds fit clip observe margin={1.2}><group>
         {water&&<Tank tank={water} x={left}/>}{drain&&<Tank tank={drain} x={right}/>}
