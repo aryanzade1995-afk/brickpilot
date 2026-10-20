@@ -7,6 +7,8 @@ import type { SpecItem, SpecOption } from '@/lib/cost/workspace.ts'
 import { detailedPreviewParts, type PreviewPart } from '@/lib/finishes/previewGeometry.ts'
 import { finishPreview } from '@/lib/finishes/preview.ts'
 import { servicePreviewParts } from '@/lib/finishes/servicePreviewGeometry.ts'
+import { ExportDropdown } from '@/components/export/ExportDropdown.tsx'
+import { captureCanvasPng } from '@/lib/export/index.ts'
 
 type Part = PreviewPart
 const box = (size: Part['size'], at: Part['at'], selected = true): Part => ({ size, at, selected })
@@ -116,13 +118,38 @@ class PreviewBoundary extends Component<{children:ReactNode;resetKey:string},{fa
 export function FinishObjectPreview({item,option,colour,roomSize}:{item:SpecItem;option:SpecOption;colour?:string;roomSize?:[number,number]}) {
   useLanguage(s => s.language);
 
+  const canvasContainerRef = useRef<HTMLDivElement>(null)
   const style=finishPreview(item,option),ceilingScale=Math.max(1,...(roomSize??[]).map(v=>v/4.5))
   const key=`${item.id}:${option.id}:${colour??''}`
   const [status,setStatus]=useState<{key:string;value:TextureStatus}>()
   const onStatus=useCallback((value:TextureStatus)=>setStatus({key,value}),[key])
   if(style.kind==='system')return <p className="rounded-lg bg-bg-inset p-4 text-xs text-ink-dim">{translateUi(style.caption)} {translateUi(" Your selection is included in the specification and estimate.")}</p>
-  return <figure data-preview-option={option.id} data-preview-image={style.image?.src} data-preview-colour={colour??style.color} data-preview-state={status?.key===key?status.value:'loading'} className="overflow-hidden rounded-xl border border-line bg-bg-inset"><div className="flex items-center justify-between px-4 py-3"><p className="label">{translateUi(style.kind)} {translateUi(" preview")}</p><p className="text-xs text-ink-dim">{translateUi("Drag to rotate")}</p></div>
-    <div className="h-[310px] sm:h-[380px]" aria-label={translateUi(`3D ${style.kind}: ${option.name}`)}><PreviewBoundary key={item.id} resetKey={option.id}><Suspense fallback={<p className="p-5 text-xs">{translateUi("Loading preview…")}</p>}><Canvas frameloop="always" shadows dpr={[1,2]} camera={{position:style.kind==='ceiling'?[3*ceilingScale,-1.8*ceilingScale,4.8*ceilingScale]:['roof','pool','landscape','waterproofing'].includes(style.kind)||style.productPreview?.model?.startsWith('light')||style.productPreview?.model==='fan'?[3,2.9,4]:style.kind==='railing'?[2,1.1,3.5]:[2.5,1.6,4.8],fov:style.kind==='ceiling'?45:36}} gl={{antialias:true}}><PreviewScene key={item.id} item={item} option={option} colour={colour} roomSize={roomSize} onStatus={onStatus}/></Canvas></Suspense></PreviewBoundary></div>
+  return <figure data-preview-option={option.id} data-preview-image={style.image?.src} data-preview-colour={colour??style.color} data-preview-state={status?.key===key?status.value:'loading'} className="overflow-hidden rounded-xl border border-line bg-bg-inset">
+    <div className="flex items-center justify-between px-4 py-3">
+      <p className="label">{translateUi(style.kind)} {translateUi(" preview")}</p>
+      <div className="flex items-center gap-2">
+        <p className="text-xs text-ink-dim hidden sm:block">{translateUi("Drag to rotate")}</p>
+        <ExportDropdown
+          size="sm"
+          label="Download 3D"
+          title="Download Finish Preview"
+          items={[
+            {
+              id: 'finish-3d-png',
+              label: '3D Viewport',
+              ext: '.png',
+              onExport: async () => {
+                const canvas = canvasContainerRef.current?.querySelector('canvas')
+                if (canvas) {
+                  await captureCanvasPng(canvas, `${option.id}-preview.png`)
+                }
+              },
+            },
+          ]}
+        />
+      </div>
+    </div>
+    <div ref={canvasContainerRef} className="h-[310px] sm:h-[380px]" aria-label={translateUi(`3D ${style.kind}: ${option.name}`)}><PreviewBoundary key={item.id} resetKey={option.id}><Suspense fallback={<p className="p-5 text-xs">{translateUi("Loading preview…")}</p>}><Canvas frameloop="always" shadows dpr={[1,2]} camera={{position:style.kind==='ceiling'?[3*ceilingScale,-1.8*ceilingScale,4.8*ceilingScale]:['roof','pool','landscape','waterproofing'].includes(style.kind)||style.productPreview?.model?.startsWith('light')||style.productPreview?.model==='fan'?[3,2.9,4]:style.kind==='railing'?[2,1.1,3.5]:[2.5,1.6,4.8],fov:style.kind==='ceiling'?45:36}} gl={{antialias:true,preserveDrawingBuffer:true}}><PreviewScene key={item.id} item={item} option={option} colour={colour} roomSize={roomSize} onStatus={onStatus}/></Canvas></Suspense></PreviewBoundary></div>
     {style.kind==='waterproofing'&&<div className="border-t border-line px-4 py-3 text-xs"><p className="mb-2 font-medium">{translateUi("System layers · bottom to top")}</p><ol className="list-inside list-decimal space-y-1"><li>{translateUi("Concrete substrate")}</li><li>{translateUi("Prepared / primed surface")}</li><li>{translateUi("Selected waterproofing coating")}</li><li>{translateUi("Protection / screed")}{translateUi(item.id==='bath-waterproofing'?' and tile finish':'')}</li></ol><p className="mt-2">{translateUi(item.id==='bath-waterproofing'?'Includes wall upturn, junction band and floor drain context.':'Shows the coating turning up at the roof junction.')} {translateUi(" Layers are separated for clarity.")}</p></div>}
     {status?.key===key&&status.value==='error'&&<p role="alert" className="px-4 py-3 text-xs">{translateUi("The selected image could not load. Choose another finish or reload to retry.")}</p>}
     {style.image&&!style.image.surface&&<div className="border-t border-line px-4 py-3"><p className="label mb-2">{translateUi(item.id==='glass'?'Catalogue frame finish reference':'Selected product image')}</p><img src={style.image.src} alt={translateUi(`${option.name} supplier reference`)} className="max-h-64 w-full object-contain"/></div>}

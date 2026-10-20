@@ -1,9 +1,11 @@
 import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
 import { FloorDrawing } from '@/lib/draw/FloorDrawing.tsx'
 import type { Design } from '@/lib/engine/types.ts'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowRight, Check, Pin } from 'lucide-react'
+import { ArrowRight, Check, Download, Pin } from 'lucide-react'
+import { ExportDropdown } from '@/components/export/ExportDropdown.tsx'
+import { downloadSvg, downloadSvgAsPng } from '@/lib/export/index.ts'
 import { useStudio } from '@/state/studio.ts'
 import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
 import { VillaGenerationNotice } from '@/components/VillaGenerationNotice.tsx'
@@ -183,14 +185,31 @@ function DirectionRender({ planId, seed, label, elements }: { planId: string; se
   const key = directionRenderKey(planId, seed)
   const result = useBlender((s) => s.directionRenders[key])
   const preview = useBlender((s) => s.previews[key])
-  return <div className="border-b border-line">
-    {result ? <img src={result.files.hero} alt={translateUi(`${label} — Blender render`)} className="aspect-[3/2] w-full object-cover" />
-      : <div className="flex aspect-[3/2] w-full items-center justify-center bg-bg-inset p-6 text-center text-sm text-ink-dim" role="status">
+  return <div className="border-b border-line relative group">
+    {result ? (
+      <>
+        <div className="absolute top-2 right-2 z-10 pointer-events-auto">
+          <a
+            href={result.files.hero}
+            download={`${label.toLowerCase().replace(/\s+/g, '-')}-hero.jpg`}
+            className="flex items-center gap-1.5 border border-line bg-bg-raised/95 backdrop-blur-xs px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.08em] text-ink shadow-xs hover:border-accent hover:text-accent transition-colors"
+            title={translateUi("Download 3D Render")}
+          >
+            <Download size={11} className="text-ink-dim" />
+            <span>{translateUi("Render")}</span>
+            <span className="text-[9px] text-ink-faint">.JPG</span>
+          </a>
+        </div>
+        <img src={result.files.hero} alt={translateUi(`${label} — Blender render`)} className="aspect-[3/2] w-full object-cover" />
+      </>
+    ) : (
+      <div className="flex aspect-[3/2] w-full items-center justify-center bg-bg-inset p-6 text-center text-sm text-ink-dim" role="status">
         {!preview || ['queued', 'generating', 'rendering'].includes(preview.status)
           ? <div className="w-full"><RenderProgress progress={preview?.progress} label={preview?.phase || 'Building this villa in Blender…'} /></div>
           : preview.status === 'unavailable' ? `3D render unavailable: ${preview.phase}`
             : `The render stopped: ${preview.error ?? preview.phase}`}
-      </div>}
+      </div>
+    )}
     <p className="px-5 py-2.5 font-mono text-[0.65rem] uppercase tracking-[0.08em] text-ink-faint">{translateUi(result ? 'Visualisation · Blender · ' : '')}{translateUi(elements.join(' · '))}</p>
   </div>
 }
@@ -198,17 +217,61 @@ function DirectionRender({ planId, seed, label, elements }: { planId: string; se
 export function DirectionPlanPreview({ design, label }: { design: Design; label: string }) {
   useLanguage(s => s.language);
 
- const [level, setLevel] = useState(0)
- const floor = design.floors[Math.min(level, design.floors.length - 1)]
- return <div className="border-b border-line">
-  <div className="flex flex-wrap gap-1 bg-bg-inset p-2" role="tablist" aria-label={translateUi(`${label} floors`)}>
-   {design.floors.map((f,i)=><button key={f.level} type="button" role="tab" aria-selected={i===level}
-    onClick={()=>setLevel(i)} className={cx('border px-3 py-2 font-mono text-xs',i===level?'border-accent bg-accent text-white':'border-line text-ink-dim')}>
-    {translateUi(f.level===0?'Ground':`Floor ${f.level}`)}
-   </button>)}
+  const [level, setLevel] = useState(0)
+  const svgRef = useRef<SVGSVGElement>(null)
+  const floor = design.floors[Math.min(level, design.floors.length - 1)]
+  return <div className="border-b border-line">
+    <div className="flex flex-wrap items-center justify-between gap-1 bg-bg-inset p-2" role="tablist" aria-label={translateUi(`${label} floors`)}>
+      <div className="flex flex-wrap gap-1">
+        {design.floors.map((f, i) => (
+          <button
+            key={f.level}
+            type="button"
+            role="tab"
+            aria-selected={i === level}
+            onClick={() => setLevel(i)}
+            className={cx('border px-3 py-2 font-mono text-xs', i === level ? 'border-accent bg-accent text-white' : 'border-line text-ink-dim')}
+          >
+            {translateUi(f.level === 0 ? 'Ground' : `Floor ${f.level}`)}
+          </button>
+        ))}
+      </div>
+      <ExportDropdown
+        size="sm"
+        label="Download Plan"
+        title="Download Direction Plan"
+        items={[
+          {
+            id: 'dir-plan-svg',
+            label: 'Vector Plan',
+            ext: '.svg',
+            onExport: async () => {
+              if (svgRef.current) {
+                await downloadSvg(svgRef.current, `${label.toLowerCase().replace(/\s+/g, '-')}-floor-${floor.level}.svg`, {
+                  title: `${label} Floor ${floor.level}`,
+                  background: '#ffffff',
+                })
+              }
+            },
+          },
+          {
+            id: 'dir-plan-png',
+            label: 'High-DPI Sheet',
+            ext: '.png',
+            onExport: async () => {
+              if (svgRef.current) {
+                await downloadSvgAsPng(svgRef.current, `${label.toLowerCase().replace(/\s+/g, '-')}-floor-${floor.level}.png`, {
+                  scale: 2,
+                  background: '#ffffff',
+                })
+              }
+            },
+          },
+        ]}
+      />
+    </div>
+    <div className="aspect-[3/2] w-full" aria-label={translateUi(`${label} ${floor.name} 2D plan`)}>
+      <FloorDrawing svgRef={svgRef} floor={floor} model={design.model} siteFeatures={design.siteFeatures} theme="paper" showDimensions={false} />
+    </div>
   </div>
-  <div className="aspect-[3/2] w-full" aria-label={translateUi(`${label} ${floor.name} 2D plan`)}>
-   <FloorDrawing floor={floor} model={design.model} siteFeatures={design.siteFeatures} theme="paper" showDimensions={false} />
-  </div>
- </div>
 }

@@ -2,7 +2,7 @@ import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
 import { useStudio } from '@/state/studio.ts'
 import { finishSignature } from '@/lib/cost/finishAssignments.ts'
 import { newDesignSeed } from '@/lib/newDesignSeed.ts'
-import { Component, memo, Suspense, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { Component, memo, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Canvas, useThree } from '@react-three/fiber'
 import { OrbitControls, useGLTF } from '@react-three/drei'
 import type { Design } from '@/lib/engine/types.ts'
@@ -18,10 +18,12 @@ import { SolarVillaControls } from './solar/SolarVillaControls.tsx'
 import { SolarLayer } from '@/lib/three/SolarLayer.tsx'
 import { SolarCamera, FitAcceptedVilla } from '@/lib/three/SolarCamera.tsx'
 import { useSolarArtifacts, solarArtifactKey, isCurrentSolarArtifact } from '@/state/solarArtifacts.ts'
+import { ExportDropdown } from '@/components/export/ExportDropdown.tsx'
+import { captureCanvasPng } from '@/lib/export/index.ts'
 
 // Stable Canvas options prevent React updates to solar controls from reconfiguring the camera.
 const VILLA_CAMERA = { position: [20, 14, -25] as [number, number, number], fov: 40 }
-const VILLA_GL = { antialias: true, logarithmicDepthBuffer: true }
+const VILLA_GL = { antialias: true, logarithmicDepthBuffer: true, preserveDrawingBuffer: true }
 const VILLA_DPR: [number, number] = [1, 2]
 
 const Villa = memo(function Villa({ url }: { url: string }) {
@@ -38,6 +40,7 @@ class ModelBoundary extends Component<{ children: ReactNode }, { failed: boolean
 
 export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: { plan: Design; autoGenerate?: boolean; selectedSeed?: number }) {
   useLanguage(s => s.language);
+  const villaContainerRef = useRef<HTMLDivElement>(null)
 
   const brief = useStudio(s => s.result?.design === plan ? s.brief : plan.model.brief)
   // Solar is a sibling scene layer, never an input to the prepared building or its render effect.
@@ -143,7 +146,60 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
       {result.finishSignature !== signature && <p className="mt-3 text-sm text-ink-dim">{translateUi("Updating selected finishes on this same design…")}</p>}
       <p className="mt-4 font-mono text-xs text-ink-dim">{translateUi("Visualisation · Blender · Seed ")}{translateUi(result.seed)} · {translateUi(result.family.replaceAll('_', ' '))} · {translateUi(result.quality === 'final' ? 'Final render' : 'Preview')}</p>
       <div className="mt-3 grid gap-4 lg:grid-cols-2">
-        <div id="villa-interactive-view" role="region" aria-label={translateUi('Interactive villa with rooftop solar')} className="aspect-[4/3] overflow-hidden border border-line">
+        <div id="villa-interactive-view" ref={villaContainerRef} role="region" aria-label={translateUi('Interactive villa with rooftop solar')} className="relative aspect-[4/3] overflow-hidden border border-line">
+          <div className="absolute top-2 right-2 z-20 pointer-events-auto">
+            <ExportDropdown
+              label="Download Villa"
+              title="Download Interactive Villa"
+              size="sm"
+              floating
+              items={[
+                {
+                  id: 'villa-viewport-png',
+                  label: 'Viewport Snapshot',
+                  ext: '.png',
+                  onExport: async () => {
+                    const canvas = villaContainerRef.current?.querySelector('canvas')
+                    if (canvas) {
+                      await captureCanvasPng(canvas, 'villa-view.png')
+                    }
+                  },
+                },
+                {
+                  id: 'villa-model-glb',
+                  label: '3D Villa Model',
+                  ext: '.glb',
+                  onExport: async () => {
+                    const fileUrl = (currentSolar ?? result).files.glb
+                    if (fileUrl) {
+                      const a = document.createElement('a')
+                      a.href = fileUrl
+                      a.download = 'villa-model.glb'
+                      document.body.appendChild(a)
+                      a.click()
+                      document.body.removeChild(a)
+                    }
+                  },
+                },
+                {
+                  id: 'villa-scene-blend',
+                  label: 'Blender Project',
+                  ext: '.blend',
+                  onExport: async () => {
+                    const fileUrl = (currentSolar ?? result).files.blend
+                    if (fileUrl) {
+                      const a = document.createElement('a')
+                      a.href = fileUrl
+                      a.download = 'villa-project.blend'
+                      document.body.appendChild(a)
+                      a.click()
+                      document.body.removeChild(a)
+                    }
+                  },
+                },
+              ]}
+            />
+          </div>
           <ModelBoundary key={result.files.glb}><Canvas frameloop="demand" shadows dpr={VILLA_DPR} gl={VILLA_GL} camera={VILLA_CAMERA}>
             <color attach="background" args={['#e5e5e5']} /><ambientLight intensity={.6} />
             <directionalLight position={[20, 30, -10]} intensity={2} castShadow shadow-mapSize={[2048, 2048]}

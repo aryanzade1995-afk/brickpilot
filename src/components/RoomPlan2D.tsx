@@ -1,7 +1,9 @@
 import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import type { Design } from '@/lib/engine/types.ts'
 import { roomFurnishing, type InteriorConfiguration } from '@/lib/interior/preview.ts'
+import { ExportDropdown } from '@/components/export/ExportDropdown.tsx'
+import { downloadSvg, downloadSvgAsPng } from '@/lib/export/index.ts'
 
 export interface RoomPlan2DProps {
   design: Design
@@ -30,6 +32,8 @@ export function RoomPlan2D({
 }: RoomPlan2DProps) {
   useLanguage(s => s.language)
   const [expanded, setExpanded] = useState(false)
+  const miniSvgRef = useRef<SVGSVGElement>(null)
+  const modalSvgRef = useRef<SVGSVGElement>(null)
 
   const currentRoomName = roomName ?? design.floors.find(f => f.level === floorLevel)?.rooms.find(r => r.id === roomId)?.name ?? 'Room'
 
@@ -111,8 +115,9 @@ export function RoomPlan2D({
   const wallsE = buildWallSegments(d, openingsE)
 
   // Render SVG Plan Content
-  const renderSvgPlan = () => (
+  const renderSvgPlan = (svgRef?: React.Ref<SVGSVGElement>) => (
     <svg
+      ref={svgRef}
       role="img"
       aria-label={translateUi("2D architectural room floor plan")}
       className="h-full w-full select-none"
@@ -589,8 +594,43 @@ export function RoomPlan2D({
               {translateUi("2D Plan")} · {currentRoomName}
             </span>
           </div>
-          <div className="flex items-center gap-2 flex-none">
+          <div className="flex items-center gap-1.5 flex-none">
             <span className="font-mono text-ink-dim text-[10px]">{area} m²</span>
+            <ExportDropdown
+              label="Download Plan"
+              size="sm"
+              title="Download 2D Plan"
+              items={[
+                {
+                  id: 'room-plan-svg',
+                  label: 'Vector Plan',
+                  ext: '.svg',
+                  onExport: async () => {
+                    const el = miniSvgRef.current ?? modalSvgRef.current
+                    if (el) {
+                      await downloadSvg(el, `${currentRoomName.toLowerCase().replace(/\s+/g, '-')}-plan.svg`, {
+                        title: `${currentRoomName} 2D Plan`,
+                        background: '#ffffff',
+                      })
+                    }
+                  },
+                },
+                {
+                  id: 'room-plan-png',
+                  label: 'High-DPI Sheet',
+                  ext: '.png',
+                  onExport: async () => {
+                    const el = miniSvgRef.current ?? modalSvgRef.current
+                    if (el) {
+                      await downloadSvgAsPng(el, `${currentRoomName.toLowerCase().replace(/\s+/g, '-')}-sheet.png`, {
+                        scale: 3,
+                        background: '#ffffff',
+                      })
+                    }
+                  },
+                },
+              ]}
+            />
             <button
               type="button"
               onClick={() => setExpanded(true)}
@@ -604,7 +644,7 @@ export function RoomPlan2D({
 
         {/* 2D SVG Viewport */}
         <div className="h-[76px] w-full flex items-center justify-center my-0.5">
-          {renderSvgPlan()}
+          {renderSvgPlan(miniSvgRef)}
         </div>
 
         {/* Compact Blueprint Legend */}
@@ -645,17 +685,54 @@ export function RoomPlan2D({
                   {w.toFixed(2)} × {d.toFixed(2)} m · {area} m² · Level {floorLevel}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => setExpanded(false)}
-                className="rounded border border-line px-3 py-1 text-xs hover:bg-bg-inset transition-colors"
-              >
-                {translateUi("Close ✕")}
-              </button>
+              <div className="flex items-center gap-2">
+                <ExportDropdown
+                  size="sm"
+                  label="Download Blueprint"
+                  title="Download Room Blueprint"
+                  items={[
+                    {
+                      id: 'modal-blueprint-svg',
+                      label: 'Vector Blueprint',
+                      ext: '.svg',
+                      onExport: async () => {
+                        const el = modalSvgRef.current ?? miniSvgRef.current
+                        if (el) {
+                          await downloadSvg(el, `${currentRoomName.toLowerCase().replace(/\s+/g, '-')}-blueprint.svg`, {
+                            title: `${currentRoomName} Architectural Blueprint`,
+                            background: '#ffffff',
+                          })
+                        }
+                      },
+                    },
+                    {
+                      id: 'modal-blueprint-png',
+                      label: 'High-DPI Blueprint',
+                      ext: '.png',
+                      onExport: async () => {
+                        const el = modalSvgRef.current ?? miniSvgRef.current
+                        if (el) {
+                          await downloadSvgAsPng(el, `${currentRoomName.toLowerCase().replace(/\s+/g, '-')}-blueprint.png`, {
+                            scale: 3,
+                            background: '#ffffff',
+                          })
+                        }
+                      },
+                    },
+                  ]}
+                />
+                <button
+                  type="button"
+                  onClick={() => setExpanded(false)}
+                  className="rounded border border-line px-3 py-1 text-xs hover:bg-bg-inset transition-colors"
+                >
+                  {translateUi("Close ✕")}
+                </button>
+              </div>
             </div>
 
             <div className="mt-4 h-[440px] w-full flex items-center justify-center p-2 bg-bg-inset/40 rounded border border-line/60">
-              {renderSvgPlan()}
+              {renderSvgPlan(modalSvgRef)}
             </div>
 
             <div className="mt-4 flex flex-wrap items-center justify-between border-t border-line pt-3 text-xs text-ink-dim">

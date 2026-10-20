@@ -13,6 +13,8 @@ import { useStudio } from '@/state/studio.ts'
 import { usePlanEdit } from '@/state/planEdit.ts'
 import { cx } from '@/lib/cx.ts'
 import { SITE_STYLE, siteName } from '@/lib/draw/siteStyle.ts'
+import { ExportDropdown } from '@/components/export/ExportDropdown.tsx'
+import { downloadSvg, downloadSvgAsPng } from '@/lib/export/index.ts'
 
 /* The 2D plan, with every room as an object you can pick up. The drawing underneath is the normal
  * floor drawing; an overlay of the same size carries the rooms, handles and the vacant-space hatching. */
@@ -68,6 +70,7 @@ export function PlanEditor({ design }: { design: Design }) {
   const siteParts = (design.siteFeatures ?? []).filter((f) => Ops.EDITABLE_FEATURES.includes(f.kind) && !f.roomId)
   const [drag, setDrag] = useState<Drag | null>(null)
   const svgRef = useRef<SVGSVGElement>(null)
+  const floorSvgRef = useRef<SVGSVGElement>(null)
 
   const base = useMemo(() => basePlan() ?? design, [basePlan, design])
   const box = boxNow(base, layout.outline)
@@ -180,16 +183,50 @@ export function PlanEditor({ design }: { design: Design }) {
               {Ops.vacantRooms(layout, f.level).some((v) => !v.accepted) && <span className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-warn align-middle" title={translateUi("Has vacant space")} />}
             </button>
           ))}
-          <span className="ml-auto flex items-center gap-1">
+          <span className="ml-auto flex items-center gap-1.5">
             <button className={btn} disabled={!past.length} onClick={() => act.undo()} aria-label={translateUi("Undo")}><Undo2 size={12} /> {translateUi(" Undo")}</button>
             <button className={btn} disabled={!future.length} onClick={() => act.redo()} aria-label={translateUi("Redo")}><Redo2 size={12} /> {translateUi(" Redo")}</button>
+            <ExportDropdown
+              label="Download Plan"
+              title="Download 2D Plan"
+              items={[
+                {
+                  id: 'plan-svg',
+                  label: 'Vector Plan',
+                  ext: '.svg',
+                  onExport: async () => {
+                    const el = floorSvgRef.current ?? svgRef.current
+                    if (el) {
+                      await downloadSvg(el, `floor-${floor.level}-plan.svg`, {
+                        title: `Floor ${floor.level} Plan`,
+                        background: '#ffffff',
+                      })
+                    }
+                  },
+                },
+                {
+                  id: 'plan-png',
+                  label: 'High-DPI Sheet',
+                  ext: '.png',
+                  onExport: async () => {
+                    const el = floorSvgRef.current ?? svgRef.current
+                    if (el) {
+                      await downloadSvgAsPng(el, `floor-${floor.level}-sheet.png`, {
+                        scale: 2,
+                        background: '#ffffff',
+                      })
+                    }
+                  },
+                },
+              ]}
+            />
           </span>
         </div>
 
         <div className="relative w-full overflow-hidden border border-line bg-white" style={{ aspectRatio: `${W} / ${H}` }} tabIndex={0} onKeyDown={onKey} aria-label={translateUi("Plan editor. Select a room, drag it to move, drag an edge to resize, use arrow keys to nudge.")}>
           <div className="absolute inset-0">
             <FloorDrawing floor={floor} model={design.model} siteFeatures={design.siteFeatures} theme="paper" presentation
-              layers={{ ...DRAWING_PRESETS.Presentation, safety: false, dimensions: false }} />
+              layers={{ ...DRAWING_PRESETS.Presentation, safety: false, dimensions: false }} svgRef={floorSvgRef} />
           </div>
           <svg ref={svgRef} viewBox={`${-PAD.l} ${-PAD.t} ${W} ${H}`} className="absolute inset-0 h-full w-full touch-none select-none"
             onPointerMove={move} onPointerUp={up} onPointerCancel={up} onPointerDown={() => { setSelected(null); setSwapFrom(null); setFeat(null) }}>

@@ -1,5 +1,5 @@
 import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Canvas, useThree } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
@@ -20,10 +20,20 @@ import { InvalidPlanNotice } from '@/components/InvalidPlanNotice.tsx'
 import { BlenderVillaPanel } from '@/components/BlenderVillaPanel.tsx'
 import { AiVisualization } from '@/components/AiVisualization.tsx'
 import { SOLAR_URL } from '@/lib/solar/editor.ts'
+import { ExportDropdown } from '@/components/export/ExportDropdown.tsx'
+import { captureCanvasPng, exportThreeSceneToGlb } from '@/lib/export/index.ts'
 
 type ViewMode = 'architecture' | 'furnished'
 
 type CamKey = 'front' | 'rear' | 'left' | 'right' | 'iso' | 'top'
+
+function DollhouseSceneBridge({ onScene }: { onScene: (scene: THREE.Scene) => void }) {
+  const { scene } = useThree()
+  useEffect(() => {
+    onScene(scene)
+  }, [scene, onScene])
+  return null
+}
 
 export function Massing() {
   useLanguage(s => s.language);
@@ -35,9 +45,11 @@ export function Massing() {
   }, [result, run])
 
   const [mode, setMode] = useState<ViewMode>('architecture')
-  const [furnishedVisited, setFurnishedVisited] = useState(false)
+  const [furnishedVisited, setFurnishedVisited] = useState(true)
   const [pendingView, setPendingView] = useState<CamKey | null>('iso')
   const [floorSel, setFloorSel] = useState<number | 'all'>('all')
+  const dollhouseContainerRef = useRef<HTMLDivElement>(null)
+  const sceneRef = useRef<THREE.Scene | null>(null)
   // the furnished view is dressed like the 360 preview: the brief's Finishes & Cost choices room by room, and the
   // interior style and furniture density chosen in the 360 panel. Any change rebuilds it at once.
   const brief = useStudio((s) => s.brief)
@@ -69,8 +81,40 @@ export function Massing() {
   return (
     <div className="mx-auto max-w-[1400px] px-6 py-8 md:px-10">
       <WorkspaceTabs />
-      <h1 className="mt-5 font-display text-2xl">{translateUi(mode === 'furnished' ? 'Furnished · ' : '3D massing · ')}{result.model.brief.project.name}</h1>
-      <Link to={SOLAR_URL} className="mt-3 inline-flex rounded-lg border border-line px-4 py-2 text-sm hover:bg-bg-inset">{translateUi(brief.solar.intention === 'undecided' ? 'Add rooftop solar' : 'Edit rooftop solar')}</Link>
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="font-display text-2xl">{translateUi(mode === 'furnished' ? 'Furnished · ' : '3D massing · ')}{result.model.brief.project.name}</h1>
+          <Link to={SOLAR_URL} className="mt-2 inline-flex rounded-lg border border-line px-4 py-2 text-sm hover:bg-bg-inset">{translateUi(brief.solar.intention === 'undecided' ? 'Add rooftop solar' : 'Edit rooftop solar')}</Link>
+        </div>
+        <ExportDropdown
+          label="Download 3D"
+          title="Download 3D Options"
+          size="md"
+          items={[
+            {
+              id: 'massing-viewport-png',
+              label: '3D Viewport Snapshot',
+              ext: '.png',
+              onExport: async () => {
+                const canvas = document.querySelector('canvas')
+                if (canvas) {
+                  await captureCanvasPng(canvas, 'massing-view.png')
+                }
+              },
+            },
+            {
+              id: 'massing-scene-glb',
+              label: '3D Scene Model',
+              ext: '.glb',
+              onExport: async () => {
+                if (sceneRef.current) {
+                  await exportThreeSceneToGlb(sceneRef.current, 'massing-model.glb')
+                }
+              },
+            },
+          ]}
+        />
+      </div>
       <MassingViewTabs mode={mode} onChange={switchMode} furnishedAvailable={Boolean(result.shapeFingerprint)} />
       {/* Keep both visited viewers mounted: tab switches retain their GPU data,
           camera and controls. The furnished scene is created on its first visit. */}
@@ -120,9 +164,37 @@ export function Massing() {
                 {translateUi(k)}
               </button>
             ))}
+            <ExportDropdown
+              label="Download 3D"
+              title="Download Dollhouse 3D"
+              className="ml-auto"
+              items={[
+                {
+                  id: 'dollhouse-png',
+                  label: 'Viewport Snapshot',
+                  ext: '.png',
+                  onExport: async () => {
+                    const canvas = dollhouseContainerRef.current?.querySelector('canvas')
+                    if (canvas) {
+                      await captureCanvasPng(canvas, 'dollhouse-view.png')
+                    }
+                  },
+                },
+                {
+                  id: 'dollhouse-glb',
+                  label: '3D Scene Model',
+                  ext: '.glb',
+                  onExport: async () => {
+                    if (sceneRef.current) {
+                      await exportThreeSceneToGlb(sceneRef.current, 'dollhouse-model.glb')
+                    }
+                  },
+                },
+              ]}
+            />
           </div>
 
-          <div className="relative aspect-[4/3] w-full overflow-hidden border border-line">
+          <div ref={dollhouseContainerRef} className="relative aspect-[4/3] w-full overflow-hidden border border-line">
             <Canvas
               frameloop="demand"
               shadows="soft"
@@ -135,6 +207,7 @@ export function Massing() {
                 gl.toneMappingExposure = 1.5
               }}
             >
+              <DollhouseSceneBridge onScene={(s) => { sceneRef.current = s }} />
               <DollhouseEnv doll={doll} />
               <DollhouseModel doll={doll} />
 

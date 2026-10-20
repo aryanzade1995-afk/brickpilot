@@ -6,7 +6,7 @@ import { geometryCostKey } from '@/lib/cost/quantities.ts'
 import { formatINR, formatRange } from '@/lib/format.ts'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Dices, Download, Pencil } from 'lucide-react'
+import { ArrowRight, Dices, Pencil } from 'lucide-react'
 import { useStudio } from '@/state/studio.ts'
 import { DrawingWorkspace } from '@/components/DrawingWorkspace.tsx'
 import { PlanEditor } from '@/components/PlanEditor.tsx'
@@ -18,6 +18,9 @@ import { VillaGenerationNotice } from '@/components/VillaGenerationNotice.tsx'
 import { InvalidPlanNotice } from '@/components/InvalidPlanNotice.tsx'
 import type { Severity } from '@/lib/rules/index.ts'
 import { preferenceScore } from '@/lib/engine/score.ts'
+import { ExportDropdown } from '@/components/export/ExportDropdown.tsx'
+import { downloadSvg, downloadSvgAsPng } from '@/lib/export/index.ts'
+import { downloadSheetPdf } from '@/lib/draw/exportSheet.ts'
 
 const SEV_COLOR: Record<Severity, string> = {
   error: 'text-bad',
@@ -84,16 +87,52 @@ export function Plan() {
         <Metric k="Coverage" v={`${(design.coverage * 100).toFixed(0)} %`} />
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-3" data-testid="edit-bar">
-        {editable ? (
-          <button type="button" onClick={toggleEdit} aria-pressed={editing}
-            className={cx('flex items-center gap-2 border px-3 py-2 font-mono text-[0.7rem] uppercase tracking-[0.1em]', editing ? 'border-accent text-accent' : 'border-line-strong text-ink-dim hover:border-ink-dim hover:text-ink')}>
-            <Pencil size={12} /> {translateUi(editing ? 'Done editing' : 'Edit rooms')}
-          </button>
-        ) : (
-          <p className="text-xs text-ink-faint" role="note">{translateUi("Room-by-room editing is available for the standard plan layouts. Wing and courtyard-ring villas are not editable yet.")}</p>
-        )}
-        {layout && <span className="font-mono text-[0.65rem] uppercase tracking-[0.1em] text-warn">{translateUi("Edited plan · saved with the project")}</span>}
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3" data-testid="edit-bar">
+        <div className="flex flex-wrap items-center gap-3">
+          {editable ? (
+            <button type="button" onClick={toggleEdit} aria-pressed={editing}
+              className={cx('flex items-center gap-2 border px-3 py-2 font-mono text-[0.7rem] uppercase tracking-[0.1em]', editing ? 'border-accent text-accent' : 'border-line-strong text-ink-dim hover:border-ink-dim hover:text-ink')}>
+              <Pencil size={12} /> {translateUi(editing ? 'Done editing' : 'Edit rooms')}
+            </button>
+          ) : (
+            <p className="text-xs text-ink-faint" role="note">{translateUi("Room-by-room editing is available for the standard plan layouts. Wing and courtyard-ring villas are not editable yet.")}</p>
+          )}
+          {layout && <span className="font-mono text-[0.65rem] uppercase tracking-[0.1em] text-warn">{translateUi("Edited plan · saved with the project")}</span>}
+        </div>
+        <ExportDropdown
+          label="Download Plan"
+          title="Download Floor Plan"
+          size="md"
+          items={[
+            {
+              id: 'svg',
+              label: 'Vector Plan',
+              ext: 'SVG',
+              onExport: () => {
+                const svg = document.querySelector('.drawing-viewport svg') as SVGSVGElement | null
+                if (svg) downloadSvg(svg, `plan_${design.dna.seed}`, { background: '#ffffff' })
+              },
+            },
+            {
+              id: 'png',
+              label: 'High-DPI Sheet',
+              ext: 'PNG',
+              onExport: async () => {
+                const svg = document.querySelector('.drawing-viewport svg') as SVGSVGElement | null
+                if (svg) await downloadSvgAsPng(svg, `plan_${design.dna.seed}`, { background: '#ffffff', scale: 2 })
+              },
+            },
+            {
+              id: 'pdf',
+              label: 'A3 Print Sheet',
+              ext: 'PDF',
+              onExport: async () => {
+                const svg = document.querySelector('.drawing-viewport svg') as SVGSVGElement | null
+                if (svg) await downloadSheetPdf(svg, `plan_${design.dna.seed}`)
+              },
+            },
+          ]}
+        />
       </div>
       <div className="mt-4">{editing ? <PlanEditor design={drawingDesign!} /> : <DrawingWorkspace key={`${params.get("floor")}:${params.get("highlight")}`} design={drawingDesign!} onFloorChange={setFloorIdx} initialFloorLevel={params.has("floor") ? Number(params.get("floor")) : undefined} highlightCategory={params.get("highlight") ?? undefined} />}</div>
       {cost && <section aria-label={translateUi("Cost summary")} className="mt-6 flex flex-wrap items-center justify-between gap-4 border-y border-line py-5"><div><Link to="/workspace/finishes?tab=estimate" className="text-sm underline">{translateUi("Cost band · ")}{translateUi(formatRange(cost.total.low, cost.total.high, formatINR))}</Link><p className="mt-2 text-xs text-ink-faint">{translateUi(cost.label)}</p></div><Link to="/workspace/finishes" className="text-sm underline">{translateUi("Finishes & cost →")}</Link></section>}
@@ -134,7 +173,7 @@ export function Plan() {
             to="/workspace/massing"
             className="flex w-full items-center justify-center gap-2 border border-line-strong py-3 font-mono text-xs uppercase tracking-[0.12em] text-ink-dim hover:border-ink-dim hover:text-ink"
           >
-            <Download size={13} />
+            <ArrowRight size={13} />
             {translateUi("Continue to 3D")}</Link>
       </div>
 

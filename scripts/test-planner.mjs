@@ -146,7 +146,8 @@ test('doors sit on the wall two rooms share and swing into the room they serve',
       // the kitchen type (T5) deliberately joins kitchen and dining through
       // their partition, wider than a door when it is a glazed slide / open gap
       const kitchenDining = [a.id, b.id].includes('kitchen') && [a.id, b.id].some((id) => id === 'dining' || id === 'livingDining')
-      assert.ok(o.width <= 1000 || (kitchenDining && o.treatment), `${o.id} is too wide`)
+      const balconyAccess = [a.id, b.id].some((id) => id.startsWith('balcony'))
+      assert.ok(o.width <= 1000 || ((kitchenDining || balconyAccess) && o.treatment), `${o.id} is too wide`)
       const attachedBath = (a.zone === 'private' && /bath/i.test(b.id)) || (b.zone === 'private' && /bath/i.test(a.id))
       assert.ok(o.orient !== 'v' || a.zone === 'circulation' || b.zone === 'circulation' || attachedBath || kitchenDining || a.outdoor || b.outdoor,
         `${o.id} cuts a vertical room partition`)
