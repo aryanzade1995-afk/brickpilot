@@ -96,7 +96,10 @@ export function Massing() {
               label: '3D Viewport Snapshot',
               ext: '.png',
               onExport: async () => {
-                const canvas = document.querySelector('canvas')
+                const canvas = [...document.querySelectorAll<HTMLCanvasElement>('canvas')].find(c => {
+                  const bounds = c.getBoundingClientRect()
+                  return bounds.width > 0 && bounds.height > 0
+                })
                 if (canvas) {
                   await captureCanvasPng(canvas, 'massing-view.png')
                 }
@@ -104,15 +107,15 @@ export function Massing() {
             },
             {
               id: 'massing-scene-glb',
-              label: '3D Scene Model',
+              label: 'Building-only furnished GLB',
               ext: '.glb',
               onExport: async () => {
                 if (sceneRef.current) {
-                  await exportThreeSceneToGlb(sceneRef.current, 'massing-model.glb')
+                  await exportThreeSceneToGlb(sceneRef.current, 'furnished-building-only.glb')
                 }
               },
             },
-          ]}
+          ].filter(item => mode === 'furnished' || item.id !== 'massing-scene-glb')}
         />
       </div>
       <MassingViewTabs mode={mode} onChange={switchMode} furnishedAvailable={Boolean(result.shapeFingerprint)} />

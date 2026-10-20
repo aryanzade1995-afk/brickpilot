@@ -156,25 +156,25 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
               items={[
                 {
                   id: 'villa-viewport-png',
-                  label: 'Viewport Snapshot',
+                  label: solar.draft ? 'Live view · draft preview' : 'Live view snapshot',
                   ext: '.png',
                   onExport: async () => {
                     const canvas = villaContainerRef.current?.querySelector('canvas')
                     if (canvas) {
-                      await captureCanvasPng(canvas, 'villa-view.png')
+                      await captureCanvasPng(canvas, solar.draft ? 'villa-live-draft-preview.png' : 'villa-live-view.png')
                     }
                   },
                 },
                 {
                   id: 'villa-model-glb',
-                  label: '3D Villa Model',
+                  label: currentSolar ? 'Building + solar GLB' : 'Building-only GLB',
                   ext: '.glb',
                   onExport: async () => {
                     const fileUrl = (currentSolar ?? result).files.glb
                     if (fileUrl) {
                       const a = document.createElement('a')
                       a.href = fileUrl
-                      a.download = 'villa-model.glb'
+                      a.download = currentSolar ? 'villa-building-plus-solar.glb' : 'villa-building-only.glb'
                       document.body.appendChild(a)
                       a.click()
                       document.body.removeChild(a)
@@ -183,14 +183,14 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
                 },
                 {
                   id: 'villa-scene-blend',
-                  label: 'Blender Project',
+                  label: currentSolar ? 'Building + solar Blender scene' : 'Building-only Blender scene',
                   ext: '.blend',
                   onExport: async () => {
                     const fileUrl = (currentSolar ?? result).files.blend
                     if (fileUrl) {
                       const a = document.createElement('a')
                       a.href = fileUrl
-                      a.download = 'villa-project.blend'
+                      a.download = currentSolar ? 'villa-building-plus-solar.blend' : 'villa-building-only.blend'
                       document.body.appendChild(a)
                       a.click()
                       document.body.removeChild(a)
