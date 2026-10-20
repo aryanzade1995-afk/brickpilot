@@ -1,5 +1,6 @@
 import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
 import { RoomPanel } from './brief/RoomPanel.tsx'
+import { HouseIdeaPreview } from './brief/HouseIdeaPreview.tsx'
 import { SelectionsBar } from './brief/SelectionsBar.tsx'
 import { useDeferredValue, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -224,7 +225,7 @@ export function Brief() {
             )}
           </Button>
         </div>
-        </section>{[4,5,7].includes(step) && <div className="order-1 sticky top-[calc(var(--brief-rail-height)+16px)] z-[5] self-start lg:order-2"><RoomPanel /></div>}
+        </section>{[4,5,7].includes(step) && <div className="order-1 sticky top-[calc(var(--brief-rail-height)+16px)] z-[5] self-start lg:order-2">{step === 5 ? <HouseIdeaPreview /> : <RoomPanel />}</div>}
         </div>
       </div>
     </div>
