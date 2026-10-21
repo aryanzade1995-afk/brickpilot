@@ -107,7 +107,7 @@ export function utilityWallSections(floor: FloorPlan, height: number): UtilityWa
     const lo = Math.min(horizontal ? wall.a.x : wall.a.y, horizontal ? wall.b.x : wall.b.y)
     const hi = Math.max(horizontal ? wall.a.x : wall.a.y, horizontal ? wall.b.x : wall.b.y)
     const openings = floor.openings.filter(o => (o.orient === 'h') === horizontal && Math.abs(horizontal ? o.at.y - wall.a.y : o.at.x - wall.a.x) < 20)
-    const cuts = [...new Set([lo, hi, ...openings.flatMap(o => [Math.max(lo, Math.min(hi, (horizontal ? o.at.x : o.at.y) - o.width / 2)), Math.max(lo, Math.min(hi, (horizontal ? o.at.x : o.at.y) + o.width / 2))]))].sort((a, b) => a - b)
+    const cuts = [...new Set([lo, hi, ...openings.flatMap(o => [Math.max(lo, Math.min(hi, (horizontal ? o.at.x : o.at.y) - o.width / 2)), Math.max(lo, Math.min(hi, (horizontal ? o.at.x : o.at.y) + o.width / 2))])])].sort((a, b) => a - b)
     return cuts.slice(1).flatMap((end, i) => {
       const start = cuts[i], mid = (start + end) / 2, opening = openings.find(o => Math.abs(mid - (horizontal ? o.at.x : o.at.y)) < o.width / 2)
       const point = (v: number) => horizontal ? { x: v, y: wall.a.y } : { x: wall.a.x, y: v }
