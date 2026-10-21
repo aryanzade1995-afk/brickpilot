@@ -155,6 +155,7 @@ html:lang(hi) .uppercase, html:lang(mr) .uppercase { letter-spacing: normal; }
   color: var(--color-ink); color-scheme: dark; background: var(--color-bg);
 }
 .utility-paper-svg { color-scheme: light; }
+.utility-workspace .bg-accent.text-bg { color: var(--color-bg); }
 @media (prefers-reduced-motion: reduce) { .utility-clash-pulse { animation: none; } }
 @media print { .utility-clash-pulse { animation: none; } }
 @media (prefers-reduced-motion: reduce) { .utility-evacuation-flow { animation: none; } }

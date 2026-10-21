@@ -14,7 +14,7 @@ export function useUtilityDrawing(model: UtilityFloor, project: string, scope: s
   const signature = sourceSignature(model), original = useRef(signature)
   useEffect(() => { try { localStorage.setItem(`formstead.utility-sheet-settings.v1:${scope}`, JSON.stringify(state.document.settings)) } catch { /* Full session autosave exposes storage errors to the user. */ } }, [state.document.settings, scope])
   const commit = (next: State) => { setPast(p => [...p.slice(-49), last.current]); setFuture([]); setState(next) }
-  const change = (edit: (doc: DrawingDocument) => void) => { const document = structuredClone(last.current.document); edit(document); if (JSON.stringify(document) !== JSON.stringify(last.current.document)) commit({ ...last.current, document }) }
+  const change = (edit: (doc: DrawingDocument) => void) => { const document = structuredClone(last.current.document); edit(document); if (JSON.stringify(document) !== JSON.stringify(last.current.document)) { commit({ ...last.current, document }); return true } return false }
   const load = (project: UtilityDrawingProject) => commit({ document: project.document, imported: { project, token: uid() } })
   const undo = () => { const before = past.at(-1); if (before) { setFuture(f => [...f, last.current]); setPast(p => p.slice(0, -1)); setState(before) } }
   const redo = () => { const after = future.at(-1); if (after) { setPast(p => [...p, last.current]); setFuture(f => f.slice(0, -1)); setState(after) } }

@@ -1,6 +1,8 @@
 import { clashMessages } from './clashMessages.ts'
+import { drawingMessages } from './drawingMessages.ts'
 export const utilityMessages: Record<string, readonly [string, string]> = {
   ...clashMessages,
+  ...drawingMessages,
   '3D water supply': ['3D जल आपूर्ति', '3D पाणीपुरवठा'],
   '3D services': ['3D सेवा प्रणालियाँ', '3D सेवा प्रणाली'],
   'Your source 2D plan, with proposed drainage, electrical, water supply and fire safety. Switch between the floor model and the utility drawing.': ['आपकी मूल 2D योजना में प्रस्तावित निकासी, विद्युत, जल आपूर्ति और अग्नि सुरक्षा। फ़्लोर मॉडल और उपयोगिता ड्रॉइंग के बीच बदलें।', 'तुमच्या मूळ 2D आराखड्यात प्रस्तावित निचरा, विद्युत, पाणीपुरवठा व अग्निसुरक्षा. मजल्याचे मॉडेल व सेवा आराखडा यांमध्ये बदला.'],

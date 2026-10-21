@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { UtilityFloor } from '@/lib/utilities/plan.ts'
 import { DRAWING_LAYERS, DRAWING_NAMES, SHEET_SIZES, nextRevision, today, uid, type DrawingDocument, type DrawingAnnotation, type DrawingLayer } from '@/lib/utilities/drawingProject.ts'
 import { sheetSvg, type DrawingSheet } from '@/lib/utilities/drawingSheets.ts'
@@ -11,25 +11,36 @@ const input = 'min-h-11 w-full border border-line bg-bg px-2 text-xs text-ink fo
 export function UtilityDrawingWorkbench(props: Props) {
   const { model, document: doc, change, sheets, busy } = props
   const [settingsOpen, setSettingsOpen] = useState(false), [page, setPage] = useState(0), [zoom, setZoom] = useState(100), [tool, setTool] = useState<'select' | DrawingAnnotation['type']>('select'), [first, setFirst] = useState<{ x: number; y: number } | null>(null)
+  const [toolsOpen, setToolsOpen] = useState(false), pointerStart = useRef<{ x: number; y: number } | null>(null)
   const [note, setNote] = useState(''), [units, setUnits] = useState<'mm' | 'm'>('mm'), [x, setX] = useState(String(model.floor.outline.x)), [y, setY] = useState(String(model.floor.outline.y)), [error, setError] = useState('')
   const [revision, setRevision] = useState(''), [revisionBy, setRevisionBy] = useState(doc.settings.drawnBy), [revisionDate, setRevisionDate] = useState(today())
   const [tour, setTour] = useState(() => { try { return localStorage.getItem('formstead.utility-sheet-tour.v1') ? -1 : 0 } catch { return 0 } })
   const preview = useRef<HTMLDivElement>(null), file = useRef<HTMLInputElement>(null)
-  const current = sheets[Math.min(page, Math.max(0, sheets.length - 1))], xml = useMemo(() => current ? sheetSvg(current) : '', [current])
+  useEffect(() => { const escape = (e: KeyboardEvent) => { if (e.key === 'Escape') { setToolsOpen(false); setFirst(null); setTool('select') } }; window.addEventListener('keydown', escape); return () => window.removeEventListener('keydown', escape) }, [])
+  const current = sheets[Math.min(page, Math.max(0, sheets.length - 1))], xml = useMemo(() => {
+    if (!current) return ''
+    let svg = sheetSvg(current)
+    if (first && current.tile) { const tile = current.tile, x = tile.viewport.x + (first.x - tile.origin.x) / tile.scale, y = tile.viewport.y + (first.y - tile.origin.y) / tile.scale; svg = svg.replace('</svg>', `<circle cx="${x}" cy="${y}" r="1.5" fill="#3f655a" stroke="white" stroke-width=".4"/></svg>`) }
+    return svg
+  }, [current, first])
   const toolsLocked = doc.annotationsLocked || doc.activeLayer !== 'coordination' && doc.layers[doc.activeLayer].locked
   const nextTour = () => { if (tour >= 3) { try { localStorage.setItem('formstead.utility-sheet-tour.v1', 'seen') } catch { /* Keep dismissal for this visit. */ } setTour(-1) } else setTour(tour + 1) }
   const addPoint = (p: { x: number; y: number }) => {
     if (tool === 'select' || toolsLocked) return
     if (!Number.isFinite(p.x) || !Number.isFinite(p.y) || Math.abs(p.x) > 1e6 || Math.abs(p.y) > 1e6) { setError('Enter valid plan coordinates in millimetres.'); return }
+    if (current?.tile) { const tile = current.tile, px = (p.x - tile.origin.x) / tile.scale, py = (p.y - tile.origin.y) / tile.scale; if (px < 0 || py < 0 || px > tile.viewport.w || py > tile.viewport.h) { setError('This point is outside the selected sheet tile. Change the coordinates or select another tile.'); return } }
     if ((tool === 'note' || tool === 'leader' || tool === 'cloud') && !note.trim()) { setError('Add a note before placing this annotation.'); return }
     if (tool === 'cloud' && !doc.revisions.length) { setError('Add a revision first, then draw its cloud.'); return }
     if (!first && tool !== 'note') { setFirst(p); setError(''); return }
     const a = first ?? p
     if (tool !== 'note' && Math.hypot(p.x - a.x, p.y - a.y) < 1) { setError('Choose two different points.'); return }
+    if (tool === 'cloud' && (Math.abs(p.x - a.x) < 1 || Math.abs(p.y - a.y) < 1)) { setError('Choose opposite corners of an area for the revision cloud.'); return }
     change(d => d.annotations.push({ id: uid(), type: tool, a, b: p, text: note.trim(), units, revisionId: tool === 'cloud' ? d.revisions.at(-1)!.id : null, layer: d.activeLayer === 'coordination' ? 'annotations' : d.activeLayer }))
     setFirst(null); setError('')
   }
   const pick = (event: React.PointerEvent<HTMLDivElement>) => {
+    const start = pointerStart.current; pointerStart.current = null
+    if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) > 5) return
     if (!current?.tile || tool === 'select') return
     const svg = preview.current?.querySelector('svg'), matrix = svg?.getScreenCTM()
     if (!svg || !matrix) return
@@ -52,10 +63,13 @@ export function UtilityDrawingWorkbench(props: Props) {
     <div className="grid min-w-0 gap-0 xl:grid-cols-[minmax(0,1fr)_290px]">
       <div className="min-w-0 bg-bg-inset p-3 md:p-5"><div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs"><span className="font-mono">{current?.number} / {doc.settings.size} / 1:{doc.settings.scale}</span><div className="flex items-center gap-2"><button className={button} disabled={page <= 0} onClick={() => { setPage(p => p - 1); setFirst(null) }}>{t('Previous sheet')}</button><span>{Math.min(page + 1, sheets.length)} / {sheets.length}</span><button className={button} disabled={page >= sheets.length - 1} onClick={() => { setPage(p => p + 1); setFirst(null) }}>{t('Next sheet')}</button></div></div>
         {sheets.filter(s => s.kind === 'plan').length > 1 && <p className="mb-3 border border-line bg-bg p-3 text-xs text-ink-dim">{t('This plan uses multiple tiles at the chosen scale. PDF includes every tile; PNG and SVG export the selected sheet.')}</p>}
-        {props.sheetError ? <p role="alert" className="p-5 text-sm text-bad">{t(props.sheetError)}</p> : <div className="max-h-[80dvh] overflow-auto border border-line bg-[#d8ddd8] p-3" tabIndex={0} aria-label={t('Scrollable drawing sheet')}><div ref={preview} className={`utility-paper-svg bg-white shadow-sm ${tool !== 'select' ? 'cursor-crosshair' : ''}`} style={{ width: `${zoom}%`, minWidth: zoom > 100 ? 700 : undefined }} onPointerUp={pick} dangerouslySetInnerHTML={{ __html: xml }} /></div>}
+        {props.sheetError ? <p role="alert" className="p-5 text-sm text-bad">{t(props.sheetError)}</p> : <div className="max-h-[80dvh] overflow-auto border border-line bg-[#d8ddd8] p-3" tabIndex={0} aria-label={t('Scrollable drawing sheet')}><div ref={preview} className={`utility-paper-svg bg-white shadow-sm ${tool !== 'select' ? 'cursor-crosshair' : ''}`} style={{ width: `${zoom}%`, minWidth: zoom > 100 ? 700 : undefined }} onPointerDown={e => { pointerStart.current = { x: e.clientX, y: e.clientY } }} onPointerCancel={() => { pointerStart.current = null }} onPointerUp={pick} dangerouslySetInnerHTML={{ __html: xml }} /></div>}
         <p className="mt-3 text-[11px] leading-relaxed text-ink-faint">{t('Preview zoom does not change print scale. Print PDF at actual size, not fit to page.')}</p>
       </div>
-      <aside className="min-w-0 border-t border-line p-4 xl:border-l xl:border-t-0" aria-label={t('Drawing tools')}>
+      <button className={`${button} fixed bottom-4 left-1/2 z-30 -translate-x-1/2 bg-accent text-bg shadow-lg xl:hidden`} aria-expanded={toolsOpen} onClick={() => setToolsOpen(v => !v)}>{t('Drawing tools')} {toolsOpen ? '−' : '+'}</button>
+      {toolsOpen && <button className="fixed inset-0 z-30 bg-black/30 xl:hidden" aria-label={t('Close drawing tools')} onClick={() => setToolsOpen(false)} />}
+      <aside className={`${toolsOpen ? 'fixed inset-x-0 bottom-0 z-40 max-h-[80dvh] overflow-y-auto' : 'hidden'} min-w-0 border-t border-line bg-bg p-4 xl:static xl:block xl:max-h-none xl:border-l xl:border-t-0`} aria-label={t('Drawing tools')}>
+        <button className={`${button} mb-3 w-full xl:hidden`} onClick={() => setToolsOpen(false)}>{t('Close drawing tools')}</button>
         <h3 className="font-display text-xl">{t('Annotations')}</h3><div className="mt-3 flex flex-wrap gap-2">{(['select', 'dimension', 'note', 'leader', 'cloud'] as const).map(k => <button key={k} className={`${button} ${tool === k ? 'bg-accent text-bg' : ''}`} aria-pressed={tool === k} disabled={toolsLocked && k !== 'select'} onClick={() => { setTool(k); setFirst(null); setError('') }}>{t(({ select: 'Select', dimension: 'Dimension', note: 'Text note', leader: 'Leader arrow', cloud: 'Revision cloud' })[k])}</button>)}</div>
         <p className="mt-3 text-[11px] leading-relaxed text-ink-dim">{t(tool === 'select' ? 'Choose an annotation tool, then click the plan or enter coordinates.' : first ? 'First point set. Choose the second point.' : tool === 'note' ? 'Click once to place your note.' : 'Click two points on the drawing.')}</p>
         <label className="mt-3 block text-xs">{t('Annotation note')}<textarea className={`${input} mt-2 py-2`} value={note} rows={2} maxLength={2000} onChange={e => setNote(e.target.value)} /></label>

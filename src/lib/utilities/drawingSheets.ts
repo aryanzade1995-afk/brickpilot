@@ -7,7 +7,7 @@ type Style = { color: string; width?: number; fill?: string; dash?: number[]; op
 export type DrawOp = ({ kind: 'line'; a: Point; b: Point } | { kind: 'poly'; points: Point[]; closed?: boolean } | { kind: 'rect'; rect: Rect } | { kind: 'circle'; at: Point; r: number } | { kind: 'text'; at: Point; text: string; size: number; align?: 'left' | 'center' | 'right'; bold?: boolean } | { kind: 'clip'; rect: Rect; id: string } | { kind: 'endClip' } | { kind: 'group'; name: string } | { kind: 'endGroup' }) & Partial<Style>
 export type DrawingSheet = { id: string; title: string; number: string; w: number; h: number; ops: DrawOp[]; tile?: { viewport: Rect; origin: Point; scale: number; col: number; row: number; cols: number; rows: number }; kind: 'plan' | 'schedule' | 'clashes'; layer: DrawingLayer }
 const ink = '#323832', grey = '#b5bbb6'
-export const escapeXml = (s: string) => s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;')
+export const escapeXml = (s: string) => s.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffe\uffff]/g, '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;')
 const wrap = (s: string, width: number, font: number) => {
   const max = Math.max(4, Math.floor(width / (font * .56))), lines: string[] = []
   for (const paragraph of s.split('\n')) { let line = ''; for (const word of paragraph.split(/\s+/)) { if ((line + ' ' + word).length > max && line) { lines.push(line); line = '' } for (const c of (line ? ' ' : '') + word) { if (line.length >= max) { lines.push(line); line = '' } line += c } } lines.push(line) }
@@ -17,7 +17,14 @@ export function symbolOps(type: string, at: Point, color: string, r = 1.4): Draw
   const ops: DrawOp[] = [], line = (x: number, y: number, u: number, v: number) => ops.push({ kind: 'line', a: { x: at.x + x * r, y: at.y + y * r }, b: { x: at.x + u * r, y: at.y + v * r }, color, width: .2 })
   const circle = (radius = 1, fill = 'white') => ops.push({ kind: 'circle', at, r: r * radius, color, fill, width: .22 })
   const label = (text: string, fill = color) => ops.push({ kind: 'text', at: { x: at.x, y: at.y + r * .35 }, size: r * 1.2, align: 'center', text, color: fill })
-  if (['db_panel', 'fire_panel', 'manual_call_point', 'supply_inlet', 'hot_supply_inlet', 'exit_sign'].includes(type)) {
+  if (type.startsWith('layer_')) {
+    const layer = type.slice(6) as keyof typeof UTILITY_LAYERS, cfg = UTILITY_LAYERS[layer]
+    ops.push({ kind: 'line', a: { x: at.x - r * 1.7, y: at.y }, b: { x: at.x + r * 1.7, y: at.y }, color, width: .3, ...(cfg.dash ? { dash: cfg.dash.split(' ').map(Number).map(n => n * .15) } : {}) })
+  } else if (type.startsWith('fixture_')) {
+    if (type === 'fixture_floor_drain') circle(.65, color)
+    else ops.push({ kind: 'rect', rect: { x: at.x - r, y: at.y - r * .7, w: r * 2, h: r * 1.4 }, color, width: .22 })
+  } else if (type.startsWith('clash_')) { circle(1, color); label('!', 'white') }
+  else if (['db_panel', 'fire_panel', 'manual_call_point', 'supply_inlet', 'hot_supply_inlet', 'exit_sign'].includes(type)) {
     const filled = type !== 'manual_call_point'
     ops.push({ kind: 'rect', rect: { x: at.x - r * 1.3, y: at.y - r, w: r * 2.6, h: r * 2 }, color, fill: filled ? color : 'white', width: .22 })
     label(({ db_panel: 'DB', fire_panel: 'FP', manual_call_point: 'M', supply_inlet: 'CW', hot_supply_inlet: 'HW', exit_sign: 'EXIT >' } as Record<string, string>)[type], filled ? 'white' : color)
@@ -99,6 +106,7 @@ function planOps(model: UtilityFloor, doc: DrawingDocument, layers: readonly str
     for (const r of model.utilities.filter(r => r.layer === l)) {
       const color = r.layer === 'electrical' ? model.circuits.find(c => c.id === r.circuitId)?.color : r.layer === 'water_supply' ? model.waterNetworks.find(n => n.id === r.networkId)?.color : r.layer === 'fire_alarm' ? model.zones.find(z => z.id === r.zoneId)?.color : cfg.color
       const points = r.path.map(tr); ops.push({ kind: 'poly', points, color: color ?? cfg.color, width: r.layer === 'drainage' ? .45 : .3, dash: cfg.dash ? cfg.dash.split(' ').map(Number).map(v => v / 5) : [], opacity: doc.layers[l].opacity })
+      if (r.layer !== 'drainage') { const tag = r.layer === 'electrical' ? model.circuits.find(c => c.id === r.circuitId)?.tag : r.layer === 'water_supply' ? model.waterNetworks.find(n => n.id === r.networkId)?.tag : model.zones.find(z => z.id === r.zoneId)?.tag; const at = points.at(-1)!; if (tag) ops.push({ kind: 'text', at: { x: at.x + 1.5, y: at.y - 1.5 }, text: tag, size: 2, color: color ?? cfg.color, opacity: doc.layers[l].opacity }) }
       if (r.layer === 'drainage') { const seq = r.flowDirection === 'reverse' ? [...points].reverse() : points; for (let i = 1; i < seq.length; i++) if (Math.hypot(seq[i].x - seq[i - 1].x, seq[i].y - seq[i - 1].y) > 4) arrow(ops, seq[i - 1], { x: (seq[i].x + seq[i - 1].x) / 2, y: (seq[i].y + seq[i - 1].y) / 2 }, color ?? cfg.color) }
     }
     for (const sym of model.symbols.filter(sym => sym.layer === l)) ops.push(...symbolOps(sym.type, tr(sym.position), sym.type === 'exit_sign' ? '#258454' : cfg.color).map(op => ({ ...op, opacity: doc.layers[l].opacity })))
@@ -120,20 +128,35 @@ function planOps(model: UtilityFloor, doc: DrawingDocument, layers: readonly str
 }
 
 function frame(sheet: DrawingSheet, _model: UtilityFloor, doc: DrawingDocument, suffix: string) {
-  const { w, h, ops } = sheet, s = doc.settings, margin = 10, tw = Math.min(170, w * .46), tx = w - margin - tw, ty = h - margin - 59
+  const { w, h, ops } = sheet, s = doc.settings, margin = 10, tw = Math.min(170, w * .46), tx = w - margin - tw
+  const fields = [
+    { label: 'Project', value: s.projectName, font: 2.8 }, { label: 'Client', value: s.client || 'Client not supplied', font: 2.6 },
+    { label: 'Drawing title', value: sheet.title, font: 2.8 }, { label: 'Drawing no.', value: sheet.number, font: 3 },
+    { label: 'Scale / sheet / date', value: `${sheet.kind === 'plan' ? `1:${s.scale}` : 'NTS'} / ${s.size} ${s.orientation} / ${s.date}`, font: 2.3 },
+    { label: 'Drawn / checked', value: `${s.drawnBy || '-'} / ${s.checkedBy || 'Not checked'}`, font: 2.3 },
+  ].map(f => ({ ...f, lines: wrap(f.value || '-', tw - 5, f.font) }))
+  const titleHeight = 8 + fields.reduce((sum, f) => sum + Math.max(8, f.lines.length * 3.2 + 5), 0), ty = h - margin - titleHeight
   const text = (x: number, y: number, value: string, size = 2.6, bold = false) => ops.push({ kind: 'text', at: { x, y }, text: value, size, color: ink, bold })
   ops.push({ kind: 'group', name: 'sheet-frame' }, { kind: 'rect', rect: { x: margin, y: margin, w: w - 20, h: h - 20 }, color: ink, width: .3 })
   for (let i = 0; i < 4; i++) { const x = margin + (w - 20) * (i + .5) / 4, y = margin + (h - 20) * (i + .5) / 4; text(x, 7.8, String.fromCharCode(65 + i)); text(x, h - 5, String.fromCharCode(65 + i)); text(5, y, String(i + 1)); text(w - 7, y, String(i + 1)); if (i) ops.push({ kind: 'line', a: { x: margin + (w - 20) * i / 4, y: margin }, b: { x: margin + (w - 20) * i / 4, y: margin + 2 }, color: ink, width: .2 }) }
-  text(15, 18, 'FORMSTEAD / CONCEPT UTILITY DRAWING', 3.5, true); text(15, 24, `${sheet.title}${suffix}`, 3.3)
-  ops.push({ kind: 'rect', rect: { x: tx, y: ty, w: tw, h: 59 }, color: ink, width: .3 })
+  text(15, 18, 'FORMSTEAD / CONCEPT UTILITY DRAWING', 3.5, true); const header = wrap(`${sheet.title}${suffix}`, w - 30, 3.3); text(15, 24, header.length > 1 ? header[0].slice(0, -3) + '...' : header[0], 3.3)
+  ops.push({ kind: 'rect', rect: { x: tx, y: ty, w: tw, h: titleHeight }, color: ink, width: .3 })
   let y = ty + 4
-  const field = (label: string, value: string, height = 8, font = 2.6) => { text(tx + 2, y, label.toUpperCase(), 1.8); const lines = wrap(value || '-', tw - 4, font); lines.slice(0, 2).forEach((line, i) => text(tx + 2, y + 3 + i * 3, line, font)); y += height; ops.push({ kind: 'line', a: { x: tx, y: y - 2 }, b: { x: tx + tw, y: y - 2 }, color: grey, width: .15 }) }
-  field('Project / client', `${s.projectName} / ${s.client || 'Client not supplied'}`, 11)
-  field('Drawing title', sheet.title, 11)
-  field('Drawing no.', sheet.number, 8, 3)
-  field('Scale / sheet / date', `${sheet.kind === 'plan' ? `1:${s.scale}` : 'NTS'} / ${s.size} ${s.orientation} / ${s.date}`, 8, 2.3)
-  field('Drawn / checked', `${s.drawnBy || '-'} / ${s.checkedBy || 'Not checked'}`, 8, 2.3)
-  text(tx + 2, y, `REV ${doc.revisions.at(-1)?.letter ?? '-'} / ${suffix.trim() || 'SHEET 1'}`, 2.2)
+  for (const f of fields) {
+    text(tx + 2, y, f.label.toUpperCase(), 1.8)
+    f.lines.forEach((line, i) => text(tx + 2, y + 3 + i * 3.2, line, f.font))
+    y += Math.max(8, f.lines.length * 3.2 + 5)
+    ops.push({ kind: 'line', a: { x: tx, y: y - 2 }, b: { x: tx + tw, y: y - 2 }, color: grey, width: .15 })
+  }
+  text(tx + 2, y, `REV ${doc.revisions.at(-1)?.letter ?? '-'} / ${suffix.replace(/^\s*\/\s*/, '') || 'SHEET 1'}`, 2.2)
+  const revisionTop = ty - 31
+  ops.push({ kind: 'rect', rect: { x: tx, y: revisionTop, w: tw, h: 28 }, color: grey, width: .2 })
+  text(tx + 2, revisionTop + 4, 'REV', 1.9, true); text(tx + 12, revisionTop + 4, 'DATE', 1.9, true); text(tx + 36, revisionTop + 4, 'DESCRIPTION', 1.9, true); text(tx + tw - 20, revisionTop + 4, 'BY', 1.9, true)
+  for (const x of [tx + 10, tx + 34, tx + tw - 22]) ops.push({ kind: 'line', a: { x, y: revisionTop }, b: { x, y: revisionTop + 23 }, color: grey, width: .12 })
+  const recent = doc.revisions.slice(-3)
+  if (!recent.length) text(tx + 2, revisionTop + 11, 'No revisions recorded.', 2.3)
+  recent.forEach((r, i) => { const y = revisionTop + 10 + i * 5.5, cap = Math.max(6, Math.floor((tw - 60) / 1.15)), crop = (v: string, n: number) => v.length > n ? v.slice(0, n - 3) + '...' : v; text(tx + 2, y, r.letter, 2.1); text(tx + 12, y, r.date, 2); text(tx + 36, y, crop(r.description, cap), 2); text(tx + tw - 20, y, crop(r.by || '-', 14), 2) })
+  text(tx + 2, revisionTop + 26, 'Full entries in revision register.', 1.8)
   ops.push({ kind: 'endGroup' })
   if (sheet.kind === 'plan') {
     const x = 18, y = h - 20, length = 2000 / s.scale
@@ -143,8 +166,8 @@ function frame(sheet: DrawingSheet, _model: UtilityFloor, doc: DrawingDocument, 
     const northX = sheet.tile!.viewport.x + sheet.tile!.viewport.w - 10
     ops.push({ kind: 'line', a: { x: northX, y: 48 }, b: { x: northX, y: 35 }, color: ink, width: .3 }); arrow(ops, { x: northX, y: 48 }, { x: northX, y: 35 }); text(northX - 22, 53, 'Plan up; north unverified', 2)
   }
-  text(15, h - 12, 'Concept only. Verify heights, protection, slope and code requirements. Route lengths are not BOQ allowances.', 2)
-  return { tx, ty, tw }
+  text(15, 28.5, 'Concept only. Verify heights, protection, slope and code requirements. Route lengths are not BOQ allowances.', 1.9)
+  return { tx, ty: revisionTop, tw }
 }
 
 export function buildDrawingSheets(model: UtilityFloor, doc: DrawingDocument, layer: DrawingLayer, clashes: Clash[] = []): DrawingSheet[] {
@@ -154,12 +177,15 @@ export function buildDrawingSheets(model: UtilityFloor, doc: DrawingDocument, la
   const layers = layer === 'coordination' ? DRAWING_LAYERS.filter(l => doc.layers[l].visible) : [layer]
   const title = `${DRAWING_NAMES[layer]} - ${model.floor.name}`, number = drawingNumber(doc.settings, layer, model.floor.level), sheets: DrawingSheet[] = []
   const tables = schedules(model, layers), legendTypes = [...new Set(model.symbols.filter(sym => layers.includes(sym.layer)).map(sym => sym.type))]
-  tables.push({ title: 'SYMBOL LEGEND', rows: legendTypes.map(type => `${type} - ${UTILITY_SYMBOLS[type].label}`) })
+  const fixtureLabels = { sink: 'Sink outline', toilet: 'Toilet outline', shower: 'Shower outline', floor_drain: 'Floor drain / drain point' }
+  tables.push({ title: 'SYMBOL LEGEND', rows: [...layers.map(l => `layer_${l} - ${UTILITY_LAYERS[l].label} / ${UTILITY_LAYERS[l].dash ? 'dashed' : 'solid'}`), ...legendTypes.map(type => `${type} - ${UTILITY_SYMBOLS[type].label}`), ...[...new Set(model.fixtures.map(f => f.type))].map(type => `fixture_${type} - ${fixtureLabels[type]}`)] })
+  if (layer === 'coordination' && clashes.length) tables.push({ title: 'CLASH KEY', rows: ['clash_high - High priority / red', 'clash_medium - Medium priority / orange', 'clash_low - Low priority / yellow', 'Unknown heights require checking; markers are concept reviews.'] })
   tables.push({ title: 'REVISION REGISTER', rows: doc.revisions.length ? doc.revisions.map(r => `${r.letter} | ${r.date} | ${r.description} | ${r.by || '-'}`) : ['No revisions recorded.'] })
-  const pending: { text: string; title: boolean; symbol?: string }[] = tables.flatMap(t => [{ text: t.title, title: true }, ...t.rows.flatMap(row => wrap(row, rightW - 10, 2.4).map((text, i) => ({ text, title: false, ...(t.title === 'SYMBOL LEGEND' && !i ? { symbol: row.split(' - ')[0] } : {}) }))), { text: '', title: false }])
+  const pending: { text: string; title: boolean; symbol?: string }[] = tables.flatMap(t => [{ text: t.title, title: true }, ...t.rows.flatMap(row => wrap(row, rightW - 10, 2.4).map((text, i) => ({ text, title: false, ...((t.title === 'SYMBOL LEGEND' || t.title === 'CLASH KEY' && row.startsWith('clash_')) && !i ? { symbol: row.split(' - ')[0] } : {}) }))), { text: '', title: false }])
+  const legendColor = (symbol: string) => symbol.startsWith('clash_') ? clashColor(symbol.slice(6) as Clash['severity']) : symbol.startsWith('fixture_') ? '#777e77' : UTILITY_LAYERS[symbol.startsWith('layer_') ? symbol.slice(6) as keyof typeof UTILITY_LAYERS : model.symbols.find(sym => sym.type === symbol)!.layer].color
   for (let row = 0; row < rows; row++) for (let col = 0; col < cols; col++) {
-    const tile = { viewport: plot, origin: { x: outline.x - 400 + col * plot.w * s, y: outline.y - 400 + row * plot.h * s }, scale: s, col, row, cols, rows }
-    const sheet: DrawingSheet = { id: `${number}-${col}-${row}`, title, number, ...paper, kind: 'plan', layer, tile, ops: [] }
+    const tile = { viewport: plot, origin: { x: cols === 1 ? outline.x + outline.w / 2 - plot.w * s / 2 : outline.x - 400 + col * plot.w * s, y: rows === 1 ? outline.y + outline.h / 2 - plot.h * s / 2 : outline.y - 400 + row * plot.h * s }, scale: s, col, row, cols, rows }
+    const sheet: DrawingSheet = { id: `${number}-${col}-${row}`, title, number: cols * rows > 1 ? `${number}-T${row * cols + col + 1}` : number, ...paper, kind: 'plan', layer, tile, ops: [] }
     sheet.ops.push(...planOps(model, doc, layers, tile, clashes))
     const bounds = frame(sheet, model, doc, ` / TILE ${row * cols + col + 1} OF ${cols * rows}`)
     let y = 34
@@ -167,12 +193,12 @@ export function buildDrawingSheets(model: UtilityFloor, doc: DrawingDocument, la
     // Every tile has its own legend/schedule; extra rows become continuation
     // sheets rather than disappearing or shrinking the drawing scale.
     const local = [...pending]
-    while (local.length && y < bounds.ty - 4) { const line = local.shift()!; sheet.ops.push({ kind: 'text', at: { x: bounds.tx + 3 + (line.symbol ? 5 : 0), y }, text: line.text, size: line.title ? 2.7 : 2.4, color: ink, bold: line.title }); if (line.symbol) sheet.ops.push(...symbolOps(line.symbol, { x: bounds.tx + 4, y: y - .8 }, UTILITY_LAYERS[model.symbols.find(sym => sym.type === line.symbol)!.layer].color, 1)); y += line.title ? 6 : 4.2 }
+    while (local.length && y < bounds.ty - 4) { const line = local.shift()!; sheet.ops.push({ kind: 'text', at: { x: bounds.tx + 3 + (line.symbol ? 5 : 0), y }, text: line.text, size: line.title ? 2.7 : 2.4, color: ink, bold: line.title }); if (line.symbol) sheet.ops.push(...symbolOps(line.symbol, { x: bounds.tx + 4, y: y - .8 }, legendColor(line.symbol), 1)); y += line.title ? 6 : 4.2 }
     sheet.ops.push({ kind: 'endGroup' }); sheets.push(sheet)
     if (row === 0 && col === 0) while (local.length) {
       const page: DrawingSheet = { id: `${number}-schedule-${sheets.length}`, title: `${title} / Schedules continued`, number: `${number}-S${sheets.length}`, ...paper, kind: 'schedule', layer, ops: [] }
       const b = frame(page, model, doc, ' / CONTINUATION'); let py = 35
-      while (local.length && py < b.ty - 4) { const line = local.shift()!; page.ops.push({ kind: 'text', at: { x: 18, y: py }, text: line.text, size: line.title ? 3.2 : 2.7, color: ink, bold: line.title }); if (line.symbol) page.ops.push(...symbolOps(line.symbol, { x: paper.w - 24, y: py - 1 }, ink)); py += 5 }
+      while (local.length && py < b.ty - 4) { const line = local.shift()!; page.ops.push({ kind: 'text', at: { x: 18, y: py }, text: line.text, size: line.title ? 3.2 : 2.7, color: ink, bold: line.title }); if (line.symbol) page.ops.push(...symbolOps(line.symbol, { x: paper.w - 24, y: py - 1 }, legendColor(line.symbol))); py += 5 }
       sheets.push(page)
     }
   }

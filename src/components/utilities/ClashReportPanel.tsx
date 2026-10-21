@@ -5,7 +5,7 @@ import { clashColor, clashTypeLabel, layerPair, type Clash, type ClashStatus } f
 import { clashDistance, clashLayers, clashRoomNames, downloadClashCsv, downloadClashPdf } from '@/lib/utilities/clashReport.ts'
 import { translate as t } from '@/lib/i18n/index.ts'
 
-export type ClashFilter = { severity: string; pair: string; room: string; status: string; type: string; search: string; sort: string; direction: 'asc' | 'desc' }
+export type ClashFilter = { severity: string; pair: string; room: string; status: string; type: string; search: string; sort: 'id' | 'severity' | 'layers' | 'rooms' | 'type' | 'rule' | 'distance' | 'status'; direction: 'asc' | 'desc' }
 export const initialClashFilter: ClashFilter = { severity: 'all', pair: 'all', room: 'all', status: 'all', type: 'all', search: '', sort: 'severity', direction: 'asc' }
 export function filterClashes(clashes: Clash[], filter: ClashFilter, model: UtilityFloor) {
   const value = (c: Clash, key: string): string | number => key === 'severity' ? ({ high: 0, medium: 1, low: 2 })[c.severity] : key === 'layers' ? clashLayers(c) : key === 'rooms' ? clashRoomNames(c, model) : key === 'distance' ? c.distance ?? Infinity : c[key as 'id' | 'rule' | 'status' | 'type']

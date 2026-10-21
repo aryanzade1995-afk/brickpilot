@@ -63,11 +63,13 @@ export type DrawingDocument = z.infer<typeof documentSchema>
 export type DrawingAnnotation = DrawingDocument['annotations'][number]
 export type DrawingSettings = DrawingDocument['settings']
 export type LayerPreferences = DrawingDocument['layers']
-export type UtilityDrawingProject = { format: 'formstead-utility-project'; version: 1; savedAt: string; sourceSignature: string; model: UtilityFloor; document: DrawingDocument; reviews: ClashReviews; view: { room: string; circuit: string; zone: string; water: string; showClashes: boolean; showCoverage: boolean; showEvacuation: boolean } }
+const viewSchema = z.object({ room: short, circuit: short, zone: short, water: short, showClashes: z.boolean(), showCoverage: z.boolean(), showEvacuation: z.boolean(), mode: z.enum(['3d', '2d']).default('2d'), sheetOpen: z.boolean().default(true), showClashes3D: z.boolean().default(false), showElectrical3D: z.boolean().default(true), showWater3D: z.boolean().default(true), showHotWater: z.boolean().default(true), seeThroughWalls: z.boolean().default(true), seeThroughFloor: z.boolean().default(true), showRoomNames3D: z.boolean().default(true), selected: short.nullable().default(null), clashFilter: z.object({ severity: z.string(), pair: z.string(), room: z.string(), status: z.string(), type: z.string(), search: z.string().max(2000), sort: z.enum(['id', 'severity', 'layers', 'rooms', 'type', 'rule', 'distance', 'status']), direction: z.enum(['asc', 'desc']) }).optional() })
+export type UtilityDrawingProject = { format: 'formstead-utility-project'; version: 1; savedAt: string; sourceSignature: string; model: UtilityFloor; document: DrawingDocument; reviews: ClashReviews; view: z.infer<typeof viewSchema> }
 export const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }
 export const uid = () => globalThis.crypto?.randomUUID?.() ?? `a-${Date.now()}-${Math.random().toString(36).slice(2)}`
 const ordered = (v: unknown): unknown => Array.isArray(v) ? v.map(ordered) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).filter(([, value]) => value !== undefined).sort(([a], [b]) => a.localeCompare(b)).map(([k, value]) => [k, ordered(value)])) : v
-export const sourceSignature = (m: UtilityFloor) => hash(ordered([m.sourcePlanId, m.floor, m.utilities, m.symbols]))
+const legacySignature = (m: UtilityFloor) => hash(ordered([m.sourcePlanId, m.floor, m.utilities, m.symbols]))
+export const sourceSignature = (m: UtilityFloor) => `m2-${hash(ordered(m))}`
 export function defaultDrawing(projectName: string): DrawingDocument {
   return { version: 1, settings: { projectName, client: '', projectCode: 'PRJ', drawnBy: '', checkedBy: '', date: today(), size: 'A2', orientation: 'landscape', scale: 100, dpi: 150 }, activeLayer: 'coordination', layers: Object.fromEntries(DRAWING_LAYERS.map(k => [k, { visible: true, locked: false, opacity: 1 }])) as LayerPreferences, annotationsVisible: true, annotationsLocked: false, grid: false, autoDimensions: false, pipeTags: false, revisions: [], annotations: [], theme: 'light' }
 }
@@ -80,11 +82,11 @@ export const drawingNumber = (s: DrawingSettings, l: DrawingLayer, level: number
 export const lengthMm = (points: Point[]) => points.slice(1).reduce((n, p, i) => n + Math.hypot(p.x - points[i].x, p.y - points[i].y), 0)
 export const dimensionText = (a: Point, b: Point, units: 'mm' | 'm') => units === 'm' ? `${(Math.hypot(b.x - a.x, b.y - a.y) / 1000).toFixed(3)} m` : `${Math.round(Math.hypot(b.x - a.x, b.y - a.y))} mm`
 export function parseUtilityDrawing(value: unknown): UtilityDrawingProject {
-  const outer = z.object({ format: z.literal('formstead-utility-project'), version: z.literal(1), savedAt: z.string().max(50), sourceSignature: id, model: floorSchema, document: documentSchema, reviews: z.unknown(), view: z.object({ room: short, circuit: short, zone: short, water: short, showClashes: z.boolean(), showCoverage: z.boolean(), showEvacuation: z.boolean() }) }).parse(value)
+  const outer = z.object({ format: z.literal('formstead-utility-project'), version: z.literal(1), savedAt: z.string().max(50), sourceSignature: id, model: floorSchema, document: documentSchema, reviews: z.unknown(), view: viewSchema }).parse(value)
   const model = outer.model as unknown as UtilityFloor
-  if (sourceSignature(model) !== outer.sourceSignature) throw new Error('This file has changed or is incomplete. Save a fresh Utility project JSON.')
+  if (sourceSignature(model) !== outer.sourceSignature && legacySignature(model) !== outer.sourceSignature) throw new Error('This file has changed or is incomplete. Save a fresh Utility project JSON.')
   const revisionIds = new Set(outer.document.revisions.map(r => r.id))
   if (outer.document.annotations.some(a => a.revisionId && !revisionIds.has(a.revisionId))) throw new Error('An annotation refers to a missing revision.')
-  return { ...outer, model, reviews: parseClashReviews({ version: 1, records: outer.reviews }) }
+  return { ...outer, sourceSignature: sourceSignature(model), model, reviews: parseClashReviews({ version: 1, records: outer.reviews }) }
 }
 export const visibleLayers = (doc: DrawingDocument): Record<UtilityLayer, boolean> => ({ ...Object.fromEntries(DRAWING_LAYERS.map(k => [k, doc.layers[k].visible])), hvac: false }) as Record<UtilityLayer, boolean>

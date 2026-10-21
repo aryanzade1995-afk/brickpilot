@@ -63,20 +63,38 @@ export async function downloadSheetPng(sheet: DrawingSheet, dpi: 150 | 300) {
  * actual service paths, independent of room/circuit and sheet tile filters. */
 export function utilityDxf(model: UtilityFloor, doc: DrawingDocument) {
   const out: string[] = [], put = (...v: (string | number)[]) => out.push(...v.map(String)), clean = (s: string) => s.replace(/[\r\n\u0000-\u001f]/g, ' ').replace(/[^\x20-\x7e]/g, c => `\\U+${c.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')}`)
-  const colors: Record<string, string> = { walls: '#b5bbb6', fixtures: '#777e77', annotations: '#3f655a', ...Object.fromEntries(DRAWING_LAYERS.map(k => [k, UTILITY_LAYERS[k].color])) }
-  put(0, 'SECTION', 2, 'HEADER', 9, '$ACADVER', 1, 'AC1015', 9, '$INSUNITS', 70, 4, 9, '$MEASUREMENT', 70, 1, 0, 'ENDSEC', 0, 'SECTION', 2, 'TABLES', 0, 'TABLE', 2, 'LTYPE', 70, 2)
-  put(0, 'LTYPE', 2, 'CONTINUOUS', 70, 0, 3, 'Solid', 72, 65, 73, 0, 40, 0, 0, 'LTYPE', 2, 'DASHED', 70, 0, 3, 'Service dashed', 72, 65, 73, 2, 40, 300, 49, 200, 74, 0, 49, -100, 74, 0, 0, 'ENDTAB', 0, 'TABLE', 2, 'LAYER', 70, Object.keys(colors).length)
-  for (const [name, color] of Object.entries(colors)) { const pref = doc.layers[name as keyof typeof doc.layers]; put(0, 'LAYER', 2, name, 70, pref?.locked ? 4 : 0, 62, pref && !pref.visible ? -7 : ({ drainage: 33, electrical: 1, fire_alarm: 30, water_supply: 5 } as Record<string, number>)[name] ?? 7, 420, parseInt(color.slice(1), 16), 6, name === 'drainage' || name === 'fire_alarm' ? 'DASHED' : 'CONTINUOUS') }
-  put(0, 'ENDTAB', 0, 'ENDSEC', 0, 'SECTION', 2, 'ENTITIES')
-  const entity = (op: DrawOp, name: string) => {
-    const common = () => put(8, name, 420, parseInt((op.color ?? colors[name]).slice(1), 16), 6, op.dash?.length ? 'DASHED' : 'BYLAYER')
-    if (op.kind === 'line') { put(0, 'LINE'); common(); put(10, op.a.x, 20, -op.a.y, 30, 0, 11, op.b.x, 21, -op.b.y, 31, 0) }
-    if (op.kind === 'poly') { put(0, 'LWPOLYLINE'); common(); put(90, op.points.length, 70, op.closed ? 1 : 0); for (const p of op.points) put(10, p.x, 20, -p.y) }
-    if (op.kind === 'rect') entity({ ...op, kind: 'poly', points: [{ x: op.rect.x, y: op.rect.y }, { x: op.rect.x + op.rect.w, y: op.rect.y }, { x: op.rect.x + op.rect.w, y: op.rect.y + op.rect.h }, { x: op.rect.x, y: op.rect.y + op.rect.h }], closed: true }, name)
-    if (op.kind === 'circle') { put(0, 'CIRCLE'); common(); put(10, op.at.x, 20, -op.at.y, 30, 0, 40, op.r) }
-    if (op.kind === 'text') { put(0, 'TEXT'); common(); put(10, op.at.x, 20, -op.at.y, 30, 0, 40, op.size, 1, clean(op.text)); if (op.align === 'center') put(72, 1, 11, op.at.x, 21, -op.at.y, 31, 0) }
+  const colors: Record<string, string> = { '0': '#000000', walls: '#b5bbb6', fixtures: '#777e77', annotations: '#3f655a', ...Object.fromEntries(DRAWING_LAYERS.map(k => [k, UTILITY_LAYERS[k].color])) }
+  const trueColor = (color: string) => color === 'white' ? 0xffffff : color === 'black' ? 0 : parseInt(color.replace('#', ''), 16)
+  let serial = 0x100
+  const handle = () => (serial++).toString(16).toUpperCase()
+  put(0, 'SECTION', 2, 'HEADER', 9, '$ACADVER', 1, 'AC1015', 9, '$HANDSEED', 5, 'FFFF', 9, '$INSUNITS', 70, 4, 9, '$MEASUREMENT', 70, 1, 9, '$ACADCODEPAGE', 3, 'ANSI_1252', 0, 'ENDSEC', 0, 'SECTION', 2, 'TABLES')
+  put(0, 'TABLE', 2, 'LTYPE', 5, '1', 100, 'AcDbSymbolTable', 70, 4)
+  for (const name of ['BYBLOCK', 'BYLAYER', 'CONTINUOUS', 'DASHED']) {
+    put(0, 'LTYPE', 5, handle(), 330, '1', 100, 'AcDbSymbolTableRecord', 100, 'AcDbLinetypeTableRecord', 2, name, 70, 0, 3, name, 72, 65, 73, name === 'DASHED' ? 2 : 0, 40, name === 'DASHED' ? 300 : 0)
+    if (name === 'DASHED') put(49, 200, 74, 0, 49, -100, 74, 0)
   }
-  for (const w of model.floor.walls) entity({ kind: 'line', a: w.a, b: w.b, color: colors.walls }, 'walls')
+  put(0, 'ENDTAB', 0, 'TABLE', 2, 'LAYER', 5, '2', 100, 'AcDbSymbolTable', 70, Object.keys(colors).length)
+  for (const [name, color] of Object.entries(colors)) {
+    const pref = doc.layers[name as keyof typeof doc.layers]
+    put(0, 'LAYER', 5, handle(), 330, '2', 100, 'AcDbSymbolTableRecord', 100, 'AcDbLayerTableRecord', 2, name, 70, pref?.locked ? 4 : 0, 62, pref && !pref.visible ? -7 : ({ drainage: 33, electrical: 1, fire_alarm: 30, water_supply: 5 } as Record<string, number>)[name] ?? 7, 420, trueColor(color), 6, name === 'drainage' || name === 'fire_alarm' ? 'DASHED' : 'CONTINUOUS')
+  }
+  put(0, 'ENDTAB', 0, 'TABLE', 2, 'STYLE', 5, '3', 100, 'AcDbSymbolTable', 70, 1, 0, 'STYLE', 5, '4', 330, '3', 100, 'AcDbSymbolTableRecord', 100, 'AcDbTextStyleTableRecord', 2, 'STANDARD', 70, 0, 40, 0, 41, 1, 50, 0, 71, 0, 42, 2.5, 3, 'arial.ttf', 4, '', 0, 'ENDTAB')
+  put(0, 'TABLE', 2, 'BLOCK_RECORD', 5, '9', 100, 'AcDbSymbolTable', 70, 2)
+  for (const [id, name] of [['A', '*Model_Space'], ['B', '*Paper_Space']]) put(0, 'BLOCK_RECORD', 5, id, 330, '9', 100, 'AcDbSymbolTableRecord', 100, 'AcDbBlockTableRecord', 2, name, 70, 0)
+  put(0, 'ENDTAB', 0, 'ENDSEC', 0, 'SECTION', 2, 'BLOCKS')
+  for (const [owner, begin, end, name] of [['A', 'D', 'E', '*Model_Space'], ['B', 'F', '10', '*Paper_Space']]) {
+    put(0, 'BLOCK', 5, begin, 330, owner, 100, 'AcDbEntity', 8, '0', 100, 'AcDbBlockBegin', 2, name, 70, 0, 10, 0, 20, 0, 30, 0, 3, name, 1, '', 0, 'ENDBLK', 5, end, 330, owner, 100, 'AcDbEntity', 8, '0', 100, 'AcDbBlockEnd')
+  }
+  put(0, 'ENDSEC', 0, 'SECTION', 2, 'ENTITIES')
+  const entity = (op: DrawOp, name: string) => {
+    const common = (subclass: string) => put(5, handle(), 330, 'A', 100, 'AcDbEntity', 8, name, 420, trueColor(op.color ?? colors[name]), 6, op.dash?.length ? 'DASHED' : 'BYLAYER', 100, subclass)
+    if (op.kind === 'line') { put(0, 'LINE'); common('AcDbLine'); put(10, op.a.x, 20, -op.a.y, 30, 0, 11, op.b.x, 21, -op.b.y, 31, 0) }
+    if (op.kind === 'poly') { put(0, 'LWPOLYLINE'); common('AcDbPolyline'); put(90, op.points.length, 70, op.closed ? 1 : 0); for (const p of op.points) put(10, p.x, 20, -p.y) }
+    if (op.kind === 'rect') entity({ ...op, kind: 'poly', points: [{ x: op.rect.x, y: op.rect.y }, { x: op.rect.x + op.rect.w, y: op.rect.y }, { x: op.rect.x + op.rect.w, y: op.rect.y + op.rect.h }, { x: op.rect.x, y: op.rect.y + op.rect.h }], closed: true }, name)
+    if (op.kind === 'circle') { put(0, 'CIRCLE'); common('AcDbCircle'); put(10, op.at.x, 20, -op.at.y, 30, 0, 40, op.r) }
+    if (op.kind === 'text') { put(0, 'TEXT'); common('AcDbText'); put(10, op.at.x, 20, -op.at.y, 30, 0, 40, op.size, 1, clean(op.text), 7, 'STANDARD'); if (op.align === 'center') put(72, 1, 11, op.at.x, 21, -op.at.y, 31, 0) }
+  }
+  for (const w of model.wallSections.filter(w => w.base === 0)) entity({ kind: 'line', a: w.a, b: w.b, color: colors.walls }, 'walls')
   for (const o of model.floor.openings) entity({ kind: 'text', at: o.at, text: `${o.kind} ${o.width}mm`, size: 90, color: '#888888' }, 'walls')
   for (const f of model.fixtures) entity({ kind: 'rect', rect: { x: f.position.x - f.width / 2, y: f.position.y - f.depth / 2, w: f.width, h: f.depth }, color: colors.fixtures }, 'fixtures')
   for (const r of model.utilities) entity({ kind: 'poly', points: r.path, color: colors[r.layer], dash: UTILITY_LAYERS[r.layer].dash ? [200, 100] : [] }, r.layer)
@@ -86,6 +104,6 @@ export function utilityDxf(model: UtilityFloor, doc: DrawingDocument) {
     const multiply = (p: { x: number; y: number }) => ({ x: p.x * doc.settings.scale, y: p.y * doc.settings.scale })
     if (scaled.kind === 'line') { scaled.a = multiply(scaled.a); scaled.b = multiply(scaled.b) } else if (scaled.kind === 'poly') scaled.points = scaled.points.map(multiply); else if (scaled.kind === 'text') { scaled.at = multiply(scaled.at); scaled.size *= doc.settings.scale } entity(scaled, 'annotations')
   }
-  put(0, 'ENDSEC', 0, 'EOF'); return out.join('\r\n') + '\r\n'
+  put(0, 'ENDSEC', 0, 'SECTION', 2, 'OBJECTS', 0, 'DICTIONARY', 5, 'C', 330, '0', 100, 'AcDbDictionary', 281, 1, 0, 'ENDSEC', 0, 'EOF'); return out.join('\r\n') + '\r\n'
 }
 export function downloadUtilityDxf(model: UtilityFloor, doc: DrawingDocument) { saveBlob(new Blob([utilityDxf(model, doc)], { type: 'application/dxf' }), `${doc.settings.projectCode}-utilities-floor-${model.floor.level}.dxf`) }
