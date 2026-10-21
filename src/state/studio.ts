@@ -223,7 +223,7 @@ function resultForPlan(design: Design): Result {
 function exactResult(plan: Design, seed: number, inspiration: InspirationPreferences | null,
   shapeStatus: 'accepted' | 'replay' = 'replay'): Result {
   const exterior = varyExterior(plan, seed, variationLevel(plan.model.brief), inspiration)
-  const design = plan.balconyExtent==='full-slab'?expandBalconyArea(exterior):exterior
+  const design = shapeStatus==='accepted'||plan.balconyExtent==='full-slab'?expandBalconyArea(exterior):exterior
   const architecture = generateAlternativeDesign(design, seed)
   const result = { ...resultForPlan(design), ...architecture, facadeModel: architecture.facadeGrammar, shapeStatus }
   result.cost = estimateBoq(design, design.model.brief, undefined, result)
@@ -586,6 +586,7 @@ export const useStudio = create<StudioState>()(
         const result = selection.accepted.candidate
         // a new exterior on the same plan keeps that plan's own seed
         const pinned: PinnedDir = { massing: base.massingType, seed: result.design.dna.seed,
+          balconyExtent:result.design.balconyExtent,
           planSeed:cur.pinned?.planSeed??base.planSeed,
           planner:cur.pinned?.planner??(base.planProposal?'ml':'baseline'),
           planFamily:cur.pinned?.planFamily??base.planFamily,

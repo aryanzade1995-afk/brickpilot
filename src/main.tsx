@@ -14,6 +14,7 @@ const Brief = page(workspacePages['/workspace'], 'Brief')
 const Directions = page(workspacePages['/workspace/directions'], 'Directions')
 const Plan = page(workspacePages['/workspace/plan'], 'Plan')
 const Massing = page(workspacePages['/workspace/massing'], 'Massing')
+const Utilities = page(workspacePages['/workspace/utilities'], 'Utilities')
 const FinishesCost = page(workspacePages['/workspace/finishes'], 'FinishesCost')
 const VillaDataset = page(workspacePages['/workspace/dataset'], 'VillaDataset')
 const Interior = page(workspacePages['/workspace/interior'], 'Interior')
@@ -36,6 +37,7 @@ const router = createBrowserRouter([
       { path: 'workspace/directions', lazy: Directions },
       { path: 'workspace/plan', lazy: Plan },
       { path: 'workspace/massing', lazy: Massing },
+      { path: 'workspace/utilities', lazy: Utilities },
       { path: 'workspace/render', element: <Navigate to="/workspace/massing" replace /> },
       { path: 'workspace/finishes', lazy: FinishesCost },
       { path: 'workspace/dataset', lazy: VillaDataset },

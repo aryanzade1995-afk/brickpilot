@@ -5,6 +5,7 @@ import { mkdir, writeFile, readFile, stat } from 'node:fs/promises'
 import { resolve, basename, extname } from 'node:path'
 import { PROJECT_ROOT, blenderExecutable } from './blender-process.mjs'
 import { prepareSolarReplay } from './solar-replay.mjs'
+import { handleCadExport } from './villa-cad.mjs'
 
 const ROOT = resolve(PROJECT_ROOT, 'output/villa-jobs')
 const jobs = new Map(), queue = []
@@ -56,6 +57,7 @@ export async function handleVillaRequest(req, res, readJson) {
   const path = new URL(req.url, 'http://localhost').pathname
   if (!path.startsWith('/api/villas')) return false
   try {
+    if (await handleCadExport(req, res)) return true
     if (['GET', 'HEAD'].includes(req.method) && path.startsWith('/api/villas/gallery')) {
       if (path === '/api/villas/gallery') { res.writeHead(302, { location: '/api/villas/gallery/' }); res.end(); return true }
       const relative = path.slice('/api/villas/gallery/'.length) || 'index.html'

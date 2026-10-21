@@ -5,6 +5,7 @@ export const workspacePages = {
   '/workspace/directions': () => import('../routes/Directions.tsx'),
   '/workspace/plan': () => import('../routes/Plan.tsx'),
   '/workspace/massing': () => import('../routes/Massing.tsx'),
+  '/workspace/utilities': () => import('../routes/Utilities.tsx'),
   '/workspace/finishes': () => import('../routes/FinishesCost.tsx'),
   '/workspace/interior': () => import('../routes/Interior.tsx'),
   '/workspace/report': () => import('../routes/Report.tsx'),

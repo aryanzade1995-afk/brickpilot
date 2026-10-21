@@ -19,6 +19,7 @@ export interface ExportDropdownProps {
   floating?: boolean
   className?: string
   title?: string
+  description?: string
 }
 
 export function ExportDropdown({
@@ -29,11 +30,13 @@ export function ExportDropdown({
   floating = false,
   className = '',
   title = 'Download Options',
+  description,
 }: ExportDropdownProps) {
   useLanguage(s => s.language)
 
   const [open, setOpen] = useState(false)
   const [activeItem, setActiveItem] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -57,13 +60,15 @@ export function ExportDropdown({
   const handleSelect = async (item: ExportItem) => {
     if (activeItem) return
     setActiveItem(item.id)
+    setError(null)
     try {
       await item.onExport()
+      setOpen(false)
     } catch (err) {
       console.error('Export failed:', err)
+      setError(err instanceof Error ? err.message : 'Could not export this villa. Please try again.')
     } finally {
       setActiveItem(null)
-      setOpen(false)
     }
   }
 
@@ -106,7 +111,7 @@ export function ExportDropdown({
           role="menu"
           aria-label={translateUi(title)}
           className={cx(
-            'absolute z-50 mt-1 min-w-[190px] rounded border border-line bg-bg-raised py-1 shadow-xl backdrop-blur-xs focus:outline-hidden',
+            'absolute z-50 mt-1 min-w-[190px] max-w-[calc(100vw-3rem)] max-h-[70vh] overflow-y-auto rounded border border-line bg-bg-raised py-1 shadow-xl backdrop-blur-xs focus:outline-hidden',
             align === 'right' ? 'right-0' : 'left-0'
           )}
         >
@@ -139,8 +144,11 @@ export function ExportDropdown({
               </button>
             )
           })}
+          {activeItem && <p role="status" className="max-w-64 px-3 py-2 text-xs text-ink-dim">{translateUi('Preparing download…')}</p>}
+          {description && <p className="max-w-64 border-t border-line px-3 py-2 text-xs leading-relaxed text-ink-dim">{translateUi(description)}</p>}
         </div>
       )}
+      {error && <p role="alert" className="mt-2 max-w-64 border border-line bg-bg-raised p-3 text-xs text-bad">{translateUi(error)}</p>}
     </div>
   )
 }

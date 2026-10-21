@@ -143,7 +143,30 @@ html:lang(hi) .uppercase, html:lang(mr) .uppercase { letter-spacing: normal; }
   }
 }
 
+@keyframes utility-evacuation-flow { to { stroke-dashoffset: -30; } }
+.utility-evacuation-flow { animation: utility-evacuation-flow 1.8s linear infinite; }
+@keyframes utility-clash-pulse { 50% { opacity: .3; } }
+.utility-clash-pulse { animation: utility-clash-pulse 1.8s ease-in-out infinite; }
+.utility-paper-svg svg { display: block; width: 100%; height: auto; }
+.utility-workspace[data-theme="dark"] {
+  --color-bg: #202622; --color-bg-inset: #29312b; --color-bg-raised: #303931;
+  --color-ink: #edf1ea; --color-ink-dim: #c2ccc1; --color-ink-faint: #9cac9b;
+  --color-line: #465347; --color-line-strong: #829580; --color-accent: #d9e6d4;
+  color: var(--color-ink); color-scheme: dark; background: var(--color-bg);
+}
+.utility-paper-svg { color-scheme: light; }
+@media (prefers-reduced-motion: reduce) { .utility-clash-pulse { animation: none; } }
+@media print { .utility-clash-pulse { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .utility-evacuation-flow { animation: none; } }
+
 @media print {
+  .utility-evacuation-flow { animation: none; }
+  body:has(.utility-export-sheet) { page: utility-sheet; }
+  body:has(.utility-export-sheet) *:not(:has(.utility-export-sheet)):not(.utility-export-sheet):not(.utility-export-sheet *) { display: none !important; }
+  body:has(.utility-export-sheet) *:has(.utility-export-sheet) { display: block !important; margin: 0 !important; padding: 0 !important; border: 0 !important; min-height: 0 !important; }
+  .utility-export-sheet { display: block !important; width: 100%; height: 267mm; }
+  .utility-export-sheet svg { width: 100%; height: 267mm; print-color-adjust: exact; }
+  @page utility-sheet { size: A3 landscape; margin: 10mm; }
   body:has(.drawing-sheet) { page: plan-sheet; }
   body:has(.drawing-sheet) *:not(:has(.drawing-sheet)):not(.drawing-sheet):not(.drawing-sheet *) { display: none !important; }
   body:has(.drawing-sheet) *:has(.drawing-sheet) { margin: 0 !important; padding: 0 !important; border: 0 !important; min-height: 0 !important; }

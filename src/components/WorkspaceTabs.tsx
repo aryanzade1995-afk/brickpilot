@@ -1,5 +1,6 @@
 import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
+import { useEffect, useRef } from 'react'
 import { cx } from '@/lib/cx.ts'
 import { preloadWorkspacePage } from '@/lib/workspacePages.ts'
 
@@ -8,17 +9,21 @@ const TABS = [
   { to: '/workspace/directions', label: 'Directions', n: '02' },
   { to: '/workspace/plan', label: '2D plan', n: '03' },
   { to: '/workspace/massing', label: '3D massing', n: '04' },
-  { to: '/workspace/finishes', label: 'Finishes & Cost', n: '05' },
-  { to: '/workspace/interior', label: 'AI Interior', n: '06' },
-  { to: '/workspace/report', label: 'Report', n: '07' },
+  { to: '/workspace/utilities', label: 'Utilities', n: '05' },
+  { to: '/workspace/finishes', label: 'Finishes & Cost', n: '06' },
+  { to: '/workspace/interior', label: 'AI Interior', n: '07' },
+  { to: '/workspace/report', label: 'Report', n: '08' },
   { to: '/workspace/dataset', label: 'Villa references', n: '' },
 ]
 
 export function WorkspaceTabs() {
   useLanguage(s => s.language);
+  const tabsRef = useRef<HTMLDivElement>(null)
+  const { pathname } = useLocation()
+  useEffect(() => { tabsRef.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: 'nearest', inline: 'center' }) }, [pathname])
 
   return (
-    <div className="flex gap-1 overflow-x-auto border-b border-line pb-px">
+    <div ref={tabsRef} className="flex gap-1 overflow-x-auto border-b border-line pb-px">
       {TABS.map((t) => (
         <NavLink
           key={t.to}

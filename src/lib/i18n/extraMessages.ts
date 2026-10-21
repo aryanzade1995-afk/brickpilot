@@ -1,4 +1,13 @@
 export const extraMessages: Record<string, readonly [string, string]> = {
+  'AutoCAD 3D mesh': ['AutoCAD 3D मेश', 'AutoCAD 3D मेश'],
+  'SketchUp import': ['SketchUp में आयात करें', 'SketchUp मध्ये आयात करा'],
+  'AutoCAD 3D · building only': ['AutoCAD 3D · केवल इमारत', 'AutoCAD 3D · फक्त इमारत'],
+  'AutoCAD 3D · building + solar': ['AutoCAD 3D · इमारत + सोलर', 'AutoCAD 3D · इमारत + सौर'],
+  'SketchUp · building only': ['SketchUp · केवल इमारत', 'SketchUp · फक्त इमारत'],
+  'SketchUp · building + solar': ['SketchUp · इमारत + सोलर', 'SketchUp · इमारत + सौर'],
+  'Preparing download…': ['डाउनलोड तैयार हो रहा है…', 'डाउनलोड तयार करत आहे…'],
+  'Could not export this villa. Please try again.': ['विला निर्यात नहीं हो सका। कृपया फिर कोशिश करें।', 'व्हिला निर्यात करता आला नाही. कृपया पुन्हा प्रयत्न करा.'],
+  '3D meshes in metres, with base colours. Import DXF in AutoCAD or DAE in SketchUp, then save as DWG or SKP. Import support depends on your edition. Textures and parametric solids are not included.': ['मूल रंगों के साथ मीटर में 3D मेश। AutoCAD में DXF या SketchUp में DAE आयात करें, फिर DWG या SKP के रूप में सहेजें। आयात की सुविधा आपके संस्करण पर निर्भर है। टेक्सचर और पैरामीट्रिक सॉलिड शामिल नहीं हैं।', 'मूळ रंगांसह मीटरमध्ये 3D मेश. AutoCAD मध्ये DXF किंवा SketchUp मध्ये DAE आयात करा, नंतर DWG किंवा SKP म्हणून जतन करा. आयात सुविधा तुमच्या आवृत्तीवर अवलंबून आहे. टेक्स्चर व पॅरामेट्रिक सॉलिड समाविष्ट नाहीत.'],
   'Use full balcony area':['बालकनी की पूरी जगह उपयोग करें','बाल्कनीची पूर्ण जागा वापरा'],
   'Extending balcony…':['बालकनी बढ़ाई जा रही है…','बाल्कनी वाढवत आहे…'],
   'Extends the balcony and its glass boundary to the available supported slab. The 2D plan and quantities update together.':['उपलब्ध आधारयुक्त स्लैब तक बालकनी और काँच की सीमा बढ़ाता है। 2D प्लान और मात्राएँ साथ अपडेट होती हैं।','उपलब्ध आधार असलेल्या स्लॅबपर्यंत बाल्कनी व काचेची सीमा वाढवते. 2D आराखडा आणि प्रमाणे एकत्र बदलतात.'],

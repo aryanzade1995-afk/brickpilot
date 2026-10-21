@@ -1,24 +1,24 @@
 import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
 import { useStudio } from '@/state/studio.ts'
 import { finishSignature } from '@/lib/cost/finishAssignments.ts'
-import { newDesignSeed } from '@/lib/newDesignSeed.ts'
 import { Component, memo, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Canvas, useThree } from '@react-three/fiber'
 import { OrbitControls, useGLTF } from '@react-three/drei'
 import type { Design } from '@/lib/engine/types.ts'
+import { expandBalconyArea } from '@/lib/engine/balconyExtent.ts'
 import { createBuildingModel } from '@/lib/engine/buildingModel.ts'
 import { useBlender, directionRenderKey } from '@/state/blender.ts'
 import { RenderProgress } from './RenderProgress.tsx'
 import { StudioReflections } from './StudioReflections.tsx'
 import { prepareVillaScene } from '@/lib/three/prepareVillaScene.ts'
 import { BuildingFormSummary } from './BuildingFormSummary.tsx'
-import { MODERN_COMPOSITION_CHOICES, type ModernComposition } from '@/lib/model/modernCompositions.ts'
 import { useSolarVillaEditor } from './solar/useSolarVillaEditor.ts'
 import { SolarVillaControls } from './solar/SolarVillaControls.tsx'
 import { SolarLayer } from '@/lib/three/SolarLayer.tsx'
 import { SolarCamera, FitAcceptedVilla } from '@/lib/three/SolarCamera.tsx'
 import { useSolarArtifacts, solarArtifactKey, isCurrentSolarArtifact } from '@/state/solarArtifacts.ts'
 import { ExportDropdown } from '@/components/export/ExportDropdown.tsx'
+import { villaCadExportItems, VILLA_CAD_HELP } from '@/components/export/villaCadExports.ts'
 import { captureCanvasPng } from '@/lib/export/index.ts'
 
 // Stable Canvas options prevent React updates to solar controls from reconfiguring the camera.
@@ -59,7 +59,7 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
   const generate = useBlender((s) => s.generate)
   const resume = useBlender((s) => s.resume)
   const ensureForPlan = useBlender((s) => s.ensureForPlan)
-  const [quality, setQuality] = useState<'preview' | 'final'>('preview')
+  const quality = result?.quality ?? 'preview'
   const [view, setView] = useState<'hero' | 'front' | 'aerial'>('hero')
   const solarKey = solarArtifactKey(result, solar.solar, quality)
   const solarArtifact = useSolarArtifacts(s => s.renders[solarKey])
@@ -67,93 +67,67 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
   const renderSolar = useSolarArtifacts(s => s.render), resumeSolar = useSolarArtifacts(s => s.resume)
   const currentSolar = isCurrentSolarArtifact(solarArtifact, result, solar.solar) ? solarArtifact : undefined
   const solarBusy = !!solarJob && !['complete', 'failed'].includes(solarJob.status)
-  const [findingShape, setFindingShape] = useState(false)
   const [fillingBalcony,setFillingBalcony]=useState(false)
   const fillBalconyArea=useStudio(s=>s.fillBalconyArea)
-  const [compositionDraft,setComposition]=useState<{planId:string;value:ModernComposition|'auto'}|null>(null)
-  const composition=compositionDraft?.planId===id?compositionDraft.value:brief.style.composition??'auto'
-  const newBuildingShape = useStudio(s => s.newBuildingShape)
+  const balconyAttempt = useRef('')
+  const balconyInFlight = useRef(false)
+  const needsFullBalcony = useMemo(() => expandBalconyArea(plan) !== plan, [plan])
   const existingStructure = useStudio(s => s.existing)
   const shapeNotice = useStudio(s => s.generationNotice)
   const jobBusy = Boolean(job && !['complete', 'failed'].includes(job.status))
   const previewBusy = Boolean(preview && ['queued', 'generating', 'rendering'].includes(preview.status))
-  const busy = jobBusy || previewBusy || findingShape || fillingBalcony
+  const busy = jobBusy || previewBusy || fillingBalcony
   const currentJob = sourcePlanId === id ? job : null
-  const displayJob = findingShape || fillingBalcony ? job : currentJob
+  const displayJob = fillingBalcony ? job : currentJob
   useEffect(() => { void resume() }, [resume])
   useEffect(() => { void resumeSolar() }, [resumeSolar])
-  useEffect(() => { if (autoGenerate) void ensureForPlan(finishedPlan, selectedSeed) }, [autoGenerate, finishedPlan, selectedSeed, ensureForPlan, busy])
+  useEffect(() => {
+    if (!autoGenerate || balconyInFlight.current) return
+    if (!existingStructure && needsFullBalcony && balconyAttempt.current !== id) {
+      if (jobBusy || previewBusy) return
+      balconyAttempt.current = id
+      balconyInFlight.current = true
+      setFillingBalcony(true)
+      void fillBalconyArea(quality).finally(() => {
+        balconyInFlight.current = false
+        setFillingBalcony(false)
+      })
+      return
+    }
+    void ensureForPlan(finishedPlan, selectedSeed)
+  }, [autoGenerate, existingStructure, needsFullBalcony, id, jobBusy, previewBusy, fillBalconyArea, quality, finishedPlan, selectedSeed, ensureForPlan, fillingBalcony])
   return <section className="mt-5 border border-line p-4 md:p-6">
     <div className="flex flex-wrap items-center justify-between gap-4">
       <div><h2 className="font-display text-xl">{translateUi("Blender architectural design")}</h2>
         <p className="mt-1 text-sm text-ink-dim">{translateUi("Your current rooms, footprint and planned outdoor spaces become one editable 3D villa.")}</p></div>
-      <div className="flex flex-wrap items-center gap-2">
-        {!existingStructure && <button type="button" disabled={busy} onClick={async () => {
-          setFindingShape(true)
-          try { await newBuildingShape(quality) } finally { setFindingShape(false) }
-        }} className="bg-accent px-4 py-2 text-sm uppercase tracking-wide text-white disabled:opacity-50">
-          {translateUi(findingShape ? 'Planning a new shape…' : 'New building shape')}
-        </button>}
-        <select aria-label={translateUi("Render quality")} className="border border-line bg-bg px-3 py-2 text-sm" value={quality}
-          disabled={busy} onChange={(e) => setQuality(e.target.value as 'preview' | 'final')}>
-          <option value="preview">{translateUi("Fast preview")}</option><option value="final">{translateUi("High quality")}</option>
-        </select>
-        {result && <button type="button" disabled={busy} onClick={() => void generate(finishedPlan, result.seed, quality, true)}
-          className="border border-line px-4 py-2 text-sm uppercase tracking-wide disabled:opacity-50">
-          {translateUi("Refresh current design")}</button>}
-        <button type="button" disabled={busy} onClick={() => void generate(finishedPlan, newDesignSeed(result?.seed ?? plan.dna.seed, brief.style.character), quality)}
-          className="border border-line-strong px-4 py-2 text-sm uppercase tracking-wide disabled:opacity-50">
-          {translateUi(busy ? 'Generating…' : result ? 'New exterior on this plan' : 'Generate architectural design')}
-        </button>
-      </div>
     </div>
-    {!existingStructure&&brief.style.character==='modern-box'&&<div className="mt-4 flex flex-wrap items-end gap-3 border-t border-line pt-4">
-      <label className="text-sm">{translateUi('Villa composition')}
-        <select aria-label={translateUi('Villa composition')} value={composition} disabled={busy}
-          onChange={e=>setComposition({planId:id,value:e.target.value as ModernComposition|'auto'})} className="ml-3 border border-line bg-bg px-3 py-2">
-          <option value="auto">{translateUi('Automatic')}</option>
-          {MODERN_COMPOSITION_CHOICES.map(c=><option key={c.value} value={c.value}>{translateUi(c.title)}</option>)}
-        </select>
-      </label>
-      <button type="button" disabled={busy} onClick={async()=>{
-        setFindingShape(true)
-        try{await newBuildingShape(quality,composition)}finally{setFindingShape(false)}
-      }} className="border border-line-strong px-4 py-2 text-sm disabled:opacity-50">{translateUi('Apply composition')}</button>
-      <p className="w-full text-xs text-ink-dim">{translateUi('Replans the rooms and building shape together. Your current villa stays visible until the new 3D design is ready.')}</p>
-    </div>}
     <BuildingFormSummary plan={plan}/>
-    {!existingStructure&&!plan.balconyExtent&&plan.floors.some(f=>f.rooms.some(r=>r.outdoor&&r.id.startsWith('balcony')))&&<div className="mt-4 border-t border-line pt-4">
-      <button type="button" disabled={busy} onClick={async()=>{
-        setFillingBalcony(true)
-        try{await fillBalconyArea(quality)}finally{setFillingBalcony(false)}
-      }} className="border border-line-strong px-4 py-2 text-sm disabled:opacity-50">{translateUi(fillingBalcony?'Extending balcony…':'Use full balcony area')}</button>
-      <p className="mt-2 text-xs text-ink-dim">{translateUi('Extends the balcony and its glass boundary to the available supported slab. The 2D plan and quantities update together.')}</p>
-    </div>}
     {previewBusy && <RenderProgress progress={preview!.progress} label={preview!.phase} />}
     {previewBusy && <p role="status" className="mt-4 text-sm text-ink-dim">{translateUi("Preparing your selected direction: ")}{translateUi(preview!.phase)}{translateUi(". The same villa will appear here when ready.")}</p>}
     {displayJob && jobBusy && !previewBusy && <RenderProgress progress={displayJob.progress} label={displayJob.phase} />}
     {displayJob && jobBusy && <p role="status" className="mt-4 text-sm text-ink-dim">{translateUi(displayJob.phase)}{translateUi(displayJob.attempt ? ` · candidate ${displayJob.attempt}` : '')}{translateUi(". Rendering can take a few minutes.")}</p>}
-    {jobBusy && !currentJob && !findingShape && !fillingBalcony && !previewBusy && <p role="status" className="mt-4 text-sm text-ink-dim">{translateUi("Another plan is being generated. This plan will start when it finishes.")}</p>}
-      {!existingStructure && <p className="mt-3 text-sm text-ink-dim">{translateUi("New building shape creates a different footprint, wing arrangement or upper-floor profile with the same room requirements. The 2D plan updates together with the 3D villa.")}</p>}
-      {findingShape && <p role="status" className="mt-3 text-sm text-ink-dim">{translateUi("Comparing occupied building shapes and checking rooms, circulation and structure…")}</p>}
+    {jobBusy && !currentJob && !fillingBalcony && !previewBusy && <p role="status" className="mt-4 text-sm text-ink-dim">{translateUi("Another plan is being generated. This plan will start when it finishes.")}</p>}
       {shapeNotice && <p role="status" className="mt-3 text-sm text-ink-dim">{translateUi(shapeNotice)}</p>}
-      {brief.style.character === 'modern-box' && <p className="mt-3 text-sm text-ink-dim">{translateUi("1,000 modern exterior seeds are also available for the current floor plan.")}</p>}
       {!result && <div className="mt-4 flex aspect-[4/3] items-center justify-center border border-line bg-bg-inset p-8 text-center text-sm text-ink-dim">
       {translateUi(busy ? 'Building and rendering your villa…' : 'The interactive Blender model and three rendered views will appear here.')}
     </div>}
     {sourcePlanId === id && error && <p role="alert" className="mt-4 text-sm text-bad">{translateUi(error)}</p>}
+    {sourcePlanId === id && error && !busy && <button type="button" onClick={() => void generate(finishedPlan, result?.seed ?? selectedSeed ?? plan.dna.seed, quality, true)}
+      className="mt-3 border border-line px-4 py-2 text-sm">{translateUi('Retry 3D model')}</button>}
     {result && <>
       {result.finishSignature !== signature && <p className="mt-3 text-sm text-ink-dim">{translateUi("Updating selected finishes on this same design…")}</p>}
       <p className="mt-4 font-mono text-xs text-ink-dim">{translateUi("Visualisation · Blender · Seed ")}{translateUi(result.seed)} · {translateUi(result.family.replaceAll('_', ' '))} · {translateUi(result.quality === 'final' ? 'Final render' : 'Preview')}</p>
       <div className="mt-3 grid gap-4 lg:grid-cols-2">
-        <div id="villa-interactive-view" ref={villaContainerRef} role="region" aria-label={translateUi('Interactive villa with rooftop solar')} className="relative aspect-[4/3] overflow-hidden border border-line">
+        <div id="villa-interactive-view" ref={villaContainerRef} role="region" aria-label={translateUi('Interactive villa with rooftop solar')} className="relative aspect-[4/3] border border-line">
           <div className="absolute top-2 right-2 z-20 pointer-events-auto">
             <ExportDropdown
               label="Download Villa"
               title="Download Interactive Villa"
+              description={VILLA_CAD_HELP}
               size="sm"
               floating
               items={[
+                ...villaCadExportItems(currentSolar ?? result),
                 {
                   id: 'villa-viewport-png',
                   label: solar.draft ? 'Live view · draft preview' : 'Live view snapshot',

@@ -21,6 +21,9 @@ import { BlenderVillaPanel } from '@/components/BlenderVillaPanel.tsx'
 import { AiVisualization } from '@/components/AiVisualization.tsx'
 import { SOLAR_URL } from '@/lib/solar/editor.ts'
 import { ExportDropdown } from '@/components/export/ExportDropdown.tsx'
+import { villaCadExportItems, VILLA_CAD_HELP } from '@/components/export/villaCadExports.ts'
+import { useBlender } from '@/state/blender.ts'
+import { useSolarArtifacts, solarArtifactKey, isCurrentSolarArtifact } from '@/state/solarArtifacts.ts'
 import { captureCanvasPng, exportThreeSceneToGlb } from '@/lib/export/index.ts'
 
 type ViewMode = 'architecture' | 'furnished'
@@ -53,6 +56,11 @@ export function Massing() {
   // the furnished view is dressed like the 360 preview: the brief's Finishes & Cost choices room by room, and the
   // interior style and furniture density chosen in the 360 panel. Any change rebuilds it at once.
   const brief = useStudio((s) => s.brief)
+  const acceptedVilla = useBlender(s => result?.buildingModel ? s.accepted[result.buildingModel.planId] : undefined)
+  const matchingVilla = acceptedVilla?.seed === (result?.villaDesignDNA?.seed ?? result?.design.dna.seed) ? acceptedVilla : undefined
+  const solarExportKey = solarArtifactKey(matchingVilla, brief.solar, matchingVilla?.quality)
+  const solarExport = useSolarArtifacts(s => s.renders[solarExportKey])
+  const cadSource = isCurrentSolarArtifact(solarExport, matchingVilla, brief.solar) ? solarExport : matchingVilla
   const style = useInterior360((s) => s.style)
   const density = useInterior360((s) => s.furnitureDensity) as InteriorConfiguration['furnitureDensity']
   const setInterior = useInterior360((s) => s.set)
@@ -89,8 +97,10 @@ export function Massing() {
         <ExportDropdown
           label="Download 3D"
           title="Download 3D Options"
+          description={mode === 'architecture' && cadSource ? VILLA_CAD_HELP : undefined}
           size="md"
           items={[
+            ...(mode === 'architecture' ? villaCadExportItems(cadSource) : []),
             {
               id: 'massing-viewport-png',
               label: '3D Viewport Snapshot',
@@ -125,7 +135,7 @@ export function Massing() {
         <BlenderVillaPanel plan={result.design} selectedSeed={result.villaDesignDNA?.seed ?? result.design.dna.seed} autoGenerate={mode === 'architecture'} />
         <div className="mt-6 flex gap-6 text-sm">
           <Link to="/workspace/plan" className="underline underline-offset-4">{translateUi("View the 2D plan")}</Link>
-          <Link to="/workspace/finishes" className="underline underline-offset-4">{translateUi("Continue to finishes & cost")}</Link>
+          <Link to="/workspace/utilities" className="underline underline-offset-4">{translateUi("Continue to utilities")}</Link>
         </div>
       </div>
       {doll && <div hidden={mode !== 'furnished'}>
@@ -263,10 +273,10 @@ export function Massing() {
               <p className="text-[0.8rem] leading-relaxed text-ink-dim">
                 {translateUi("This furnished view follows the floor plan. The AI visualization of the villa is below.")}</p>
               <Link
-                to="/workspace/finishes"
+                to="/workspace/utilities"
                 className="flex w-full items-center justify-center gap-2 border border-line-strong py-3 font-mono text-xs uppercase tracking-[0.12em] text-ink-dim hover:border-ink-dim hover:text-ink"
               >
-                {translateUi("Continue to finishes & cost")}<ArrowRight size={13} />
+                {translateUi("Continue to utilities")}<ArrowRight size={13} />
               </Link>
             </div>
           </div>
