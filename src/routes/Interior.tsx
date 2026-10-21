@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { useStudio } from '@/state/studio.ts'
 import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
 import { FastInteriorPreview } from '@/components/FastInteriorPreview.tsx'
+import { WalkthroughFoundation } from '@/components/interior/WalkthroughFoundation.tsx'
 import { InvalidPlanNotice } from '@/components/InvalidPlanNotice.tsx'
 
 /** Step 06 — comes after Finishes & Cost so every room is dressed in the finishes the user chose. */
@@ -28,6 +29,7 @@ export function Interior() {
       <div className="mt-6">
         <FastInteriorPreview design={plan} />
       </div>
+      <WalkthroughFoundation design={plan} report={result.report} acceptedBuilding={result.buildingModel} />
       <div className="mt-10 flex justify-between border-t border-line pt-5 text-sm">
         <Link to="/workspace/finishes" className="underline underline-offset-4">{translateUi("Back to Finishes & Cost")}</Link>
         <Link to="/workspace/report" className="underline underline-offset-4">{translateUi("Continue to Report →")}</Link>
