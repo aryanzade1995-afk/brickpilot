@@ -29,4 +29,3 @@ export function wiringPath(run: UtilityRun, visibleRuns: UtilityRun[], scale: nu
   }
   return { d, jumps }
 }
-

@@ -94,4 +94,3 @@ test('missing source walls/doors expose pending water connections rather than fa
   const empty = waterPlan({ ...floor, rooms: [] }, [], [], brief)
   assert.deepEqual(empty.utilities, []); assert.deepEqual(empty.networks, [])
 })
-
