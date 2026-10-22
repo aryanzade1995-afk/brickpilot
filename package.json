@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "test:accepted-villa-walkthrough": "node --experimental-strip-types --test scripts/test-accepted-villa-walkthrough.mjs",
     "test:walkthrough-finishes": "node --experimental-strip-types --test scripts/test-walkthrough-finishes.mjs",
     "test:walkthrough-navigation": "node --experimental-strip-types --test scripts/test-walkthrough-navigation.mjs",
     "test:walkthrough-assets": "node --experimental-strip-types --test scripts/test-walkthrough-assets.mjs",

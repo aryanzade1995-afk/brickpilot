@@ -8,6 +8,9 @@ export const WALKING = Object.freeze({ radius: .22, height: 1.75, eye: 1.62, ski
 export type NavigationMetadata = WalkthroughGeometryPayload['metadata'] & { designId: string; projectId: string; geometryKey: string; appearanceKey: string }
 export type NavigationCollision = WalkthroughGeometryPayload['collision'] & { designId: string; projectId: string; geometryKey: string; appearanceKey: string }
 export type WalkingInput = { forward: number; right: number; yaw: number }
+/** Immutable, world-metre triangles copied from the displayed accepted GLB.
+ * Never mix this collider with the reconstructed shell or fitted furniture. */
+export type AcceptedMeshCollision = { vertices: Float32Array; indices: Uint32Array }
 type V = { x: number; y: number; z: number }
 type Door = { id: string; opening: SceneOpening; collider: RAPIER.Collider; centre: V; size: V; pivot: V | null;
   angle: number; target: boolean; progress: number; operation: 'hinged' | 'sliding' | 'unresolved'; visible: boolean }
@@ -38,7 +41,8 @@ export function validateNavigationBundle(metadata: NavigationMetadata, collision
 }
 
 /** The same controller runs in R3F and deterministic headless WASM tests.
- * All physics uses delivered world-metre boxes. No ramps, replacement floors,
+ * Physics uses delivered world-metre boxes, or the exact accepted GLB triangles.
+ * No ramps, replacement floors,
  * hidden stair bridges, floor warps or automatic respawns are created.
  */
 export class HouseWalkingSimulation {
@@ -58,13 +62,20 @@ export class HouseWalkingSimulation {
   private eyeY = 0
   private collidersByHandle = new Map<number, Collider>()
 
-  constructor(metadata: NavigationMetadata, collision: NavigationCollision, planId = metadata.designId) {
+  constructor(metadata: NavigationMetadata, collision: NavigationCollision, planId = metadata.designId, acceptedMesh?: AcceptedMeshCollision) {
     validateNavigationBundle(metadata, collision, planId)
     this.metadata = metadata
     this.world = new RAPIER.World({ x: 0, y: -WALKING.gravity, z: 0 }); this.world.timestep = WALKING.fixedStep
     try {
-      for (const c of collision.colliders) this.addBox(c)
-      for (const record of collision.doors) {
+      if (acceptedMesh) {
+        const { vertices, indices } = acceptedMesh
+        if (!vertices.length || vertices.length % 3 || indices.length % 3 || indices.length > 6_000_000 ||
+          !vertices.every(Number.isFinite) || !indices.every(i => i < vertices.length / 3)) throw new Error('The accepted model has invalid collision triangles.')
+        // Rapier builds its own acceleration structure. Source mesh buffers,
+        // materials, visibility and transforms are never modified.
+        this.world.createCollider(RAPIER.ColliderDesc.trimesh(vertices, indices))
+      } else for (const c of collision.colliders) this.addBox(c)
+      for (const record of acceptedMesh ? [] : collision.doors) {
         const opening = metadata.openings.find(o => o.id === record.id)
         if (!opening || opening.kind === 'window' || opening.operation === 'open') throw new Error('A door collision record has no matching source door.')
         const c = this.addBox(record.collider), min = record.collider.min, max = record.collider.max

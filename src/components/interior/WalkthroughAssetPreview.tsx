@@ -4,7 +4,9 @@ import { Bounds, OrbitControls } from '@react-three/drei'
 import { ACESFilmicToneMapping, PCFSoftShadowMap, Plane, Vector3, type Group } from 'three'
 import { loadWalkthroughAsset, disposeWalkthroughAsset, applyWalkthroughMaterialBindings } from '@/lib/three/loadWalkthroughAsset.ts'
 import { adoptBlenderWalkthroughAppearance, prepareWalkthroughAppearanceUpdate, walkthroughFurnishingGeometryKey } from '@/lib/three/walkthroughAppearance.ts'
-import { furnitureColliders, type WalkthroughAppearancePayload } from '@/lib/walkthrough/delivery.ts'
+import { furnitureColliders, type WalkthroughAppearancePayload, type WalkthroughGeometryPayload } from '@/lib/walkthrough/delivery.ts'
+import { acceptedVillaBounds, acceptedVillaCollision, loadAcceptedVilla } from '@/lib/three/acceptedVillaWalkthrough.ts'
+import { FitAcceptedVilla } from '@/lib/three/SolarCamera.tsx'
 import { translate as t } from '@/lib/i18n/index.ts'
 import { HouseWalkingSimulation, initializeWalkingPhysics, type NavigationMetadata, type NavigationCollision } from '@/lib/walkthrough/navigation.ts'
 import { FirstPersonController, type WalkingControls, type WalkingHud } from './FirstPersonController.tsx'
@@ -12,7 +14,8 @@ import { DEFAULT_LOOK_SPEED, LOOK_SPEED } from '@/lib/walkthrough/look.ts'
 import { WalkthroughLighting } from './WalkthroughLighting.tsx'
 
 /** Shared orbit / first-person viewer of the same immutable delivered house. */
-export default function WalkthroughAssetPreview({ id, planId, floors, appearance }: { id: string; planId: string; floors: { sourceId: string; level: number; elevationM: number }[]; appearance: WalkthroughAppearancePayload }) {
+export type AcceptedVillaPreview = { url: string; geometry: WalkthroughGeometryPayload | null }
+export default function WalkthroughAssetPreview({ id, planId, floors, appearance, acceptedVilla }: { id?: string; planId: string; floors: { sourceId: string; level: number; elevationM: number }[]; appearance?: WalkthroughAppearancePayload; acceptedVilla?: AcceptedVillaPreview }) {
   const [model, setModel] = useState<Group | null>(null), [failed, setFailed] = useState(false), [cut, setCut] = useState('all')
   const [simulation, setSimulation] = useState<HouseWalkingSimulation | null>(null), [walkingError, setWalkingError] = useState('')
   const [walking, setWalking] = useState(false), [controls, setControls] = useState<WalkingControls | null>(null)
@@ -27,6 +30,7 @@ export default function WalkthroughAssetPreview({ id, planId, floors, appearance
   useEffect(() => { controlsRef.current = controls }, [controls])
   const [hud, setHud] = useState<WalkingHud>({ room: '', floor: 0, door: null, blocked: null, feet: [0, 0, 0], grounded: false, look: [0, 0] })
   const cameraConfiguration = useMemo(() => ({ position: [22, 20, 15] as [number, number, number], fov: 45 }), [])
+  const framing = useMemo(() => acceptedVilla && model ? acceptedVillaBounds(model) : undefined, [acceptedVilla, model])
   useEffect(() => {
     const stage = viewport.current
     if (!walking || !stage) return
@@ -49,6 +53,22 @@ export default function WalkthroughAssetPreview({ id, planId, floors, appearance
   }, [walking])
   useEffect(() => {
     const controller = new AbortController(); let owned: Group | null = null, ownedSimulation: HouseWalkingSimulation | null = null
+    if (acceptedVilla) {
+      void loadAcceptedVilla(acceptedVilla.url, planId, controller.signal).then(async group => {
+        owned = group
+        if (controller.signal.aborted) return
+        setModel(group)
+        try {
+          if (!acceptedVilla.geometry) throw new Error('The exact villa can be viewed, but its source entrance or stairs need review before walking.')
+          await initializeWalkingPhysics()
+          if (controller.signal.aborted) return
+          const geometry = acceptedVilla.geometry, identity = { designId: planId, projectId: 'accepted-villa', geometryKey: acceptedVilla.url, appearanceKey: acceptedVilla.url }
+          ownedSimulation = new HouseWalkingSimulation({ ...geometry.metadata, ...identity }, { ...geometry.collision, ...identity }, planId, acceptedVillaCollision(group))
+          setSimulation(ownedSimulation)
+        } catch (error) { if (!controller.signal.aborted) setWalkingError(error instanceof Error ? error.message : 'Walking could not be prepared. The orbit view is still available.') }
+      }).catch(error => { if (!controller.signal.aborted && error.name !== 'AbortError') setFailed(true) })
+      return () => { controller.abort(); ownedSimulation?.dispose(); if (owned) disposeWalkthroughAsset(owned) }
+    }
     loadWalkthroughAsset(`/api/walkthrough-assets/${id}/house.glb`, planId, controller.signal).then(async group => {
       owned = group
       const response = await fetch(`/api/walkthrough-assets/${id}/materials.json`, { signal: controller.signal })
@@ -64,9 +84,10 @@ export default function WalkthroughAssetPreview({ id, planId, floors, appearance
       setSimulation(ownedSimulation)
     }).catch(error => { if (!controller.signal.aborted) setWalkingError(error instanceof Error ? error.message : 'Walking could not be prepared. The orbit view is still available.') })
     return () => { controller.abort(); ownedSimulation?.dispose(); if (owned) disposeWalkthroughAsset(owned) }
-  }, [id, planId])
+  }, [id, planId, acceptedVilla])
   useEffect(() => {
-    if (!model) return
+    // Exact-villa mode never runs room dressing or material replacement.
+    if (!model || !appearance || acceptedVilla) return
     let cancelled = false
     const current = () => !cancelled
     // oxlint-disable-next-line react/set-state-in-effect -- Synchronize the external Three scene and report its asynchronous update state.
@@ -91,23 +112,24 @@ export default function WalkthroughAssetPreview({ id, planId, floors, appearance
       } catch (error) { update.dispose(); throw error }
     })().catch(error => { if (!cancelled && error.name !== 'AbortError') { setSafeToWalk(false); controlsRef.current?.exit(); setAppearanceState('Finish preview could not update. The displayed materials may be out of date. Reopen the model to retry.') } })
     return () => { cancelled = true }
-  }, [appearance, model, simulation])
+  }, [appearance, model, simulation, acceptedVilla])
   const floor = floors.find(f => f.sourceId === cut), plane = useMemo(() => floor && !walking ? new Plane(new Vector3(0, -1, 0), floor.elevationM + 1.4) : null, [floor, walking])
-  const walkingHelp = lookMode === 'drag' ? 'WASD to move · Drag to look · E for doors · Escape to return to 3D' : 'WASD to move · Mouse to look · E for doors · Escape to return to 3D'
+  const walkingHelp = acceptedVilla ? (lookMode === 'drag' ? 'Drag to look · WASD to move' : 'Mouse to look · WASD to move') : lookMode === 'drag' ? 'WASD to move · Drag to look · E for doors · Escape to return to 3D' : 'WASD to move · Mouse to look · E for doors · Escape to return to 3D'
   return <div className="mt-4 border border-line">
     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-2"><p className="max-w-xl text-xs text-ink-dim">{t(walking ? walkingHelp : 'Drag to orbit, or choose Walk inside for first-person movement.')}</p>
-      <div className="flex flex-wrap items-center gap-3"><label className="flex min-h-11 items-center gap-2 text-xs">{t('Model view')}<select disabled={walking} className="min-h-11 border border-line bg-bg px-3 disabled:opacity-40" value={cut} onChange={e => setCut(e.target.value)}><option value="all">{t('Complete house')}</option>{floors.map(f => <option key={f.sourceId} value={f.sourceId}>{t('Floor')} {f.level} · {t('Cutaway')}</option>)}</select></label>
+      <div className="flex flex-wrap items-center gap-3">{!acceptedVilla && <label className="flex min-h-11 items-center gap-2 text-xs">{t('Model view')}<select disabled={walking} className="min-h-11 border border-line bg-bg px-3 disabled:opacity-40" value={cut} onChange={e => setCut(e.target.value)}><option value="all">{t('Complete house')}</option>{floors.map(f => <option key={f.sourceId} value={f.sourceId}>{t('Floor')} {f.level} · {t('Cutaway')}</option>)}</select></label>}
         <button ref={walkButton} type="button" disabled={!controls || failed || !safeToWalk} onClick={() => { setWalkingError(''); if (walking) controls?.exit(); else controls?.enter() }} className="min-h-11 border border-line bg-accent px-4 text-xs text-bg focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-40">{t(walking ? 'Return to 3D view' : 'Walk inside')}</button></div></div>
     {appearanceState && <p role="status" className="border-b border-line p-3 text-xs text-ink-dim">{t(appearanceState)}</p>}
     {walkingError && <div role="status" className="border-b border-line p-4 text-xs leading-relaxed text-ink-dim"><p>{t(walkingError)}</p>{controls && safeToWalk && !walking && <><p className="mt-2">{t('If mouse capture is unavailable in this browser, use drag-look mode with the same walking physics.')}</p><button type="button" className="mt-3 min-h-11 border border-line bg-bg px-4 text-ink" onClick={() => { setWalkingError(''); controls.enterDrag() }}>{t('Use drag-look mode')}</button></>}</div>}
-    {walking && lookMode === 'drag' && <p role="status" className="border-b border-line px-4 py-2 text-xs text-ink-dim">{t('Drag-look mode: hold the left mouse button to look around. WASD, doors and stair movement work normally.')}</p>}
+    {walking && lookMode === 'drag' && <p role="status" className="border-b border-line px-4 py-2 text-xs text-ink-dim">{t(acceptedVilla ? 'Drag to look · WASD to move' : 'Drag-look mode: hold the left mouse button to look around. WASD, doors and stair movement work normally.')}</p>}
     {simulation && [...simulation.doors.values()].some(d => d.operation === 'unresolved') && <p className="border-b border-line px-4 py-2 text-xs leading-relaxed text-ink-dim">{t('Some door swings are unspecified. Those leaves are hidden when opened; the source openings stay unchanged.')}</p>}
     {!simulation && !walkingError && model && <p role="status" className="p-3 text-xs text-ink-dim">{t('Preparing walking physics…')}</p>}
-    {failed ? <p role="alert" className="p-5 text-sm text-bad">{t('The exported model could not be loaded. Generate the assets again.')}</p> : !model ? <p role="status" className="p-5 text-sm text-ink-dim">{t('Loading the exported house…')}</p> : <div ref={viewport} className={walking ? 'fixed inset-0 z-[1000] h-dvh w-screen cursor-none bg-bg-inset [&_canvas]:cursor-none' : 'relative h-[420px] bg-bg-inset'} role={walking ? 'dialog' : undefined} aria-modal={walking || undefined} aria-label={t(walking ? 'First-person house walkthrough' : 'Exported house model')}
-      data-model-source="blender-glb" data-blender-room-count={blenderRoomCount} data-building-instance={model.uuid} data-finish-revision={appearanceRevision} data-walk-mode={walking ? 'first-person' : 'orbit'} data-walk-input={lookMode} data-walk-feet={JSON.stringify(hud.feet)} data-walk-look={JSON.stringify(hud.look)} data-walk-grounded={hud.grounded} data-walk-floor={hud.floor}>
+    {failed ? <p role="alert" className="p-5 text-sm text-bad">{t(acceptedVilla ? 'The accepted Blender villa could not load. Check its export in 3D Massing.' : 'The exported model could not be loaded. Generate the assets again.')}</p> : !model ? <p role="status" className="p-5 text-sm text-ink-dim">{t('Loading the exported house…')}</p> : <div ref={viewport} className={walking ? 'fixed inset-0 z-[1000] h-dvh w-screen cursor-none bg-bg-inset [&_canvas]:cursor-none' : 'relative h-[420px] bg-bg-inset'} role={walking ? 'dialog' : undefined} aria-modal={walking || undefined} aria-label={t(walking ? 'First-person house walkthrough' : 'Exported house model')}
+      data-model-source={acceptedVilla ? 'accepted-massing-glb' : 'blender-glb'} data-model-url={acceptedVilla?.url} data-blender-room-count={blenderRoomCount} data-building-instance={model.uuid} data-finish-revision={appearanceRevision} data-walk-mode={walking ? 'first-person' : 'orbit'} data-walk-input={lookMode} data-walk-feet={JSON.stringify(hud.feet)} data-walk-look={JSON.stringify(hud.look)} data-walk-grounded={hud.grounded} data-walk-floor={hud.floor}>
       <ModelBoundary><Canvas frameloop="demand" shadows dpr={[1, 1.5]} camera={cameraConfiguration} gl={{ antialias: true }} onCreated={({ gl }) => { gl.localClippingEnabled = true; gl.toneMapping = ACESFilmicToneMapping; gl.toneMappingExposure = 1; gl.shadowMap.type = PCFSoftShadowMap }}>
-        <color attach="background" args={['#e7e9e7']} /><WalkthroughLighting model={model} />
-        <Bounds fit={!walking} clip={!walking} observe={false} margin={1.25}><primitive object={model} /></Bounds>
+        <color attach="background" args={['#e7e9e7']} /><WalkthroughLighting model={model} bounds={framing} />
+        <Bounds fit={!acceptedVilla && !walking} clip={!acceptedVilla && !walking} observe={false} margin={1.25}><primitive object={model} /></Bounds>
+        {acceptedVilla && <FitAcceptedVilla scene={model} bounds={framing} />}
         <Clipping model={model} plane={plane} revision={appearanceRevision} /><OrbitControls enabled={!walking} makeDefault enableDamping={false} minDistance={1} maxDistance={80} />
         {simulation && <FirstPersonController simulation={simulation} model={model} lookSpeed={lookSpeed} onControls={setControls} onActive={(active, mode) => { setWalking(active); if (active) { setCut('all'); setLookMode(mode ?? 'locked') } else setWalkingError('') }} onHud={setHud} onError={setWalkingError} />}
       </Canvas></ModelBoundary>
@@ -122,7 +144,7 @@ export default function WalkthroughAssetPreview({ id, planId, floors, appearance
           <MoveButton direction="left" label={t('Move left')} text="A ←" controls={controls} /><MoveButton direction="back" label={t('Move backward')} text="S ↓" controls={controls} /><MoveButton direction="right" label={t('Move right')} text="D →" controls={controls} />
         </div>
         <div className="pointer-events-none absolute bottom-4 right-4 max-w-[calc(100%_-_210px)] border border-line bg-bg/95 p-3 text-xs leading-relaxed text-ink sm:max-w-md">
-          <p>{t(lookMode === 'drag' ? 'Drag to look · WASD to move' : 'Mouse to look · WASD to move')}</p><p className="mt-1">{t('E: open / close doors · Esc: return to page')}</p>
+          <p>{t(lookMode === 'drag' ? 'Drag to look · WASD to move' : 'Mouse to look · WASD to move')}</p><p className="mt-1">{t(acceptedVilla ? 'Esc: return to page · Closed doors stay as exported.' : 'E: open / close doors · Esc: return to page')}</p>
           {hud.blocked && <p role="status" className="mt-2">{t(hud.blocked === 'edge' ? 'Edge reached — no supported floor ahead.' : 'Walking paused: no supported floor. Press Escape to return to 3D.')}</p>}
           {hud.door && <button type="button" onClick={() => controls?.interact()} className="pointer-events-auto mt-2 min-h-11 cursor-auto border border-line bg-bg px-3">E · {t(hud.door.open ? 'Close door' : 'Open door')}</button>}
         </div></>}

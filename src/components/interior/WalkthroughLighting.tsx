@@ -6,15 +6,15 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 
 /** Local image-based reflections; no remote HDR download or extra canvas.
  * One bounded shadow map keeps the scene practical on laptop GPUs. */
-export function WalkthroughLighting({ model }: { model: Group }) {
+export function WalkthroughLighting({ model, bounds: framing }: { model: Group; bounds?: Box3 }) {
   const { gl, scene, invalidate } = useThree()
   const placement = useMemo(() => {
     model.updateMatrixWorld(true)
-    const bounds = new Box3().setFromObject(model), centre = bounds.getCenter(new Vector3()), size = bounds.getSize(new Vector3())
+    const bounds = framing ?? new Box3().setFromObject(model), centre = bounds.getCenter(new Vector3()), size = bounds.getSize(new Vector3())
     const target = new Object3D(); target.position.copy(centre)
     return { target, position: [centre.x + size.x * .5, bounds.max.y + 12, centre.z - size.z * .4] as [number, number, number],
       span: Math.max(size.x, size.z) * .65, far: size.length() + 45 }
-  }, [model])
+  }, [model, framing])
   useEffect(() => {
     const previous = scene.environment, intensity = scene.environmentIntensity
     const studio = new RoomEnvironment(), generator = new PMREMGenerator(gl), environment = generator.fromScene(studio, .04)

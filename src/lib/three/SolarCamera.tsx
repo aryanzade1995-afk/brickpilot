@@ -10,9 +10,9 @@ import { planToThreeGlb } from '../solar/coordinates.ts'
 
 export type SolarCameraRequest = { view: 'exterior' | 'terrace' | 'top'; nonce: number } | null
 /** Fit only when the cached building/control mounts. No lingering Bounds animation can override a solar preset. */
-export function FitAcceptedVilla({ scene }: { scene: Object3D }) {
+export function FitAcceptedVilla({ scene, bounds }: { scene: Object3D; bounds?: Box3 }) {
   const camera = useThree(s => s.camera), controls = useThree(s => s.controls), invalidate = useThree(s => s.invalidate)
-  const box = useMemo(() => new Box3().setFromObject(scene), [scene])
+  const box = useMemo(() => bounds ?? new Box3().setFromObject(scene), [scene, bounds])
   useLayoutEffect(() => {
     if (box.isEmpty()) return
     const center = box.getCenter(new Vector3()), size = box.getSize(new Vector3())
