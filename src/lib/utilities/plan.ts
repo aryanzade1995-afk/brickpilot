@@ -140,8 +140,28 @@ export function utilityFloor(design: Design, level: number, brief: Brief = desig
       fixtures.push({ id: `${level}:${piece.id}`, type, position, roomId: room.id, basis: 'furnishing', width: piece.size[0] * 1000, depth: piece.size[2] * 1000 })
     }
     const blocked = [...doorZones(room, floor.openings), ...cuts, ...fixtures.filter(f => f.roomId === room.id).map(f => ({ x: f.position.x - f.width / 2 - 120, y: f.position.y - f.depth / 2 - 120, w: f.width + 240, h: f.depth + 240 }))]
-    const candidate = [.55, .35, .7].flatMap(x => [.65, .4, .8].map(y => ({ x: room.rect.x + room.rect.w * x, y: room.rect.y + room.rect.h * y }))).find(p => !blocked.some(b => inside(b, p)))
-    if (candidate) fixtures.push({ id: `${level}:${room.id}:floor-drain`, type: 'floor_drain', roomId: room.id, position: candidate, basis: 'proposed', width: 150, depth: 150 })
+    // Issue 5 fix: expanded candidate grid from 9 positions (3×3) to 25 (5×5);
+    // fall back to room center if all 25 candidates are blocked.
+    const candidate = [.2, .35, .5, .65, .8].flatMap(x => [.2, .35, .5, .65, .8].map(y => ({ x: room.rect.x + room.rect.w * x, y: room.rect.y + room.rect.h * y }))).find(p => !blocked.some(b => inside(b, p)))
+      ?? rectCenter(room.rect)
+    fixtures.push({ id: `${level}:${room.id}:floor-drain`, type: 'floor_drain', roomId: room.id, position: candidate, basis: 'proposed', width: 150, depth: 150 })
+  }
+  // Issue 1 fix: add floor_drain fixtures for rooms excluded by the `wet` filter that
+  // still need drainage — stairwells (cleaning), corridors > 15 m², and covered outdoor/verandah rooms.
+  const extraDrainRooms = floor.rooms.filter(r => {
+    const semId = `${r.id} ${r.name} ${r.semanticId}`
+    if (/stair/i.test(semId)) return true                                                                        // stairwells need drain for cleaning
+    if (!r.outdoor && /corridor|passage|hall/i.test(semId) && r.rect.w * r.rect.h >= 15_000_000) return true   // large corridors >= 15 m²
+    if (r.outdoor && /verandah|veranda|covered|porch/i.test(semId)) return true                                 // covered outdoor/verandah rooms need rain drainage
+    return false
+  })
+  for (const room of extraDrainRooms) {
+    // Skip if the wet-room pass already placed a drain here
+    if (fixtures.some(f => f.roomId === room.id && f.type === 'floor_drain')) continue
+    const center = rectCenter(room.rect)
+    const blocked = [...doorZones(room, floor.openings), ...cuts]
+    const candidate = [.2, .35, .5, .65, .8].flatMap(x => [.2, .35, .5, .65, .8].map(y => ({ x: room.rect.x + room.rect.w * x, y: room.rect.y + room.rect.h * y }))).find(p => !blocked.some(b => inside(b, p))) ?? center
+    fixtures.push({ id: `${level}:${room.id}:floor-drain`, type: 'floor_drain', roomId: room.id, position: candidate, basis: 'proposed', width: 150, depth: 150 })
   }
   const assigned = new Map<string, StackSymbol>()
   for (const room of rooms) {
@@ -160,14 +180,89 @@ export function utilityFloor(design: Design, level: number, brief: Brief = desig
     const symbol: StackSymbol = { id: `${level}:stack:${room.semanticId || room.id}`, type: 'vertical_stack', layer: 'drainage', position, roomIds: [room.id, ...(shared ? [shared.id] : [])], basis: 'proposed' }
     symbols.push(symbol); for (const id of symbol.roomIds) assigned.set(id, symbol)
   }
+  // Issue 2 fix: add a conceptual main-exit stack near the building boundary so all drain
+  // clusters have a visible collection/exit point. Placed near the footprint's bottom-left
+  // corner — verify exact position on-site with structural and site engineer.
+  const footprint = floor.footprint
+  const mainExitPoint: Point = { x: Math.round(footprint.x + footprint.w * 0.05), y: Math.round(footprint.y + footprint.h * 0.95) }
+  const mainExitStack: StackSymbol = {
+    id: `${level}:stack:main-exit`,
+    type: 'vertical_stack',
+    layer: 'drainage',
+    position: mainExitPoint,
+    roomIds: [],
+    basis: 'proposed',
+  }
+  symbols.push(mainExitStack)
+  notes.push('Main exit stack is conceptual — position near building boundary must be verified with structural and site engineer.')
   const material = resolveSpecification(brief, 'drain-pipes').name
+  // All room sources for fixture→stack routing (wet rooms + extra drain rooms)
+  const allDrainRooms = [...rooms, ...extraDrainRooms]
   for (const fixture of fixtures) {
-    const room = rooms.find(r => r.id === fixture.roomId)!, stack = assigned.get(room.id)
-    if (!stack) continue
+    const room = allDrainRooms.find(r => r.id === fixture.roomId)
+    if (!room) continue
+    // Fall back to main exit stack if no wet-room stack covers this room
+    const stack = assigned.get(room.id) ?? mainExitStack
     const path = [route(fixture.position, stack.position), route(fixture.position, stack.position, true)].find(p => clearPath(p, room, cuts))
-    if (!path) { notes.push(`No clear route proposal for ${fixture.id}.`); continue }
+    if (!path) {
+      // Issue 6 fix: fall back to a straight-line path (may cross walls) and mark it
+      // flowDirection: 'reverse' so reviewers know it needs structural clearance check.
+      const fallback: Point[] = [fixture.position, stack.position]
+      notes.push(`No clear route proposal for ${fixture.id} — straight-line fallback used, review for wall penetrations.`)
+      const diameter = Number(resolveSpecification(brief, fixture.type === 'toilet' ? 'soil-pipe-size' : 'waste-pipe-size').id.replace('mm', ''))
+      utilities.push({ id: `D:${fixture.id}`, layer: 'drainage', fixtureId: fixture.id, path: fallback, diameter, material, flowDirection: 'reverse', roomId: room.id, stackId: stack.id })
+      continue
+    }
     const diameter = Number(resolveSpecification(brief, fixture.type === 'toilet' ? 'soil-pipe-size' : 'waste-pipe-size').id.replace('mm', ''))
     utilities.push({ id: `D:${fixture.id}`, layer: 'drainage', fixtureId: fixture.id, path, diameter, material, flowDirection: 'forward', roomId: room.id, stackId: stack.id })
+  }
+  // Issue 3 fix: add a conceptual trunk run from each stack to the nearest exterior wall
+  // point so every drain cluster has a visible exit route out of the building.
+  // All trunk runs use 110 mm diameter (soil/main trunk). Verify with site engineer.
+  const exteriorWalls = floor.walls.filter(w => w.kind === 'exterior')
+  for (const stack of symbols) {
+    // Find the closest point on any exterior wall segment to this stack
+    let bestDist = Infinity, exitPoint: Point = mainExitPoint
+    for (const wall of exteriorWalls) {
+      const dx = wall.b.x - wall.a.x, dy = wall.b.y - wall.a.y
+      const lenSq = dx * dx + dy * dy
+      if (lenSq === 0) continue
+      const t = Math.max(0, Math.min(1, ((stack.position.x - wall.a.x) * dx + (stack.position.y - wall.a.y) * dy) / lenSq))
+      const closest: Point = { x: Math.round(wall.a.x + t * dx), y: Math.round(wall.a.y + t * dy) }
+      const dist = Math.hypot(closest.x - stack.position.x, closest.y - stack.position.y)
+      if (dist < bestDist) { bestDist = dist; exitPoint = closest }
+    }
+    utilities.push({
+      id: `D:trunk:${stack.id}`,
+      layer: 'drainage',
+      fixtureId: stack.id,
+      path: route(stack.position, exitPoint),
+      diameter: 110, // 110 mm soil/main trunk
+      material,
+      flowDirection: 'forward',
+      roomId: stack.roomIds[0] ?? '',
+      stackId: stack.id,
+    })
+  }
+  notes.push('Drain exit route is conceptual — verify with structural and site engineer.')
+  // Issue 4 fix: when 2+ wet-room stacks exist, connect secondary stacks to the primary
+  // with a conceptual inter-stack trunk run so isolated drain clusters are linked.
+  const wetStacks = symbols.filter(s => s.id !== mainExitStack.id)
+  if (wetStacks.length >= 2) {
+    const [primary, ...secondaries] = wetStacks
+    for (const sec of secondaries) {
+      utilities.push({
+        id: `D:interstack:${sec.id}->${primary.id}`,
+        layer: 'drainage',
+        fixtureId: sec.id,
+        path: route(sec.position, primary.position),
+        diameter: 110, // 110 mm inter-stack trunk
+        material,
+        flowDirection: 'forward',
+        roomId: sec.roomIds[0] ?? '',
+        stackId: primary.id,
+      })
+    }
   }
   const electrical = electricalPlan(floor, cuts, fixtures, brief.levels.floorToFloor * 1000)
   const fire = fireSafetyPlan(floor, cuts, UTILITY_LAYERS.fire_alarm.detectorRadiusMm)
