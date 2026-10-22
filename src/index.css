@@ -145,8 +145,6 @@ html:lang(hi) .uppercase, html:lang(mr) .uppercase { letter-spacing: normal; }
 
 @keyframes utility-evacuation-flow { to { stroke-dashoffset: -30; } }
 .utility-evacuation-flow { animation: utility-evacuation-flow 1.8s linear infinite; }
-@keyframes utility-clash-pulse { 50% { opacity: .3; } }
-.utility-clash-pulse { animation: utility-clash-pulse 1.8s ease-in-out infinite; }
 .utility-paper-svg svg { display: block; width: 100%; height: auto; }
 .utility-workspace[data-theme="dark"] {
   --color-bg: #202622; --color-bg-inset: #29312b; --color-bg-raised: #303931;
@@ -156,8 +154,6 @@ html:lang(hi) .uppercase, html:lang(mr) .uppercase { letter-spacing: normal; }
 }
 .utility-paper-svg { color-scheme: light; }
 .utility-workspace .bg-accent.text-bg { color: var(--color-bg); }
-@media (prefers-reduced-motion: reduce) { .utility-clash-pulse { animation: none; } }
-@media print { .utility-clash-pulse { animation: none; } }
 @media (prefers-reduced-motion: reduce) { .utility-evacuation-flow { animation: none; } }
 
 @media print {

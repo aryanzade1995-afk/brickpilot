@@ -11,10 +11,10 @@ import { generate } from '../src/lib/engine/generate.ts'
 import { estimateBoq } from '../src/lib/cost/boq.ts'
 
 const brief = defaultBrief(), design = generate(compile(brief)), models = design.floors.map(f => utilityFloor(design, f.level))
-const visible = Object.fromEntries(Object.entries(UTILITY_LAYERS).map(([id, layer]) => [id, layer.visible]))
+const visible = Object.fromEntries(Object.entries(UTILITY_LAYERS).map(([id, layer]) => [id, !layer.disabled]))
 
 test('water supply serves actual supply fixtures only: no floor drains, hot toilets or invented dry-room taps', () => {
-  assert.equal(UTILITY_LAYERS.water_supply.disabled, false); assert.equal(UTILITY_LAYERS.water_supply.visible, true)
+  assert.equal(UTILITY_LAYERS.water_supply.disabled, false); assert.equal(UTILITY_LAYERS.water_supply.visible, false)
   for (const model of models) {
     const outlets = model.symbols.filter(s => s.layer === 'water_supply' && s.type === 'water_outlet')
     for (const fixture of model.fixtures) {

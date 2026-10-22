@@ -82,7 +82,7 @@ test('schedules use canonical quantities and explicitly avoid invented wattages 
 })
 
 test('clean SVG has named service groups, escaped notes and a separately toggled annotations group', () => {
-  const d = structuredClone(doc); d.annotations.push({ id: 'note', type: 'note', a: { x: 0, y: 0 }, b: { x: 0, y: 0 }, text: '<script>alert(1)</script>', units: 'mm', layer: 'annotations', revisionId: null })
+  const d = structuredClone(doc); for (const l of DRAWING_LAYERS) d.layers[l].visible = true; d.annotations.push({ id: 'note', type: 'note', a: { x: 0, y: 0 }, b: { x: 0, y: 0 }, text: '<script>alert(1)</script>', units: 'mm', layer: 'annotations', revisionId: null })
   const svg = sheetSvg(buildDrawingSheets(model, d, 'coordination')[0])
   for (const layer of [...DRAWING_LAYERS, 'walls', 'fixtures', 'annotations']) assert.ok(svg.includes(`data-layer="${layer}"`))
   assert.ok(svg.includes('&lt;script&gt;')); assert.ok(!svg.includes('<script>'))
@@ -98,10 +98,10 @@ test('DXF exports real mm coordinates on true-colour layers, doors, symbols and 
   assert.equal(values.at(-2), 'EOF')
 })
 
-test('PDF remains vector and matches custom physical paper size, including the clash appendix', async () => {
+test('PDF remains vector and matches custom physical paper size, without retired clash appendices', async () => {
   const d = structuredClone(doc); d.settings.size = 'A3'; d.settings.scale = 200
   const sheets = [...buildDrawingSheets(model, d, 'drainage'), ...clashReportSheets(model, d, detectClashes(model).slice(0, 3))]
-  const pdf = await vectorSheetPdf(sheets), bytes = Buffer.from(pdf.output('arraybuffer'))
+  assert.equal(clashReportSheets(model, d, detectClashes(model)).length, 0); const pdf = await vectorSheetPdf(sheets), bytes = Buffer.from(pdf.output('arraybuffer'))
   assert.equal(pdf.getNumberOfPages(), sheets.length)
   assert.ok(Math.abs(pdf.internal.pageSize.getWidth() - 420) < .001); assert.ok(Math.abs(pdf.internal.pageSize.getHeight() - 297) < .001)
   assert.ok(!bytes.toString('latin1').includes('/Subtype /Image'), 'Vector sheets must not contain raster page captures')

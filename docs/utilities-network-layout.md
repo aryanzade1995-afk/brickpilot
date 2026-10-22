@@ -1,0 +1,27 @@
+# Utility viewer: layers and network layout
+
+All four service layers start hidden on a fresh visit or floor selection. Checkboxes, eye buttons and keys 1–4 can independently enable them. Loading or explicitly restoring a saved drawing can restore that drawing's selected layers. Automatic session discovery does not enable anything. Settings persistence never restores layer visibility without the user's restore action.
+
+The live viewer no longer imports or runs `useUtilityClashes`, and has no problem list, overlap markers, exclamation glyphs, severity counts, review controls, C shortcut or 3D marker spheres. Current drawing sets contain service sheets and a coordination sheet only. Passed legacy marker data is ignored by sheet rendering; the deprecated report-sheet function returns no pages. Legacy JSON review fields remain readable for compatibility but are not activated or exported as a report. Removing these UI features is not a claim of engineering clearance.
+
+## Placement changes
+
+- Drainage: use the actual fitted sanitary fixtures and supported wet-room floor drains. Branches remain orthogonal, in the served room, avoiding represented voids, shafts and columns. Shared wet-room walls can host a common stack. There is no diagonal through-wall fallback, arbitrary main sewer point, duplicate exterior trunk, inter-stack shortcut through living rooms, or automatic sanitary floor drain in a dry corridor/stairwell. Source sewer/tank connections and invert levels are not known; external collectors must be designed from site data. Unroutable branches remain absent with an internal source note.
+- Electrical: prefer an accessible dry entrance/circulation wall for the DB. Bathroom switches move to a usable dry wall outside the actual door when one is represented. Wall boards avoid actual opening spans; wet-room point candidates avoid the shower area. The circuit graph represents independent power branches from the DB and independent switched lighting branches, rather than feeding each appliance through the previous appliance. Wire size/breaker labels remain illustrative; cable protection, RCDs, earthing, load/diversity calculations and final sizing are not validated by this drawing.
+- Separation: lighting and power use distinct inset plan lanes; water uses separate cold/hot lanes and existing separate low service heights. Alarm cable uses its own inset lane, with a different return lane. These offsets are drawing/concept assumptions, not statutory separation dimensions. Crossings in a top-down projection do not themselves prove a physical collision; high conduits and lower water/drain services occupy different installation zones. No invisible building geometry is inserted to hide route problems.
+- Water: keep real cold/hot fixture endpoints, room isolation valves and wall-mounted source proposals. Choose non-coincident positions away from electrical wall points and other water symbols. Floor drains never receive supply, and toilets never receive hot supply. Missing upstream supply, heater location, pressure, pipe insulation and hydraulic calculations remain unverified. No pump/tank/sewer connection is invented.
+- Fire: provide room-specific smoke detectors in non-wet indoor rooms and heat detectors in kitchens. Larger rooms receive a grid based on the existing explicit concept radii; coverage is still checked inside each room and never across walls. Devices and sprinklers avoid the other proposed service symbols. The alarm cable visits its devices and returns to its panel. Sprinklers, extinguishers and exit signs stay out of that cable loop. Sprinkler hydraulics, actual detector specifications, sound levels and evacuation approval still need a fire designer.
+- Architecture: routing avoids represented columns, shafts, courtyard and double-height holes. The drawing shows columns in 2D and 3D. Electrical/water paths use the actual represented doorway connections, not windows or fabricated penetrations. A source plan without a valid doorway can remain disconnected; it is not silently repaired.
+
+The planner, architectural seed, selected finishes, cost quantities and accepted Blender assets are unchanged.
+
+## Reference basis
+
+Reviewed 2026-10-22. These documents inform the distinction between systems and the need for installation design; the app does not claim to implement all their requirements:
+
+- [CPWD General Specifications for Electrical Works, Part I Internal, 2023](https://www.cpwd.gov.in/Publication/CPWD_General_Specification_for_Electrical_Works_Part-I_Internal_2023.pdf), especially separate light/power circuits and conduits, and bathroom switch/socket arrangement guidance.
+- [New Delhi Municipal Council drainage bylaws](https://ndmc.gov.in/ndmc/ByLaws/Drainage_10%5B1%5D.8.06.htm), describing sanitary drainage connections, surface-water separation and inspection arrangements. These are local bylaws, not a universal national or Maharashtra approval rule.
+
+## Verification
+
+`npm run test:utility-plan` covers the existing layers, 3D lifting, drawing exports and legacy persistence. New network-integrity tests exercise fresh defaults, independent toggles, absent marker/report output, 32 generated floor layouts, real endpoints, complete circuit/water/alarm connectivity, detector coverage, structure avoidance and preservation of source architecture. Invalid/disconnected source fixtures retain explicit pending data rather than a fabricated successful route.

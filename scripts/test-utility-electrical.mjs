@@ -1,6 +1,5 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { createHash } from 'node:crypto'
 import { utilityFloor, UTILITY_LAYERS, connectedLoads, displayedRuns, utilityLegend, selectionForRun, orthogonal } from '../src/lib/utilities/plan.ts'
 import { electricalPlan, electricalPathAllowed, routeThroughDoors } from '../src/lib/utilities/electrical.ts'
 import { wiringPath } from '../src/lib/utilities/overlays.ts'
@@ -16,23 +15,25 @@ const sample = { ...design.floors[0], rooms: [room('bath1', 'Bathroom', 0), room
   walls: [wall(0, 0, 7000, 0), wall(7000, 0, 7000, 5000), wall(7000, 5000, 0, 5000), wall(0, 5000, 0, 0), wall(3000, 0, 3000, 5000)],
   openings: [{ kind: 'door', orient: 'v', width: 900, at: { x: 3000, y: 4000 }, rooms: ['bath1', 'kitchen'] }] }
 const sampleDesign = { ...design, floors: [sample] }, model = utilityFloor(sampleDesign, sample.level)
-const visibility = Object.fromEntries(Object.entries(UTILITY_LAYERS).map(([id, c]) => [id, c.visible]))
+const visibility = Object.fromEntries(Object.entries(UTILITY_LAYERS).map(([id, c]) => [id, !c.disabled]))
 
-test('phase-1 drainage geometry is unchanged byte-for-byte on the baseline floors', () => {
-  const expected = ['f936b5e95969b4bd6ee7bd77c0d04174ab2c51b36ef2bdfa923a086c2701ff6c', '524b979f83fc6a438e2539c76c427ebc7955c267a8c7e95709b698bf81684315']
-  for (const f of design.floors) {
-    const m = utilityFloor(design, f.level)
-    const old = { fixtures: m.fixtures, utilities: m.utilities.filter(u => u.layer === 'drainage'), symbols: m.symbols.filter(s => s.layer === 'drainage') }
-    assert.equal(createHash('sha256').update(JSON.stringify(old)).digest('hex'), expected[f.level])
+test('drainage proposals are deterministic, orthogonal and fixture-to-stack only', () => {
+  for (const floor of design.floors) {
+    const a = utilityFloor(design, floor.level), b = utilityFloor(design, floor.level)
+    assert.deepEqual(a, b)
+    for (const r of a.utilities.filter(r => r.layer === 'drainage')) {
+      assert.ok(orthogonal(r.path)); assert.ok(a.fixtures.some(f => f.id === r.fixtureId)); assert.ok(a.symbols.some(s => s.id === r.stackId))
+      assert.equal(r.flowDirection, 'forward')
+    }
   }
 })
 
-test('electrical config, shared-wall DB and bathroom/kitchen symbol schedules match phase 2', () => {
+test('electrical defaults are off and bathroom controls move to the dry side of the door', () => {
   assert.equal(UTILITY_LAYERS.electrical.label, 'Electrical Wiring'); assert.equal(UTILITY_LAYERS.electrical.color, '#D32F2F')
-  assert.equal(UTILITY_LAYERS.electrical.dash, null); assert.equal(UTILITY_LAYERS.electrical.width, 2); assert.equal(UTILITY_LAYERS.electrical.visible, true)
+  assert.equal(UTILITY_LAYERS.electrical.dash, null); assert.equal(UTILITY_LAYERS.electrical.width, 2); assert.equal(UTILITY_LAYERS.electrical.visible, false)
   const symbols = model.symbols.filter(s => s.layer === 'electrical'), panels = symbols.filter(s => s.type === 'db_panel')
-  assert.equal(panels.length, 1); assert.equal(panels[0].mount.kind, 'wall'); assert.equal(panels[0].position.x, 3000 + 200 / 2 + 35)
-  for (const [id, expected] of [['bath1', { light: 1, exhaust_fan: 1, switch: 1, socket: 1 }], ['kitchen', { light: 2, switch: 1, socket: 3 }]]) {
+  assert.equal(panels.length, 1); assert.equal(panels[0].mount.kind, 'wall'); assert.equal(panels[0].roomId, 'kitchen'); assert.ok(panels[0].position.x > 3000)
+  for (const [id, expected] of [['bath1', { light: 1, exhaust_fan: 1, socket: 1 }], ['kitchen', { light: 2, switch: 2, socket: 3 }]]) {
     const counts = {}; for (const s of symbols.filter(s => s.type !== 'db_panel' && s.roomId === id)) counts[s.type] = (counts[s.type] ?? 0) + 1
     assert.deepEqual(counts, expected)
   }
@@ -43,7 +44,7 @@ test('electrical config, shared-wall DB and bathroom/kitchen symbol schedules ma
   assert.ok(symbols.some(s => s.label === 'Geyser socket · 16A'))
 })
 
-test('canonical series chains connect DB to switch before lighting loads, with deterministic valid orthogonal paths', () => {
+test('parallel branches connect DB to switches and independent lighting loads, with deterministic valid orthogonal paths', () => {
   for (const circuit of model.circuits) {
     assert.deepEqual(connectedLoads(model, circuit).sort(), circuit.loads.toSorted())
     assert.equal(circuit.status, 'concept')

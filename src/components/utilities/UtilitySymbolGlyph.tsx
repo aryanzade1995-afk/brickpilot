@@ -18,7 +18,7 @@ export function UtilitySymbolGlyph({ type, color }: { type: keyof typeof UTILITY
       : type === 'exit_sign' ? <><rect x={-16} y={-9} width={32} height={18} fill="#258454" stroke="#258454" /><g stroke="white" fill="none" strokeWidth={1.3}><circle cx={-5} cy={-5} r={1} fill="white" /><path d="M-5-2l-3 4-4 3m4-3 6 2 2 3M-5-2l5 2m0 0h12m-4-3 4 3-4 3" /></g></>
       : type === 'evacuation_route' ? <path d="M-12 0H12M6-5l6 5-6 5" stroke="#258454" strokeDasharray="4 2" fill="none" />
       : type === 'flow_arrow' ? <path d="M-11 0H10M5-5l5 5-5 5" fill="none" />
-      : type === 'clearance_warning' ? <><circle r={9} fill={color} stroke="white" strokeWidth={2} /><text x={0} y={4} fontSize={11} fontWeight={700} fill="white" stroke="none" textAnchor="middle">!</text></>
+      : type === 'clearance_warning' ? null
       : type === 'db_panel' ? <><rect x={-9} y={-8} width={18} height={16} fill={color} /><text x={0} y={3} textAnchor="middle" fontSize={8} fontWeight={700} stroke="none" fill="white">DB</text></>
       : type === 'switch' ? <><circle r={5} /><path d="M4-3l6-6" /><text x={8} y={9} fontSize={8} fill={color} stroke="none">S</text></>
         : type === 'socket' ? <><circle r={7} /><path d="M-2-3v5m4-5v5" /></>

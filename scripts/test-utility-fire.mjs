@@ -10,22 +10,22 @@ import { generate } from '../src/lib/engine/generate.ts'
 const design = generate(compile(defaultBrief()))
 const room = (id, name, x, y, w, h) => ({ id, name, semanticId: id, zone: 'service', outdoor: false, wantsWindow: true, rect: { x, y, w, h }, area: w * h / 1e6 })
 const wall = (x1, y1, x2, y2) => ({ a: { x: x1, y: y1 }, b: { x: x2, y: y2 }, thickness: 200, kind: 'interior' })
-const floor = { ...design.floors[0], rooms: [room('bath', 'Bathroom', 0, 0, 3000, 5000), room('kitchen', 'Kitchen', 3000, 0, 4000, 5000), room('corridor', 'Corridor', 0, 5000, 7000, 1800)],
+const floor = { ...design.floors[0], columns: [], shafts: [], rooms: [room('bath', 'Bathroom', 0, 0, 3000, 5000), room('kitchen', 'Kitchen', 3000, 0, 4000, 5000), room('corridor', 'Corridor', 0, 5000, 7000, 1800)],
   outline: { x: 0, y: 0, w: 7000, h: 6800 }, footprint: [{ x: 0, y: 0, w: 7000, h: 6800 }], courtyard: null, doubleHeightVoids: [],
   walls: [wall(0, 0, 7000, 0), wall(7000, 0, 7000, 6800), wall(7000, 6800, 0, 6800), wall(0, 6800, 0, 0), wall(3000, 0, 3000, 5000), wall(0, 5000, 7000, 5000)],
   openings: [{ id: 'bath-door', kind: 'door', orient: 'h', width: 900, at: { x: 1500, y: 5000 }, rooms: ['bath', 'corridor'] }, { id: 'kitchen-door', kind: 'door', orient: 'h', width: 1000, at: { x: 5000, y: 5000 }, rooms: ['kitchen', 'corridor'] }, { id: 'main-entry', kind: 'entry', orient: 'h', width: 1200, at: { x: 3500, y: 6800 }, rooms: ['corridor', null] }] }
 const radii = UTILITY_LAYERS.fire_alarm.detectorRadiusMm
 const model = utilityFloor({ ...design, floors: [floor] }, 0)
-const visible = Object.fromEntries(Object.entries(UTILITY_LAYERS).map(([k, v]) => [k, v.visible]))
+const visible = Object.fromEntries(Object.entries(UTILITY_LAYERS).map(([k, v]) => [k, !v.disabled]))
 
 test('phase-3 config and room-specific fire/safety schedule use real rooms, entry and millimetres', () => {
-  assert.deepEqual([UTILITY_LAYERS.fire_alarm.label, UTILITY_LAYERS.fire_alarm.color, UTILITY_LAYERS.fire_alarm.dash, UTILITY_LAYERS.fire_alarm.width, UTILITY_LAYERS.fire_alarm.visible, UTILITY_LAYERS.fire_alarm.disabled], ['Fire Alarm & Safety', '#F57C00', '2 4', 2, true, false])
+  assert.deepEqual([UTILITY_LAYERS.fire_alarm.label, UTILITY_LAYERS.fire_alarm.color, UTILITY_LAYERS.fire_alarm.dash, UTILITY_LAYERS.fire_alarm.width, UTILITY_LAYERS.fire_alarm.visible, UTILITY_LAYERS.fire_alarm.disabled], ['Fire Alarm & Safety', '#F57C00', '2 4', 2, false, false])
   const s = model.symbols.filter(s => s.layer === 'fire_alarm')
   assert.equal(s.filter(s => s.type === 'fire_panel').length, 1)
   assert.equal(s.find(s => s.type === 'fire_panel').roomId, 'corridor')
   assert.deepEqual(s.filter(s => s.roomId === 'kitchen').map(s => s.type).sort(), ['extinguisher', 'heat_detector', 'sprinkler'])
   assert.equal(s.filter(s => s.roomId === 'bath').length, 0)
-  assert.equal(s.filter(s => s.type === 'smoke_detector').length, 2)
+  assert.equal(s.filter(s => s.type === 'smoke_detector').length, 1)
   assert.equal(s.filter(s => s.type === 'manual_call_point').length, 1)
   assert.equal(s.filter(s => s.type === 'sounder').length, 1)
   assert.deepEqual(s.find(s => s.type === 'exit_sign').position, floor.openings[2].at)
@@ -35,7 +35,7 @@ test('phase-3 config and room-specific fire/safety schedule use real rooms, entr
 
 test('one deterministic closed loop visits all alarm devices then returns to panel; passive equipment is not wired', () => {
   const z = model.zones[0], runs = model.utilities.filter(u => u.layer === 'fire_alarm')
-  assert.equal(z.loopStatus, 'closed'); assert.equal(z.devices.length, 5); assert.equal(runs.length, 6)
+  assert.equal(z.loopStatus, 'closed'); assert.equal(z.devices.length, 4); assert.equal(runs.length, z.devices.length + 1)
   assert.equal(runs[0].fromSymbolId, z.panelId); assert.equal(runs.at(-1).toSymbolId, z.panelId)
   for (let i = 1; i < runs.length; i++) assert.equal(runs[i - 1].toSymbolId, runs[i].fromSymbolId)
   assert.deepEqual(runs.slice(0, -1).map(u => u.toSymbolId).sort(), [...z.devices].sort())

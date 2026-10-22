@@ -1,6 +1,6 @@
 import type { Point, Rect } from '../geometry.ts'
 import { UTILITY_LAYERS, UTILITY_SYMBOLS, connectedLoads, type UtilityFloor, type UtilityRun } from './plan.ts'
-import { clashColor, type Clash } from './clashes.ts'
+import { type Clash } from './clashes.ts'
 import { DRAWING_LAYERS, DRAWING_NAMES, drawingNumber, paperSize, dimensionText, lengthMm, type DrawingDocument, type DrawingLayer, type DrawingAnnotation } from './drawingProject.ts'
 
 type Style = { color: string; width?: number; fill?: string; dash?: number[]; opacity?: number }
@@ -23,8 +23,7 @@ export function symbolOps(type: string, at: Point, color: string, r = 1.4): Draw
   } else if (type.startsWith('fixture_')) {
     if (type === 'fixture_floor_drain') circle(.65, color)
     else ops.push({ kind: 'rect', rect: { x: at.x - r, y: at.y - r * .7, w: r * 2, h: r * 1.4 }, color, width: .22 })
-  } else if (type.startsWith('clash_')) { circle(1, color); label('!', 'white') }
-  else if (['db_panel', 'fire_panel', 'manual_call_point', 'supply_inlet', 'hot_supply_inlet', 'exit_sign'].includes(type)) {
+  } else if (['db_panel', 'fire_panel', 'manual_call_point', 'supply_inlet', 'hot_supply_inlet', 'exit_sign'].includes(type)) {
     const filled = type !== 'manual_call_point'
     ops.push({ kind: 'rect', rect: { x: at.x - r * 1.3, y: at.y - r, w: r * 2.6, h: r * 2 }, color, fill: filled ? color : 'white', width: .22 })
     label(({ db_panel: 'DB', fire_panel: 'FP', manual_call_point: 'M', supply_inlet: 'CW', hot_supply_inlet: 'HW', exit_sign: 'EXIT >' } as Record<string, string>)[type], filled ? 'white' : color)
@@ -88,7 +87,7 @@ export function pipeTag(r: UtilityRun) {
   if (r.layer === 'water_supply') return `${r.diameter}mm ${r.material} (${r.service})`
   return r.layer === 'electrical' ? r.wireSize.replace('mm2', 'mm²') : r.cableType
 }
-function planOps(model: UtilityFloor, doc: DrawingDocument, layers: readonly string[], tile: NonNullable<DrawingSheet['tile']>, clashes: Clash[]): DrawOp[] {
+function planOps(model: UtilityFloor, doc: DrawingDocument, layers: readonly string[], tile: NonNullable<DrawingSheet['tile']>): DrawOp[] {
   const ops: DrawOp[] = [], s = tile.scale, tr = (p: Point): Point => ({ x: tile.viewport.x + (p.x - tile.origin.x) / s, y: tile.viewport.y + (p.y - tile.origin.y) / s })
   const box = (r: Rect): Rect => ({ ...tr(r), w: r.w / s, h: r.h / s })
   ops.push({ kind: 'clip', rect: tile.viewport, id: 'plan-clip' }, { kind: 'group', name: 'walls' })
@@ -96,10 +95,11 @@ function planOps(model: UtilityFloor, doc: DrawingDocument, layers: readonly str
   if (doc.grid) for (let y = tile.origin.y; y <= tile.origin.y + tile.viewport.h * s; y += 1000) ops.push({ kind: 'line', a: tr({ x: tile.origin.x, y }), b: tr({ x: tile.origin.x + tile.viewport.w * s, y }), color: '#e6e9e6', width: .1 })
   for (const slab of model.slabs) ops.push({ kind: 'rect', rect: box(slab), color: '#dadfda', width: .18 })
   for (const wall of model.floor.walls) ops.push({ kind: 'line', a: tr(wall.a), b: tr(wall.b), color: grey, width: Math.max(.3, wall.thickness / s) })
+  for (const c of model.floor.columns ?? []) ops.push({ kind: 'rect', rect: box({ x: c.at.x - c.size / 2, y: c.at.y - c.size / 2, w: c.size, h: c.size }), color: '#8f968e', fill: '#b8b9b3', width: .2 })
   for (const o of model.floor.openings) { const offset = o.width / 2; ops.push({ kind: 'line', a: tr({ x: o.at.x - (o.orient === 'h' ? offset : 0), y: o.at.y - (o.orient === 'v' ? offset : 0) }), b: tr({ x: o.at.x + (o.orient === 'h' ? offset : 0), y: o.at.y + (o.orient === 'v' ? offset : 0) }), color: o.kind === 'window' ? '#dce5e4' : '#ffffff', width: Math.max(2.6, ...model.floor.walls.map(w => w.thickness / s + .2)) }) }
   for (const room of model.floor.rooms) ops.push({ kind: 'text', at: tr({ x: room.rect.x + room.rect.w / 2, y: room.rect.y + room.rect.h / 2 }), align: 'center', text: room.name, size: 2.6, color: '#6d766e' })
   ops.push({ kind: 'endGroup' }, { kind: 'group', name: 'fixtures' })
-  for (const f of model.fixtures) { const p = tr(f.position); ops.push({ kind: 'rect', rect: { x: p.x - f.width / s / 2, y: p.y - f.depth / s / 2, w: f.width / s, h: f.depth / s }, color: '#9da79e', width: .18 }); if (f.type === 'floor_drain') ops.push(...symbolOps('floor_drain', p, '#777e77', .8)) }
+  for (const f of model.fixtures.filter(f => f.type !== 'floor_drain' || layers.includes('drainage'))) { const p = tr(f.position); ops.push({ kind: 'rect', rect: { x: p.x - f.width / s / 2, y: p.y - f.depth / s / 2, w: f.width / s, h: f.depth / s }, color: '#9da79e', width: .18 }); if (f.type === 'floor_drain') ops.push(...symbolOps('floor_drain', p, '#777e77', .8)) }
   ops.push({ kind: 'endGroup' })
   for (const l of DRAWING_LAYERS.filter(l => layers.includes(l))) {
     const cfg = UTILITY_LAYERS[l]; ops.push({ kind: 'group', name: l })
@@ -123,7 +123,6 @@ function planOps(model: UtilityFloor, doc: DrawingDocument, layers: readonly str
     if (doc.pipeTags) for (const run of model.utilities.filter(r => layers.includes(r.layer))) { const p = tr(run.path[0]); ops.push({ kind: 'text', at: { x: p.x + 2, y: p.y + 3 }, text: pipeTag(run), size: 2.1, color: ink }) }
     ops.push({ kind: 'endGroup' })
   }
-  if (layers.length > 1) { ops.push({ kind: 'group', name: 'clashes' }); for (const c of clashes) { const p = tr(c.position); ops.push({ kind: 'circle', at: p, r: 1.4, color: clashColor(c.severity), fill: clashColor(c.severity) }, { kind: 'text', at: { x: p.x, y: p.y + .7 }, text: '!', align: 'center', size: 2, color: 'white' }) } ops.push({ kind: 'endGroup' }) }
   ops.push({ kind: 'endClip' }); return ops
 }
 
@@ -170,7 +169,7 @@ function frame(sheet: DrawingSheet, _model: UtilityFloor, doc: DrawingDocument, 
   return { tx, ty: revisionTop, tw }
 }
 
-export function buildDrawingSheets(model: UtilityFloor, doc: DrawingDocument, layer: DrawingLayer, clashes: Clash[] = []): DrawingSheet[] {
+export function buildDrawingSheets(model: UtilityFloor, doc: DrawingDocument, layer: DrawingLayer, _legacyClashes: Clash[] = []): DrawingSheet[] {
   const paper = paperSize(doc.settings), rightW = Math.min(170, paper.w * .46), plot: Rect = { x: 15, y: 31, w: paper.w - 35 - rightW, h: paper.h - 66 }, s = doc.settings.scale, outline = model.floor.outline
   const cols = Math.max(1, Math.ceil((outline.w + 800) / (plot.w * s))), rows = Math.max(1, Math.ceil((outline.h + 800) / (plot.h * s)))
   if (cols * rows > 64) throw new Error('Too many tiles at this scale. Choose a larger sheet or 1:200.')
@@ -179,14 +178,13 @@ export function buildDrawingSheets(model: UtilityFloor, doc: DrawingDocument, la
   const tables = schedules(model, layers), legendTypes = [...new Set(model.symbols.filter(sym => layers.includes(sym.layer)).map(sym => sym.type))]
   const fixtureLabels = { sink: 'Sink outline', toilet: 'Toilet outline', shower: 'Shower outline', floor_drain: 'Floor drain / drain point' }
   tables.push({ title: 'SYMBOL LEGEND', rows: [...layers.map(l => `layer_${l} - ${UTILITY_LAYERS[l].label} / ${UTILITY_LAYERS[l].dash ? 'dashed' : 'solid'}`), ...legendTypes.map(type => `${type} - ${UTILITY_SYMBOLS[type].label}`), ...[...new Set(model.fixtures.map(f => f.type))].map(type => `fixture_${type} - ${fixtureLabels[type]}`)] })
-  if (layer === 'coordination' && clashes.length) tables.push({ title: 'CLASH KEY', rows: ['clash_high - High priority / red', 'clash_medium - Medium priority / orange', 'clash_low - Low priority / yellow', 'Unknown heights require checking; markers are concept reviews.'] })
   tables.push({ title: 'REVISION REGISTER', rows: doc.revisions.length ? doc.revisions.map(r => `${r.letter} | ${r.date} | ${r.description} | ${r.by || '-'}`) : ['No revisions recorded.'] })
-  const pending: { text: string; title: boolean; symbol?: string }[] = tables.flatMap(t => [{ text: t.title, title: true }, ...t.rows.flatMap(row => wrap(row, rightW - 10, 2.4).map((text, i) => ({ text, title: false, ...((t.title === 'SYMBOL LEGEND' || t.title === 'CLASH KEY' && row.startsWith('clash_')) && !i ? { symbol: row.split(' - ')[0] } : {}) }))), { text: '', title: false }])
-  const legendColor = (symbol: string) => symbol.startsWith('clash_') ? clashColor(symbol.slice(6) as Clash['severity']) : symbol.startsWith('fixture_') ? '#777e77' : UTILITY_LAYERS[symbol.startsWith('layer_') ? symbol.slice(6) as keyof typeof UTILITY_LAYERS : model.symbols.find(sym => sym.type === symbol)!.layer].color
+  const pending: { text: string; title: boolean; symbol?: string }[] = tables.flatMap(t => [{ text: t.title, title: true }, ...t.rows.flatMap(row => wrap(row, rightW - 10, 2.4).map((text, i) => ({ text, title: false, ...(t.title === 'SYMBOL LEGEND' && !i ? { symbol: row.split(' - ')[0] } : {}) }))), { text: '', title: false }])
+  const legendColor = (symbol: string) => symbol.startsWith('fixture_') ? '#777e77' : UTILITY_LAYERS[symbol.startsWith('layer_') ? symbol.slice(6) as keyof typeof UTILITY_LAYERS : model.symbols.find(sym => sym.type === symbol)!.layer].color
   for (let row = 0; row < rows; row++) for (let col = 0; col < cols; col++) {
     const tile = { viewport: plot, origin: { x: cols === 1 ? outline.x + outline.w / 2 - plot.w * s / 2 : outline.x - 400 + col * plot.w * s, y: rows === 1 ? outline.y + outline.h / 2 - plot.h * s / 2 : outline.y - 400 + row * plot.h * s }, scale: s, col, row, cols, rows }
     const sheet: DrawingSheet = { id: `${number}-${col}-${row}`, title, number: cols * rows > 1 ? `${number}-T${row * cols + col + 1}` : number, ...paper, kind: 'plan', layer, tile, ops: [] }
-    sheet.ops.push(...planOps(model, doc, layers, tile, clashes))
+    sheet.ops.push(...planOps(model, doc, layers, tile))
     const bounds = frame(sheet, model, doc, ` / TILE ${row * cols + col + 1} OF ${cols * rows}`)
     let y = 34
     sheet.ops.push({ kind: 'group', name: 'schedules-legend-revisions' })
@@ -205,12 +203,8 @@ export function buildDrawingSheets(model: UtilityFloor, doc: DrawingDocument, la
   return sheets
 }
 
-export function clashReportSheets(model: UtilityFloor, doc: DrawingDocument, clashes: Clash[]): DrawingSheet[] {
-  const paper = paperSize(doc.settings), sheets: DrawingSheet[] = [], lines = clashes.flatMap(c => [`${c.id} | ${c.severity.toUpperCase()} | ${c.type} | ${c.status.toUpperCase()}`, ...wrap(`${c.rule} | ${c.roomIds.map(id => model.floor.rooms.find(r => r.id === id)?.name ?? id).join(', ')} | ${c.distance === null ? 'Distance N/A' : `${c.distance.toFixed(1)} mm ${c.distanceBasis}`} | ${c.certainty}`, paper.w - 40, 2.7), ...wrap(`${c.suggestion}${c.note ? ` / Note: ${c.note}` : ''}`, paper.w - 40, 2.7), ''])
-  if (!lines.length) lines.push('No issues found by the current concept checks. This does not certify compliance.')
-  while (lines.length) { const sheet: DrawingSheet = { id: `clashes-${sheets.length}`, number: `${doc.settings.projectCode}-CL-${String(model.floor.level + 1).padStart(3, '0')}-${sheets.length + 1}`, title: `Clash Review - ${model.floor.name}`, ...paper, kind: 'clashes', layer: 'coordination', ops: [] }; const b = frame(sheet, model, doc, ' / CLASH REPORT'); let y = 35; while (lines.length && y < b.ty - 5) { sheet.ops.push({ kind: 'text', at: { x: 17, y }, text: lines.shift()!, size: 2.7, color: ink }); y += 5 } sheets.push(sheet) }
-  return sheets
-}
+/** Legacy API: retired reports are intentionally absent from all sheet sets. */
+export function clashReportSheets(_model: UtilityFloor, _doc: DrawingDocument, _legacy: Clash[]): DrawingSheet[] { return [] }
 
 export function drawingOpsSvg(ops: DrawOp[]) {
   let clips = 0

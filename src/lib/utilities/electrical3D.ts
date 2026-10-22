@@ -1,7 +1,7 @@
 import type { Point } from '../geometry.ts'
 import type { ElectricalRun, ElectricalSymbol, UtilityFloor } from './plan.ts'
 import { electricalPathAllowed, segmentIntersection } from './electrical.ts'
-import { alongPath } from './routing.ts'
+import { alongPath, utilityObstacles } from './routing.ts'
 
 export type ElectricalPoint3D = [number, number, number]
 export type ElectricalBoard3D = { id: string; type: ElectricalSymbol['type']; label: string; roomId: string; position: ElectricalPoint3D; rotationY: number; mount: 'wall' | 'ceiling'; circuitIds: string[]; connected: boolean }
@@ -18,7 +18,7 @@ export const electricalWorldPoint = (p: Point, elevationMm: number): ElectricalP
  * through an opaque lintel. Heights remain explicit concept assumptions. */
 export function liftSurfaceRun(model: UtilityFloor, run: { path: Point[] }, from: Pick<ElectricalSymbol, 'position' | 'mount'>, to: Pick<ElectricalSymbol, 'position' | 'mount'>, band: number, doorCrossingMm?: number): ElectricalPoint3D[] | null {
   if (!from.mount || !to.mount || run.path.length < 2) return null
-  const cuts = [...(model.floor.courtyard ? [model.floor.courtyard] : []), ...(model.floor.doubleHeightVoids ?? []).map(v => v.rect)]
+  const cuts = utilityObstacles(model.floor)
   if (!electricalPathAllowed(run.path, model.floor, cuts)) return null
   const distances = [0]
   for (let i = 1; i < run.path.length; i++) distances.push(distances[i - 1] + Math.hypot(run.path[i].x - run.path[i - 1].x, run.path[i].y - run.path[i - 1].y))

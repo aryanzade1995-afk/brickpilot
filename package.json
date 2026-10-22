@@ -9,7 +9,7 @@
     "test:walkthrough-navigation": "node --experimental-strip-types --test scripts/test-walkthrough-navigation.mjs",
     "test:walkthrough-assets": "node --experimental-strip-types --test scripts/test-walkthrough-assets.mjs",
     "test:walkthrough": "node --experimental-strip-types --test scripts/test-walkthrough-foundations.mjs scripts/test-walkthrough-scene.mjs",
-    "test:utility-plan": "node --experimental-strip-types --test scripts/test-utility-plan.mjs scripts/test-utility-electrical.mjs scripts/test-utility-fire.mjs scripts/test-utility-electrical-3d.mjs scripts/test-utility-water.mjs scripts/test-utility-clashes.mjs scripts/test-utility-drawings.mjs",
+    "test:utility-plan": "node --experimental-strip-types --test scripts/test-utility-plan.mjs scripts/test-utility-network-integrity.mjs scripts/test-utility-electrical.mjs scripts/test-utility-fire.mjs scripts/test-utility-electrical-3d.mjs scripts/test-utility-water.mjs scripts/test-utility-clashes.mjs scripts/test-utility-drawings.mjs",
     "test:villa-cad": "node --test scripts/test-villa-cad.mjs",
     "test:solar-pipeline": "node --experimental-strip-types --test scripts/test-solar-pipeline.mjs",
     "test:solar-government": "node --experimental-strip-types --test scripts/test-solar-government.mjs",

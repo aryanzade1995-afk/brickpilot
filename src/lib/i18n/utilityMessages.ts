@@ -1,6 +1,10 @@
 import { clashMessages } from './clashMessages.ts'
 import { drawingMessages } from './drawingMessages.ts'
 export const utilityMessages: Record<string, readonly [string, string]> = {
+  'Choose a utility layer to view its connections.': ['कनेक्शन देखने के लिए उपयोगिता की कोई परत चालू करें।', 'जोडण्या पाहण्यासाठी सेवेचा एखादा स्तर सुरू करा.'],
+  'A previous utility drawing session is available. Restore its routes and drawing settings?': ['पिछला उपयोगिता आराखड़ा उपलब्ध है। उसके मार्ग और ड्रॉइंग सेटिंग वापस लाएँ?', 'मागील सेवा आराखडा उपलब्ध आहे. त्याचे मार्ग आणि रेखाटन सेटिंग पुन्हा आणायचे?'],
+  'Undo / redo drawing': ['ड्रॉइंग में पिछला / अगला बदलाव', 'रेखाटनातील बदल मागे / पुढे'],
+  'Bathroom switch outside door': ['बाथरूम का स्विच दरवाज़े के बाहर', 'स्नानगृहाचा स्विच दरवाजाबाहेर'],
   ...clashMessages,
   ...drawingMessages,
   '3D water supply': ['3D जल आपूर्ति', '3D पाणीपुरवठा'],

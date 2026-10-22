@@ -1,4 +1,11 @@
 import type { Point, Rect } from '../geometry.ts'
+import type { FloorPlan } from '../engine/types.ts'
+
+export const utilityVoids = (floor: FloorPlan): Rect[] => [
+  ...(floor.courtyard ? [floor.courtyard] : []), ...(floor.doubleHeightVoids ?? []).map(v => v.rect), ...(floor.shafts ?? []).map(s => s.rect),
+]
+/** Source structure is an obstacle, never a guessed drill/sleeve opening. */
+export const utilityObstacles = (floor: FloorPlan): Rect[] => [...utilityVoids(floor), ...(floor.columns ?? []).map(c => ({ x: c.at.x - c.size / 2, y: c.at.y - c.size / 2, w: c.size, h: c.size }))]
 
 /** Shared canonical polyline helpers. Plan coordinates are millimetres. */
 export function route(from: Point, to: Point, verticalFirst = false): Point[] {

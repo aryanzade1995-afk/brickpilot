@@ -1,4 +1,4 @@
-import { sharedEdge, type Point, type Rect } from '../geometry.ts'
+import { type Point, type Rect } from '../geometry.ts'
 import type { FloorPlan, PlacedRoom } from '../engine/types.ts'
 import type { ElectricalRun, ElectricalSymbol, ElectricalSymbolType, Fixture, UtilityCircuit } from './plan.ts'
 import { route, simplifyPath, perimeterRoutes } from './routing.ts'
@@ -34,13 +34,13 @@ export function electricalPathAllowed(path: Point[], floor: FloorPlan, cuts: Rec
     })
   })
 }
-function roomRoute(from: Point, to: Point, room: PlacedRoom, floor: FloorPlan, cuts: Rect[], preferEdges = false, surfaceRouting = false): Point[] | null {
+function roomRoute(from: Point, to: Point, room: PlacedRoom, floor: FloorPlan, cuts: Rect[], preferEdges = false, surfaceRouting = false, laneOffsetMm = 0): Point[] | null {
   const r = room.rect
   if (!inRect(r, from, 25) || !inRect(r, to, 25)) return null
   const inset = Math.min(220, r.w / 5, r.h / 5)
   const faceInset = (axis: number, horizontal: boolean) => Math.max(35, ...floor.walls.filter(w => Math.abs(horizontal ? w.a.y - w.b.y : w.a.x - w.b.x) < 1 && Math.abs((horizontal ? w.a.y : w.a.x) - axis) < 25 && Math.max(horizontal ? w.a.x : w.a.y, horizontal ? w.b.x : w.b.y) >= (horizontal ? r.x : r.y) && Math.min(horizontal ? w.a.x : w.a.y, horizontal ? w.b.x : w.b.y) <= (horizontal ? r.x + r.w : r.y + r.h)).map(w => w.thickness / 2 + 35))
-  const left = surfaceRouting ? Math.min(r.w / 4, faceInset(r.x, false)) : inset, right = surfaceRouting ? Math.min(r.w / 4, faceInset(r.x + r.w, false)) : inset
-  const top = surfaceRouting ? Math.min(r.h / 4, faceInset(r.y, true)) : inset, bottom = surfaceRouting ? Math.min(r.h / 4, faceInset(r.y + r.h, true)) : inset
+  const left = surfaceRouting ? Math.min(r.w / 4, faceInset(r.x, false) + laneOffsetMm) : inset, right = surfaceRouting ? Math.min(r.w / 4, faceInset(r.x + r.w, false) + laneOffsetMm) : inset
+  const top = surfaceRouting ? Math.min(r.h / 4, faceInset(r.y, true) + laneOffsetMm) : inset, bottom = surfaceRouting ? Math.min(r.h / 4, faceInset(r.y + r.h, true) + laneOffsetMm) : inset
   const inner = { x: r.x + left, y: r.y + top, w: r.w - left - right, h: r.h - top - bottom }
   const inward = (p: Point) => ({ x: Math.max(inner.x, Math.min(inner.x + inner.w, p.x)), y: Math.max(inner.y, Math.min(inner.y + inner.h, p.y)) })
   const a = inward(from), b = inward(to)
@@ -80,7 +80,7 @@ function roomRoute(from: Point, to: Point, room: PlacedRoom, floor: FloorPlan, c
 
 /** Traverse only named rooms connected by actual door/open-entry openings.
  * Windows, missing doors and unsupported gaps never become wire portals. */
-export function routeThroughDoors(from: Point, fromRooms: string[], to: Point, toRoom: string, floor: FloorPlan, cuts: Rect[] = [], preferEdges = false, surfaceRouting = false): Point[] | null {
+export function routeThroughDoors(from: Point, fromRooms: string[], to: Point, toRoom: string, floor: FloorPlan, cuts: Rect[] = [], preferEdges = false, surfaceRouting = false, laneOffsetMm = 0): Point[] | null {
   const rooms = floor.rooms.filter(r => !r.outdoor)
   const queue = fromRooms.filter(id => rooms.some(r => r.id === id)).map(id => ({ id, at: from, path: [from], seen: new Set([id]) }))
   const visited = new Map<string, number>()
@@ -91,7 +91,7 @@ export function routeThroughDoors(from: Point, fromRooms: string[], to: Point, t
     const node = queue.shift()!, room = rooms.find(r => r.id === node.id)!
     if (preferEdges && best && length(node.path) >= length(best)) continue
     if (node.id === toRoom) {
-      const local = roomRoute(node.at, to, room, floor, cuts, preferEdges, surfaceRouting)
+      const local = roomRoute(node.at, to, room, floor, cuts, preferEdges, surfaceRouting, laneOffsetMm)
       if (local) { const result = simplifyPath([...node.path, ...local]); if (electricalPathAllowed(result, floor, cuts)) { if (!preferEdges) return result; if (!best || length(result) < length(best)) best = result } }
     }
     for (const o of floor.openings) {
@@ -100,7 +100,7 @@ export function routeThroughDoors(from: Point, fromRooms: string[], to: Point, t
       if (!next || node.seen.has(next) || !rooms.some(r => r.id === next)) continue
       const entry = `${next}:${o.at.x}:${o.at.y}`
       if (!preferEdges && visited.has(entry)) continue
-      const local = roomRoute(node.at, o.at, room, floor, cuts, preferEdges, surfaceRouting)
+      const local = roomRoute(node.at, o.at, room, floor, cuts, preferEdges, surfaceRouting, laneOffsetMm)
       if (local) {
         const path = [...node.path, ...local], cost = length(path)
         if (preferEdges && (visited.get(entry) ?? Infinity) <= cost) continue
@@ -118,22 +118,12 @@ export function electricalPlan(floor: FloorPlan, cuts: Rect[], fixtures: Fixture
   const rooms = floor.rooms.filter(r => !r.outdoor)
   const symbols: ElectricalSymbol[] = [], circuits: UtilityCircuit[] = [], utilities: ElectricalRun[] = [], notes: string[] = []
   if (!rooms.length) return { symbols, circuits, utilities, notes }
-  let panelRooms = [rooms.find(r => /kitchen/i.test(`${r.id} ${r.name}`)) ?? rooms[0]], panelAt: Point | null = null
-  for (const kitchen of rooms.filter(r => /kitchen/i.test(`${r.id} ${r.name}`))) {
-    for (const bathroom of rooms.filter(isBathroom)) {
-      const edge = sharedEdge(kitchen.rect, bathroom.rect)
-      if (!edge || edge.length < 600) continue
-      const p = { x: (edge.seg.a.x + edge.seg.b.x) / 2, y: (edge.seg.a.y + edge.seg.b.y) / 2 }
-      if (cuts.some(c => inRect(c, p)) || floor.openings.some(o => Math.abs(o.orient === 'h' ? p.y - o.at.y : p.x - o.at.x) < 150 && Math.abs(o.orient === 'h' ? p.x - o.at.x : p.y - o.at.y) < o.width / 2 + 180)) continue
-      panelRooms = [kitchen, bathroom]; panelAt = p; break
-    }
-    if (panelAt) break
-  }
-  if (!panelAt) {
-    const host = floor.rooms.find(r => !r.outdoor && /foyer|corridor|lobby|gallery/i.test(`${r.id} ${r.name}`)) ?? panelRooms[0]
-    panelRooms = [host]; panelAt = { x: host.rect.x + 220, y: host.rect.y + Math.min(host.rect.h * .3, 800) }
-    if (cuts.some(c => inRect(c, panelAt!))) { notes.push('No clear distribution-board proposal on this floor.'); return { symbols, circuits, utilities, notes } }
-  }
+  // A DB belongs on an accessible dry wall, never the wet-room shared wall.
+  const dry = rooms.filter(r => !isBathroom(r) && !/kitchen|utility|laundry/i.test(r.name))
+  const host = dry.find(r => /foyer|entrance|corridor|lobby|hall|gallery/i.test(r.name)) ?? dry[0] ?? rooms.find(r => !isBathroom(r))
+  if (!host) { notes.push('No dry location is represented for the distribution board.'); return { symbols, circuits, utilities, notes } }
+  const panelRooms = [host], panelAt = { x: host.rect.x + 250, y: host.rect.y + Math.min(host.rect.h * .3, 800) }
+  if (cuts.some(c => inRect(c, panelAt))) { notes.push('No clear dry distribution-board position.'); return { symbols, circuits, utilities, notes } }
   const panelId = `E:${floor.level}:DB`, lightingId = `E:${floor.level}:L1`, powerId = `E:${floor.level}:P1`
   circuits.push({ id: lightingId, name: 'Lighting 1', tag: 'L1', color: '#D32F2F', panelId, loads: [], controls: [], wireSize: '1.5mm2', breaker: '10A', status: 'concept', unroutedLoads: [] },
     { id: powerId, name: 'Power 1', tag: 'P1', color: '#C45917', panelId, loads: [], controls: [], wireSize: '2.5mm2', breaker: '16A', status: 'concept', unroutedLoads: [] })
@@ -146,7 +136,7 @@ export function electricalPlan(floor: FloorPlan, cuts: Rect[], fixtures: Fixture
     const place = (type: ElectricalSymbolType, label: string, nx: number, ny: number, circuit: UtilityCircuit) => {
       const desired = { x: r.x + Math.max(180, Math.min(r.w - 180, r.w * nx)), y: r.y + Math.max(180, Math.min(r.h - 180, r.h * ny)) }
       const options = [desired, ...[.15, .35, .6, .85].flatMap(x => [.15, .4, .7, .85].map(y => ({ x: r.x + r.w * x, y: r.y + r.h * y })))]
-      const placed = options.map(p => mountSymbol(floor, room, type, label, p, heightMm)).find(s => !cuts.some(c => inRect(c, s.position)) && positions.every(q => Math.hypot(s.position.x - q.x, s.position.y - q.y) > 260))
+      const placed = options.map(p => mountSymbol(floor, room, type, label, p, heightMm)).find(s => !cuts.some(c => inRect(c, s.position)) && positions.every(q => Math.hypot(s.position.x - q.x, s.position.y - q.y) > 260) && (!bath || !['switch', 'socket'].includes(type) || fixtures.filter(f => f.roomId === room.id && f.type === 'shower').every(f => Math.hypot(f.position.x - s.position.x, f.position.y - s.position.y) > Math.max(f.width, f.depth) / 2 + 600)))
       if (!placed) { circuit.status = 'needs-review'; notes.push(`No clear electrical symbol position for ${room.name}: ${label}.`); return null }
       positions.push(placed.position)
       const symbol: ElectricalSymbol = { id: `E:${floor.level}:${room.id}:${type}:${symbols.length}`, layer: 'electrical', type, label, ...placed, roomId: room.id, roomIds: [room.id], circuitIds: [circuit.id], basis: 'proposed' }
@@ -156,25 +146,31 @@ export function electricalPlan(floor: FloorPlan, cuts: Rect[], fixtures: Fixture
     const switchPoint = door ? { x: Math.max(r.x + 220, Math.min(r.x + r.w - 220, door.at.x + (door.orient === 'h' ? door.width / 2 + 220 : 220))), y: Math.max(r.y + 220, Math.min(r.y + r.h - 220, door.at.y + (door.orient === 'v' ? door.width / 2 + 220 : 220))) } : { x: r.x + 250, y: r.y + r.h - 250 }
     const lightCircuit = circuits[0], powerCircuit = circuits[1]
     const sw = door ? place('switch', 'Switch at door', (switchPoint.x - r.x) / r.w, (switchPoint.y - r.y) / r.h, lightCircuit) : null
+    if (bath && sw && door) {
+      const outside = rooms.find(r => !isBathroom(r) && door.rooms?.includes(r.id) && r.id !== room.id)
+      if (outside) {
+        const candidates = [door.at, ...[-300, 300, -600, 600, -1000, 1000].map(offset => ({ x: door.at.x + (door.orient === 'h' ? offset : 0), y: door.at.y + (door.orient === 'v' ? offset : 0) }))]
+        const mounted = candidates.map(p => mountSymbol(floor, outside, 'switch', sw.label, p, heightMm)).find(p => p.mount && !cuts.some(c => inRect(c, p.position)) && symbols.every(s => s.id === sw.id || Math.hypot(s.position.x - p.position.x, s.position.y - p.position.y) > 200))
+        if (mounted) { sw.position = mounted.position; sw.mount = mounted.mount; sw.roomId = outside.id; sw.roomIds = [outside.id]; sw.label = 'Bathroom switch outside door' }
+      }
+    }
     if (!door) { lightCircuit.status = 'needs-review'; notes.push(`Switch position requires a door review: ${room.name}.`) }
     const isKitchen = /kitchen/i.test(`${room.id} ${room.name}`), passage = /stair|corridor|hall|foyer|lobby|gallery/i.test(`${room.id} ${room.name}`)
     const lights = bath ? [place('light', 'Ceiling light', .5, .48, lightCircuit), place('exhaust_fan', 'Exhaust fan', .82, .12, lightCircuit)] : isKitchen ? [place('light', 'Ceiling light 1', .35, .48, lightCircuit), place('light', 'Ceiling light 2', .7, .48, lightCircuit)] : [place('light', 'Ceiling light', .5, .5, lightCircuit)]
     const sockets = bath ? [place('socket', 'Geyser socket · 16A', .85, .65, powerCircuit)] : isKitchen ? [place('socket', 'Fridge socket', .12, .15, powerCircuit), place('socket', 'Chimney socket', .7, .15, powerCircuit), place('socket', 'General socket', .85, .8, powerCircuit)] : passage ? [] : [place('socket', 'General socket', .15, .7, powerCircuit), ...(/bed|living|study|office|lounge/i.test(`${room.id} ${room.name}`) ? [place('socket', 'General socket 2', .85, .7, powerCircuit)] : [])]
-    for (const [circuit, chain] of [[lightCircuit, [sw, ...lights]], [powerCircuit, sockets]] as const) {
-      let previous: ElectricalSymbol | null = circuit.tag === 'L1' && !sw ? null : panel
-      for (const load of chain) {
-        if (!load) continue
-        const path: Point[] | null = previous ? routeThroughDoors(previous.position, previous.roomIds, load.position, room.id, floor, cuts, true, true) : null
-        if (!path) {
-          if (load.type === 'switch') circuit.unroutedLoads.push(...lights.filter((s): s is ElectricalSymbol => !!s).map(s => s.id))
-          else circuit.unroutedLoads.push(load.id)
-          circuit.status = 'needs-review'; previous = null; continue
-        }
-        utilities.push({ id: `${circuit.id}:${load.id}`, layer: 'electrical', circuitId: circuit.id, fromSymbolId: previous!.id, toSymbolId: load.id, path, wireSize: circuit.wireSize, roomId: room.id, conductors: 3 })
-        previous = load
-      }
+    // Topology denotes parallel branches, not one appliance feeding another.
+    // Lighting receives a DB feed to its switch and independent switched loads.
+    const links: [UtilityCircuit, ElectricalSymbol | null, ElectricalSymbol][] = []
+    if (sw) links.push([lightCircuit, panel, sw])
+    for (const light of lights) if (light) links.push([lightCircuit, sw, light])
+    for (const socket of sockets) if (socket) links.push([powerCircuit, panel, socket])
+    for (const [circuit, from, load] of links) {
+      const path = from ? routeThroughDoors(from.position, from.roomIds, load.position, load.roomId, floor, cuts, true, true, circuit.tag === 'L1' ? 20 : 180) : null
+      if (!from || !path || path.length < 2) { if (load.type !== 'switch') circuit.unroutedLoads.push(load.id); circuit.status = 'needs-review'; continue }
+      utilities.push({ id: `${circuit.id}:${load.id}`, layer: 'electrical', circuitId: circuit.id, fromSymbolId: from.id, toSymbolId: load.id, path, wireSize: circuit.wireSize, roomId: load.roomId, conductors: 3 })
     }
   }
+
   for (const circuit of circuits) { circuit.unroutedLoads = [...new Set(circuit.unroutedLoads)]; if (circuit.unroutedLoads.length) notes.push(`${circuit.name}: ${circuit.unroutedLoads.length} loads need a door/routing review.`) }
   // Fixture positions are shared with drainage, but electrical proposals never
   // alter them. Kept as an input for later appliance-specific placement rules.

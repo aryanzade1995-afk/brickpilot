@@ -1,12 +1,13 @@
 import type { WaterRun, WaterSymbol, UtilityFloor } from './plan.ts'
 import { electricalWorldPoint, liftSurfaceRun, type ElectricalPoint3D } from './electrical3D.ts'
 import { routeThroughDoors } from './electrical.ts'
+import { utilityObstacles } from './routing.ts'
 
 export function waterScene(model: UtilityFloor, room = 'all', network = 'all', hot = true) {
   const symbols = model.symbols.filter((s): s is WaterSymbol => s.layer === 'water_supply' && (network === 'all' || s.networkId === network) && (hot || s.service === 'cold'))
   const runs = model.utilities.filter((u): u is WaterRun => u.layer === 'water_supply' && (room === 'all' || u.roomId === room) && (network === 'all' || u.networkId === network) && (hot || u.service === 'cold'))
   const pipes: { id: string; networkId: string; diameter: number; points: ElectricalPoint3D[] }[] = [], pending: string[] = []
-  const needed = new Set<string>(), cuts = [...(model.floor.courtyard ? [model.floor.courtyard] : []), ...(model.floor.doubleHeightVoids ?? []).map(v => v.rect)]
+  const needed = new Set<string>(), cuts = utilityObstacles(model.floor)
   for (const run of runs) {
     const from = symbols.find(s => s.id === run.fromSymbolId), to = symbols.find(s => s.id === run.toSymbolId)
     const band = run.service === 'cold' ? 600 : 760

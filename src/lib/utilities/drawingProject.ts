@@ -34,6 +34,8 @@ const floorSchema = z.object({
     walls: z.array(z.object({ id: id.optional(), a: point, b: point, thickness: positive, rooms: z.array(id.nullable()).optional(), heightMm: positive.optional() }).passthrough()).max(2000),
     openings: z.array(z.object({ id: id.optional(), kind: z.enum(['door', 'entry', 'window']), orient: z.enum(['h', 'v']), at: point, width: positive, rooms: z.array(id.nullable()).optional(), head: positive.optional(), sill: finite.nonnegative().optional() }).passthrough()).max(2000),
     courtyard: rect.nullable().optional(), doubleHeightVoids: z.array(z.object({ rect }).passthrough()).max(100).optional(),
+    columns: z.array(z.object({ id, at: point, size: positive }).passthrough()).max(5000).optional(),
+    shafts: z.array(z.object({ id, rect }).passthrough()).max(500).optional(),
   }).passthrough(),
   slabs: z.array(rect).max(500), wallSections: z.array(z.object({ id, a: point, b: point, thickness: positive, height: positive, base: finite.nonnegative() })).max(5000),
   fixtures: z.array(z.object({ id, type: z.enum(['sink', 'toilet', 'shower', 'floor_drain']), position: point, roomId: id, basis: z.enum(['furnishing', 'proposed']), width: positive, depth: positive })).max(1000),
@@ -71,7 +73,7 @@ const ordered = (v: unknown): unknown => Array.isArray(v) ? v.map(ordered) : v &
 const legacySignature = (m: UtilityFloor) => hash(ordered([m.sourcePlanId, m.floor, m.utilities, m.symbols]))
 export const sourceSignature = (m: UtilityFloor) => `m2-${hash(ordered(m))}`
 export function defaultDrawing(projectName: string): DrawingDocument {
-  return { version: 1, settings: { projectName, client: '', projectCode: 'PRJ', drawnBy: '', checkedBy: '', date: today(), size: 'A2', orientation: 'landscape', scale: 100, dpi: 150 }, activeLayer: 'coordination', layers: Object.fromEntries(DRAWING_LAYERS.map(k => [k, { visible: true, locked: false, opacity: 1 }])) as LayerPreferences, annotationsVisible: true, annotationsLocked: false, grid: false, autoDimensions: false, pipeTags: false, revisions: [], annotations: [], theme: 'light' }
+  return { version: 1, settings: { projectName, client: '', projectCode: 'PRJ', drawnBy: '', checkedBy: '', date: today(), size: 'A2', orientation: 'landscape', scale: 100, dpi: 150 }, activeLayer: 'coordination', layers: Object.fromEntries(DRAWING_LAYERS.map(k => [k, { visible: false, locked: false, opacity: 1 }])) as LayerPreferences, annotationsVisible: true, annotationsLocked: false, grid: false, autoDimensions: false, pipeTags: false, revisions: [], annotations: [], theme: 'light' }
 }
 export function nextRevision(revisions: DrawingDocument['revisions']) {
   let n = revisions.reduce((max, r) => Math.max(max, [...r.letter].reduce((s, c) => s * 26 + c.charCodeAt(0) - 64, 0)), 0) + 1

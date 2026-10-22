@@ -9,22 +9,17 @@ import { alongPath, UTILITY_LAYERS, displayedRuns, displayedSymbols, selectionFo
 import { translate as t, useLanguage } from '@/lib/i18n/index.ts'
 import { saveBlob } from '@/lib/export/fileSaver.ts'
 import { wiringPath } from '@/lib/utilities/overlays.ts'
-import { clashColor, clashTypeLabel, type Clash } from '@/lib/utilities/clashes.ts'
-import { clashDistance } from '@/lib/utilities/clashReport.ts'
-import { useUtilityClashes } from './useUtilityClashes.ts'
-import { ClashReportPanel, filterClashes, initialClashFilter } from './ClashReportPanel.tsx'
 import { UtilitySymbolGlyph } from './UtilitySymbolGlyph.tsx'
 import { ExportDropdown } from '@/components/export/ExportDropdown.tsx'
 import { ElectricalLayer3D } from './ElectricalLayer3D.tsx'
 import { electricalScene } from '@/lib/utilities/electrical3D.ts'
 import { WaterLayer3D } from './WaterLayer3D.tsx'
 import { waterScene } from '@/lib/utilities/water3D.ts'
-import { UtilityInstances3D, type UtilityInstance3D } from './UtilityInstances3D.tsx'
 import { useUtilityDrawing } from './useUtilityDrawing.ts'
 import { UtilityDrawingWorkbench, type SheetExportKind } from './UtilityDrawingWorkbench.tsx'
 import { UtilityLayerPanel } from './UtilityLayerPanel.tsx'
 import { DRAWING_LAYERS, visibleLayers, sourceSignature, parseUtilityDrawing, type DrawingDocument, type UtilityDrawingProject } from '@/lib/utilities/drawingProject.ts'
-import { buildDrawingSheets, clashReportSheets, drawingOpsSvg, annotationOps, sheetSvg as serializeDrawingSheet } from '@/lib/utilities/drawingSheets.ts'
+import { buildDrawingSheets, drawingOpsSvg, annotationOps, sheetSvg as serializeDrawingSheet } from '@/lib/utilities/drawingSheets.ts'
 import { downloadVectorSheets, downloadSheetPng, downloadSheetSvg, downloadUtilityDxf } from '@/lib/utilities/drawingExports.ts'
 
 type Box = { x: number; y: number; w: number; h: number }
@@ -46,6 +41,7 @@ function FloorScene({ model, mode, focusRoom, transparentWalls, transparentFloor
   const target = useMemo(() => new Vector3(center.x / 1000, .4, center.y / 1000), [center])
   const animation = useRef<{ start: number; from: Vector3; to: Vector3 } | null>(null)
   const home = useRef<Vector3 | null>(null)
+  const wallHeight = Math.max(0, ...model.wallSections.map(w => w.base + w.height))
   useEffect(() => {
     if (!(camera instanceof PerspectiveCamera) || mode !== '3d') return
     const r = focused ?? model.floor.outline, height = Math.max(3000, ...model.wallSections.map(w => w.height + w.base))
@@ -75,6 +71,7 @@ function FloorScene({ model, mode, focusRoom, transparentWalls, transparentFloor
     <color attach="background" args={['#eeeeec']} /><hemisphereLight args={['#ffffff', '#c5c5bd', 2]} /><directionalLight position={[10, 25, 5]} intensity={2.2} />
     {model.slabs.map((r, i) => <mesh key={i} position={[(r.x + r.w / 2) / 1000, -.08, (r.y + r.h / 2) / 1000]}><boxGeometry args={[r.w / 1000, .16, r.h / 1000]} /><meshStandardMaterial color="#fafaf8" roughness={.9} transparent={transparentFloor} opacity={transparentFloor ? .38 : 1} depthWrite={!transparentFloor} /></mesh>)}
     {model.wallSections.map(w => <mesh key={w.id} position={[(w.a.x + w.b.x) / 2000, (w.base + w.height / 2) / 1000, (w.a.y + w.b.y) / 2000]} rotation={[0, -Math.atan2(w.b.y - w.a.y, w.b.x - w.a.x), 0]}><boxGeometry args={[Math.hypot(w.b.x - w.a.x, w.b.y - w.a.y) / 1000, w.height / 1000, w.thickness / 1000]} /><meshStandardMaterial color="#cfceca" roughness={.8} transparent={transparentWalls} opacity={transparentWalls ? .18 : 1} depthWrite={!transparentWalls} /></mesh>)}
+    {wallHeight > 0 && (model.floor.columns ?? []).map(c => <mesh key={`column:${c.id}`} position={[c.at.x / 1000, wallHeight / 2000, c.at.y / 1000]}><boxGeometry args={[c.size / 1000, wallHeight / 1000, c.size / 1000]} /><meshStandardMaterial color="#b8b9b3" transparent={transparentWalls} opacity={transparentWalls ? .3 : 1} depthWrite={!transparentWalls} /></mesh>)}
     <OrbitControls ref={controls} target={target} enabled={mode === '3d'} makeDefault enableDamping={false} minDistance={2} maxDistance={150} maxPolarAngle={Math.PI / 2 - .01} />
   </>
 }
@@ -82,7 +79,7 @@ function FloorScene({ model, mode, focusRoom, transparentWalls, transparentFloor
 const PreparedFloorScene = memo(FloorScene)
 
 type HoverInfo = { title: string; lines: string[] }
-type SheetProps = { model: UtilityFloor; box: Box; visible: Record<UtilityLayer, boolean>; room: string; circuit: string; zone: string; water: string; showCoverage: boolean; showEvacuation: boolean; selected: string | null; selectedClash?: Clash; scale: number; warnings: Clash[]; showWarnings: boolean; exporting?: boolean; project: string; drawingDocument?: DrawingDocument; onSelect?: (id: string) => void; onHover?: (info: HoverInfo | null, x?: number, y?: number) => void; svgRef?: React.Ref<SVGSVGElement> }
+type SheetProps = { model: UtilityFloor; box: Box; visible: Record<UtilityLayer, boolean>; room: string; circuit: string; zone: string; water: string; showCoverage: boolean; showEvacuation: boolean; selected: string | null; scale: number; exporting?: boolean; project: string; drawingDocument?: DrawingDocument; onSelect?: (id: string) => void; onHover?: (info: HoverInfo | null, x?: number, y?: number) => void; svgRef?: React.Ref<SVGSVGElement> }
 const wireLabel = (wire: string) => wire.replace('mm2', ' mm²')
 function runInfo(model: UtilityFloor, run: UtilityRun): HoverInfo {
   const room = t(model.floor.rooms.find(r => r.id === run.roomId)?.name) ?? ''
@@ -102,7 +99,7 @@ function RunLayer(props: SheetProps & { layerKey: UtilityLayer; filterId: string
   // symbols and export for every layer. Only config/metadata select decoration.
   return <g data-layer={layerKey} opacity={layerKey === 'hvac' ? 1 : props.drawingDocument?.layers[layerKey].opacity ?? 1} pointerEvents={locked ? 'none' : undefined}>
     {displayed.filter(u => u.layer === layerKey).map(u => {
-      const points = u.path.map(p => `${p.x},${p.y}`).join(' '), key = selectionForRun(u), active = selected === key || !!props.selectedClash && [props.selectedClash.itemA, props.selectedClash.itemB].includes(u.id)
+      const points = u.path.map(p => `${p.x},${p.y}`).join(' '), key = selectionForRun(u), active = selected === key
       const circuitData = u.layer === 'electrical' ? model.circuits.find(c => c.id === u.circuitId) : u.layer === 'fire_alarm' ? model.zones.find(z => z.id === u.zoneId) : u.layer === 'water_supply' ? model.waterNetworks.find(n => n.id === u.networkId) : null
       const color = circuitData?.color ?? layer.color, geometry = wiringPath(u, displayed, scale)
       const info = runInfo(model, u), label = [info.title, ...info.lines].join(' · '), markers = [], length = pathLength(u.path)
@@ -128,12 +125,10 @@ function RunLayer(props: SheetProps & { layerKey: UtilityLayer; filterId: string
       const n = s.layer === 'water_supply' ? model.waterNetworks.find(n => n.id === s.networkId) : null
       const selection = c ? `circuit:${c.id}` : z ? `zone:${z.id}` : n ? `water:${n.id}` : null, color = c?.color ?? z?.color ?? n?.color ?? layer.color
       const info: HoverInfo = { title: s.layer !== 'drainage' ? t(s.label) : t('Stack'), lines: [s.roomIds.map(id => t(model.floor.rooms.find(r => r.id === id)?.name)).join(', '), s.layer === 'electrical' ? s.circuitIds.map(id => t(model.circuits.find(c => c.id === id)?.name)).join(' / ') : s.layer === 'fire_alarm' ? `${z?.tag} · ${t(z?.name)} · ${s.connection === 'standalone' ? t('Standalone safety equipment') : t('Alarm loop')}` : n ? `${n.tag} · ${t(n.name)} · ${t('Source unverified')}` : t('Proposed stack location'), ...(s.layer === 'fire_alarm' ? [`${t('Concept coverage radius')}: ${s.coverageRadiusMm === null ? t('Not applicable') : `${s.coverageRadiusMm / 1000} m`}`] : [])] }
-      const clashActive = props.selectedClash && [props.selectedClash.itemA, props.selectedClash.itemB].includes(s.id)
-      return <g key={s.id} opacity={selected && selection !== selected && !clashActive && !(s.layer === 'drainage' && model.utilities.some(u => u.layer === 'drainage' && u.id === selected && u.stackId === s.id)) ? .2 : 1} transform={`translate(${s.position.x} ${s.position.y}) scale(${1 / scale})`}
+      return <g key={s.id} opacity={selected && selection !== selected && !(s.layer === 'drainage' && model.utilities.some(u => u.layer === 'drainage' && u.id === selected && u.stackId === s.id)) ? .2 : 1} transform={`translate(${s.position.x} ${s.position.y}) scale(${1 / scale})`}
         {...(!exporting && selection && !locked ? { role: 'button', tabIndex: 0, 'aria-label': [info.title, ...info.lines].join(' · '), 'aria-pressed': selected === selection, 'data-run-id': selection, onKeyDown: (e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect?.(selection) } } } : {})}
         onPointerMove={e => onHover?.(info, e.clientX, e.clientY)} onPointerLeave={() => onHover?.(null)} onFocus={() => onHover?.(info)} onBlur={() => onHover?.(null)}>
         {!exporting && selection && <rect x={-22} y={-22} width={44} height={44} fill="transparent" />}
-        {clashActive && <circle r={17} fill="none" stroke={color} strokeWidth={3} />}
         <UtilitySymbolGlyph type={s.type} color={color} />
         {s.type === 'vertical_stack' && <text x={13} y={-13} fontSize={10} fill={color} stroke="white" strokeWidth={3} paintOrder="stroke">{t('Stack')} *</text>}
         <title>{[info.title, ...info.lines].join(' · ')}</title>
@@ -179,7 +174,7 @@ function UtilitySheet(props: SheetProps) {
   const drawing = props.drawingDocument
   const annotations = useMemo(() => drawing?.annotationsVisible ? drawingOpsSvg(drawing.annotations.filter(a => a.layer === 'annotations' || props.visible[a.layer]).flatMap(a => annotationOps(a, p => ({ x: p.x / drawing.settings.scale, y: p.y / drawing.settings.scale })))) : '', [drawing, props.visible])
   const glow = useId().replaceAll(':', ''), r = model.floor.outline, font = Math.max(140, 11 / scale)
-  const sheetY = r.y + r.h + 1600, legend = utilityLegend(model, props.visible, props.circuit, props.showWarnings, props.zone, props.showEvacuation, props.showCoverage, props.water), rowHeight = Math.max(320, font * 1.6), footerHeight = 3700 + Math.ceil(legend.length / 2) * rowHeight
+  const sheetY = r.y + r.h + 1600, legend = utilityLegend(model, props.visible, props.circuit, false, props.zone, props.showEvacuation, props.showCoverage, props.water), rowHeight = Math.max(320, font * 1.6), footerHeight = 3700 + Math.ceil(legend.length / 2) * rowHeight
   return <svg ref={svgRef} xmlns="http://www.w3.org/2000/svg" viewBox={`${box.x} ${box.y} ${box.w} ${box.h}`} className="h-full w-full" role="group" aria-label={t('Utility plan')} fontFamily="Arial, sans-serif" onPointerLeave={() => props.onHover?.(null)}>
     <title>{project} · {t(model.floor.name)} · {t('Utilities')}</title>
     <defs><filter id={glow} x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation={2 / scale} /></filter><clipPath id={`${glow}-slabs`}>{model.slabs.map((s, i) => <rect key={i} x={s.x} y={s.y} width={s.w} height={s.h} />)}</clipPath></defs>
@@ -197,27 +192,15 @@ function UtilitySheet(props: SheetProps) {
         <line x1={o.at.x - (o.orient === 'h' ? o.width / 2 : 0)} y1={o.at.y - (o.orient === 'v' ? o.width / 2 : 0)} x2={o.at.x + (o.orient === 'h' ? o.width / 2 : 0)} y2={o.at.y + (o.orient === 'v' ? o.width / 2 : 0)} stroke={o.kind === 'window' ? '#adb7b5' : '#ffffff'} strokeWidth={Math.max(260, ...model.floor.walls.filter(w => w.rooms?.some(id => o.rooms?.includes(id))).map(w => w.thickness + 10))} />
         {o.kind === 'window' && <line x1={o.at.x - (o.orient === 'h' ? o.width / 2 : 0)} y1={o.at.y - (o.orient === 'v' ? o.width / 2 : 0)} x2={o.at.x + (o.orient === 'h' ? o.width / 2 : 0)} y2={o.at.y + (o.orient === 'v' ? o.width / 2 : 0)} stroke="white" strokeWidth={1} vectorEffect="non-scaling-stroke" />}
       </g>)}
-      {model.fixtures.map(f => <g key={f.id} opacity={room === 'all' || room === f.roomId ? 1 : .2} transform={`translate(${f.position.x} ${f.position.y})`} fill="white" stroke="#888e87" strokeWidth={1 / scale}>
+      {model.fixtures.filter(f => f.type !== 'floor_drain' || props.visible.drainage).map(f => <g key={f.id} opacity={room === 'all' || room === f.roomId ? 1 : .2} transform={`translate(${f.position.x} ${f.position.y})`} fill="white" stroke="#888e87" strokeWidth={1 / scale}>
         {f.type === 'toilet' ? <><rect x={-f.width / 2} y={-f.depth / 2} width={f.width} height={f.depth * .24} rx={30} /><ellipse cy={f.depth * .1} rx={f.width * .48} ry={f.depth * .37} /><ellipse cy={f.depth * .1} rx={f.width * .28} ry={f.depth * .24} /></> : <><rect x={-f.width / 2} y={-f.depth / 2} width={f.width} height={f.depth} rx={f.type === 'shower' ? 20 : 65} /><path d={f.type === 'shower' ? `M${-f.width / 2} ${-f.depth / 2}l${f.width} ${f.depth}m${-f.width} 0l${f.width} ${-f.depth}` : `M${-f.width * .3} 0h${f.width * .6}`} fill="none" /></>}
       </g>)}
     </g>
     {drawing?.grid && <g pointerEvents="none" clipPath={`url(#${glow}-slabs)`}><defs><pattern id={`${glow}-grid`} width={1000} height={1000} patternUnits="userSpaceOnUse"><path d="M1000 0H0V1000" fill="none" stroke="#dde5df" strokeWidth={1 / scale} /></pattern></defs><rect x={r.x} y={r.y} width={r.w} height={r.h} fill={`url(#${glow}-grid)`} /></g>}
     <FireContext {...props} id={glow} />
     {Object.keys(UTILITY_LAYERS).map(key => <RunLayer key={key} {...props} layerKey={key as UtilityLayer} filterId={glow} />)}
+    <g data-layer="structure" fill="#b8b9b3" stroke="#8f968e" strokeWidth={1 / scale}>{(model.floor.columns ?? []).map(c => <rect key={c.id} x={c.at.x - c.size / 2} y={c.at.y - c.size / 2} width={c.size} height={c.size} />)}</g>
     {drawing && <g data-layer="annotations" pointerEvents="none" transform={`scale(${drawing.settings.scale})`} dangerouslySetInnerHTML={{ __html: annotations }} />}
-    {props.selectedClash && <g pointerEvents="none" fill="none" stroke="#bc4141" strokeWidth={4} vectorEffect="non-scaling-stroke">
-      {model.exitRoutes.filter(e => [props.selectedClash!.itemA, props.selectedClash!.itemB].includes(e.id)).map(e => <polyline key={e.id} points={e.path.map(p => `${p.x},${p.y}`).join(' ')} vectorEffect="non-scaling-stroke" />)}
-      {model.wallSections.filter(w => [props.selectedClash!.itemA, props.selectedClash!.itemB].includes(w.id)).map(w => <line key={w.id} x1={w.a.x} y1={w.a.y} x2={w.b.x} y2={w.b.y} vectorEffect="non-scaling-stroke" />)}
-    </g>}
-    {props.showWarnings && props.warnings.map(w => {
-      const selection = `clash:${w.id}`, info = { title: t(w.rule), lines: [t(model.floor.rooms.find(rm => rm.id === w.roomId)?.name) ?? '', t(clashDistance(w)), t(w.certainty === 'needs-verification' ? 'Needs checking' : 'Concept model')] }
-      return <g key={w.id} opacity={selected && selected !== selection ? .25 : w.status === 'resolved' || w.status === 'ignored' ? .45 : 1} transform={`translate(${w.position.x} ${w.position.y}) scale(${1 / scale})`} role={exporting ? undefined : 'button'} tabIndex={exporting ? undefined : 0} aria-label={`${t('Focus problem')} ${w.id} · ${t(w.rule)}`} data-run-id={selection} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); props.onSelect?.(selection) } }} onPointerMove={e => props.onHover?.(info, e.clientX, e.clientY)} onPointerLeave={() => props.onHover?.(null)} onFocus={() => props.onHover?.(info)} onBlur={() => props.onHover?.(null)}>
-        {!exporting && <rect x={-22} y={-22} width={44} height={44} fill="transparent" />}
-        <circle className={!exporting && (w.status === 'open' || w.status === 'acknowledged') ? 'utility-clash-pulse' : undefined} r={13} fill={clashColor(w.severity)} fillOpacity={.15} />
-        <circle r={8} fill={clashColor(w.severity)} stroke="white" strokeWidth={2} /><text y={4} textAnchor="middle" fontSize={11} fontWeight="bold" fill="white">!</text><title>{[w.id, t(w.rule), t(w.status)].join(' · ')}</title>
-      </g>
-    })}
-
     <g fill="#66665f" fontSize={font * .8}>
       <path d={`M${r.x - 750} ${r.y + 700}v-1000m-180 250l180-250 180 250`} fill="none" stroke="#77776f" strokeWidth={1} vectorEffect="non-scaling-stroke" /><text x={r.x - 750} y={r.y - 500} textAnchor="middle">↑</text>
       <text x={r.x} y={r.y - 700}>{t('Plan up · geographic north unverified')}</text>
@@ -242,23 +225,17 @@ function UtilitySheet(props: SheetProps) {
 export function UtilityPlanViewer({ model: sourceModel, project, reviewScope, mode, onModeChange: setMode }: { model: UtilityFloor; project: string; reviewScope: string; mode: Mode; onModeChange: (mode: Mode) => void }) {
   useLanguage(s => s.language)
   const drawing = useUtilityDrawing(sourceModel, project, reviewScope), model = drawing.model, drawingDoc = drawing.document
-  const undoDomain = useRef<'drawing' | 'review'>('drawing')
-  const changeDrawing = (edit: (doc: DrawingDocument) => void) => { if (drawing.change(edit)) undoDomain.current = 'drawing' }
+  const changeDrawing = (edit: (doc: DrawingDocument) => void) => { drawing.change(edit) }
   const [sheetOpen, setSheetOpen] = useState(false), [panelsOpen, setPanelsOpen] = useState(false), [helpOpen, setHelpOpen] = useState(false), [exportBusy, setExportBusy] = useState('')
   const [restoreCandidate, setRestoreCandidate] = useState<UtilityDrawingProject | null>(null), [sessionMessage, setSessionMessage] = useState(''), [printPage, setPrintPage] = useState(0)
   const helpDialog = useRef<HTMLDialogElement>(null)
   const [planVisible, setPlanVisible] = useState(false)
-  const [circuit, setCircuit] = useState('all'), [showWarnings, setShowWarnings] = useState(true)
+  const [circuit, setCircuit] = useState('all')
   const [zone, setZone] = useState('all'), [showCoverage, setShowCoverage] = useState(false), [showEvacuation, setShowEvacuation] = useState(false)
   const [showElectrical3D, setShowElectrical3D] = useState(true), [seeThroughWalls, setSeeThroughWalls] = useState(true), [showRoomNames3D, setShowRoomNames3D] = useState(true)
   const [water, setWater] = useState('all'), [showWater3D, setShowWater3D] = useState(true), [showHotWater, setShowHotWater] = useState(true), [seeThroughFloor, setSeeThroughFloor] = useState(true)
   const [room, setRoom] = useState('all'), [selected, setSelected] = useState<string | null>(null)
-  const clashes = useUtilityClashes(model, drawing.reviewScope, drawing.initialReviews)
-  const [clashFilter, setClashFilter] = useState(initialClashFilter), [showClashes3D, setShowClashes3D] = useState(false)
-  const selectedClash = clashes.clashes.find(c => selected === `clash:${c.id}`)
-  const filteredClashes = useMemo(() => filterClashes(clashes.clashes, clashFilter, model), [clashes.clashes, clashFilter, model])
-  const visible = useMemo(() => visibleLayers(drawingDoc), [drawingDoc.layers])
-  const setVisible = (action: React.SetStateAction<Record<UtilityLayer, boolean>>) => { const next = typeof action === 'function' ? action(visible) : action; changeDrawing(d => { for (const key of DRAWING_LAYERS) d.layers[key].visible = next[key] }) }
+  const visible = useMemo(() => visibleLayers(drawingDoc), [drawingDoc])
   const [box, setBox] = useState<Box | null>(null), [width, setWidth] = useState(800), [error, setError] = useState('')
   const [tooltip, setTooltip] = useState<{ info: HoverInfo; x: number; y: number } | null>(null)
   const host = useRef<HTMLDivElement>(null)
@@ -276,9 +253,7 @@ export function UtilityPlanViewer({ model: sourceModel, project, reviewScope, mo
   const selectedCoverage = model.coverage.find(c => selected === `coverage:${c.roomId}`)
   const selectedWater = model.waterNetworks.find(n => selected === `water:${n.id}`)
   const shown = useMemo(() => displayedRuns(model, visible, room, circuit, zone, water), [model, visible, room, circuit, zone, water])
-  const warnings = useMemo(() => filteredClashes.filter(c => visible[c.layerA] && visible[c.layerB] && (room === 'all' || c.roomIds.includes(room))), [filteredClashes, visible, room])
-  const clashSpheres = useMemo(() => warnings.filter(c => c.elevationMm !== null).map((c): UtilityInstance3D => ({ position: [c.position.x / 1000, c.elevationMm! / 1000, c.position.y / 1000], scale: [.10, .10, .10], color: clashColor(c.severity), selection: `clash:${c.id}`, faded: c.status === 'resolved' || c.status === 'ignored' })), [warnings])
-  const legend = utilityLegend(model, visible, circuit, showWarnings, zone, showEvacuation, showCoverage, water)
+  const legend = utilityLegend(model, visible, circuit, false, zone, showEvacuation, showCoverage, water)
   const selectedName = (u: UtilityRun) => { const info = runInfo(model, u); return u.layer === 'drainage' ? `${t(model.floor.rooms.find(rm => rm.id === u.roomId)?.name)} · ${t(model.fixtures.find(f => f.id === u.fixtureId)?.type.replace('_', ' '))} · Ø${u.diameter} mm` : `${info.title} · ${info.lines[0]} · ${info.lines[1]}` }
   const connected = selectedCircuit ? connectedLoads(model, selectedCircuit) : []
   const electric3D = useMemo(() => electricalScene(model, room, circuit), [model, room, circuit])
@@ -286,7 +261,6 @@ export function UtilityPlanViewer({ model: sourceModel, project, reviewScope, mo
   const water3D = useMemo(() => waterScene(model, room, water, showHotWater), [model, room, water, showHotWater])
   const waterVisible3D = mode === '3d' && visible.water_supply && showWater3D
 
-  useEffect(() => { if (!clashes.checking && selected?.startsWith('clash:') && !selectedClash) setSelected(null) }, [clashes.checking, selected, selectedClash])
 
   useEffect(() => {
     const el = host.current
@@ -301,17 +275,6 @@ export function UtilityPlanViewer({ model: sourceModel, project, reviewScope, mo
   }, [mode])
   const select = (id: string | null) => {
     setSelected(id); setTooltip(null)
-    if (id?.startsWith('clash:')) {
-      setSheetOpen(false)
-      const clash = clashes.clashes.find(c => `clash:${c.id}` === id)
-      if (clash) {
-        setMode('2d'); setShowWarnings(true); setRoom('all'); setCircuit('all'); setZone('all'); setWater('all')
-        setVisible(v => ({ ...v, [clash.layerA]: true, [clash.layerB]: true }))
-        const w = Math.max(4200, 4200 * width / height), h = w * height / width
-        setBox({ x: clash.position.x - w / 2, y: clash.position.y - h / 2, w, h })
-      }
-      return
-    }
     if (id?.startsWith('circuit:') || id?.startsWith('zone:') || id?.startsWith('water:') || id?.startsWith('exit:') || id?.startsWith('coverage:')) {
       // A circuit selection must trace its entire topology, even if the click
       // originated in a single-room focus. Room filtering remains independent.
@@ -340,12 +303,13 @@ export function UtilityPlanViewer({ model: sourceModel, project, reviewScope, mo
     el.addEventListener('wheel', wheel, { passive: false }); return () => el.removeEventListener('wheel', wheel)
   })
   function gestureNow() { const p = [...pointers.current.values()]; return p.length > 1 ? { x: (p[0].x + p[1].x) / 2, y: (p[0].y + p[1].y) / 2, distance: Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) } : { x: p[0]?.x ?? 0, y: p[0]?.y ?? 0, distance: 0 } }
-  const sheet = { model, drawingDocument: drawingDoc, visible, room, circuit, zone, water, showCoverage, showEvacuation, selected, selectedClash, project, warnings, showWarnings }
+  const sheet = { model, drawingDocument: drawingDoc, visible, room, circuit, zone, water, showCoverage, showEvacuation, selected, project }
   const span = Math.max(r.w, r.h) / 1000, camera = useMemo(() => ({ position: [(r.x + r.w / 2) / 1000 + span, span * 1.1, (r.y + r.h / 2) / 1000 + span] as [number, number, number], fov: 42, far: 500 }), [r, span])
-  const sheetResult = useMemo(() => { try { return { pages: buildDrawingSheets(model, drawingDoc, drawingDoc.activeLayer, showWarnings ? clashes.clashes : []), error: '' } } catch (e) { return { pages: [], error: (e as Error).message } } }, [model, drawingDoc, clashes.clashes, showWarnings])
+  const sheetResult = useMemo(() => { try { return { pages: buildDrawingSheets(model, drawingDoc, drawingDoc.activeLayer, []), error: '' } } catch (e) { return { pages: [], error: (e as Error).message } } }, [model, drawingDoc])
   const modelSignature = useMemo(() => sourceSignature(model), [model])
-  const snapshot: UtilityDrawingProject = { format: 'formstead-utility-project', version: 1, savedAt: new Date().toISOString(), sourceSignature: modelSignature, model, document: drawingDoc, reviews: clashes.records, view: { room, circuit, zone, water, showClashes: showWarnings, showCoverage, showEvacuation, mode, sheetOpen, showClashes3D, showElectrical3D, showWater3D, showHotWater, seeThroughWalls, seeThroughFloor, showRoomNames3D, selected, clashFilter } }
-  const session = useRef({ snapshot, pending: false }); session.current = { snapshot, pending: !!restoreCandidate }
+  const snapshot: UtilityDrawingProject = { format: 'formstead-utility-project', version: 1, savedAt: new Date().toISOString(), sourceSignature: modelSignature, model, document: drawingDoc, reviews: {}, view: { room, circuit, zone, water, showClashes: false, showCoverage, showEvacuation, mode, sheetOpen, showClashes3D: false, showElectrical3D, showWater3D, showHotWater, seeThroughWalls, seeThroughFloor, showRoomNames3D, selected } }
+  const session = useRef({ snapshot, pending: false })
+  useEffect(() => { session.current = { snapshot, pending: !!restoreCandidate } }, [snapshot, restoreCandidate])
   useEffect(() => {
     try { const saved = localStorage.getItem(`formstead.utility-session.v1:${reviewScope}`); if (saved) setRestoreCandidate(parseUtilityDrawing(JSON.parse(saved))) } catch { setSessionMessage('The last utility session could not be read. Your live plan is unchanged.') }
     const timer = setInterval(() => { if (session.current.pending) return; try { localStorage.setItem(`formstead.utility-session.v1:${reviewScope}`, JSON.stringify(session.current.snapshot)); setSessionMessage('Session saved on this device.') } catch { setSessionMessage('Session storage is unavailable. Save project JSON to keep your drawing.') } }, 30000)
@@ -355,16 +319,15 @@ export function UtilityPlanViewer({ model: sourceModel, project, reviewScope, mo
   const saveProject = () => { try { parseUtilityDrawing(session.current.snapshot); saveBlob(new Blob([JSON.stringify(session.current.snapshot, null, 2)], { type: 'application/json' }), `${drawingDoc.settings.projectCode}-utility-project.json`); setSessionMessage('Project JSON downloaded.') } catch { setError('This utility snapshot could not be saved. Your source project is unchanged.') } }
   const restoreProject = (saved: UtilityDrawingProject) => {
     drawing.load(saved); setRoom(saved.view.room); setCircuit(saved.view.circuit); setZone(saved.view.zone); setWater(saved.view.water)
-    setShowWarnings(saved.view.showClashes); setShowCoverage(saved.view.showCoverage); setShowEvacuation(saved.view.showEvacuation)
-    setShowClashes3D(saved.view.showClashes3D); setShowElectrical3D(saved.view.showElectrical3D); setShowWater3D(saved.view.showWater3D); setShowHotWater(saved.view.showHotWater); setSeeThroughWalls(saved.view.seeThroughWalls); setSeeThroughFloor(saved.view.seeThroughFloor); setShowRoomNames3D(saved.view.showRoomNames3D)
-    setSelected(saved.view.selected); setClashFilter(saved.view.clashFilter ?? initialClashFilter); setBox(null); setRestoreCandidate(null); setSheetOpen(saved.view.sheetOpen); setMode(saved.view.mode); setError(''); undoDomain.current = 'drawing'
+    setShowCoverage(saved.view.showCoverage); setShowEvacuation(saved.view.showEvacuation)
+    setShowElectrical3D(saved.view.showElectrical3D); setShowWater3D(saved.view.showWater3D); setShowHotWater(saved.view.showHotWater); setSeeThroughWalls(saved.view.seeThroughWalls); setSeeThroughFloor(saved.view.seeThroughFloor); setShowRoomNames3D(saved.view.showRoomNames3D)
+    setSelected(saved.view.selected?.startsWith('clash:') ? null : saved.view.selected); setBox(null); setRestoreCandidate(null); setSheetOpen(saved.view.sheetOpen); setMode(saved.view.mode); setError('')
   }
   const loadProject = async (file: File) => { try { if (file.size > 15000000) throw new Error('File is too large.'); restoreProject(parseUtilityDrawing(JSON.parse(await file.text()))) } catch { setError('This is not a valid Formstead Utility project JSON. No data was changed.') } }
   const exportDrawing = async (kind: SheetExportKind, page = 0) => {
     if (exportBusy) return
     setExportBusy(kind); setError('')
     try {
-      if (clashes.checking) throw new Error('Wait for problem checking to finish before exporting.')
       const pages = sheetResult.pages, currentSheet = pages[page] ?? pages[0]
       if (!currentSheet) throw new Error(sheetResult.error || 'There are no sheets to export.')
       if (kind === 'pdf') await downloadVectorSheets(pages, currentSheet.number)
@@ -373,7 +336,7 @@ export function UtilityPlanViewer({ model: sourceModel, project, reviewScope, mo
       else if (kind === 'dxf') downloadUtilityDxf(model, drawingDoc)
       else {
         const all = structuredClone(drawingDoc); for (const key of DRAWING_LAYERS) all.layers[key].visible = true
-        const pages = [...DRAWING_LAYERS.flatMap(key => buildDrawingSheets(model, all, key, clashes.clashes)), ...buildDrawingSheets(model, all, 'coordination', clashes.clashes), ...clashReportSheets(model, all, clashes.clashes)]
+        const pages = [...DRAWING_LAYERS.flatMap(key => buildDrawingSheets(model, all, key)), ...buildDrawingSheets(model, all, 'coordination')]
         await downloadVectorSheets(pages, `${drawingDoc.settings.projectCode}-utility-sheet-set`)
       }
     } catch (e) { setError((e as Error).message || 'The drawing could not be exported. Please try a smaller sheet or SVG.') } finally { setExportBusy('') }
@@ -383,11 +346,10 @@ export function UtilityPlanViewer({ model: sourceModel, project, reviewScope, mo
       const typing = (e.target as HTMLElement)?.closest('input,textarea,select,[contenteditable=true]')
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); saveProject(); return }
       if (typing || document.querySelector('dialog[open]')) return
-      if ((e.ctrlKey || e.metaKey) && ['z', 'y'].includes(e.key.toLowerCase())) { e.preventDefault(); if (e.key.toLowerCase() === 'y' || e.shiftKey) undoDomain.current === 'drawing' ? drawing.redo() : clashes.redo(); else undoDomain.current === 'drawing' ? drawing.undo() : clashes.undo(); return }
+      if ((e.ctrlKey || e.metaKey) && ['z', 'y'].includes(e.key.toLowerCase())) { e.preventDefault(); if (e.key.toLowerCase() === 'y' || e.shiftKey) drawing.redo(); else drawing.undo(); return }
       if (e.ctrlKey || e.metaKey || e.altKey) return
       if (/^[1-4]$/.test(e.key)) { const key = DRAWING_LAYERS[Number(e.key) - 1]; changeDrawing(d => { d.layers[key].visible = !d.layers[key].visible }); select(null) }
       else if (e.key.toLowerCase() === 'g') changeDrawing(d => { d.grid = !d.grid })
-      else if (e.key.toLowerCase() === 'c') setShowWarnings(v => !v)
       else if (e.key === '?') setHelpOpen(true)
       else if (e.key === 'Escape') { setPanelsOpen(false); select(null) }
     }
@@ -396,10 +358,10 @@ export function UtilityPlanViewer({ model: sourceModel, project, reviewScope, mo
   const printDrawing = (page: number) => { setPrintPage(page); requestAnimationFrame(() => requestAnimationFrame(() => window.print())) }
   const printed = sheetResult.pages[Math.min(printPage, Math.max(0, sheetResult.pages.length - 1))]
   return <div className="utility-workspace mt-5" data-theme={drawingDoc.theme}>
-    {restoreCandidate && <section className="mb-4 flex flex-wrap items-center gap-3 border border-line bg-bg-inset p-4 text-xs" aria-label={t('Restore last session')}><p className="flex-1">{t('A previous utility drawing session is available. Restore its routes, reviews and drawing settings?')} <span className="font-mono">{new Date(restoreCandidate.savedAt).toLocaleString()}</span></p><button className={button} onClick={() => restoreProject(restoreCandidate)}>{t('Restore last session')}</button><button className={button} onClick={() => setRestoreCandidate(null)}>{t('Keep live plan')}</button></section>}
+    {restoreCandidate && <section className="mb-4 flex flex-wrap items-center gap-3 border border-line bg-bg-inset p-4 text-xs" aria-label={t('Restore last session')}><p className="flex-1">{t('A previous utility drawing session is available. Restore its routes and drawing settings?')} <span className="font-mono">{new Date(restoreCandidate.savedAt).toLocaleString()}</span></p><button className={button} onClick={() => restoreProject(restoreCandidate)}>{t('Restore last session')}</button><button className={button} onClick={() => setRestoreCandidate(null)}>{t('Keep live plan')}</button></section>}
     {drawing.imported && <div className="mb-4 flex flex-wrap items-center gap-3 border border-line bg-bg-inset p-4 text-xs"><p className="flex-1">{t('Viewing a saved utility snapshot. Your Formstead building and BOQ have not been replaced.')}</p><button className={button} onClick={() => { drawing.returnToLive(); setRoom('all'); setCircuit('all'); setZone('all'); setWater('all'); select(null); setBox(null) }}>{t('Return to live plan')}</button></div>}
     {drawing.sourceChanged && drawingDoc.annotations.length > 0 && <p className="mb-4 border border-line p-3 text-xs">{t('The source plan changed. Review annotation positions before issuing this drawing.')}</p>}
-    <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div className="flex flex-wrap gap-3"><div className="flex border border-line" role="group" aria-label={t('Utility views')}>{(['3d', '2d'] as const).map(v => <button key={v} type="button" aria-pressed={!sheetOpen && mode === v} className={`${button} border-0 ${!sheetOpen && mode === v ? 'bg-accent text-bg hover:text-bg' : ''}`} onClick={() => { setMode(v); setSheetOpen(false); setTooltip(null) }}>{t(v === '3d' ? '3D' : '2D plan')}</button>)}</div><button className={`${button} ${sheetOpen ? 'bg-accent text-bg' : ''}`} aria-pressed={sheetOpen} onClick={() => { setSheetOpen(true); setMode('2d'); setPanelsOpen(false) }}>{t('Drawing sheets')}</button><a className={`${button} flex items-center gap-2`} href="#utility-problems">{t('Check problems')} <span className="font-mono">{clashes.checking ? '…' : clashes.clashes.filter(c => c.status !== 'resolved' && c.status !== 'ignored').length}</span> ↓</a></div>
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div className="flex flex-wrap gap-3"><div className="flex border border-line" role="group" aria-label={t('Utility views')}>{(['3d', '2d'] as const).map(v => <button key={v} type="button" aria-pressed={!sheetOpen && mode === v} className={`${button} border-0 ${!sheetOpen && mode === v ? 'bg-accent text-bg hover:text-bg' : ''}`} onClick={() => { setMode(v); setSheetOpen(false); setTooltip(null) }}>{t(v === '3d' ? '3D' : '2D plan')}</button>)}</div><button className={`${button} ${sheetOpen ? 'bg-accent text-bg' : ''}`} aria-pressed={sheetOpen} onClick={() => { setSheetOpen(true); setMode('2d'); setPanelsOpen(false) }}>{t('Drawing sheets')}</button></div>
       <ExportDropdown label="Download utility plan" title="Download utility plan" items={[{ id: 'pdf', label: 'Vector sheet PDF', ext: '.pdf', onExport: () => exportDrawing('pdf') }, { id: 'png', label: 'Export PNG', ext: '.png', onExport: () => exportDrawing('png') }, { id: 'svg', label: 'Export SVG', ext: '.svg', onExport: () => exportDrawing('svg') }, { id: 'dxf', label: 'Export DXF', ext: '.dxf', onExport: () => exportDrawing('dxf') }, { id: 'all', label: 'Export all sheets PDF', ext: '.pdf', onExport: () => exportDrawing('all') }]} />
     </div>
     {sheetOpen && <UtilityDrawingWorkbench model={model} document={drawingDoc} change={changeDrawing} sheets={sheetResult.pages} sheetError={sheetResult.error} busy={exportBusy} onExport={exportDrawing} onSave={saveProject} onLoad={loadProject} onHelp={() => setHelpOpen(true)} undo={drawing.undo} redo={drawing.redo} canUndo={drawing.canUndo} canRedo={drawing.canRedo} onPrint={printDrawing} />}
@@ -409,6 +371,7 @@ export function UtilityPlanViewer({ model: sourceModel, project, reviewScope, mo
       <aside className={`${panelsOpen ? 'fixed inset-x-0 bottom-0 z-40 max-h-[80dvh] overflow-y-auto' : 'hidden'} order-2 border border-line bg-bg p-4 lg:static lg:order-none lg:block lg:max-h-none`} aria-label={t('Utility controls')}>
         <button className={`${button} mb-3 w-full lg:hidden`} onClick={() => setPanelsOpen(false)}>{t('Close utility panels')}</button>
         <UtilityLayerPanel document={drawingDoc} change={changeDrawing} onSelectClear={() => select(null)} />
+        {!DRAWING_LAYERS.some(key => visible[key]) && <p role="status" className="mt-3 text-xs leading-relaxed text-ink-dim">{t('Choose a utility layer to view its connections.')}</p>}
         <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-1"><label className="block text-xs text-ink-dim">{t('Room filter')}<select className="mt-2 min-h-11 w-full border border-line bg-bg px-2 text-ink" value={room} onChange={e => {
           const id = e.target.value, focused = model.floor.rooms.find(rm => rm.id === id)
           setRoom(id); select(null)
@@ -419,11 +382,9 @@ export function UtilityPlanViewer({ model: sourceModel, project, reviewScope, mo
         <label className="block text-xs text-ink-dim">{t('Circuit filter')}<select aria-label={t('Circuit filter')} className="mt-2 min-h-11 w-full border border-line bg-bg px-2 text-ink" value={circuit} disabled={!visible.electrical} onChange={e => { setCircuit(e.target.value); select(null) }}><option value="all">{t('All circuits')}</option>{model.circuits.map(c => <option key={c.id} value={c.id}>{c.tag} · {t(c.name)}</option>)}</select></label>
         <label className="block text-xs text-ink-dim">{t('Zone filter')}<select aria-label={t('Zone filter')} className="mt-2 min-h-11 w-full border border-line bg-bg px-2 text-ink" value={zone} disabled={!visible.fire_alarm} onChange={e => { setZone(e.target.value); select(null); setMode('2d') }}><option value="all">{t('All zones')}</option>{model.zones.map(z => <option key={z.id} value={z.id}>{z.tag} · {t(z.name)}</option>)}</select></label></div>
         <div className="mt-4 border-y border-line py-2">{([[showCoverage, setShowCoverage, 'Show coverage'], [showEvacuation, setShowEvacuation, 'Show evacuation routes']] as const).map(([value, setter, label]) => <label key={label} className="flex min-h-11 items-center gap-2 text-xs"><input type="checkbox" className="accent-accent" checked={value} disabled={!visible.fire_alarm} onChange={e => { setter(e.target.checked); select(null); setTooltip(null); if (e.target.checked) setMode('2d') }} />{t(label)}</label>)}</div>
-        <fieldset className="mt-4 border-b border-line pb-2"><legend className="font-display text-lg">{t('3D electrical')}</legend><label className="flex min-h-11 items-center gap-2 text-xs"><input type="checkbox" className="accent-accent" checked={showElectrical3D} disabled={!visible.electrical} onChange={e => { setShowElectrical3D(e.target.checked); setMode('3d') }} />{t('Show wiring in 3D')}</label></fieldset>
-        <fieldset className="mt-4 border-b border-line pb-2"><legend className="font-display text-lg">{t('3D water supply')}</legend><label className="block text-xs text-ink-dim">{t('Water supply filter')}<select aria-label={t('Water supply filter')} disabled={!visible.water_supply} className="mt-2 min-h-11 w-full border border-line bg-bg px-2 text-ink" value={water} onChange={e => { setWater(e.target.value); select(null) }}><option value="all">{t('All supplies')}</option>{model.waterNetworks.map(n => <option key={n.id} value={n.id}>{n.tag} · {t(n.name)}</option>)}</select></label>{([[showWater3D, setShowWater3D, 'Show water pipes in 3D'], [showHotWater, setShowHotWater, 'Show hot-water proposals']] as const).map(([value, setter, label]) => <label key={label} className="flex min-h-11 items-center gap-2 text-xs"><input type="checkbox" className="accent-accent" checked={value} disabled={!visible.water_supply} onChange={e => { setter(e.target.checked); setMode('3d'); select(null) }} />{t(label)}</label>)}</fieldset>
+        <fieldset className="mt-4 border-b border-line pb-2"><legend className="font-display text-lg">{t('3D electrical')}</legend><label className="flex min-h-11 items-center gap-2 text-xs"><input type="checkbox" className="accent-accent" checked={visible.electrical && showElectrical3D} disabled={!visible.electrical} onChange={e => { setShowElectrical3D(e.target.checked); setMode('3d') }} />{t('Show wiring in 3D')}</label></fieldset>
+        <fieldset className="mt-4 border-b border-line pb-2"><legend className="font-display text-lg">{t('3D water supply')}</legend><label className="block text-xs text-ink-dim">{t('Water supply filter')}<select aria-label={t('Water supply filter')} disabled={!visible.water_supply} className="mt-2 min-h-11 w-full border border-line bg-bg px-2 text-ink" value={water} onChange={e => { setWater(e.target.value); select(null) }}><option value="all">{t('All supplies')}</option>{model.waterNetworks.map(n => <option key={n.id} value={n.id}>{n.tag} · {t(n.name)}</option>)}</select></label>{([[showWater3D, setShowWater3D, 'Show water pipes in 3D'], [showHotWater, setShowHotWater, 'Show hot-water proposals']] as const).map(([value, setter, label]) => <label key={label} className="flex min-h-11 items-center gap-2 text-xs"><input type="checkbox" className="accent-accent" checked={visible.water_supply && value} disabled={!visible.water_supply} onChange={e => { setter(e.target.checked); setMode('3d'); select(null) }} />{t(label)}</label>)}</fieldset>
         <fieldset className="mt-4 border-b border-line pb-2"><legend className="font-display text-lg">{t('3D view options')}</legend>{([[seeThroughWalls, setSeeThroughWalls, 'See through walls'], [seeThroughFloor, setSeeThroughFloor, 'See through floor'], [showRoomNames3D, setShowRoomNames3D, 'Room labels']] as const).map(([value, setter, label]) => <label key={label} className="flex min-h-11 items-center gap-2 text-xs"><input type="checkbox" className="accent-accent" checked={value} onChange={e => { setter(e.target.checked); setMode('3d') }} />{t(label)}</label>)}</fieldset>
-        <div className="mt-4 border-y border-line py-2"><label className="flex min-h-11 items-center gap-2 text-xs"><input type="checkbox" aria-label={t('Show clashes')} className="accent-accent" checked={showWarnings} onChange={e => { setShowWarnings(e.target.checked); setTooltip(null) }} />{t('Show clashes')} <span className="ml-auto font-mono">{clashes.checking ? '…' : warnings.length}</span></label><label className="flex min-h-11 items-center gap-2 text-xs"><input type="checkbox" className="accent-accent" checked={showClashes3D} onChange={e => setShowClashes3D(e.target.checked)} />{t('Show clashes in 3D')}</label>{showClashes3D && <p className="mb-2 text-[10px] leading-relaxed text-ink-faint">{t('Only markers with modelled heights appear in 3D.')}</p>}<p className="text-[10px] leading-relaxed text-ink-faint">{t('Concept checks only. This is not a compliance certificate.')}</p><a className="mt-2 flex min-h-11 items-center text-xs underline underline-offset-4" href="#utility-problems">{t('View problem list')} ↓</a></div>
-        {selectedClash && <section className="mt-4 border-t border-line pt-4 text-xs" aria-label={t('Selected problem')} aria-live="polite"><p className="font-mono text-[10px]" style={{ color: clashColor(selectedClash.severity) }}>{t(selectedClash.severity)} · {t(clashTypeLabel(selectedClash.type))}</p><h3 className="mt-2 font-display text-lg">{t(selectedClash.rule)}</h3><p className="mt-2">{t(clashDistance(selectedClash))}</p><p className="mt-2 text-ink-dim">{t(selectedClash.certainty === 'needs-verification' ? 'Needs checking' : 'Concept model')}</p><p className="mt-3 leading-relaxed">{t(selectedClash.suggestion)}</p><a href="#utility-problems" className="mt-3 flex min-h-11 items-center underline">{t('Review this problem')} ↓</a><button className={`${button} w-full`} onClick={() => select(null)}>{t('Clear selection')}</button></section>}
         <label className="mt-4 block text-xs text-ink-dim">{t('Select a connection')}<select className="mt-2 min-h-11 w-full border border-line bg-bg px-2 text-ink" value={run?.id ?? shown.find(u => selectionForRun(u) === selected)?.id ?? ''} onChange={e => { const selectedRun = shown.find(u => u.id === e.target.value); if (selectedRun && selectedRun.layer !== 'electrical' && selectedRun.layer !== 'water_supply') setMode('2d'); select(selectedRun ? selectionForRun(selectedRun) : null) }}><option value="">{t('No selection')}</option>{shown.map(u => <option key={u.id} value={u.id}>{selectedName(u)}</option>)}</select></label>
         {run && <div aria-live="polite" className="mt-4 border-t border-line pt-4 text-xs"><p className="break-all font-mono text-[10px]">{run.id}</p><p className="mt-2">{selectedName(run)}</p><p className="mt-1 text-ink-dim">{run.layer === 'drainage' ? `${t(run.material)} · ${t('Fixture → stack')}` : ''}</p><button className={`${button} mt-3 w-full`} onClick={() => select(null)}>{t('Clear selection')}</button></div>}
         {selectedCircuit && <section aria-label={t('Circuit details')} aria-live="polite" className="mt-4 border-t border-line pt-4 text-xs">
@@ -453,7 +414,7 @@ export function UtilityPlanViewer({ model: sourceModel, project, reviewScope, mo
         {electricVisible3D && <div className="flex flex-wrap items-center gap-2 border-b border-line bg-bg px-3 py-2"><span className="mr-auto text-[10px] text-ink-dim">{electric3D.boards.length} {t('boards & fixtures')} · {t('Select a circuit')}</span>{model.circuits.map(c => <button key={c.id} type="button" aria-pressed={selected === `circuit:${c.id}`} className={`${button} bg-bg-raised`} style={{ borderColor: c.color, color: selected === `circuit:${c.id}` ? '#fff' : c.color, backgroundColor: selected === `circuit:${c.id}` ? c.color : undefined }} onClick={() => select(selected === `circuit:${c.id}` ? null : `circuit:${c.id}`)}>{c.tag} · {t(c.name)}</button>)}</div>}
         {waterVisible3D && <div className="flex flex-wrap items-center gap-2 border-b border-line bg-bg px-3 py-2"><span className="mr-auto text-[10px] text-ink-dim">{t('Water supply')} · {t('Source unverified')}</span>{model.waterNetworks.filter(n => showHotWater || n.service === 'cold').map(n => <button key={n.id} type="button" aria-pressed={selected === `water:${n.id}`} className={`${button} bg-bg-raised`} style={{ borderColor: n.color, color: selected === `water:${n.id}` ? '#fff' : n.color, backgroundColor: selected === `water:${n.id}` ? n.color : undefined }} onClick={() => select(selected === `water:${n.id}` ? null : `water:${n.id}`)}>{n.tag} · {t(n.name)}</button>)}</div>}
         <div ref={host} className="relative h-[480px] overflow-hidden bg-bg-inset sm:h-[580px]" style={{ touchAction: mode === '2d' ? 'none' : undefined }}>
-          <CanvasBoundary><Canvas frameloop="demand" camera={camera} dpr={[1, 1.5]} onPointerMissed={() => select(null)}><PreparedFloorScene model={model} mode={mode} focusRoom={room} transparentWalls={(electricVisible3D || waterVisible3D) && seeThroughWalls} transparentFloor={waterVisible3D && seeThroughFloor} />{electricVisible3D && <ElectricalLayer3D model={model} scene={electric3D} room={room} circuit={circuit} selected={selected} labels={showRoomNames3D} onSelect={select} />}{waterVisible3D && <WaterLayer3D model={model} scene={water3D} room={room} selected={selected} labels={showRoomNames3D} roomNames={!electricVisible3D} onSelect={select} />}{mode === '3d' && showWarnings && showClashes3D && <UtilityInstances3D items={clashSpheres} sphere onSelect={select} />}</Canvas></CanvasBoundary>
+          <CanvasBoundary><Canvas frameloop="demand" camera={camera} dpr={[1, 1.5]} onPointerMissed={() => select(null)}><PreparedFloorScene model={model} mode={mode} focusRoom={room} transparentWalls={(electricVisible3D || waterVisible3D) && seeThroughWalls} transparentFloor={waterVisible3D && seeThroughFloor} />{electricVisible3D && <ElectricalLayer3D model={model} scene={electric3D} room={room} circuit={circuit} selected={selected} labels={showRoomNames3D} onSelect={select} />}{waterVisible3D && <WaterLayer3D model={model} scene={water3D} room={room} selected={selected} labels={showRoomNames3D} roomNames={!electricVisible3D} onSelect={select} />}</Canvas></CanvasBoundary>
           <div className={`absolute inset-0 bg-white transition-opacity duration-300 motion-reduce:transition-none ${planVisible ? 'opacity-100' : 'pointer-events-none invisible opacity-0'}`} aria-hidden={!planVisible} inert={!planVisible}>
             <div className="h-full w-full" tabIndex={0} role="region" aria-label={t('Interactive utility plan')} onKeyDown={e => { if (e.target !== e.currentTarget && e.key !== 'Escape') return; if (e.key === 'Escape') select(null); else if (e.key === '+' || e.key === '=') { e.preventDefault(); zoom(.8) } else if (e.key === '-') { e.preventDefault(); zoom(1.25) } else if (e.key.startsWith('Arrow')) { e.preventDefault(); setBox(b => { const old = b ?? fit; return { ...old, x: old.x + (e.key === 'ArrowRight' ? .05 : e.key === 'ArrowLeft' ? -.05 : 0) * old.w, y: old.y + (e.key === 'ArrowDown' ? .05 : e.key === 'ArrowUp' ? -.05 : 0) * old.h } }) } }}
               onPointerDown={e => { pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY }); gesture.current = { ...gestureNow(), travel: 0, moved: false, run: (e.target as Element).closest('[data-run-id]')?.getAttribute('data-run-id') ?? null }; e.currentTarget.setPointerCapture(e.pointerId); setTooltip(null) }}
@@ -472,9 +433,8 @@ export function UtilityPlanViewer({ model: sourceModel, project, reviewScope, mo
         {waterVisible3D && (water3D.pending.length > 0 || model.waterNetworks.some(n => n.unroutedFixtures.length)) && <p role="status" className="border-t border-line p-3 text-xs text-ink-dim">{t('Some water connections need a wall or door-routing review.')}</p>}
       </div>
     </div>
-    <div id="utility-problems" className="scroll-mt-8"><ClashReportPanel clashes={clashes.clashes} filtered={filteredClashes} model={model} project={project} filter={clashFilter} onFilter={filter => { setClashFilter(filter); select(null) }} selected={selectedClash} onSelect={clash => { select(`clash:${clash.id}`); host.current?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'center' }) }} onClear={() => select(null)} checking={clashes.checking} onReview={(clash, status, note) => { const ok = clashes.update(clash, status, note); if (ok) undoDomain.current = 'review'; return ok }} undo={clashes.undo} redo={clashes.redo} canUndo={clashes.canUndo} canRedo={clashes.canRedo} error={clashes.error} /></div>
     {printed && <><style>{`@media print { .utility-export-sheet { width: ${printed.w}mm !important; height: ${printed.h}mm !important; } .utility-export-sheet svg { width: ${printed.w}mm !important; height: ${printed.h}mm !important; } @page utility-sheet { size: ${printed.w}mm ${printed.h}mm; margin: 0; } }`}</style><div className="utility-export-sheet hidden" dangerouslySetInnerHTML={{ __html: serializeDrawingSheet(printed) }} /></>}
-    <dialog ref={helpDialog} onCancel={() => setHelpOpen(false)} className="m-auto max-h-[90dvh] w-[min(500px,94vw)] overflow-y-auto border border-line bg-bg p-6 text-ink backdrop:bg-black/40" aria-labelledby="utility-shortcut-title"><div className="flex items-center justify-between gap-3"><h2 id="utility-shortcut-title" className="font-display text-2xl">{t('Keyboard shortcuts')}</h2><button className={button} onClick={() => setHelpOpen(false)}>{t('Close')}</button></div><dl className="mt-5 grid grid-cols-[90px_1fr] gap-3 text-sm">{[['1–4', 'Toggle service layers'], ['G', 'Show grid'], ['C', 'Show clashes'], ['Ctrl+Z/Y', 'Undo / redo drawing or review'], ['Ctrl+S', 'Save project JSON'], ['?', 'Shortcut help'], ['Esc', 'Close panels or clear selection']].map(([key, value]) => <div key={key} className="contents"><dt className="font-mono text-xs">{key}</dt><dd>{t(value)}</dd></div>)}</dl></dialog>
+    <dialog ref={helpDialog} onCancel={() => setHelpOpen(false)} className="m-auto max-h-[90dvh] w-[min(500px,94vw)] overflow-y-auto border border-line bg-bg p-6 text-ink backdrop:bg-black/40" aria-labelledby="utility-shortcut-title"><div className="flex items-center justify-between gap-3"><h2 id="utility-shortcut-title" className="font-display text-2xl">{t('Keyboard shortcuts')}</h2><button className={button} onClick={() => setHelpOpen(false)}>{t('Close')}</button></div><dl className="mt-5 grid grid-cols-[90px_1fr] gap-3 text-sm">{[['1–4', 'Toggle service layers'], ['G', 'Show grid'], ['Ctrl+Z/Y', 'Undo / redo drawing'], ['Ctrl+S', 'Save project JSON'], ['?', 'Shortcut help'], ['Esc', 'Close panels or clear selection']].map(([key, value]) => <div key={key} className="contents"><dt className="font-mono text-xs">{key}</dt><dd>{t(value)}</dd></div>)}</dl></dialog>
     {sessionMessage && <p role="status" className="mt-3 text-xs text-ink-faint">{t(sessionMessage)}</p>}
     {error && <p role="alert" className="mt-3 text-sm text-bad">{t(error)}</p>}
     {!model.utilities.length && <p role="status" className="mt-4 border border-line p-4 text-sm">{t('No routable wet-room fixtures on this floor. Choose another floor or edit the 2D plan.')}</p>}

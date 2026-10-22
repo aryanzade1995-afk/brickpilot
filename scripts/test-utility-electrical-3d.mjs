@@ -16,7 +16,7 @@ test('every indoor room gets a light and a door switch proposal; exterior spaces
     const symbols = model.symbols.filter(s => s.layer === 'electrical' && s.roomId === room.id && s.type !== 'db_panel')
     if (room.outdoor) { assert.equal(symbols.length, 0); continue }
     assert.ok(symbols.some(s => s.type === 'light'), room.name)
-    if (model.floor.openings.some(o => o.kind !== 'window' && o.rooms?.includes(room.id))) assert.ok(symbols.some(s => s.type === 'switch'), room.name)
+    if (model.floor.openings.some(o => o.kind !== 'window' && o.rooms?.includes(room.id))) assert.ok(model.symbols.some(s => s.layer === 'electrical' && s.type === 'switch' && (s.roomId === room.id || s.id.includes(`:${room.id}:`))), room.name)
     if (/bed|living|study|office|lounge/i.test(room.name)) assert.ok(symbols.some(s => s.type === 'socket'), room.name)
   }
 })

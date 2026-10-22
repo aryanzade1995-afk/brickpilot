@@ -1,22 +1,21 @@
 import type { Design, FloorPlan, PlacedRoom } from '../engine/types.ts'
 import type { Brief } from '../model/brief.ts'
-import { rectCenter, rectUnionBBox, sharedEdge, type Point, type Rect } from '../geometry.ts'
+import { rectCenter, sharedEdge, type Point, type Rect } from '../geometry.ts'
 import { subtractRegions } from '../solar/regions.ts'
 import { furnishSingleRoom } from '../three/buildDollhouse.ts'
 import { doorZones } from '../draw/furniture.ts'
 import { resolveSpecification } from '../cost/catalogue.ts'
-import { route } from './routing.ts'
+import { route, perimeterRoutes, utilityObstacles, utilityVoids } from './routing.ts'
 import { electricalPlan } from './electrical.ts'
 import { fireSafetyPlan } from './fireSafety.ts'
 import { waterPlan } from './water.ts'
-import { CLASH_COLORS } from './clashRules.ts'
 export { route, orthogonal, alongPath } from './routing.ts'
 
 export const UTILITY_LAYERS = {
-  drainage: { label: 'Drainage', color: '#8B5A2B', dash: '8 4', width: 3, visible: true, disabled: false },
-  electrical: { label: 'Electrical Wiring', color: '#D32F2F', dash: null, width: 2, visible: true, disabled: false, showConductors: false },
-  fire_alarm: { label: 'Fire Alarm & Safety', color: '#F57C00', dash: '2 4', width: 2, visible: true, disabled: false, detectorRadiusMm: { smoke_detector: 7500, heat_detector: 5000 } },
-  water_supply: { label: 'Water supply', color: '#287FAD', dash: null, width: 2.5, visible: true, disabled: false },
+  drainage: { label: 'Drainage', color: '#8B5A2B', dash: '8 4', width: 3, visible: false, disabled: false },
+  electrical: { label: 'Electrical Wiring', color: '#D32F2F', dash: null, width: 2, visible: false, disabled: false, showConductors: false },
+  fire_alarm: { label: 'Fire Alarm & Safety', color: '#F57C00', dash: '2 4', width: 2, visible: false, disabled: false, detectorRadiusMm: { smoke_detector: 7500, heat_detector: 5000 } },
+  water_supply: { label: 'Water supply', color: '#287FAD', dash: null, width: 2.5, visible: false, disabled: false },
   hvac: { label: 'HVAC', color: '#678776', dash: '12 4', width: 3, visible: false, disabled: true },
 }
 // Add a layer config and its UtilityRun data. The controls, legend, SVG layer
@@ -67,7 +66,7 @@ export function connectedLoads(model: UtilityFloor, circuit: UtilityCircuit) {
   while (changed) { changed = false; for (const wire of wires) if (reachable.has(wire.fromSymbolId) && !reachable.has(wire.toSymbolId)) { reachable.add(wire.toSymbolId); changed = true } }
   return circuit.loads.filter(id => reachable.has(id))
 }
-export function utilityLegend(model: UtilityFloor, visible: Record<UtilityLayer, boolean>, circuit = 'all', warnings = true, zone = 'all', evacuation = true, coverage = false, water = 'all') {
+export function utilityLegend(model: UtilityFloor, visible: Record<UtilityLayer, boolean>, circuit = 'all', _legacyWarnings = false, zone = 'all', evacuation = true, coverage = false, water = 'all') {
   const entries: { label: string; color: string; dash?: string | null; symbol?: keyof typeof UTILITY_SYMBOLS }[] = []
   for (const [key, layer] of Object.entries(UTILITY_LAYERS)) {
     if (layer.disabled || !visible[key as UtilityLayer]) continue
@@ -77,7 +76,6 @@ export function utilityLegend(model: UtilityFloor, visible: Record<UtilityLayer,
     if (key === 'water_supply') for (const n of model.waterNetworks.filter(n => water === 'all' || water === n.id)) entries.push({ label: `${n.tag} · ${n.name}`, color: n.color })
     for (const [type, item] of Object.entries(UTILITY_SYMBOLS)) if (item.layer === key && (type !== 'evacuation_route' || evacuation) && (!['detector_coverage', 'uncovered_area'].includes(type) || coverage)) entries.push({ label: item.label, color: type === 'uncovered_area' ? '#c56363' : type === 'exit_sign' || type === 'evacuation_route' ? '#258454' : layer.color, symbol: type as keyof typeof UTILITY_SYMBOLS })
   }
-  if (warnings && Object.entries(visible).some(([key, shown]) => shown && !UTILITY_LAYERS[key as UtilityLayer].disabled)) for (const severity of ['high', 'medium', 'low'] as const) entries.push({ label: `${severity} · Problem marker`, color: CLASH_COLORS[severity], symbol: 'clearance_warning' })
   return entries
 }
 
@@ -90,10 +88,10 @@ function clearPath(path: Point[], room: PlacedRoom, cuts: Rect[]) {
     return Math.max(a.x, p.x) > r.x && Math.min(a.x, p.x) < r.x + r.w && Math.max(a.y, p.y) > r.y && Math.min(a.y, p.y) < r.y + r.h
   }))
 }
-function freeStack(a: Point, b: Point, floor: FloorPlan): Point | null {
+function freeStack(a: Point, b: Point, floor: FloorPlan, cuts: Rect[]): Point | null {
   for (const fraction of [.5, .25, .75, .12, .88]) {
     const p = { x: a.x + (b.x - a.x) * fraction, y: a.y + (b.y - a.y) * fraction }
-    if (!floor.openings.some(o => Math.abs(o.orient === 'h' ? p.y - o.at.y : p.x - o.at.x) < 200 && Math.abs(o.orient === 'h' ? p.x - o.at.x : p.y - o.at.y) < o.width / 2 + 200)) return p
+    if (!cuts.some(c => inside(c, p)) && !floor.openings.some(o => Math.abs(o.orient === 'h' ? p.y - o.at.y : p.x - o.at.x) < 200 && Math.abs(o.orient === 'h' ? p.x - o.at.x : p.y - o.at.y) < o.width / 2 + 200)) return p
   }
   return null
 }
@@ -126,7 +124,7 @@ export function utilityWallSections(floor: FloorPlan, height: number): UtilityWa
 export function utilityFloor(design: Design, level: number, brief: Brief = design.model.brief): UtilityFloor {
   const floor = design.floors.find(f => f.level === level)
   if (!floor) throw new Error('This floor is not present in the source plan.')
-  const cuts = [...(floor.courtyard ? [floor.courtyard] : []), ...(floor.doubleHeightVoids ?? []).map(v => v.rect)]
+  const cuts = utilityObstacles(floor)
   const rooms = floor.rooms.filter(wet), fixtures: Fixture[] = [], utilities: DrainageRun[] = [], symbols: StackSymbol[] = [], notes: string[] = []
   for (const room of rooms) {
     // Reuse the actual fitted-fixture placement used by Formstead's interior
@@ -140,28 +138,10 @@ export function utilityFloor(design: Design, level: number, brief: Brief = desig
       fixtures.push({ id: `${level}:${piece.id}`, type, position, roomId: room.id, basis: 'furnishing', width: piece.size[0] * 1000, depth: piece.size[2] * 1000 })
     }
     const blocked = [...doorZones(room, floor.openings), ...cuts, ...fixtures.filter(f => f.roomId === room.id).map(f => ({ x: f.position.x - f.width / 2 - 120, y: f.position.y - f.depth / 2 - 120, w: f.width + 240, h: f.depth + 240 }))]
-    // Issue 5 fix: expanded candidate grid from 9 positions (3×3) to 25 (5×5);
-    // fall back to room center if all 25 candidates are blocked.
+    // Never place a drain in a blocked doorway, fixture or source void.
     const candidate = [.2, .35, .5, .65, .8].flatMap(x => [.2, .35, .5, .65, .8].map(y => ({ x: room.rect.x + room.rect.w * x, y: room.rect.y + room.rect.h * y }))).find(p => !blocked.some(b => inside(b, p)))
-      ?? rectCenter(room.rect)
-    fixtures.push({ id: `${level}:${room.id}:floor-drain`, type: 'floor_drain', roomId: room.id, position: candidate, basis: 'proposed', width: 150, depth: 150 })
-  }
-  // Issue 1 fix: add floor_drain fixtures for rooms excluded by the `wet` filter that
-  // still need drainage — stairwells (cleaning), corridors > 15 m², and covered outdoor/verandah rooms.
-  const extraDrainRooms = floor.rooms.filter(r => {
-    const semId = `${r.id} ${r.name} ${r.semanticId}`
-    if (/stair/i.test(semId)) return true                                                                        // stairwells need drain for cleaning
-    if (!r.outdoor && /corridor|passage|hall/i.test(semId) && r.rect.w * r.rect.h >= 15_000_000) return true   // large corridors >= 15 m²
-    if (r.outdoor && /verandah|veranda|covered|porch/i.test(semId)) return true                                 // covered outdoor/verandah rooms need rain drainage
-    return false
-  })
-  for (const room of extraDrainRooms) {
-    // Skip if the wet-room pass already placed a drain here
-    if (fixtures.some(f => f.roomId === room.id && f.type === 'floor_drain')) continue
-    const center = rectCenter(room.rect)
-    const blocked = [...doorZones(room, floor.openings), ...cuts]
-    const candidate = [.2, .35, .5, .65, .8].flatMap(x => [.2, .35, .5, .65, .8].map(y => ({ x: room.rect.x + room.rect.w * x, y: room.rect.y + room.rect.h * y }))).find(p => !blocked.some(b => inside(b, p))) ?? center
-    fixtures.push({ id: `${level}:${room.id}:floor-drain`, type: 'floor_drain', roomId: room.id, position: candidate, basis: 'proposed', width: 150, depth: 150 })
+    if (candidate) fixtures.push({ id: `${level}:${room.id}:floor-drain`, type: 'floor_drain', roomId: room.id, position: candidate, basis: 'proposed', width: 150, depth: 150 })
+    else notes.push(`Floor drain placement requires a clear supported area in ${room.name}.`)
   }
   const assigned = new Map<string, StackSymbol>()
   for (const room of rooms) {
@@ -169,103 +149,31 @@ export function utilityFloor(design: Design, level: number, brief: Brief = desig
     let position: Point | null = null, shared: PlacedRoom | undefined
     for (const other of rooms.filter(r => r.id !== room.id && !assigned.has(r.id))) {
       const edge = sharedEdge(room.rect, other.rect)
-      if (edge && edge.length >= 500) { position = freeStack(edge.seg.a, edge.seg.b, floor); if (position) { shared = other; break } }
+      if (edge && edge.length >= 500) { position = freeStack(edge.seg.a, edge.seg.b, floor, cuts); if (position) { shared = other; break } }
     }
     if (!position) {
       const r = room.rect
       const edges = [[{ x: r.x, y: r.y }, { x: r.x + r.w, y: r.y }], [{ x: r.x + r.w, y: r.y }, { x: r.x + r.w, y: r.y + r.h }], [{ x: r.x, y: r.y + r.h }, { x: r.x + r.w, y: r.y + r.h }], [{ x: r.x, y: r.y }, { x: r.x, y: r.y + r.h }]]
-      for (const [a, b] of edges) { position = freeStack(a, b, floor); if (position) break }
+      for (const [a, b] of edges) { position = freeStack(a, b, floor, cuts); if (position) break }
     }
     if (!position || cuts.some(c => inside(c, position!))) { notes.push(`No clear stack proposal for ${room.name}.`); continue }
     const symbol: StackSymbol = { id: `${level}:stack:${room.semanticId || room.id}`, type: 'vertical_stack', layer: 'drainage', position, roomIds: [room.id, ...(shared ? [shared.id] : [])], basis: 'proposed' }
     symbols.push(symbol); for (const id of symbol.roomIds) assigned.set(id, symbol)
   }
-  // Issue 2 fix: add a conceptual main-exit stack near the building boundary so all drain
-  // clusters have a visible collection/exit point. Placed near the footprint's bottom-left
-  // corner — verify exact position on-site with structural and site engineer.
-  const footprint = rectUnionBBox(floor.footprint.length ? floor.footprint : [floor.outline])
-  const mainExitPoint: Point = { x: Math.round(footprint.x + footprint.w * 0.05), y: Math.round(footprint.y + footprint.h * 0.95) }
-  const mainExitStack: StackSymbol = {
-    id: `${level}:stack:main-exit`,
-    type: 'vertical_stack',
-    layer: 'drainage',
-    position: mainExitPoint,
-    roomIds: [],
-    basis: 'proposed',
-  }
-  symbols.push(mainExitStack)
-  notes.push('Main exit stack is conceptual — position near building boundary must be verified with structural and site engineer.')
   const material = resolveSpecification(brief, 'drain-pipes').name
-  // All room sources for fixture→stack routing (wet rooms + extra drain rooms)
-  const allDrainRooms = [...rooms, ...extraDrainRooms]
+  const allDrainRooms = rooms
   for (const fixture of fixtures) {
     const room = allDrainRooms.find(r => r.id === fixture.roomId)
     if (!room) continue
-    // Fall back to main exit stack if no wet-room stack covers this room
-    const stack = assigned.get(room.id) ?? mainExitStack
-    const path = [route(fixture.position, stack.position), route(fixture.position, stack.position, true)].find(p => clearPath(p, room, cuts))
-    if (!path) {
-      // Issue 6 fix: fall back to a straight-line path (may cross walls) and mark it
-      // flowDirection: 'reverse' so reviewers know it needs structural clearance check.
-      const fallback: Point[] = [fixture.position, stack.position]
-      notes.push(`No clear route proposal for ${fixture.id} — straight-line fallback used, review for wall penetrations.`)
-      const diameter = Number(resolveSpecification(brief, fixture.type === 'toilet' ? 'soil-pipe-size' : 'waste-pipe-size').id.replace('mm', ''))
-      utilities.push({ id: `D:${fixture.id}`, layer: 'drainage', fixtureId: fixture.id, path: fallback, diameter, material, flowDirection: 'reverse', roomId: room.id, stackId: stack.id })
-      continue
-    }
+    const stack = assigned.get(room.id)
+    if (!stack) continue
+    const path = [...perimeterRoutes(fixture.position, stack.position, room.rect), route(fixture.position, stack.position), route(fixture.position, stack.position, true)].find(p => p.length > 1 && clearPath(p, room, cuts))
+    if (!path) { notes.push(`No supported drainage branch for ${fixture.id}.`); continue }
     const diameter = Number(resolveSpecification(brief, fixture.type === 'toilet' ? 'soil-pipe-size' : 'waste-pipe-size').id.replace('mm', ''))
     utilities.push({ id: `D:${fixture.id}`, layer: 'drainage', fixtureId: fixture.id, path, diameter, material, flowDirection: 'forward', roomId: room.id, stackId: stack.id })
   }
-  // Issue 3 fix: add a conceptual trunk run from each stack to the nearest exterior wall
-  // point so every drain cluster has a visible exit route out of the building.
-  // All trunk runs use 110 mm diameter (soil/main trunk). Verify with site engineer.
-  const exteriorWalls = floor.walls.filter(w => w.kind === 'exterior')
-  for (const stack of symbols) {
-    // Find the closest point on any exterior wall segment to this stack
-    let bestDist = Infinity, exitPoint: Point = mainExitPoint
-    for (const wall of exteriorWalls) {
-      const dx = wall.b.x - wall.a.x, dy = wall.b.y - wall.a.y
-      const lenSq = dx * dx + dy * dy
-      if (lenSq === 0) continue
-      const t = Math.max(0, Math.min(1, ((stack.position.x - wall.a.x) * dx + (stack.position.y - wall.a.y) * dy) / lenSq))
-      const closest: Point = { x: Math.round(wall.a.x + t * dx), y: Math.round(wall.a.y + t * dy) }
-      const dist = Math.hypot(closest.x - stack.position.x, closest.y - stack.position.y)
-      if (dist < bestDist) { bestDist = dist; exitPoint = closest }
-    }
-    utilities.push({
-      id: `D:trunk:${stack.id}`,
-      layer: 'drainage',
-      fixtureId: stack.id,
-      path: route(stack.position, exitPoint),
-      diameter: 110, // 110 mm soil/main trunk
-      material,
-      flowDirection: 'forward',
-      roomId: stack.roomIds[0] ?? '',
-      stackId: stack.id,
-    })
-  }
-  notes.push('Drain exit route is conceptual — verify with structural and site engineer.')
-  // Issue 4 fix: when 2+ wet-room stacks exist, connect secondary stacks to the primary
-  // with a conceptual inter-stack trunk run so isolated drain clusters are linked.
-  const wetStacks = symbols.filter(s => s.id !== mainExitStack.id)
-  if (wetStacks.length >= 2) {
-    const [primary, ...secondaries] = wetStacks
-    for (const sec of secondaries) {
-      utilities.push({
-        id: `D:interstack:${sec.id}->${primary.id}`,
-        layer: 'drainage',
-        fixtureId: sec.id,
-        path: route(sec.position, primary.position),
-        diameter: 110, // 110 mm inter-stack trunk
-        material,
-        flowDirection: 'forward',
-        roomId: sec.roomIds[0] ?? '',
-        stackId: primary.id,
-      })
-    }
-  }
   const electrical = electricalPlan(floor, cuts, fixtures, brief.levels.floorToFloor * 1000)
-  const fire = fireSafetyPlan(floor, cuts, UTILITY_LAYERS.fire_alarm.detectorRadiusMm)
-  const water = waterPlan(floor, cuts, fixtures, brief)
-  return { sourcePlanId: design.id, floor, circuits: electrical.circuits, waterNetworks: water.networks, zones: fire.zones, exitRoutes: fire.exitRoutes, coverage: fire.coverage, slabs: subtractRegions(floor.footprint, cuts), wallSections: utilityWallSections(floor, brief.levels.floorToFloor * 1000), fixtures, utilities: [...utilities, ...electrical.utilities, ...fire.utilities, ...water.utilities], symbols: [...symbols, ...electrical.symbols, ...fire.symbols, ...water.symbols], notes: [...notes, ...electrical.notes, ...fire.notes, ...water.notes] }
+  const water = waterPlan(floor, cuts, fixtures, brief, electrical.symbols)
+  const fire = fireSafetyPlan(floor, cuts, UTILITY_LAYERS.fire_alarm.detectorRadiusMm, [...electrical.symbols, ...water.symbols])
+  return { sourcePlanId: design.id, floor, circuits: electrical.circuits, waterNetworks: water.networks, zones: fire.zones, exitRoutes: fire.exitRoutes, coverage: fire.coverage, slabs: subtractRegions(floor.footprint, utilityVoids(floor)), wallSections: utilityWallSections(floor, brief.levels.floorToFloor * 1000), fixtures, utilities: [...utilities, ...electrical.utilities, ...fire.utilities, ...water.utilities], symbols: [...symbols, ...electrical.symbols, ...fire.symbols, ...water.symbols], notes: [...notes, ...electrical.notes, ...fire.notes, ...water.notes] }
 }
