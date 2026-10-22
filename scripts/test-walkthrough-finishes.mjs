@@ -14,9 +14,10 @@ import { createWalkthroughSource } from '../src/lib/walkthrough/source.ts'
 import { buildWalkthroughScene } from '../src/lib/walkthrough/scene.ts'
 import { prepareWalkthroughGeometry, prepareWalkthroughAppearance } from '../src/lib/walkthrough/delivery.ts'
 import { validate } from '../src/lib/rules/index.ts'
-import { Group, Mesh, BoxGeometry, MeshStandardMaterial } from 'three'
+import { Group, Mesh, BoxGeometry, MeshStandardMaterial, Vector3 } from 'three'
 import { applyWalkthroughMaterialBindings, disposeWalkthroughAsset } from '../src/lib/three/loadWalkthroughAsset.ts'
-import { buildWalkthroughAppearanceGroup, walkthroughFurnishingGeometryKey, prepareWalkthroughAppearanceUpdate } from '../src/lib/three/walkthroughAppearance.ts'
+import { adoptBlenderWalkthroughAppearance, buildWalkthroughAppearanceGroup, walkthroughFurnishingGeometryKey, prepareWalkthroughAppearanceUpdate } from '../src/lib/three/walkthroughAppearance.ts'
+import { DEFAULT_LOOK_SPEED, LOOK_SPEED, walkthroughLook } from '../src/lib/walkthrough/look.ts'
 import { readWalkthroughSession, saveWalkthroughSession } from '../src/lib/walkthrough/assetSession.ts'
 
 const brief = defaultBrief(); brief.site.plotWidth = 18; brief.site.plotDepth = 24
@@ -149,4 +150,27 @@ test('a changed fitted product replaces its room only; other room GPU meshes sur
   const cancelled = await prepareWalkthroughAppearanceUpdate(app, updated); cancelled.dispose()
   assert.equal(retained.parent, updated, 'disposing an uncommitted edit cannot dispose a reused room')
   disposeWalkthroughAsset(updated)
+})
+
+test('the initial view retains Blender meshes, materials and world transforms instead of replacing them with preview boxes', async () => {
+  const model = new Group(), imported = new Group(), mesh = new Mesh(new BoxGeometry(), new MeshStandardMaterial({ color: '#aabbcc', roughness: .32 }))
+  model.position.set(3, 1, -2); model.rotation.y = .2; imported.rotation.x = -.3; imported.userData.assetKind = 'walkthrough-furniture'
+  mesh.position.set(2, 1, 4); mesh.userData = { materialBinding: 'counter', roomId: 'kitchen', partIds: ['one'] }; imported.add(mesh); model.add(imported); model.updateMatrixWorld(true)
+  const position = mesh.getWorldPosition(new Vector3()), material = mesh.material, geometry = mesh.geometry
+  const app = { furniture: [{ id: 'one', roomId: 'kitchen', floorId: 'F0', sourceIds: ['one'], binding: 'counter', kind: 'furniture', position: [2, 1, 4], size: [1, 1, 1], shape: 'box', rotation: 0 }], skins: [], bindings: { counter: { color: '#aabbcc', rough: .32 } }, specifications: [], issues: [] }
+  const adopted = adoptBlenderWalkthroughAppearance(model, app), update = await prepareWalkthroughAppearanceUpdate(app, adopted)
+  update.commit(); adopted.removeFromParent(); disposeWalkthroughAsset(adopted); model.add(update.group); model.updateMatrixWorld(true)
+  await applyWalkthroughMaterialBindings(model, app.bindings)
+  assert.equal(mesh.geometry, geometry); assert.equal(mesh.material, material); assert.ok(mesh.getWorldPosition(new Vector3()).distanceTo(position) < 1e-6)
+  assert.equal(update.group.children[0].userData.source, 'blender-glb'); assert.equal(imported.parent, null)
+  disposeWalkthroughAsset(model)
+})
+
+test('look is 75% faster by default, adjustable and vertically clamped without changing movement', () => {
+  assert.equal(DEFAULT_LOOK_SPEED, 1.75)
+  const old = walkthroughLook(0, 0, 100, 50, 1), faster = walkthroughLook(0, 0, 100, 50)
+  assert.equal(faster[0], old[0] * 1.75); assert.equal(faster[1], old[1] * 1.75)
+  assert.equal(walkthroughLook(0, 0, 0, 1e6)[1], -LOOK_SPEED.pitchLimit)
+  assert.equal(walkthroughLook(0, 0, 0, -1e6)[1], LOOK_SPEED.pitchLimit)
+  assert.deepEqual(walkthroughLook(0, 0, 10, 0, 99), walkthroughLook(0, 0, 10, 0, LOOK_SPEED.max))
 })

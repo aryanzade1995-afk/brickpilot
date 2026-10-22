@@ -1,6 +1,6 @@
 import type { Design, FloorPlan, PlacedRoom } from '../engine/types.ts'
 import type { Brief } from '../model/brief.ts'
-import { rectCenter, sharedEdge, type Point, type Rect } from '../geometry.ts'
+import { rectCenter, rectUnionBBox, sharedEdge, type Point, type Rect } from '../geometry.ts'
 import { subtractRegions } from '../solar/regions.ts'
 import { furnishSingleRoom } from '../three/buildDollhouse.ts'
 import { doorZones } from '../draw/furniture.ts'
@@ -183,7 +183,7 @@ export function utilityFloor(design: Design, level: number, brief: Brief = desig
   // Issue 2 fix: add a conceptual main-exit stack near the building boundary so all drain
   // clusters have a visible collection/exit point. Placed near the footprint's bottom-left
   // corner — verify exact position on-site with structural and site engineer.
-  const footprint = floor.footprint
+  const footprint = rectUnionBBox(floor.footprint.length ? floor.footprint : [floor.outline])
   const mainExitPoint: Point = { x: Math.round(footprint.x + footprint.w * 0.05), y: Math.round(footprint.y + footprint.h * 0.95) }
   const mainExitStack: StackSymbol = {
     id: `${level}:stack:main-exit`,

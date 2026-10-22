@@ -16,6 +16,7 @@ import { blenderExecutable } from '../server/blender-process.mjs'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { Box3, Vector3, Group, Mesh, BoxGeometry, MeshStandardMaterial } from 'three'
 import { applyWalkthroughMaterialBindings, disposeWalkthroughAsset } from '../src/lib/three/loadWalkthroughAsset.ts'
+import { adoptBlenderWalkthroughAppearance, prepareWalkthroughAppearanceUpdate } from '../src/lib/three/walkthroughAppearance.ts'
 import { createServer } from 'node:http'
 
 const brief = defaultBrief(); brief.site.plotWidth = 18; brief.site.plotDepth = 24
@@ -133,7 +134,7 @@ test('real Blender: complete optimized GLBs load in Three, preserve source geome
   assert.ok(bounds.min.y >= -.5 && bounds.max.y > 6)
   assert.ok(bounds.min.z < -5 && bounds.max.z <= .5, 'global plan y maps to negative world z')
   const metadata = JSON.parse(await readFile(resolve(dir, 'metadata.json'), 'utf8'))
-  assert.equal(metadata.appearanceVersion, 'room-finishes-v1')
+  assert.equal(metadata.appearanceVersion, 'room-finishes-v2')
   assert.equal(metadata.floors.length, building.floors.length)
   assert.equal(metadata.openings.length, building.doors.length + building.windows.length)
   assert.ok(metadata.surfaces.length >= scene.surfaces.length)
@@ -147,6 +148,13 @@ test('real Blender: complete optimized GLBs load in Three, preserve source geome
     for (let i = 0; i < attr.count; i++) { v.fromBufferAttribute(attr, i).applyMatrix4(o.matrixWorld); assert.ok(expected.has(key(v.toArray())), 'GLB vertex matches canonical global surface coordinates') }
   })
   assert.equal(meshIds.size, metadata.surfaces.length, 'all stable IDs survive the GLB round trip')
+  const delivered = JSON.parse(await readFile(resolve(dir, 'materials.json'), 'utf8'))
+  const sourceFurniture = []; loaded.scene.traverse(o => { if (o.userData.partIds?.length && o.geometry && !o.userData.doorId) sourceFurniture.push(o) })
+  const adopted = adoptBlenderWalkthroughAppearance(loaded.scene, delivered)
+  const replay = await prepareWalkthroughAppearanceUpdate({ ...delivered, issues: [], specifications: [] }, adopted)
+  replay.commit(); adopted.removeFromParent(); disposeWalkthroughAsset(adopted); loaded.scene.add(replay.group)
+  assert.ok(replay.group.children.some(g => g.userData.source === 'blender-glb'))
+  assert.ok(sourceFurniture.filter(o => o.userData.roomId).every(o => o.parent), 'exported product meshes survive initial appearance replay')
   assert.equal((await service.request(request())).cached, true)
   const changed = structuredClone(design); changed.model.brief.finish = 'premium'
   const second = await service.request(request(changed)), revised = await complete(service, second.id)

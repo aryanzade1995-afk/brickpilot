@@ -1,7 +1,39 @@
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import type { WalkthroughAppearancePayload } from '../walkthrough/delivery.ts'
 import { applyWalkthroughMaterialBindings, disposeWalkthroughAsset } from './loadWalkthroughAsset.ts'
+
+type AppearanceGeometry = Pick<WalkthroughAppearancePayload, 'bindings' | 'furniture' | 'skins'>
+export function walkthroughRoomAppearanceSignature(app: AppearanceGeometry, roomId: string | null) {
+  const furniture = app.furniture.filter(p => p.roomId === roomId), skins = (app.skins ?? []).filter(p => p.roomId === roomId)
+  const keys = [...new Set([...furniture, ...skins].map(p => p.binding))].sort()
+  return JSON.stringify([furniture, skins, Object.fromEntries(keys.map(k => [k, app.bindings[k]]))])
+}
+
+/** Keep the actual Blender meshes, bevels, normals and embedded materials.
+ * Regroup with attach() to preserve global transforms under glTF axis roots.
+ * Only rooms subsequently changed by the user need replacement geometry. */
+export function adoptBlenderWalkthroughAppearance(model: THREE.Group, exported: Partial<AppearanceGeometry>) {
+  const root = new THREE.Group(); root.userData.assetKind = 'walkthrough-live-appearance'; model.add(root); model.updateMatrixWorld(true)
+  const imported: THREE.Object3D[] = []; model.traverse(o => { if (o.userData.assetKind === 'walkthrough-furniture') imported.push(o) })
+  const roomGroups = new Map<string | null, THREE.Group>()
+  for (const furnishing of imported) {
+    const meshes: THREE.Mesh[] = []; furnishing.traverse(o => { if (o instanceof THREE.Mesh) meshes.push(o) })
+    for (const mesh of meshes) {
+      const roomId = mesh.userData.roomId || null
+      let group = roomGroups.get(roomId)
+      if (!group) { group = new THREE.Group(); group.userData.roomId = roomId; group.userData.source = 'blender-glb';
+        if (exported.furniture && exported.bindings) group.userData.appearanceSignature = walkthroughRoomAppearanceSignature({ furniture: exported.furniture, skins: exported.skins ?? [], bindings: exported.bindings }, roomId)
+        root.add(group); roomGroups.set(roomId, group) }
+      group.attach(mesh)
+    }
+    furnishing.removeFromParent()
+  }
+  // Already-selected materials must not be flattened/replaced on first load.
+  model.traverse(o => { const look = exported.bindings?.[o.userData.materialBinding]; if (look) o.userData.resolvedLook = JSON.stringify(look) })
+  return root
+}
 
 /** Same canonical fitted parts/skins as Blender. Batch identical room looks;
  * keep these separate from the immutable architectural GLB and its cache. */
@@ -22,8 +54,10 @@ export async function buildWalkthroughAppearanceGroup(app: WalkthroughAppearance
   }
   try {
     for (const p of app.furniture) {
-      const g = p.shape === 'cyl' ? new THREE.CylinderGeometry(.5, .5, 1, 12) : p.shape === 'ball' ? new THREE.SphereGeometry(.5, 12, 8) : new THREE.BoxGeometry(1, 1, 1)
-      g.scale(...p.size); g.rotateY(p.rotation); g.translate(...p.position); add(g, p.binding, p.id, p.roomId)
+      const radius = Math.min(p.bevelM ?? .004, Math.min(...p.size) * .18, .025)
+      const g = p.shape === 'cyl' ? new THREE.CylinderGeometry(.5, .5, 1, 24) : p.shape === 'ball' ? new THREE.SphereGeometry(.5, 24, 12) : new RoundedBoxGeometry(...p.size, 2, radius)
+      if (p.shape !== 'box') g.scale(...p.size)
+      g.rotateY(p.rotation); g.translate(...p.position); add(g, p.binding, p.id, p.roomId)
     }
     for (const f of app.skins ?? []) {
       const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(f.vertices.flat(), 3)); g.setIndex([0, 1, 2, 0, 2, 3]); g.computeVertexNormals(); add(g, f.binding, f.id, f.roomId)
@@ -53,7 +87,7 @@ export async function prepareWalkthroughAppearanceUpdate(app: WalkthroughAppeara
     for (const roomId of rooms) {
       const furniture = app.furniture.filter(p => p.roomId === roomId), skins = (app.skins ?? []).filter(p => p.roomId === roomId)
       const keys = [...new Set([...furniture, ...skins].map(p => p.binding))].sort()
-      const bindings = Object.fromEntries(keys.map(k => [k, app.bindings[k]])), signature = JSON.stringify([furniture, skins, bindings])
+      const bindings = Object.fromEntries(keys.map(k => [k, app.bindings[k]])), signature = walkthroughRoomAppearanceSignature(app, roomId)
       const old = previous?.children.find(g => g.userData.roomId === roomId && g.userData.appearanceSignature === signature)
       if (old) { reuse.push(old); continue }
       const group = await buildWalkthroughAppearanceGroup({ ...app, furniture, skins, bindings }, isCurrent)

@@ -185,7 +185,8 @@ export function createWalkthroughService({ root = resolve(PROJECT_ROOT, 'output/
         render: { bakedLighting: false, materials: 'glTF metallic-roughness; supported selected surface images embedded; procedural preview shading reduced to PBR', triangles: model.triangles, bytes: model.bytes } })
       const browserBindings = structuredClone(appearance.bindings), publicRoot = resolve(PROJECT_ROOT, 'public')
       for (const look of Object.values(browserBindings)) if (look.surface?.image?.startsWith(publicRoot + sep)) look.surface.image = '/' + look.surface.image.slice(publicRoot.length + 1).replaceAll('\\', '/')
-      await save(stage, 'materials.json', { designId, geometryKey, appearanceKey, bindings: browserBindings })
+      await save(stage, 'materials.json', { designId, geometryKey, appearanceKey, appearanceVersion: WALKTHROUGH_APPEARANCE_VERSION, bindings: browserBindings,
+        furniture: appearance.furniture, skins: appearance.skins })
       const m = { version: WALKTHROUGH_DELIVERY_VERSION, identity: id, designId, projectId, geometryKey, appearanceKey, geometryReused: record.geometryReused,
         status: 'ready', reviewRequired: geometry.metadata.issues.length > 0 || appearance.issues.length > 0, createdAt: new Date().toISOString(), files: await inventory(stage, manifestFiles) }
       await save(stage, 'manifest.json', m); await verified(stage, 'manifest.json', id); await publish(stage, dir)

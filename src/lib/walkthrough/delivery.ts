@@ -9,11 +9,11 @@ import { fitWalkthroughFinishes } from './fittedFinishes.ts'
 import type { InteriorFinishes } from '../interior/finishes.ts'
 
 export const WALKTHROUGH_DELIVERY_VERSION = 'walkthrough-assets-v1'
-export const WALKTHROUGH_APPEARANCE_VERSION = 'room-finishes-v1'
+export const WALKTHROUGH_APPEARANCE_VERSION = 'room-finishes-v2'
 type V3 = [number, number, number]
 export type AssetFace = SceneSurface & { binding: string; roomId: string | null; canonicalSurfaceId: string }
 export type AssetBox = { id: string; floorId: string; roomId: string | null; position: V3; size: V3; rotation: number;
-  shape: 'box' | 'cyl' | 'ball'; binding: string; sourceIds: string[]; kind: 'furniture' | 'door' | 'frame' }
+  shape: 'box' | 'cyl' | 'ball'; binding: string; sourceIds: string[]; kind: 'furniture' | 'door' | 'frame'; bevelM?: number }
 export type Collider = { id: string; sourceIds: string[]; floorId: string; kind: string; min: V3; max: V3 }
 export type WalkthroughGeometryPayload = {
   version: typeof WALKTHROUGH_DELIVERY_VERSION; planId: string; coordinates: WalkthroughScene['coordinates']; faces: AssetFace[];
@@ -150,7 +150,7 @@ export function prepareWalkthroughAppearance(design: Design, source: Walkthrough
       const id = JSON.stringify([room.key, box.id]), key = `furniture:${id}`
       bindings[key] = box.look
       furniture.push({ id, floorId: room.floorId, roomId: room.key, sourceIds: [box.id], kind: 'furniture', binding: key,
-        position: roomLocalToWalkthrough(box.pos, r, f), size: [...box.size], rotation: -(box.rot ?? 0), shape: box.shape ?? 'box' })
+        position: roomLocalToWalkthrough(box.pos, r, f), size: [...box.size], rotation: -(box.rot ?? 0), shape: box.shape ?? 'box', bevelM: box.bevel })
     }
   }
   for (const item of [...geometry.faces, ...geometry.openingParts]) {

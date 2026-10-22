@@ -15,7 +15,8 @@ export async function loadWalkthroughAsset(url: string, expectedPlanId: string, 
   let matching = false, foreign = false
   gltf.scene.traverse(o => {
     if (o.userData.sourcePlanId) { matching ||= o.userData.sourcePlanId === expectedPlanId; foreign ||= o.userData.sourcePlanId !== expectedPlanId }
-    if (o instanceof THREE.Mesh) { o.castShadow = true; o.receiveShadow = true }
+    if (o instanceof THREE.Mesh) { const materials = Array.isArray(o.material) ? o.material : [o.material]
+      o.castShadow = !materials.every(m => m.transparent); o.receiveShadow = true }
   })
   if (!matching || foreign) { disposeWalkthroughAsset(gltf.scene); throw new Error('The walkthrough belongs to a different house.') }
   return gltf.scene
@@ -61,6 +62,7 @@ export async function applyWalkthroughMaterialBindings(root: THREE.Object3D, bin
       if (!material) return
       for (const old of Array.isArray(o.material) ? o.material : [o.material]) previous.add(old)
       o.material = material
+      o.castShadow = !material.transparent
       o.userData.resolvedLook = JSON.stringify(bindings[o.userData.materialBinding])
       o.userData.materialImageUnavailable = missingKeys.has(o.userData.materialBinding) ? bindings[o.userData.materialBinding].surface?.image : null
     })

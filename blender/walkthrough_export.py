@@ -13,6 +13,7 @@ from collections import defaultdict
 from pathlib import Path
 
 import bpy
+import bmesh
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from exporters.glb import export_glb
@@ -95,8 +96,8 @@ def primitive(part):
                  (-.5, -.5, .5), (.5, -.5, .5), (.5, .5, .5), (-.5, .5, .5)]
         faces = BOX_FACES
     else:
-        segments = 12
-        rings = 8 if shape == 'ball' else 1
+        segments = 24
+        rings = 12 if shape == 'ball' else 1
         verts = []
         for j in range(rings + 1):
             phi = math.pi * j / rings
@@ -121,6 +122,22 @@ def primitive(part):
     for x, by, up in verts:
         x, z = x * w, -by * d
         result.append((px + c * x + s * z, py + up * h, pz - s * x + c * z))
+    # Appearance-only bevels catch light on fitted products. Never bevel the
+    # canonical architectural shell or change source/collision dimensions.
+    if part.get('kind') == 'furniture' and shape == 'box':
+        radius = min(part.get('bevelM', .004), min(w, h, d) * .18, .025)
+        if radius > .0001:
+            bm = bmesh.new()
+            try:
+                points = [bm.verts.new(v) for v in result]
+                for face in faces:
+                    bm.faces.new([points[i] for i in face])
+                bmesh.ops.bevel(bm, geom=list(bm.edges), offset=radius, segments=2, affect='EDGES', clamp_overlap=True)
+                bm.normal_update(); bm.verts.ensure_lookup_table(); bm.verts.index_update()
+                result = [tuple(v.co) for v in bm.verts]
+                faces = [tuple(v.index for v in f.verts) for f in bm.faces]
+            finally:
+                bm.free()
     return result, faces
 
 
@@ -149,6 +166,11 @@ def add_parts(parts, parent, bindings, kind):
                     {'materialBinding': binding, 'floorId': floor, 'roomId': room or '', 'partIds': [p['id'] for p in group],
                      'doorId': door, 'sourcePlanId': parent['sourcePlanId'], 'materialBindings': [p['binding'] for p in group]}, material_cache[look_key])
         material_uv(obj, look)
+        if kind == 'furnishing':
+            for polygon in obj.data.polygons:
+                polygon.use_smooth = True
+            normals = obj.modifiers.new('Product weighted normals', 'WEIGHTED_NORMAL')
+            normals.keep_sharp = True
 
 
 def material_uv(obj, look):
