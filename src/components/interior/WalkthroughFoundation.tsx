@@ -7,6 +7,8 @@ import { useInterior360 } from '@/state/interior360.ts'
 import { useBlender } from '@/state/blender.ts'
 import { translate as t, useLanguage } from '@/lib/i18n/index.ts'
 import { WalkthroughScenePreparation } from './WalkthroughScenePreparation.tsx'
+import { WalkthroughAssets } from './WalkthroughAssets.tsx'
+import { useProjects } from '@/state/projects.ts'
 
 const issueLabels: Record<WalkthroughIssueCode, string> = {
   INVALID_PLAN: 'The source plan needs validation.',
@@ -19,7 +21,7 @@ const issueLabels: Record<WalkthroughIssueCode, string> = {
   STAIR_SOURCE_MISSING: 'A connection between floors is missing its source stair.',
 }
 
-/** Preparation/status only: deliberately no canvas, movement controls or jobs. */
+/** Explicit geometry/export preparation. Existing panorama state stays separate. */
 export function WalkthroughFoundation({ design, report, acceptedBuilding }: {
   design: Design; report: ValidationReport; acceptedBuilding: BuildingModel | null
 }) {
@@ -30,16 +32,17 @@ export function WalkthroughFoundation({ design, report, acceptedBuilding }: {
     catch { return { source: null } }
   }, [design, report, style, lighting, furnitureDensity, acceptedBuilding])
   const source = prepared.source
+  const projectId = useProjects(s => s.currentId) ?? `unsaved:${source?.building.planId ?? 'none'}`
   const asset = useBlender(s => source ? s.accepted[source.building.planId] : undefined)
   const assetState = source ? assessWalkthroughAsset(source, design, asset) : 'missing'
   const groups = source ? [...new Set(source.issues.map(i => i.code))].map(code => ({ code, count: source.issues.filter(i => i.code === code).length })) : []
-  return <section id="whole-house-walkthrough" aria-labelledby="walkthrough-title" data-walkthrough-phase="geometry" className="mt-10 border border-line bg-bg">
+  return <section id="whole-house-walkthrough" aria-labelledby="walkthrough-title" data-walkthrough-phase="walking" className="mt-10 border border-line bg-bg">
     <div className="border-b border-line p-5 md:p-7">
       <div className="flex flex-wrap items-start justify-between gap-4"><div>
         <p className="label">{t('Whole-house experience')}</p>
         <h2 id="walkthrough-title" className="mt-2 font-display text-2xl md:text-3xl">{t('3D house walkthrough')}</h2>
-      </div><span className="border border-line bg-bg-inset px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-ink-dim">{t('Geometry stage')}</span></div>
-      <p className="mt-3 max-w-3xl text-sm leading-relaxed text-ink-dim">{t('Preparing a connected house from your current 2D plan and selected finishes. Walking controls and the full 3D viewer are not available yet.')}</p>
+      </div><span className="border border-line bg-bg-inset px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-ink-dim">{t('First-person walkthrough')}</span></div>
+      <p className="mt-3 max-w-3xl text-sm leading-relaxed text-ink-dim">{t('Generate the connected house from your current 2D plan and selected finishes, then explore it in first person.')}</p>
     </div>
     {!source ? <p role="status" className="p-5 text-sm text-ink-dim">{t('The walkthrough source could not be prepared. Your existing previews are still available.')}</p> : <>
       <dl className="grid grid-cols-2 gap-px border-b border-line bg-line md:grid-cols-4">{[
@@ -52,13 +55,14 @@ export function WalkthroughFoundation({ design, report, acceptedBuilding }: {
           <li>{t('Room finish selections and the existing furniture system, prepared on demand.')}</li>
           <li>{t('Floor heights, courtyard and double-height void records are preserved.')}</li>
         </ul></div>
-        <div><h3 className="font-display text-lg">{t('Still needed before you can walk')}</h3><ul className="mt-3 space-y-2 text-sm leading-relaxed text-ink-dim">
-          <li>{t('A walkthrough camera and desktop and touch controls.')}</li>
-          <li>{t('Door operation, collision checks and safe movement through rooms.')}</li>
-          <li>{t('Browser lighting, performance checks and desktop and touch controls.')}</li>
+        <div><h3 className="font-display text-lg">{t('Explore the house')}</h3><ul className="mt-3 space-y-2 text-sm leading-relaxed text-ink-dim">
+          <li>{t('Generate the assets, open the model, then choose Walk inside.')}</li>
+          <li>{t('Use WASD to move, the mouse to look, and E to open or close doors.')}</li>
+          <li>{t('Press Escape to release the mouse and return to the normal 3D view.')}</li>
         </ul></div>
       </div>
       <WalkthroughScenePreparation key={`${source.geometryKey}:${source.state}`} source={source} />
+      <WalkthroughAssets key={`${projectId}:${source.geometryKey}:${source.state}`} design={design} source={source} projectId={projectId} />
       <div className="border-t border-line px-5 py-4 text-xs leading-relaxed text-ink-dim md:px-7">
         <p>{t(assetState === 'candidate-needs-interior-audit' ? 'An existing 3D export is available. Its interior still needs an audit before reuse.' : assetState === 'missing' ? 'A Blender export is optional for this preparation step.' : 'The existing 3D export does not match the current plan or finishes and will not be used automatically.')}</p>
         <p className="mt-2">{t('This preparation does not change your house, panorama previews or estimate.')}</p>

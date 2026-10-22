@@ -15,6 +15,8 @@ export type SceneOpening = {
   id: string; sourceId: string; floorId: string; wallId: string; kind: 'door' | 'entry' | 'window'
   orient: 'h' | 'v'; apertureMm: SourceBox; sillMm: number; headMm: number; headBasis: 'explicit' | 'source-opening-policy'
   operation: 'window' | 'open' | 'sliding' | 'door-leaf-unmodelled'
+  hinge?: 'a' | 'b'; swing?: 1 | -1
+  emergencyExit?: boolean
   rooms: [string | null, string | null] | null
 }
 export type SceneFloor = {

@@ -114,13 +114,13 @@ export function createInteriorScene(design: Design, designId: string, config: In
 /** What stands in one room, exactly as the 360 preview places it (room-local metres, x east, z south, y up from the
  *  floor): living rooms, bedrooms, dining rooms and studies get the designed layout as `pieces`; kitchens, bathrooms,
  *  lobbies and the rest keep their rule-fitted fixtures as `furniture`. The furnished 3D view uses this same result. */
-export function roomFurnishing(design: Design, level: number, roomId: string, density: InteriorConfiguration['furnitureDensity'], building = createBuildingModel(design)) {
+export function roomFurnishing(design: Design, level: number, roomId: string, density: InteriorConfiguration['furnitureDensity'], building = createBuildingModel(design), fullHeight = false) {
   const room = design.floors.find((f) => f.level === level)?.rooms.find((r) => r.id === roomId)
   if (!room) throw new Error(`No room ${roomId} on floor ${level}`)
   const architecture = sourceShell(design, { floor: level, roomId }, building)
   const dims = { w: room.rect.w / 1000, d: room.rect.h / 1000, h: architecture.height }
   const drop = DECOR[density]
-  const placed = furnishSingleRoom(design, level, roomId)
+  const placed = furnishSingleRoom(design, level, roomId, fullHeight ? dims.h - .01 : undefined)
   const columns=architecture.boxes.filter(b=>b.id.startsWith('column'))
   const unsafeGroups=new Set(placed.filter(b=>columns.some(c=>b.pos.every((v,i)=>Math.abs(v-c.pos[i])<(b.size[i]+c.size[i])/2-0.005))).map(b=>b.id.slice(roomId.length+1).split('-')[0]))
   // living rooms, bedrooms, dining rooms and studies get a designed layout; wet rooms and kitchens keep their fitted fixtures

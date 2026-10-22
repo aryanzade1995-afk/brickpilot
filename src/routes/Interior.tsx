@@ -6,13 +6,18 @@ import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
 import { FastInteriorPreview } from '@/components/FastInteriorPreview.tsx'
 import { WalkthroughFoundation } from '@/components/interior/WalkthroughFoundation.tsx'
 import { InvalidPlanNotice } from '@/components/InvalidPlanNotice.tsx'
+import { useFinishes } from '@/state/finishes.ts'
+import { geometryCostKey } from '@/lib/cost/quantities.ts'
+import { projectFinishBrief } from '@/lib/cost/briefSelections.ts'
 
 /** Step 06 — comes after Finishes & Cost so every room is dressed in the finishes the user chose. */
 export function Interior() {
   useLanguage(s => s.language);
 
   const result = useStudio((s) => s.result), brief = useStudio((s) => s.brief), run = useStudio((s) => s.run)
-  const plan = useMemo(() => (result ? { ...result.design, model: { ...result.design.model, brief } } : null), [result, brief])
+  const finishKey = useMemo(() => result ? geometryCostKey(result.design) : '', [result])
+  const saved = useFinishes(s => s.entries[finishKey])
+  const plan = useMemo(() => (result ? { ...result.design, model: { ...result.design.model, brief: projectFinishBrief(result.design, brief, saved) } } : null), [result, brief, saved])
   useEffect(() => { if (!result) run() }, [result, run])
   if (!result || !plan) return <div className="mx-auto max-w-[1400px] px-10 py-24 text-ink-dim">{translateUi("Preparing model…")}</div>
   if (!result.report.hardChecksPass) return <InvalidPlanNotice report={result.report} />

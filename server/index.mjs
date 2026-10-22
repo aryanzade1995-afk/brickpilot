@@ -1,5 +1,6 @@
 import { handleCostShareRequest } from './cost-shares.mjs'
 import { handleInteriorPreview } from './interior-preview.mjs'
+import { handleWalkthroughAssets } from './walkthrough-assets.mjs'
 import { handleExistingPlan } from './existing-plan.mjs'
 /*
  * Formstead server — serves the built SPA and proxies the image-model API
@@ -149,6 +150,7 @@ const server = createServer(async (req, res) => {
 
   if (await handleCostShareRequest(req, res, readJson)) return
   if (await handleInteriorPreview(req, res, readJson)) return
+  if (await handleWalkthroughAssets(req, res, readJson)) return
   if (await handleExistingPlan(req, res, readJson)) return
 
   if (await handleVillaRequest(req, res, readJson)) return

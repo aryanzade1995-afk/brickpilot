@@ -4,6 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "test:walkthrough-finishes": "node --experimental-strip-types --test scripts/test-walkthrough-finishes.mjs",
+    "test:walkthrough-navigation": "node --experimental-strip-types --test scripts/test-walkthrough-navigation.mjs",
+    "test:walkthrough-assets": "node --experimental-strip-types --test scripts/test-walkthrough-assets.mjs",
     "test:walkthrough": "node --experimental-strip-types --test scripts/test-walkthrough-foundations.mjs scripts/test-walkthrough-scene.mjs",
     "test:utility-plan": "node --experimental-strip-types --test scripts/test-utility-plan.mjs scripts/test-utility-electrical.mjs scripts/test-utility-fire.mjs scripts/test-utility-electrical-3d.mjs scripts/test-utility-water.mjs scripts/test-utility-clashes.mjs scripts/test-utility-drawings.mjs",
     "test:villa-cad": "node --test scripts/test-villa-cad.mjs",
@@ -42,6 +45,7 @@
     "test:balcony-area": "node --experimental-strip-types --test scripts/test-balcony-extent.mjs"
   },
   "dependencies": {
+    "@dimforge/rapier3d-compat": "0.21.0",
     "@huggingface/transformers": "^4.3.0",
     "@lottiefiles/dotlottie-react": "^0.19.16",
     "@react-three/drei": "^10.7.8",

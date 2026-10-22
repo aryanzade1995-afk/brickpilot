@@ -1,5 +1,8 @@
 # Continuous walkthrough scene generation
 
+The next [asset and delivery phase](walkthrough-assets.md) now exports this exact
+shell through Blender, with separate collision and material metadata.
+
 Implemented as a downstream BuildingModel consumer. The 2D planner, exterior
 generator, accepted seed, BOQ, finish resolver and panorama pipeline are unchanged.
 AI Interior now has an explicit **Prepare house geometry** action below the

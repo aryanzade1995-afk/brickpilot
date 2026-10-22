@@ -176,6 +176,8 @@ export function buildWalkthroughScene(input: BuildingModel, validation: { hardCh
       orient: opening.orient, apertureMm: { ...aperture, z: f.elevationMm + sill, h: head - sill }, sillMm: sill, headMm: head,
       headBasis: opening.head === undefined ? 'source-opening-policy' as const : 'explicit' as const,
       operation: opening.kind === 'window' ? 'window' as const : opening.treatment === 'open' || opening.leaf === false ? 'open' as const : opening.treatment === 'glazed-slide' ? 'sliding' as const : 'door-leaf-unmodelled' as const,
+      ...(opening.hinge ? { hinge: opening.hinge } : {}), ...(opening.swing ? { swing: opening.swing } : {}),
+      ...(opening.emergencyExit ? { emergencyExit: true } : {}),
       rooms: linked ? refs!.map(r => r ? walkthroughRoomKey(r.floorId, r.id) : null) as [string | null, string | null] : null }
     scene.openings.push(record)
     if (record.rooms && opening.kind !== 'window') scene.connections.push({ id: sceneId('door-link', record.id), kind: 'door', from: record.rooms.find(r => r !== null)!,

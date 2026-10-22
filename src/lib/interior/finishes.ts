@@ -6,6 +6,7 @@ import { paintColour } from '../finishes/paint.ts'
 import { optionImage, representativeOption } from '../finishes/optionImage.ts'
 import { toneOf } from '../render/roomSpecs.ts'
 import { finishProduct, type FinishProduct } from '../finishes/catalogue.ts'
+import { flooringProduct } from '../flooring/catalogue.ts'
 
 /* ------------------------------------------------------------------ *
  *  What the person chose on Finishes & Cost, resolved for ONE room, in the
@@ -18,7 +19,10 @@ import { finishProduct, type FinishProduct } from '../finishes/catalogue.ts'
 
 type Pattern = 'image' | 'tile' | 'plank' | 'subway' | 'mosaic' | 'large'
 type Fixture = { name: string; image?: string; profile?: FinishProduct['preview'] }
-export type Surface = { name: string; color: string; image?: string; tileM: number; pattern: Pattern; rough: number }
+export type Surface = { name: string; color: string; image?: string; tileM: number; tileSizeM?: [number, number]; pattern: Pattern; rough: number }
+export type FinishVisualBasis = { item: string; optionId: string; productId?: string; displayedOptionId: string; name: string;
+  representation: 'product-swatch' | 'generic-material' | 'product-photo-reference' | 'procedural-approximation';
+  image?: string; sourceUrl?: string; scale: 'catalogue-size' | 'concept-assumption'; note: string }
 export type InteriorFinishes = {
   walls: { color: string; paint: string; system: string; rough: number; metallic: boolean; textured: boolean }
   floor: Surface
@@ -34,7 +38,7 @@ export type InteriorFinishes = {
   windowFrame: { name: string; color: string; style: 'fixed' | 'sliding' | 'casement'; slim: boolean }
   glazing: { name: string; frosted: boolean; solar: boolean; double: boolean }
   grills: { name: string; mesh: boolean; bars: boolean; decorative: boolean; stainless: boolean }
-  sanitary?: { name: string; wc: 'floor' | 'wall' | 'indian'; image?: string }
+  sanitary?: { name: string; wc: 'floor' | 'wall' | 'indian'; image?: string; profile?: FinishProduct['preview'] }
   fittings?: { name: string; finish: 'chrome' | 'black' | 'gold'; image?: string }
   basin?: Fixture
   shower?: Fixture
@@ -49,6 +53,8 @@ export type InteriorFinishes = {
   switches: Fixture
   /** Exact option IDs, including concealed systems: never identify products by display name alone. */
   specifications: { item: string; optionId: string; productId?: string; name: string }[]
+  /** Read-only visual provenance; optionId is the cost selection, displayedOptionId may be an allowance exemplar. */
+  visualBasis: FinishVisualBasis[]
   /** what the panel lists, in the person's words */
   summary: { label: string; value: string; image?: string }[]
 }
@@ -85,6 +91,21 @@ export function interiorFinishes(design: Design, floorLevel: number, roomId: str
     return { option, chosen, image: image?.src, surface: !!image?.surface, photo: image && !image.surface ? image.src : undefined, profile: finishProduct(option.finishProductId)?.preview }
   }
   const summary: InteriorFinishes['summary'] = []
+  const visualBasis: FinishVisualBasis[] = []
+  const catalogueTileSize = (value: NonNullable<ReturnType<typeof pick>>): [number, number] | undefined => {
+    const sizes = flooringProduct(value.option.flooringProductId)?.availableSizes
+    const text = sizes ? sizes.length === 1 ? sizes[0] : '' : finishProduct(value.option.finishProductId)?.specification ?? ''
+    // Multiple offered sizes are not a selected installation size.
+    if (/\bor\b|\//i.test(text)) return undefined
+    const found = [...text.matchAll(/\b(\d+(?:\.\d+)?)\s*[×xX]\s*(\d+(?:\.\d+)?)\s*mm\b/g)]
+    return found.length === 1 ? [Number(found[0][1]) / 1000, Number(found[0][2]) / 1000] : undefined
+  }
+  const surface = (value: NonNullable<ReturnType<typeof pick>>, kind: 'floor' | 'wall' | 'counter') => {
+    const s = surfaceOf(value.option.name, value.surface ? value.image : undefined, kind)
+    const size = catalogueTileSize(value)
+    if (size) { s.tileSizeM = size; s.tileM = size[0] }
+    return s
+  }
   const note = (item: string, value: string, image?: string) => summary.push({ label: label(item), value, image })
   const roomType = `${roomId} ${room.semanticId ?? ''} ${room.name}`
   const wet = /bath|toilet|wc|powder/i.test(roomType), kitchen = /kitchen/i.test(roomType)
@@ -94,14 +115,14 @@ export function interiorFinishes(design: Design, floorLevel: number, roomId: str
 
   const floorItem = ['floor-living', 'floor-bedrooms', 'floor-kitchen', 'floor-bathrooms', 'floor-other'].find((i) => assigned.has(i)) ?? 'floor-other'
   const fl = pick(floorItem)!
-  const floor = surfaceOf(fl.option.name, fl.surface ? fl.image : undefined, 'floor')
+  const floor = surface(fl, 'floor')
   note(floorItem, fl.option.name, fl.image)
 
   let wallTiles: InteriorFinishes['wallTiles']
   const tileItem = wet ? 'bath-wall-tiles' : kitchen ? 'kitchen-wall-tiles' : null
   if (tileItem && assigned.has(tileItem)) {
     const t = pick(tileItem)!
-    wallTiles = { ...surfaceOf(t.option.name, t.surface ? t.image : undefined, 'wall'), zone: wet ? 'full' : 'backsplash', heightM: wet ? 2.1 : 0.6 }
+    wallTiles = { ...surface(t, 'wall'), zone: wet ? 'full' : 'backsplash', heightM: wet ? 2.1 : 0.6 }
     note(tileItem, t.option.name, t.image)
   }
 
@@ -116,7 +137,7 @@ export function interiorFinishes(design: Design, floorLevel: number, roomId: str
   let kitchenSink: InteriorFinishes['kitchenSink'], kitchenHardware: InteriorFinishes['kitchenHardware']
   if (kitchen) {
     const k = pick('kitchen-counter', false)!
-    counter = surfaceOf(k.option.name, k.surface ? k.image : undefined, 'counter')
+    counter = surface(k, 'counter')
     note('kitchen-counter', k.option.name, k.image)
     const cb = pick('kitchen-cabinets', false)!
     const name = cb.option.name
@@ -154,7 +175,7 @@ export function interiorFinishes(design: Design, floorLevel: number, roomId: str
   let sanitary: InteriorFinishes['sanitary'], fittings: InteriorFinishes['fittings'], waterHeater: InteriorFinishes['waterHeater'], exhaust: InteriorFinishes['exhaust']
   if (wet) {
     const s = pick('sanitary')!
-    sanitary = { name: s.option.name, image: s.photo, wc: /indian|orissa/i.test(s.option.name) ? 'indian' : /wall hung|premium/i.test(`${s.option.name} ${s.option.id}`) ? 'wall' : 'floor' }
+    sanitary = { name: s.option.name, image: s.photo, profile: s.profile, wc: /indian|orissa/i.test(s.option.name) ? 'indian' : /wall hung|premium/i.test(`${s.option.name} ${s.option.id}`) ? 'wall' : 'floor' }
     note('sanitary', s.option.name, s.photo)
     const f = pick('cp-fittings')!
     fittings = { name: f.option.name, image: f.photo, finish: /black|blk/i.test(f.option.name) ? 'black' : /gold|brass|gld/i.test(f.option.name) ? 'gold' : 'chrome' }
@@ -202,9 +223,18 @@ export function interiorFinishes(design: Design, floorLevel: number, roomId: str
   const specifications = specsCatalogue.items.filter(i => i.level !== 'auto' && (i.scope === 'house' || assigned.has(i.id) ||
     wet && ['bath-basin', 'bath-shower', 'bath-tub', 'bath-enclosure'].includes(i.id))).map(i => {
     const { option, chosen } = pick(i.id)!
-    return { item: i.id, optionId: chosen.id, productId: option.finishProductId, name: option.name }
+    return { item: i.id, optionId: chosen.id, productId: option.finishProductId ?? option.flooringProductId, name: option.name }
   })
+  for (const spec of specifications) {
+    const p = pick(spec.item)!, fp = finishProduct(p.option.finishProductId), floorProduct = flooringProduct(p.option.flooringProductId)
+    const exactSize = catalogueTileSize(p)
+    visualBasis.push({ item: spec.item, optionId: p.chosen.id, productId: p.option.finishProductId ?? p.option.flooringProductId,
+      displayedOptionId: p.option.id, name: p.option.name, image: p.image, sourceUrl: fp?.sourceUrl ?? floorProduct?.sourceUrl ?? undefined,
+      representation: fp?.image.kind === 'generic-material-closeup' ? 'generic-material' : p.image && p.surface ? floorProduct || fp?.image.kind === 'real-product-photo' ? 'product-swatch' : 'generic-material'
+        : p.image ? 'product-photo-reference' : 'procedural-approximation', scale: exactSize ? 'catalogue-size' : 'concept-assumption',
+      note: `${p.chosen.id !== p.option.id ? 'Allowance exemplar; cost remains on the selected allowance. ' : ''}Appearance is approximate. Roughness/reflectivity and procedural product dimensions are illustrative; no manufacturer PBR maps or exact product mesh is supplied.${p.photo ? ' Product photograph is reference only, never projected onto the model.' : ''}` })
+  }
   return { walls: { color: paint.hex, paint: paint.label, system: paintSystem.option.name, rough: /satin|metallic/i.test(paintSystem.option.name) ? .28 : /eggshell|aspira/i.test(paintSystem.option.name) ? .45 : .78,
     metallic: /metallic/i.test(paintSystem.option.name), textured: /textur|stone-effect/i.test(paintSystem.option.name) }, floor, wallTiles, ceiling, counter, cabinets, kitchenSink, kitchenHardware, door, mainDoor, doorHardware, windowFrame, glazing, grills,
-    sanitary, fittings, basin, shower, tub, enclosure, waterHeater, exhaust, fan, lights, batten, bulb, switches, specifications, summary }
+    sanitary, fittings, basin, shower, tub, enclosure, waterHeater, exhaust, fan, lights, batten, bulb, switches, specifications, visualBasis, summary }
 }

@@ -1,5 +1,13 @@
 # Whole-house walkthrough: foundations and implementation plan
 
+Current implementation also includes [first-person movement](walkthrough-navigation.md)
+and [live Finishes & Cost integration](walkthrough-finishes.md). The phase descriptions
+below are retained as historical architecture findings, not current feature limitations.
+
+Latest: the [Blender asset and delivery pipeline](walkthrough-assets.md) now adds
+project-scoped exports, structural caching, collision data and an optional model
+review. This document records the earlier foundation-phase audit.
+
 Update: the continuous shell and source stair/plate generation layer is now
 implemented. See [scene-generation API, validation and limitations](walkthrough-scene-generation.md).
 The foundation-phase findings below remain the architecture context; the new

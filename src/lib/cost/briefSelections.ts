@@ -40,3 +40,12 @@ export function writeSelectionToBrief(brief: Brief, design: Design, value: CostS
     if (option) brief.specs.overrides[`${floorGroup(room)}@${id}`] = option
   }
 }
+
+/** One legacy projection for the cost screen and interior viewers. It is a
+ * read-only copy until the user edits through the existing specification panel. */
+export function projectFinishBrief(design: Design, brief: Brief, saved?: unknown): Brief {
+  if (!saved || parseSelection(saved).catalogue || brief.finish !== 'mid' || Object.keys(brief.specs.overrides).length) return brief
+  const projected = { ...brief, specs: { overrides: { ...brief.specs.overrides } } }
+  writeSelectionToBrief(projected, design, parseSelection(saved))
+  return projected
+}

@@ -22,7 +22,7 @@ export function resolveWalkthroughRoomAssets(design: Design, source: Walkthrough
     const finishes = interiorFinishes(design, floor.level, ref.sourceRoomId)
     if (!finishes) return { state: 'finishes-unavailable' as const }
     try {
-      const furnishing = dressRoom(design, source.building, floor.level, ref.sourceRoomId, style, furnitureDensity, finishes)
+      const furnishing = dressRoom(design, source.building, floor.level, ref.sourceRoomId, style, furnitureDensity, finishes, true)
       return { state: 'resolved' as const, finishes, furnishing, coordinateFrame: 'room-local-x-east-y-up-z-south-metres' as const }
     } catch {
       // Existing isolation refuses some double-height rooms. Keep their actual

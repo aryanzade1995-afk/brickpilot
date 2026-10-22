@@ -26,7 +26,7 @@ export type Look = {
   opacity?: number
   emissive?: string
   glow?: number
-  surface?: { pattern: Surface['pattern']; tileM: number; image?: string }
+  surface?: { pattern: Surface['pattern']; tileM: number; tileSizeM?: [number, number]; image?: string }
 }
 export type DressBox = { id: string; look: Look; pos: V3; size: V3; shape?: 'box' | 'cyl' | 'ball'; rot?: number
   /** the rounded edge the 360 renderer gives this part (Blender bevel), metres */
@@ -58,7 +58,7 @@ const STYLES: Record<string, Record<Role, [string, number, number]>> = {
 
 const look = (color: string, rough = 0.6, metal = 0, extra: Partial<Look> = {}): Look => ({ color, rough, metal, ...extra })
 const scale = (hex: string, k: number) => '#' + [1, 3, 5].map((i) => Math.min(255, Math.round(parseInt(hex.slice(i, i + 2), 16) * k)).toString(16).padStart(2, '0')).join('')
-export const surfaceLook = (s: Surface): Look => ({ color: s.color, rough: s.rough, surface: { pattern: s.pattern, tileM: s.tileM, image: s.image } })
+export const surfaceLook = (s: Surface): Look => ({ color: s.color, rough: s.rough, surface: { pattern: s.pattern, tileM: s.tileM, tileSizeM: s.tileSizeM, image: s.image } })
 
 export function stylePalette(style: string) {
   const s = STYLES[style] ?? STYLES.modern
@@ -252,8 +252,8 @@ export type Building = ReturnType<typeof createBuildingModel>
  * Dress one room for the furnished 3D view. `fin` is interiorFinishes for this room (null leaves the style's colours).
  * Throws where the 360 itself cannot isolate the room (a double-height gallery); the caller falls back.
  */
-export function dressRoom(design: Design, building: Building, level: number, roomId: string, style: string, density: InteriorConfiguration['furnitureDensity'], fin: InteriorFinishes | null): DressedRoom {
-  const { dims, furniture, pieces } = roomFurnishing(design, level, roomId, density, building)
+export function dressRoom(design: Design, building: Building, level: number, roomId: string, style: string, density: InteriorConfiguration['furnitureDensity'], fin: InteriorFinishes | null, fullHeight = false): DressedRoom {
+  const { dims, furniture, pieces } = roomFurnishing(design, level, roomId, density, building, fullHeight)
   const m = stylePalette(style)
   const boxes: DressBox[] = []
   const add = (b: DressBox) => {
@@ -261,7 +261,7 @@ export function dressRoom(design: Design, building: Building, level: number, roo
   }
   for (const p of pieces) buildPiece(p, m, add)
 
-  const ceramic = look('#F7F6F2', 0.12)
+  const ceramic = look(fin?.sanitary?.profile?.color ?? '#F7F6F2', 0.12)
   const fittings = fin?.fittings ? FITTING_METAL[fin.fittings.finish] : null
   const counter = fin?.counter ? surfaceLook(fin.counter) : null
   const cab = fin?.cabinets
@@ -311,7 +311,7 @@ export function dressRoom(design: Design, building: Building, level: number, roo
       if (vanity) { skip.add(vanity.id); add({ id: vanity.id, look: m.panel, pos: [vanity.pos[0], vanity.pos[1] - 0.09, vanity.pos[2]], size: [vanity.size[0], vanity.size[1] - 0.18, vanity.size[2]] }) }
     }
     const rect = ['basin-rectangle', 'basin-square', 'basin-undermount'].includes(model)
-    add({ id: `${roomId}-selected-basin`, look: ceramic, pos: [x, y, z], size: [w, h, d], shape: rect ? 'box' : 'cyl' })
+    add({ id: `${roomId}-selected-basin`, look: look(basinChoice.profile?.color ?? ceramic.color, .12), pos: [x, y, z], size: [w, h, d], shape: rect ? 'box' : 'cyl' })
     const side = nearest(x, z), [dx, dz] = { N: [0, -1], S: [0, 1], W: [-1, 0], E: [1, 0] }[side]
     const mx = x + dx * w * 0.3, mz = z + dz * d * 0.3
     add({ id: `${roomId}-basin-mixer`, look: fittings ?? m.metal, pos: [mx, y + h / 2 + 0.08, mz], size: [0.036, 0.16, 0.036], shape: 'cyl' })

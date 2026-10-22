@@ -9,7 +9,7 @@ import { geometryCostKey } from '@/lib/cost/quantities.ts'
 import { parseSelection } from '@/lib/cost/specifications.ts'
 import { cx } from '@/lib/cx.ts'
 import type { Brief } from '@/lib/model/brief.ts'
-import { selectionFromBrief, writeSelectionToBrief } from '@/lib/cost/briefSelections.ts'
+import { selectionFromBrief, projectFinishBrief } from '@/lib/cost/briefSelections.ts'
 import { COST_TABS, costTabId, quantitySignature } from '@/lib/cost/workspace.ts'
 import { Specifications } from './finishes/Specifications.tsx'
 import { QuantitiesView, EstimateView, AssumptionsView } from './finishes/CostViews.tsx'
@@ -33,10 +33,7 @@ export function FinishesCostView({ result, brief, onBrief }: { result: Pick<Resu
   const current = useMemo(() => {
     const source = brief ?? localBrief ?? result?.design.model.brief
     if (!source || !result) return null
-    if (!saved || saved.catalogue || source.finish !== 'mid' || Object.keys(source.specs.overrides).length) return source
-    const migrated = { ...source, specs: { overrides: { ...source.specs.overrides } } }
-    writeSelectionToBrief(migrated, result.design, saved)
-    return migrated
+    return projectFinishBrief(result.design, source, saved)
   }, [brief, localBrief, result, saved])
   const cost = useMemo(() => result && current ? estimateProjectBoq(result.design, current, saved, result) : null, [result, current, saved])
   useEffect(() => { if (cost && result?.report.hardChecksPass) noteQuantities(quantitySignature(cost)) }, [cost, result, noteQuantities])

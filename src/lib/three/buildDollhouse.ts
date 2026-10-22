@@ -638,6 +638,7 @@ function furnishRoom(
   wz: XF,
   m: XF,
   push: Push,
+  heightLimit = CUT,
 ): number {
   const r = room.rect
   const cxw = wx(r.x + r.w / 2)
@@ -703,7 +704,7 @@ function furnishRoom(
    * rather than standing proud of the house like a chimney.
    */
   const P = (id: string, mat: DollMat, lx: number, y: number, lz: number, w: number, h: number, d: number) => {
-    const top = Math.min(y + h, CUT)
+    const top = Math.min(y + h, heightLimit)
     const hh = top - y
     if (hh < 0.02) return
     push(`${room.id}-${id}`, mat, [cxw + lx, baseY + y + hh / 2, czw + lz], [w, hh, d])
@@ -1081,7 +1082,7 @@ function furnishRoom(
 
 /** The same rule-based furniture for ONE room, in that room's local metres (centred on the room, y up from its floor,
  *  x east, z south) — the frame buildRoom uses — for the interior preview. Placement rules are unchanged. */
-export function furnishSingleRoom(design: Design, level: number, roomId: string): DollBox[] {
+export function furnishSingleRoom(design: Design, level: number, roomId: string, heightLimit?: number): DollBox[] {
   const floor = design.floors.find((f) => f.level === level)
   const room = floor?.rooms.find((r) => r.id === roomId)
   if (!floor || !room || room.outdoor) return []
@@ -1090,6 +1091,6 @@ export function furnishSingleRoom(design: Design, level: number, roomId: string)
   const cx = room.rect.x + room.rect.w / 2, cy = room.rect.y + room.rect.h / 2
   const boxes: DollBox[] = []
   const push: Push = (id, mat, pos, size) => { if (size[0] > 0.015 && size[1] > 0.015 && size[2] > 0.015) boxes.push({ id, mat, pos, size }) }
-  furnishRoom(room, floor, type, 0, (mm) => (mm - cx) / 1000, (mm) => (mm - cy) / 1000, (mm) => mm / 1000, push)
+  furnishRoom(room, floor, type, 0, (mm) => (mm - cx) / 1000, (mm) => (mm - cy) / 1000, (mm) => mm / 1000, push, heightLimit)
   return boxes
 }
