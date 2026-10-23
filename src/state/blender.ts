@@ -9,6 +9,7 @@ import { validate } from '@/lib/rules/index.ts'
 export type BlenderResult = {
   seed: number; requestedSeed: number; planId: string; family: string; hero: string; roofline: string
   finishSignature?: string; quality: 'preview' | 'final'; warnings: string[]
+  geometryRevision?: string
   files: { blend: string; glb: string; hero: string; front: string; aerial: string }
 }
 type Job = { id: string; status: string; phase: string; progress?: number; seed?: number; expectedSeed?: number; attempt?: number; error?: string;

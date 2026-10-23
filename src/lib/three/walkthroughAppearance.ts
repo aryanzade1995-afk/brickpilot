@@ -3,6 +3,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import type { WalkthroughAppearancePayload } from '../walkthrough/delivery.ts'
 import { applyWalkthroughMaterialBindings, disposeWalkthroughAsset } from './loadWalkthroughAsset.ts'
+import { textileDetailMap } from './walkthroughSurfaceDetail.ts'
 
 type AppearanceGeometry = Pick<WalkthroughAppearancePayload, 'bindings' | 'furniture' | 'skins'>
 export function walkthroughRoomAppearanceSignature(app: AppearanceGeometry, roomId: string | null) {
@@ -69,6 +70,12 @@ export async function buildWalkthroughAppearanceGroup(app: WalkthroughAppearance
       mesh.castShadow = mesh.receiveShadow = true; root.add(mesh)
     }
     root.userData.textureWarnings = await applyWalkthroughMaterialBindings(root, app.bindings, isCurrent)
+    let textile: THREE.DataTexture | null = null
+    root.traverse(o => {
+      if (!(o instanceof THREE.Mesh) || !(o.material instanceof THREE.MeshStandardMaterial) || o.material.roughness < .7 ||
+        !o.userData.partIds?.some((id: string) => /sofa|armchair|bed.*(?:pillow|duvet|mattress)|rug/.test(id))) return
+      textile ??= textileDetailMap(); o.material.normalMap=textile; o.material.normalScale.set(.25,.25); o.material.needsUpdate=true
+    })
     return root
   } catch (error) { for (const g of groups.values()) g.geometries.forEach(x => x.dispose()); disposeWalkthroughAsset(root); throw error }
 }

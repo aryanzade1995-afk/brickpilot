@@ -1,7 +1,8 @@
 import { Box3, Mesh, Vector3, type Group } from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { disposeWalkthroughAsset } from './loadWalkthroughAsset.ts'
-import type { AcceptedMeshCollision } from '../walkthrough/navigation.ts'
+import type { AcceptedMeshCollision, AcceptedDoor } from '../walkthrough/navigation.ts'
+import type { SceneOpening } from '../walkthrough/sceneTypes.ts'
 
 export function acceptedVillaUrl(url: string) {
   if (!/^\/api\/villas\/[a-f0-9-]{36}\/files\/[a-zA-Z0-9_-]+\.glb$/.test(url)) throw new Error('Select the accepted Blender villa from 3D Massing.')
@@ -52,11 +53,15 @@ export function acceptedVillaBounds(scene: Group) {
 /** Build collision from actual displayed triangles, with all parent transforms
  * baked into a separate copy. Holes, detailed stairs, glass and furniture keep
  * their real extents. Closed doors remain closed, exactly as exported. */
-export function acceptedVillaCollision(scene: Group): AcceptedMeshCollision {
+export function acceptedVillaCollision(scene: Group, openings: SceneOpening[] = []): AcceptedMeshCollision {
+  reconcileAcceptedOpenPortals(scene, openings)
   scene.updateMatrixWorld(true)
+  const doors = acceptedVillaDoors(scene, openings)
   const meshes: Mesh[] = []; let count = 0, indexCount = 0
   scene.traverseVisible(o => {
     if (!(o instanceof Mesh)) return
+    if (o.userData.walkthroughDoorId) return
+    for (let parent = o.parent; parent; parent = parent.parent) if (parent.userData.assetKind === 'walkthrough-live-appearance' || parent.userData.assetKind === 'walkthrough-furniture') return
     if ('isSkinnedMesh' in o || 'isInstancedMesh' in o || o.morphTargetInfluences?.some(v => v !== 0)) throw new Error('This accepted model needs an animated-mesh collision adapter before walking.')
     const p = o.geometry.getAttribute('position')
     if (!p) return
@@ -77,5 +82,59 @@ export function acceptedVillaCollision(scene: Group): AcceptedMeshCollision {
     }
     vertexOffset += p.count; indexOffset += index?.count ?? p.count
   }
-  return { vertices, indices }
+  return { vertices, indices, ...(doors.length ? { doors } : {}) }
+}
+
+/** Old Blender exports sometimes gave a source-declared open portal sliding
+ * glass despite leaf:false. Remove only that explicitly identified assembly,
+ * from both rendering and physics; never punch holes in walls or windows.
+ * New exports obey the same opening precedence in geometry/openings.py. */
+export function reconcileAcceptedOpenPortals(scene: Group, openings: SceneOpening[]) {
+  const open = new Set(openings.filter(o => o.kind !== 'window' && o.operation === 'open').map(o => o.sourceId))
+  scene.traverse(o => {
+    if (!(o instanceof Mesh) || !open.has(o.userData.source_id)) return
+    const source = o.userData.source_id, name = o.userData.finish_parent ?? o.name
+    if (name === `Door_${source}_Leaf` || name === `Door_${source}_Handle` || name.startsWith(`Door_${source}_Sliding`)) {
+      o.visible = false; o.userData.sourceOpenPortal = true
+    }
+  })
+}
+
+/** Adapt the actual exported leaves, never replacement boxes in the scene.
+ * Frames, tracks, windows and open stair portals remain fixed. Older GLBs have
+ * source IDs + stable Blender names; newer exports may carry leaf metadata.
+ * A two-track slider has one moving sash and one fixed sash: half-width access.
+ */
+export function acceptedVillaDoors(scene: Group, openings: SceneOpening[]): AcceptedDoor[] {
+  const result: AcceptedDoor[] = []
+  for (const opening of openings.filter(o => o.kind !== 'window' && o.operation !== 'open')) {
+    const parts: Mesh[] = []
+    scene.traverseVisible(o => { if (o instanceof Mesh && o.userData.source_id === opening.sourceId) parts.push(o) })
+    const source = opening.sourceId
+    const groups = [
+      { suffix: 'single', names: [`Door_${source}_Leaf`, `Door_${source}_Handle`], hinge: opening.hinge ?? 'a', swing: opening.swing ?? 1, operation: 'hinged' },
+      { suffix: 'left', names: [`MainEntry_${source}_Leaf_Left`, `MainEntry_${source}_CarvedPanel_Left_`, `MainEntry_${source}_Handle_-1`], hinge: 'a', swing: opening.swing ?? 1, operation: 'hinged' },
+      { suffix: 'right', names: [`MainEntry_${source}_Leaf_Right`, `MainEntry_${source}_CarvedPanel_Right_`, `MainEntry_${source}_Handle_1`], hinge: 'b', swing: opening.swing ?? 1, operation: 'hinged' },
+      { suffix: 'slider', names: [`Door_${source}_SlidingLeft_`], hinge: 'a', swing: 1, operation: 'sliding' },
+    ] as const
+    for (const group of groups) {
+      // Exported finish profiles are independent meshes (e.g. timber slats).
+      // Their explicit finish_parent must follow the leaf too, otherwise the
+      // opened door leaves an invisible-looking solid finish across the exit.
+      const members = parts.filter(p => group.names.some(name => [p.name, p.userData.finish_parent].some(part => typeof part === 'string' && (name.endsWith('_') ? part.startsWith(name) : part === name))) ||
+        group.suffix === 'single' && opening.emergencyExit && p.name.startsWith('EmergencyDoor_ReleaseBar'))
+      if (!members.length) continue
+      const box = new Box3(); members.forEach(p => box.expandByObject(p))
+      if (box.isEmpty()) continue
+      const id = `${opening.id}:${group.suffix}`
+      members.forEach(p => { p.userData.walkthroughDoorId = id })
+      const fixed = new Box3()
+      if (group.operation === 'sliding') parts.filter(p => p.name.startsWith(`Door_${source}_SlidingRight_`)).forEach(p => fixed.expandByObject(p))
+      const movement = !fixed.isEmpty() ? fixed.getCenter(new Vector3()).sub(box.getCenter(new Vector3())) : null
+      result.push({ id, openingId: opening.id, hinge: group.hinge, swing: group.swing as 1 | -1, operation: group.operation,
+        ...(movement ? { translation: (opening.orient === 'h' ? [movement.x, 0, 0] : [0, 0, movement.z]) as [number, number, number] } : {}),
+        collider: { id, sourceIds: [source], floorId: opening.floorId, kind: 'door', min: box.min.toArray(), max: box.max.toArray() } })
+    }
+  }
+  return result
 }

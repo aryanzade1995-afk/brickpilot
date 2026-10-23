@@ -1,7 +1,9 @@
 import { z } from 'zod'
+import { electricalInputsSchema, defaultElectricalInputs } from './electricalInputs.ts'
 import type { Point } from '../geometry.ts'
 import type { UtilityFloor, UtilityLayer } from './plan.ts'
 import { hash, parseClashReviews, type ClashReviews } from './clashes.ts'
+import { drainageInputsSchema, drainageFixtureKinds, defaultDrainageInputs } from './drainageInputs.ts'
 
 export const SHEET_SIZES = { A4: [210, 297], A3: [297, 420], A2: [420, 594], A1: [594, 841] } as const
 export const DRAWING_LAYERS = ['drainage', 'electrical', 'fire_alarm', 'water_supply'] as const
@@ -16,7 +18,7 @@ const path = z.array(point).min(2).max(1500).refine(p => p.every((v, i) => !i ||
 const common = { id, roomId: id, path }
 const runs = z.discriminatedUnion('layer', [
   z.object({ ...common, layer: z.literal('drainage'), fixtureId: id, stackId: id, diameter: positive, material: short, flowDirection: z.enum(['forward', 'reverse']) }),
-  z.object({ ...common, layer: z.literal('electrical'), circuitId: id, fromSymbolId: id, toSymbolId: id, wireSize: z.enum(['1.5mm2', '2.5mm2']), conductors: z.number().int().min(1).max(20) }),
+  z.object({ ...common, layer: z.literal('electrical'), circuitId: id, fromSymbolId: id, toSymbolId: id, wireSize: short, conductors: z.number().int().min(1).max(20), serviceBandIndex: z.number().int().min(0).max(200).optional() }),
   z.object({ ...common, layer: z.literal('fire_alarm'), zoneId: id, fromSymbolId: id, toSymbolId: id, cableType: z.literal('FRLS 2C') }),
   z.object({ ...common, layer: z.literal('water_supply'), networkId: id, fromSymbolId: id, toSymbolId: id, service: z.enum(['hot', 'cold']), fixtureId: id.nullable(), diameter: positive, material: short }),
 ])
@@ -28,6 +30,7 @@ const symbols = z.discriminatedUnion('layer', [
   z.object({ ...commonSymbol, layer: z.literal('water_supply'), type: z.enum(['supply_inlet', 'hot_supply_inlet', 'isolation_valve', 'water_outlet']), roomId: id, networkId: id, service: z.enum(['hot', 'cold']), label: short, fixtureId: id.nullable(), mount: mount.optional() }),
 ])
 const floorSchema = z.object({
+  sourceFloorLevels: z.array(z.number().int().min(0).max(100)).max(101).optional(),
   sourcePlanId: id,
   floor: z.object({ level: z.number().int().min(0).max(100), name: short, outline: rect, footprint: z.array(rect).min(1).max(200),
     rooms: z.array(z.object({ id, name: short, semanticId: z.string().max(300).optional(), rect, area: finite.nonnegative(), outdoor: z.boolean().optional() }).passthrough()).max(500),
@@ -38,9 +41,9 @@ const floorSchema = z.object({
     shafts: z.array(z.object({ id, rect }).passthrough()).max(500).optional(),
   }).passthrough(),
   slabs: z.array(rect).max(500), wallSections: z.array(z.object({ id, a: point, b: point, thickness: positive, height: positive, base: finite.nonnegative() })).max(5000),
-  fixtures: z.array(z.object({ id, type: z.enum(['sink', 'toilet', 'shower', 'floor_drain']), position: point, roomId: id, basis: z.enum(['furnishing', 'proposed']), width: positive, depth: positive })).max(1000),
+  fixtures: z.array(z.object({ id, type: z.enum(['sink', 'toilet', 'shower', 'floor_drain', 'bathtub', 'washing_machine']), drainageKind: z.enum(drainageFixtureKinds).optional(), position: point, roomId: id, basis: z.enum(['furnishing', 'proposed']), width: positive, depth: positive })).max(1000),
   utilities: z.array(runs).max(2000), symbols: z.array(symbols).max(2500),
-  circuits: z.array(z.object({ id, name: z.enum(['Lighting 1', 'Power 1']), tag: z.enum(['L1', 'P1']), color: z.string().regex(/^#[0-9a-f]{6}$/i), panelId: id, loads: z.array(id).max(1000), controls: z.array(id).max(1000), wireSize: z.enum(['1.5mm2', '2.5mm2']), breaker: z.enum(['10A', '16A']), status: z.enum(['concept', 'needs-review']), unroutedLoads: z.array(id).max(1000) })).max(200),
+  circuits: z.array(z.object({ id, name: short, tag: short, color: z.string().regex(/^#[0-9a-f]{6}$/i), panelId: id, loads: z.array(id).max(1000), controls: z.array(id).max(1000), wireSize: short, breaker: short, status: z.enum(['concept', 'needs-review']), unroutedLoads: z.array(id).max(1000) })).max(200),
   zones: z.array(z.object({ id, name: short, tag: short, color: z.string().regex(/^#[0-9a-f]{6}$/i), panelId: id, devices: z.array(id).max(1000), cableType: z.literal('FRLS 2C'), loopStatus: z.enum(['closed', 'incomplete']), missingLinks: z.array(z.object({ from: id, to: id })).max(2000) })).max(200),
   waterNetworks: z.array(z.object({ id, name: short, tag: z.enum(['CW', 'HW']), color: z.string().regex(/^#[0-9a-f]{6}$/i), service: z.enum(['hot', 'cold']), sourceIds: z.array(id).max(1000), sourceBasis: z.literal('unverified'), branchDiameterMm: positive, riserDiameterMm: positive, material: short, heatSource: short.nullable(), unroutedFixtures: z.array(id).max(1000) })).max(200),
   exitRoutes: z.array(z.object({ id, path: z.array(point).max(1500), fromRoomId: id, exitId: id.nullable(), status: z.enum(['concept', 'blocked', 'no-exit']), reason: z.string().max(1000).nullable() })).max(500),
@@ -55,6 +58,8 @@ export const TITLE_FIELDS = ['projectName', 'client', 'projectCode', 'drawnBy', 
 export const settingsSchema = z.object({ projectName: short, client: short, projectCode: z.string().regex(/^[A-Za-z0-9_-]{1,20}$/), drawnBy: short, checkedBy: short, date: day, size: z.enum(['A4', 'A3', 'A2', 'A1']), orientation: z.enum(['landscape', 'portrait']), scale: z.union([z.literal(50), z.literal(100), z.literal(200)]), dpi: z.union([z.literal(150), z.literal(300)]) })
 const pref = z.object({ visible: z.boolean(), locked: z.boolean(), opacity: finite.min(0).max(1) })
 export const documentSchema = z.object({
+  electrical: electricalInputsSchema.default(defaultElectricalInputs),
+  drainage: drainageInputsSchema.default(defaultDrainageInputs),
   version: z.literal(1), settings: settingsSchema,
   activeLayer: z.enum([...DRAWING_LAYERS, 'coordination']), layers: z.object({ drainage: pref, electrical: pref, fire_alarm: pref, water_supply: pref }),
   annotationsVisible: z.boolean(), annotationsLocked: z.boolean(), grid: z.boolean(), autoDimensions: z.boolean(), pipeTags: z.boolean(), theme: z.enum(['light', 'dark']),
@@ -73,7 +78,7 @@ const ordered = (v: unknown): unknown => Array.isArray(v) ? v.map(ordered) : v &
 const legacySignature = (m: UtilityFloor) => hash(ordered([m.sourcePlanId, m.floor, m.utilities, m.symbols]))
 export const sourceSignature = (m: UtilityFloor) => `m2-${hash(ordered(m))}`
 export function defaultDrawing(projectName: string): DrawingDocument {
-  return { version: 1, settings: { projectName, client: '', projectCode: 'PRJ', drawnBy: '', checkedBy: '', date: today(), size: 'A2', orientation: 'landscape', scale: 100, dpi: 150 }, activeLayer: 'coordination', layers: Object.fromEntries(DRAWING_LAYERS.map(k => [k, { visible: false, locked: false, opacity: 1 }])) as LayerPreferences, annotationsVisible: true, annotationsLocked: false, grid: false, autoDimensions: false, pipeTags: false, revisions: [], annotations: [], theme: 'light' }
+  return { electrical: defaultElectricalInputs(), drainage: defaultDrainageInputs(), version: 1, settings: { projectName, client: '', projectCode: 'PRJ', drawnBy: '', checkedBy: '', date: today(), size: 'A2', orientation: 'landscape', scale: 100, dpi: 150 }, activeLayer: 'coordination', layers: Object.fromEntries(DRAWING_LAYERS.map(k => [k, { visible: false, locked: false, opacity: 1 }])) as LayerPreferences, annotationsVisible: true, annotationsLocked: false, grid: false, autoDimensions: false, pipeTags: false, revisions: [], annotations: [], theme: 'light' }
 }
 export function nextRevision(revisions: DrawingDocument['revisions']) {
   let n = revisions.reduce((max, r) => Math.max(max, [...r.letter].reduce((s, c) => s * 26 + c.charCodeAt(0) - 64, 0)), 0) + 1

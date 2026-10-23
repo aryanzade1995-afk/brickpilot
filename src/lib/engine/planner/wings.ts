@@ -1,6 +1,6 @@
 import { rectArea, rectUnionBBox, rectUnionArea, toSqm, type Rect, type Point } from '../../geometry.ts'
 import type { CanonicalModel, SpaceReq } from '../../model/canonical.ts'
-import { columnPosition, columnSizeMm } from '../structuralSizing.ts'
+import { beamDepthMm, columnPosition, columnSizeMm } from '../structuralSizing.ts'
 import type { FloorPlan, Opening, PlacedRoom } from '../types.ts'
 import { makeRng } from '../massing/rng.ts'
 import { frontYard, placeBalcony, reachability, type PlanRequest, type PlanResult } from './index.ts'
@@ -13,7 +13,7 @@ import { PLANNING_LIMITS } from './limits.ts'
 import { createDoubleHeightGallery, DOUBLE_HEIGHT_LIMITS } from './doubleHeight.ts'
 import { upperProfile, usesSetbackTerraces } from '../siteForm.ts'
 
-export const WING_LIMITS = { linkWidthMm: 1800, hallWidthMm: 1500, courtWidthMm: 3000, maximumDepthMm: 5400,
+export const WING_LIMITS = { linkWidthMm: 1800, hallWidthMm: 1800, courtWidthMm: 3000, maximumDepthMm: 5400,
   maximumRoomGrowth: 1.5, minimumBarLengthMm: 6000 } as const
 
 const placed = (r: RoomReq, rect: Rect): PlacedRoom => ({ id:r.id,semanticId:r.semanticId,name:r.name,
@@ -238,7 +238,7 @@ export function planWings(model: CanonicalModel, request: PlanRequest): PlanResu
   for(const [wi,subset] of subsets.entries()){
    const spine=wi===0?f.spine.id:wi===1?'privateHall':'link'
    const result=placeDoors(subset,spine,f.prefix,columns,occ,id=>kinds.get(id)??'',id=>parents.get(id),
-    fi===0&&subset.some(r=>r.id==='foyer')?{width:nb.mainDoorMm}:null,target,model.brief.lifestyle.kitchen)
+    fi===0&&subset.some(r=>r.id==='foyer')?{width:nb.mainDoorMm}:null,target,model.brief.lifestyle.kitchen,'hinged',nb.floorToFloorMm-Math.max(300,...beams.map(b=>beamDepthMm(b.span))))
    doors.push(...result.openings);failed.push(...result.failed)
    const hall=subset.find(r=>r.id===spine)!
    if(spine==='link')continue

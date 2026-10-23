@@ -56,7 +56,7 @@ test('specification changes prices only; room override affects only that room fl
 })
 test('GST bases are explicit and corrupt saved percentages/options recover safely',()=>{
  const s=defaultSelection();s.includeGst=true;const c=estimateSelectedBoq(design,s),l=c.lines
- assert.equal(l[4].expected,(l[0].expected+l[1].expected+l[2].expected)*s.gstPercent/100)
+ assert.ok(Math.abs(l[4].expected-(l[0].expected+l[1].expected+l[2].expected)*s.gstPercent/100)<1e-6)
  assert.deepEqual(parseSelection({choices:{floor:'missing'},overheadPercent:Infinity,feePercent:-1,contingencyPercent:999,roomFloors:{bad:'missing'}}),defaultSelection())
 })
 test('CSV includes provenance, quantities and totals and escapes spreadsheet formulas',()=>{

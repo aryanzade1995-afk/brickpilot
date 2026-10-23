@@ -22,6 +22,8 @@ export type WalkthroughGeometryPayload = {
   metadata: { planId: string; status: string; floors: WalkthroughScene['floors']; rooms: WalkthroughScene['rooms'];
     openings: WalkthroughScene['openings']; stairs: WalkthroughScene['stairs']; roofs: WalkthroughScene['roofs']; connections: WalkthroughScene['connections'];
     entries: { id: string; roomId: string; floorId: string; position: V3; clearanceBasis: string }[];
+    exitAccess?: WalkthroughScene['source']['emergency']['exitAccess'];
+    entryAccess?: WalkthroughScene['source']['emergency']['entryAccess'];
     issues: WalkthroughScene['issues']; navigation: { ready: false; reason: string; agentRadiusM: number; agentHeightM: number } };
 }
 export type WalkthroughAppearancePayload = { bindings: Record<string, Look>; furniture: AssetBox[]; skins: AssetFace[];
@@ -88,7 +90,7 @@ export function prepareWalkthroughGeometry(scene: WalkthroughScene): Walkthrough
     const put = (suffix: string, x: number, y: number, z: number, w: number, d: number, h: number, kind: 'frame' | 'door') => {
       const p = planToThreeGlb({ x, y, z })
       openingParts.push({ id: `${o.id}:${suffix}`, floorId: o.floorId, roomId, kind, sourceIds: [o.sourceId],
-        position: [p.x, p.y, p.z], size: [w / 1000, h / 1000, d / 1000], rotation: 0, shape: 'box', binding: binding(o.floorId, roomId, kind === 'frame' ? 'frame' : o.operation === 'sliding' ? 'glass' : o.kind === 'entry' ? 'mainDoor' : 'door') })
+        position: [p.x, p.y, p.z], size: [w / 1000, h / 1000, d / 1000], rotation: 0, shape: 'box', binding: binding(o.floorId, roomId, kind === 'frame' ? 'frame' : o.operation === 'sliding' ? 'glass' : o.kind === 'entry' && !o.emergencyExit ? 'mainDoor' : 'door') })
     }
     if (horizontal) {
       put('jamb-a', a.x + t / 2, a.y + a.d / 2, a.z + a.h / 2, t, depth, a.h, 'frame')
@@ -129,7 +131,7 @@ export function prepareWalkthroughGeometry(scene: WalkthroughScene): Walkthrough
   return { version: WALKTHROUGH_DELIVERY_VERSION, planId: scene.planId, coordinates: scene.coordinates, faces: materialDomains(scene), openingParts,
     collision: { version: 1, units: 'm', coordinates: scene.coordinates, colliders, doors }, metadata: { planId: scene.planId, status: scene.status,
       floors: scene.floors, rooms: scene.rooms, openings: scene.openings, stairs: scene.stairs, roofs: scene.roofs, connections: scene.connections, entries,
-      issues: scene.issues, navigation: { ready: false, reason: 'Collision primitives and source stair treads are provided. The browser must audit the current character spawn and apply collision and edge controls. Missing guard details and headroom still require source review.', agentRadiusM: radius, agentHeightM: height } } }
+      issues: scene.issues, ...(scene.source.emergency?.exitAccess ? { exitAccess: scene.source.emergency.exitAccess } : {}), ...(scene.source.emergency?.entryAccess ? { entryAccess: scene.source.emergency.entryAccess } : {}), navigation: { ready: false, reason: 'Collision primitives and source stair treads are provided. The browser must audit the current character spawn and apply collision and edge controls. Missing guard details and headroom still require source review.', agentRadiusM: radius, agentHeightM: height } } }
 }
 
 export function prepareWalkthroughAppearance(design: Design, source: WalkthroughSource, geometry: WalkthroughGeometryPayload): WalkthroughAppearancePayload {

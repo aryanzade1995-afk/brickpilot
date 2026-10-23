@@ -7,7 +7,7 @@ import bpy
 import bmesh
 
 from .common import floor_prefix
-from .plates import create_plate, subtract_rectangles
+from .plates import create_plate, subtract_rectangles, roof_plate_regions
 from .stairs import stair_layout
 from .massing import mass_rect
 from validation import opening_vertical_span
@@ -38,11 +38,11 @@ def create_slab(scene, slab, floor, voids=()):
                         slab["thicknessMm"], slab["id"], voids)
 
 
-def create_roof_slab(scene, floor, voids=()):
+def create_roof_slab(scene, floor, voids=(), exterior_walls=()):
     voids = [*voids, *([floor["courtyard"]] if floor.get("courtyard") else [])]
     top = floor["elevationMm"] + floor["heightMm"]
     thickness = slab_thickness(floor)
-    for index, rect in enumerate(floor["footprint"], 1):
+    for index, rect in enumerate(roof_plate_regions(floor, exterior_walls), 1):
         create_plate(scene, f"{floor_prefix(floor)}_Roof_Slab_{index:03d}", "ROOF",
                      rect, top - thickness, thickness, floor["id"], voids)
 
@@ -65,7 +65,13 @@ def create_wall(scene, wall, floor, hosted_openings, serial_start):
     axis = "h" if abs(a["y"] - b["y"]) <= 2 else "v"
     fixed = a["y"] if axis == "h" else a["x"]
     lo, hi = sorted((a["x"], b["x"]) if axis == "h" else (a["y"], b["y"]))
-    base, top = floor["elevationMm"], floor["elevationMm"] + wall.get("heightMm", floor["heightMm"])
+    base = floor["elevationMm"]
+    # Storey heights include the slab. Masonry stops at its soffit, otherwise
+    # wall caps compete with the terrace deck and show through its finish.
+    height = wall.get("heightMm", floor["heightMm"])
+    if wall["kind"] != "parapet":
+        height = min(height, floor["heightMm"] - slab_thickness(floor))
+    top = base + height
     openings = sorted(hosted_openings, key=lambda item: item["at"]["x" if axis == "h" else "y"])
     serial = serial_start
     cursor = lo
@@ -120,11 +126,13 @@ def create_beam(scene, beam, floor, depth_mm=300, width_mm=230, exterior_walls=(
     return obj
 
 
-def create_staircase(scene, stair, floor):
+def create_staircase(scene, stair, floor, thickness=None):
     """Two source-aligned flights, solid risers and a real turning landing."""
     layout = stair_layout(stair)
     count, going = layout["steps_per_flight"], layout["going"]
     rise = floor["heightMm"] / (count * 2)
+    thickness = thickness or {"waistMm": 150, "landingThicknessMm": 180}
+    waist = thickness["waistMm"]
     base, serial = floor["elevationMm"], 1
     for flight_index, lines in enumerate(layout["flights"]):
         a0, a1 = lines[0][0], lines[0][1]
@@ -134,11 +142,11 @@ def create_staircase(scene, stair, floor):
             top = rise * (step + 1 + flight_index * count)
             scene.rect(f"{floor_prefix(floor)}_Stair_Tread_{serial:03d}", "STRUCTURE",
                        layout["world_rect"](a0, b, a1 - a0, going),
-                       base, top, source_id=stair["id"])
+                       base + max(0, top - rise - waist), min(top, rise + waist), source_id=stair["id"])
             serial += 1
     scene.rect(f"{floor_prefix(floor)}_Stair_MidLanding_01", "STRUCTURE",
                layout["world_rect"](0, layout["travel"], layout["across"], layout["run"] - layout["travel"]),
-               base + count * rise - 180, 180, source_id=stair["id"])
+               base + count * rise - thickness["landingThicknessMm"], thickness["landingThicknessMm"], source_id=stair["id"])
 
 
 def _pitched_mesh(scene, mass, roof_type):

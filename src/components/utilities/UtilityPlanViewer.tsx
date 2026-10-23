@@ -21,6 +21,15 @@ import { UtilityLayerPanel } from './UtilityLayerPanel.tsx'
 import { DRAWING_LAYERS, visibleLayers, sourceSignature, parseUtilityDrawing, type DrawingDocument, type UtilityDrawingProject } from '@/lib/utilities/drawingProject.ts'
 import { buildDrawingSheets, drawingOpsSvg, annotationOps, sheetSvg as serializeDrawingSheet } from '@/lib/utilities/drawingSheets.ts'
 import { downloadVectorSheets, downloadSheetPng, downloadSheetSvg, downloadUtilityDxf } from '@/lib/utilities/drawingExports.ts'
+import { withDrainageDesign, drainageBounds } from '@/lib/utilities/drainage.ts'
+import { DRAINAGE_COLORS } from '@/lib/utilities/drainageRules.ts'
+import { DrainageWorkbench } from './DrainageWorkbench.tsx'
+import { ElectricalWorkbench } from './ElectricalWorkbench.tsx'
+import { withElectricalDesign } from '@/lib/utilities/electricalDesign.ts'
+import { drainageInputsSchema } from '@/lib/utilities/drainageInputs.ts'
+import { clusterDrainageNodes, drainageLabels, drainageTrace, drainageFlowMarkers, DRAINAGE_DISPLAY, DRAINAGE_NODE_NAMES } from '@/lib/utilities/drainagePresentation.ts'
+import { UtilityHoverCard, type UtilityHoverInfo } from './UtilityHoverCard.tsx'
+import { DrainageMapDetails } from './DrainageMapDetails.tsx'
 
 type Box = { x: number; y: number; w: number; h: number }
 type Mode = '3d' | '2d'
@@ -78,16 +87,22 @@ function FloorScene({ model, mode, focusRoom, transparentWalls, transparentFloor
 
 const PreparedFloorScene = memo(FloorScene)
 
-type HoverInfo = { title: string; lines: string[] }
-type SheetProps = { model: UtilityFloor; box: Box; visible: Record<UtilityLayer, boolean>; room: string; circuit: string; zone: string; water: string; showCoverage: boolean; showEvacuation: boolean; selected: string | null; scale: number; exporting?: boolean; project: string; drawingDocument?: DrawingDocument; onSelect?: (id: string) => void; onHover?: (info: HoverInfo | null, x?: number, y?: number) => void; svgRef?: React.Ref<SVGSVGElement> }
+type HoverInfo = UtilityHoverInfo
+type SheetProps = { model: UtilityFloor; box: Box; visible: Record<UtilityLayer, boolean>; room: string; circuit: string; zone: string; water: string; showCoverage: boolean; showEvacuation: boolean; selected: string | null; scale: number; drainageTechnical?: boolean; exporting?: boolean; project: string; drawingDocument?: DrawingDocument; onSelect?: (id: string) => void; onHover?: (info: HoverInfo | null, x?: number, y?: number) => void; svgRef?: React.Ref<SVGSVGElement> }
 const wireLabel = (wire: string) => wire.replace('mm2', ' mm²')
 function runInfo(model: UtilityFloor, run: UtilityRun): HoverInfo {
   const room = t(model.floor.rooms.find(r => r.id === run.roomId)?.name) ?? ''
-  if (run.layer === 'drainage') return { title: run.id, lines: [room, `Ø${run.diameter} mm · ${t(run.material)}`] }
+  if (run.layer === 'drainage') {
+    const p = run.drainagePipe, review = model.drainageDesign?.checks.filter(c => c.itemId === run.id && c.status !== 'Pass') ?? []
+    return { title: p ? DRAINAGE_DISPLAY[p.service].label : 'Drainage pipe', category: room || 'Drainage', color: p ? DRAINAGE_COLORS[p.service] : UTILITY_LAYERS.drainage.color, status: p?.state === 'blocked' ? 'Needs review' : 'Proposed', reference: run.id,
+      properties: [{ label: 'Diameter', value: p ? p.diameterMm === null ? 'Not specified' : `${p.diameterMm} mm` : `${run.diameter} mm` }, { label: 'Gradient', value: p?.gradientRatio ? `1:${p.gradientRatio}` : 'Not verified' }, { label: 'Route length', value: p?.vertical ? 'Vertical connection' : `${((p?.lengthMm ?? pathLength(run.path)) / 1000).toFixed(2)} m` }, { label: 'Loading', value: p?.dfu == null ? 'Not verified' : `${p.dfu} DFU` }],
+      lines: [room, review[0]?.reason ?? p?.sizingBasis ?? 'Proposed drainage connection', 'Select to inspect the connected route and review details.'].filter(Boolean) }
+  }
   if (run.layer === 'fire_alarm') { const z = model.zones.find(z => z.id === run.zoneId)!, to = model.symbols.find(s => s.id === run.toSymbolId); return { title: `${z.tag} · ${t(z.name)}`, lines: [room, to?.layer === 'fire_alarm' ? t(to.label) : t('Alarm loop'), run.cableType] } }
   if (run.layer === 'water_supply') { const n = model.waterNetworks.find(n => n.id === run.networkId)!; return { title: `${n.tag} · ${t(n.name)}`, lines: [room, `Ø${run.diameter} mm · ${t(run.material)}`, t('Proposed supply route')] } }
   const circuit = model.circuits.find(c => c.id === run.circuitId)!, load = model.symbols.find(s => s.id === run.toSymbolId)
-  return { title: `${circuit.tag} · ${t(circuit.name)}`, lines: [room, load && load.layer === 'electrical' ? t(load.label) : '', `${wireLabel(circuit.wireSize)} · ${circuit.breaker}`] }
+  const design = model.electricalDesign?.circuits.find(c => c.id === circuit.id)
+  return { title: `${circuit.tag} · ${t(circuit.name)}`, lines: [room, load && load.layer === 'electrical' ? t(load.label) : '', `${wireLabel(circuit.wireSize)} · ${circuit.breaker}`, ...(design ? [`DB ${design.panelId}`, `Connected ${design.connectedWatts ?? '?'} W · design current ${design.currentA?.toFixed(2) ?? '?'} A`, `Developed circuit route ${design.developedRouteM?.toFixed(2) ?? '?'} m · total drop ${design.totalDropPercent?.toFixed(2) ?? '?'}%`, 'Proposed circuit · engineering review required'] : [])] }
 }
 function RunLayer(props: SheetProps & { layerKey: UtilityLayer; filterId: string }) {
   const { layerKey, model, visible, room, circuit, zone, water, selected, scale, exporting, onSelect, onHover, filterId } = props
@@ -95,31 +110,57 @@ function RunLayer(props: SheetProps & { layerKey: UtilityLayer; filterId: string
   const locked = layerKey !== 'hvac' && !!props.drawingDocument?.layers[layerKey].locked
   if (layer.disabled || !visible[layerKey]) return null
   const displayed = displayedRuns(model, visible, room, circuit, zone, water), selectedCircuit = selected?.startsWith('circuit:') ? selected.slice(8) : null
+  const trace = layerKey === 'drainage' ? drainageTrace(model.drainageDesign, selected) : null
+  const drainNodes = layerKey === 'drainage' ? model.drainageDesign?.nodes.filter(n => model.drainageDesign!.input.visible[n.service] && (room === 'all' || n.roomId === room) && n.kind !== 'fixture') ?? [] : []
+  const clusters = clusterDrainageNodes(drainNodes, scale)
+  const protectedRects = [...clusters.map(c => ({ x: c.anchor.position.x - 18 / scale, y: c.anchor.position.y - 18 / scale, w: 36 / scale, h: 36 / scale })), ...model.floor.rooms.map(r => ({ x: r.rect.x + r.rect.w / 2 - Math.min(r.rect.w * .4, 60 / scale), y: r.rect.y + r.rect.h / 2 - 10 / scale, w: Math.min(r.rect.w * .8, 120 / scale), h: 27 / scale }))]
+  const pipeLabels = layerKey === 'drainage' ? drainageLabels(displayed.flatMap(u => u.layer === 'drainage' && u.drainagePipe ? [u.drainagePipe] : []), scale, selected, !!props.drainageTechnical, protectedRects, props.box) : []
   // The same renderer owns paths, selection/glow, hit targets, circuit tags,
   // symbols and export for every layer. Only config/metadata select decoration.
   return <g data-layer={layerKey} opacity={layerKey === 'hvac' ? 1 : props.drawingDocument?.layers[layerKey].opacity ?? 1} pointerEvents={locked ? 'none' : undefined}>
     {displayed.filter(u => u.layer === layerKey).map(u => {
-      const points = u.path.map(p => `${p.x},${p.y}`).join(' '), key = selectionForRun(u), active = selected === key
+      const points = u.path.map(p => `${p.x},${p.y}`).join(' '), key = selectionForRun(u), active = selected === key || !!trace?.pipes.has(u.id)
       const circuitData = u.layer === 'electrical' ? model.circuits.find(c => c.id === u.circuitId) : u.layer === 'fire_alarm' ? model.zones.find(z => z.id === u.zoneId) : u.layer === 'water_supply' ? model.waterNetworks.find(n => n.id === u.networkId) : null
-      const color = circuitData?.color ?? layer.color, geometry = wiringPath(u, displayed, scale)
-      const info = runInfo(model, u), label = [info.title, ...info.lines].join(' · '), markers = [], length = pathLength(u.path)
-      if (u.layer === 'drainage') for (let d = Math.min(28 / scale, length / 2); d < length - 10 / scale; d += 60 / scale) { const p = alongPath(u.path, d); if (p) markers.push(p) }
+      const color = u.layer === 'drainage' && u.drainagePipe ? DRAINAGE_COLORS[u.drainagePipe.service] : circuitData?.color ?? layer.color, geometry = wiringPath(u, displayed, scale)
+      const info = runInfo(model, u), label = [info.title, ...info.lines, ...(info.properties?.map(p => `${p.label}: ${p.value}`) ?? [])].join(' · '), length = pathLength(u.path)
+      const markers = u.layer === 'drainage' && u.drainagePipe?.service !== 'vent' ? drainageFlowMarkers(u.path, scale) : []
+      const drainStyle = u.layer === 'drainage' && u.drainagePipe ? DRAINAGE_DISPLAY[u.drainagePipe.service] : null, strokeWidth = drainStyle?.width ?? layer.width
       const tag = circuitData ? alongPath(u.path, Math.max(0, length - Math.min(length * .45, 32 / scale))) : null
       const ticks = u.layer === 'electrical' && UTILITY_LAYERS.electrical.showConductors ? alongPath(u.path, length * .4) : null
-      return <g key={u.id} opacity={selected && !active ? .14 : 1}>
+      return <g key={u.id} opacity={selected && !active ? .25 : 1}>
         {active && <path d={geometry.d} fill="none" stroke={color} strokeOpacity={.22} strokeWidth={layer.width + 8} vectorEffect="non-scaling-stroke" filter={`url(#${filterId})`} />}
         {geometry.jumps.map((j, i) => <path key={i} d={j.d} fill="none" stroke="white" strokeWidth={7} vectorEffect="non-scaling-stroke" />)}
-        <path d={geometry.d} fill="none" stroke={color} strokeWidth={layer.width + (active ? 1 : 0)} strokeDasharray={layer.dash ?? undefined} strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+        {u.layer === 'drainage' && <path d={geometry.d} fill="none" stroke="white" strokeWidth={strokeWidth + 3} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" pointerEvents="none" />}
+        <path d={geometry.d} fill="none" stroke={color} strokeWidth={strokeWidth + (active ? 1 : 0)} strokeDasharray={drainStyle ? drainStyle.dash : layer.dash ?? undefined} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" pointerEvents="none" />
         {markers.map((p, i) => <path key={i} d={`M${-4 / scale} ${-4 / scale}L0 0L${-4 / scale} ${4 / scale}`} transform={`translate(${p.x} ${p.y}) rotate(${p.angle + (u.layer === 'drainage' && u.flowDirection === 'reverse' ? 180 : 0)})`} fill="none" stroke={color} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />)}
-        {u.layer === 'drainage' && <circle cx={u.path[0].x} cy={u.path[0].y} r={5 / scale} fill={color} />}
+        {u.layer === 'drainage' && !u.drainagePipe?.vertical && <circle cx={u.path[0].x} cy={u.path[0].y} r={3 / scale} fill={color} stroke="white" strokeWidth={1.5} vectorEffect="non-scaling-stroke" pointerEvents="none" />}
         {tag && <g transform={`translate(${tag.x} ${tag.y}) scale(${1 / scale})`} pointerEvents="none"><rect x={-10} y={-18} width={21} height={13} rx={2} fill="white" stroke={color} strokeWidth={.5} /><text x={.5} y={-8} textAnchor="middle" fontSize={9} fill={color}>{circuitData!.tag}</text></g>}
         {ticks && u.layer === 'electrical' && <g transform={`translate(${ticks.x} ${ticks.y}) rotate(${ticks.angle}) scale(${1 / scale})`} stroke={color} strokeWidth={1.2}>{Array.from({ length: u.conductors }, (_, i) => <path key={i} d={`M${i * 4 - 4}-4l-3 8`} />)}</g>}
         {!exporting && !locked && <polyline points={points} fill="none" stroke="transparent" strokeWidth={matchMedia('(pointer: coarse)').matches ? 44 : 20} vectorEffect="non-scaling-stroke" role="button" aria-label={label} aria-pressed={active} tabIndex={0} data-run-id={key}
           onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect?.(key) } }}
-          onPointerMove={e => onHover?.(info, e.clientX, e.clientY)} onPointerLeave={() => onHover?.(null)} onFocus={() => onHover?.(info)} onBlur={() => onHover?.(null)} className="cursor-pointer focus:outline-none"><title>{label}</title></polyline>}
+          onPointerMove={e => onHover?.(info, e.clientX, e.clientY)} onPointerLeave={() => onHover?.(null)} onFocus={e => { const r = e.currentTarget.getBoundingClientRect(); onHover?.(info, r.left + r.width / 2, r.top + r.height / 2) }} onBlur={() => onHover?.(null)} className="cursor-pointer focus:outline-none" />}
       </g>
     })}
-    {displayedSymbols(model, visible, room, circuit, zone, water).filter(s => s.layer === layerKey).map(s => {
+    {pipeLabels.map(label => { const pipe = model.drainageDesign!.pipes.find(p => p.id === label.pipeId)!; return <g key={`label:${label.pipeId}`} pointerEvents="none" opacity={selected && !trace?.pipes.has(label.pipeId) ? .3 : 1}>
+      <line x1={label.at.x} y1={label.at.y} x2={label.center.x} y2={label.center.y} stroke={DRAINAGE_COLORS[pipe.service]} strokeOpacity={.5} strokeWidth={.75} vectorEffect="non-scaling-stroke" />
+      <rect x={label.rect.x} y={label.rect.y} width={label.rect.w} height={label.rect.h} rx={4 / scale} fill="white" stroke={DRAINAGE_COLORS[pipe.service]} strokeWidth={.7} vectorEffect="non-scaling-stroke" />
+      <text x={label.center.x} y={label.center.y + 3.5 / scale} textAnchor="middle" fontSize={10 / scale} fill={DRAINAGE_COLORS[pipe.service]}>{label.text}</text>
+    </g> })}
+    {layerKey === 'drainage' && clusters.map(group => {
+      const n = group.anchor, color = DRAINAGE_COLORS[n.service], count = group.nodes.length, active = group.nodes.some(n => trace?.nodes.has(n.id))
+      const code = ({ stack: 'S', stack_base: 'SB', inspection_chamber: 'IC', outlet: 'OUT', trap: 'T', cleanout: 'CO', vent_terminal: 'V' } as Record<string, string>)[n.kind]
+      const info: HoverInfo = { title: count > 1 ? `${t(DRAINAGE_NODE_NAMES[n.kind])} + ${count - 1}` : DRAINAGE_NODE_NAMES[n.kind], category: 'Drainage components', color, status: 'Proposed', reference: n.id,
+        properties: [{ label: 'Components', value: String(count) }, { label: 'Elevation', value: n.elevationMm === null ? 'Not verified' : `${n.elevationMm} mm` }], lines: [...new Set(group.nodes.map(n => t(DRAINAGE_NODE_NAMES[n.kind])))].concat(count > 1 ? ['Select to inspect each component. Grouped for readability at this zoom.'] : []) }
+      return <g key={group.id} data-drainage-cluster={count} transform={`translate(${n.position.x} ${n.position.y}) scale(${1 / scale})`} role={exporting || locked ? undefined : 'button'} tabIndex={exporting || locked ? undefined : 0} aria-label={[info.title, ...info.lines].join(' · ')} aria-pressed={active} data-run-id={n.id} pointerEvents={locked ? 'none' : undefined}
+        onPointerMove={e => onHover?.(info, e.clientX, e.clientY)} onPointerLeave={() => onHover?.(null)} onFocus={e => { const r = e.currentTarget.getBoundingClientRect(); onHover?.(info, r.left + r.width / 2, r.top + r.height / 2) }} onBlur={() => onHover?.(null)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect?.(n.id) } }} opacity={selected && !active ? .4 : 1} className="cursor-pointer outline-none focus:[&_.drainage-node-face]:stroke-[3px]">
+        <rect x={-22} y={-22} width={44} height={44} fill="transparent" />
+        {active && <circle r={14} fill={color} fillOpacity={.12} />}
+        {n.kind === 'inspection_chamber' || n.kind === 'outlet' ? <rect className="drainage-node-face" x={-10} y={-8} width={20} height={16} rx={2} fill="white" stroke={color} strokeWidth={1.5} /> : <circle className="drainage-node-face" r={9} fill="white" stroke={color} strokeWidth={1.5} />}
+        <text y={3} textAnchor="middle" fontSize={code.length > 2 ? 6 : 8} fontWeight={600} fill={color} pointerEvents="none">{code}</text>
+        {count > 1 && <g transform="translate(10 -10)" pointerEvents="none"><circle r={7} fill={color} stroke="white" strokeWidth={1.5} /><text y={2.8} textAnchor="middle" fontSize={8} fill="white">{count}</text></g>}
+      </g>
+    })}
+    {displayedSymbols(model, visible, room, circuit, zone, water).filter(s => s.layer === layerKey && !(s.layer === 'drainage' && model.drainageDesign)).map(s => {
       const c = s.layer === 'electrical' ? model.circuits.find(c => c.id === (s.circuitIds.includes(circuit) ? circuit : selectedCircuit && s.circuitIds.includes(selectedCircuit) ? selectedCircuit : s.circuitIds[0])) : null
       const z = s.layer === 'fire_alarm' ? model.zones.find(z => z.id === s.zoneId) : null
       const n = s.layer === 'water_supply' ? model.waterNetworks.find(n => n.id === s.networkId) : null
@@ -131,7 +172,6 @@ function RunLayer(props: SheetProps & { layerKey: UtilityLayer; filterId: string
         {!exporting && selection && <rect x={-22} y={-22} width={44} height={44} fill="transparent" />}
         <UtilitySymbolGlyph type={s.type} color={color} />
         {s.type === 'vertical_stack' && <text x={13} y={-13} fontSize={10} fill={color} stroke="white" strokeWidth={3} paintOrder="stroke">{t('Stack')} *</text>}
-        <title>{[info.title, ...info.lines].join(' · ')}</title>
       </g>
     })}
   </g>
@@ -176,7 +216,7 @@ function UtilitySheet(props: SheetProps) {
   const glow = useId().replaceAll(':', ''), r = model.floor.outline, font = Math.max(140, 11 / scale)
   const sheetY = r.y + r.h + 1600, legend = utilityLegend(model, props.visible, props.circuit, false, props.zone, props.showEvacuation, props.showCoverage, props.water), rowHeight = Math.max(320, font * 1.6), footerHeight = 3700 + Math.ceil(legend.length / 2) * rowHeight
   return <svg ref={svgRef} xmlns="http://www.w3.org/2000/svg" viewBox={`${box.x} ${box.y} ${box.w} ${box.h}`} className="h-full w-full" role="group" aria-label={t('Utility plan')} fontFamily="Arial, sans-serif" onPointerLeave={() => props.onHover?.(null)}>
-    <title>{project} · {t(model.floor.name)} · {t('Utilities')}</title>
+    <desc>{project} · {t(model.floor.name)} · {t('Utilities')}</desc>
     <defs><filter id={glow} x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation={2 / scale} /></filter><clipPath id={`${glow}-slabs`}>{model.slabs.map((s, i) => <rect key={i} x={s.x} y={s.y} width={s.w} height={s.h} />)}</clipPath></defs>
     <rect x={box.x} y={box.y} width={box.w} height={box.h} fill="#ffffff" />
     <g opacity={selected ? .4 : 1}>
@@ -185,7 +225,7 @@ function UtilitySheet(props: SheetProps) {
         {...(props.visible.fire_alarm && props.showEvacuation && !roomData.outdoor && !exporting ? { role: 'button', tabIndex: 0, 'aria-label': `${t('Evacuation route')} · ${t(roomData.name)}`, 'aria-pressed': selected === `exit:${roomData.id}`, 'data-run-id': `exit:${roomData.id}`, onKeyDown: (e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); props.onSelect?.(`exit:${roomData.id}`) } } } : {})}>
         <rect {...{ x: roomData.rect.x, y: roomData.rect.y, width: roomData.rect.w, height: roomData.rect.h }} fill={roomData.outdoor ? 'none' : '#fafaf8'} clipPath={`url(#${glow}-slabs)`} stroke="#e1e1dc" strokeWidth={1} vectorEffect="non-scaling-stroke" />
         <text x={roomData.rect.x + roomData.rect.w / 2} y={roomData.rect.y + roomData.rect.h / 2 - font * .35} textAnchor="middle" fontSize={Math.min(font, roomData.rect.w / Math.max(4, t(roomData.name).length) * 1.4)} fill="#565651">{t(roomData.name)}</text>
-        <text x={roomData.rect.x + roomData.rect.w / 2} y={roomData.rect.y + roomData.rect.h / 2 + font * .9} textAnchor="middle" fontSize={font * .72} fill="#898982">{roomData.area.toFixed(1)} m²</text>
+        {(!props.visible.drainage || scale > .06) && <text x={roomData.rect.x + roomData.rect.w / 2} y={roomData.rect.y + roomData.rect.h / 2 + font * .9} textAnchor="middle" fontSize={font * .72} fill="#898982">{roomData.area.toFixed(1)} m²</text>}
       </g>)}
       {model.floor.walls.map((w, i) => <line key={i} x1={w.a.x} y1={w.a.y} x2={w.b.x} y2={w.b.y} stroke="#d6d6d0" strokeWidth={w.thickness} />)}
       {model.floor.openings.map((o, i) => <g key={i}>
@@ -213,7 +253,7 @@ function UtilitySheet(props: SheetProps) {
         {entry.symbol ? <g transform={`translate(220 0) scale(${1 / scale})`}><UtilitySymbolGlyph type={entry.symbol} color={entry.color} /></g> : <path d="M0 0h500" stroke={entry.color} strokeDasharray={entry.dash ? '90 45' : undefined} strokeWidth={2} vectorEffect="non-scaling-stroke" />}
         <text x={650} y={font * .25} fill={entry.color}>{t(entry.label)}</text>
       </g> })}
-      <text x={r.x} y={sheetY + footerHeight - 1250}>{t('Proposed services. Electrical ratings are illustrative; professional design required.')}</text>
+      <text x={r.x} y={sheetY + footerHeight - 1250}>{t('Proposed services. Electrical sizing uses supplied evidence; missing ratings remain unknown.')}</text>
       {props.visible.water_supply && <text x={r.x} y={sheetY + footerHeight - 1650}>{t('Water routes are proposals. Upstream supply, heater location and hydraulic design require review.')}</text>}
       {props.visible.fire_alarm && <><text x={r.x} y={sheetY + footerHeight - 800}>{t('Fire coverage: smoke 7.5 m / heat 5 m. Concept radii only; walls limit coverage.')}</text><text x={r.x} y={sheetY + footerHeight - 500}>{t('Wet-area exemption and evacuation routes are concept assumptions; professional review required.')}</text></>}
       <text x={r.x} y={sheetY + footerHeight - 250}>{t('Concept checks only. This is not a compliance certificate.')}</text>
@@ -224,7 +264,8 @@ function UtilitySheet(props: SheetProps) {
 
 export function UtilityPlanViewer({ model: sourceModel, project, reviewScope, mode, onModeChange: setMode }: { model: UtilityFloor; project: string; reviewScope: string; mode: Mode; onModeChange: (mode: Mode) => void }) {
   useLanguage(s => s.language)
-  const drawing = useUtilityDrawing(sourceModel, project, reviewScope), model = drawing.model, drawingDoc = drawing.document
+  const drawing = useUtilityDrawing(sourceModel, project, reviewScope), drawingDoc = drawing.document
+  const model = useMemo(() => withElectricalDesign(withDrainageDesign(drawing.model, drawingDoc.drainage), drawingDoc.electrical), [drawing.model, drawingDoc.drainage, drawingDoc.electrical])
   const changeDrawing = (edit: (doc: DrawingDocument) => void) => { drawing.change(edit) }
   const [sheetOpen, setSheetOpen] = useState(false), [panelsOpen, setPanelsOpen] = useState(false), [helpOpen, setHelpOpen] = useState(false), [exportBusy, setExportBusy] = useState('')
   const [restoreCandidate, setRestoreCandidate] = useState<UtilityDrawingProject | null>(null), [sessionMessage, setSessionMessage] = useState(''), [printPage, setPrintPage] = useState(0)
@@ -235,12 +276,13 @@ export function UtilityPlanViewer({ model: sourceModel, project, reviewScope, mo
   const [showElectrical3D, setShowElectrical3D] = useState(true), [seeThroughWalls, setSeeThroughWalls] = useState(true), [showRoomNames3D, setShowRoomNames3D] = useState(true)
   const [water, setWater] = useState('all'), [showWater3D, setShowWater3D] = useState(true), [showHotWater, setShowHotWater] = useState(true), [seeThroughFloor, setSeeThroughFloor] = useState(true)
   const [room, setRoom] = useState('all'), [selected, setSelected] = useState<string | null>(null)
+  const [drainageTechnical, setDrainageTechnical] = useState(false)
   const visible = useMemo(() => visibleLayers(drawingDoc), [drawingDoc])
   const [box, setBox] = useState<Box | null>(null), [width, setWidth] = useState(800), [error, setError] = useState('')
   const [tooltip, setTooltip] = useState<{ info: HoverInfo; x: number; y: number } | null>(null)
   const host = useRef<HTMLDivElement>(null)
   const pointers = useRef(new Map<number, Point>()), gesture = useRef<{ x: number; y: number; distance: number; travel: number; moved: boolean; run: string | null } | null>(null)
-  const r = model.floor.outline, baseBox = { x: r.x - 1800, y: r.y - 1800, w: r.w + 3600, h: r.h + 3600 }
+  const r = useMemo(() => visible.drainage ? drainageBounds(model) : model.floor.outline, [model, visible.drainage]), baseBox = { x: r.x - 1800, y: r.y - 1800, w: r.w + 3600, h: r.h + 3600 }
   const [height, setHeight] = useState(520)
   const fit = useMemo(() => {
     const aspect = width / height, center = rectCenter(r), w = Math.max(baseBox.w, baseBox.h * aspect), h = w / aspect
@@ -254,7 +296,7 @@ export function UtilityPlanViewer({ model: sourceModel, project, reviewScope, mo
   const selectedWater = model.waterNetworks.find(n => selected === `water:${n.id}`)
   const shown = useMemo(() => displayedRuns(model, visible, room, circuit, zone, water), [model, visible, room, circuit, zone, water])
   const legend = utilityLegend(model, visible, circuit, false, zone, showEvacuation, showCoverage, water)
-  const selectedName = (u: UtilityRun) => { const info = runInfo(model, u); return u.layer === 'drainage' ? `${t(model.floor.rooms.find(rm => rm.id === u.roomId)?.name)} · ${t(model.fixtures.find(f => f.id === u.fixtureId)?.type.replace('_', ' '))} · Ø${u.diameter} mm` : `${info.title} · ${info.lines[0]} · ${info.lines[1]}` }
+  const selectedName = (u: UtilityRun) => { const info = runInfo(model, u); return u.layer === 'drainage' ? `${info.title} · ${info.category} · ${info.properties?.[0]?.value ?? ''}` : `${info.title} · ${info.lines[0]} · ${info.lines[1]}` }
   const connected = selectedCircuit ? connectedLoads(model, selectedCircuit) : []
   const electric3D = useMemo(() => electricalScene(model, room, circuit), [model, room, circuit])
   const electricVisible3D = mode === '3d' && visible.electrical && showElectrical3D
@@ -291,9 +333,11 @@ export function UtilityPlanViewer({ model: sourceModel, project, reviewScope, mo
   const hover = (info: HoverInfo | null, x?: number, y?: number) => {
     if (!info || pointers.current.size) { setTooltip(null); return }
     const bounds = host.current?.getBoundingClientRect()
-    setTooltip({ info, x: Math.max(8, Math.min(width - 245, (x ?? bounds!.left) - bounds!.left + 12)), y: Math.max(8, Math.min(height - 90, (y ?? bounds!.top) - bounds!.top + 12)) })
+    if (!bounds) return
+    setTooltip({ info, x: (x ?? bounds.left + width / 2) - bounds.left, y: (y ?? bounds.top + 40) - bounds.top })
   }
   const zoom = (factor: number, fx = .5, fy = .5) => {
+    setTooltip(null)
     setBox(b => { const old = b ?? fit, w = Math.max(fit.w * .18, Math.min(fit.w * 3, old.w * factor)), f = w / old.w; return { x: old.x + old.w * fx * (1 - f), y: old.y + old.h * fy * (1 - f), w, h: old.h * f } })
   }
   useEffect(() => {
@@ -303,11 +347,19 @@ export function UtilityPlanViewer({ model: sourceModel, project, reviewScope, mo
     el.addEventListener('wheel', wheel, { passive: false }); return () => el.removeEventListener('wheel', wheel)
   })
   function gestureNow() { const p = [...pointers.current.values()]; return p.length > 1 ? { x: (p[0].x + p[1].x) / 2, y: (p[0].y + p[1].y) / 2, distance: Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) } : { x: p[0]?.x ?? 0, y: p[0]?.y ?? 0, distance: 0 } }
-  const sheet = { model, drawingDocument: drawingDoc, visible, room, circuit, zone, water, showCoverage, showEvacuation, selected, project }
+  const focusRoom = (id: string) => {
+    setRoom(id); select(null); setMode('2d'); setSheetOpen(false)
+    const focused = model.floor.rooms.find(r => r.id === id)
+    if (!focused) { setBox(null); return }
+    const r = focused.rect, w = Math.max(r.w + 1800, (r.h + 1800) * width / height), h = w * height / width
+    setBox({ x: r.x + r.w / 2 - w / 2, y: r.y + r.h / 2 - h / 2, w, h })
+  }
+  const drainageRooms = model.floor.rooms.filter(r => model.drainageDesign?.fixtures.some(f => f.roomId === r.id))
+  const sheet = { model, drawingDocument: drawingDoc, visible, room, circuit, zone, water, showCoverage, showEvacuation, selected, project, drainageTechnical }
   const span = Math.max(r.w, r.h) / 1000, camera = useMemo(() => ({ position: [(r.x + r.w / 2) / 1000 + span, span * 1.1, (r.y + r.h / 2) / 1000 + span] as [number, number, number], fov: 42, far: 500 }), [r, span])
   const sheetResult = useMemo(() => { try { return { pages: buildDrawingSheets(model, drawingDoc, drawingDoc.activeLayer, []), error: '' } } catch (e) { return { pages: [], error: (e as Error).message } } }, [model, drawingDoc])
-  const modelSignature = useMemo(() => sourceSignature(model), [model])
-  const snapshot: UtilityDrawingProject = { format: 'formstead-utility-project', version: 1, savedAt: new Date().toISOString(), sourceSignature: modelSignature, model, document: drawingDoc, reviews: {}, view: { room, circuit, zone, water, showClashes: false, showCoverage, showEvacuation, mode, sheetOpen, showClashes3D: false, showElectrical3D, showWater3D, showHotWater, seeThroughWalls, seeThroughFloor, showRoomNames3D, selected } }
+  const modelSignature = useMemo(() => sourceSignature(drawing.model), [drawing.model])
+  const snapshot: UtilityDrawingProject = { format: 'formstead-utility-project', version: 1, savedAt: new Date().toISOString(), sourceSignature: modelSignature, model: drawing.model, document: drawingDoc, reviews: {}, view: { room, circuit, zone, water, showClashes: false, showCoverage, showEvacuation, mode, sheetOpen, showClashes3D: false, showElectrical3D, showWater3D, showHotWater, seeThroughWalls, seeThroughFloor, showRoomNames3D, selected } }
   const session = useRef({ snapshot, pending: false })
   useEffect(() => { session.current = { snapshot, pending: !!restoreCandidate } }, [snapshot, restoreCandidate])
   useEffect(() => {
@@ -365,6 +417,8 @@ export function UtilityPlanViewer({ model: sourceModel, project, reviewScope, mo
       <ExportDropdown label="Download utility plan" title="Download utility plan" items={[{ id: 'pdf', label: 'Vector sheet PDF', ext: '.pdf', onExport: () => exportDrawing('pdf') }, { id: 'png', label: 'Export PNG', ext: '.png', onExport: () => exportDrawing('png') }, { id: 'svg', label: 'Export SVG', ext: '.svg', onExport: () => exportDrawing('svg') }, { id: 'dxf', label: 'Export DXF', ext: '.dxf', onExport: () => exportDrawing('dxf') }, { id: 'all', label: 'Export all sheets PDF', ext: '.pdf', onExport: () => exportDrawing('all') }]} />
     </div>
     {sheetOpen && <UtilityDrawingWorkbench model={model} document={drawingDoc} change={changeDrawing} sheets={sheetResult.pages} sheetError={sheetResult.error} busy={exportBusy} onExport={exportDrawing} onSave={saveProject} onLoad={loadProject} onHelp={() => setHelpOpen(true)} undo={drawing.undo} redo={drawing.redo} canUndo={drawing.canUndo} canRedo={drawing.canRedo} onPrint={printDrawing} />}
+    {visible.drainage && model.drainageDesign && <DrainageWorkbench model={drawing.model} design={model.drainageDesign} change={edit => { const next = structuredClone(drawingDoc.drainage); edit(next); const parsed = drainageInputsSchema.safeParse(next); if (!parsed.success) { setError('This drainage input is outside the supported range. No data was changed.'); return } changeDrawing(doc => { doc.drainage = parsed.data }); setError('') }} focus={(p, id) => { setMode('2d'); setSheetOpen(false); setSelected(model.drainageDesign?.pipes.find(pipe => pipe.from === id)?.id ?? id); if (p) setBox({ x: p.x - 3000, y: p.y - 3000 * height / width, w: 6000, h: 6000 * height / width }) }} />}
+    {visible.electrical && model.electricalDesign && <ElectricalWorkbench model={model} design={model.electricalDesign} apply={input => changeDrawing(doc => { doc.electrical = input })} focus={(p, selection) => { setMode('2d'); setSheetOpen(false); const run = model.utilities.find(r => r.id === selection); setSelected(run ? selectionForRun(run) : selection || null); if (p) setBox({ x: p.x - 3000, y: p.y - 3000 * height / width, w: 6000, h: 6000 * height / width }) }} />}
     {!sheetOpen && <button className={`${button} fixed bottom-4 left-1/2 z-30 -translate-x-1/2 bg-accent text-bg shadow-lg lg:hidden`} aria-expanded={panelsOpen} onClick={() => setPanelsOpen(v => !v)}>{t('Utility panels')} {panelsOpen ? '−' : '+'}</button>}
     {panelsOpen && !sheetOpen && <button aria-label={t('Close utility panels')} className="fixed inset-0 z-30 bg-black/30 lg:hidden" onClick={() => setPanelsOpen(false)} />}
     <div className={`${sheetOpen ? 'hidden' : 'grid'} gap-5 lg:grid-cols-[230px_minmax(0,1fr)]`}>
@@ -386,7 +440,7 @@ export function UtilityPlanViewer({ model: sourceModel, project, reviewScope, mo
         <fieldset className="mt-4 border-b border-line pb-2"><legend className="font-display text-lg">{t('3D water supply')}</legend><label className="block text-xs text-ink-dim">{t('Water supply filter')}<select aria-label={t('Water supply filter')} disabled={!visible.water_supply} className="mt-2 min-h-11 w-full border border-line bg-bg px-2 text-ink" value={water} onChange={e => { setWater(e.target.value); select(null) }}><option value="all">{t('All supplies')}</option>{model.waterNetworks.map(n => <option key={n.id} value={n.id}>{n.tag} · {t(n.name)}</option>)}</select></label>{([[showWater3D, setShowWater3D, 'Show water pipes in 3D'], [showHotWater, setShowHotWater, 'Show hot-water proposals']] as const).map(([value, setter, label]) => <label key={label} className="flex min-h-11 items-center gap-2 text-xs"><input type="checkbox" className="accent-accent" checked={visible.water_supply && value} disabled={!visible.water_supply} onChange={e => { setter(e.target.checked); setMode('3d'); select(null) }} />{t(label)}</label>)}</fieldset>
         <fieldset className="mt-4 border-b border-line pb-2"><legend className="font-display text-lg">{t('3D view options')}</legend>{([[seeThroughWalls, setSeeThroughWalls, 'See through walls'], [seeThroughFloor, setSeeThroughFloor, 'See through floor'], [showRoomNames3D, setShowRoomNames3D, 'Room labels']] as const).map(([value, setter, label]) => <label key={label} className="flex min-h-11 items-center gap-2 text-xs"><input type="checkbox" className="accent-accent" checked={value} onChange={e => { setter(e.target.checked); setMode('3d') }} />{t(label)}</label>)}</fieldset>
         <label className="mt-4 block text-xs text-ink-dim">{t('Select a connection')}<select className="mt-2 min-h-11 w-full border border-line bg-bg px-2 text-ink" value={run?.id ?? shown.find(u => selectionForRun(u) === selected)?.id ?? ''} onChange={e => { const selectedRun = shown.find(u => u.id === e.target.value); if (selectedRun && selectedRun.layer !== 'electrical' && selectedRun.layer !== 'water_supply') setMode('2d'); select(selectedRun ? selectionForRun(selectedRun) : null) }}><option value="">{t('No selection')}</option>{shown.map(u => <option key={u.id} value={u.id}>{selectedName(u)}</option>)}</select></label>
-        {run && <div aria-live="polite" className="mt-4 border-t border-line pt-4 text-xs"><p className="break-all font-mono text-[10px]">{run.id}</p><p className="mt-2">{selectedName(run)}</p><p className="mt-1 text-ink-dim">{run.layer === 'drainage' ? `${t(run.material)} · ${t('Fixture → stack')}` : ''}</p><button className={`${button} mt-3 w-full`} onClick={() => select(null)}>{t('Clear selection')}</button></div>}
+        {run && run.layer !== 'drainage' && <div aria-live="polite" className="mt-4 border-t border-line pt-4 text-xs"><p className="break-all font-mono text-[10px]">{run.id}</p><p className="mt-2">{selectedName(run)}</p>{runInfo(model, run).lines.slice(2).map((line, i) => <p key={i} className="mt-2 text-ink-dim">{line}</p>)}<button className={`${button} mt-3 w-full`} onClick={() => select(null)}>{t('Clear selection')}</button></div>}
         {selectedCircuit && <section aria-label={t('Circuit details')} aria-live="polite" className="mt-4 border-t border-line pt-4 text-xs">
           <h3 className="font-display text-lg" style={{ color: selectedCircuit.color }}>{selectedCircuit.tag} · {t(selectedCircuit.name)}</h3>
           <dl className="mt-3 grid grid-cols-2 gap-2"><dt className="text-ink-faint">{t('Breaker rating')}</dt><dd>{selectedCircuit.breaker}</dd><dt className="text-ink-faint">{t('Wire size')}</dt><dd>{wireLabel(selectedCircuit.wireSize)}</dd><dt className="text-ink-faint">{t('Connected loads')}</dt><dd>{connected.length} / {selectedCircuit.loads.length} {t('planned')}</dd></dl>
@@ -409,10 +463,14 @@ export function UtilityPlanViewer({ model: sourceModel, project, reviewScope, mo
         <p className="mt-2 text-[11px] leading-relaxed text-ink-faint">{t('Concept surface wiring. Heights and routes are illustrative; electrical design is not validated. Wire paths are enlarged for clarity.')}</p>
         {visible.water_supply && <p className="mt-2 text-[11px] leading-relaxed text-ink-faint">{t('Water routes are proposals. Upstream supply, heater location and hydraulic design require review.')}</p>}
       </aside>
-      <div className="min-w-0 border border-line">
-        <div className="flex items-center justify-between gap-3 border-b border-line bg-bg px-4 py-3 font-mono text-[10px] text-ink-dim"><span>{t(model.floor.name)} · {t(mode === '3d' ? waterVisible3D ? electricVisible3D ? '3D services' : '3D water supply' : electricVisible3D ? '3D electrical' : 'Building only' : 'Utility plan')}</span><span>{mode === '2d' ? shown.length : (electricVisible3D ? electric3D.wires.length : 0) + (waterVisible3D ? water3D.pipes.length : 0)} {t('connections')}{mode === '2d' && <span> · {model.circuits.length} {t('circuits')} · {model.zones.length} {t('zones')}</span>}</span></div>
+      <div className="min-w-0 self-start border border-line">
+        <div className="flex items-center justify-between gap-3 border-b border-line bg-bg px-4 py-3 font-mono text-[10px] text-ink-dim"><span>{t(model.floor.name)} · {t(mode === '3d' ? waterVisible3D ? electricVisible3D ? '3D services' : '3D water supply' : electricVisible3D ? '3D electrical' : 'Building only' : 'Utility plan')}</span><span>{mode === '2d' ? shown.length : (electricVisible3D ? electric3D.wires.length : 0) + (waterVisible3D ? water3D.pipes.length : 0)} {t('connections')}{mode === '2d' && visible.electrical && <span> · {model.circuits.length} {t('circuits')}</span>}{mode === '2d' && visible.fire_alarm && <span> · {model.zones.length} {t('zones')}</span>}</span></div>
         {electricVisible3D && <div className="flex flex-wrap items-center gap-2 border-b border-line bg-bg px-3 py-2"><span className="mr-auto text-[10px] text-ink-dim">{electric3D.boards.length} {t('boards & fixtures')} · {t('Select a circuit')}</span>{model.circuits.map(c => <button key={c.id} type="button" aria-pressed={selected === `circuit:${c.id}`} className={`${button} bg-bg-raised`} style={{ borderColor: c.color, color: selected === `circuit:${c.id}` ? '#fff' : c.color, backgroundColor: selected === `circuit:${c.id}` ? c.color : undefined }} onClick={() => select(selected === `circuit:${c.id}` ? null : `circuit:${c.id}`)}>{c.tag} · {t(c.name)}</button>)}</div>}
         {waterVisible3D && <div className="flex flex-wrap items-center gap-2 border-b border-line bg-bg px-3 py-2"><span className="mr-auto text-[10px] text-ink-dim">{t('Water supply')} · {t('Source unverified')}</span>{model.waterNetworks.filter(n => showHotWater || n.service === 'cold').map(n => <button key={n.id} type="button" aria-pressed={selected === `water:${n.id}`} className={`${button} bg-bg-raised`} style={{ borderColor: n.color, color: selected === `water:${n.id}` ? '#fff' : n.color, backgroundColor: selected === `water:${n.id}` ? n.color : undefined }} onClick={() => select(selected === `water:${n.id}` ? null : `water:${n.id}`)}>{n.tag} · {t(n.name)}</button>)}</div>}
+        {mode === '2d' && visible.drainage && model.drainageDesign && <div className="border-b border-line bg-bg-raised p-3 sm:px-4">
+          <div className="flex flex-wrap items-center gap-2"><span className="mr-1 font-mono text-[9px] uppercase tracking-widest text-ink-faint">{t('Focus drains')}</span><button className={`${button} ${room === 'all' ? 'border-line-strong bg-bg-inset' : ''}`} aria-pressed={room === 'all'} onClick={() => focusRoom('all')}>{t('Whole floor')}</button>{drainageRooms.map(r => <button key={r.id} className={`${button} ${room === r.id ? 'border-line-strong bg-bg-inset' : ''}`} aria-pressed={room === r.id} onClick={() => focusRoom(r.id)}>{t(r.name)}</button>)}<label className="ml-auto flex min-h-11 items-center gap-2 text-xs text-ink-dim"><input type="checkbox" className="accent-accent" checked={drainageTechnical} onChange={e => { setDrainageTechnical(e.target.checked); setTooltip(null) }} />{t('Technical labels')}</label></div>
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line pt-3 text-[10px] text-ink-dim">{Object.entries(DRAINAGE_DISPLAY).filter(([key]) => model.drainageDesign!.input.visible[key as keyof typeof DRAINAGE_DISPLAY] && model.drainageDesign!.pipes.some(p => p.service === key)).map(([key, style]) => <span key={key} className="flex items-center gap-2"><svg width="24" height="8" aria-hidden="true"><path d="M0 4H24" stroke={DRAINAGE_COLORS[key as keyof typeof DRAINAGE_COLORS]} strokeWidth={style.width} strokeDasharray={style.dash} /></svg>{t(style.label)}</span>)}</div>
+        </div>}
         <div ref={host} className="relative h-[480px] overflow-hidden bg-bg-inset sm:h-[580px]" style={{ touchAction: mode === '2d' ? 'none' : undefined }}>
           <CanvasBoundary><Canvas frameloop="demand" camera={camera} dpr={[1, 1.5]} onPointerMissed={() => select(null)}><PreparedFloorScene model={model} mode={mode} focusRoom={room} transparentWalls={(electricVisible3D || waterVisible3D) && seeThroughWalls} transparentFloor={waterVisible3D && seeThroughFloor} />{electricVisible3D && <ElectricalLayer3D model={model} scene={electric3D} room={room} circuit={circuit} selected={selected} labels={showRoomNames3D} onSelect={select} />}{waterVisible3D && <WaterLayer3D model={model} scene={water3D} room={room} selected={selected} labels={showRoomNames3D} roomNames={!electricVisible3D} onSelect={select} />}</Canvas></CanvasBoundary>
           <div className={`absolute inset-0 bg-white transition-opacity duration-300 motion-reduce:transition-none ${planVisible ? 'opacity-100' : 'pointer-events-none invisible opacity-0'}`} aria-hidden={!planVisible} inert={!planVisible}>
@@ -424,13 +482,13 @@ export function UtilityPlanViewer({ model: sourceModel, project, reviewScope, mo
             </div>
             <div className="absolute right-3 top-3 flex gap-1">{[['−', 'Zoom out', 1.25], ['+', 'Zoom in', .8], ['↗', 'Fit drawing', 0]].map(([label, name, factor]) => <button key={String(name)} className={`${button} min-w-11 bg-bg-raised`} aria-label={t(String(name))} onClick={() => factor ? zoom(Number(factor)) : setBox(null)}>{label}</button>)}</div>
             <details className="absolute bottom-3 right-3 max-h-[300px] max-w-[250px] overflow-y-auto border border-line bg-bg-raised p-3 text-xs"><summary className="flex min-h-11 cursor-pointer items-center">{t('Legend')}</summary><div className="mt-3 space-y-2">{legend.map((entry, i) => <div key={i} className="flex items-center gap-2"><svg viewBox="-14 -14 28 28" width={24} height={24} aria-hidden="true">{entry.symbol ? <UtilitySymbolGlyph type={entry.symbol} color={entry.color} /> : <path d="M-12 0h24" stroke={entry.color} strokeWidth={2} strokeDasharray={entry.dash ?? undefined} />}</svg><span style={{ color: entry.color }}>{t(entry.label)}</span></div>)}<p className="text-ink-faint">{t('Drainage arrows show flow; wire bridges show crossings without junctions.')}</p></div></details>
-            {tooltip && <div role="tooltip" className="pointer-events-none absolute z-10 max-w-[230px] border border-line bg-accent p-3 text-xs text-bg shadow-lg" style={{ left: tooltip.x, top: tooltip.y }}><p className="break-all font-mono text-[10px]">{tooltip.info.title}</p>{tooltip.info.lines.map((line, i) => <p key={i} className="mt-1 break-words">{line}</p>)}</div>}
+            {tooltip && <UtilityHoverCard info={tooltip.info} x={tooltip.x} y={tooltip.y} width={width} height={height} />}
 
           </div>
         </div>
-        <p className="border-t border-line px-4 py-3 text-[10px] text-ink-faint">{t(mode === '3d' ? 'Drag to orbit · scroll or pinch to zoom · select a service to trace its network' : 'Drag to pan · scroll or pinch to zoom · select a pipe to trace its run')}</p>
         {electricVisible3D && (electric3D.unmounted.length > 0 || electric3D.pending.length > 0 || electric3D.unrouted.length > 0) && <p role="status" className="border-t border-line p-3 text-xs text-ink-dim">{electric3D.unmounted.length + electric3D.pending.length + electric3D.unrouted.length} · {t('3D mounting or routing needs review. Unsupported connections are not drawn.')}</p>}
         {waterVisible3D && (water3D.pending.length > 0 || model.waterNetworks.some(n => n.unroutedFixtures.length)) && <p role="status" className="border-t border-line p-3 text-xs text-ink-dim">{t('Some water connections need a wall or door-routing review.')}</p>}
+        {mode === '2d' && visible.drainage && <DrainageMapDetails model={model} selected={selected} scale={scale} select={select} />}
       </div>
     </div>
     {printed && <><style>{`@media print { .utility-export-sheet { width: ${printed.w}mm !important; height: ${printed.h}mm !important; } .utility-export-sheet svg { width: ${printed.w}mm !important; height: ${printed.h}mm !important; } @page utility-sheet { size: ${printed.w}mm ${printed.h}mm; margin: 0; } }`}</style><div className="utility-export-sheet hidden" dangerouslySetInnerHTML={{ __html: serializeDrawingSheet(printed) }} /></>}

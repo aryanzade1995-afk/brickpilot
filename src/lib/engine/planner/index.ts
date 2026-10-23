@@ -1,6 +1,6 @@
 import { type Point, type Rect, rectArea, rectBottom, rectRight, rectUnionBBox, sharedEdge, toSqm } from '../../geometry.ts'
 import type { CanonicalModel } from '../../model/canonical.ts'
-import { columnPosition, columnSizeMm } from '../structuralSizing.ts'
+import { beamDepthMm, columnPosition, columnSizeMm } from '../structuralSizing.ts'
 import type { DesignDNA } from '../designDna.ts'
 import type { FloorPlan, Opening, PlacedRoom } from '../types.ts'
 import type { RoofSpec } from '../massing/types.ts'
@@ -270,7 +270,7 @@ export function planVilla(model: CanonicalModel, request: PlanRequest): PlanResu
       : { x: spineRoom.rect.x, y: spineRoom.rect.y }
     const { openings: doors, failed } = placeDoors(rooms, req.spine.id, prefix, columns, occ, kindOf, parentOf,
       level === 0 ? { width: nb.mainDoorMm } : null, coreTarget, model.brief.lifestyle.kitchen,
-      model.brief.style.character==='modern-box'?'sliding':'hinged')
+      model.brief.style.character==='modern-box'?'sliding':'hinged', nb.floorToFloorMm - Math.max(300, ...beams.map(b => beamDepthMm(b.span))))
     const windows = placeWindows(rooms, walls, columns, occ, kindOf, request.themeWindowMm, request.dna, lowerOpenings,undefined,
       model.brief.style.character==='modern-box'&&!!model.brief.style.composition?Math.round(model.brief.levels.floorToFloor*1000):undefined)
     const openings = [...doors, ...windows]

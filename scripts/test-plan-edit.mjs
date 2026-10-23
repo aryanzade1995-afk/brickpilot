@@ -119,8 +119,11 @@ test('the hall, stair and lift can be edited too, but a change that breaks the p
   }
   // moving or resizing the stair on one floor breaks its alignment with the other floor
   const st = room(layout, 0, 'stair').rect
-  const grown = O.resizeRoom(layout, p, 0, 'stair', { ...st, w: st.w + 600 })
-  if (grown.ok) assert.equal(O.commit(p, grown.layout, layout).ok, false)
+  // The supported resize operation synchronizes the shaft across floors.
+  // Corrupt just one floor explicitly to test the alignment validator.
+  const misaligned = structuredClone(layout)
+  room(misaligned, 0, 'stair').rect = { ...st, w: st.w + 600 }
+  assert.equal(O.commit(p, misaligned, layout).ok, false)
   // every room can be swapped, including with vacant space; whatever is accepted is a valid plan
   const free = O.deleteRoom(layout, p, 1, 'study1').layout
   const vac = O.vacantRooms(free, 1)[0]

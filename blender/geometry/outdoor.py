@@ -4,7 +4,7 @@ import math
 
 from .common import floor_prefix
 from .sizing import slab_thickness
-from .plates import create_plate
+from .plates import create_plate, roof_plate_regions
 from .stairs import stair_opening
 from .massing import mass_rect
 
@@ -132,7 +132,7 @@ def create_balcony(scene, room, floor, terrace_mass, doors, with_railing=True):
                        floor, edge, floor["elevationMm"])
 
 
-def create_terrace(scene, floor, stairs, shafts=()):
+def create_terrace(scene, floor, stairs, shafts=(), exterior_walls=()):
     stair = next((stair for stair in stairs if stair["floorId"] == floor["id"]), None)
     if not stair:
         return False
@@ -141,7 +141,7 @@ def create_terrace(scene, floor, stairs, shafts=()):
     voids = [opening, *[shaft["rect"] for shaft in shafts if shaft["floorId"] == floor["id"]]]
     if floor.get("courtyard"):
         voids.append(floor["courtyard"])
-    for index, rect in enumerate(floor["footprint"], 1):
+    for index, rect in enumerate(roof_plate_regions(floor, exterior_walls), 1):
         create_plate(scene, f"{floor_prefix(floor)}_Terrace_Deck_{index:03d}", "ROOF",
                      rect, top - slab_thickness(floor), slab_thickness(floor), floor["id"], voids)
     exit_side = stair.get("startSide", "N")

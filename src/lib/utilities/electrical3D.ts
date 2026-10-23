@@ -49,7 +49,7 @@ export function liftSurfaceRun(model: UtilityFloor, run: { path: Point[] }, from
 
 export function liftElectricalRun(model: UtilityFloor, run: ElectricalRun, from: ElectricalSymbol, to: ElectricalSymbol): ElectricalPoint3D[] | null {
   if (!from.mount || !to.mount) return null
-  const index = Math.max(0, model.circuits.findIndex(c => c.id === run.circuitId))
+  const index = run.serviceBandIndex ?? Math.max(0, model.circuits.findIndex(c => c.id === run.circuitId))
   return liftSurfaceRun(model, run, from, to, Math.min(from.mount.serviceElevationMm, to.mount.serviceElevationMm) - index * 80)
 }
 

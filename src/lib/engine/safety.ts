@@ -2,6 +2,8 @@ import type { Design, FloorPlan, Opening } from './types.ts'
 import { rectCenter, type Point, type Rect } from '../geometry.ts'
 import { planFindings } from './planner/validate.ts'
 import { siteGate } from './siteGate.ts'
+import { quantityRules } from '../cost/data/quantityRules.ts'
+import { resolveSpecification } from '../cost/catalogue.ts'
 
 /** Concept dimensions only. This is not a fire-code or engineering certificate. */
 export const ESCAPE_LIMITS = Object.freeze({ doorWidthMm: 1000, doorHeightMm: 2200,
@@ -9,11 +11,53 @@ export const ESCAPE_LIMITS = Object.freeze({ doorWidthMm: 1000, doorHeightMm: 22
   signHeightMm: 2350, alarmHeightMm: 2600, equipmentHeightMm: 1100 })
 export type EscapeRoute = { roomId: string; level: number; destination: string; points: Point[]; openingIds: string[] }
 export type SafetyMarker = { id: string; level: number; at: Point; orient: 'h' | 'v'; facing?:1|-1; kind: 'exit' | 'alarm' | 'extinguisher'; sourceId: string }
+export type ExitAccess = { exitId: string; gradeMm: number; riseMm: number; goingMm: number; bounds: Rect;
+  pieces: { id: string; rect: Rect; topMm: number; bottomMm: number }[]; qualification: string }
 export type EmergencyPlan = { routes: EscapeRoute[]; markers: SafetyMarker[]; outsideRoute: Point[];
-  secondaryExitId: string | null; meetingPoint: Point | null; notes: string[]; disclaimer: string }
+  secondaryExitId: string | null; meetingPoint: Point | null; exitAccess?: ExitAccess; entryAccess?: ExitAccess; notes: string[]; disclaimer: string }
 const overlap = (a: Rect, b: Rect) => a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y
 const swing = (o: Opening): Rect => o.orient === 'h' ? {x:o.at.x-o.width/2,y:o.at.y+(o.swing===-1?-o.width:0),w:o.width,h:o.width}
   : {x:o.at.x+(o.swing===-1?-o.width:0),y:o.at.y-o.width/2,w:o.width,h:o.width}
+
+/** Explicit concept stoop from the selected plinth level to the modelled site
+ * grade. Source rectangles/elevations are consumed verbatim by Blender and 2D.
+ * Do not advertise a door over a 450–900mm unsupported drop as accessible.
+ */
+export function exitAccess(design: Design, door: Opening): ExitAccess | null {
+  return door.emergencyExit ? doorAccess(design, door, false) : null
+}
+
+/** Same source-derived stoop for the front entrance. A modelled verandah is
+ * paved at grade+70mm by covered.py; do not leave an unsupported plinth drop. */
+export function entranceAccess(design: Design): ExitAccess | null {
+  const door = design.floors[0]?.openings.find(o => o.kind === 'entry' && !o.emergencyExit)
+  return door ? doorAccess(design, door, true) : null
+}
+
+function doorAccess(design: Design, door: Opening, main: boolean): ExitAccess | null {
+  const floor = design.floors[0], room = floor.rooms.find(r => r.id === door.rooms?.[0])
+  if (!room || design.existingStructure) return null
+  const choice = resolveSpecification(design.model.brief, 'plinth-height').id as keyof typeof quantityRules.plinthHeightsMm
+  const plinth = quantityRules.plinthHeightsMm[choice]
+  if (!Number.isFinite(plinth) || plinth <= 0) return null
+  const horizontal = door.orient === 'h', sign = (horizontal ? door.at.y === room.rect.y : door.at.x === room.rect.x) ? -1 : 1
+  const porch = main ? floor.rooms.find(r => r.outdoor && /^verandah/.test(r.id) &&
+    door.at.x >= r.rect.x && door.at.x <= r.rect.x + r.rect.w && door.at.y >= r.rect.y && door.at.y <= r.rect.y + r.rect.h) : undefined
+  const grade = -plinth + (porch ? 70 : 0)
+  const width = Math.max(1200, door.width + 200), landing = 1200, going = 300, risers = Math.ceil(-grade / 175), rise = -grade / risers
+  const depth = landing + (risers - 1) * going
+  const region = (start: number, length: number): Rect => horizontal
+    ? { x: door.at.x - width / 2, y: sign > 0 ? door.at.y + start : door.at.y - start - length, w: width, h: length }
+    : { x: sign > 0 ? door.at.x + start : door.at.x - start - length, y: door.at.y - width / 2, w: length, h: width }
+  const bounds = region(0, depth), margin = design.model.brief.rooms.priorities.compoundWall ? quantityRules.site.compoundThicknessMm * 2 : 0
+  if (bounds.x < margin || bounds.y < margin || bounds.x + bounds.w > design.model.plot.width - margin || bounds.y + bounds.h > design.model.plot.depth - margin) return null
+  const blockers = [...floor.rooms.filter(r => r.id !== 'courtyard' && r.id !== porch?.id).map(r => r.rect), ...(design.siteFeatures ?? []).filter(f => ['pool','parking','driveway','sitOut'].includes(f.kind) && (!porch || f.roomId !== porch.id)).map(f => f.rect)]
+  if (blockers.some(r => overlap(bounds, r))) return null
+  return { exitId: door.id!, gradeMm: grade, riseMm: rise, goingMm: going, bounds,
+    pieces: [{ id: `${door.id}:landing`, rect: region(-50, landing + 50), topMm: 0, bottomMm: grade },
+      ...Array.from({ length: risers - 1 }, (_, i) => ({ id: `${door.id}:step:${i+1}`, rect: region(landing + i * going, going), topMm: -(i+1)*rise, bottomMm: grade }))],
+    qualification: 'Concept exterior landing and steps using the selected plinth height; site levels, guards, accessible evacuation and structural support require professional verification.' }
+}
 
 /** Rectilinear visibility graph in the real free site. Inflate obstacles for a clear walkway. */
 export function outsideEscapePath(design: Design, door: Opening): Point[] {
@@ -61,7 +105,7 @@ export function withEmergencyExit(design: Design): Design {
   // Avoid retrying every external wall of candidates the planner will reject.
   if(planFindings(design).length)return design
   const width=ESCAPE_LIMITS.doorWidthMm, candidates:Opening[]=[]
-  for(const room of floor.rooms.filter(r=>!r.outdoor&&['circulation','social','work'].includes(r.zone))) {
+  for(const room of floor.rooms.filter(r=>!r.outdoor&&!/stair|lift|shaft/i.test(r.id)&&['circulation','social','work'].includes(r.zone))) {
     for(const wall of floor.walls.filter(w=>w.kind==='exterior')) {
       const horizontal=wall.a.y===wall.b.y, fixed=horizontal?wall.a.y:wall.a.x
       const onEdge=horizontal?(fixed===room.rect.y||fixed===room.rect.y+room.rect.h):(fixed===room.rect.x||fixed===room.rect.x+room.rect.w)
@@ -72,7 +116,7 @@ export function withEmergencyExit(design: Design): Design {
         const at=horizontal?{x:along,y:fixed}:{x:fixed,y:along}
         if(Math.hypot(at.x-main.at.x,at.y-main.at.y)<ESCAPE_LIMITS.exitSeparationMm)continue
         const o:Opening={id:'GF_EMERGENCY_EXIT',kind:'entry',emergencyExit:true,at,orient:horizontal?'h':'v',width,head:ESCAPE_LIMITS.doorHeightMm,
-          sill:0,swing:fixed===(horizontal?room.rect.y:room.rect.x)?1:-1,leaf:true,rooms:[room.id,null]}
+          sill:0,swing:fixed===(horizontal?room.rect.y:room.rect.x)?-1:1,leaf:true,rooms:[room.id,null]}
         if(floor.openings.some(p=>p.orient===o.orient&&Math.abs((horizontal?p.at.y:p.at.x)-fixed)<2&&Math.abs((horizontal?p.at.x:p.at.y)-along)<(p.width+width)/2+ESCAPE_LIMITS.openingGapMm))continue
         if(floor.openings.some(p=>p.rooms?.[0]===room.id&&p.kind!=='window'&&p.leaf!==false&&overlap(swing(o),swing(p))))continue
         if(floor.columns?.some(c=>Math.abs((horizontal?c.at.y:c.at.x)-fixed)<2&&Math.abs((horizontal?c.at.x:c.at.y)-along)<width/2+c.size/2+ESCAPE_LIMITS.openingGapMm))continue
@@ -82,6 +126,7 @@ export function withEmergencyExit(design: Design): Design {
   }
   candidates.sort((a,b)=>Math.hypot(b.at.x-main.at.x,b.at.y-main.at.y)-Math.hypot(a.at.x-main.at.x,a.at.y-main.at.y))
   for(const door of candidates) {
+    if (!exitAccess(design, door)) continue
     if(!outsideEscapePath(design,door).length)continue
     const next={...design,floors:[{...floor,openings:[...floor.openings,door]},...design.floors.slice(1)],openingCounts:{...design.openingCounts,doors:design.openingCounts.doors+1}}
     if(!planFindings(next).length)return next
@@ -135,9 +180,12 @@ export function emergencyPlan(design:Design):EmergencyPlan {
       markers.push({id:`L${floor.level}_Exit_${entry.id??'main'}`,level:floor.level,at:{x:entry.at.x+(entry.orient==='v'?facing*180:0),y:entry.at.y+(entry.orient==='h'?facing*180:0)},orient:entry.orient,facing,kind:'exit',sourceId:entry.id??'main-entry'})
     }
   }
-  const value:EmergencyPlan={routes,markers,outsideRoute,secondaryExitId:secondary?.id??null,meetingPoint:outsideRoute.at(-1)??null,
+  const access=secondary?exitAccess(design,secondary):null
+  const frontAccess=entranceAccess(design)
+  const value:EmergencyPlan={routes,markers,outsideRoute,secondaryExitId:secondary?.id??null,meetingPoint:outsideRoute.at(-1)??null,...(access?{exitAccess:access}:{}),...(frontAccess?{entryAccess:frontAccess}:{}),
     notes:[...(!secondary?['A second exit could not fit without changing this plan. An architect must design an independent escape route.']:[]),
       ...(design.floors.length>1?['Upper floors use the existing aligned stair. This is a shared route, not an independent second escape stair.']:[]),
+      ...(secondary&&!access?['The saved secondary exit needs a confirmed landing and level transition to the site.']:[]),
       'Keep escape paths and doors clear; never use the lift during a fire. The assembly marker is a site-side meeting point; agree a safe location away from the building.'],
     disclaimer:'Indicative escape layout only. Fire safety, alarm coverage, accessible escape and local requirements need review by a qualified architect/fire professional.'}
   cache.set(design,value);return value

@@ -31,9 +31,17 @@ export async function applyWalkthroughMaterialBindings(root: THREE.Object3D, bin
   const warnings = new Set<string>(), failedImages = new Set<string>(), missingKeys = new Set<string>()
   const originalTiles = new Map<string, number>()
   const previousLooks = new Map<string, string>(), originalSizes = new Map<string, number[]>()
-  root.traverse(o => { if (o.userData.materialBinding) { originalTiles.set(o.userData.materialBinding, o.userData.materialTileM ?? 1)
-    originalSizes.set(o.userData.materialBinding, o.userData.materialTileSizeM ?? [o.userData.materialTileM ?? 1, o.userData.materialTileM ?? 1])
-    previousLooks.set(o.userData.materialBinding, o.userData.resolvedLook) } })
+  const slots: { mesh: THREE.Mesh; index: number; key: string; multi: boolean }[] = []
+  root.traverse(o => {
+    if (!(o instanceof THREE.Mesh)) return
+    const keys: (string | null)[] = o.userData.materialBindings ?? [o.userData.materialBinding]
+    keys.forEach((key, index) => { if (!key) return
+      slots.push({ mesh: o, index, key, multi: !!o.userData.materialBindings })
+      originalTiles.set(key, o.userData.materialTileM ?? 1)
+      originalSizes.set(key, o.userData.materialTileSizeM ?? [o.userData.materialTileM ?? 1, o.userData.materialTileM ?? 1])
+      previousLooks.set(key, o.userData.materialBindings ? o.userData.resolvedLooks?.[index] : o.userData.resolvedLook)
+    })
+  })
   try {
     for (const [key, look] of Object.entries(bindings)) {
       if (!originalTiles.has(key) || previousLooks.get(key) === JSON.stringify(look)) continue
@@ -48,7 +56,7 @@ export async function applyWalkthroughMaterialBindings(root: THREE.Object3D, bin
         const ratios = size.map((n, i) => original[i] / Math.max(.01, n)), textureKey = `${image}:${ratios}`
         let texture = textures.get(textureKey)
         if (!texture && !failedImages.has(image)) { try { texture = await new THREE.TextureLoader().loadAsync(image) } catch { failedImages.add(image); warnings.add(image); missingKeys.add(key); continue }
-          texture.colorSpace = THREE.SRGBColorSpace; texture.flipY = false;
+          texture.colorSpace = THREE.SRGBColorSpace; texture.flipY = false; texture.anisotropy = 8;
           texture.wrapS = texture.wrapT = THREE.RepeatWrapping; texture.repeat.set(ratios[0], ratios[1]); textures.set(textureKey, texture) }
         if (!texture) { missingKeys.add(key); continue }
         material.map = texture; material.color.set('#ffffff')
@@ -57,15 +65,20 @@ export async function applyWalkthroughMaterialBindings(root: THREE.Object3D, bin
     }
     if (!isCurrent()) throw new DOMException('Superseded finish update', 'AbortError')
     const previous = new Set<THREE.Material>()
-    root.traverse(o => { if (!(o instanceof THREE.Mesh)) return
-      const material = prepared.get(o.userData.materialBinding)
-      if (!material) return
-      for (const old of Array.isArray(o.material) ? o.material : [o.material]) previous.add(old)
-      o.material = material
-      o.castShadow = !material.transparent
-      o.userData.resolvedLook = JSON.stringify(bindings[o.userData.materialBinding])
-      o.userData.materialImageUnavailable = missingKeys.has(o.userData.materialBinding) ? bindings[o.userData.materialBinding].surface?.image : null
-    })
+    for (const { mesh, index, key, multi } of slots) {
+      const material = prepared.get(key)
+      if (!material) continue
+      if (multi) {
+        const materials = Array.isArray(mesh.material) ? [...mesh.material] : [mesh.material]
+        previous.add(materials[index]); materials[index] = material; mesh.material = materials
+        mesh.userData.resolvedLooks ??= {}; mesh.userData.resolvedLooks[index] = JSON.stringify(bindings[key])
+      } else {
+        for (const old of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) previous.add(old)
+        mesh.material = material; mesh.userData.resolvedLook = JSON.stringify(bindings[key])
+      }
+      mesh.castShadow = !(Array.isArray(mesh.material) ? mesh.material : [mesh.material]).every(m => m.transparent)
+      mesh.userData.materialImageUnavailable = missingKeys.has(key) ? bindings[key].surface?.image : null
+    }
     // Some GLBs share old slots with unmodified objects. Dispose only unreferenced slots.
     const retained = new Set<THREE.Material>()
     root.traverse(o => { if (o instanceof THREE.Mesh) for (const m of Array.isArray(o.material) ? o.material : [o.material]) retained.add(m) })

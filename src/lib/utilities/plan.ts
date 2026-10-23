@@ -9,6 +9,11 @@ import { route, perimeterRoutes, utilityObstacles, utilityVoids } from './routin
 import { electricalPlan } from './electrical.ts'
 import { fireSafetyPlan } from './fireSafety.ts'
 import { waterPlan } from './water.ts'
+import type { DrainageFixtureKind } from './drainageInputs.ts'
+import type { DrainageDesign, DrainagePipe } from './drainage.ts'
+import type { ElectricalDesign } from './electricalDesign.ts'
+import { DRAINAGE_DISPLAY } from './drainagePresentation.ts'
+import { DRAINAGE_COLORS } from './drainageRules.ts'
 export { route, orthogonal, alongPath } from './routing.ts'
 
 export const UTILITY_LAYERS = {
@@ -32,9 +37,9 @@ export const UTILITY_SYMBOLS = {
   supply_inlet: { label: 'Cold supply inlet', layer: 'water_supply' }, hot_supply_inlet: { label: 'Hot supply inlet', layer: 'water_supply' }, isolation_valve: { label: 'Isolation valve', layer: 'water_supply' }, water_outlet: { label: 'Fixture water outlet', layer: 'water_supply' },
   clearance_warning: { label: 'Clearance review', layer: 'review' },
 } as const
-export type Fixture = { id: string; type: 'sink' | 'toilet' | 'shower' | 'floor_drain'; position: Point; roomId: string; basis: 'furnishing' | 'proposed'; width: number; depth: number }
-export type DrainageRun = { id: string; layer: 'drainage'; fixtureId: string; path: Point[]; diameter: number; material: string; flowDirection: 'forward' | 'reverse'; roomId: string; stackId: string }
-export type ElectricalRun = { id: string; layer: 'electrical'; circuitId: string; fromSymbolId: string; toSymbolId: string; path: Point[]; wireSize: '1.5mm2' | '2.5mm2'; roomId: string; conductors: number }
+export type Fixture = { id: string; type: 'sink' | 'toilet' | 'shower' | 'floor_drain' | 'bathtub' | 'washing_machine'; drainageKind?: DrainageFixtureKind; position: Point; roomId: string; basis: 'furnishing' | 'proposed'; width: number; depth: number }
+export type DrainageRun = { drainagePipe?: DrainagePipe; id: string; layer: 'drainage'; fixtureId: string; path: Point[]; diameter: number; material: string; flowDirection: 'forward' | 'reverse'; roomId: string; stackId: string }
+export type ElectricalRun = { id: string; layer: 'electrical'; circuitId: string; fromSymbolId: string; toSymbolId: string; path: Point[]; wireSize: string; roomId: string; conductors: number; serviceBandIndex?: number }
 export type FireRun = { id: string; layer: 'fire_alarm'; zoneId: string; fromSymbolId: string; toSymbolId: string; path: Point[]; cableType: 'FRLS 2C'; roomId: string }
 export type WaterRun = { id: string; layer: 'water_supply'; networkId: string; service: 'cold' | 'hot'; fromSymbolId: string; toSymbolId: string; fixtureId: string | null; path: Point[]; diameter: number; material: string; roomId: string }
 export type UtilityRun = DrainageRun | ElectricalRun | FireRun | WaterRun
@@ -50,12 +55,12 @@ export type UtilitySymbol = StackSymbol | ElectricalSymbol | FireSymbol | WaterS
 export type UtilityZone = { id: string; name: string; tag: string; color: string; panelId: string; devices: string[]; cableType: 'FRLS 2C'; loopStatus: 'closed' | 'incomplete'; missingLinks: { from: string; to: string }[] }
 export type ExitRoute = { id: string; path: Point[]; fromRoomId: string; exitId: string | null; status: 'concept' | 'blocked' | 'no-exit'; reason: string | null }
 export type FireCoverage = { roomId: string; status: 'covered' | 'partial' | 'not-covered' | 'exempt'; detectorIds: string[] }
-export type UtilityCircuit = { id: string; name: 'Lighting 1' | 'Power 1'; tag: 'L1' | 'P1'; color: string; panelId: string; loads: string[]; controls: string[]; wireSize: '1.5mm2' | '2.5mm2'; breaker: '10A' | '16A'; status: 'concept' | 'needs-review'; unroutedLoads: string[] }
+export type UtilityCircuit = { id: string; name: string; tag: string; color: string; panelId: string; loads: string[]; controls: string[]; wireSize: string; breaker: string; status: 'concept' | 'needs-review'; unroutedLoads: string[] }
 export type UtilityWall = { id: string; a: Point; b: Point; thickness: number; height: number; base: number }
-export type UtilityFloor = { sourcePlanId: string; floor: FloorPlan; slabs: Rect[]; wallSections: UtilityWall[]; fixtures: Fixture[]; utilities: UtilityRun[]; symbols: UtilitySymbol[]; circuits: UtilityCircuit[]; waterNetworks: WaterNetwork[]; zones: UtilityZone[]; exitRoutes: ExitRoute[]; coverage: FireCoverage[]; notes: string[] }
+export type UtilityFloor = { electricalDesign?: ElectricalDesign; sourceFloorLevels?: number[]; drainageDesign?: DrainageDesign; sourcePlanId: string; floor: FloorPlan; slabs: Rect[]; wallSections: UtilityWall[]; fixtures: Fixture[]; utilities: UtilityRun[]; symbols: UtilitySymbol[]; circuits: UtilityCircuit[]; waterNetworks: WaterNetwork[]; zones: UtilityZone[]; exitRoutes: ExitRoute[]; coverage: FireCoverage[]; notes: string[] }
 export const selectionForRun = (run: UtilityRun) => run.layer === 'electrical' ? `circuit:${run.circuitId}` : run.layer === 'fire_alarm' ? `zone:${run.zoneId}` : run.layer === 'water_supply' ? `water:${run.networkId}` : run.id
 export function displayedRuns(model: UtilityFloor, visible: Record<UtilityLayer, boolean>, room = 'all', circuit = 'all', zone = 'all', water = 'all') {
-  return model.utilities.filter(u => visible[u.layer] && !UTILITY_LAYERS[u.layer].disabled && (room === 'all' || u.roomId === room) && (u.layer !== 'electrical' || circuit === 'all' || u.circuitId === circuit) && (u.layer !== 'fire_alarm' || zone === 'all' || u.zoneId === zone) && (u.layer !== 'water_supply' || water === 'all' || u.networkId === water))
+  return model.utilities.filter(u => visible[u.layer] && !UTILITY_LAYERS[u.layer].disabled && (u.layer !== 'drainage' || !u.drainagePipe || model.drainageDesign?.input.visible[u.drainagePipe.service]) && (room === 'all' || u.roomId === room) && (u.layer !== 'electrical' || circuit === 'all' || u.circuitId === circuit) && (u.layer !== 'fire_alarm' || zone === 'all' || u.zoneId === zone) && (u.layer !== 'water_supply' || water === 'all' || u.networkId === water))
 }
 export function displayedSymbols(model: UtilityFloor, visible: Record<UtilityLayer, boolean>, room = 'all', circuit = 'all', zone = 'all', water = 'all') {
   return model.symbols.filter(s => visible[s.layer] && (room === 'all' || s.roomIds.includes(room)) && (s.layer !== 'electrical' || circuit === 'all' || s.circuitIds.includes(circuit)) && (s.layer !== 'fire_alarm' || zone === 'all' || s.zoneId === zone) && (s.layer !== 'water_supply' || water === 'all' || s.networkId === water))
@@ -70,7 +75,8 @@ export function utilityLegend(model: UtilityFloor, visible: Record<UtilityLayer,
   const entries: { label: string; color: string; dash?: string | null; symbol?: keyof typeof UTILITY_SYMBOLS }[] = []
   for (const [key, layer] of Object.entries(UTILITY_LAYERS)) {
     if (layer.disabled || !visible[key as UtilityLayer]) continue
-    entries.push({ label: layer.label, color: layer.color, dash: layer.dash })
+    entries.push({ label: layer.label, color: layer.color, dash: key === 'drainage' && model.drainageDesign ? null : layer.dash })
+    if (key === 'drainage' && model.drainageDesign) for (const [service, color] of Object.entries(DRAINAGE_COLORS)) if (model.drainageDesign.input.visible[service as keyof typeof DRAINAGE_COLORS]) { const style = DRAINAGE_DISPLAY[service as keyof typeof DRAINAGE_DISPLAY]; entries.push({ label: service === 'stormwater' ? 'Stormwater · source data not supplied' : style.label, color, dash: style.dash }) }
     if (key === 'electrical') for (const c of model.circuits.filter(c => circuit === 'all' || circuit === c.id)) entries.push({ label: `${c.tag} · ${c.name}`, color: c.color })
     if (key === 'fire_alarm') for (const z of model.zones.filter(z => zone === 'all' || zone === z.id)) entries.push({ label: `${z.tag} · ${z.name}`, color: z.color, dash: layer.dash })
     if (key === 'water_supply') for (const n of model.waterNetworks.filter(n => water === 'all' || water === n.id)) entries.push({ label: `${n.tag} · ${n.name}`, color: n.color })
@@ -125,24 +131,26 @@ export function utilityFloor(design: Design, level: number, brief: Brief = desig
   const floor = design.floors.find(f => f.level === level)
   if (!floor) throw new Error('This floor is not present in the source plan.')
   const cuts = utilityObstacles(floor)
-  const rooms = floor.rooms.filter(wet), fixtures: Fixture[] = [], utilities: DrainageRun[] = [], symbols: StackSymbol[] = [], notes: string[] = []
-  for (const room of rooms) {
+  const sourceRooms = floor.rooms.filter(r => !r.outdoor), fixtures: Fixture[] = [], utilities: DrainageRun[] = [], symbols: StackSymbol[] = [], notes: string[] = []
+  for (const room of sourceRooms) {
     // Reuse the actual fitted-fixture placement used by Formstead's interior
     // model. These are proposed furnishings, never measurements of an existing home.
     const pieces = furnishSingleRoom(design, level, room.id), center = rectCenter(room.rect)
     for (const piece of pieces) {
-      const type: Fixture['type'] | null = /-wc$/.test(piece.id) ? 'toilet' : /-(basin|sink)$/.test(piece.id) ? 'sink' : /-shower-tray$/.test(piece.id) ? 'shower' : null
+      const type: Fixture['type'] | null = /-wc$/.test(piece.id) ? 'toilet' : /-(basin|sink)$/.test(piece.id) ? 'sink' : /-shower-tray$/.test(piece.id) ? 'shower' : /-(bathtub|bath-tub)$/.test(piece.id) ? 'bathtub' : /-(washing-machine|washer)$/.test(piece.id) ? 'washing_machine' : null
       if (!type) continue
       const position = { x: Math.round(center.x + piece.pos[0] * 1000), y: Math.round(center.y + piece.pos[2] * 1000) }
       if (!inside(room.rect, position) || cuts.some(c => inside(c, position))) continue
-      fixtures.push({ id: `${level}:${piece.id}`, type, position, roomId: room.id, basis: 'furnishing', width: piece.size[0] * 1000, depth: piece.size[2] * 1000 })
+      fixtures.push({ id: `${level}:${piece.id}`, type, drainageKind: type === 'sink' ? /-basin$/.test(piece.id) ? 'washbasin' : /kitchen/i.test(room.name) ? 'kitchen_sink' : 'unknown_sink' : type, position, roomId: room.id, basis: 'furnishing', width: piece.size[0] * 1000, depth: piece.size[2] * 1000 })
     }
+    if (!wet(room)) continue
     const blocked = [...doorZones(room, floor.openings), ...cuts, ...fixtures.filter(f => f.roomId === room.id).map(f => ({ x: f.position.x - f.width / 2 - 120, y: f.position.y - f.depth / 2 - 120, w: f.width + 240, h: f.depth + 240 }))]
     // Never place a drain in a blocked doorway, fixture or source void.
     const candidate = [.2, .35, .5, .65, .8].flatMap(x => [.2, .35, .5, .65, .8].map(y => ({ x: room.rect.x + room.rect.w * x, y: room.rect.y + room.rect.h * y }))).find(p => !blocked.some(b => inside(b, p)))
     if (candidate) fixtures.push({ id: `${level}:${room.id}:floor-drain`, type: 'floor_drain', roomId: room.id, position: candidate, basis: 'proposed', width: 150, depth: 150 })
     else notes.push(`Floor drain placement requires a clear supported area in ${room.name}.`)
   }
+  const rooms = sourceRooms.filter(r => fixtures.some(f => f.roomId === r.id))
   const assigned = new Map<string, StackSymbol>()
   for (const room of rooms) {
     if (assigned.has(room.id)) continue
@@ -175,5 +183,5 @@ export function utilityFloor(design: Design, level: number, brief: Brief = desig
   const electrical = electricalPlan(floor, cuts, fixtures, brief.levels.floorToFloor * 1000)
   const water = waterPlan(floor, cuts, fixtures, brief, electrical.symbols)
   const fire = fireSafetyPlan(floor, cuts, UTILITY_LAYERS.fire_alarm.detectorRadiusMm, [...electrical.symbols, ...water.symbols])
-  return { sourcePlanId: design.id, floor, circuits: electrical.circuits, waterNetworks: water.networks, zones: fire.zones, exitRoutes: fire.exitRoutes, coverage: fire.coverage, slabs: subtractRegions(floor.footprint, utilityVoids(floor)), wallSections: utilityWallSections(floor, brief.levels.floorToFloor * 1000), fixtures, utilities: [...utilities, ...electrical.utilities, ...fire.utilities, ...water.utilities], symbols: [...symbols, ...electrical.symbols, ...fire.symbols, ...water.symbols], notes: [...notes, ...electrical.notes, ...fire.notes, ...water.notes] }
+  return { sourceFloorLevels: design.floors.map(f => f.level).sort((a, b) => a - b), sourcePlanId: design.id, floor, circuits: electrical.circuits, waterNetworks: water.networks, zones: fire.zones, exitRoutes: fire.exitRoutes, coverage: fire.coverage, slabs: subtractRegions(floor.footprint, utilityVoids(floor)), wallSections: utilityWallSections(floor, brief.levels.floorToFloor * 1000), fixtures, utilities: [...utilities, ...electrical.utilities, ...fire.utilities, ...water.utilities], symbols: [...symbols, ...electrical.symbols, ...fire.symbols, ...water.symbols], notes: [...notes, ...electrical.notes, ...fire.notes, ...water.notes] }
 }

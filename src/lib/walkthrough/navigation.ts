@@ -10,10 +10,11 @@ export type NavigationCollision = WalkthroughGeometryPayload['collision'] & { de
 export type WalkingInput = { forward: number; right: number; yaw: number }
 /** Immutable, world-metre triangles copied from the displayed accepted GLB.
  * Never mix this collider with the reconstructed shell or fitted furniture. */
-export type AcceptedMeshCollision = { vertices: Float32Array; indices: Uint32Array }
+export type AcceptedDoor = { id: string; openingId: string; collider: Collider; hinge: 'a' | 'b'; swing: 1 | -1; operation: 'hinged' | 'sliding'; translation?: [number, number, number] }
+export type AcceptedMeshCollision = { vertices: Float32Array; indices: Uint32Array; doors?: AcceptedDoor[] }
 type V = { x: number; y: number; z: number }
 type Door = { id: string; opening: SceneOpening; collider: RAPIER.Collider; centre: V; size: V; pivot: V | null;
-  angle: number; target: boolean; progress: number; operation: 'hinged' | 'sliding' | 'unresolved'; visible: boolean }
+  angle: number; target: boolean; progress: number; operation: 'hinged' | 'sliding' | 'unresolved'; visible: boolean; blocked: boolean; translation?: [number, number, number] }
 const qIdentity = { x: 0, y: 0, z: 0, w: 1 }
 const clamp = (x: number, a: number, b: number) => Math.max(a, Math.min(b, x))
 let initializing: Promise<void> | null = null
@@ -75,16 +76,18 @@ export class HouseWalkingSimulation {
         // materials, visibility and transforms are never modified.
         this.world.createCollider(RAPIER.ColliderDesc.trimesh(vertices, indices))
       } else for (const c of collision.colliders) this.addBox(c)
-      for (const record of acceptedMesh ? [] : collision.doors) {
-        const opening = metadata.openings.find(o => o.id === record.id)
+      for (const record of acceptedMesh ? acceptedMesh.doors ?? [] : collision.doors) {
+        const definition = 'openingId' in record ? record : null
+        const source = metadata.openings.find(o => o.id === (definition?.openingId ?? record.id))
+        const opening = source && definition ? { ...source, hinge: definition.hinge, swing: definition.swing } : source
         if (!opening || opening.kind === 'window' || opening.operation === 'open') throw new Error('A door collision record has no matching source door.')
         const c = this.addBox(record.collider), min = record.collider.min, max = record.collider.max
         const centre = { x: (min[0] + max[0]) / 2, y: (min[1] + max[1]) / 2, z: (min[2] + max[2]) / 2 }
         const size = { x: max[0] - min[0], y: max[1] - min[1], z: max[2] - min[2] }, horizontal = opening.orient === 'h'
         const hinge = opening.hinge
         const pivot = hinge ? { ...centre, ...(horizontal ? { x: hinge === 'a' ? min[0] : max[0] } : { z: hinge === 'a' ? max[2] : min[2] }) } : null
-        this.doors.set(record.id, { id: record.id, opening, collider: c, centre, size, pivot, angle: 0, target: false, progress: 0,
-          operation: opening.operation === 'sliding' ? 'sliding' : pivot && opening.swing ? 'hinged' : 'unresolved', visible: true })
+        this.doors.set(record.id, { id: record.id, opening, collider: c, centre, size, pivot, angle: 0, target: false, progress: 0, translation: definition?.translation,
+          operation: definition?.operation ?? (opening.operation === 'sliding' ? 'sliding' : pivot && opening.swing ? 'hinged' : 'unresolved'), visible: true, blocked: false })
       }
       this.world.step()
       const entrances = metadata.openings.filter(o => o.kind === 'entry' && !o.emergencyExit && !/EMERGENCY/i.test(o.sourceId))
@@ -140,6 +143,10 @@ export class HouseWalkingSimulation {
     return !!hit
   }
   private onSourceStair() {
+    for (const access of [this.metadata.exitAccess, this.metadata.entryAccess]) if (access) {
+      const r = access.bounds, pad = WALKING.radius + .1
+      if (this.feet.x >= r.x / 1000 - pad && this.feet.x <= (r.x + r.w) / 1000 + pad && this.feet.z >= -(r.y + r.h) / 1000 - pad && this.feet.z <= -r.y / 1000 + pad && this.feet.y >= access.gradeMm / 1000 - .1 && this.feet.y <= .15) return true
+    }
     return this.metadata.stairs.some(s => {
       const a = s.openingMm, b = s.startLandingMm, x = Math.min(a.x, b.x), y = Math.min(a.y, b.y)
       const r = { x, y, w: Math.max(a.x + a.w, b.x + b.w) - x, h: Math.max(a.y + a.h, b.y + b.h) - y }, pad = WALKING.radius + .1
@@ -158,7 +165,9 @@ export class HouseWalkingSimulation {
     const ease = 1 - Math.exp(-(length ? WALKING.acceleration : WALKING.deceleration) * dt)
     this.velocity.x += (tx - this.velocity.x) * ease; this.velocity.z += (tz - this.velocity.z) * ease
     this.velocity.y = this.grounded ? -.35 : Math.max(-3, this.velocity.y - WALKING.gravity * dt)
-    if (this.onSourceStair()) this.controller.enableAutostep(WALKING.step, .06, false); else this.controller.disableAutostep()
+    // Door tracks and stone thresholds are real low steps too. Keep a small
+    // limit elsewhere so the character cannot climb furniture or guard walls.
+    this.controller.enableAutostep(this.onSourceStair() ? WALKING.step : .06, .06, false)
     const desired = { x: this.velocity.x * dt, y: this.velocity.y * dt, z: this.velocity.z * dt }
     this.controller.computeColliderMovement(this.character, desired)
     const move = this.controller.computedMovement(), next = { x: this.feet.x + move.x, y: this.feet.y + move.y, z: this.feet.z + move.z }
@@ -188,18 +197,22 @@ export class HouseWalkingSimulation {
 
   /** Door transforms are entirely runtime state, never saved as architecture. */
   private doorPose(door: Door, progress: number) {
-    const angle = door.operation === 'hinged' ? (door.opening.swing ?? 1) * Math.PI / 2 * progress : 0
+    const angle = door.operation === 'hinged' ? (door.opening.swing ?? 1) * (door.opening.orient === 'v' ? -1 : 1) * (door.opening.hinge === 'b' ? -1 : 1) * Math.PI / 2 * progress : 0
     let centre = { ...door.centre }
     if (door.pivot) {
       const dx = door.centre.x - door.pivot.x, dz = door.centre.z - door.pivot.z
       centre = { ...centre, x: door.pivot.x + Math.cos(angle) * dx + Math.sin(angle) * dz, z: door.pivot.z - Math.sin(angle) * dx + Math.cos(angle) * dz }
     }
-    if (door.operation === 'sliding') { if (door.opening.orient === 'h') centre.x += door.size.x * progress; else centre.z -= door.size.z * progress }
+    if (door.operation === 'sliding') {
+      const travel = door.translation ?? (door.opening.orient === 'h' ? [door.size.x, 0, 0] : [0, 0, -door.size.z])
+      centre.x += travel[0] * progress; centre.y += travel[1] * progress; centre.z += travel[2] * progress
+    }
     return { centre, angle, rotation: { x: 0, y: Math.sin(angle / 2), z: 0, w: Math.cos(angle / 2) } }
   }
   private updateDoors() {
     let changed = false
     for (const door of this.doors.values()) {
+      door.blocked = false
       const target = door.target ? 1 : 0
       if (Math.abs(door.progress - target) < 1e-5) continue
       const next = door.operation === 'unresolved' ? target : clamp(door.progress + Math.sign(target - door.progress) * WALKING.fixedStep * 3, 0, 1)
@@ -209,7 +222,7 @@ export class HouseWalkingSimulation {
         this.world.intersectionsWithShape(pose.centre, pose.rotation, new RAPIER.Cuboid(door.size.x / 2, door.size.y / 2, door.size.z / 2), c => {
           if (c.handle === this.character.handle) person = true; return !person
         })
-        if (person) continue // Never close onto the capsule or push the camera.
+        if (person) { door.blocked = true; continue } // Never swing onto the capsule or push the camera.
       }
       door.progress = next; door.angle = pose.angle; door.visible = door.operation !== 'unresolved' || next < .5
       door.collider.setEnabled(door.visible); door.collider.setTranslation(pose.centre); door.collider.setRotation(pose.rotation)
@@ -217,10 +230,16 @@ export class HouseWalkingSimulation {
     }
     if (changed) this.world.step() // Refresh the broad phase before this frame's character casts.
   }
-  toggleDoor(id: string) { const door = this.doors.get(id); if (door) { door.target = !door.target; return true } return false }
+  toggleDoor(id: string) {
+    const door = this.doors.get(id)
+    if (!door) return false
+    const target = !door.target
+    for (const leaf of this.doors.values()) if (leaf.opening.id === door.opening.id) leaf.target = target
+    return true
+  }
   getDoorPose(id: string) { const door = this.doors.get(id); return door ? { ...this.doorPose(door, door.progress), visible: door.visible, open: door.target, operation: door.operation } : null }
-  targetDoor(origin: V, direction: V, distance = 2.0): { id: string; open: boolean } | null {
-    let best: { id: string; open: boolean; distance: number } | null = null
+  targetDoor(origin: V, direction: V, distance = 2.0): { id: string; open: boolean; blocked: boolean } | null {
+    let best: { id: string; open: boolean; blocked: boolean; distance: number } | null = null
     for (const door of this.doors.values()) {
       const a = door.opening.apertureMm, horizontal = door.opening.orient === 'h', plane = horizontal ? -(a.y + a.d / 2) / 1000 : (a.x + a.w / 2) / 1000
       const component = horizontal ? direction.z : direction.x
@@ -229,10 +248,11 @@ export class HouseWalkingSimulation {
       if (t < 0 || t > distance || best && best.distance < t) continue
       const x = origin.x + t * direction.x, y = origin.y + t * direction.y, z = origin.z + t * direction.z
       if (x < a.x / 1000 - .02 || x > (a.x + a.w) / 1000 + .02 || z < -(a.y + a.d) / 1000 - .02 || z > -a.y / 1000 + .02 || y < a.z / 1000 || y > (a.z + a.h) / 1000) continue
-      const obstruction = this.world.castRay(new RAPIER.Ray(origin, direction), t - .03, false, undefined, undefined, this.character, undefined, c => c.handle !== door.collider.handle)
-      if (!obstruction) best = { id: door.id, open: door.target, distance: t }
+      const siblings = new Set([...this.doors.values()].filter(d => d.opening.id === door.opening.id).map(d => d.collider.handle))
+      const obstruction = this.world.castRay(new RAPIER.Ray(origin, direction), Math.max(0, t - .06), false, undefined, undefined, this.character, undefined, c => !siblings.has(c.handle))
+      if (!obstruction) best = { id: door.id, open: door.target, blocked: door.blocked, distance: t }
     }
-    return best && { id: best.id, open: best.open }
+    return best && { id: best.id, open: best.open, blocked: best.blocked }
   }
   dispose() { if (!this.freed) { this.freed = true; this.world.free() } }
 }

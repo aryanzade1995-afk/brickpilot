@@ -8,7 +8,7 @@ import { GOING, normalizeBrief, stairGeometry } from '../engine/planner/program.
 import { reachability } from '../engine/planner/index.ts'
 import { placeSiteFeatures } from '../engine/planner/siteFeatures.ts'
 import { withEmergencyExit } from '../engine/safety.ts'
-import { exposeStructuralSizing } from '../engine/structuralSizing.ts'
+import { beamDepthMm, exposeStructuralSizing } from '../engine/structuralSizing.ts'
 import { FIXED_KINDS, constraintsOf, typeOfKind, type RoomConstraints, type RoomType } from './roomTypes.ts'
 
 /* ------------------------------------------------------------------ *
@@ -229,10 +229,35 @@ function rebuildFloor(plan: Design, floor: FloorPlan, layout: FloorLayout, lower
   const spine = layout.rooms.find((r) => r.id === spineId)!
   const coreTarget = stair ? { x: stair.rect.x + stair.rect.w / 2, y: stair.rect.y + stair.rect.h / 2 } : { x: spine.rect.x, y: spine.rect.y }
   const mainEntry = floor.openings.find((o) => o.kind === 'entry' && !o.emergencyExit)
+  const stairHeadMm = Math.round(model.brief.levels.floorToFloor * 1000) - Math.max(300, ...(floor.beams ?? []).map(b => beamDepthMm(b.span)))
   const { openings: doors, failed } = placeDoors(rooms, spineId, prefix, columns, occ, kindOf, parentOf,
     floor.level === 0 && mainEntry ? { width: mainEntry.width } : null, coreTarget, model.brief.lifestyle.kitchen,
-    model.brief.style.character==='modern-box'?'sliding':'hinged')
-  const lonely = connectLeft(failed, rooms, kinds, spineId, columns, occ, doors)
+    model.brief.style.character==='modern-box'?'sliding':'hinged', stairHeadMm)
+  // Wing plans have several galleries, rather than one universal spine. Keep
+  // their authoritative room-to-room connections when rebuilding an edit;
+  // otherwise the generic single-spine placer disconnects the private wing.
+  // Every retained portal is rehosted on the actual new shared edge and still
+  // checked against columns and other openings. Never retain a floating hole.
+  for (const original of floor.openings.filter(o => o.kind === 'door' && o.rooms?.[0] && o.rooms[1])) {
+    const [a, b] = original.rooms!.map(id => rooms.find(r => r.id === id))
+    if (!a || !b || doors.some(o => o.rooms?.includes(a.id) && o.rooms.includes(b.id))) continue
+    const edge = sharedEdge(a.rect, b.rect)
+    if (!edge) continue
+    const horizontal = edge.side === 'N' || edge.side === 'S'
+    const line = { orient: (horizontal ? 'h' : 'v') as 'h' | 'v', fixed: horizontal ? edge.seg.a.y : edge.seg.a.x,
+      lo: horizontal ? edge.seg.a.x : edge.seg.a.y, hi: horizontal ? edge.seg.b.x : edge.seg.b.y }
+    const stairPortal = [a.id, b.id].includes('stair'), width = stairPortal ? Math.floor((edge.length - 500) / 100) * 100 : original.width
+    if (stairPortal && width < 1400) continue
+    const target = stairPortal ? (line.lo + line.hi) / 2 : horizontal ? original.at.x : original.at.y
+    let fittedWidth = width, at = fitOnLine(line, fittedWidth, target, 250, columns, occ)
+    while (stairPortal && at === null && fittedWidth > 1400) { fittedWidth -= 100; at = fitOnLine(line, fittedWidth, target, 250, columns, occ) }
+    if (at === null) continue
+    occupy(occ, line.orient, line.fixed, at, fittedWidth)
+    doors.push({ ...original, id: doors.some(o => o.id === original.id) ? `${original.id}_REHOSTED` : original.id,
+      orient: line.orient, at: horizontal ? { x: at, y: line.fixed } : { x: line.fixed, y: at }, width: fittedWidth,
+      ...(stairPortal ? { leaf: false, treatment: 'open' as const, head: stairHeadMm } : {}) })
+  }
+  const lonely = connectLeft(failed.filter(id => !doors.some(o => o.rooms?.includes(id))), rooms, kinds, spineId, columns, occ, doors)
   const windows = placeWindows(rooms, walls, columns, occ, kindOf, themeOf(model.brief).windows.widthMm, plan.dna, lower?.openings ?? [])
   const openings = [...doors, ...windows]
   for (const o of openings) if (o.kind === 'entry' && mainEntry) { o.entranceDesign = mainEntry.entranceDesign; o.head = mainEntry.head }

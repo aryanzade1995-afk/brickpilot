@@ -103,7 +103,7 @@ function search(input: LayoutInput, relaxed: boolean): PlateCandidate[] {
   const single = !!input.singleLoaded
   // an L-notch cuts the front band — a single-loaded plan has none
   if (single && family === 'l-shape') return []
-  const spine = single ? input.hallMm ?? 1800 : large ? 1500 : 1200
+  const spine = single ? Math.max(1800, input.hallMm ?? 1800) : large ? 1800 : 1500
   const dMax = site.fillPlot ? 5400 : large ? 5400 : 4800
   const bDepths = single ? [0] : Array.from({ length: Math.floor((dMax - MIN_BAND) / 300) + 1 }, (_, i) => MIN_BAND + i * 300)
   const out: PlateCandidate[] = []

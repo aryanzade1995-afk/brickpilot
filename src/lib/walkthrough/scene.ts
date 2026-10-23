@@ -46,6 +46,8 @@ export function buildWalkthroughScene(input: BuildingModel, validation: { hardCh
     scene.solids.push({ id: sceneId(role, floorId, ...[...ids].sort(), ...boundsKey(b)), floorId, sourceIds: [...ids].sort(), role, boundsMm: b })
   }
   const voidRooms = new Set(building.shafts.map(s => sceneId(s.floorId, s.roomId)))
+  for (const piece of building.emergency?.exitAccess?.pieces ?? []) add('stair', floors[0].id, [piece.id], box(piece.rect, piece.bottomMm + floors[0].elevationMm, piece.topMm - piece.bottomMm))
+  for (const piece of building.emergency?.entryAccess?.pieces ?? []) add('stair', floors[0].id, [piece.id], box(piece.rect, piece.bottomMm + floors[0].elevationMm, piece.topMm - piece.bottomMm))
   for (const f of floors) for (const v of f.doubleHeightVoids ?? []) voidRooms.add(sceneId(f.id, v.roomId))
   const outdoor = (f: BuildingFloor) => building.rooms.filter(r => r.floorId === f.id && r.outdoor && !voidRooms.has(sceneId(f.id, r.id)) && !(f.courtyard && sameRect(f.courtyard, r.rect)))
   for (const room of building.rooms) if (!validRect(room.rect)) issue('INVALID_ROOM', room.id, 'Invalid source room rectangle.')

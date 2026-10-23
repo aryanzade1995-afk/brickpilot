@@ -180,7 +180,8 @@ export function planFindings(design: Design): PlanFinding[] {
         const kitchenDining = ids.includes('kitchen') && (ids.includes('dining') || ids.includes('livingDining'))
         if (o.orient === 'v' && !isCirculation(a) && !isCirculation(b) && !attachedBath && !kitchenDining && !a.outdoor && !b.outdoor)
           add('VERTICAL_ROOM_PARTITION_DOOR', 'topology', `${label} cuts the vertical partition between ${a.name} and ${b.name}.`, a.id)
-        if (o.width > 1000 && !(o.treatment && ids.includes('kitchen')) && !(balcony&&o.treatment==='glazed-slide'&&o.width<=2400))
+        const stairPortal = ids.includes('stair') && o.treatment === 'open' && o.leaf === false && !!e && o.width <= e.length - 500 && [a, b].every(isCirculation)
+        if (o.width > 1000 && !stairPortal && !(o.treatment && ids.includes('kitchen')) && !(balcony&&o.treatment==='glazed-slide'&&o.width<=2400))
           add('DOOR_TOO_WIDE', 'topology', `${label} is ${o.width} mm wide; internal openings are limited to 1000 mm.`, a.id)
       }
       if ((o.kind === 'window' || o.kind === 'entry') && a) {
@@ -198,6 +199,12 @@ export function planFindings(design: Design): PlanFinding[] {
       }
       if (o.leaf !== false && o.kind !== 'window' && a) {
         const box = swingBox(o)
+        if (o.emergencyExit) {
+          const obstacles = [...enclosed.map(r => r.rect), ...(design.siteFeatures ?? []).filter(f => f.kind === 'pool' || f.kind === 'parking').map(f => f.rect)]
+          if (box.x < 0 || box.y < 0 || rectRight(box) > env.plot.width || rectBottom(box) > env.plot.depth || obstacles.some(r => overlapArea(box, r) > 1000))
+            add('EMERGENCY_SWING_BLOCKED', 'egress', `${label} needs an outward swing into clear space inside the property.`, a.id)
+          continue
+        }
         if (coveredBy(box, [a.rect]) < rectArea(box) - 1000)
           add('DOOR_SWING_BLOCKED', 'topology', `${label} swings outside ${a.name}.`, a.id)
         const mine = leafBoxes.get(a.id) ?? []

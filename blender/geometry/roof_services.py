@@ -25,8 +25,9 @@ def create_roof_services(scene, building):
         for name,horizontal,fixed,lo,length in [("N",True,r["y"],r["x"],r["w"]),("S",True,r["y"]+r["h"],r["x"],r["w"]),("W",False,r["x"],r["y"],r["h"]),("E",False,r["x"]+r["w"],r["y"],r["h"])]:
             spans=[(lo,length,0,2200)]
             if name==side:
-                margin=(length-900)/2
-                spans=[(lo,margin,0,2200),(lo+margin+900,margin,0,2200),(lo+margin,900,2100,100)]
+                opening_width=max(900, length-500)
+                margin=(length-opening_width)/2
+                spans=[(lo,margin,0,2200),(lo+margin+opening_width,margin,0,2200),(lo+margin,opening_width,2100,100)]
             for i,(at,w,bottom,height) in enumerate(spans):
                 x,y=(at+w/2,fixed) if horizontal else (fixed,at+w/2)
                 scene.box(f"Roof_Mumty_{name}_{i}","ROOF",x,y,z+bottom,w if horizontal else 120,120 if horizontal else w,height,"wall",top["id"])

@@ -10,6 +10,9 @@ sys.modules.setdefault("bpy", types.ModuleType("bpy"))
 sys.modules.setdefault("bmesh", types.ModuleType("bmesh"))
 from geometry.structure import create_wall, create_slab, create_staircase  # noqa: E402
 from geometry.plates import subtract_rectangles  # noqa: E402
+from geometry.plates import roof_plate_regions
+from geometry.openings import create_door_opening
+from unittest.mock import patch
 from geometry.stairs import stair_layout, stair_opening  # noqa: E402
 from geometry.massing import mass_rect  # noqa: E402
 from validation import GeometryInputError, opening_hosts, opening_vertical_span, validate_payload  # noqa: E402
@@ -74,6 +77,35 @@ class PipelineTest(unittest.TestCase):
                 self.assertFalse(along > 2 and vertical > 2,
                                  f"{opening['id']} is covered by {piece['name']}")
 
+    def test_storey_masonry_ends_at_slab_soffit_not_through_terrace(self):
+        floor = {"id": "FF", "heightMm": 3100, "elevationMm": 3100, "slabThicknessMm": 125}
+        wall = {"id": "wall", "a": {"x": 0, "y": 0}, "b": {"x": 4000, "y": 0}, "thickness": 230, "kind": "exterior"}
+        scene = RecordingScene()
+        create_wall(scene, wall, floor, [], 1)
+        self.assertEqual(max(p["z"] + p["h"] for p in scene.boxes), 6075)
+        self.assertEqual(floor["elevationMm"], 3100)
+
+    def test_roof_bearing_union_keeps_wing_gaps_and_has_no_duplicates(self):
+        floor = {"footprint": [{"x": 0, "y": 0, "w": 4000, "h": 3000}, {"x": 6000, "y": 0, "w": 2000, "h": 3000}]}
+        wall = {"a": {"x": 0, "y": 0}, "b": {"x": 4000, "y": 0}, "thickness": 230}
+        pieces = roof_plate_regions(floor, [wall])
+        self.assertEqual(sum(p["w"] * p["h"] for p in pieces), 18000000 + 4000 * 115)
+        self.assertTrue(any(p["y"] == -115 for p in pieces))
+        self.assertFalse(any(p["x"] < 5000 < p["x"] + p["w"] for p in pieces))
+        for i, p in enumerate(pieces):
+            for q in pieces[i+1:]:
+                self.assertFalse(min(p["x"]+p["w"],q["x"]+q["w"])-max(p["x"],q["x"]) > .01 and min(p["y"]+p["h"],q["y"]+q["h"])-max(p["y"],q["y"]) > .01)
+
+    def test_open_treatment_or_no_leaf_never_creates_a_glass_barrier(self):
+        floor = self.building["floors"][0]
+        wall = next(w for w in self.building["walls"] if w["floorId"] == floor["id"])
+        opening = {"id": "open-test", "kind": "door", "at": wall["a"], "width": 1800, "head": 2300}
+        for choices in ({"leaf": False, "treatment": "glazed-slide"}, {"leaf": True, "treatment": "open"}):
+            scene = RecordingScene()
+            with patch('geometry.openings._opening_anchor'):
+                create_door_opening(scene, {**opening, **choices}, wall, floor)
+            self.assertEqual(scene.boxes, [])
+
     def test_stairs_ascend_in_flight_order_and_connect_to_destination(self):
         floors = {floor["id"]: floor for floor in self.building["floors"]}
         for stair in self.building["stairs"]:
@@ -87,6 +119,11 @@ class PipelineTest(unittest.TestCase):
             levels = [piece["z"] + piece["h"] for piece in treads]
             self.assertEqual(levels, sorted(levels))
             rise = floor["heightMm"] / (count * 2)
+            # Return-flight blocks must not extend down to the ground floor.
+            # They are the same stepped waists as walkthrough/stairs.ts.
+            for tread in treads[count:]:
+                self.assertGreater(tread["z"], floor["elevationMm"])
+                self.assertLessEqual(tread["h"], rise + 150 + 0.001)
             self.assertAlmostEqual(levels[-1] + rise, floor["elevationMm"] + floor["heightMm"])
             side = stair.get("startSide", "N")
             axis, sign = ("y", 1 if side == "N" else -1) if side in ("N", "S") else ("x", 1 if side == "W" else -1)

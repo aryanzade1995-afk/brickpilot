@@ -38,11 +38,11 @@ export function waterPlan(floor: FloorPlan, cuts: Rect[], fixtures: Fixture[], b
     const door = floor.openings.find(o => o.kind !== 'window' && o.rooms?.includes(room.id)), at = door ? { x: door.at.x + 450, y: door.at.y + 450 } : rectCenter(room.rect)
     const valve = make(room, 'isolation_valve', cold, at, 900)
     const valveFed = valve ? join(inlet, valve, cold, null, true) : false
-    const hotFixtures = served.filter(f => f.roomId === room.id && f.type !== 'toilet')
+    const hotFixtures = served.filter(f => f.roomId === room.id && f.type !== 'toilet' && f.type !== 'washing_machine')
     const hotAt = hotFixtures[0]?.position ?? rectCenter(room.rect)
     const hotInlet = hotFixtures.length ? make(room, 'hot_supply_inlet', hot, hotAt, 1700) : null
     if (hotInlet) hot.sourceIds.push(hotInlet.id)
-    for (const f of served.filter(f => f.roomId === room.id)) for (const n of [cold, ...(f.type === 'toilet' ? [] : [hot])]) {
+    for (const f of served.filter(f => f.roomId === room.id)) for (const n of [cold, ...(['toilet', 'washing_machine'].includes(f.type) ? [] : [hot])]) {
       const offset = n.service === 'cold' ? -110 : 110
       const desired = { x: f.position.x + offset, y: f.position.y + offset }, height = f.type === 'toilet' ? 550 : f.type === 'shower' ? 1100 : 1000
       const outlet = make(room, 'water_outlet', n, desired, height, f.id)

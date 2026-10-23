@@ -31,3 +31,23 @@ def create_plate(scene, name, collection, rect, bottom, thickness, source_id, vo
         objects.append(scene.rect(name if index == 1 else f"{name}_Part_{index:02d}",
                                   collection, piece, bottom, thickness, source_id=source_id))
     return objects
+
+
+def roof_plate_regions(floor, exterior_walls=()):
+    """Centre-line plan plates plus the actual exterior wall bearing width.
+
+    Union by subtraction, never a bounding rectangle over a courtyard/wing gap.
+    Callers still subtract their stair, courtyard and shaft openings.
+    """
+    regions = []
+    for rect in floor["footprint"]:
+        regions.extend(subtract_rectangles(rect, regions))
+    for wall in exterior_walls:
+        a, b, t = wall["a"], wall["b"], wall["thickness"]
+        horizontal = abs(a["y"] - b["y"]) <= 2
+        strip = ({"x": min(a["x"], b["x"]), "y": a["y"] - t / 2,
+                  "w": abs(b["x"] - a["x"]), "h": t} if horizontal else
+                 {"x": a["x"] - t / 2, "y": min(a["y"], b["y"]),
+                  "w": t, "h": abs(b["y"] - a["y"])})
+        regions.extend(subtract_rectangles(strip, regions))
+    return regions

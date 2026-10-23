@@ -265,6 +265,7 @@ export function placeDoors(
   entry: { width: number } | null, coreTarget: Point,
   kitchenType: 'open' | 'semi' | 'closed' = 'semi',
   balconyAccess: 'hinged' | 'sliding' = 'hinged',
+  stairHeadMm?: number,
 ): { openings: Opening[]; failed: string[] } {
   const openings: Opening[] = []
   const failed: string[] = []
@@ -358,6 +359,17 @@ export function placeDoors(
       const target = spec.leaf ? (toward < mid ? line.lo : line.hi) : mid
       const base = `${r.semanticId}_${spec.label}`
       const id = spec.label === 'DOOR' && !openings.some((o) => o.id === base) ? base : nextId(base)
+      // The dog-leg stair uses both flights at this edge. A centred 1m
+      // doorway straddles the flight gap and traps the walking capsule. Keep
+      // the source portal open across both flights, clear of end columns.
+      if (kindOf(r.id) === 'stair') {
+        const width = Math.floor((line.hi - line.lo - 500) / 100) * 100
+        let placed = false
+        for (let w = width; w >= 1400 && !placed; w -= 100) placed = put(r, to, line, w, false, 'door', id, mid, 'open')
+        if (placed && stairHeadMm !== undefined) openings[openings.length - 1].head = stairHeadMm
+        if (!placed) failed.push(r.id)
+        continue
+      }
       if (!put(r, to, line, spec.width, spec.leaf, 'door', id, target) &&
         !put(r, to, line, Math.max(700, spec.width - 200), spec.leaf, 'door', id, target))
         failed.push(r.id)

@@ -2,8 +2,17 @@ import type { Point, Rect } from '../geometry.ts'
 import { UTILITY_LAYERS, UTILITY_SYMBOLS, connectedLoads, type UtilityFloor, type UtilityRun } from './plan.ts'
 import { type Clash } from './clashes.ts'
 import { DRAWING_LAYERS, DRAWING_NAMES, drawingNumber, paperSize, dimensionText, lengthMm, type DrawingDocument, type DrawingLayer, type DrawingAnnotation } from './drawingProject.ts'
+import { DRAINAGE_COLORS } from './drainageRules.ts'
+import { drainageCallout, drainageBounds, type DrainageNode } from './drainage.ts'
+import { electricalScheduleRows } from './electricalDesign.ts'
+import { ELECTRICAL_SOURCES } from './electricalRules.ts'
 
 type Style = { color: string; width?: number; fill?: string; dash?: number[]; opacity?: number }
+export function drainageNodeOps(n: DrainageNode, tr: (p: Point) => Point, radius = 1.3): DrawOp[] {
+  if (n.kind === 'fixture') return []
+  const origin = tr(n.position), offset = drainageCallout(n.kind), p = { x: origin.x + offset.x * radius / 8, y: origin.y + offset.y * radius / 8 }, color = DRAINAGE_COLORS[n.service], code = ({ stack: 'S', stack_base: 'SB', inspection_chamber: 'IC', outlet: 'OUT', trap: 'T', cleanout: 'CO', vent_terminal: 'V' } as Record<string, string>)[n.kind]
+  return [{ kind: 'line', a: origin, b: p, color, width: radius * .1 }, { kind: 'circle', at: p, r: radius, color, fill: 'white', width: radius * .15 }, { kind: 'text', at: { x: p.x, y: p.y + radius * .3 }, align: 'center', text: code, size: radius * .8, color }]
+}
 export type DrawOp = ({ kind: 'line'; a: Point; b: Point } | { kind: 'poly'; points: Point[]; closed?: boolean } | { kind: 'rect'; rect: Rect } | { kind: 'circle'; at: Point; r: number } | { kind: 'text'; at: Point; text: string; size: number; align?: 'left' | 'center' | 'right'; bold?: boolean } | { kind: 'clip'; rect: Rect; id: string } | { kind: 'endClip' } | { kind: 'group'; name: string } | { kind: 'endGroup' }) & Partial<Style>
 export type DrawingSheet = { id: string; title: string; number: string; w: number; h: number; ops: DrawOp[]; tile?: { viewport: Rect; origin: Point; scale: number; col: number; row: number; cols: number; rows: number }; kind: 'plan' | 'schedule' | 'clashes'; layer: DrawingLayer }
 const ink = '#323832', grey = '#b5bbb6'
@@ -75,15 +84,15 @@ export function schedules(model: UtilityFloor, layers: readonly string[]): Table
   const result: Table[] = []
   for (const layer of layers) {
     const runs = model.utilities.filter(r => r.layer === layer)
-    if (layer === 'drainage') result.push({ title: 'DRAINAGE SCHEDULE - concept route lengths', rows: runs.map(r => { if (r.layer !== 'drainage') return ''; const f = model.fixtures.find(f => f.id === r.fixtureId); return `${model.floor.rooms.find(x => x.id === r.roomId)?.name ?? r.roomId} / ${f?.type ?? 'fixture'} | ${r.diameter} mm ${r.material} | ${(lengthMm(r.path) / 1000).toFixed(2)} m` }) })
-    if (layer === 'electrical') result.push({ title: 'ELECTRICAL SCHEDULE - proposed loads', rows: model.circuits.map(c => `${c.tag} ${c.name} | ${c.breaker} | ${c.wireSize.replace('mm2', ' mm²')} | ${connectedLoads(model, c).length}/${c.loads.length} connected devices; watts unknown`) })
+    if (layer === 'drainage') result.push({ title: 'DRAINAGE SCHEDULE - proposed route lengths', rows: runs.map(r => { if (r.layer !== 'drainage') return ''; const f = model.fixtures.find(f => f.id === r.fixtureId); return `${model.floor.rooms.find(x => x.id === r.roomId)?.name ?? r.roomId} / ${r.drainagePipe?.service ?? f?.type ?? 'fixture'} | ${r.drainagePipe ? r.drainagePipe.diameterMm ?? 'unverified size' : r.diameter} mm ${r.material} | ${((r.drainagePipe?.lengthMm ?? lengthMm(r.path)) / 1000).toFixed(2)} m` }) })
+    if (layer === 'electrical') result.push({ title: 'ELECTRICAL SCHEDULE - proposed loads', rows: model.electricalDesign ? electricalScheduleRows(model.electricalDesign) : model.circuits.map(c => `${c.tag} ${c.name} | legacy illustrative ${c.breaker} / ${c.wireSize} (not sized) | ${connectedLoads(model, c).length}/${c.loads.length} devices; watts unknown`) })
     if (layer === 'fire_alarm') result.push({ title: 'FIRE ALARM SCHEDULE - concept loop', rows: model.zones.map(z => `${z.tag} ${z.name} | ${z.devices.length} loop devices | ${z.cableType} | ${z.loopStatus}; standalone equipment excluded`) })
     if (layer === 'water_supply') result.push({ title: 'WATER SUPPLY SCHEDULE - proposed lines', rows: runs.map(r => r.layer === 'water_supply' ? `${r.id} | ${r.service} | ${r.diameter} mm ${r.material} | ${(lengthMm(r.path) / 1000).toFixed(2)} m` : '') })
   }
   return result
 }
 export function pipeTag(r: UtilityRun) {
-  if (r.layer === 'drainage') return `${r.diameter}mm ${r.material} @ slope unverified`
+  if (r.layer === 'drainage') return r.drainagePipe ? `${r.drainagePipe.service} ${r.drainagePipe.diameterMm ?? '?'}mm @ ${r.drainagePipe.gradientRatio ? `1:${r.drainagePipe.gradientRatio}` : 'slope unknown'} / ${r.drainagePipe.state}` : `${r.diameter}mm ${r.material} @ slope unverified`
   if (r.layer === 'water_supply') return `${r.diameter}mm ${r.material} (${r.service})`
   return r.layer === 'electrical' ? r.wireSize.replace('mm2', 'mm²') : r.cableType
 }
@@ -104,12 +113,14 @@ function planOps(model: UtilityFloor, doc: DrawingDocument, layers: readonly str
   for (const l of DRAWING_LAYERS.filter(l => layers.includes(l))) {
     const cfg = UTILITY_LAYERS[l]; ops.push({ kind: 'group', name: l })
     for (const r of model.utilities.filter(r => r.layer === l)) {
-      const color = r.layer === 'electrical' ? model.circuits.find(c => c.id === r.circuitId)?.color : r.layer === 'water_supply' ? model.waterNetworks.find(n => n.id === r.networkId)?.color : r.layer === 'fire_alarm' ? model.zones.find(z => z.id === r.zoneId)?.color : cfg.color
+      if (r.layer === 'drainage' && r.drainagePipe && !model.drainageDesign?.input.visible[r.drainagePipe.service]) continue
+      const color = r.layer === 'electrical' ? model.circuits.find(c => c.id === r.circuitId)?.color : r.layer === 'water_supply' ? model.waterNetworks.find(n => n.id === r.networkId)?.color : r.layer === 'fire_alarm' ? model.zones.find(z => z.id === r.zoneId)?.color : r.layer === 'drainage' && r.drainagePipe ? DRAINAGE_COLORS[r.drainagePipe.service] : cfg.color
       const points = r.path.map(tr); ops.push({ kind: 'poly', points, color: color ?? cfg.color, width: r.layer === 'drainage' ? .45 : .3, dash: cfg.dash ? cfg.dash.split(' ').map(Number).map(v => v / 5) : [], opacity: doc.layers[l].opacity })
       if (r.layer !== 'drainage') { const tag = r.layer === 'electrical' ? model.circuits.find(c => c.id === r.circuitId)?.tag : r.layer === 'water_supply' ? model.waterNetworks.find(n => n.id === r.networkId)?.tag : model.zones.find(z => z.id === r.zoneId)?.tag; const at = points.at(-1)!; if (tag) ops.push({ kind: 'text', at: { x: at.x + 1.5, y: at.y - 1.5 }, text: tag, size: 2, color: color ?? cfg.color, opacity: doc.layers[l].opacity }) }
       if (r.layer === 'drainage') { const seq = r.flowDirection === 'reverse' ? [...points].reverse() : points; for (let i = 1; i < seq.length; i++) if (Math.hypot(seq[i].x - seq[i - 1].x, seq[i].y - seq[i - 1].y) > 4) arrow(ops, seq[i - 1], { x: (seq[i].x + seq[i - 1].x) / 2, y: (seq[i].y + seq[i - 1].y) / 2 }, color ?? cfg.color) }
     }
-    for (const sym of model.symbols.filter(sym => sym.layer === l)) ops.push(...symbolOps(sym.type, tr(sym.position), sym.type === 'exit_sign' ? '#258454' : cfg.color).map(op => ({ ...op, opacity: doc.layers[l].opacity })))
+    for (const sym of model.symbols.filter(sym => sym.layer === l && !(l === 'drainage' && model.drainageDesign))) ops.push(...symbolOps(sym.type, tr(sym.position), sym.type === 'exit_sign' ? '#258454' : cfg.color).map(op => ({ ...op, opacity: doc.layers[l].opacity })))
+    if (l === 'drainage') for (const n of model.drainageDesign?.nodes ?? []) if (model.drainageDesign!.input.visible[n.service]) ops.push(...drainageNodeOps(n, tr))
     ops.push({ kind: 'endGroup' })
   }
   if (doc.annotationsVisible) {
@@ -170,13 +181,25 @@ function frame(sheet: DrawingSheet, _model: UtilityFloor, doc: DrawingDocument, 
 }
 
 export function buildDrawingSheets(model: UtilityFloor, doc: DrawingDocument, layer: DrawingLayer, _legacyClashes: Clash[] = []): DrawingSheet[] {
-  const paper = paperSize(doc.settings), rightW = Math.min(170, paper.w * .46), plot: Rect = { x: 15, y: 31, w: paper.w - 35 - rightW, h: paper.h - 66 }, s = doc.settings.scale, outline = model.floor.outline
+  const paper = paperSize(doc.settings), rightW = Math.min(170, paper.w * .46), plot: Rect = { x: 15, y: 31, w: paper.w - 35 - rightW, h: paper.h - 66 }, s = doc.settings.scale, outline = layer === 'drainage' || layer === 'coordination' && doc.layers.drainage.visible ? drainageBounds(model) : model.floor.outline
   const cols = Math.max(1, Math.ceil((outline.w + 800) / (plot.w * s))), rows = Math.max(1, Math.ceil((outline.h + 800) / (plot.h * s)))
   if (cols * rows > 64) throw new Error('Too many tiles at this scale. Choose a larger sheet or 1:200.')
   const layers = layer === 'coordination' ? DRAWING_LAYERS.filter(l => doc.layers[l].visible) : [layer]
   const title = `${DRAWING_NAMES[layer]} - ${model.floor.name}`, number = drawingNumber(doc.settings, layer, model.floor.level), sheets: DrawingSheet[] = []
   const tables = schedules(model, layers), legendTypes = [...new Set(model.symbols.filter(sym => layers.includes(sym.layer)).map(sym => sym.type))]
-  const fixtureLabels = { sink: 'Sink outline', toilet: 'Toilet outline', shower: 'Shower outline', floor_drain: 'Floor drain / drain point' }
+  const fixtureLabels = { sink: 'Sink outline', toilet: 'Toilet outline', shower: 'Shower outline', floor_drain: 'Floor drain / drain point', bathtub: 'Bathtub outline', washing_machine: 'Washer outline' }
+  if (layers.includes('drainage') && model.drainageDesign) {
+    const d = model.drainageDesign
+    tables.push({ title: 'DRAINAGE DESIGN - professional review required', rows: [`Destination: ${d.input.outlet.kind}; approval: ${d.input.outlet.approvalReference || 'unknown (no approved outlet established)'}`, `Datum: ${d.input.datum || 'unknown'}; floor ${d.input.floorElevationMm ?? '?'} mm; ground ${d.input.groundElevationMm ?? '?'} mm`, `Authority: ${d.input.city || 'unknown'} / ${d.input.authority}; local review ${d.input.localReviewReference || 'pending'}`, ...d.pipes.map(p => `${p.id} | ${p.service} | ${p.diameterMm ?? '?'} mm | ${p.dfu ?? '?'} DFU | ${(p.lengthMm / 1000).toFixed(2)} m | ${p.gradientRatio ? `1:${p.gradientRatio}` : 'gradient unknown'} | invert ${p.inletInvertMm ?? '?'} to ${p.outletInvertMm ?? '?'} mm | ${p.state}`)] })
+    tables.push({ title: 'DRAINAGE KEY', rows: ['Soil: red-brown; waste: teal; vent: purple; stormwater: blue (not yet designed); building drain: brown.', 'S stack; SB stack base; T trap; CO cleanout; IC inspection chamber; OUT final outlet; V proposed vent continuation.', 'All components are proposals unless surveyed. Plan bends do not specify approved fittings.'] })
+    tables.push({ title: 'DRAINAGE REVIEW', rows: d.checks.map(c => `${c.status} | ${c.category} | ${c.itemId} | ${c.position ? `${c.position.x},${c.position.y} mm` : 'site'} | ${c.reason} Correction: ${c.correction} [${c.reference}]`) })
+  }
+  if (layers.includes('electrical') && model.electricalDesign) {
+    const d = model.electricalDesign
+    tables.push({ title: 'ELECTRICAL LOAD INVENTORY', rows: d.loads.map(l => `${l.id} | ${l.name} | ${l.roomId} | ${l.watts ?? '?'} W | ${l.basis} | ${l.reference || 'reference missing'}`) })
+    tables.push({ title: 'ELECTRICAL DESIGN REVIEW', rows: d.checks.map(c => `${c.status} | ${c.category} | ${c.itemId} | ${c.position ? `${c.position.x},${c.position.y} mm` : 'site/supply'} | ${c.reason} Next: ${c.correction} [${c.reference}]`) })
+    tables.push({ title: 'ELECTRICAL BASIS / LIMITS', rows: [...d.assumptions, ...Object.values(ELECTRICAL_SOURCES).map(s => `${s.title} | ${s.edition} | checked ${s.date} | ${s.url} | ${s.scope}`)] })
+  }
   tables.push({ title: 'SYMBOL LEGEND', rows: [...layers.map(l => `layer_${l} - ${UTILITY_LAYERS[l].label} / ${UTILITY_LAYERS[l].dash ? 'dashed' : 'solid'}`), ...legendTypes.map(type => `${type} - ${UTILITY_SYMBOLS[type].label}`), ...[...new Set(model.fixtures.map(f => f.type))].map(type => `fixture_${type} - ${fixtureLabels[type]}`)] })
   tables.push({ title: 'REVISION REGISTER', rows: doc.revisions.length ? doc.revisions.map(r => `${r.letter} | ${r.date} | ${r.description} | ${r.by || '-'}`) : ['No revisions recorded.'] })
   const pending: { text: string; title: boolean; symbol?: string }[] = tables.flatMap(t => [{ text: t.title, title: true }, ...t.rows.flatMap(row => wrap(row, rightW - 10, 2.4).map((text, i) => ({ text, title: false, ...(t.title === 'SYMBOL LEGEND' && !i ? { symbol: row.split(' - ')[0] } : {}) }))), { text: '', title: false }])

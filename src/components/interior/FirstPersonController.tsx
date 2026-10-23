@@ -7,7 +7,7 @@ import { DEFAULT_LOOK_SPEED, walkthroughLook } from '@/lib/walkthrough/look.ts'
 
 export type WalkingControls = { enter: () => void; enterDrag: () => void; exit: () => void;
   move: (direction: 'forward' | 'back' | 'left' | 'right', pressed: boolean) => void; interact: () => void }
-export type WalkingHud = { room: string; floor: number; door: { id: string; open: boolean } | null; blocked: string | null;
+export type WalkingHud = { room: string; floor: number; door: { id: string; open: boolean; blocked?: boolean } | null; blocked: string | null;
   feet: [number, number, number]; grounded: boolean; look: [number, number] }
 type Orbit = { enabled: boolean; target: Vector3; update: () => void }
 
@@ -25,25 +25,26 @@ export function FirstPersonController({ simulation, model, onControls, onActive,
   useLayoutEffect(() => { speed.current = lookSpeed }, [lookSpeed])
   useLayoutEffect(() => { callbacks.current = { onActive, onHud, onError } }, [onActive, onHud, onError])
   const saved = useRef<{ position: Vector3; quaternion: Quaternion; near: number; far: number; fov: number; target?: Vector3 } | null>(null)
-  const doorMeshes = useRef(new Map<string, { mesh: Object3D; originalWorld: Matrix4; originalLocal: Matrix4; centre: Vector3; progress: number }>())
+  const doorMeshes = useRef(new Map<string, { id: string; mesh: Object3D; originalWorld: Matrix4; originalLocal: Matrix4; centre: Vector3; progress: number }>())
   const direction = useRef(new Vector3()), translation = useRef(new Matrix4()), rotation = useRef(new Matrix4()), delta = useRef(new Matrix4()), parentInverse = useRef(new Matrix4())
   useEffect(() => {
     model.updateMatrixWorld(true)
     const found = doorMeshes.current
     for (const id of simulation.doors.keys()) model.traverse(mesh => {
-      if (mesh.userData.partIds?.includes(`${id}:leaf`)) {
+      if (mesh.userData.walkthroughDoorId === id || mesh.userData.partIds?.includes(`${id}:leaf`)) {
         mesh.updateMatrixWorld(true)
         const centre = simulation.doors.get(id)!.centre
-        found.set(id, { mesh, originalWorld: mesh.matrixWorld.clone(), originalLocal: mesh.matrix.clone(), centre: new Vector3(centre.x, centre.y, centre.z), progress: NaN })
+        found.set(mesh.uuid, { id, mesh, originalWorld: mesh.matrixWorld.clone(), originalLocal: mesh.matrix.clone(), centre: new Vector3(centre.x, centre.y, centre.z), progress: NaN })
       }
     })
     return () => { for (const item of found.values()) { item.mesh.matrix.copy(item.originalLocal); item.mesh.matrixAutoUpdate = true; item.mesh.matrix.decompose(item.mesh.position, item.mesh.quaternion, item.mesh.scale); item.mesh.visible = true } found.clear() }
   }, [model, simulation])
   const syncDoors = () => {
-    for (const [id, item] of doorMeshes.current) {
-      const door = simulation.doors.get(id)!
+    for (const item of doorMeshes.current.values()) {
+      const id = item.id, door = simulation.doors.get(id)!
       if (item.progress === door.progress) continue
       item.progress = door.progress
+      gl.shadowMap.needsUpdate = true
       const pose = simulation.getDoorPose(id)!
       rotation.current.makeRotationY(pose.angle)
       // The source leaf vertices are already global. Conjugate the world-space

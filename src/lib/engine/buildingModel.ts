@@ -184,7 +184,10 @@ export function createBuildingModel(design: Design): BuildingModel {
     setbacks,
   }
   // Retire cached meshes built before porch pillars were checked against the edited geometry.
-  const signature = JSON.stringify([OUTDOOR_ASSET_VERSION, base])
+  // Renderer-derived front stoops are versioned by the export revision. They
+  // must not orphan the accepted villa or change its architectural seed.
+  const { entryAccess: _entryAccess, ...identityEmergency } = base.emergency
+  const signature = JSON.stringify([OUTDOOR_ASSET_VERSION, { ...base, emergency: identityEmergency }])
   const hash = (value: string) => fnv(value).toString(16).padStart(8, '0')
   // Preserve the original seed namespace projection. These historical sizes
   // are identity tokens only: no drawing, quantity or mesh uses them as dimensions.

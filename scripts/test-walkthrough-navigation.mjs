@@ -100,10 +100,12 @@ test('closed door blocks; explicit opening permits the same capsule through a 60
   try {
     for (let i = 0; i < 300; i++) sim.step({ forward: 1, right: 0, yaw: Math.PI / 2 })
     assert.ok(sim.feet.x > 7.22, 'closed leaf blocks the capsule')
+    // This source door swings towards the entrance. Leave its sweep clear.
+    walkTo(sim, 7.8, -1)
     sim.toggleDoor(door.id); for (let i = 0; i < 30; i++) sim.step(stationary)
     walkTo(sim, 7, -1)
     sim.toggleDoor(door.id); for (let i = 0; i < 30; i++) sim.step(stationary)
-    assert.ok(sim.getDoorPose(door.id).angle > .1, 'close animation cannot intersect the character')
+    assert.ok(Math.abs(sim.getDoorPose(door.id).angle) > .1, 'close animation cannot intersect the character')
     sim.toggleDoor(door.id); for (let i = 0; i < 30; i++) sim.step(stationary)
     walkTo(sim, 6.3, -1)
     assert.ok(sim.feet.x < 6.4)

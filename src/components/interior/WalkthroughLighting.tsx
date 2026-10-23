@@ -19,7 +19,7 @@ export function WalkthroughLighting({ model, bounds: framing }: { model: Group; 
     const previous = scene.environment, intensity = scene.environmentIntensity
     const studio = new RoomEnvironment(), generator = new PMREMGenerator(gl), environment = generator.fromScene(studio, .04)
     scene.environment = environment.texture; scene.environmentIntensity = .55
-    studio.dispose(); generator.dispose(); invalidate()
+    studio.dispose(); generator.dispose(); gl.shadowMap.needsUpdate = true; invalidate()
     return () => { scene.environment = previous; scene.environmentIntensity = intensity; environment.dispose() }
   }, [gl, scene, invalidate])
   return <>

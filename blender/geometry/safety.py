@@ -7,6 +7,12 @@ import bpy
 
 def create_emergency_system(scene, building):
     safety = building.get("emergency", {})
+    # The shared source already selects/validates the landing and treads. Never
+    # independently size or relocate them in Python.
+    for piece in [*safety.get("exitAccess", {}).get("pieces", []), *safety.get("entryAccess", {}).get("pieces", [])]:
+        scene.rect(f"ExitAccess_{piece['id']}", "STRUCTURE", piece["rect"],
+                   piece["bottomMm"], piece["topMm"]-piece["bottomMm"],
+                   "concrete", piece["id"], bevel=0)
     for role, colour in (("safety_alarm", (0.9, 0.9, 0.85, 1)),
                          ("safety_extinguisher", (0.55, 0.035, 0.02, 1))):
         material = bpy.data.materials.new(role)

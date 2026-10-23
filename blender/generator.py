@@ -111,7 +111,7 @@ def create_scene(payload, visualization=None):
     for stair in building["stairs"]:
         floor = by_floor[stair["floorId"]]
         if floor["level"] < floors[-1]["level"] or flat_roof:
-            create_staircase(scene, stair, floor)
+            create_staircase(scene, stair, floor, building.get("quantityRules", {}).get("stairs"))
     for mass in massing["masses"]:
         # Roof caps must not seal the stair exit or service shafts.
         voids = [stair["rect"] for stair in building["stairs"] if flat_roof and stair["floorId"] == mass["sourceFloorId"]]
@@ -137,9 +137,10 @@ def create_scene(payload, visualization=None):
     covered['compositionCanopies'] = create_composition_canopies(scene, building)
     top = floors[-1]
     roof_level = top["elevationMm"] + top["heightMm"]
-    accessible = create_terrace(scene, top, building["stairs"], building["shafts"]) if flat_roof else False
+    roof_walls = [w for w in building["walls"] if w["floorId"] == top["id"] and w["kind"] == "exterior"]
+    accessible = create_terrace(scene, top, building["stairs"], building["shafts"], roof_walls) if flat_roof else False
     if not accessible:
-        create_roof_slab(scene, top, [shaft["rect"] for shaft in building["shafts"] if shaft["floorId"] == top["id"]])
+        create_roof_slab(scene, top, [shaft["rect"] for shaft in building["shafts"] if shaft["floorId"] == top["id"]], roof_walls)
     # Interior voids omit the intermediate floor, but retain their actual upper
     # ceiling. These caps are sourced by the plan, not decorative roof blocks.
     for floor in floors:

@@ -89,6 +89,10 @@ def create_door_opening(scene, opening, wall, floor):
     _sill, height = opening_vertical_span(opening, floor)
     base = floor["elevationMm"]
     _opening_anchor(scene, opening, floor, axis, 0, height)
+    # A source open portal has no door leaf, threshold or low metal head frame.
+    # Its actual opening head remains below the source structural beam.
+    if opening.get("treatment") == "open" or opening.get("leaf") is False:
+        return
     jamb = 55
     depth = min(90, wall["thickness"])
     for side, offset in (("L", -width / 2 + jamb / 2), ("R", width / 2 - jamb / 2)):

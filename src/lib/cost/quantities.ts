@@ -324,5 +324,6 @@ export function calculateQuantities(design:Design):Quantities {
       'RCC includes the ground/plinth floor plate and exposed roof plates once; intermediate stair landings remain, stair/shaft voids are deducted. No pile or raft design is inferred.',
       'Columns stop at slab soffits; beams use clear spans and exclude slab depth. Masonry deducts the union of openings, columns, beams and lintels; plaster includes RCC faces.',
       'Stair RCC uses inclined waist slabs, triangular treads and a turning landing. Points, glazing fraction, grills, skirting and tank capacities are configurable allowances.',
+      ...(design.floors[0].openings.some(o=>o.emergencyExit)?['Exterior exit landing, site steps, their supports and guards need separate structural costing; the current indoor stair allowance does not include them.']:[]),
       'Terrace perimeter is a parapet by default; guard railing is counted at the stair opening. Detailed member quantities replace legacy floor-area allowances in the BOQ.']}
 }

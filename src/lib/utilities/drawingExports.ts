@@ -1,6 +1,7 @@
 import { saveBlob } from '../export/fileSaver.ts'
 import { DRAWING_LAYERS, type DrawingDocument } from './drawingProject.ts'
-import { sheetSvg, symbolOps, annotationOps, type DrawOp, type DrawingSheet } from './drawingSheets.ts'
+import { sheetSvg, symbolOps, drainageNodeOps, annotationOps, type DrawOp, type DrawingSheet } from './drawingSheets.ts'
+import { DRAINAGE_COLORS } from './drainageRules.ts'
 import { UTILITY_LAYERS, type UtilityFloor } from './plan.ts'
 
 let fontPromise: Promise<string> | undefined
@@ -14,7 +15,7 @@ export async function vectorSheetPdf(sheets: DrawingSheet[], suppliedFont?: stri
   if (!sheets.length) throw new Error('There are no sheets to export.')
   const { jsPDF, GState } = await import('jspdf')
   const first = sheets[0], pdf = new jsPDF({ unit: 'mm', format: [first.w, first.h], orientation: first.w > first.h ? 'landscape' : 'portrait', compress: true, putOnlyUsedFonts: true })
-  const unicode = sheets.some(s => s.ops.some(op => op.kind === 'text' && /[^\x20-\xff]/.test(op.text)))
+  const unicode = sheets.some(s => s.ops.some(op => op.kind === 'text' && /[\u0900-\u097f]/.test(op.text)))
   if (unicode) { pdf.addFileToVFS('NotoSansDevanagari.ttf', suppliedFont ?? await unicodeFont()); pdf.addFont('NotoSansDevanagari.ttf', 'Noto', 'normal') }
   for (const [index, sheet] of sheets.entries()) {
     if (index) pdf.addPage([sheet.w, sheet.h], sheet.w > sheet.h ? 'landscape' : 'portrait')
@@ -31,7 +32,19 @@ export async function vectorSheetPdf(sheets: DrawingSheet[], suppliedFont?: stri
       else if (op.kind === 'rect') pdf.rect(op.rect.x, op.rect.y, op.rect.w, op.rect.h, style)
       else if (op.kind === 'circle') pdf.circle(op.at.x, op.at.y, op.r, style)
       else if (op.kind === 'poly') { if (op.points.length > 1) pdf.lines(op.points.slice(1).map((p, i) => [p.x - op.points[i].x, p.y - op.points[i].y]), op.points[0].x, op.points[0].y, [1, 1], style, !!op.closed) }
-      else { pdf.setFont(unicode ? 'Noto' : 'helvetica', unicode ? 'normal' : op.bold ? 'bold' : 'normal'); pdf.setFontSize(op.size * 72 / 25.4); pdf.setTextColor(op.color ?? '#323832'); pdf.text(op.text.replace(/[\u0000-\u0008\u000b-\u001f]/g, ''), op.at.x, op.at.y, { align: op.align ?? 'left' }) }
+      else {
+        // The bundled Devanagari subset does not contain Latin letters. An
+        // arrow/dash must never switch the entire sheet to that font and erase
+        // English. Select font per script run; retain real text in the PDF.
+        const text = op.text.replace(/[\u0000-\u0008\u000b-\u001f]/g, '').replace(/[\u2010-\u2015\u2212]/g, '-').replace(/\u2192/g, ' -> ').replace(/\u2190/g, ' <- ').replace(/\u2026/g, '...').replace(/\u2264/g, '<=').replace(/\u2265/g, '>=').replace(/\u2191/g, '^')
+        if (/[^\x20-\xff\u0900-\u097f\u200c\u200d\n]/.test(text)) throw new Error('This PDF contains unsupported text characters. Use SVG to preserve that text or simplify the drawing labels.')
+        const runs = text.split(/([\u0900-\u097f\u200c\u200d]+)/).filter(Boolean).map(value => ({ value, devanagari: /[\u0900-\u097f]/.test(value) }))
+        pdf.setFontSize(op.size * 72 / 25.4); pdf.setTextColor(op.color ?? '#323832')
+        const font = (devanagari: boolean) => pdf.setFont(devanagari ? 'Noto' : 'helvetica', devanagari ? 'normal' : op.bold ? 'bold' : 'normal')
+        const widths = runs.map(r => { font(r.devanagari); return pdf.getTextWidth(r.value) }), total = widths.reduce((n, w) => n + w, 0)
+        let x = op.at.x - (op.align === 'center' ? total / 2 : op.align === 'right' ? total : 0)
+        runs.forEach((r, i) => { font(r.devanagari); pdf.text(r.value, x, op.at.y); x += widths[i] })
+      }
     }
   }
   return pdf
@@ -97,8 +110,9 @@ export function utilityDxf(model: UtilityFloor, doc: DrawingDocument) {
   for (const w of model.wallSections.filter(w => w.base === 0)) entity({ kind: 'line', a: w.a, b: w.b, color: colors.walls }, 'walls')
   for (const o of model.floor.openings) entity({ kind: 'text', at: o.at, text: `${o.kind} ${o.width}mm`, size: 90, color: '#888888' }, 'walls')
   for (const f of model.fixtures) entity({ kind: 'rect', rect: { x: f.position.x - f.width / 2, y: f.position.y - f.depth / 2, w: f.width, h: f.depth }, color: colors.fixtures }, 'fixtures')
-  for (const r of model.utilities) entity({ kind: 'poly', points: r.path, color: colors[r.layer], dash: UTILITY_LAYERS[r.layer].dash ? [200, 100] : [] }, r.layer)
-  for (const s of model.symbols) for (const op of symbolOps(s.type, s.position, colors[s.layer], 100)) entity(op, s.layer)
+  for (const r of model.utilities) entity({ kind: 'poly', points: r.path, color: r.layer === 'drainage' && r.drainagePipe ? DRAINAGE_COLORS[r.drainagePipe.service] : colors[r.layer], dash: UTILITY_LAYERS[r.layer].dash ? [200, 100] : [] }, r.layer)
+  for (const s of model.symbols.filter(s => !(s.layer === 'drainage' && model.drainageDesign))) for (const op of symbolOps(s.type, s.position, colors[s.layer], 100)) entity(op, s.layer)
+  for (const n of model.drainageDesign?.nodes ?? []) for (const op of drainageNodeOps(n, p => p, 100)) entity(op, 'drainage')
   for (const a of doc.annotations) for (const op of annotationOps(a, p => ({ x: p.x / doc.settings.scale, y: p.y / doc.settings.scale }))) {
     const scaled = { ...op } as DrawOp
     const multiply = (p: { x: number; y: number }) => ({ x: p.x * doc.settings.scale, y: p.y * doc.settings.scale })

@@ -93,7 +93,10 @@ export function assessBriefFit(brief: Brief): BriefFit {
   const cached = capacityCache.get(key)
   if (cached) return cached
   const fit = packingFit(brief)
-  if (fit.fits) {
+  // The packer is a capacity hint, not a proof of failure: the production
+  // planner can use a stepped plate with wider circulation that this simple
+  // bar estimate misses. Keep the actual validated plan as the authority.
+  if (!fit.issues.length) {
     try {
       const report = validate(generate(compile(brief)))
       fit.fits = report.hardChecksPass
