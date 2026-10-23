@@ -146,7 +146,7 @@ test('real rebuilt Blender villa: safe entrance, selected surface domains, stair
   const bytes = await readFile(join(accepted.directory, accepted.files.find(f => f.endsWith('.glb'))))
   const root = await parseAcceptedVilla(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), accepted.planId)
   separateCoplanar(root)
-  for (const piece of [...(geometry.metadata.exitAccess?.pieces ?? []), ...(['walk-access-v6', 'walk-access-v7'].includes(accepted.geometryRevision) ? geometry.metadata.entryAccess?.pieces ?? [] : [])]) {
+  for (const piece of [...(geometry.metadata.exitAccess?.pieces ?? []), ...(['walk-access-v6', 'walk-access-v7', 'walk-access-v8'].includes(accepted.geometryRevision) ? geometry.metadata.entryAccess?.pieces ?? [] : [])]) {
     const actual = []; root.traverse(o => { if (o instanceof Mesh && o.userData.source_id === piece.id) actual.push(o) })
     assert.equal(actual.length, 1)
     const b = new Box3().setFromObject(actual[0]), expectedMin = [piece.rect.x/1000,piece.bottomMm/1000,-(piece.rect.y+piece.rect.h)/1000], expectedMax = [(piece.rect.x+piece.rect.w)/1000,piece.topMm/1000,-piece.rect.y/1000]
@@ -161,7 +161,7 @@ test('real rebuilt Blender villa: safe entrance, selected surface domains, stair
   await initializeWalkingPhysics()
   const main = new HouseWalkingSimulation(metadata, collision, accepted.planId, triangles)
   assert.ok(main.grounded); assert.ok(main.doors.size > 10); assert.ok(main.replaceFurnishing(furnitureColliders(app))); main.dispose()
-  if (['walk-access-v6', 'walk-access-v7'].includes(accepted.geometryRevision)) {
+  if (['walk-access-v6', 'walk-access-v7', 'walk-access-v8'].includes(accepted.geometryRevision)) {
     const top = source.building.floors.at(-1), soffit = (top.elevationMm + top.heightMm - top.slabThicknessMm)/1000
     root.traverse(o => { if (o instanceof Mesh && o.name.startsWith(`${top.id}_Wall_`)) assert.ok(new Box3().setFromObject(o).max.y <= soffit + .01, `${o.name} protrudes into terrace slab`) })
   }
@@ -214,7 +214,7 @@ test('real rebuilt Blender villa: safe entrance, selected surface domains, stair
     for (const piece of [...access.pieces].reverse()) walk(escape, centre(piece.rect))
     walk(escape, inside); assert.ok(escape.feet.y > -.03)
   } finally { escape.dispose() }
-  if (['walk-access-v6', 'walk-access-v7'].includes(accepted.geometryRevision)) {
+  if (['walk-access-v6', 'walk-access-v7', 'walk-access-v8'].includes(accepted.geometryRevision)) {
     const access = metadata.entryAccess, opening = metadata.openings.find(o => o.sourceId === access.exitId), a=opening.apertureMm, h=opening.orient==='h'
     const x=(a.x+a.w/2)/1000, z=-(a.y+a.d/2)/1000, room=metadata.rooms.find(r=>r.id===opening.rooms.find(Boolean)), r=centre(room.rectMm)
     const inside=h?{x,z:z+(r.z>z?1.15:-1.15)}:{x:x+(r.x>x?1.15:-1.15),z}

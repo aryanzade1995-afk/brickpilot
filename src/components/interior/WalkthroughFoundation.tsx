@@ -39,7 +39,7 @@ export function WalkthroughFoundation({ design, report, acceptedBuilding }: {
   const job = useBlender(s => s.job)
   const [accessMessage, setAccessMessage] = useState('')
   const busy = !!job && !['complete', 'failed'].includes(job.status)
-  const exportOnly = ['walk-access-v5', 'walk-access-v6'].includes(asset?.geometryRevision ?? '')
+  const exportOnly = ['walk-access-v5', 'walk-access-v6', 'walk-access-v7'].includes(asset?.geometryRevision ?? '')
   const updateAccess = async () => {
     const seed = asset?.seed ?? useStudio.getState().pinned?.seed
     if (seed === undefined) { setAccessMessage('Choose and pin the villa direction first.'); return }
@@ -54,34 +54,15 @@ export function WalkthroughFoundation({ design, report, acceptedBuilding }: {
   }
   const groups = source ? [...new Set(source.issues.map(i => i.code))].map(code => ({ code, count: source.issues.filter(i => i.code === code).length })) : []
   return <section id="whole-house-walkthrough" aria-labelledby="walkthrough-title" data-walkthrough-phase="walking" className="mt-10 border border-line bg-bg">
-    <div className="border-b border-line p-5 md:p-7">
-      <div className="flex flex-wrap items-start justify-between gap-4"><div>
-        <p className="label">{t('Whole-house experience')}</p>
-        <h2 id="walkthrough-title" className="mt-2 font-display text-2xl md:text-3xl">{t('3D house walkthrough')}</h2>
-      </div><span className="border border-line bg-bg-inset px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-ink-dim">{t('First-person walkthrough')}</span></div>
-      <p className="mt-3 max-w-3xl text-sm leading-relaxed text-ink-dim">{t('Explore the exact accepted villa from 3D Massing. Its geometry and included furniture are preserved, with your selected interior finishes.')}</p>
+    <div className="border-b border-line p-5 md:px-7">
+      <h2 id="walkthrough-title" className="font-display text-2xl">{t('3D house walkthrough')}</h2>
+      <p className="mt-2 text-sm text-ink-dim">{t('Your villa, with your chosen finishes.')}</p>
     </div>
     {!source ? <p role="status" className="p-5 text-sm text-ink-dim">{t('The walkthrough source could not be prepared. Your existing previews are still available.')}</p> : <>
-      <dl className="grid grid-cols-2 gap-px border-b border-line bg-line md:grid-cols-4">{[
-        ['Source floors', source.building.floors.length], ['Indoor spaces', source.rooms.filter(r => !r.outdoor).length],
-        ['Source doors', source.building.doors.length], ['Source windows', source.building.windows.length],
-      ].map(([label, count]) => <div key={label} className="bg-bg p-5"><dt className="text-xs text-ink-dim">{t(label)}</dt><dd className="mt-2 font-display text-2xl">{count}</dd></div>)}</dl>
-      <div className="grid gap-6 p-5 md:grid-cols-2 md:p-7">
-        <div><h3 className="font-display text-lg">{t('What is connected to this foundation')}</h3><ul className="mt-3 space-y-2 text-sm leading-relaxed text-ink-dim">
-          <li>{t('Recorded walls, rooms, door openings and windows from the current plan.')}</li>
-          <li>{t('The same accepted Blender file used in 3D Massing.')}</li>
-          <li>{t('Floor heights, courtyard and double-height void records are preserved.')}</li>
-        </ul></div>
-        <div><h3 className="font-display text-lg">{t('Explore the house')}</h3><ul className="mt-3 space-y-2 text-sm leading-relaxed text-ink-dim">
-          <li>{t('Open the villa walkthrough, then choose Walk inside.')}</li>
-          <li>{t('Use WASD to move and the mouse to look. Look at a door and press E to open or close it.')}</li>
-          <li>{t('Press Escape to release the mouse and return to the normal 3D view.')}</li>
-        </ul></div>
-      </div>
       {asset?.geometryRevision !== WALKTHROUGH_ACCESS_REVISION && <div className="border-t border-line bg-bg-inset p-5 md:px-7">
-        <h3 className="font-display text-lg">{t('Update walking access')}</h3>
-        <p className="mt-2 max-w-3xl text-xs leading-relaxed text-ink-dim">{t(exportOnly ? 'Rebuild the same plan and seed to correct terrace wall junctions, open portals and entrance steps. Your room layout and selected finishes stay fixed.' : 'Update the 2D access openings and rebuild this same villa seed with open stair portals, stepped stair undersides and an exit away from the low landing. Narrow courtyard galleries widen to 1.8 m where space allows. Room edits are validated before saving.')}</p>
-        <button type="button" disabled={busy} onClick={() => void updateAccess()} className="mt-4 min-h-11 border border-line bg-accent px-4 text-xs text-bg disabled:opacity-40">{t(busy ? 'Updating Blender villa…' : 'Update access & Blender model')}</button>
+        <h3 className="font-display text-lg">{t('Update villa model')}</h3>
+        <p className="mt-2 text-xs text-ink-dim">{t(exportOnly ? 'Rebuild the same villa with stair railings. Your plan and finishes stay fixed.' : 'Update the source walking access and rebuild this villa.')}</p>
+        <button type="button" disabled={busy} onClick={() => void updateAccess()} className="mt-4 min-h-11 border border-line bg-accent px-4 text-xs text-bg disabled:opacity-40">{t(busy ? 'Updating Blender villa…' : 'Update villa model')}</button>
         {busy && <p role="status" className="mt-3 text-xs">{t(job!.phase)}</p>}
         {accessMessage && <p role="status" className="mt-3 text-xs">{t(accessMessage)}</p>}
         {job?.status === 'failed' && <p role="alert" className="mt-3 text-xs">{job.error}</p>}

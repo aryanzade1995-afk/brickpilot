@@ -8,6 +8,7 @@ import { ArchitecturalFeatureGenerator, type FeatureGenerationOptions } from '..
 import { validateProceduralFeatures } from '../facade/FacadeGrammar.ts'
 import { validateSpecializedAssemblies } from '../facade/specialized/validate.ts'
 import { createVillaShapeFingerprint } from './VillaShapeFingerprint.ts'
+import { createStairGuards } from '../../walkthrough/stairGuards.ts'
 
 /** Pure exact-seed assembly for candidate evaluation and saved-design replay.
  * History/retries belong to VillaDiversityGate, not to this deterministic adapter. */
@@ -25,6 +26,6 @@ export function createVillaArchitecture(design: Design, seed = design.dna.seed, 
   const specializedIssues = validateSpecializedAssemblies({ building: buildingModel, dna: villaDesignDNA,
     massing: massingModel, facade: facadeGrammar, limits: facadeGrammar.specialized.limits }, facadeGrammar.specialized.assemblies)
   if (specializedIssues.length) throw new Error(`Component grammar rejected: ${JSON.stringify(specializedIssues)}`)
-  return { buildingModel, massingModel, villaDesignDNA, facadeGrammar,
+  return { buildingModel, massingModel, villaDesignDNA, facadeGrammar, stairGuards: createStairGuards(buildingModel),
     shapeFingerprint: createVillaShapeFingerprint(buildingModel, villaDesignDNA, massingModel, facadeGrammar) }
 }

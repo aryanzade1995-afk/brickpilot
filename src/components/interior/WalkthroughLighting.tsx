@@ -18,14 +18,14 @@ export function WalkthroughLighting({ model, bounds: framing }: { model: Group; 
   useEffect(() => {
     const previous = scene.environment, intensity = scene.environmentIntensity
     const studio = new RoomEnvironment(), generator = new PMREMGenerator(gl), environment = generator.fromScene(studio, .04)
-    scene.environment = environment.texture; scene.environmentIntensity = .55
+    scene.environment = environment.texture; scene.environmentIntensity = .65
     studio.dispose(); generator.dispose(); gl.shadowMap.needsUpdate = true; invalidate()
     return () => { scene.environment = previous; scene.environmentIntensity = intensity; environment.dispose() }
   }, [gl, scene, invalidate])
   return <>
     <primitive object={placement.target} />
-    <ambientLight intensity={.45} /><hemisphereLight args={['#e7efff', '#b7a88d', .8]} />
-    <directionalLight position={placement.position} target={placement.target} color="#fff3df" intensity={2.5} castShadow
+    <ambientLight intensity={.22} /><hemisphereLight args={['#e7efff', '#b7a88d', .55]} />
+    <directionalLight position={placement.position} target={placement.target} color="#fff3df" intensity={2.2} castShadow
       shadow-mapSize={[2048, 2048]} shadow-camera-left={-placement.span} shadow-camera-right={placement.span}
       shadow-camera-top={placement.span} shadow-camera-bottom={-placement.span} shadow-camera-near={.5} shadow-camera-far={placement.far}
       shadow-bias={-.00015} shadow-normalBias={.018} />

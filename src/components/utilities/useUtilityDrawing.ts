@@ -1,3 +1,4 @@
+import { planningSchema } from '@/lib/utilities/planning.ts'
 import { useEffect, useRef, useState } from 'react'
 import type { UtilityFloor } from '@/lib/utilities/plan.ts'
 import { defaultDrawing, settingsSchema, sourceSignature, uid, type DrawingDocument, type UtilityDrawingProject } from '@/lib/utilities/drawingProject.ts'
@@ -11,6 +12,7 @@ export function useUtilityDrawing(model: UtilityFloor, project: string, scope: s
     try { const saved = settingsSchema.safeParse(JSON.parse(localStorage.getItem(`formstead.utility-sheet-settings.v1:${scope}`) ?? 'null')); if (saved.success) document.settings = saved.data } catch { /* Work without persistent storage. */ }
     try { const saved = drainageInputsSchema.safeParse(JSON.parse(localStorage.getItem(`formstead.drainage-inputs.v1:${scope}`) ?? 'null')); if (saved.success) document.drainage = saved.data } catch { /* Unknown inputs remain unknown. */ }
     try { const saved = electricalInputsSchema.safeParse(JSON.parse(localStorage.getItem(`formstead.electrical-inputs.v1:${scope}`) ?? 'null')); if (saved.success) document.electrical = saved.data } catch { /* Keep inputs unknown. */ }
+    try { const saved = planningSchema.safeParse(JSON.parse(localStorage.getItem(`formstead.utility-points.v1:${scope}`) ?? 'null')); if (saved.success) document.planning = saved.data } catch { /* Manual edits remain available without storage. */ }
     return { document, imported: null }
   })
   const [past, setPast] = useState<State[]>([]), [future, setFuture] = useState<State[]>([]), last = useRef(state), liveDocument = useRef(state.document)
@@ -19,6 +21,7 @@ export function useUtilityDrawing(model: UtilityFloor, project: string, scope: s
   useEffect(() => { try { localStorage.setItem(`formstead.utility-sheet-settings.v1:${scope}`, JSON.stringify(state.document.settings)) } catch { /* Full session autosave exposes storage errors to the user. */ } }, [state.document.settings, scope])
   useEffect(() => { if (!state.imported) try { localStorage.setItem(`formstead.drainage-inputs.v1:${scope}`, JSON.stringify(state.document.drainage)) } catch { /* Full JSON save remains available. */ } }, [state.document.drainage, state.imported, scope])
   useEffect(() => { if (!state.imported) try { localStorage.setItem(`formstead.electrical-inputs.v1:${scope}`, JSON.stringify(state.document.electrical)) } catch { /* JSON save remains available. */ } }, [state.document.electrical, state.imported, scope])
+  useEffect(() => { if (!state.imported) try { localStorage.setItem(`formstead.utility-points.v1:${scope}`, JSON.stringify(state.document.planning)) } catch { /* Full JSON save remains available. */ } }, [state.document.planning, state.imported, scope])
   const commit = (next: State) => { setPast(p => [...p.slice(-49), last.current]); setFuture([]); setState(next) }
   const change = (edit: (doc: DrawingDocument) => void) => { const document = structuredClone(last.current.document); edit(document); if (JSON.stringify(document) !== JSON.stringify(last.current.document)) { commit({ ...last.current, document }); return true } return false }
   const load = (project: UtilityDrawingProject) => { if (!last.current.imported) liveDocument.current = last.current.document; commit({ document: project.document, imported: { project, token: uid() } }) }

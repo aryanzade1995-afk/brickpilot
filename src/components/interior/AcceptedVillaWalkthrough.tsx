@@ -25,14 +25,16 @@ export function AcceptedVillaWalkthrough({ asset, source, design }: { asset?: Bl
     return { url, geometry }
   }, [url, acceptedPlanId, planId, geometry])
   return <div className="border-t border-line p-5 md:px-7" aria-label={t('Accepted Blender villa walkthrough')}>
-    <h3 className="font-display text-lg">{t('Exact villa from 3D Massing')}</h3>
-    <p className="mt-2 max-w-3xl text-xs leading-relaxed text-ink-dim">{t('Explore the accepted Blender villa with your selected finishes, fitted products and furnished rooms.')}</p>
     {!acceptedVilla ? <div className="mt-4 border border-line bg-bg-inset p-4"><p className="text-sm">{t('Open 3D Massing and prepare your Blender villa first.')}</p><a href="/workspace/massing" className="mt-3 inline-flex min-h-11 items-center text-xs underline">{t('Open 3D Massing')}</a></div> : <>
-      <div className="mt-4 flex flex-wrap gap-3"><button type="button" onClick={() => setOpen(v => !v)} className="min-h-11 border border-line bg-accent px-4 text-xs text-bg">{t(open ? 'Close villa walkthrough' : 'Open villa walkthrough')}</button>
-        <a href={acceptedVilla.url} download className="inline-flex min-h-11 items-center border border-line px-4 text-xs underline">{t('Download the same Blender GLB')}</a></div>
-      <p className="mt-3 text-xs leading-relaxed text-ink-dim">{t('Look at a door and press E to open or close it. Selected surface textures use catalogue dimensions where available; product photographs and unsupported product shapes remain visual approximations.')}</p>
+      <div className="mt-4 flex flex-wrap gap-3"><button type="button" onClick={() => setOpen(v => !v)} className="min-h-11 border border-line bg-accent px-4 text-xs text-bg">{t(open ? 'Close 3D view' : 'Open 3D view')}</button>
+        <a href={acceptedVilla.url} download className="inline-flex min-h-11 items-center border border-line px-4 text-xs underline">{t('Download GLB')}</a></div>
       {open && <Suspense fallback={<p role="status" className="py-4 text-xs">{t('Loading the exported house…')}</p>}><Preview key={acceptedVilla.url} planId={source.building.planId} acceptedVilla={acceptedVilla} appearance={appearance} floors={acceptedVilla.geometry?.metadata.floors ?? []} /></Suspense>}
-      <p className="mt-3 text-xs text-ink-faint">{t('Car: ')}<a href="https://sketchfab.com/models/57bf6cc56931426e87494f554df1dab6" target="_blank" rel="noreferrer" className="underline">{t('Ferrari 458 Italia by vicent091036')}</a>{t(', adapted under ')}<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer" className="underline">{t('CC BY 4.0')}</a>.</p>
+      <details className="mt-3 text-xs text-ink-dim"><summary className="min-h-11 cursor-pointer py-3">{t('Controls & model details')}</summary>
+        <p>{t('WASD: move · Mouse: look · E: doors · Esc: exit')}</p>
+        <p className="mt-2">{t('Selected products are shown where supported. Textures and procedural furnishings are visual approximations.')}</p>
+        {geometry?.metadata.issues.filter(i=>i.code==='GUARD_REVIEW').map(i=><p key={i.sourceId} className="mt-2">{t(i.message)}</p>)}
+        <p className="mt-2">{t('Model credits')}: <a href="https://sketchfab.com/models/57bf6cc56931426e87494f554df1dab6" target="_blank" rel="noreferrer" className="underline">Ferrari 458 Italia · vicent091036</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer" className="underline">CC BY 4.0</a>.</p>
+      </details>
     </>}
   </div>
 }

@@ -67,3 +67,12 @@ test('baked contact shading grounds real room furnishings without moving floors 
   assert.ok(pixels[(64*128+64)*4] < pixels[(10*128+10)*4],'contact region is darker than free floor')
   applyWalkthroughContactDetail(root,geometry,appearance);assert.equal(floorMaterial.aoMap,map,'unchanged geometry reuses its baked detail')
 })
+
+test('wall contact shading uses source room height and stays on existing selected wall material',()=>{
+  const root=new Group(),material=new MeshStandardMaterial({color:'#c5cfbf'}),wall=new Mesh(new BoxGeometry(4,3,.2).toNonIndexed(),material)
+  root.add(wall);wall.userData.materialBindings=[JSON.stringify(['GF','bed','wall'])];wall.geometry.clearGroups();wall.geometry.addGroup(0,wall.geometry.attributes.position.count,0)
+  const before=[...wall.geometry.attributes.position.array],geometry={metadata:{rooms:[{id:'bed',floorId:'GF',rectMm:{x:-2000,y:-2000,w:4000,h:4000},elevationM:0}],floors:[{sourceId:'GF',clearCeilingM:3}]}}
+  applyWalkthroughContactDetail(root,geometry,{furniture:[]})
+  assert.ok(material.aoMap);assert.equal(material.color.getHexString(),'c5cfbf');assert.deepEqual([...wall.geometry.attributes.position.array],before)
+  const pixels=material.aoMap.image.data;assert.ok(pixels[0]<pixels[(64*128+64)*4],'corners grounded, middle wall receives fill light')
+})

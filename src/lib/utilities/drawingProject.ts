@@ -1,3 +1,4 @@
+import { planningSchema, emptyPlanning } from './planning.ts'
 import { z } from 'zod'
 import { electricalInputsSchema, defaultElectricalInputs } from './electricalInputs.ts'
 import type { Point } from '../geometry.ts'
@@ -58,6 +59,7 @@ export const TITLE_FIELDS = ['projectName', 'client', 'projectCode', 'drawnBy', 
 export const settingsSchema = z.object({ projectName: short, client: short, projectCode: z.string().regex(/^[A-Za-z0-9_-]{1,20}$/), drawnBy: short, checkedBy: short, date: day, size: z.enum(['A4', 'A3', 'A2', 'A1']), orientation: z.enum(['landscape', 'portrait']), scale: z.union([z.literal(50), z.literal(100), z.literal(200)]), dpi: z.union([z.literal(150), z.literal(300)]) })
 const pref = z.object({ visible: z.boolean(), locked: z.boolean(), opacity: finite.min(0).max(1) })
 export const documentSchema = z.object({
+  planning: planningSchema.default(emptyPlanning),
   electrical: electricalInputsSchema.default(defaultElectricalInputs),
   drainage: drainageInputsSchema.default(defaultDrainageInputs),
   version: z.literal(1), settings: settingsSchema,
@@ -78,7 +80,7 @@ const ordered = (v: unknown): unknown => Array.isArray(v) ? v.map(ordered) : v &
 const legacySignature = (m: UtilityFloor) => hash(ordered([m.sourcePlanId, m.floor, m.utilities, m.symbols]))
 export const sourceSignature = (m: UtilityFloor) => `m2-${hash(ordered(m))}`
 export function defaultDrawing(projectName: string): DrawingDocument {
-  return { electrical: defaultElectricalInputs(), drainage: defaultDrainageInputs(), version: 1, settings: { projectName, client: '', projectCode: 'PRJ', drawnBy: '', checkedBy: '', date: today(), size: 'A2', orientation: 'landscape', scale: 100, dpi: 150 }, activeLayer: 'coordination', layers: Object.fromEntries(DRAWING_LAYERS.map(k => [k, { visible: false, locked: false, opacity: 1 }])) as LayerPreferences, annotationsVisible: true, annotationsLocked: false, grid: false, autoDimensions: false, pipeTags: false, revisions: [], annotations: [], theme: 'light' }
+  return { planning: emptyPlanning(), electrical: defaultElectricalInputs(), drainage: defaultDrainageInputs(), version: 1, settings: { projectName, client: '', projectCode: 'PRJ', drawnBy: '', checkedBy: '', date: today(), size: 'A2', orientation: 'landscape', scale: 100, dpi: 150 }, activeLayer: 'coordination', layers: Object.fromEntries(DRAWING_LAYERS.map(k => [k, { visible: false, locked: false, opacity: 1 }])) as LayerPreferences, annotationsVisible: true, annotationsLocked: false, grid: false, autoDimensions: false, pipeTags: false, revisions: [], annotations: [], theme: 'light' }
 }
 export function nextRevision(revisions: DrawingDocument['revisions']) {
   let n = revisions.reduce((max, r) => Math.max(max, [...r.letter].reduce((s, c) => s * 26 + c.charCodeAt(0) - 64, 0)), 0) + 1

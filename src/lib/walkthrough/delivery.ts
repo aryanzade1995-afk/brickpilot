@@ -7,6 +7,7 @@ import { houseLooks, surfaceLook, type Look } from '../three/dressRoom.ts'
 import { intersectRegions, subtractRegions } from '../solar/regions.ts'
 import { fitWalkthroughFinishes } from './fittedFinishes.ts'
 import type { InteriorFinishes } from '../interior/finishes.ts'
+import { createStairGuards } from './stairGuards.ts'
 
 export const WALKTHROUGH_DELIVERY_VERSION = 'walkthrough-assets-v1'
 export const WALKTHROUGH_APPEARANCE_VERSION = 'room-finishes-v2'
@@ -33,7 +34,7 @@ export type WalkthroughAppearancePayload = { bindings: Record<string, Look>; fur
 const binding = (floorId: string, roomId: string | null, role: string) => JSON.stringify([floorId, roomId, role])
 const neutral: Record<string, Look> = { wall: { color: '#eeeae2', rough: .8 }, floor: { color: '#d5ccba', rough: .7 },
   ceiling: { color: '#f4f0e8', rough: .9 }, glass: { color: '#c6dce4', rough: .12, opacity: .28 },
-  door: { color: '#785d46', rough: .5 }, frame: { color: '#333b39', rough: .4, metal: .4 } }
+  door: { color: '#785d46', rough: .5 }, frame: { color: '#333b39', rough: .4, metal: .4 }, railing: { color: '#41474b', rough: .3, metal: .85 } }
 
 /** Split only material domains; these are the exact source boundary faces, not new architecture.
  * A shared wall's inward face belongs to its adjacent room, never both rooms.
@@ -128,10 +129,21 @@ export function prepareWalkthroughGeometry(scene: WalkthroughScene): Walkthrough
       p.x + radius > c.min[0] && p.x - radius < c.max[0] && p.z + radius > c.min[2] && p.z - radius < c.max[2])) continue
     entries.push({ id: o.id, roomId: room.id, floorId: o.floorId, position: [p.x, p.y, p.z], clearanceBasis: 'Static source-AABB and supported-floor test, radius 0.25m / height 1.7m; furniture rechecked per appearance.' })
   }
-  return { version: WALKTHROUGH_DELIVERY_VERSION, planId: scene.planId, coordinates: scene.coordinates, faces: materialDomains(scene), openingParts,
+  const faces=materialDomains(scene), guards=createStairGuards(scene.source)
+  for(const part of guards.parts) {
+    const vertices=part.verticesMm.map(([x,y,z])=>[x/1000,z/1000,-y/1000] as V3)
+    part.faces.forEach((indices,index)=>{
+      const v=indices.map(i=>vertices[i]), a=v[1].map((x,i)=>x-v[0][i]), b=v[2].map((x,i)=>x-v[0][i])
+      const cross=[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]], length=Math.hypot(...cross)
+      faces.push({id:`${part.id}:face:${index}`,canonicalSurfaceId:part.id,solidId:part.id,floorId:part.floorId,sourceIds:[part.stairId],roomId:null,
+        role:'stair',binding:binding(part.floorId,null,'railing'),vertices:v,normal:cross.map(x=>x/length) as V3})
+    })
+    colliders.push({id:part.id,floorId:part.floorId,sourceIds:[part.stairId],kind:'stair-guard',min:[0,1,2].map(i=>Math.min(...vertices.map(p=>p[i]))) as V3,max:[0,1,2].map(i=>Math.max(...vertices.map(p=>p[i]))) as V3})
+  }
+  return { version: WALKTHROUGH_DELIVERY_VERSION, planId: scene.planId, coordinates: scene.coordinates, faces, openingParts,
     collision: { version: 1, units: 'm', coordinates: scene.coordinates, colliders, doors }, metadata: { planId: scene.planId, status: scene.status,
       floors: scene.floors, rooms: scene.rooms, openings: scene.openings, stairs: scene.stairs, roofs: scene.roofs, connections: scene.connections, entries,
-      issues: scene.issues, ...(scene.source.emergency?.exitAccess ? { exitAccess: scene.source.emergency.exitAccess } : {}), ...(scene.source.emergency?.entryAccess ? { entryAccess: scene.source.emergency.entryAccess } : {}), navigation: { ready: false, reason: 'Collision primitives and source stair treads are provided. The browser must audit the current character spawn and apply collision and edge controls. Missing guard details and headroom still require source review.', agentRadiusM: radius, agentHeightM: height } } }
+      issues: [...scene.issues,...guards.issues.map(i=>({code:'GUARD_REVIEW',severity:'warning' as const,sourceId:i.stairId,message:i.message}))], ...(scene.source.emergency?.exitAccess ? { exitAccess: scene.source.emergency.exitAccess } : {}), ...(scene.source.emergency?.entryAccess ? { entryAccess: scene.source.emergency.entryAccess } : {}), navigation: { ready: false, reason: 'Collision primitives and source stair treads are provided. The browser must audit the current character spawn and apply collision and edge controls. Missing guard details and headroom still require source review.', agentRadiusM: radius, agentHeightM: height } } }
 }
 
 export function prepareWalkthroughAppearance(design: Design, source: WalkthroughSource, geometry: WalkthroughGeometryPayload): WalkthroughAppearancePayload {

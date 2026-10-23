@@ -13,7 +13,7 @@ import { runBlender, PROJECT_ROOT } from './blender-process.mjs'
 
 const canonical = v => Array.isArray(v) ? v.map(canonical) : v && typeof v === 'object' ? Object.fromEntries(Object.keys(v).sort().map(k => [k, canonical(v[k])])) : v
 export const digest = v => createHash('sha256').update(typeof v === 'string' || Buffer.isBuffer(v) ? v : JSON.stringify(canonical(v))).digest('hex')
-const VERSION_FILES = ['blender/walkthrough_export.py', 'blender/exporters/glb.py', 'src/lib/walkthrough/scene.ts', 'src/lib/walkthrough/surfaces.ts', 'src/lib/walkthrough/stairs.ts', 'src/lib/walkthrough/delivery.ts', 'src/lib/walkthrough/fittedFinishes.ts', 'src/lib/walkthrough/roomAssets.ts', 'src/lib/interior/finishes.ts', 'src/lib/interior/preview.ts', 'src/lib/three/dressRoom.ts', 'src/lib/three/buildDollhouse.ts', 'server/walkthrough-assets.mjs']
+const VERSION_FILES = ['blender/walkthrough_export.py', 'blender/exporters/glb.py', 'src/lib/walkthrough/scene.ts', 'src/lib/walkthrough/surfaces.ts', 'src/lib/walkthrough/stairs.ts', 'src/lib/walkthrough/stairGuards.ts', 'src/lib/walkthrough/delivery.ts', 'src/lib/walkthrough/fittedFinishes.ts', 'src/lib/walkthrough/roomAssets.ts', 'src/lib/interior/finishes.ts', 'src/lib/interior/preview.ts', 'src/lib/three/dressRoom.ts', 'src/lib/three/buildDollhouse.ts', 'server/walkthrough-assets.mjs']
 const rendererIdentity = () => digest(VERSION_FILES.map(f => readFileSync(resolve(PROJECT_ROOT, f), 'utf8')))
 const fail = (message, status = 400) => Object.assign(new Error(message), { status })
 

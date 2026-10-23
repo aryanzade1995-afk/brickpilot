@@ -46,10 +46,13 @@ export async function applyWalkthroughMaterialBindings(root: THREE.Object3D, bin
   try {
     for (const [key, look] of Object.entries(bindings)) {
       if (!originalTiles.has(key) || previousLooks.get(key) === JSON.stringify(look)) continue
-      const material = new THREE.MeshStandardMaterial({ color: look.color, roughness: look.rough, metalness: look.metal ?? 0,
+      const polishedFloor = key.startsWith('[') && JSON.parse(key)[2] === 'floor' && look.rough < .3
+      const Material = polishedFloor ? THREE.MeshPhysicalMaterial : THREE.MeshStandardMaterial
+      const material = new Material({ color: look.color, roughness: look.rough, metalness: look.metal ?? 0,
         transparent: (look.opacity ?? 1) < 1, opacity: look.opacity ?? 1, side: (look.opacity ?? 1) < 1 ? THREE.DoubleSide : THREE.FrontSide,
         emissive: look.emissive ?? '#000000', emissiveIntensity: look.glow ?? 0 })
       prepared.set(key, material)
+      if(material instanceof THREE.MeshPhysicalMaterial) { material.clearcoat=.15;material.clearcoatRoughness=.2 }
       // Reuse the source metre UVs. Finish joints are sub-millimetre shading,
       // not extra overlapping planes or bevelled slabs that trip the walker.
       if (key.startsWith('[') && JSON.parse(key)[2] === 'floor') {

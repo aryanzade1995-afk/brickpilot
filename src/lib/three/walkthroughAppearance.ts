@@ -3,7 +3,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import type { WalkthroughAppearancePayload } from '../walkthrough/delivery.ts'
 import { applyWalkthroughMaterialBindings, disposeWalkthroughAsset } from './loadWalkthroughAsset.ts'
-import { textileDetailMap, timberDetailMap } from './walkthroughSurfaceDetail.ts'
+import { textileDetailMap, timberDetailMap, timberToneMap } from './walkthroughSurfaceDetail.ts'
 
 type AppearanceGeometry = Pick<WalkthroughAppearancePayload, 'bindings' | 'furniture' | 'skins'>
 export function walkthroughRoomAppearanceSignature(app: AppearanceGeometry, roomId: string | null) {
@@ -71,14 +71,16 @@ export async function buildWalkthroughAppearanceGroup(app: WalkthroughAppearance
       mesh.castShadow = mesh.receiveShadow = true; root.add(mesh)
     }
     root.userData.textureWarnings = await applyWalkthroughMaterialBindings(root, app.bindings, isCurrent)
-    let textile: THREE.DataTexture | null = null, timber: THREE.DataTexture | null = null
+    let textile: THREE.DataTexture | null = null, timber: THREE.DataTexture | null = null, timberTone: THREE.DataTexture | null = null
     root.traverse(o => {
       if (!(o instanceof THREE.Mesh) || !(o.material instanceof THREE.MeshStandardMaterial)) return
       if(o.material.roughness >= .7 && o.userData.partIds?.some((id:string)=>/sofa|armchair|bed.*(?:pillow|duvet|mattress|throw|headpad)|rug/.test(id))) {
-        textile ??= textileDetailMap();o.material.normalMap=textile;o.material.normalScale.set(.25,.25);o.material.needsUpdate=true
+        const previous=o.material, fabric=new THREE.MeshPhysicalMaterial({color:previous.color,roughness:previous.roughness,metalness:previous.metalness,map:previous.map,side:previous.side,
+          sheen:.35,sheenRoughness:.85,sheenColor:previous.color.clone().multiplyScalar(.65)})
+        textile ??= textileDetailMap();fabric.normalMap=textile;fabric.normalScale.set(.35,.35);o.material=fabric;previous.dispose()
       } else if(!o.material.map && o.material.roughness>=.25 && o.material.roughness<.65 && o.material.metalness<.1 &&
         o.userData.partIds?.some((id:string)=>/coffee.*top|bed.*(?:frame|headboard)|wardrobe|nightstand.*body|desk.*top|dining.*top|sofa.*plinth|tv.*body/.test(id))) {
-        timber ??= timberDetailMap();o.material.normalMap=timber;o.material.normalScale.set(.2,.2);o.material.needsUpdate=true
+        timber ??= timberDetailMap();timberTone ??= timberToneMap();o.material.map=timberTone;o.material.normalMap=timber;o.material.normalScale.set(.2,.2);o.material.needsUpdate=true
       }
     })
     return root

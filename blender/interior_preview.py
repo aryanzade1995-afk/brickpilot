@@ -190,8 +190,8 @@ STYLES = {
                 'cream': ('#F7F5F1', .9, 0), 'stone': ('#EDEBE7', .2, 0), 'metal': ('#D9D9D9', .3, 1), 'rug': ('#E6E1D8', .95, 0)},
     'luxury': {'wood': ('#3B2A20', .3, 0), 'panel': ('#2F2B28', .3, 0), 'soft': ('#5B4A3E', .7, 0), 'accent': ('#1F3A3D', .6, 0),
                'cream': ('#E9E1D3', .8, 0), 'stone': ('#EDE7DF', .1, 0), 'metal': ('#C9A15A', .25, 1), 'rug': ('#7D6B5B', .95, 0)},
-    'indian-contemporary': {'wood': ('#6E4426', .4, 0), 'panel': ('#E4D7C3', .45, 0), 'soft': ('#B3563A', .8, 0), 'accent': ('#C68A2E', .75, 0),
-                            'cream': ('#F0E6D6', .9, 0), 'stone': ('#D8CDBB', .3, 0), 'metal': ('#B08D57', .3, 1), 'rug': ('#9E3B2E', .95, 0)},
+    'indian-contemporary': {'wood': ('#6E4426', .4, 0), 'panel': ('#E4D7C3', .45, 0), 'soft': ('#967B68', .8, 0), 'accent': ('#6F7C68', .75, 0),
+                             'cream': ('#F0E6D6', .9, 0), 'stone': ('#D8CDBB', .3, 0), 'metal': ('#B08D57', .3, 1), 'rug': ('#B1A18B', .95, 0)},
     'scandinavian': {'wood': ('#D2B48C', .55, 0), 'panel': ('#F4F3F0', .5, 0), 'soft': ('#C9C6BF', .9, 0), 'accent': ('#93A69A', .85, 0),
                      'cream': ('#FAF8F4', .9, 0), 'stone': ('#E8E6E1', .3, 0), 'metal': ('#1E1E1E', .4, 1), 'rug': ('#E3DDD2', .95, 0)},
 }

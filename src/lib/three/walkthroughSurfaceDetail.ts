@@ -1,4 +1,4 @@
-import { DataTexture, Float32BufferAttribute, LinearMipmapLinearFilter, Mesh, MeshStandardMaterial, RepeatWrapping, RGBAFormat, Vector3, type Group } from 'three'
+import { DataTexture, Float32BufferAttribute, LinearMipmapLinearFilter, Mesh, MeshStandardMaterial, RepeatWrapping, RGBAFormat, SRGBColorSpace, Vector3, type Group } from 'three'
 import type { WalkthroughAppearancePayload, WalkthroughGeometryPayload } from '../walkthrough/delivery.ts'
 
 const contactMaps = new WeakMap<Group, { signature: string; maps: Map<string, DataTexture> }>()
@@ -7,7 +7,7 @@ const contactMaps = new WeakMap<Group, { signature: string; maps: Map<string, Da
  * floor triangles. No decals, extra floor planes, lights or per-frame pass.
  * This is visual shading, never a sunlight/engineering analysis. */
 export function applyWalkthroughContactDetail(root: Group, geometry: WalkthroughGeometryPayload, appearance: WalkthroughAppearancePayload) {
-  const rooms = geometry.metadata.rooms, signature = JSON.stringify([rooms.map(r => [r.id,r.rectMm]), appearance.furniture.map(p => [p.roomId,p.position,p.size,p.rotation])])
+  const rooms = geometry.metadata.rooms, signature = JSON.stringify([rooms.map(r => [r.id,r.rectMm,r.elevationM]), geometry.metadata.floors, appearance.furniture.map(p => [p.roomId,p.position,p.size,p.rotation])])
   let cache = contactMaps.get(root)
   if (cache?.signature !== signature) {
     cache?.maps.forEach(t => t.dispose()); cache = { signature, maps: new Map() }; contactMaps.set(root, cache)
@@ -27,6 +27,17 @@ export function applyWalkthroughContactDetail(root: Group, geometry: Walkthrough
       }
       const texture=new DataTexture(pixels,size,size,RGBAFormat); texture.channel=1; texture.generateMipmaps=true; texture.minFilter=LinearMipmapLinearFilter; texture.flipY=false; texture.needsUpdate=true
       cache.maps.set(room.id,texture)
+      const ceiling=geometry.metadata.floors?.find(f=>f.sourceId===room.floorId)?.clearCeilingM
+      if(ceiling !== null && ceiling !== undefined && ceiling>room.elevationM) {
+        const wall=new Uint8Array(size*size*4),height=ceiling-room.elevationM,span=Math.max(r.w,r.h)/1000
+        for(let y=0;y<size;y++)for(let x=0;x<size;x++) {
+          const up=y/(size-1)*height,edge=Math.min(x,size-1-x)/(size-1)*span
+          const shade=.18*Math.exp(-up/.13)+.11*Math.exp(-(height-up)/.14)+.12*Math.exp(-edge/.12),value=Math.round(255*(1-Math.min(.32,shade)))
+          wall.set([value,value,value,255],(y*size+x)*4)
+        }
+        const tex=new DataTexture(wall,size,size,RGBAFormat);tex.channel=1;tex.generateMipmaps=true;tex.minFilter=LinearMipmapLinearFilter;tex.needsUpdate=true
+        cache.maps.set(`wall:${room.id}`,tex)
+      }
     }
   }
   const maps=cache!.maps, point=new Vector3()
@@ -39,13 +50,21 @@ export function applyWalkthroughContactDetail(root: Group, geometry: Walkthrough
       const key=o.userData.materialBindings[group.materialIndex ?? 0]
       if(typeof key !== 'string' || !key.startsWith('[')) continue
       const [,roomId,role]=JSON.parse(key)
-      if(role!=='floor') continue
+      if(role!=='floor' && role!=='wall') continue
       const room=rooms.find(r=>r.id===roomId), material=materials[group.materialIndex ?? 0]
       if(!room || !(material instanceof MeshStandardMaterial)) continue
-      material.aoMap=maps.get(roomId)!; material.aoMapIntensity=1; material.needsUpdate=true; mapped=true
+      const map=maps.get(role==='floor'?roomId:`wall:${roomId}`)
+      if(!map)continue
+      const ceiling=geometry.metadata.floors?.find(f=>f.sourceId===room.floorId)?.clearCeilingM
+      material.aoMap=map; material.aoMapIntensity=1; material.needsUpdate=true; mapped=true
       for(let k=group.start;k<group.start+group.count;k++) {
         const i=o.geometry.index?.getX(k) ?? k; point.fromBufferAttribute(p,i).applyMatrix4(o.matrixWorld)
-        uv[i*2]=(point.x*1000-room.rectMm.x)/room.rectMm.w; uv[i*2+1]=(-point.z*1000-room.rectMm.y)/room.rectMm.h
+        if(role==='floor') {uv[i*2]=(point.x*1000-room.rectMm.x)/room.rectMm.w; uv[i*2+1]=(-point.z*1000-room.rectMm.y)/room.rectMm.h}
+        else {
+          const dx=Math.min(Math.abs(point.x*1000-room.rectMm.x),Math.abs(point.x*1000-room.rectMm.x-room.rectMm.w)),dz=Math.min(Math.abs(-point.z*1000-room.rectMm.y),Math.abs(-point.z*1000-room.rectMm.y-room.rectMm.h))
+          uv[i*2]=dx<dz?(-point.z*1000-room.rectMm.y)/room.rectMm.h:(point.x*1000-room.rectMm.x)/room.rectMm.w
+          uv[i*2+1]=(point.y-room.elevationM)/(ceiling!-room.elevationM)
+        }
       }
     }
     if(mapped)o.geometry.setAttribute('uv1',new Float32BufferAttribute(uv,2))
@@ -70,6 +89,19 @@ export function timberDetailMap() {
     pixels.set([Math.round(128+grain*12),128,254,255],(y*size+x)*4)
   }
   const texture=new DataTexture(pixels,size,size,RGBAFormat);texture.userData.proceduralKey='formstead-timber-v1'
+  texture.wrapS=texture.wrapT=RepeatWrapping;texture.repeat.set(2,1);texture.generateMipmaps=true;texture.minFilter=LinearMipmapLinearFilter;texture.anisotropy=8;texture.needsUpdate=true
+  return texture
+}
+
+/** Neutral grain variation multiplies the chosen timber tone; no replacement
+ * photograph, invented manufacturer texture or colour selection is introduced. */
+export function timberToneMap() {
+  const size=128,pixels=new Uint8Array(size*size*4)
+  for(let y=0;y<size;y++)for(let x=0;x<size;x++) {
+    const wave=Math.sin(x*.58+Math.sin(y*.045)*1.8)*.6+Math.sin(x*1.7+y*.018)*.3, value=Math.round(245+wave*10)
+    pixels.set([value,value,value,255],(y*size+x)*4)
+  }
+  const texture=new DataTexture(pixels,size,size,RGBAFormat);texture.userData.proceduralKey='formstead-timber-tone-v1';texture.colorSpace=SRGBColorSpace
   texture.wrapS=texture.wrapT=RepeatWrapping;texture.repeat.set(2,1);texture.generateMipmaps=true;texture.minFilter=LinearMipmapLinearFilter;texture.anisotropy=8;texture.needsUpdate=true
   return texture
 }

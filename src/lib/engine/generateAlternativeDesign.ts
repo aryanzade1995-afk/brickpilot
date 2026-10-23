@@ -14,6 +14,7 @@ import { ArchitecturalFeatureGenerator } from './facade/ArchitecturalFeatureGene
 import { createVillaShapeFingerprint } from './fingerprint/VillaShapeFingerprint.ts'
 import { sharedEdge } from '../geometry.ts'
 import { DEFAULT_ENVELOPE_LIMITS } from './massing/envelopeLimits.ts'
+import { createStairGuards } from '../walkthrough/stairGuards.ts'
 
 /** Central concept limits. These are geometric checks, not engineering certification. */
 export const ENVELOPE_LIMITS: ArchitectureLimits = { ...DEFAULT_ENVELOPE_LIMITS }
@@ -91,6 +92,6 @@ export function generateAlternativeDesign(plan: Design, seed: number) {
   villaDesignDNA.blockRotations = actualBlocks.map((m) => m.rotation)
   const facadeGrammar = ArchitecturalFeatureGenerator.generate(buildingModel, villaDesignDNA, massingModel, { usableTerrace: true })
   if (facadeGrammar.status !== 'valid') throw new Error(`Facade rejected: ${JSON.stringify(facadeGrammar.issues)}`)
-  return { schemaVersion: 1 as const, buildingModel, villaDesignDNA, massingModel, facadeGrammar,
+  return { schemaVersion: 1 as const, buildingModel, villaDesignDNA, massingModel, facadeGrammar, stairGuards: createStairGuards(buildingModel),
     shapeFingerprint: createVillaShapeFingerprint(buildingModel, villaDesignDNA, massingModel, facadeGrammar) }
 }
