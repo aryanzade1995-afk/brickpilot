@@ -12,7 +12,19 @@ export function colourValue(value?:string) {
 }
 export function paintColour(brief:Brief,room?:string) {
  const overrides=brief.specs.overrides,semantic=room?.slice(room.indexOf(':')+1)
- return colourValue((room&& (overrides[`${PAINT_COLOUR}@${room}`]??overrides[`${PAINT_COLOUR}@${semantic}`]))||overrides[PAINT_COLOUR])
+ const selected=(room&& (overrides[`${PAINT_COLOUR}@${room}`]??overrides[`${PAINT_COLOUR}@${semantic}`]))||overrides[PAINT_COLOUR]
+ if(selected)return colourValue(selected)
+ // Coordinated concept colours share the existing paint resolver everywhere:
+ // specification cards, room previews, walkthrough and schedules. No override
+ // is written and no paint system, quantity, product or price is changed.
+ const palette=/bed|master|guest/i.test(semantic??'')?['#D9DFD7','Sage mist']
+  : /dining/i.test(semantic??'')?['#E4D5C8','Soft clay']
+  : /kitchen|utility/i.test(semantic??'')?['#E6E8DF','Porcelain olive']
+  : /bath|toilet|wc/i.test(semantic??'')?['#E8E5DE','Warm chalk']
+  : /study|office/i.test(semantic??'')?['#D8DFE2','Blue grey']
+  : /living|family|lounge/i.test(semantic??'')?['#E5DDD0','Linen greige']
+  : ['#E8E3D8','Parchment']
+ return {...colourValue(palette[0]),label:`${palette[1]} (default)`}
 }
 export function applyPaintColour(brief:Brief,value:string,applicable:string[],selected:string[]) {
  if(!/^#[\da-f]{6}$/i.test(value)&&!paintShades.some(s=>`ap:${s.id}`===value))return brief

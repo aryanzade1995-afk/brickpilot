@@ -39,7 +39,7 @@ export function WalkthroughFoundation({ design, report, acceptedBuilding }: {
   const job = useBlender(s => s.job)
   const [accessMessage, setAccessMessage] = useState('')
   const busy = !!job && !['complete', 'failed'].includes(job.status)
-  const exportOnly = asset?.geometryRevision === 'walk-access-v5'
+  const exportOnly = ['walk-access-v5', 'walk-access-v6'].includes(asset?.geometryRevision ?? '')
   const updateAccess = async () => {
     const seed = asset?.seed ?? useStudio.getState().pinned?.seed
     if (seed === undefined) { setAccessMessage('Choose and pin the villa direction first.'); return }

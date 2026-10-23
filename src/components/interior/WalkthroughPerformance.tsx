@@ -3,19 +3,27 @@ import { useEffect, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import type { PointLight } from 'three'
 import type { WalkthroughAppearancePayload } from '@/lib/walkthrough/delivery.ts'
+import { WALKTHROUGH_QUALITY, type WalkthroughQuality } from '@/lib/walkthrough/quality.ts'
 
-export type WalkthroughMetrics = { fps: number; calls: number; triangles: number; dpr: number; renderer: string; pageVisible: boolean }
+export type WalkthroughMetrics = { fps: number; calls: number; triangles: number; dpr: number; renderer: string; pageVisible: boolean; focused: boolean; renderMs: number }
 
 /** Measure real presented frames while walking; lower only pixel resolution
  * under load. Geometry, materials and collision accuracy never change. The
  * 40 FPS target is a budget, not a hardware guarantee. Orbit stays demand-only. */
-export function WalkthroughPerformance({ active, revision, onMetrics }: { active: boolean; revision: number; onMetrics: (value: WalkthroughMetrics) => void }) {
+export function WalkthroughPerformance({ active, revision, quality = 'adaptive', onMetrics }: { active: boolean; revision: number; quality?: WalkthroughQuality; onMetrics: (value: WalkthroughMetrics) => void }) {
   const { gl, setDpr, invalidate } = useThree()
+  const budget = WALKTHROUGH_QUALITY[quality]
   const sample = useRef({ elapsed: 0, frames: 0, warm: 0, good: 0, ratio: 1.25 })
   const renderer = useRef('Unavailable')
+  const renderMs = useRef(0)
+  useEffect(() => {
+    const render=gl.render
+    gl.render=(...args) => {const start=performance.now();try {render.apply(gl,args)} finally {renderMs.current=performance.now()-start}}
+    return () => {gl.render=render}
+  },[gl])
   useEffect(() => { const context = gl.getContext(), extension = context.getExtension('WEBGL_debug_renderer_info'); if (extension) renderer.current = String(context.getParameter(extension.UNMASKED_RENDERER_WEBGL)) }, [gl])
   useEffect(() => { gl.shadowMap.needsUpdate = true; invalidate(); sample.current.warm = 0 }, [revision, gl, invalidate])
-  useEffect(() => { sample.current = { elapsed: 0, frames: 0, warm: 0, good: 0, ratio: 1.25 }; setDpr(1.25); invalidate() }, [active, setDpr, invalidate])
+  useEffect(() => { sample.current = { elapsed: 0, frames: 0, warm: 0, good: 0, ratio: budget.start }; setDpr(budget.start); invalidate() }, [active, budget, setDpr, invalidate])
   useFrame((_, dt) => {
     if (!active || dt <= 0) return
     const s = sample.current; s.warm += dt
@@ -24,11 +32,11 @@ export function WalkthroughPerformance({ active, revision, onMetrics }: { active
     s.elapsed += dt; s.frames++
     if (s.elapsed < 1) return
     const fps = s.frames / s.elapsed, previous = s.ratio
-    if (fps < 44) { s.ratio = Math.max(.75, s.ratio - .15); s.good = 0 }
-    else if (fps > 57) { if (++s.good >= 4) { s.ratio = Math.min(1.5, s.ratio + .1); s.good = 0 } }
+    if (fps < 44) { s.ratio = Math.max(budget.min, s.ratio - .15); s.good = 0 }
+    else if (fps > 57) { if (++s.good >= 4) { s.ratio = Math.min(budget.max, s.ratio + .1); s.good = 0 } }
     else s.good = 0
     if (s.ratio !== previous) setDpr(s.ratio)
-    onMetrics({ fps: Math.round(fps), calls: gl.info.render.calls, triangles: gl.info.render.triangles, dpr: +s.ratio.toFixed(2), renderer: renderer.current, pageVisible: !document.hidden })
+    onMetrics({ fps: Math.round(fps), calls: gl.info.render.calls, triangles: gl.info.render.triangles, dpr: +s.ratio.toFixed(2), renderer: renderer.current, pageVisible: !document.hidden, focused: document.hasFocus(), renderMs: +renderMs.current.toFixed(2) })
     s.elapsed = s.frames = 0
   })
   return null

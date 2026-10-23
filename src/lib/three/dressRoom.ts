@@ -120,6 +120,11 @@ function buildPiece(p: Piece, m: Palette, put: (b: DressBox) => void) {
     part('backframe', 0, -d / 2 + 0.06, 0.3, h - 0.06, w, 0.12, m.fabric, 0.02)
     for (const side of [-1, 1]) part(`arm${side}`, side * (w / 2 - arm / 2), 0, 0.1, armchair ? 0.6 : 0.62, arm, d, m.fabric, 0.04)
     if (!armchair) for (const side of [-1, 1]) part(`cushion${side}`, side * (inner / 2 - 0.26), -d / 2 + 0.33, 0.46, 0.86, 0.42, 0.13, m.accent, 0.06)
+    // Recessed timber base and narrow upholstery piping stay within the placed
+    // furniture footprint, preserving the existing clear walking routes.
+    part('recessed-plinth',0,0,.1,.14,w-.12,d-.1,m.wood,.008)
+    const seam=look(scale(m.fabric.color,.86),m.fabric.rough)
+    for(let i=0;i<n;i++)part(`seat-piping${i}`,-inner/2+cw*(i+.5),d/2-.045,.425,.431,cw-.025,.008,seam,.003)
   }
   const chair = (dining: boolean) => {
     legs(0.42, 0.42, 0, 0.44, 0.03, dining ? m.wood : m.metal, 0.03)
@@ -184,7 +189,9 @@ function buildPiece(p: Piece, m: Palette, put: (b: DressBox) => void) {
       for (const side of [-1, 1]) part(`drape${side}`, side * (bw / 2 + 0.015), dz, 0.3, 0.57, 0.03, duvet, m.cream, 0.01)
       part('throw', 0, d / 2 - 0.4, 0.57, 0.6, bw + 0.03, 0.42, m.accent, 0.012)
       const n = bw < 1.4 ? 1 : 2
-      for (let i = 0; i < n; i++) part(`pillow${i}`, n === 1 ? 0 : (i - 0.5) * (bw / 2), -d / 2 + 0.33, 0.52, 0.68, Math.min(0.62, bw / n - 0.12), 0.4, m.linen, 0.07)
+      for (let i = 0; i < n; i++) ball(`pillow${i}`,n === 1 ? 0 : (i-.5)*(bw/2),-d/2+.33,.60,[Math.min(.62,bw/n-.12)/2,.08,.20],m.linen)
+      part('duvet-fold',0,dz-duvet/2+.14,.565,.595,bw-.04,.26,m.linen,.02)
+      for(let i=0;i<4;i++)part(`duvet-stitch${i}`,(i-1.5)*(bw-.12)/4,dz,.568,.574,.006,duvet-.08,look(scale(m.cream.color,.94),.9),.002)
       const top = low ? 0.85 : h
       part('headboard', 0, -d / 2 + 0.04, 0.08, top, w, 0.08, m.wood)
       return part('headpad', 0, -d / 2 + 0.1, 0.5, top - 0.06, w - 0.12, 0.06, m.fabric, 0.03)
@@ -195,8 +202,9 @@ function buildPiece(p: Piece, m: Palette, put: (b: DressBox) => void) {
       return part('knob', 0, d / 2 + 0.01, h - 0.11, h - 0.09, 0.08, 0.015, m.metal)
     case 'wardrobe': {
       part('plinth', 0, -0.03, 0, 0.08, w - 0.02, d - 0.06, m.groove)
-      part('body', 0, 0, 0.08, h, w, d, m.panel)
+      part('body', 0, -.012, 0.08, h, w, d-.024, m.panel)
       const n = Math.max(2, Math.round(w / 0.55))
+      for(let i=0;i<n;i++)part(`door-panel${i}`,-w/2+w*(i+.5)/n,d/2-.012,.095,h-.012,w/n-.006,.024,m.panel,.003)
       for (let i = 0; i < n; i++) part(`handle${i}`, -w / 2 + (w * (i + 0.5)) / n + (w / n / 2 - 0.06) * (i % 2 === 0 ? 1 : -1), d / 2 + 0.015, 0.95, 1.35, 0.016, 0.02, m.metal)
       return
     }
@@ -409,6 +417,15 @@ export function dressRoom(design: Design, building: Building, level: number, roo
   for (const f of furniture) {
     if (skip.has(f.id)) continue
     const fid = f.id
+    if (f.mat === 'plant') {
+      // Older fitted-room records use a single green box. Keep its exact
+      // placed envelope but describe a pot, stem and rounded leaf clusters.
+      const [x,y,z]=f.pos,[w,h,d]=f.size,bottom=y-h/2
+      add({id:`${fid}-pot`,look:m.ceramic,pos:[x,bottom+h*.15,z],size:[w*.72,h*.3,d*.72],shape:'cyl'})
+      add({id:`${fid}-stem`,look:m.wood,pos:[x,bottom+h*.55,z],size:[Math.min(w*.08,.02),h*.6,Math.min(d*.08,.02)],shape:'cyl'})
+      for(let i=0;i<5;i++) {const a=i*2.4;add({id:`${fid}-leaf${i}`,look:m.leaf,pos:[x+Math.cos(a)*w*.22,bottom+h*(.52+(i%3)*.1),z+Math.sin(a)*d*.22],size:[w*.5,h*.5,d*.5],shape:'ball'})}
+      continue
+    }
     let lk: Look = m[ROLE[f.mat]] ?? m.panel
     if (counter && fid.includes('-top') && f.mat === 'stone') lk = counter
     else if (cabLook && (fid.includes('-counter') || fid.includes('-upper') || fid.includes('wall-cabinet')) && f.mat === 'panel') lk = cabLook

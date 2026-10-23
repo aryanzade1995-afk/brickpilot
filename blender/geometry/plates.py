@@ -29,8 +29,46 @@ def create_plate(scene, name, collection, rect, bottom, thickness, source_id, vo
     objects = []
     for index, piece in enumerate(subtract_rectangles(rect, voids), 1):
         objects.append(scene.rect(name if index == 1 else f"{name}_Part_{index:02d}",
-                                  collection, piece, bottom, thickness, source_id=source_id))
+                                  collection, piece, bottom, thickness, source_id=source_id, bevel=0))
     return objects
+
+
+def union_plate_mesh(rects, bottom, thickness, voids=()):
+    """One watertight, level plate in mm, with real union/void boundaries.
+
+    Shared grid vertices join adjacent rectangles. Only exposed cells receive
+    side faces: internal partitions never become grooves, bevels or raised ribs.
+    Disconnected wings and courtyard/stair/shaft holes remain disconnected/empty.
+    """
+    if thickness <= 0:
+        raise ValueError("Plate thickness must be positive")
+    pieces = []
+    for rect in rects:
+        pieces.extend(subtract_rectangles(rect, [*voids, *pieces]))
+    if not pieces:
+        return [], []
+    xs = sorted({round(v, 6) for r in pieces for v in (r["x"], r["x"] + r["w"])})
+    ys = sorted({round(v, 6) for r in pieces for v in (r["y"], r["y"] + r["h"])})
+    cells = {(i, j) for i in range(len(xs) - 1) for j in range(len(ys) - 1)
+             if any(r["x"] < (xs[i]+xs[i+1])/2 < r["x"]+r["w"] and
+                    r["y"] < (ys[j]+ys[j+1])/2 < r["y"]+r["h"] for r in pieces)}
+    vertices, faces, indices = [], [], {}
+
+    def vertex(i, j, top):
+        key = (i, j, top)
+        if key not in indices:
+            indices[key] = len(vertices)
+            vertices.append((xs[i], ys[j], bottom + (thickness if top else 0)))
+        return indices[key]
+
+    for i, j in sorted(cells):
+        lower = [vertex(i, j, False), vertex(i+1, j, False), vertex(i+1, j+1, False), vertex(i, j+1, False)]
+        upper = [vertex(i, j, True), vertex(i+1, j, True), vertex(i+1, j+1, True), vertex(i, j+1, True)]
+        faces.extend([tuple(reversed(lower)), tuple(upper)])
+        for a, b, neighbour in ((0, 1, (i, j-1)), (1, 2, (i+1, j)), (2, 3, (i, j+1)), (3, 0, (i-1, j))):
+            if neighbour not in cells:
+                faces.append((lower[a], lower[b], upper[b], upper[a]))
+    return vertices, faces
 
 
 def roof_plate_regions(floor, exterior_walls=()):

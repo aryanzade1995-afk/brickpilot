@@ -42,9 +42,8 @@ def create_roof_slab(scene, floor, voids=(), exterior_walls=()):
     voids = [*voids, *([floor["courtyard"]] if floor.get("courtyard") else [])]
     top = floor["elevationMm"] + floor["heightMm"]
     thickness = slab_thickness(floor)
-    for index, rect in enumerate(roof_plate_regions(floor, exterior_walls), 1):
-        create_plate(scene, f"{floor_prefix(floor)}_Roof_Slab_{index:03d}", "ROOF",
-                     rect, top - thickness, thickness, floor["id"], voids)
+    scene.plate_union(f"{floor_prefix(floor)}_Roof_Slab_001", "ROOF",
+                      roof_plate_regions(floor, exterior_walls), top - thickness, thickness, floor["id"], voids)
 
 
 def _wall_piece(scene, wall, floor, axis, fixed, start, end, bottom, top, serial):

@@ -1,4 +1,11 @@
 export const walkthroughMessages: Record<string, [string, string]> = {
+  'Graphics': ['ग्राफ़िक्स', 'ग्राफिक्स'],
+  'Balanced · adaptive': ['संतुलित · अनुकूलित', 'संतुलित · अनुकूल'],
+  'Detailed · adaptive': ['विस्तृत · अनुकूलित', 'तपशीलवार · अनुकूल'],
+  'Performance · adaptive': ['तेज़ · अनुकूलित', 'वेगवान · अनुकूल'],
+  '40 FPS target · quality adapts to your GPU': ['40 FPS लक्ष्य · गुणवत्ता GPU के अनुसार बदलती है', '40 FPS लक्ष्य · GPU नुसार गुणवत्ता बदलते'],
+  'Graphics card & quality': ['ग्राफ़िक्स कार्ड और गुणवत्ता', 'ग्राफिक्स कार्ड आणि गुणवत्ता'],
+  'High-performance graphics requested. Windows and your browser choose the GPU. For RTX 3050, set this browser to High performance in Windows graphics settings and reopen it.': ['उच्च प्रदर्शन ग्राफ़िक्स का अनुरोध है। Windows और ब्राउज़र GPU चुनते हैं। RTX 3050 के लिए Windows ग्राफ़िक्स सेटिंग में इस ब्राउज़र को High performance पर रखें और फिर खोलें।', 'उच्च कार्यक्षमतेच्या ग्राफिक्सची विनंती आहे. Windows आणि ब्राउझर GPU निवडतात. RTX 3050 साठी Windows ग्राफिक्स सेटिंगमध्ये हा ब्राउझर High performance वर ठेवा आणि पुन्हा उघडा.'],
   'Adaptive quality': ['अनुकूलित गुणवत्ता', 'अनुकूल गुणवत्ता'],
   'Current Finishes & Cost selections and room furnishings applied.': ['चुनी गई फिनिश और कमरों का फर्नीचर लागू है।', 'निवडलेले फिनिश आणि खोल्यांचे फर्निचर लागू केले.'],
   'Explore the accepted Blender villa with your selected finishes, fitted products and furnished rooms.': ['चुनी गई फिनिश, फिटिंग और फर्नीचर के साथ स्वीकृत Blender विला में चलकर देखें।', 'निवडलेले फिनिश, फिटिंग आणि फर्निचरसह स्वीकारलेला Blender व्हिला पाहा.'],

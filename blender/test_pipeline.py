@@ -10,7 +10,7 @@ sys.modules.setdefault("bpy", types.ModuleType("bpy"))
 sys.modules.setdefault("bmesh", types.ModuleType("bmesh"))
 from geometry.structure import create_wall, create_slab, create_staircase  # noqa: E402
 from geometry.plates import subtract_rectangles  # noqa: E402
-from geometry.plates import roof_plate_regions
+from geometry.plates import roof_plate_regions, union_plate_mesh
 from geometry.openings import create_door_opening
 from unittest.mock import patch
 from geometry.stairs import stair_layout, stair_opening  # noqa: E402
@@ -95,6 +95,36 @@ class PipelineTest(unittest.TestCase):
         for i, p in enumerate(pieces):
             for q in pieces[i+1:]:
                 self.assertFalse(min(p["x"]+p["w"],q["x"]+q["w"])-max(p["x"],q["x"]) > .01 and min(p["y"]+p["h"],q["y"]+q["h"])-max(p["y"],q["y"]) > .01)
+
+    def test_flat_union_plate_has_welded_joins_real_holes_and_no_internal_ribs(self):
+        rects = [{"x": 0, "y": 0, "w": 4000, "h": 3000},
+                 {"x": 3000, "y": 0, "w": 4000, "h": 3000},
+                 {"x": 9000, "y": 0, "w": 1000, "h": 1000}]
+        hole = {"x": 1000, "y": 1000, "w": 1000, "h": 1000}
+        vertices, faces = union_plate_mesh(rects, 6075, 125, [hole])
+        self.assertEqual(set(p[2] for p in vertices), {6075, 6200})
+        top = [f for f in faces if all(vertices[i][2] == 6200 for i in f)]
+        area = 0
+        for face in top:
+            points = [vertices[i] for i in face]
+            area += abs(sum(p[0]*points[(i+1)%4][1]-points[(i+1)%4][0]*p[1] for i,p in enumerate(points)))/2
+            cx, cy = sum(p[0] for p in points)/4, sum(p[1] for p in points)/4
+            self.assertFalse(1000 < cx < 2000 and 1000 < cy < 2000)
+            self.assertFalse(7000 < cx < 9000)
+        self.assertEqual(area, 21000000)  # actual union minus hole, plus detached wing
+        edges = {}
+        for face in faces:
+            for i, a in enumerate(face):
+                edge = tuple(sorted((a, face[(i+1)%len(face)])))
+                edges[edge] = edges.get(edge, 0) + 1
+        self.assertTrue(all(n == 2 for n in edges.values()), 'Watertight plate; no duplicate internal sides')
+        self.assertEqual(len(vertices), len(set(vertices)))
+
+    def test_floor_fragments_do_not_bevel_their_internal_joins(self):
+        with patch.object(RecordingScene, 'rect', return_value=None) as rect:
+            create_slab(RecordingScene(), {"id": "GF_SLAB_1", "rect": {"x": 0, "y": 0, "w": 4000, "h": 4000}, "topMm": 0, "thicknessMm": 125}, {"id": "GF"}, [{"x": 1000, "y": 1000, "w": 2000, "h": 2000}])
+            self.assertEqual(rect.call_count, 4)
+            self.assertTrue(all(c.kwargs['bevel'] == 0 for c in rect.call_args_list))
 
     def test_open_treatment_or_no_leaf_never_creates_a_glass_barrier(self):
         floor = self.building["floors"][0]

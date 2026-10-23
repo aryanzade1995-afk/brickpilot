@@ -125,14 +125,16 @@ def primitive(part):
     # Appearance-only bevels catch light on fitted products. Never bevel the
     # canonical architectural shell or change source/collision dimensions.
     if part.get('kind') == 'furniture' and shape == 'box':
-        radius = min(part.get('bevelM', .004), min(w, h, d) * .18, .025)
+        import re
+        soft = bool(re.search(r'sofa.*(?:seat|back|arm|cushion)|armchair|bed.*(?:mattress|duvet|headpad|pillow)', part.get('id', '')))
+        radius = min(part.get('bevelM', .004), min(w, h, d) * (.32 if soft else .18), .075 if soft else .025)
         if radius > .0001:
             bm = bmesh.new()
             try:
                 points = [bm.verts.new(v) for v in result]
                 for face in faces:
                     bm.faces.new([points[i] for i in face])
-                bmesh.ops.bevel(bm, geom=list(bm.edges), offset=radius, segments=2, affect='EDGES', clamp_overlap=True)
+                bmesh.ops.bevel(bm, geom=list(bm.edges), offset=radius, segments=3 if soft else 2, affect='EDGES', clamp_overlap=True)
                 bm.normal_update(); bm.verts.ensure_lookup_table(); bm.verts.index_update()
                 result = [tuple(v.co) for v in bm.verts]
                 faces = [tuple(v.index for v in f.verts) for f in bm.faces]

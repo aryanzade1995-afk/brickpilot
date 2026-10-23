@@ -57,7 +57,19 @@ export function applyWalkthroughContactDetail(root: Group, geometry: Walkthrough
 export function textileDetailMap() {
   const size=64, pixels=new Uint8Array(size*size*4)
   for(let y=0;y<size;y++)for(let x=0;x<size;x++)pixels.set([128+(x%2?9:-9),128+(y%2?9:-9),254,255],(y*size+x)*4)
-  const texture=new DataTexture(pixels,size,size,RGBAFormat)
+  const texture=new DataTexture(pixels,size,size,RGBAFormat);texture.userData.proceduralKey='formstead-woven-v1'
   texture.wrapS=texture.wrapT=RepeatWrapping; texture.repeat.set(12.5,12.5); texture.generateMipmaps=true; texture.minFilter=LinearMipmapLinearFilter; texture.anisotropy=4; texture.needsUpdate=true
+  return texture
+}
+
+/** Fine illustrative grain normal, never a substitute colour/product photo. */
+export function timberDetailMap() {
+  const size=128,pixels=new Uint8Array(size*size*4)
+  for(let y=0;y<size;y++)for(let x=0;x<size;x++) {
+    const grain=Math.sin(x*.58+Math.sin(y*.045)*1.8)*.6+Math.sin(x*1.7+y*.018)*.3
+    pixels.set([Math.round(128+grain*12),128,254,255],(y*size+x)*4)
+  }
+  const texture=new DataTexture(pixels,size,size,RGBAFormat);texture.userData.proceduralKey='formstead-timber-v1'
+  texture.wrapS=texture.wrapT=RepeatWrapping;texture.repeat.set(2,1);texture.generateMipmaps=true;texture.minFilter=LinearMipmapLinearFilter;texture.anisotropy=8;texture.needsUpdate=true
   return texture
 }

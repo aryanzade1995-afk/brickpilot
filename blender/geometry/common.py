@@ -78,6 +78,24 @@ class SceneBuilder:
                         rect["y"] + rect["h"] / 2, bottom, rect["w"], rect["h"],
                         height, material, source_id, bevel)
 
+    def plate_union(self, name, collection, rects, bottom, thickness, source_id, voids=()):
+        from .plates import union_plate_mesh
+        vertices, faces = union_plate_mesh(rects, bottom, thickness, voids)
+        if not faces:
+            return None
+        mesh = bpy.data.meshes.new(name)
+        mesh.from_pydata([tuple(v * MM for v in p) for p in vertices], [], faces)
+        mesh.update()
+        mesh.materials.append(self.materials['concrete'])
+        obj = bpy.data.objects.new(name, mesh)
+        self.collections[collection].objects.link(obj)
+        obj['source_plan_id'] = self.plan_id
+        obj['source_id'] = source_id
+        obj['material_role'] = 'concrete'
+        obj['level_plate'] = True
+        # No bevel modifier: a slab's internal tessellation is not a tile joint.
+        return obj
+
 
 def floor_prefix(floor):
     return floor["id"]

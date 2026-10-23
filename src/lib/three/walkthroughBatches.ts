@@ -20,7 +20,7 @@ export function batchWalkthroughScene(root: Group) {
       if (['id', 'uuid', 'name', 'version', 'userData', '_listeners'].includes(name) || typeof value === 'function') continue
       if (value instanceof Texture) {
         const image = value.source?.data
-        values[name] = [image?.currentSrc || image?.src || value.source.uuid, value.mapping, value.channel, value.wrapS, value.wrapT,
+        values[name] = [value.userData.proceduralKey || image?.currentSrc || image?.src || value.source.uuid, value.mapping, value.channel, value.wrapS, value.wrapT,
           value.repeat.toArray(), value.offset.toArray(), value.center.toArray(), value.rotation, value.flipY, value.colorSpace, value.magFilter, value.minFilter]
       } else if (value && typeof value === 'object' && 'toArray' in value && typeof value.toArray === 'function') values[name] = value.toArray()
       else values[name] = value

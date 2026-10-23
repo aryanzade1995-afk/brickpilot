@@ -4,7 +4,7 @@ import math
 
 from .common import floor_prefix
 from .sizing import slab_thickness
-from .plates import create_plate, roof_plate_regions
+from .plates import roof_plate_regions
 from .stairs import stair_opening
 from .massing import mass_rect
 
@@ -141,9 +141,9 @@ def create_terrace(scene, floor, stairs, shafts=(), exterior_walls=()):
     voids = [opening, *[shaft["rect"] for shaft in shafts if shaft["floorId"] == floor["id"]]]
     if floor.get("courtyard"):
         voids.append(floor["courtyard"])
-    for index, rect in enumerate(roof_plate_regions(floor, exterior_walls), 1):
-        create_plate(scene, f"{floor_prefix(floor)}_Terrace_Deck_{index:03d}", "ROOF",
-                     rect, top - slab_thickness(floor), slab_thickness(floor), floor["id"], voids)
+    scene.plate_union(f"{floor_prefix(floor)}_Terrace_Deck_001", "ROOF",
+                      roof_plate_regions(floor, exterior_walls), top - slab_thickness(floor),
+                      slab_thickness(floor), floor["id"], voids)
     exit_side = stair.get("startSide", "N")
     for index, edge in enumerate(boundary_edges([opening]), 1):
         axis, fixed, _lo, _hi, outward = edge

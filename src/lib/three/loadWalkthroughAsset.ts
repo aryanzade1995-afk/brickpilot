@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import type { Look } from './dressRoom.ts'
+import { floorFinishDetail } from './floorFinishDetail.ts'
 
 /** Loads the combined export exactly once. Do not add furniture.glb on top:
  * the combined model already contains the procedural furniture root.
@@ -49,6 +50,14 @@ export async function applyWalkthroughMaterialBindings(root: THREE.Object3D, bin
         transparent: (look.opacity ?? 1) < 1, opacity: look.opacity ?? 1, side: (look.opacity ?? 1) < 1 ? THREE.DoubleSide : THREE.FrontSide,
         emissive: look.emissive ?? '#000000', emissiveIntensity: look.glow ?? 0 })
       prepared.set(key, material)
+      // Reuse the source metre UVs. Finish joints are sub-millimetre shading,
+      // not extra overlapping planes or bevelled slabs that trip the walker.
+      if (key.startsWith('[') && JSON.parse(key)[2] === 'floor') {
+        const detailKey = `floor-detail:${JSON.stringify([look.surface, originalSizes.get(key)])}`
+        let detail = textures.get(detailKey)
+        if (!detail) { detail = floorFinishDetail(look, originalSizes.get(key)) ?? undefined; if (detail) textures.set(detailKey, detail) }
+        if (detail) { material.bumpMap = detail; material.bumpScale = .0006 }
+      }
       const image = look.surface?.image
       if (image) {
         if (!image.startsWith('/') || image.startsWith('//') || image.split('/').includes('..')) { warnings.add(image); missingKeys.add(key); continue }

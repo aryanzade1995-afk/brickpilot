@@ -3,7 +3,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import type { WalkthroughAppearancePayload } from '../walkthrough/delivery.ts'
 import { applyWalkthroughMaterialBindings, disposeWalkthroughAsset } from './loadWalkthroughAsset.ts'
-import { textileDetailMap } from './walkthroughSurfaceDetail.ts'
+import { textileDetailMap, timberDetailMap } from './walkthroughSurfaceDetail.ts'
 
 type AppearanceGeometry = Pick<WalkthroughAppearancePayload, 'bindings' | 'furniture' | 'skins'>
 export function walkthroughRoomAppearanceSignature(app: AppearanceGeometry, roomId: string | null) {
@@ -55,8 +55,9 @@ export async function buildWalkthroughAppearanceGroup(app: WalkthroughAppearance
   }
   try {
     for (const p of app.furniture) {
-      const radius = Math.min(p.bevelM ?? .004, Math.min(...p.size) * .18, .025)
-      const g = p.shape === 'cyl' ? new THREE.CylinderGeometry(.5, .5, 1, 24) : p.shape === 'ball' ? new THREE.SphereGeometry(.5, 24, 12) : new RoundedBoxGeometry(...p.size, 2, radius)
+      const soft = /sofa.*(?:seat|back|arm|cushion)|armchair|bed.*(?:mattress|duvet|headpad|pillow)/.test(p.id)
+      const radius = Math.min(p.bevelM ?? .004, Math.min(...p.size) * (soft ? .32 : .18), soft ? .075 : .025)
+      const g = p.shape === 'cyl' ? new THREE.CylinderGeometry(.5, .5, 1, 24) : p.shape === 'ball' ? new THREE.SphereGeometry(.5, 24, 12) : new RoundedBoxGeometry(...p.size, soft ? 3 : 2, radius)
       if (p.shape !== 'box') g.scale(...p.size)
       g.rotateY(p.rotation); g.translate(...p.position); add(g, p.binding, p.id, p.roomId)
     }
@@ -70,11 +71,15 @@ export async function buildWalkthroughAppearanceGroup(app: WalkthroughAppearance
       mesh.castShadow = mesh.receiveShadow = true; root.add(mesh)
     }
     root.userData.textureWarnings = await applyWalkthroughMaterialBindings(root, app.bindings, isCurrent)
-    let textile: THREE.DataTexture | null = null
+    let textile: THREE.DataTexture | null = null, timber: THREE.DataTexture | null = null
     root.traverse(o => {
-      if (!(o instanceof THREE.Mesh) || !(o.material instanceof THREE.MeshStandardMaterial) || o.material.roughness < .7 ||
-        !o.userData.partIds?.some((id: string) => /sofa|armchair|bed.*(?:pillow|duvet|mattress)|rug/.test(id))) return
-      textile ??= textileDetailMap(); o.material.normalMap=textile; o.material.normalScale.set(.25,.25); o.material.needsUpdate=true
+      if (!(o instanceof THREE.Mesh) || !(o.material instanceof THREE.MeshStandardMaterial)) return
+      if(o.material.roughness >= .7 && o.userData.partIds?.some((id:string)=>/sofa|armchair|bed.*(?:pillow|duvet|mattress|throw|headpad)|rug/.test(id))) {
+        textile ??= textileDetailMap();o.material.normalMap=textile;o.material.normalScale.set(.25,.25);o.material.needsUpdate=true
+      } else if(!o.material.map && o.material.roughness>=.25 && o.material.roughness<.65 && o.material.metalness<.1 &&
+        o.userData.partIds?.some((id:string)=>/coffee.*top|bed.*(?:frame|headboard)|wardrobe|nightstand.*body|desk.*top|dining.*top|sofa.*plinth|tv.*body/.test(id))) {
+        timber ??= timberDetailMap();o.material.normalMap=timber;o.material.normalScale.set(.2,.2);o.material.needsUpdate=true
+      }
     })
     return root
   } catch (error) { for (const g of groups.values()) g.geometries.forEach(x => x.dispose()); disposeWalkthroughAsset(root); throw error }
