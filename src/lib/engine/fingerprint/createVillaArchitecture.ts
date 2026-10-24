@@ -1,3 +1,4 @@
+import { createVillaPlumbing, selectedPipeSizes } from '../../plumbing/villaPlumbing.ts'
 import type { Design } from '../types.ts'
 import { validate } from '../../rules/index.ts'
 import { createBuildingModel } from '../buildingModel.ts'
@@ -26,6 +27,6 @@ export function createVillaArchitecture(design: Design, seed = design.dna.seed, 
   const specializedIssues = validateSpecializedAssemblies({ building: buildingModel, dna: villaDesignDNA,
     massing: massingModel, facade: facadeGrammar, limits: facadeGrammar.specialized.limits }, facadeGrammar.specialized.assemblies)
   if (specializedIssues.length) throw new Error(`Component grammar rejected: ${JSON.stringify(specializedIssues)}`)
-  return { buildingModel, massingModel, villaDesignDNA, facadeGrammar, stairGuards: createStairGuards(buildingModel),
+  return { buildingModel, massingModel, villaDesignDNA, facadeGrammar, stairGuards: createStairGuards(buildingModel), plumbing: createVillaPlumbing(buildingModel, selectedPipeSizes(design.model.brief)),
     shapeFingerprint: createVillaShapeFingerprint(buildingModel, villaDesignDNA, massingModel, facadeGrammar) }
 }

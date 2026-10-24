@@ -1,3 +1,8 @@
+import { plumbingExportScene } from '@/lib/plumbing/pipeGeometry.ts'
+import { createVillaPlumbing, selectedPipeSizes } from '@/lib/plumbing/villaPlumbing.ts'
+import { PlumbingLayer } from './PlumbingLayer.tsx'
+import type { Group } from 'three'
+import { exportThreeSceneToGlb } from '@/lib/export/index.ts'
 import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
 import { useStudio } from '@/state/studio.ts'
 import { finishSignature } from '@/lib/cost/finishAssignments.ts'
@@ -45,8 +50,12 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
   const brief = useStudio(s => s.result?.design === plan ? s.brief : plan.model.brief)
   // Solar is a sibling scene layer, never an input to the prepared building or its render effect.
   const finishedPlan = useMemo(() => ({ ...plan, model: { ...plan.model, brief: { ...plan.model.brief, finish: brief.finish, specs: brief.specs } } }), [plan, brief.finish, brief.specs])
+  const building = useMemo(() => createBuildingModel(finishedPlan), [finishedPlan])
+  const plumbing = useMemo(() => createVillaPlumbing(building, selectedPipeSizes(brief)), [building, brief])
+  const liveExport = useRef<Group>(null)
+  const [waterPipes, setWaterPipes] = useState(true), [drainPipes, setDrainPipes] = useState(true), [pipeXray, setPipeXray] = useState(false)
   const signature = finishSignature(brief)
-  const id = useMemo(() => createBuildingModel(finishedPlan).planId, [finishedPlan])
+  const id = building.planId
   const accepted = useBlender((s) => s.accepted[id])
   const selectionKey = useBlender((s) => s.selectionKey)
   const job = useBlender((s) => s.job)
@@ -128,6 +137,7 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
               floating
               items={[
                 ...villaCadExportItems(currentSolar ?? result),
+                { id: 'villa-live-pipelines', label: 'Live villa + visible pipelines GLB', ext: '.glb', onExport: async () => { if(liveExport.current) { const exported=plumbingExportScene(liveExport.current); try { await exportThreeSceneToGlb(exported.root, 'villa-live-pipelines.glb') } finally { exported.dispose() } } } },
                 {
                   id: 'villa-viewport-png',
                   label: solar.draft ? 'Live view · draft preview' : 'Live view snapshot',
@@ -178,9 +188,10 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
             <color attach="background" args={['#e5e5e5']} /><ambientLight intensity={.6} />
             <directionalLight position={[20, 30, -10]} intensity={2} castShadow shadow-mapSize={[2048, 2048]}
               shadow-camera-left={-35} shadow-camera-right={35} shadow-camera-top={35} shadow-camera-bottom={-35} shadow-camera-far={100} shadow-bias={-0.0005} shadow-normalBias={.05} />
-            <Suspense fallback={null}><StudioReflections /><Villa url={result.files.glb} />
+            <Suspense fallback={null}><StudioReflections /><group ref={liveExport}><Villa url={result.files.glb} />
               <SolarLayer layout={solar.displayLayout} roof={solar.displayRoof} reservedAreas={solar.displayConfiguration.inputs.reservedAreas} selectedIds={solar.selectedIds} onSelect={solar.pickPanel}/>
-              <SolarCamera request={solar.camera} roof={solar.displayRoof} layout={solar.displayLayout} selectedIds={solar.selectedIds}/>
+              <PlumbingLayer layout={plumbing} water={waterPipes} drain={drainPipes} xray={pipeXray}/>
+              </group><SolarCamera request={solar.camera} roof={solar.displayRoof} layout={solar.displayLayout} selectedIds={solar.selectedIds}/>
             </Suspense>
             <OrbitControls makeDefault minPolarAngle={0} maxPolarAngle={Math.PI / 2} />
           </Canvas></ModelBoundary>
@@ -190,6 +201,12 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
             <button type="button" key={key} onClick={() => setView(key)} className="border border-line px-3 py-1 text-xs uppercase">{translateUi(key)}</button>)}</div>
         </div>
       </div>
+      <section className="mt-4 border border-line bg-bg-raised p-4" aria-label={translateUi('Water & drainage pipelines')}>
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2"><h3 className="mr-auto font-display text-lg">{translateUi('Water & drainage pipelines')}</h3>{([[waterPipes,setWaterPipes,'Tank water supply'],[drainPipes,setDrainPipes,'Drainage & vents'],[pipeXray,setPipeXray,'See pipes through walls']] as const).map(([value,setter,label])=><label key={label} className="flex min-h-11 items-center gap-2 text-xs"><input type="checkbox" className="accent-accent" checked={value} onChange={e=>setter(e.target.checked)}/>{translateUi(label)}</label>)}</div>
+        <p className="mt-2 text-xs text-ink-dim">{translateUi('Blue: proposed water pipes. Grey: drainage stacks. Sand: vents. Existing shaft openings are preserved.')}</p>
+        <p role="status" className="mt-2 text-xs text-ink-dim">{translateUi(`Tank-fed shafts: ${plumbing.pipes.filter(p=>p.id.startsWith('supply:')).length} · feeds to review: ${plumbing.issues.filter(i=>i.id.startsWith('supply:')).length}`)}</p>
+        <details className="mt-2 text-xs text-ink-dim"><summary className="min-h-11 cursor-pointer py-3">{translateUi('Pipeline details & connections to review')}</summary><p>{translateUi('Selected pipe sizes')}: {selectedPipeSizes(brief).waterMm} mm · {translateUi('Tank water supply')}; {selectedPipeSizes(brief).soilMm} / {selectedPipeSizes(brief).wasteMm} mm · {translateUi('Drainage & vents')}</p><p className="mt-2">{translateUi('Pipe sizes are concept envelopes. Structural openings, fixture branches, vent sizing, gradients and final discharge need professional review. The house and estimate stay unchanged.')}</p><ul className="mt-3 space-y-2">{plumbing.issues.map(issue=><li key={issue.id}>{issue.id}: {translateUi(issue.reason)}</li>)}</ul><p className="mt-3">{translateUi('Use Live villa + visible pipelines GLB to download the pipework shown here. Saved images and original downloads keep their previously generated contents.')}</p></details>
+      </section>
       <SolarVillaControls editor={solar}/>
       <div className="mt-4 border border-line p-4">
         <button type="button" disabled={busy || solarBusy || !!solar.draft || !!currentSolar || solar.solar.intention === 'install-now' && !solar.layout}

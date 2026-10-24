@@ -1,4 +1,18 @@
 export const plumbingMessages:Record<string,readonly[string,string]>={
+  "Blue: proposed water pipes. Grey: drainage stacks. Sand: vents. Existing shaft openings are preserved.": ["नीला: प्रस्तावित जल पाइप। धूसर: निकासी स्टैक। भूरा: वेंट। मूल शाफ्ट के छेद सुरक्षित हैं।", "निळा: प्रस्तावित पाण्याचे पाइप. राखाडी: निचरा स्टॅक. तपकिरी: वेंट. मूळ शाफ्टची उघडी जागा कायम आहे."],
+  "Tank-fed shafts: {0} · feeds to review: {1}": ["टंकी से जुड़े शाफ्ट: {0} · समीक्षा वाली आपूर्ति: {1}", "टाकीला जोडलेले शाफ्ट: {0} · पडताळणीचे पुरवठे: {1}"],
+
+  "Water & drainage pipelines": ["जल और निकासी पाइपलाइन", "पाणी व निचरा पाइपलाइन"],
+  "Tank water supply": ["टंकी से जल आपूर्ति", "टाकीतून पाणीपुरवठा"],
+  "Drainage & vents": ["निकासी और वेंट", "निचरा व वेंट"],
+  "See pipes through walls": ["दीवारों के पार पाइप देखें", "भिंतींमधून पाइप पाहा"],
+  "Blue: tank supply. Grey: drainage stacks. Sand: vents. Existing shaft openings are preserved.": ["नीला: टंकी की आपूर्ति। धूसर: निकासी स्टैक। भूरा: वेंट। मूल शाफ्ट के छेद सुरक्षित हैं।", "निळा: टाकीचा पुरवठा. राखाडी: निचरा स्टॅक. तपकिरी: वेंट. मूळ शाफ्टची उघडी जागा कायम आहे."],
+  "Pipeline details & connections to review": ["पाइपलाइन विवरण और कनेक्शन की समीक्षा", "पाइपलाइन तपशील व जोडणीची पडताळणी"],
+  "Selected pipe sizes": ["चुने हुए पाइप आकार", "निवडलेले पाइप आकार"],
+  "Pipe sizes are concept envelopes. Structural openings, fixture branches, vent sizing, gradients and final discharge need professional review. The house and estimate stay unchanged.": ["पाइप आकार प्रारंभिक हैं। संरचनात्मक छेद, उपकरण शाखाएँ, वेंट आकार, ढाल और अंतिम निकासी की विशेषज्ञ समीक्षा आवश्यक है। घर और अनुमान में बदलाव नहीं किया गया।", "पाइपचे आकार प्राथमिक आहेत. संरचनात्मक उघड्या जागा, साधनांच्या शाखा, वेंटचे आकार, उतार व अंतिम निचऱ्याची व्यावसायिक पडताळणी आवश्यक आहे. घर व अंदाज बदललेले नाहीत."],
+  "Use Live villa + visible pipelines GLB to download the pipework shown here. Saved images and original downloads keep their previously generated contents.": ["दिख रही पाइपलाइन के लिए Live villa + visible pipelines GLB डाउनलोड करें। सहेजी छवियों और मूल डाउनलोड में पुरानी सामग्री रहती है।", "दिसणारी पाइपलाइन डाउनलोड करण्यासाठी Live villa + visible pipelines GLB वापरा. जतन केलेल्या प्रतिमा व मूळ डाउनलोडमध्ये आधीची सामग्री राहते."],
+  "Live villa + visible pipelines GLB": ["लाइव विला + दिख रही पाइपलाइन GLB", "लाइव्ह व्हिला + दिसणारी पाइपलाइन GLB"],
+
   'Pipelines & tanks':['पाइपलाइन और टैंक','पाइपलाइन आणि टाक्या'],
   'Water supply':['जल आपूर्ति','पाणीपुरवठा'],
   'Drainage':['जल निकासी','सांडपाणी निचरा'],

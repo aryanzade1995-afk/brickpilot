@@ -47,6 +47,7 @@ from exporters.glb import export_glb  # noqa: E402
 from geometry.roof_services import create_roof_services
 from geometry.terrace_objects import create_terrace_objects
 from geometry.stair_guards import create_stair_guards
+from geometry.plumbing import create_plumbing
 from geometry.covered import create_covered_outdoor, create_exposed_roofs, create_pool_deck
 from geometry.compositions import create_composition_canopies
 
@@ -130,6 +131,7 @@ def create_scene(payload, visualization=None):
             create_balcony(scene, room, by_floor[room["floorId"]], terrace_mass, building["doors"], with_railing=not customized)
     create_roof_services(scene, building)
     create_stair_guards(scene, payload)
+    create_plumbing(scene, payload)
     create_terrace_objects(scene, building)
     # car porch / verandah roofs (a balcony where the upper floor opens onto
     # them), the parked car and a deck round the pool
