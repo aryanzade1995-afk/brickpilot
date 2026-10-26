@@ -30,6 +30,7 @@ dist-ssr
 .shots/
 server/.env
 output/
+outputs/
 __pycache__/
 *.pyc
 

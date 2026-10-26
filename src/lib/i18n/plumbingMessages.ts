@@ -1,4 +1,8 @@
 export const plumbingMessages:Record<string,readonly[string,string]>={
+  "Update doors & pipework": ["दरवाज़े और पाइपलाइन अपडेट करें", "दारे व पाइपलाइन अद्ययावत करा"],
+  "Update balcony sliders, roof doors and pipe fittings on the same villa. Your plan and finishes stay fixed.": ["इसी विला के बालकनी स्लाइडर, छत के दरवाज़े और पाइप फ़िटिंग अपडेट करें। आपकी योजना और फ़िनिश सुरक्षित रहेंगी।", "याच व्हिलाचे बाल्कनी स्लायडर, गच्चीची दारे व पाइप फिटिंग अद्ययावत करा. तुमचा आराखडा व फिनिश कायम राहतील."],
+  "Ivory: water pipes. Charcoal: drainage stacks. Warm grey: vents. Existing shaft openings are preserved.": ["हाथीदांत रंग: पानी के पाइप। गहरा धूसर: निकासी स्टैक। हल्का धूसर: वेंट। मौजूदा शाफ्ट के छेद सुरक्षित हैं।", "हस्तिदंती रंग: पाण्याचे पाइप. गडद राखाडी: निचरा स्टॅक. हलका राखाडी: वेंट. मूळ शाफ्टची उघडी जागा कायम आहे."],
+  "Pipe fittings · Poly Haven · CC0": ["पाइप फ़िटिंग · Poly Haven · CC0", "पाइप फिटिंग · Poly Haven · CC0"],
   "Blue: proposed water pipes. Grey: drainage stacks. Sand: vents. Existing shaft openings are preserved.": ["नीला: प्रस्तावित जल पाइप। धूसर: निकासी स्टैक। भूरा: वेंट। मूल शाफ्ट के छेद सुरक्षित हैं।", "निळा: प्रस्तावित पाण्याचे पाइप. राखाडी: निचरा स्टॅक. तपकिरी: वेंट. मूळ शाफ्टची उघडी जागा कायम आहे."],
   "Tank-fed shafts: {0} · feeds to review: {1}": ["टंकी से जुड़े शाफ्ट: {0} · समीक्षा वाली आपूर्ति: {1}", "टाकीला जोडलेले शाफ्ट: {0} · पडताळणीचे पुरवठे: {1}"],
 

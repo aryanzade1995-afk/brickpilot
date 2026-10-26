@@ -2,7 +2,7 @@ import type { Design } from '../engine/types.ts'
 import type { LayoutDoc } from '../plan/layout.ts'
 import type { OpResult } from '../plan/ops.ts'
 
-export const WALKTHROUGH_ACCESS_REVISION = 'walk-access-v8'
+export const WALKTHROUGH_ACCESS_REVISION = 'walk-access-v9'
 export const WALKTHROUGH_HALL_MM = 1800
 
 /** An explicit source-plan edit, committed through the normal plan validator.

@@ -7,6 +7,8 @@ import { adoptBlenderWalkthroughAppearance, prepareWalkthroughAppearanceUpdate, 
 import { furnitureColliders, type WalkthroughAppearancePayload, type WalkthroughGeometryPayload } from '@/lib/walkthrough/delivery.ts'
 import { acceptedVillaBounds, acceptedVillaCollision, loadAcceptedVilla } from '@/lib/three/acceptedVillaWalkthrough.ts'
 import { separateCoplanar } from '@/lib/three/separateCoplanar.ts'
+import {prepareWalkthroughShell} from '@/lib/three/walkthroughShell.ts'
+import {reconcileAcceptedFittingSupports,replaceAcceptedLegacyLights} from '@/lib/three/acceptedFittingSupports.ts'
 import { bindAcceptedVillaFinishes, disposeAcceptedVillaFinishSources } from '@/lib/three/acceptedVillaFinishes.ts'
 import { batchWalkthroughScene, prepareWalkthroughGlazing } from '@/lib/three/walkthroughBatches.ts'
 import { applyWalkthroughContactDetail } from '@/lib/three/walkthroughSurfaceDetail.ts'
@@ -18,11 +20,19 @@ import { DEFAULT_LOOK_SPEED, LOOK_SPEED } from '@/lib/walkthrough/look.ts'
 import { WalkthroughLighting } from './WalkthroughLighting.tsx'
 import { WalkthroughPerformance, WalkthroughRoomLights, type WalkthroughMetrics } from './WalkthroughPerformance.tsx'
 import { gpuLabel, WALKTHROUGH_QUALITY, type WalkthroughQuality } from '@/lib/walkthrough/quality.ts'
+import {loadWalkthroughLightmaps,applyLightmapUVs,applyWalkthroughLightmaps,disposeWalkthroughLightmaps} from '@/lib/three/walkthroughLightmaps.ts'
+import { WalkthroughVoiceGuide } from './WalkthroughVoiceGuide.tsx'
+import { unlockRoomNarration } from '@/lib/walkthrough/roomAudio.ts'
+import { removeBathroomMirrors } from '@/lib/three/interiorDetails.ts'
 
 /** Shared orbit / first-person viewer of the same immutable delivered house. */
-export type AcceptedVillaPreview = { url: string; geometry: WalkthroughGeometryPayload | null }
+export type AcceptedVillaPreview = { url: string; geometry: WalkthroughGeometryPayload | null;lighting?:{id:string;signature:string} }
 export default function WalkthroughAssetPreview({ id, planId, floors, appearance, acceptedVilla }: { id?: string; planId: string; floors: { sourceId: string; level: number; elevationM: number }[]; appearance?: WalkthroughAppearancePayload; acceptedVilla?: AcceptedVillaPreview }) {
   const [model, setModel] = useState<Group | null>(null), [failed, setFailed] = useState(false), [cut, setCut] = useState('all')
+  const bakedAssets=useRef<Awaited<ReturnType<typeof loadWalkthroughLightmaps>>|null>(null)
+  const [lightingNotice,setLightingNotice]=useState('')
+  const [renderReady,setRenderReady]=useState(false)
+  const [nativeResolution,setNativeResolution]=useState(false)
   const [simulation, setSimulation] = useState<HouseWalkingSimulation | null>(null), [walkingError, setWalkingError] = useState('')
   const [walking, setWalking] = useState(false), [controls, setControls] = useState<WalkingControls | null>(null)
   const [lookMode, setLookMode] = useState<'locked' | 'drag'>('locked')
@@ -32,6 +42,7 @@ export default function WalkthroughAssetPreview({ id, planId, floors, appearance
   const walkButton = useRef<HTMLButtonElement>(null)
   const [appearanceState, setAppearanceState] = useState(''), [safeToWalk, setSafeToWalk] = useState(true), [appearanceRevision, setAppearanceRevision] = useState(0)
   const [blenderRoomCount, setBlenderRoomCount] = useState(0)
+  const [interiorModelCount,setInteriorModelCount]=useState(0)
   const [metrics, setMetrics] = useState<WalkthroughMetrics | null>(null)
   const appliedGeometry = useRef<string | null>(null), liveGroup = useRef<Group | null>(null)
   const batches = useRef<ReturnType<typeof batchWalkthroughScene> | null>(null)
@@ -66,9 +77,20 @@ export default function WalkthroughAssetPreview({ id, planId, floors, appearance
       void loadAcceptedVilla(acceptedVilla.url, planId, controller.signal).then(async group => {
         owned = group
         if (controller.signal.aborted) return
+        if(acceptedVilla.lighting){
+          try{
+            const assets=await loadWalkthroughLightmaps(acceptedVilla.lighting.id,planId,acceptedVilla.lighting.signature)
+            if(controller.signal.aborted){disposeWalkthroughLightmaps(assets);return}
+            if(assets.manifest.sourceSha256!==group.userData.acceptedSourceSha256){disposeWalkthroughLightmaps(assets);throw new Error('Lighting source changed')}
+            const result=applyLightmapUVs(group,assets);bakedAssets.current=assets
+            setLightingNotice(result.missing.length?'Some surfaces could not use baked lighting. Real-time lighting is retained there.':'Cycles baked daylight active')
+          }catch{setLightingNotice('Baked lighting is unavailable. The real-time villa remains available.')}
+        }
         // Reuse the exterior viewer's face separation without batching doors.
         separateCoplanar(group)
+        prepareWalkthroughShell(group)
         prepareWalkthroughGlazing(group)
+        if (acceptedVilla.geometry) removeBathroomMirrors(group, acceptedVilla.geometry.metadata)
         try {
           if (!acceptedVilla.geometry) throw new Error('The exact villa can be viewed, but its source entrance or stairs need review before walking.')
           await initializeWalkingPhysics()
@@ -79,7 +101,7 @@ export default function WalkthroughAssetPreview({ id, planId, floors, appearance
         } catch (error) { if (!controller.signal.aborted) setWalkingError(error instanceof Error ? error.message : 'Walking could not be prepared. The orbit view is still available.') }
         if (!controller.signal.aborted) setModel(group)
       }).catch(error => { if (!controller.signal.aborted && error.name !== 'AbortError') setFailed(true) })
-      return () => { controller.abort(); batches.current?.release(); batches.current = null; ownedSimulation?.dispose(); if (owned) { disposeAcceptedVillaFinishSources(owned); disposeWalkthroughAsset(owned) } }
+      return () => { controller.abort(); batches.current?.release(); batches.current = null; ownedSimulation?.dispose(); if (owned) { disposeAcceptedVillaFinishSources(owned); disposeWalkthroughAsset(owned) } if(bakedAssets.current){disposeWalkthroughLightmaps(bakedAssets.current);bakedAssets.current=null} }
     }
     loadWalkthroughAsset(`/api/walkthrough-assets/${id}/house.glb`, planId, controller.signal).then(async group => {
       owned = group
@@ -87,7 +109,7 @@ export default function WalkthroughAssetPreview({ id, planId, floors, appearance
       if (!response.ok) throw new Error('Selected Blender material data is unavailable.')
       const materials = await response.json()
       if (materials.designId !== planId) throw new Error('The selected materials belong to another house.')
-      if (!controller.signal.aborted) { liveGroup.current = adoptBlenderWalkthroughAppearance(group, materials); setModel(group) }
+      if (!controller.signal.aborted) { prepareWalkthroughShell(group); liveGroup.current = adoptBlenderWalkthroughAppearance(group, materials); setModel(group) }
     }).catch(error => { if (error.name !== 'AbortError') setFailed(true) })
     const loadJson = async (name: string) => { const response = await fetch(`/api/walkthrough-assets/${id}/${name}`, { signal: controller.signal }); if (!response.ok) throw new Error('Walking data is unavailable. Generate the house assets again.'); return response.json() }
     Promise.all([loadJson('metadata.json'), loadJson('collision.json'), initializeWalkingPhysics()]).then(([metadata, collision]) => {
@@ -112,7 +134,8 @@ export default function WalkthroughAssetPreview({ id, planId, floors, appearance
         if (!current()) return
         // Wall tiles already partition the actual Blender faces. Only fitted
         // ceilings and room products belong in this separate appearance layer.
-        const fitted = { ...appearance, skins: appearance.skins.filter(f => !/wall-tiles/.test(f.id)) }
+        const supported=reconcileAcceptedFittingSupports(appearance,model)
+        const fitted = { ...supported, skins: supported.skins.filter(f => !/wall-tiles/.test(f.id)) }
         const update = await prepareWalkthroughAppearanceUpdate(fitted, liveGroup.current, current)
         if (!current()) { update.dispose(); return }
         const geometryKey = walkthroughFurnishingGeometryKey(fitted)
@@ -122,16 +145,20 @@ export default function WalkthroughAssetPreview({ id, planId, floors, appearance
           appliedGeometry.current = geometryKey
         }
         const next = update.commit(), old = liveGroup.current
+        removeBathroomMirrors(next, acceptedVilla.geometry.metadata)
         old?.removeFromParent(); model.add(next); liveGroup.current = next
         if (old) disposeWalkthroughAsset(old)
+        replaceAcceptedLegacyLights(model,acceptedVilla.geometry,fitted)
         // Replacements are explicit only for tagged interior product roots.
         // Untagged architectural/exterior furniture is never guessed away.
         model.traverse(o => { if (o.userData.assetKind === 'walkthrough-furniture') o.visible = false })
         applyWalkthroughContactDetail(model, acceptedVilla.geometry, appearance)
+        if(bakedAssets.current)applyWalkthroughLightmaps(model,bakedAssets.current)
         batches.current = batchWalkthroughScene(model)
         setBlenderRoomCount(next.children.length)
+        setInteriorModelCount(next.userData.interiorModelCount??0)
         setAppearanceRevision(n => n + 1)
-        setAppearanceState(warnings.length || next.userData.textureWarnings?.length ? 'Some surface images are unavailable. Selected colours are shown as approximations.' : 'Current Finishes & Cost selections and room furnishings applied.')
+        setAppearanceState(supported!==appearance?'Fittings without a supporting wall or ceiling are hidden. Your specifications are unchanged.':next.userData.modelWarnings?.length?'Some realistic models could not load. Standard models are shown for those items.':warnings.length || next.userData.textureWarnings?.length ? 'Some surface images are unavailable. Selected colours are shown as approximations.' : 'Current Finishes & Cost selections and room furnishings applied.')
         return
       }
       const update = await prepareWalkthroughAppearanceUpdate(appearance, liveGroup.current, current), next = update.group
@@ -146,10 +173,12 @@ export default function WalkthroughAssetPreview({ id, planId, floors, appearance
           appliedGeometry.current = geometryKey
         } else setSafeToWalk(simulation ? simulation.canStand(simulation.feet) : false)
         update.commit()
+        if (simulation) removeBathroomMirrors(next, simulation.metadata)
         if (liveGroup.current) { liveGroup.current.removeFromParent(); disposeWalkthroughAsset(liveGroup.current) }
         model.add(next); liveGroup.current = next
         setBlenderRoomCount(next.children.filter(g => g.userData.source === 'blender-glb').length)
-        setAppearanceRevision(n => n + 1); setAppearanceState(textureWarnings.length || next.userData.textureWarnings?.length ? 'Some surface images are unavailable. Selected colours are shown as approximations.' : 'Current Finishes & Cost selections applied.')
+        setInteriorModelCount(next.userData.interiorModelCount??0)
+        setAppearanceRevision(n => n + 1); setAppearanceState(next.userData.modelWarnings?.length?'Some realistic models could not load. Standard models are shown for those items.':textureWarnings.length || next.userData.textureWarnings?.length ? 'Some surface images are unavailable. Selected colours are shown as approximations.' : 'Current Finishes & Cost selections applied.')
       } catch (error) { update.dispose(); throw error }
     })().catch(error => { if (!cancelled && error.name !== 'AbortError') { setSafeToWalk(false); controlsRef.current?.exit(); setAppearanceState('Finish preview could not update. The displayed materials may be out of date. Reopen the model to retry.') } })
     return () => { cancelled = true }
@@ -158,11 +187,16 @@ export default function WalkthroughAssetPreview({ id, planId, floors, appearance
   return <div className="mt-4 border border-line">
     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-2"><p className="max-w-xl text-xs text-ink-dim">{t('Drag to orbit')}</p>
       <div className="flex flex-wrap items-center gap-3">{!acceptedVilla && <label className="flex min-h-11 items-center gap-2 text-xs">{t('Model view')}<select disabled={walking} className="min-h-11 border border-line bg-bg px-3 disabled:opacity-40" value={cut} onChange={e => setCut(e.target.value)}><option value="all">{t('Complete house')}</option>{floors.map(f => <option key={f.sourceId} value={f.sourceId}>{t('Floor')} {f.level} · {t('Cutaway')}</option>)}</select></label>}
-        <button ref={walkButton} type="button" disabled={!controls || failed || !safeToWalk} onClick={() => { setWalkingError(''); if (walking) controls?.exit(); else controls?.enter() }} className="min-h-11 border border-line bg-accent px-4 text-xs text-bg focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-40">{t(walking ? 'Return to 3D view' : 'Walk inside')}</button></div></div>
+        <button ref={walkButton} type="button" disabled={!controls || failed || !safeToWalk || !renderReady} onClick={() => { setWalkingError(''); if (walking) controls?.exit(); else { unlockRoomNarration(); controls?.enter() } }} className="min-h-11 border border-line bg-accent px-4 text-xs text-bg focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-40">{t(walking ? 'Return to 3D view' : 'Walk inside')}</button></div></div>
     {appearanceState && !appearanceState.startsWith('Current Finishes') && <p role="status" className="border-b border-line p-3 text-xs text-ink-dim">{t(appearanceState)}</p>}
+    {lightingNotice&&<p role="status" className="border-b border-line p-3 text-xs text-ink-dim">{t(lightingNotice)}</p>}
     <details className="border-b border-line px-4 text-xs text-ink-dim"><summary className="min-h-11 cursor-pointer py-3">{t('View settings')}</summary><div className="flex flex-wrap items-center gap-3 pb-3">
       <label className="flex min-h-11 items-center gap-2">{t('Graphics')}<select value={quality} onChange={e => { setQuality(e.target.value as WalkthroughQuality); setMetrics(null) }} className="min-h-11 border border-line bg-bg px-3 text-ink">{Object.entries(WALKTHROUGH_QUALITY).map(([key, value]) => <option key={key} value={key}>{t(value.label)}</option>)}</select></label>
-      <span>{t('40 FPS target · quality adapts to your GPU')}</span>
+      <span>{WALKTHROUGH_QUALITY[quality].target} {t('FPS target · quality adapts to your GPU')}</span>
+      <span>{interiorModelCount} {t('realistic models loaded')}</span>
+      <label className="flex min-h-11 items-center gap-2"><input type="checkbox" checked={nativeResolution} onChange={e=>{setNativeResolution(e.target.checked);setMetrics(null)}} className="h-4 w-4 accent-accent"/>{t('Lock native resolution for benchmarking')}</label>
+      {metrics&&<div className="basis-full text-xs leading-relaxed"><p>{t('Measured rendering')}: {metrics.width} × {metrics.height} · {t('Average')} {metrics.averageFps} FPS · {t('Lowest 1-second window')} {metrics.lowestWindowFps} FPS · P95 {metrics.p95Ms} ms · GPU {metrics.gpuMs??'—'} ms</p><button type="button" className="mt-2 min-h-11 border border-line bg-bg px-3" onClick={()=>{const url=URL.createObjectURL(new Blob([JSON.stringify({version:1,planId,acceptedUrl:acceptedVilla?.url,lighting:acceptedVilla?.lighting?.id??'real-time',metrics},null,2)],{type:'application/json'}));const link=document.createElement('a');link.href=url;link.download='formstead-render-performance.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}}>{t('Download performance report')}</button></div>}
+
       <details className="basis-full"><summary className="min-h-11 cursor-pointer py-3">{t('Graphics card & quality')}</summary><p className="pb-3 leading-relaxed">{t('High-performance graphics requested. Windows and your browser choose the GPU. For RTX 3050, set this browser to High performance in Windows graphics settings and reopen it.')}</p>{metrics && <p className="pb-3">GPU: {gpuLabel(metrics.renderer)}</p>}</details>
     </div></details>
     {walkingError && <div role="status" className="border-b border-line p-4 text-xs leading-relaxed text-ink-dim"><p>{t(walkingError)}</p>{controls && safeToWalk && !walking && <><p className="mt-2">{t('If mouse capture is unavailable in this browser, use drag-look mode with the same walking physics.')}</p><button type="button" className="mt-3 min-h-11 border border-line bg-bg px-4 text-ink" onClick={() => { setWalkingError(''); controls.enterDrag() }}>{t('Use drag-look mode')}</button></>}</div>}
@@ -173,15 +207,17 @@ export default function WalkthroughAssetPreview({ id, planId, floors, appearance
       data-model-source={acceptedVilla ? 'accepted-massing-glb' : 'blender-glb'} data-model-url={acceptedVilla?.url} data-blender-room-count={blenderRoomCount} data-building-instance={model.uuid} data-finish-revision={appearanceRevision} data-walk-mode={walking ? 'first-person' : 'orbit'} data-walk-input={lookMode} data-walk-feet={JSON.stringify(hud.feet)} data-walk-look={JSON.stringify(hud.look)} data-walk-grounded={hud.grounded} data-walk-floor={hud.floor}>
       <ModelBoundary><Canvas frameloop={walking ? 'always' : 'demand'} shadows={{ type: PCFShadowMap, autoUpdate: false }} dpr={metrics?.dpr ?? WALKTHROUGH_QUALITY[quality].start} camera={cameraConfiguration} gl={{ antialias: true, powerPreference: 'high-performance' }} onCreated={({ gl }) => { gl.localClippingEnabled = true; gl.toneMapping = ACESFilmicToneMapping; gl.toneMappingExposure = 1; gl.shadowMap.type = PCFShadowMap; gl.shadowMap.autoUpdate = false; gl.shadowMap.needsUpdate = true }}>
         <color attach="background" args={['#e7e9e7']} /><WalkthroughLighting model={model} bounds={framing} />
-        <WalkthroughRoomLights appearance={appearance} /><WalkthroughPerformance active={walking} revision={appearanceRevision} quality={quality} onMetrics={setMetrics} />
+        <WarmWalkthroughShaders revision={appearanceRevision} onReady={setRenderReady}/>
+        <WalkthroughRoomLights appearance={appearance} geometry={acceptedVilla?.geometry} /><WalkthroughPerformance active={walking} revision={appearanceRevision} quality={quality} nativeResolution={nativeResolution} onMetrics={setMetrics} />
         <Bounds fit={!acceptedVilla && !walking} clip={!acceptedVilla && !walking} observe={false} margin={1.25}><primitive object={model} /></Bounds>
         {acceptedVilla && <FitAcceptedVilla scene={model} bounds={framing} />}
         <Clipping model={model} plane={plane} revision={appearanceRevision} /><OrbitControls enabled={!walking} makeDefault enableDamping={false} minDistance={1} maxDistance={80} />
         {simulation && <FirstPersonController simulation={simulation} model={model} lookSpeed={lookSpeed} onControls={setControls} onActive={(active, mode) => { setWalking(active); setMetrics(null); if (active) { setCut('all'); setLookMode(mode ?? 'locked') } else setWalkingError('') }} onHud={setHud} onError={setWalkingError} />}
       </Canvas></ModelBoundary>
+      {simulation && <WalkthroughVoiceGuide metadata={simulation.metadata} appearance={appearance} walking={walking} roomId={hud.roomId} onReview={() => controls?.exit()}/>}
       {walking && <><div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white bg-black/30" />
         <div className="absolute inset-x-0 top-0 flex flex-wrap items-center justify-between gap-3 border-b border-line bg-bg/95 p-4 text-ink">
-          <div className="pointer-events-none"><p className="font-display text-lg">{t('House walkthrough')}</p><p className="text-xs text-ink-dim">{t('Floor')} {hud.floor}{hud.room ? ` · ${t(hud.room)}` : ''}</p>{metrics && <p className="mt-1 text-[10px] text-ink-dim" data-walkthrough-performance data-fps={metrics.fps} data-draw-calls={metrics.calls} data-triangles={metrics.triangles} data-dpr={metrics.dpr} data-renderer={metrics.renderer} data-render-ms={metrics.renderMs} data-page-focused={metrics.focused} data-page-visible={metrics.pageVisible}>{metrics.fps} FPS · {t('Target')} 40 · {t('Adaptive quality')}</p>}</div>
+          <div className="pointer-events-none"><p className="font-display text-lg">{t('House walkthrough')}</p><p className="text-xs text-ink-dim">{t('Floor')} {hud.floor}{hud.room ? ` · ${t(hud.room)}` : ''}</p>{metrics && <p className="mt-1 text-[10px] text-ink-dim" data-walkthrough-performance data-performance-record={JSON.stringify(metrics)} data-fps={metrics.fps} data-draw-calls={metrics.calls} data-triangles={metrics.triangles} data-dpr={metrics.dpr} data-renderer={metrics.renderer} data-render-ms={metrics.renderMs} data-page-focused={metrics.focused} data-page-visible={metrics.pageVisible}>{metrics.fps} FPS · {t('Target')} {WALKTHROUGH_QUALITY[quality].target} · {t(nativeResolution ? 'Native resolution' : 'Adaptive quality')}</p>}</div>
           <div className="flex cursor-auto flex-wrap items-center gap-4"><label className="flex min-h-11 items-center gap-2 text-xs">{t('Graphics')}<select value={quality} onChange={e => { setQuality(e.target.value as WalkthroughQuality); setMetrics(null) }} className="min-h-11 max-w-40 border border-line bg-bg px-2">{Object.entries(WALKTHROUGH_QUALITY).map(([key,value])=><option key={key} value={key}>{t(value.label)}</option>)}</select></label>{metrics && <span className="hidden text-[10px] text-ink-dim sm:inline">GPU: {gpuLabel(metrics.renderer)}</span>}<label className="flex items-center gap-2 text-xs">{t('Look speed')}<input aria-label={t('Look speed')} type="range" min={LOOK_SPEED.min} max={LOOK_SPEED.max} step="0.25" value={lookSpeed} onChange={e => setLookSpeed(Number(e.target.value))} className="w-20 accent-accent" /><span>{lookSpeed.toFixed(2)}×</span></label>
             <button type="button" onClick={() => controls?.exit()} className="min-h-11 border border-line bg-bg px-4 text-xs focus-visible:outline-2 focus-visible:outline-accent">{t('Exit')} <kbd className="ml-2 border border-line px-1.5 py-1">Esc</kbd></button></div>
         </div>
@@ -219,4 +255,11 @@ class ModelBoundary extends Component<{ children: ReactNode }, { failed: boolean
   state = { failed: false }
   static getDerivedStateFromError() { return { failed: true } }
   render() { return this.state.failed ? <p role="alert" className="p-5 text-sm text-ink-dim">{t('3D review is unavailable on this device. The exported files are still available.')}</p> : this.props.children }
+}
+
+/** Precompile visible material variants before walking, never on room entry. */
+function WarmWalkthroughShaders({revision,onReady}:{revision:number;onReady:(ready:boolean)=>void}){
+ const {gl,scene,camera,invalidate}=useThree()
+ useEffect(()=>{let active=true;onReady(false);void gl.compileAsync(scene,camera).then(()=>{if(active){onReady(true);invalidate()}}).catch(()=>{if(active)onReady(true)});return()=>{active=false}},[revision,gl,scene,camera,onReady,invalidate])
+ return null
 }

@@ -22,7 +22,7 @@ export function WorkspaceTabs() {
   useEffect(() => { tabsRef.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: 'nearest', inline: 'center' }) }, [pathname])
 
   return (
-    <div ref={tabsRef} className="flex gap-1 overflow-x-auto border-b border-line pb-px">
+    <div ref={tabsRef} className="flex min-w-0 max-w-full gap-1 overflow-x-auto border-b border-line pb-px">
       {TABS.map((t) => (
         <NavLink
           key={t.to}

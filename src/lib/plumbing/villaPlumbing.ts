@@ -1,3 +1,4 @@
+import { pipeAssembly, type PipeAssembly } from './assembly.ts'
 import type { BuildingModel } from '../engine/buildingModel.ts'
 import type { Brief } from '../model/brief.ts'
 import { resolveSpecification } from '../cost/catalogue.ts'
@@ -5,13 +6,14 @@ import { tankBank } from '../engine/terrace.ts'
 import type { Rect } from '../geometry.ts'
 import { subtractRegions, expandRect, insetRegions } from '../solar/regions.ts'
 import { realizedTerraceObjects } from '../solar/terraceObjects.ts'
+import { roofAccess } from '../walkthrough/openingAssemblies.ts'
 import { routeDrain } from '../utilities/drainage.ts'
 import { segmentDistance } from '../utilities/clashGeometry.ts'
 
 export type ServicePoint = { x: number; y: number; z: number }
 export type VillaPipe = { id: string; system: 'water' | 'drain' | 'vent'; purpose: string; shaftId: string | null; floorId: string; diameterMm: number; sizeBasis: 'selected nominal' | 'selected outside diameter'; points: ServicePoint[] }
 export type PipeSegment = { system: VillaPipe['system']; diameterMm: number; from: ServicePoint; to: ServicePoint }
-export type VillaPlumbing = { segments: PipeSegment[]; version: 'villa-plumbing-v1'; planId: string; signature: string; pipes: VillaPipe[]; tankPorts: { id: string; center: ServicePoint; port: ServicePoint; radiusMm: number }[]; issues: { id: string; reason: string }[]; notes: string[] }
+export type VillaPlumbing = { assembly?: PipeAssembly; segments: PipeSegment[]; version: 'villa-plumbing-v1'; planId: string; signature: string; pipes: VillaPipe[]; tankPorts: { id: string; center: ServicePoint; port: ServicePoint; radiusMm: number }[]; issues: { id: string; reason: string }[]; notes: string[] }
 export type PipeSizes = { waterMm: number; soilMm: number; wasteMm: number }
 export const PLUMBING_CONCEPT = { tankStandMm: 800, trayMm: 60, tankHeightMm: 1000, outletAboveBaseMm: 200, roofHeaderMm: 150, roofMarginMm: 25, separationMm: 40, bottomStubMm: 100, ventAboveRoofMm: 1100 } as const
 export function selectedPipeSizes(brief: Brief): PipeSizes {
@@ -37,10 +39,11 @@ const token = (v: unknown) => { let n = 2166136261; const s = JSON.stringify(v);
 // Python round() tie behavior. Replay roof_services.py's realized cylinders,
 // not the smaller one-tank planning slot or a guessed tank capacity.
 const roundEven = (n: number) => n % 1 === .5 ? Math.round(n / 2) * 2 : Math.round(n)
-export function realizedTankPorts(building: BuildingModel): VillaPlumbing['tankPorts'] {
+export function realizedTankPorts(building: BuildingModel, diameterScale=1): VillaPlumbing['tankPorts'] {
+  if(!Number.isFinite(diameterScale)||diameterScale<.5||diameterScale>1)throw new RangeError('Tank width must fit its existing stand.')
   const terrace = building.roofTerrace, top = [...building.floors].sort((a,b) => a.level-b.level).at(-1), bank = terrace ? tankBank(terrace) : null
   if (!bank || !top) return []
-  const alongX = bank.w >= bank.h, span = alongX ? bank.w : bank.h, cross = alongX ? bank.h : bank.w, count = Math.max(1, roundEven(span / 1150)), pitch = span / count, radiusMm = Math.min(pitch, cross) / 2 - 70
+  const alongX = bank.w >= bank.h, span = alongX ? bank.w : bank.h, cross = alongX ? bank.h : bank.w, count = Math.max(1, roundEven(span / 1150)), pitch = span / count, radiusMm = (Math.min(pitch, cross) / 2 - 70)*diameterScale
   const roofZ = top.elevationMm + top.heightMm, z = roofZ + PLUMBING_CONCEPT.tankStandMm + PLUMBING_CONCEPT.trayMm + PLUMBING_CONCEPT.outletAboveBaseMm
   if (radiusMm <= 0) return []
   return Array.from({ length: count }, (_, i) => {
@@ -81,8 +84,8 @@ export function pipeCrossesStructure(building: BuildingModel, points: ServicePoi
   }
   return null
 }
-export function createVillaPlumbing(building: BuildingModel, sizes: PipeSizes, extraRoofObstacles: Rect[] = []): VillaPlumbing {
-  const pipes: VillaPipe[]=[], issues: VillaPlumbing['issues']=[], tanks=realizedTankPorts(building), top=[...building.floors].sort((a,b)=>a.level-b.level).at(-1)
+export function createVillaPlumbing(building: BuildingModel, sizes: PipeSizes, extraRoofObstacles: Rect[] = [], tankDiameterScale=1): VillaPlumbing {
+  const pipes: VillaPipe[]=[], issues: VillaPlumbing['issues']=[], tanks=realizedTankPorts(building,tankDiameterScale), top=[...building.floors].sort((a,b)=>a.level-b.level).at(-1)
   const add=(pipe: VillaPipe) => {
     const points=pipe.points.filter((p,i,ps)=>!i||Math.hypot(p.x-ps[i-1].x,p.y-ps[i-1].y,p.z-ps[i-1].z)>.01)
     if(points.length<2)return false
@@ -103,9 +106,11 @@ export function createVillaPlumbing(building: BuildingModel, sizes: PipeSizes, e
       main=joints[0]
     } else issues.push({id:'tank-manifold',reason:'The realized tank outlets have no clear manifold connection.'})
   } else issues.push({id:'tank',reason:'No supported flat-roof tank bank is represented. No tank connection is invented.'})
+  const accessArea=roofAccess(building)?.protectedAreaMm
   const roofCuts=terrace ? [
     ...subtractRegions([terrace.outline],insetRegions(terrace.slab,120)),
     ...(terrace.mumty?[expandRect(terrace.mumty,160)]:[]),
+    ...(accessArea?[accessArea]:[]),
     ...realizedTerraceObjects(building).filter(o=>o.heightMm>=PLUMBING_CONCEPT.roofHeaderMm-sizes.waterMm/2).map(o=>o.rectMm),
     ...extraRoofObstacles,
   ].map(r=>expandRect(r,sizes.waterMm/2+PLUMBING_CONCEPT.roofMarginMm)):[]
@@ -146,5 +151,6 @@ export function createVillaPlumbing(building: BuildingModel, sizes: PipeSizes, e
   }
   issues.push({id:'discharge',reason:'Ground drain destination and invert levels are not established here. Stack ends are not represented as an approved sewer/septic connection.'})
   const notes=['Service coordination preview, not installation approval. Diameters follow Finishes & Cost; nominal supply sizes are shown as concept envelopes, not verified outside diameters.', 'Tank outlet heights, roof header height, pipe separation and vent terminal height are explicit visualization assumptions, not Indian code or hydraulic design.', 'Only recorded shafts are used. Floor-to-floor discontinuities, unknown fixture branches, traps, gradients, concealed penetrations and final discharge require a plumbing design. Architecture, floor openings and estimate quantities are unchanged.']
-  return {version:'villa-plumbing-v1',planId:building.planId,signature:`plumbing-${token([building.planId,sizes,pipes])}`,segments:plumbingSegments({pipes}),pipes,tankPorts:tanks,issues,notes}
+  const segments=plumbingSegments({pipes})
+  return {assembly:pipeAssembly(segments),version:'villa-plumbing-v1',planId:building.planId,signature:`plumbing-${token([building.planId,sizes,pipes])}`,segments,pipes,tankPorts:tanks,issues,notes}
 }

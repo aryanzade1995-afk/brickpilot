@@ -46,6 +46,9 @@ def material(name, look):
     bsdf.inputs['Base Color'].default_value = (*srgb(look.get('color', '#eeeae2')), 1)
     bsdf.inputs['Roughness'].default_value = look.get('rough', .8)
     bsdf.inputs['Metallic'].default_value = look.get('metal', 0)
+    if look.get('finish') == 'worktop' and look.get('rough', .8) < .3:
+        bsdf.inputs['Coat Weight'].default_value = .25
+        bsdf.inputs['Coat Roughness'].default_value = max(.12, look.get('rough', .2))
     alpha = look.get('opacity', 1)
     if alpha < 1:
         bsdf.inputs['Alpha'].default_value = alpha
@@ -260,14 +263,71 @@ def appearance(data, out):
     # Furniture has a separate GLB so clients can replace it with a new finish
     # package while retaining the loaded structure. The combined export has it too.
     furnishing = root(geometry['planId'], 'walkthrough-furniture')
-    add_parts(app['furniture'], furnishing, app['bindings'], 'furnishing')
+    replaced = add_interior_models(app.get('models', []), furnishing)
+    add_parts([p for p in app['furniture'] if p['id'] not in replaced], furnishing, app['bindings'], 'furnishing')
     add_finish_skins(app, furnishing)
     roots[0]['assetKind'] = 'walkthrough-combined'
     roots[0]['includesFurniture'] = True
     export_glb(out / 'house.glb')
+    included={furnishing,*furnishing.children_recursive}
     for obj in bpy.context.scene.objects:
-        obj.hide_set(obj != furnishing and obj.parent != furnishing)
+        obj.hide_set(obj not in included)
     export_glb(out / 'furniture.glb')
+
+
+def add_interior_models(instances, parent):
+    """Replay the browser's canonical instance transforms; no Python placement."""
+    catalog_path=Path(__file__).resolve().parents[1]/'src/lib/interior-assets/catalogue.json'
+    catalog={a['id']:a for a in json.loads(catalog_path.read_text())['assets']}
+    public=Path(__file__).resolve().parents[1]/'public'
+    replaced=set()
+    for instance in instances:
+        asset=catalog.get(instance['assetId'])
+        if not asset or instance.get('assetRevision')!=asset['sha256']:raise ValueError('Interior model revision is unavailable')
+        if not all(math.isfinite(v) for key in ['position','scale','size'] for v in instance[key]) or any(s<=0 or s>100 for s in instance['scale']) or not math.isfinite(instance['rotation']):raise ValueError('Invalid model transform')
+        path=(public/asset['url'].lstrip('/')).resolve()
+        if not path.is_relative_to(public.resolve()) or not path.is_file():raise ValueError('Interior model missing')
+        before=set(bpy.context.scene.objects);bpy.ops.import_scene.gltf(filepath=str(path))
+        imported=set(bpy.context.scene.objects)-before
+        placement=bpy.data.objects.new(instance['id'],None);bpy.context.scene.collection.objects.link(placement);placement.parent=parent
+        placement['instanceId']=instance['id'];placement['sourcePlanId']=parent['sourcePlanId'];placement['roomId']=instance['roomId']
+        placement.location=world_to_blender(instance['position']);placement.rotation_euler.z=instance['rotation'];sx,sy,sz=instance['scale'];placement.scale=(sx,sz,sy)
+        for obj in imported:
+            if obj.parent not in imported:
+                world=obj.matrix_world.copy();obj.parent=placement;obj.matrix_basis=world
+            obj['sourcePlanId']=parent['sourcePlanId'];obj['roomId']=instance['roomId'];obj['interiorModel']=instance['assetId']
+            if obj.type!='MESH':continue
+            for slot in obj.material_slots:
+                if not slot.material:continue
+                slot.material=slot.material.copy();m=slot.material;m['asset_pbr']=True
+                cloth=instance['assetId']=='bed' and m.node_tree.nodes.get('Principled BSDF').inputs['Roughness'].default_value>=.7
+                if instance.get('color') and (cloth or m.get('formsteadFinishRole') in ['paint','ceramic','upholstery']):
+                    shader=m.node_tree.nodes.get('Principled BSDF');shader.inputs['Base Color'].default_value=(*srgb(instance['color']),1)
+                    if m.get('formsteadFinishRole')=='paint':
+                        for link in list(shader.inputs['Base Color'].links):m.node_tree.links.remove(link)
+                shader=m.node_tree.nodes.get('Principled BSDF')
+                import re
+                colour=instance.get('materialColors',{}).get(m.name) or instance.get('materialColors',{}).get(re.sub(r'\.\d+$','',m.name))
+                if colour:shader.inputs['Base Color'].default_value=(*srgb(colour),1)
+                finish=instance.get('finish')
+                if finish and m.get('formsteadFinishRole')=='paint':
+                    shader.inputs['Roughness'].default_value=finish.get('rough',.5)
+                    image=finish.get('surface',{}).get('image')
+                    if image:
+                        # Production server has already constrained this path
+                        # to a verified public image; direct offline QA accepts
+                        # the same rooted public URL convention.
+                        texture_path=Path(image)
+                        if not texture_path.is_file():texture_path=public/image.lstrip('/')
+                        texture_path=texture_path.resolve()
+                        if not texture_path.is_relative_to(public.resolve()) or not texture_path.is_file():raise ValueError('Selected cabinet texture missing')
+                        texture=m.node_tree.nodes.new('ShaderNodeTexImage');texture.image=bpy.data.images.load(str(texture_path),check_existing=True)
+                        m.node_tree.links.new(texture.outputs['Color'],shader.inputs['Base Color'])
+                if instance.get('hardwareColor') and shader.inputs['Metallic'].default_value>=.6:
+                    shader.inputs['Base Color'].default_value=(*srgb(instance['hardwareColor']),1)
+                    for link in list(shader.inputs['Base Color'].links):m.node_tree.links.remove(link)
+        replaced.update(instance['replaces'])
+    return replaced
 
 
 def main():

@@ -7,7 +7,7 @@ import { DEFAULT_LOOK_SPEED, walkthroughLook } from '@/lib/walkthrough/look.ts'
 
 export type WalkingControls = { enter: () => void; enterDrag: () => void; exit: () => void;
   move: (direction: 'forward' | 'back' | 'left' | 'right', pressed: boolean) => void; interact: () => void }
-export type WalkingHud = { room: string; floor: number; door: { id: string; open: boolean; blocked?: boolean } | null; blocked: string | null;
+export type WalkingHud = { room: string; roomId?: string; floor: number; door: { id: string; open: boolean; blocked?: boolean } | null; blocked: string | null;
   feet: [number, number, number]; grounded: boolean; look: [number, number] }
 type Orbit = { enabled: boolean; target: Vector3; update: () => void }
 
@@ -76,7 +76,7 @@ export function FirstPersonController({ simulation, model, onControls, onActive,
       if (orbit) orbit.enabled = false
       if (!active.current) previousCursor = canvas.style.cursor
       active.current = true; inputMode.current = mode; keys.current.clear(); buttonKeys.current.clear(); simulation.pause(); canvas.style.cursor = 'none'
-      perspective.near = .035; perspective.far = 160; perspective.fov = 72; perspective.updateProjectionMatrix()
+      perspective.near = .025; perspective.far = 160; perspective.fov = 72; perspective.updateProjectionMatrix()
       camera.position.set(simulation.eye.x, simulation.eye.y, simulation.eye.z); camera.rotation.order = 'YXZ'; camera.rotation.set(pitch.current, yaw.current, 0)
       callbacks.current.onActive(true, mode); invalidate()
     }
@@ -140,7 +140,7 @@ export function FirstPersonController({ simulation, model, onControls, onActive,
       clock.current = 0; camera.getWorldDirection(direction.current)
       const floor = simulation.metadata.floors.find(f => f.sourceId === simulation.floorId)
       const room = simulation.metadata.rooms.find(r => r.floorId === simulation.floorId && simulation.feet.x * 1000 >= r.rectMm.x && simulation.feet.x * 1000 <= r.rectMm.x + r.rectMm.w && -simulation.feet.z * 1000 >= r.rectMm.y && -simulation.feet.z * 1000 <= r.rectMm.y + r.rectMm.h)
-      callbacks.current.onHud({ room: room?.name ?? '', floor: floor?.level ?? 0, door: simulation.targetDoor(camera.position, direction.current), blocked: simulation.blocked,
+      callbacks.current.onHud({ room: room?.name ?? '', roomId: room?.id, floor: floor?.level ?? 0, door: simulation.targetDoor(camera.position, direction.current), blocked: simulation.blocked,
         feet: [simulation.feet.x, simulation.feet.y, simulation.feet.z], grounded: simulation.grounded, look: [yaw.current, pitch.current] })
     }
     // Demand rendering resumes its idle behaviour immediately on Escape/blur.

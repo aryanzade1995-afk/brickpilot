@@ -1,4 +1,8 @@
 import { create } from 'zustand'
+import { useWaterIntelligence } from './waterIntelligence.ts'
+import { parseWaterConfig, type WaterConfig } from '../lib/water/schema.ts'
+import {useReference} from './reference.ts'
+import {parseReferenceDocument,type ReferenceDocument} from '../lib/reference/schema.ts'
 import { parseStoredBrief, type Brief } from '@/lib/model/brief.ts'
 import type { LayoutDoc } from '@/lib/plan/layout.ts'
 import { parseLayout } from '@/lib/plan/parse.ts'
@@ -30,12 +34,14 @@ export const stageLabel = (id: StageId) => STAGES.find((s) => s.id === id)?.labe
 
 /** everything that rebuilds the design */
 export type Core = {
+  waterIntelligence?: WaterConfig | null
   brief: Brief
   pinned: string | null
   layout: LayoutDoc | null
   existing: { structure: ExistingStructure; seed: number } | null
   finishes: { key: string; selection: unknown } | null
   stage: StageId
+  reference?: ReferenceDocument | null
 }
 
 export type RoomSummary = { id: string; name: string; type: string; x: number; y: number; w: number; h: number; areaSqm: number; locked: boolean }
@@ -104,7 +110,7 @@ function currentCore(stage: StageId): Core {
   const { brief, pinned, layout, existing, result } = useStudio.getState()
   const key = result ? geometryCostKey(result.design) : null
   const selection = key ? useFinishes.getState().entries[key] : undefined
-  return { brief: structuredClone(brief), pinned: serializePinned(pinned), layout: layout ? structuredClone(layout) : null,
+  return { waterIntelligence: structuredClone(useWaterIntelligence.getState().document), reference: structuredClone(useReference.getState().document), brief: structuredClone(brief), pinned: serializePinned(pinned), layout: layout ? structuredClone(layout) : null,
     existing: existing ? structuredClone(existing) : null, finishes: key && selection ? { key, selection: structuredClone(selection) } : null, stage }
 }
 
@@ -118,7 +124,7 @@ export function parseCore(value: unknown): Core | null {
   const ex = v.existing as Core['existing']
   const existing = ex && ex.structure && Array.isArray(ex.structure.columns) && Array.isArray(ex.structure.footings) && Array.isArray(ex.structure.beams) && Array.isArray(ex.structure.walls) ? ex : null
   const fin = v.finishes as Core['finishes']
-  return { brief: brief.data, pinned: typeof v.pinned === 'string' ? v.pinned : null, layout: parseLayout(v.layout), existing,
+  return { waterIntelligence: parseWaterConfig(v.waterIntelligence), reference: parseReferenceDocument(v.reference), brief: brief.data, pinned: typeof v.pinned === 'string' ? v.pinned : null, layout: parseLayout(v.layout), existing,
     finishes: fin && typeof fin.key === 'string' ? fin : null, stage }
 }
 
@@ -158,7 +164,9 @@ function persist(items: Project[], currentId: string | null): string | null {
 
 /** put a stored core into the working studio */
 export function applyCore(core: Core): void {
+  useWaterIntelligence.getState().restore(core.waterIntelligence)
   restoreCostReplay(null)
+  useReference.getState().restore(core.reference)
   const pinned: PinnedDir | null = parsePinned(core.pinned)
   useStudio.getState().loadSaved(core.brief, pinned, core.layout, core.existing)
   if (core.finishes) useFinishes.getState().setSelection(core.finishes.key, core.finishes.selection)
@@ -286,7 +294,7 @@ export const useProjects = create<ProjectsState>((set, get) => {
       return true
     },
 
-    startNew: () => set({ currentId: null, stage: 'concept' }),
+    startNew: () => { useWaterIntelligence.getState().clear(); useReference.getState().clear(); set({ currentId: null, stage: 'concept' }) },
   }
 })
 
@@ -296,14 +304,15 @@ let pendingLabel: string | undefined
 export function noteChange(label: string) { pendingLabel = label }
 export function startAutosave(): () => void {
   let last = ''
-  const sign = () => { const s = useStudio.getState(); return JSON.stringify([s.pinned, s.layout, s.existing, s.brief.site, s.brief.rooms, s.brief.levels, s.brief.style, s.brief.project.name, s.brief.solar]) }
+  const sign = () => { const s = useStudio.getState(); return JSON.stringify([s.pinned, s.layout, s.existing, s.brief.site, s.brief.rooms, s.brief.levels, s.brief.style, s.brief.project.name, s.brief.solar, useReference.getState().document, useWaterIntelligence.getState().document]) }
   last = sign()
-  const unsub = useStudio.subscribe(() => {
+  const changed = () => {
     const now = sign()
     if (now === last) return
     last = now
     clearTimeout(timer)
     timer = setTimeout(() => { const label = pendingLabel; pendingLabel = undefined; useProjects.getState().autoSave(label) }, 1500)
-  })
-  return () => { clearTimeout(timer); unsub() }
+  }
+  const unsub = useStudio.subscribe(changed), unsubReference = useReference.subscribe(changed), unsubWater = useWaterIntelligence.subscribe(changed)
+  return () => { clearTimeout(timer); unsub(); unsubReference(); unsubWater() }
 }

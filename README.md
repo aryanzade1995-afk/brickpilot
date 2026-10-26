@@ -96,6 +96,12 @@ exterior faces into nine zones and builds one seeded hero feature with up to
 two supporting features from anchored, checked geometry. Eleven internal
 architectural composition families now select substantially different feature
 geometry while the UI retains its three existing style choices.
+The [Reference facade studio](docs/reference-facade-reconstruction.md) adds photo
+upload, optional validated vision analysis, manual feature marking, deterministic
+editable facade solids, aligned comparison and reversible refinement at
+`/workspace/plan#reference-facade`, inside the 2D Plan page. It shares the existing villa viewer and Blender exporter;
+preserve-plan proposals and reference-led exterior studies remain distinct.
+Run `npm run test:reference` for its focused checks.
 The [Blender geometry pipeline](docs/blender-pipeline.md) exports validated
 models to an editable `.blend` scene and GLB through a headless Python builder.
 The [Specialized architectural grammars](docs/specialized-grammars.md) add 40

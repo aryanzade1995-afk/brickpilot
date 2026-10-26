@@ -26,8 +26,8 @@ export function Landing() {
 
   return (
     <div className="mx-auto max-w-[1400px] px-6 md:px-10">
-      <section className="grid items-center gap-14 py-16 lg:grid-cols-[1fr_1.05fr] lg:py-24">
-        <div>
+      <section className="grid min-w-0 grid-cols-1 items-center gap-14 py-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:py-24">
+        <div className="min-w-0">
           <div className="mb-8 flex items-center gap-3">
             <span className="h-px w-8 bg-accent" />
             <span className="label text-accent">{translateUi("AI House Feasibility Studio")}</span>
@@ -49,7 +49,7 @@ export function Landing() {
           </div>
         </div>
 
-        <div className="lg:pl-6">
+        <div className="min-w-0 lg:pl-6">
           <HeroPreview />
         </div>
       </section>

@@ -1,0 +1,113 @@
+Formstead interior model library
+Generic visual references, not manufacturer replicas.
+Adaptations: optimization, axis/unit normalization, PBR conversion, scale and selected-colour variants.
+
+Sofa — Derte21
+CC-BY-3.0 https://creativecommons.org/licenses/by/3.0/
+https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/blendswap-cc-by/sofa2.zip
+Licence notice: /interior-assets/sofa/LICENSE.txt
+
+Bed — fabbyone; sheets adaptation by Emmanuel Puybaret / eTeks
+CC-BY-3.0 https://creativecommons.org/licenses/by/3.0/
+https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/blendswap-cc-by/lettoCloud.zip
+Licence notice: /interior-assets/bed/LICENSE.txt
+
+Chair with cushion — Jay-Artist
+CC-BY-3.0 https://creativecommons.org/licenses/by/3.0/
+https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/blendswap-cc-by/chairWithCushion.zip
+Licence notice: /interior-assets/dining-chair/LICENSE.txt
+
+Table — Jay-Artist
+CC-BY-3.0 https://creativecommons.org/licenses/by/3.0/
+https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/blendswap-cc-by/table.zip
+Licence notice: /interior-assets/dining-table/LICENSE.txt
+
+Coffee table — nikitron
+CC-BY-3.0 https://creativecommons.org/licenses/by/3.0/
+https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/blendswap-cc-by/coffeeTable.zip
+Licence notice: /interior-assets/coffee-table/LICENSE.txt
+
+Wardrobe — SirOccor
+CC-BY-3.0 https://creativecommons.org/licenses/by/3.0/
+https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/blendswap-cc-by/wardrobe.zip
+Licence notice: /interior-assets/wardrobe/LICENSE.txt
+
+Bedside table — SirOccor
+CC-BY-3.0 https://creativecommons.org/licenses/by/3.0/
+https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/blendswap-cc-by/bedsideTable.zip
+Licence notice: /interior-assets/nightstand/LICENSE.txt
+
+Toilet unit — Jay-Artist
+CC-BY-3.0 https://creativecommons.org/licenses/by/3.0/
+https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/blendswap-cc-by/toilets_unit_jay_hardy.zip
+Licence notice: /interior-assets/toilet/LICENSE.txt
+
+Toilet unit — starapple
+CC-BY-3.0 https://creativecommons.org/licenses/by/3.0/
+https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/blendswap-cc-by/modernToilet.zip
+Licence notice: /interior-assets/toilet-modern/LICENSE.txt
+
+Washbasin — Jay-Artist
+CC-BY-3.0 https://creativecommons.org/licenses/by/3.0/
+https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/blendswap-cc-by/washbasin_jay_hardy.zip
+Licence notice: /interior-assets/basin/LICENSE.txt
+
+Bath — Jay-Artist
+CC-BY-3.0 https://creativecommons.org/licenses/by/3.0/
+https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/blendswap-cc-by/bath_jay_hardy.zip
+Licence notice: /interior-assets/bathtub/LICENSE.txt
+
+Sink — Jay-Artist
+CC-BY-3.0 https://creativecommons.org/licenses/by/3.0/
+https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/blendswap-cc-by/kitchenSink.zip
+Licence notice: /interior-assets/kitchen-sink/LICENSE.txt
+
+Washing machine — Cattail
+CC-BY-3.0 https://creativecommons.org/licenses/by/3.0/
+https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/blendswap-cc-by/washing_machine.zip
+Licence notice: /interior-assets/washing-machine/LICENSE.txt
+
+Hanging light — Jay-Artist
+CC-BY-3.0 https://creativecommons.org/licenses/by/3.0/
+https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/blendswap-cc-by/hangingLight.zip
+Licence notice: /interior-assets/lamp/LICENSE.txt
+
+Ceiling Fan — Ulan Cabanilla
+CC0-1.0 https://creativecommons.org/publicdomain/zero/1.0/
+https://polyhaven.com/a/ceiling_fan
+Licence notice: /interior-assets/fan/LICENSE.txt
+
+Modern Arm Chair 01 — Vibrant Nordic
+CC0-1.0 https://creativecommons.org/publicdomain/zero/1.0/
+https://polyhaven.com/a/modern_arm_chair_01
+Licence notice: /interior-assets/armchair/LICENSE.txt
+
+Wall-hung toilet — Ola-Kristian HOFF
+CC-BY-3.0 https://creativecommons.org/licenses/by/3.0/
+https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/contributions/toilet_hang_round.zip
+Licence notice: /interior-assets/toilet-wall/LICENSE.txt
+
+Exhaust fan — Ola-Kristian HOFF; volume adaptation by Emmanuel Puybaret / eTeks
+CC-BY-3.0 https://creativecommons.org/licenses/by/3.0/
+https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/contributions/bathroom_fan.zip
+Licence notice: /interior-assets/exhaust/LICENSE.txt
+
+Kitchen base cabinet — Jay-Artist
+CC-BY-3.0 https://creativecommons.org/licenses/by/3.0/
+https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/blendswap-cc-by/kitchenSmallLowerCabinet.zip
+Licence notice: /interior-assets/kitchen-base/LICENSE.txt
+
+Kitchen drawer cabinet — Jay-Artist
+CC-BY-3.0 https://creativecommons.org/licenses/by/3.0/
+https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/blendswap-cc-by/kitchenDrawersCabinet.zip
+Licence notice: /interior-assets/kitchen-drawers/LICENSE.txt
+
+Kitchen wall cabinet — Jay-Artist
+CC-BY-3.0 https://creativecommons.org/licenses/by/3.0/
+https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/blendswap-cc-by/kitchenUpperCabinet.zip
+Licence notice: /interior-assets/kitchen-upper/LICENSE.txt
+
+Gas hob — Jay-Artist
+CC-BY-3.0 https://creativecommons.org/licenses/by/3.0/
+https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/blendswap-cc-by/largeStove.zip
+Licence notice: /interior-assets/kitchen-hob/LICENSE.txt

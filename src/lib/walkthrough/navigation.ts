@@ -3,7 +3,7 @@ import type { Collider } from './delivery.ts'
 import type { WalkthroughGeometryPayload } from './delivery.ts'
 import type { SceneOpening } from './sceneTypes.ts'
 
-export const WALKING = Object.freeze({ radius: .22, height: 1.75, eye: 1.62, skin: .008, step: .23, snap: .24,
+export const WALKING = Object.freeze({ radius: .22, height: 1.64, eye: 1.5, skin: .008, step: .23, snap: .24,
   speed: 1.65, acceleration: 12, deceleration: 18, gravity: 9.81, fixedStep: 1 / 60, maxFrame: .1 })
 export type NavigationMetadata = WalkthroughGeometryPayload['metadata'] & { designId: string; projectId: string; geometryKey: string; appearanceKey: string }
 export type NavigationCollision = WalkthroughGeometryPayload['collision'] & { designId: string; projectId: string; geometryKey: string; appearanceKey: string }

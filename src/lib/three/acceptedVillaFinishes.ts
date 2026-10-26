@@ -1,7 +1,8 @@
 import { BufferGeometry, Float32BufferAttribute, Matrix3, Mesh, Texture, Vector3, type Group, type Material } from 'three'
 import type { WalkthroughGeometryPayload, WalkthroughAppearancePayload } from '../walkthrough/delivery.ts'
+import {isWalkthroughShellMesh} from './walkthroughShell.ts'
 
-type Vertex = { p: Vector3; n: Vector3; uv: [number, number] }
+type Vertex = { p: Vector3; n: Vector3; uv: [number, number]; uv2?:[number,number] }
 const sourceDomains = new WeakMap<Group, { signature: string; sources: Map<Mesh, { geometry: BufferGeometry; material: Material | Material[] }> }>()
 const materialsOf = (m: Material | Material[]) => Array.isArray(m) ? m : [m]
 
@@ -12,7 +13,7 @@ export function disposeAcceptedVillaFinishSources(root: Group) {
   for (const item of sources.sources.values()) if (!live.has(item.geometry)) item.geometry.dispose()
   sourceDomains.delete(root)
 }
-const blend = (a: Vertex, b: Vertex, t: number): Vertex => ({ p: a.p.clone().lerp(b.p, t), n: a.n.clone().lerp(b.n, t).normalize(), uv: [a.uv[0] + (b.uv[0] - a.uv[0]) * t, a.uv[1] + (b.uv[1] - a.uv[1]) * t] })
+const blend = (a: Vertex, b: Vertex, t: number): Vertex => ({ p: a.p.clone().lerp(b.p, t), n: a.n.clone().lerp(b.n, t).normalize(), uv: [a.uv[0] + (b.uv[0] - a.uv[0]) * t, a.uv[1] + (b.uv[1] - a.uv[1]) * t],uv2:a.uv2&&b.uv2?[a.uv2[0]+(b.uv2[0]-a.uv2[0])*t,a.uv2[1]+(b.uv2[1]-a.uv2[1])*t]:undefined })
 function clip(poly: Vertex[], axis: number, value: number, sign: number) {
   const out: Vertex[] = []
   for (let i = 0; i < poly.length; i++) {
@@ -75,29 +76,30 @@ export function bindAcceptedVillaFinishes(root: Group, geometry: WalkthroughGeom
       }
     }
     // Original furnishings and decorative/exterior layers retain their geometry.
-    if (!/^(?:GF|FF|F\d+)_Wall_|^(?:GF|FF|F\d+)_(?:Roof_)?Slab_|^(?:Beam|Column)_/.test(mesh.name)) continue
-    const source = mesh.geometry, pos = source.getAttribute('position'), normal = source.getAttribute('normal'), uv = source.getAttribute('uv')
+    if (!isWalkthroughShellMesh(mesh)) continue
+    const source = mesh.geometry, pos = source.getAttribute('position'), normal = source.getAttribute('normal'), uv = source.getAttribute('uv'),uv2=source.getAttribute('uv2')
     if (!pos || !normal) continue
     const index = source.index, inverse = mesh.matrixWorld.clone().invert(), normalMatrix = new Matrix3().getNormalMatrix(mesh.matrixWorld)
     const old = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
-    const groups = new Map<string, { binding: string | null; material: Material; p: number[]; n: number[]; uv: number[] }>()
+    const groups = new Map<string, { binding: string | null; material: Material; p: number[]; n: number[]; uv: number[]; uv2:number[] }>()
     let changed = false
     const emit = (poly: Vertex[], binding: string | null, material: Material, axis: number) => {
       if (poly.length < 3) return
-      const key = `${binding}:${material.uuid}`, group = groups.get(key) ?? { binding, material, p: [], n: [], uv: [] }
+      const key = `${binding}:${material.uuid}`, group = groups.get(key) ?? { binding, material, p: [], n: [], uv: [],uv2:[] }
       for (let j = 1; j + 1 < poly.length; j++) {
         if (new Vector3().subVectors(poly[j].p, poly[0].p).cross(new Vector3().subVectors(poly[j + 1].p, poly[0].p)).lengthSq() < 1e-16) continue
         for (const v of [poly[0], poly[j], poly[j + 1]]) {
           group.p.push(...v.p.clone().applyMatrix4(inverse).toArray()); group.n.push(...v.n.toArray())
           group.uv.push(...(binding ? [axis === 0 ? -v.p.z : v.p.x, axis === 1 ? -v.p.z : v.p.y] : v.uv))
+          if(v.uv2)group.uv2.push(...v.uv2)
         }
       }
       groups.set(key, group)
     }
     for (let i = 0, count = index?.count ?? pos.count; i < count; i += 3) {
-      const triangle = [0, 1, 2].map(k => {
+      const triangle:Vertex[] = [0, 1, 2].map(k => {
         const v = index ? index.getX(i + k) : i + k
-        return { p: new Vector3().fromBufferAttribute(pos, v).applyMatrix4(mesh.matrixWorld), n: new Vector3().fromBufferAttribute(normal, v), uv: [uv?.getX(v) ?? 0, uv?.getY(v) ?? 0] as [number, number] }
+        return { p: new Vector3().fromBufferAttribute(pos, v).applyMatrix4(mesh.matrixWorld), n: new Vector3().fromBufferAttribute(normal, v), uv: [uv?.getX(v) ?? 0, uv?.getY(v) ?? 0] as [number, number],uv2:uv2?[uv2.getX(v),uv2.getY(v)] as [number,number]:undefined }
       })
       const n = triangle[0].n.clone().applyMatrix3(normalMatrix).normalize(), axis = [Math.abs(n.x), Math.abs(n.y), Math.abs(n.z)].findIndex(v => v > .99)
       const slot = source.groups.find(g => i >= g.start && i < g.start + g.count)?.materialIndex ?? 0, material = old[slot] ?? old[0]
@@ -122,13 +124,15 @@ export function bindAcceptedVillaFinishes(root: Group, geometry: WalkthroughGeom
     }
     if (!changed) continue
     remember(mesh)
-    const output = new BufferGeometry(), p: number[] = [], n: number[] = [], tex: number[] = [], materials: Material[] = [], bindings: (string | null)[] = []
+    const output = new BufferGeometry(), p: number[] = [], n: number[] = [], tex: number[] = [],lightUV:number[]=[], materials: Material[] = [], bindings: (string | null)[] = []
     for (const group of groups.values()) {
       if (!group.p.length) continue
       output.addGroup(p.length / 3, group.p.length / 3, materials.length)
       p.push(...group.p); n.push(...group.n); tex.push(...group.uv); materials.push(group.material); bindings.push(group.binding)
+      lightUV.push(...group.uv2)
     }
     output.setAttribute('position', new Float32BufferAttribute(p, 3)); output.setAttribute('normal', new Float32BufferAttribute(n, 3)); output.setAttribute('uv', new Float32BufferAttribute(tex, 2))
+    if(uv2)output.setAttribute('uv2',new Float32BufferAttribute(lightUV,2))
     mesh.geometry = output; mesh.material = materials; mesh.userData.materialBindings = bindings; mesh.userData.materialTileM = 1
     retired.add(source)
   }

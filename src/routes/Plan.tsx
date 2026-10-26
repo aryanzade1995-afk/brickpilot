@@ -4,35 +4,29 @@ import { useFinishes } from '@/state/finishes.ts'
 import { estimateProjectBoq } from '@/lib/cost/index.ts'
 import { geometryCostKey } from '@/lib/cost/quantities.ts'
 import { formatINR, formatRange } from '@/lib/format.ts'
-import { useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { lazy, Suspense, useEffect, useMemo } from 'react'
+import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { ArrowRight, Dices, Pencil } from 'lucide-react'
 import { useStudio } from '@/state/studio.ts'
 import { DrawingWorkspace } from '@/components/DrawingWorkspace.tsx'
 import { PlanEditor } from '@/components/PlanEditor.tsx'
 import { isEditable } from '@/lib/plan/ops.ts'
-import { ZONE_LABEL } from '@/lib/model/canonical.ts'
 import { cx } from '@/lib/cx.ts'
 import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
 import { VillaGenerationNotice } from '@/components/VillaGenerationNotice.tsx'
 import { InvalidPlanNotice } from '@/components/InvalidPlanNotice.tsx'
-import type { Severity } from '@/lib/rules/index.ts'
 import { preferenceScore } from '@/lib/engine/score.ts'
 import { ExportDropdown } from '@/components/export/ExportDropdown.tsx'
 import { downloadSvg, downloadSvgAsPng } from '@/lib/export/index.ts'
 import { downloadSheetPdf } from '@/lib/draw/exportSheet.ts'
 
-const SEV_COLOR: Record<Severity, string> = {
-  error: 'text-bad',
-  warning: 'text-warn',
-  info: 'text-ink-dim',
-}
+const ReferenceFacadeSection = lazy(() => import('@/components/reference/ReferenceFacadeSection.tsx').then(module => ({ default: module.ReferenceFacadeSection })))
 
 export function Plan() {
   useLanguage(s => s.language);
 
   const [params, setParams] = useSearchParams()
-  const [floorIdx, setFloorIdx] = useState(Number(params.get("floor")) || 0)
+  const { hash } = useLocation()
   const brief = useStudio(s => s.brief)
   const result = useStudio((s) => s.result)
   const run = useStudio((s) => s.run)
@@ -50,13 +44,18 @@ export function Plan() {
     if (!result) run()
   }, [result, run])
 
+  useEffect(() => {
+    if (result && (hash === '#reference-facade' || hash === '#floor-plan')) {
+      document.getElementById(hash.slice(1))?.scrollIntoView({ block: 'start' })
+    }
+  }, [result, hash])
+
   if (!result) {
     return <div className="mx-auto max-w-[1400px] px-10 py-24 text-ink-dim">{translateUi("Generating…")}</div>
   }
   if (!result.report.hardChecksPass) return <InvalidPlanNotice report={result.report} />
 
-  const { design, report } = result
-  const floor = design.floors[Math.min(floorIdx, design.floors.length - 1)]
+  const { design } = result
   // cheap to compute; not a hook, so it is fine after the early returns
   const why = preferenceScore(design)
   const whyTerms = why.terms.filter((t) => t.value !== 0)
@@ -73,21 +72,12 @@ export function Plan() {
       </details>
       {/* metric bar */}
       <div className="mt-5 flex flex-wrap items-center gap-x-10 gap-y-3 border-b border-line pb-4">
-        <Metric k="Validation" v={`${report.score} / 100`} />
-        <div
-          className={cx(
-            'font-mono text-xs uppercase tracking-[0.1em]',
-            report.hardChecksPass ? 'text-ok' : 'text-bad',
-          )}
-        >
-          {translateUi(report.hardChecksPass ? '● Hard checks pass' : '● Hard checks fail')}
-        </div>
         <Metric k="Built area" v={`${design.builtAreaSqm.toFixed(1)} m²`} />
         <Metric k="Height" v={`${design.heightM} m`} />
         <Metric k="Coverage" v={`${(design.coverage * 100).toFixed(0)} %`} />
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3" data-testid="edit-bar">
+      <div id="floor-plan" className="mt-4 flex scroll-mt-6 flex-wrap items-center justify-between gap-3" data-testid="edit-bar">
         <div className="flex flex-wrap items-center gap-3">
           {editable ? (
             <button type="button" onClick={toggleEdit} aria-pressed={editing}
@@ -97,6 +87,7 @@ export function Plan() {
           ) : (
             <p className="text-xs text-ink-faint" role="note">{translateUi("Room-by-room editing is available for the standard plan layouts. Wing and courtyard-ring villas are not editable yet.")}</p>
           )}
+          <Link to="#reference-facade" className="inline-flex min-h-11 items-center border border-line-strong px-3 py-2 font-mono text-[0.7rem] uppercase tracking-[0.1em] text-ink-dim hover:text-ink">{translateUi("Reference facade")} ↓</Link>
           {layout && <span className="font-mono text-[0.65rem] uppercase tracking-[0.1em] text-warn">{translateUi("Edited plan · saved with the project")}</span>}
         </div>
         <ExportDropdown
@@ -134,8 +125,13 @@ export function Plan() {
           ]}
         />
       </div>
-      <div className="mt-4">{editing ? <PlanEditor design={drawingDesign!} /> : <DrawingWorkspace key={`${params.get("floor")}:${params.get("highlight")}`} design={drawingDesign!} onFloorChange={setFloorIdx} initialFloorLevel={params.has("floor") ? Number(params.get("floor")) : undefined} highlightCategory={params.get("highlight") ?? undefined} />}</div>
+      <div className="mt-4">{editing ? <PlanEditor design={drawingDesign!} /> : <DrawingWorkspace key={`${params.get("floor")}:${params.get("highlight")}`} design={drawingDesign!} initialFloorLevel={params.has("floor") ? Number(params.get("floor")) : undefined} highlightCategory={params.get("highlight") ?? undefined} />}</div>
       {cost && <section aria-label={translateUi("Cost summary")} className="mt-6 flex flex-wrap items-center justify-between gap-4 border-y border-line py-5"><div><Link to="/workspace/finishes?tab=estimate" className="text-sm underline">{translateUi("Cost band · ")}{translateUi(formatRange(cost.total.low, cost.total.high, formatINR))}</Link><p className="mt-2 text-xs text-ink-faint">{translateUi(cost.label)}</p></div><Link to="/workspace/finishes" className="text-sm underline">{translateUi("Finishes & cost →")}</Link></section>}
+      <div id="reference-facade" className="scroll-mt-6">
+        <Suspense fallback={<p role="status" className="py-8 text-sm text-ink-dim">{translateUi("Loading reference facade…")}</p>}>
+          <ReferenceFacadeSection />
+        </Suspense>
+      </div>
       <div className="mt-6 grid gap-6 md:grid-cols-3">
           <Panel title={translateUi("Study record")}>
             <RecRow k="Seed" v={design.seed} />
@@ -177,64 +173,7 @@ export function Plan() {
             {translateUi("Continue to 3D")}</Link>
       </div>
 
-      {/* validation findings */}
-      <section className="mt-14 border-t border-line pt-8">
-        <div className="flex items-baseline gap-3">
-          <h2 className="font-display text-2xl">{translateUi("Validation findings")}</h2>
-          <span className="label">
-            {translateUi(report.counts.error)} {translateUi(" errors · ")}{translateUi(report.counts.warning)} {translateUi(" warnings · pack ")}{translateUi(report.pack)}
-          </span>
-        </div>
-        <p className="mt-2 max-w-2xl text-sm text-ink-dim">
-          {translateUi("Deterministic checks against the plan geometry — ")}{translateUi(report.checksRun.join(' · '))}.
-        </p>
 
-        {report.findings.length === 0 ? (
-          <p className="mt-6 text-sm text-ok">{translateUi("No findings. The concept passes every rule in this pack.")}</p>
-        ) : (
-          <ul className="mt-6 divide-y divide-line border-y border-line">
-            {report.findings.map((f, i) => (
-              <li key={i} className="flex gap-4 py-3 text-sm">
-                <span className={cx('flex-none font-mono text-[0.7rem] uppercase tracking-[0.1em]', SEV_COLOR[f.severity])}>
-                  {translateUi(f.severity)}
-                </span>
-                <span className="flex-none font-mono text-[0.7rem] uppercase tracking-[0.08em] text-ink-faint">
-                  {translateUi(f.code)}
-                </span>
-                <span className="text-ink-dim">{translateUi(f.message)}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      {/* room schedule */}
-      <section className="mt-14 border-t border-line pt-8">
-        <h2 className="font-display text-2xl">{translateUi("Room schedule — ")}{translateUi(floor.name)}</h2>
-        <div className="mt-5 overflow-x-auto border-y border-line">
-          <table className="w-full min-w-[520px] text-sm">
-            <thead>
-              <tr className="label [&>th]:py-2.5 [&>th]:pr-6 [&>th]:text-left">
-                <th>{translateUi("Space")}</th>
-                <th>{translateUi("Zone")}</th>
-                <th className="text-right">{translateUi("Size")}</th>
-                <th className="text-right">{translateUi("Area")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {floor.rooms.map((r) => (
-                <tr key={r.id} className="border-t border-line [&>td]:py-2.5 [&>td]:pr-6">
-                  <td className="text-ink">{translateUi(r.name)}</td>
-                  <td className="text-ink-dim">{translateUi(ZONE_LABEL[r.zone])}</td>
-                  <td className="text-right font-mono text-xs text-ink-dim tnum">
-                    {translateUi((r.rect.w / 1000).toFixed(1))} × {translateUi((r.rect.h / 1000).toFixed(1))} {translateUi(" m")}</td>
-                  <td className="text-right font-mono text-xs text-ink tnum">{translateUi(r.area.toFixed(1))} {translateUi(" m²")}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
     </div>
   )
 }

@@ -32,10 +32,10 @@ export function App() {
   }, [userId, fetchDesigns, clearDesigns])
 
   return (
-    <div className="flex min-h-dvh flex-col">
+    <div className="flex min-h-dvh w-full min-w-0 flex-col">
       <div aria-hidden className={`pointer-events-none fixed inset-x-0 top-0 z-[60] h-0.5 origin-left bg-accent transition-[transform,opacity] duration-300 ${loading ? 'scale-x-75 opacity-100 ease-out' : 'scale-x-100 opacity-0'}`} />
       <SiteHeader variant={isWorkspace ? 'workspace' : 'marketing'} />
-      <main className="flex-1">
+      <main className="w-full min-w-0 flex-1">
         <Outlet />
       </main>
       {authDialogOpen && <AuthDialog />}

@@ -12,7 +12,9 @@ export function WalkthroughLighting({ model, bounds: framing }: { model: Group; 
     model.updateMatrixWorld(true)
     const bounds = framing ?? new Box3().setFromObject(model), centre = bounds.getCenter(new Vector3()), size = bounds.getSize(new Vector3())
     const target = new Object3D(); target.position.copy(centre)
-    return { target, position: [centre.x + size.x * .5, bounds.max.y + 12, centre.z - size.z * .4] as [number, number, number],
+    const distance=Math.max(20,size.length())
+    // Same world sun vector as the Cycles bake (Blender Z-up -> Three Y-up).
+    return { target, position: [centre.x-distance*.612, centre.y+distance*.742, centre.z+distance*.272] as [number, number, number],
       span: Math.max(size.x, size.z) * .65, far: size.length() + 45 }
   }, [model, framing])
   useEffect(() => {

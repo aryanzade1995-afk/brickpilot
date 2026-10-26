@@ -6,6 +6,7 @@ import { realizeSourceStair } from './stairs.ts'
 import { exposedSurfaces } from './surfaces.ts'
 import { walkthroughRoomKey } from './source.ts'
 import { sceneId, type WalkthroughScene, type SourceBox, type SceneRole } from './sceneTypes.ts'
+import { balconySliders, roofAccess } from './openingAssemblies.ts'
 
 const EPS = 1e-6
 const overlaps = (a: SourceBox, b: SourceBox) => a.x < b.x + b.w - EPS && a.x + a.w > b.x + EPS &&
@@ -30,6 +31,7 @@ export function buildWalkthroughScene(input: BuildingModel, validation: { hardCh
   if (!validation.hardChecksPass) issue('INVALID_PLAN', building.planId, 'The source Result has not passed 2D validation.')
   if (building.schemaVersion !== 1 || building.units !== 'mm' || building.coordinates !== 'plan-x-east-y-south-z-up') issue('UNSUPPORTED_COORDINATES', building.planId, 'Unsupported BuildingModel schema or axes.')
   const floors = [...building.floors].sort((a, b) => a.level - b.level), byFloor = new Map(floors.map(f => [f.id, f]))
+  const sliders = new Set(balconySliders(building).map(s => s.sourceId)), roofDoor = roofAccess(building)
   if (!floors.length || byFloor.size !== floors.length || new Set(floors.map(f => f.level)).size !== floors.length) issue('INVALID_FLOORS', building.planId, 'Floors must have unique source IDs and levels.')
   for (const f of floors) if (![f.elevationMm, f.heightMm, f.slabThicknessMm].every(v => typeof v === 'number' && Number.isFinite(v)) ||
     !f.slabThicknessMm || f.heightMm <= f.slabThicknessMm || !f.footprint.length || !f.footprint.every(validRect)) issue('INVALID_FLOOR', f.id, 'A floor needs finite source elevation, height, slab thickness and footprint.')
@@ -126,7 +128,10 @@ export function buildWalkthroughScene(input: BuildingModel, validation: { hardCh
         }
       } else issue('ROOF_GUARDS_UNSPECIFIED', f.id, 'Source roof parapet dimensions are missing.', 'warning')
     }
-    if (topRoof?.mumty) issue('ROOF_HEADROOM_UNSPECIFIED', f.id, 'The roof headroom footprint is recorded, but its wall height/exit are absent from BuildingModel; no enclosure or exit was invented.', 'warning')
+    if (topRoof?.mumty && roofDoor) {
+      for (const wall of roofDoor.walls) add('wall', f.id, [wall.name], wall.boundsMm)
+      add('slab', f.id, ['Roof_Mumty_Cap'], roofDoor.cap)
+    } else if (topRoof?.mumty) issue('ROOF_HEADROOM_UNSPECIFIED', f.id, 'The recorded roof enclosure has no confirmed source stair exit.', 'warning')
   }
 
   // The same physical wall may be referenced by both rooms. Exact duplicate
@@ -177,7 +182,7 @@ export function buildWalkthroughScene(input: BuildingModel, validation: { hardCh
     const record = { id: sceneId('opening', f.id, opening.id!), sourceId: opening.id!, floorId: f.id, wallId: [...host.ids].sort()[0], kind: opening.kind,
       orient: opening.orient, apertureMm: { ...aperture, z: f.elevationMm + sill, h: head - sill }, sillMm: sill, headMm: head,
       headBasis: opening.head === undefined ? 'source-opening-policy' as const : 'explicit' as const,
-      operation: opening.kind === 'window' ? 'window' as const : opening.treatment === 'open' || opening.leaf === false ? 'open' as const : opening.treatment === 'glazed-slide' ? 'sliding' as const : 'door-leaf-unmodelled' as const,
+      operation: opening.kind === 'window' ? 'window' as const : sliders.has(opening.id!) ? 'sliding' as const : opening.treatment === 'open' || opening.leaf === false ? 'open' as const : opening.treatment === 'glazed-slide' ? 'sliding' as const : 'door-leaf-unmodelled' as const,
       ...(opening.hinge ? { hinge: opening.hinge } : {}), ...(opening.swing ? { swing: opening.swing } : {}),
       ...(opening.emergencyExit ? { emergencyExit: true } : {}),
       rooms: linked ? refs!.map(r => r ? walkthroughRoomKey(r.floorId, r.id) : null) as [string | null, string | null] : null }
@@ -185,6 +190,7 @@ export function buildWalkthroughScene(input: BuildingModel, validation: { hardCh
     if (record.rooms && opening.kind !== 'window') scene.connections.push({ id: sceneId('door-link', record.id), kind: 'door', from: record.rooms.find(r => r !== null)!,
       to: record.rooms.includes(null) ? null : record.rooms[1], sourceId: opening.id! })
   }
+  if (roofDoor) scene.openings.push(roofDoor.opening)
   for (const group of walls) {
     const { wall, horizontal, lo, hi, fixed, height } = group, base = byFloor.get(wall.floorId)!.elevationMm
     const ops = scene.openings.filter(o => o.floorId === wall.floorId && group.ids.includes(o.wallId))
@@ -254,7 +260,7 @@ export function buildWalkthroughScene(input: BuildingModel, validation: { hardCh
     const band = horizontal ? { x: a.x, y: outward > 0 ? edge : edge - 1, w: a.w, h: 1 } : { x: outward > 0 ? edge : edge - 1, y: a.y, w: 1, h: a.d }
     const roofs = scene.roofs.filter(r => Math.abs(r.elevationM * 1000 - a.z) < EPS && !subtractRegions([band], r.regionsMm).length)
     if (roofs.length === 1) {
-      roofs[0].access = 'source-door'
+      if (roofs[0].access !== 'source-stair') roofs[0].access = 'source-door'
       const link = scene.connections.find(c => c.kind === 'door' && c.sourceId === o.sourceId && c.from === key)
       if (link) link.to = roofs[0].id
     }

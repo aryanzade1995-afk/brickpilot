@@ -105,3 +105,17 @@ export function timberToneMap() {
   texture.wrapS=texture.wrapT=RepeatWrapping;texture.repeat.set(2,1);texture.generateMipmaps=true;texture.minFilter=LinearMipmapLinearFilter;texture.anisotropy=8;texture.needsUpdate=true
   return texture
 }
+
+/** Subtle illustrative mineral relief, not an exact manufacturer scan. It
+ * changes highlights only: the selected stone colour/map stays authoritative. */
+export function worktopDetailMap() {
+  const size=128,pixels=new Uint8Array(size*size*4)
+  for(let y=0;y<size;y++)for(let x=0;x<size;x++) {
+    const seed=((x*73856093)^(y*19349663))>>>0,value=120+(seed%17)
+    pixels.set([value,value,value,255],(y*size+x)*4)
+  }
+  const texture=new DataTexture(pixels,size,size,RGBAFormat)
+  texture.userData.proceduralKey='formstead-stone-relief-v1';texture.wrapS=texture.wrapT=RepeatWrapping
+  texture.repeat.set(2,2);texture.generateMipmaps=true;texture.minFilter=LinearMipmapLinearFilter;texture.anisotropy=4;texture.needsUpdate=true
+  return texture
+}

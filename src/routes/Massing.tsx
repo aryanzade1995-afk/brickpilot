@@ -92,6 +92,7 @@ export function Massing() {
       <div className="mt-5 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="font-display text-2xl">{translateUi(mode === 'furnished' ? 'Furnished · ' : '3D massing · ')}{result.model.brief.project.name}</h1>
+          <Link to="/workspace/plan#reference-facade" className="mt-2 mr-2 inline-flex border border-line px-4 py-2 text-sm hover:bg-bg-inset">Reference facade</Link>
           <Link to={SOLAR_URL} className="mt-2 inline-flex rounded-lg border border-line px-4 py-2 text-sm hover:bg-bg-inset">{translateUi(brief.solar.intention === 'undecided' ? 'Add rooftop solar' : 'Edit rooftop solar')}</Link>
         </div>
         <ExportDropdown

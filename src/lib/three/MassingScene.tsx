@@ -112,11 +112,13 @@ export function MassingModel({
   explode,
   hidden,
   character,
+  materialOverrides,
 }: {
   massing: Massing
   explode: number
   hidden: Set<Group>
   character: Character
+  materialOverrides?: Partial<Record<Group,{color:string;roughness:number;metalness?:number;opacity?:number}>>
 }) {
   const mat = THEMES[character].materials
   const paletteColor = {
@@ -189,12 +191,15 @@ export function MassingModel({
   return (
     <group>
       {merged.map(({ g, color, geo }) => {
-        const mm = mat[g]
+        const override = materialOverrides?.[g]
+        const mm = {...mat[g],...override}
         return (
           <mesh key={`${g}:${color??''}`} geometry={geo} castShadow receiveShadow>
             <meshStandardMaterial
-              color={color ?? (g === 'feature' || g === 'clad' ? paletteColor : mm.color)}
+              color={override?.color ?? color ?? (g === 'feature' || g === 'clad' ? paletteColor : mm.color)}
               roughness={mm.roughness}
+              opacity={override?.opacity ?? 1}
+              transparent={(override?.opacity ?? 1)<1}
               metalness={mm.metalness ?? 0}
               envMapIntensity={mm.env ?? 0.4}
             />

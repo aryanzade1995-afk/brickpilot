@@ -19,6 +19,7 @@ import { flooringProduct } from '../flooring/catalogue.ts'
 
 type Pattern = 'image' | 'tile' | 'plank' | 'subway' | 'mosaic' | 'large'
 type Fixture = { name: string; image?: string; profile?: FinishProduct['preview'] }
+export const sanitaryKind=(name:string,id:string):'floor'|'wall'|'indian'=>/indian|orissa/i.test(name)?'indian':/wall hung|premium/i.test(`${name} ${id}`)?'wall':'floor'
 export type Surface = { name: string; color: string; image?: string; tileM: number; tileSizeM?: [number, number]; pattern: Pattern; rough: number }
 export type FinishVisualBasis = { item: string; optionId: string; productId?: string; displayedOptionId: string; name: string;
   representation: 'product-swatch' | 'generic-material' | 'product-photo-reference' | 'procedural-approximation';
@@ -175,7 +176,7 @@ export function interiorFinishes(design: Design, floorLevel: number, roomId: str
   let sanitary: InteriorFinishes['sanitary'], fittings: InteriorFinishes['fittings'], waterHeater: InteriorFinishes['waterHeater'], exhaust: InteriorFinishes['exhaust']
   if (wet) {
     const s = pick('sanitary')!
-    sanitary = { name: s.option.name, image: s.photo, profile: s.profile, wc: /indian|orissa/i.test(s.option.name) ? 'indian' : /wall hung|premium/i.test(`${s.option.name} ${s.option.id}`) ? 'wall' : 'floor' }
+    sanitary = { name: s.option.name, image: s.photo, profile: s.profile, wc: sanitaryKind(s.option.name,s.option.id) }
     note('sanitary', s.option.name, s.photo)
     const f = pick('cp-fittings')!
     fittings = { name: f.option.name, image: f.photo, finish: /black|blk/i.test(f.option.name) ? 'black' : /gold|brass|gld/i.test(f.option.name) ? 'gold' : 'chrome' }
@@ -204,6 +205,9 @@ export function interiorFinishes(design: Design, floorLevel: number, roomId: str
   if (HABITABLE.test(`${roomId} ${room.name}`) && !wet && !kitchen) {
     const f = pick('fans', false)!
     fan = { name: f.option.name, image: f.photo, profile: f.profile, style: /chandelier/i.test(f.option.name) ? 'chandelier' : /underlight/i.test(f.option.name) ? 'underlight' : 'plain' }
+    // An allowance is a generic visual exemplar. Keep explicit product colours
+    // authoritative; use a warm bronze default rather than an all-white kit.
+    if(f.profile&&(!overrides.fans||/^(basic|mid|premium)$/.test(overrides.fans)))fan.profile={...f.profile,color:'#8D6946',accent:'#49392E'}
     note('fans', f.option.name, f.photo)
   }
   const l = pick('light-fittings', false)!

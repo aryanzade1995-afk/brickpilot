@@ -1,0 +1,4184 @@
+{
+  "schemaVersion": 1,
+  "source": "Blender",
+  "examplesOnly": true,
+  "entries": [
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "auto",
+      "storeys": 0,
+      "id": "villa--modern-box--auto--auto--g0",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--auto--auto--g0.png",
+      "planId": "plan-d8df3a7d5481e75b",
+      "seed": 650523944,
+      "actualLayout": "stepped",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "17b9cf099ff961b022e4ab241fec43c80f19e23e2ab09717d9c040ca682f3ac9"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "auto",
+      "storeys": 1,
+      "id": "villa--modern-box--auto--auto--g1",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--auto--auto--g1.png",
+      "planId": "plan-5044f6991bb5c317",
+      "seed": 650523944,
+      "actualLayout": "courtyard",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "995ca56c9cdef8d4f59920ae313abaa3d4a8d83cb1d6295f75e13f18740dc81a"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "auto",
+      "storeys": 2,
+      "id": "villa--modern-box--auto--auto--g2",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--auto--auto--g2.png",
+      "planId": "plan-7ba6d958dae5d69a",
+      "seed": 650523944,
+      "actualLayout": "stepped",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "f300d0311158acbbf540861085210f9a1259c876d2d22835f2df69f7084de211"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "auto",
+      "storeys": 3,
+      "id": "villa--modern-box--auto--auto--g3",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--auto--auto--g3.png",
+      "planId": "plan-7ccb8be65b7c74d4",
+      "seed": 650523944,
+      "actualLayout": "l-shape",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "9a87c00059cde8876654471d952a2e0ed58d70f6125445a83cfdfc2578bda3f4"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "twin-wing",
+      "storeys": 0,
+      "id": "villa--modern-box--auto--twin-wing--g0",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--auto--twin-wing--g0.png",
+      "planId": "plan-0a00d44598e38b0f",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "26d68eff1cfd591aea523ff49c66676289de2f57838698b3234cd5fc95d87c32"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "twin-wing",
+      "storeys": 1,
+      "id": "villa--modern-box--auto--twin-wing--g1",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--auto--twin-wing--g1.png",
+      "planId": "plan-e2f00ac8d0615476",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "3881bc934a5fe83e2071808b923abf83a1117d2600cf41b10458014648591b1b"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "twin-wing",
+      "storeys": 2,
+      "id": "villa--modern-box--auto--twin-wing--g2",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--auto--twin-wing--g2.png",
+      "planId": "plan-244ff9e1a319ca87",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "b54855f43e292f5ced3cd9a69ca8f57339a7034e65619f13b899fbbab80ad39c"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "twin-wing",
+      "storeys": 3,
+      "id": "villa--modern-box--auto--twin-wing--g3",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--auto--twin-wing--g3.png",
+      "planId": "plan-2f6de8d58c4f215f",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "12d6e857f0013fe9c911defdf5a22df3852bc385c3fdb8869f681ea6e1e33afe"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "u-wing",
+      "storeys": 0,
+      "id": "villa--modern-box--auto--u-wing--g0",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--auto--u-wing--g0.png",
+      "planId": "plan-fe0931e4e0fe8b16",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "5fb94041dcfc2a2892e420a7c461c033a2048475f1550afdb5d7e9d3d2987ad6"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "u-wing",
+      "storeys": 1,
+      "id": "villa--modern-box--auto--u-wing--g1",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--auto--u-wing--g1.png",
+      "planId": "plan-8787ef2c95c95a86",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "88924d1e3b06e69b46a0fd483b36cdcd3edb907010c44abb75592a2f2c898770"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "u-wing",
+      "storeys": 2,
+      "id": "villa--modern-box--auto--u-wing--g2",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--auto--u-wing--g2.png",
+      "planId": "plan-de9b3e941b0b6d46",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "bebaf5a68a5d26842b2e1d73efc1d296a42bfaefce678ada352e1b68464bf136"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "u-wing",
+      "storeys": 3,
+      "id": "villa--modern-box--auto--u-wing--g3",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--auto--u-wing--g3.png",
+      "planId": "plan-67a88e80c1e4076e",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "1eb3fbd9eb2aa924d12b5eb682af3991eadf40e3efa548238ba71c988f367822"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "courtyard-ring",
+      "storeys": 0,
+      "id": "villa--modern-box--auto--courtyard-ring--g0",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--auto--courtyard-ring--g0.png",
+      "planId": "plan-d9f3cfd1a909d6d3",
+      "seed": 650523944,
+      "actualLayout": "courtyard-ring",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "b3513f2c2bc1a153d9f87884a8e58854d37d5a3d3f0399b5ef1049592612b5cb"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "courtyard-ring",
+      "storeys": 1,
+      "id": "villa--modern-box--auto--courtyard-ring--g1",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--auto--courtyard-ring--g1.png",
+      "planId": "plan-403ebd7e8e2e994c",
+      "seed": 650523944,
+      "actualLayout": "courtyard-ring",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "16e50aa5476114ebe83c4ce5f0c380e44375a498a033fe209100b05c7fcf1b3a"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "courtyard-ring",
+      "storeys": 2,
+      "id": "villa--modern-box--auto--courtyard-ring--g2",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--auto--courtyard-ring--g2.png",
+      "planId": "plan-d4131adf9eae304d",
+      "seed": 650523944,
+      "actualLayout": "courtyard-ring",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "87a0aee9dd3dd40d10c11c6c68f66643cddfc7df1109e5c99ccf74b259926eb4"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "courtyard-ring",
+      "storeys": 3,
+      "id": "villa--modern-box--auto--courtyard-ring--g3",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--auto--courtyard-ring--g3.png",
+      "planId": "plan-5e0e933fc2c62449",
+      "seed": 650523944,
+      "actualLayout": "courtyard-ring",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "0f486a8ba5abe6e1a3861c211f5f65a40c4e93f1d0348e29b7ce59df58149c9e"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "pavilion",
+      "storeys": 0,
+      "id": "villa--modern-box--auto--pavilion--g0",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--auto--pavilion--g0.png",
+      "planId": "plan-2a5b5d0c41780472",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "5449c6fdacdb2289ed8a3544ecc9d70ef8cd20adc020751560548c47d5295339"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "pavilion",
+      "storeys": 1,
+      "id": "villa--modern-box--auto--pavilion--g1",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--auto--pavilion--g1.png",
+      "planId": "plan-22a269158f19b0f3",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "1586c797260a459e42d851ed811bf4569fe24112143e61e1c79a0e25feef9deb"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "pavilion",
+      "storeys": 2,
+      "id": "villa--modern-box--auto--pavilion--g2",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--auto--pavilion--g2.png",
+      "planId": "plan-6019598f55bb8a65",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "9c8f6f20d34929f6bf04e89598f1730962c39dbd7499f45f61b79d25b9045ca6"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "pavilion",
+      "storeys": 3,
+      "id": "villa--modern-box--auto--pavilion--g3",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--auto--pavilion--g3.png",
+      "planId": "plan-60d6d54b9163d881",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "1206855a260a51b30e4d7bb547d6a2ad0f4001e7cacfec171dc090f1c031d7e1"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "auto",
+      "storeys": 0,
+      "id": "villa--modern-box--glazed-bay--auto--g0",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--glazed-bay--auto--g0.png",
+      "planId": "plan-1555925f5bacfb69",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "a33b564e2d64074981a1e9599e8539f2a3f8ba7149edede03b9c13d320d552b6"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "auto",
+      "storeys": 1,
+      "id": "villa--modern-box--glazed-bay--auto--g1",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--glazed-bay--auto--g1.png",
+      "planId": "plan-a9ac7585b332d54f",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "b2866ef4e071b4c9c0b865bacfe58db10008b5c4ed934cd796edd1fc48d7cddc"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "auto",
+      "storeys": 2,
+      "id": "villa--modern-box--glazed-bay--auto--g2",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--glazed-bay--auto--g2.png",
+      "planId": "plan-19c1f8c8778bc11e",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "e8db9c648f29355c156f32240b94778ce57e6a30fae054a3b6cf6d86a04ea303"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "auto",
+      "storeys": 3,
+      "id": "villa--modern-box--glazed-bay--auto--g3",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--glazed-bay--auto--g3.png",
+      "planId": "plan-4ca6f25ecdee5494",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "597c257110df108e3a88e2f82f2b830edec58b50ada5dd732208a529179b0720"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "twin-wing",
+      "storeys": 0,
+      "id": "villa--modern-box--glazed-bay--twin-wing--g0",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--glazed-bay--twin-wing--g0.png",
+      "planId": "plan-82eea937175e1755",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "aea2f01c10c8b0b652ac2da9e2321b36939c630f53ddd02b4c816908c8dd06de"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "twin-wing",
+      "storeys": 1,
+      "id": "villa--modern-box--glazed-bay--twin-wing--g1",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--glazed-bay--twin-wing--g1.png",
+      "planId": "plan-724c59a02644d836",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "81ed582fa147698cba9e07ab7010f6c49d90d8d4ebf6affad27c3611bb88ea58"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "twin-wing",
+      "storeys": 2,
+      "id": "villa--modern-box--glazed-bay--twin-wing--g2",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--glazed-bay--twin-wing--g2.png",
+      "planId": "plan-caca11a351093f89",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "b8046a40dd6aa25f02a33cab1a13953166b915f983b36da6ebc3197ad27d54d7"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "twin-wing",
+      "storeys": 3,
+      "id": "villa--modern-box--glazed-bay--twin-wing--g3",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--glazed-bay--twin-wing--g3.png",
+      "planId": "plan-f16087659276757f",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "56f320c41bb99d5e54938fb5201d937ef66d3ba488793af7db00b0ba57890288"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "u-wing",
+      "storeys": 0,
+      "id": "villa--modern-box--glazed-bay--u-wing--g0",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--glazed-bay--u-wing--g0.png",
+      "planId": "plan-1555925f5bacfb69",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "cea55afd6729cab82c58df90807477494976141489b2066ec4a89120d377cdab"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "u-wing",
+      "storeys": 1,
+      "id": "villa--modern-box--glazed-bay--u-wing--g1",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--glazed-bay--u-wing--g1.png",
+      "planId": "plan-f6252710c4fa65ba",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        25,
+        30
+      ],
+      "renderDigest": "ea531bdbb71c8cf28016f07832329088e079bd44a041759ca173a722e559dae0"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "u-wing",
+      "storeys": 2,
+      "id": "villa--modern-box--glazed-bay--u-wing--g2",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--glazed-bay--u-wing--g2.png",
+      "planId": "plan-36cbcee936747093",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        25,
+        30
+      ],
+      "renderDigest": "b178fdbff1e2f80156c6e81c0055568022d59987357434299e90d33ccfa9e893"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "u-wing",
+      "storeys": 3,
+      "id": "villa--modern-box--glazed-bay--u-wing--g3",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--glazed-bay--u-wing--g3.png",
+      "planId": "plan-2126bfd37dc3da91",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        25,
+        30
+      ],
+      "renderDigest": "704691744c6572968d73246b30563b508328ce58b8fe2ac393cee9f6547a69b7"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "courtyard-ring",
+      "storeys": 0,
+      "id": "villa--modern-box--glazed-bay--courtyard-ring--g0",
+      "status": "unavailable",
+      "planId": "plan-166cdaf78025b769",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "courtyard-ring",
+      "storeys": 1,
+      "id": "villa--modern-box--glazed-bay--courtyard-ring--g1",
+      "status": "unavailable",
+      "planId": "plan-724c59a02644d836",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "courtyard-ring",
+      "storeys": 2,
+      "id": "villa--modern-box--glazed-bay--courtyard-ring--g2",
+      "status": "unavailable",
+      "planId": "plan-19c1f8c8778bc11e",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "courtyard-ring",
+      "storeys": 3,
+      "id": "villa--modern-box--glazed-bay--courtyard-ring--g3",
+      "status": "unavailable",
+      "planId": "plan-979e5846dcf86298",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "pavilion",
+      "storeys": 0,
+      "id": "villa--modern-box--glazed-bay--pavilion--g0",
+      "status": "unavailable",
+      "planId": "plan-1555925f5bacfb69",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "pavilion",
+      "storeys": 1,
+      "id": "villa--modern-box--glazed-bay--pavilion--g1",
+      "status": "unavailable",
+      "planId": "plan-724c59a02644d836",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "pavilion",
+      "storeys": 2,
+      "id": "villa--modern-box--glazed-bay--pavilion--g2",
+      "status": "unavailable",
+      "planId": "plan-19c1f8c8778bc11e",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "pavilion",
+      "storeys": 3,
+      "id": "villa--modern-box--glazed-bay--pavilion--g3",
+      "status": "unavailable",
+      "planId": "plan-f16087659276757f",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "auto",
+      "storeys": 0,
+      "id": "villa--modern-box--staggered-wings--auto--g0",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--staggered-wings--auto--g0.png",
+      "planId": "plan-19386622b03210fc",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "715f824515f41a4ed9450bfa6bb38364f5f470c7d4ebee3fe4e6da57a53dca9c"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "auto",
+      "storeys": 1,
+      "id": "villa--modern-box--staggered-wings--auto--g1",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--staggered-wings--auto--g1.png",
+      "planId": "plan-d7ea1bd111378d1f",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "f4444c59b21fb73d9bc056bc4ef4702eb2cede3d7d55e61fba2d83c6209dda8f"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "auto",
+      "storeys": 2,
+      "id": "villa--modern-box--staggered-wings--auto--g2",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--staggered-wings--auto--g2.png",
+      "planId": "plan-802dfeea66fc5910",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "528d6c4da3d93c5725224250882384b698a2d65fdcea19db1d644909f9c576b9"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "auto",
+      "storeys": 3,
+      "id": "villa--modern-box--staggered-wings--auto--g3",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--staggered-wings--auto--g3.png",
+      "planId": "plan-715fb1c8a7dc7cb6",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "bfc46917e19aced3b77bdeb02d7430662013bb8b7b0364eee214468608ebf333"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "twin-wing",
+      "storeys": 0,
+      "id": "villa--modern-box--staggered-wings--twin-wing--g0",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--staggered-wings--twin-wing--g0.png",
+      "planId": "plan-26ffd354b5948816",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "86517a0cd718fff69b40c63a05b87ecade7e191aa6c78e083485b4b4d23484c6"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "twin-wing",
+      "storeys": 1,
+      "id": "villa--modern-box--staggered-wings--twin-wing--g1",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--staggered-wings--twin-wing--g1.png",
+      "planId": "plan-b45117f6635289bc",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "7bf9e83dd43c03f1f77bcc2c02b5c511b91ac5808ebc7afa00dd578fa23b03b7"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "twin-wing",
+      "storeys": 2,
+      "id": "villa--modern-box--staggered-wings--twin-wing--g2",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--staggered-wings--twin-wing--g2.png",
+      "planId": "plan-6518003b53b4769d",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "d7110bb055f3776e5492e15e9a0f762d3c2eb32ed11ac438c20ab6b7a97c2675"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "twin-wing",
+      "storeys": 3,
+      "id": "villa--modern-box--staggered-wings--twin-wing--g3",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--staggered-wings--twin-wing--g3.png",
+      "planId": "plan-5bca6b44a0bb9136",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "e09fa4b6a1889192f0873b3f6ea0dbf1251087641823653032b34b0633573108"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "u-wing",
+      "storeys": 0,
+      "id": "villa--modern-box--staggered-wings--u-wing--g0",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--staggered-wings--u-wing--g0.png",
+      "planId": "plan-30ca687aedf89584",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "e032ea48f7e3723d7dca1ca88750fe27621cb12fc8753cac954a52eda2f88c9d"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "u-wing",
+      "storeys": 1,
+      "id": "villa--modern-box--staggered-wings--u-wing--g1",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--staggered-wings--u-wing--g1.png",
+      "planId": "plan-06b4ac4ee11c6610",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        25,
+        30
+      ],
+      "renderDigest": "3437f6e1ce2a76a18f87252a072a82cba36e71f341470eb2442ab11a551c7bfc"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "u-wing",
+      "storeys": 2,
+      "id": "villa--modern-box--staggered-wings--u-wing--g2",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--staggered-wings--u-wing--g2.png",
+      "planId": "plan-7137e9fa9277cf40",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        25,
+        30
+      ],
+      "renderDigest": "1a3c24ee8221f86dcad6ca84193eef1dd31d31098175f447dc2309e620fd5f7d"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "u-wing",
+      "storeys": 3,
+      "id": "villa--modern-box--staggered-wings--u-wing--g3",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--staggered-wings--u-wing--g3.png",
+      "planId": "plan-e22457d17c8ccf47",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        25,
+        30
+      ],
+      "renderDigest": "ba339a1831abc6853695e91c443c24e89a08160eaeff278879a227ed1f653965"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "courtyard-ring",
+      "storeys": 0,
+      "id": "villa--modern-box--staggered-wings--courtyard-ring--g0",
+      "status": "unavailable",
+      "planId": "plan-426d4ca72b0e9945",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "courtyard-ring",
+      "storeys": 1,
+      "id": "villa--modern-box--staggered-wings--courtyard-ring--g1",
+      "status": "unavailable",
+      "planId": "plan-9dfdd39d4d3edea3",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "courtyard-ring",
+      "storeys": 2,
+      "id": "villa--modern-box--staggered-wings--courtyard-ring--g2",
+      "status": "unavailable",
+      "planId": "plan-55d8a27ec63f9fb8",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "courtyard-ring",
+      "storeys": 3,
+      "id": "villa--modern-box--staggered-wings--courtyard-ring--g3",
+      "status": "unavailable",
+      "planId": "plan-715fb1c8a7dc7cb6",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "pavilion",
+      "storeys": 0,
+      "id": "villa--modern-box--staggered-wings--pavilion--g0",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--staggered-wings--pavilion--g0.png",
+      "planId": "plan-f495000b1e119ff9",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "358c2a41108787f1ab842ddac1690694788d705fc93f2290d790e537c1e502a7"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "pavilion",
+      "storeys": 1,
+      "id": "villa--modern-box--staggered-wings--pavilion--g1",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--staggered-wings--pavilion--g1.png",
+      "planId": "plan-0ff9d0a62715203c",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "8d22fdfae3a3608f90e62f02ad80fab51b93db2d068d2a31f469103868ee0e89"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "pavilion",
+      "storeys": 2,
+      "id": "villa--modern-box--staggered-wings--pavilion--g2",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--staggered-wings--pavilion--g2.png",
+      "planId": "plan-802dfeea66fc5910",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "af6f975b00b5753c3fb2f7533c5e66875eec69e648eaa007a168adce590598fd"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "pavilion",
+      "storeys": 3,
+      "id": "villa--modern-box--staggered-wings--pavilion--g3",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--staggered-wings--pavilion--g3.png",
+      "planId": "plan-387523a61b4af44c",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "56f11594e0b6af0fbaf44812b156dc77e5e8a7c66af37bf0ed55ee5d94f1dd58"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "auto",
+      "storeys": 0,
+      "id": "villa--modern-box--terraced-villa--auto--g0",
+      "status": "unavailable",
+      "reason": "Reference floor plan did not pass validation"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "auto",
+      "storeys": 1,
+      "id": "villa--modern-box--terraced-villa--auto--g1",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--terraced-villa--auto--g1.png",
+      "planId": "plan-77ef292cc976d15a",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        25,
+        30
+      ],
+      "renderDigest": "6721774c7196e5313aef336a35f69ca2405d2542ed4312d5c60a3c61812c4531"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "auto",
+      "storeys": 2,
+      "id": "villa--modern-box--terraced-villa--auto--g2",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--terraced-villa--auto--g2.png",
+      "planId": "plan-0441219f153efeb1",
+      "seed": 650523944,
+      "actualLayout": "stepped",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "2dbf82feecb7f3ab92943e83c7b4a1a640f589d7927f0131d856575b98e957d2"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "auto",
+      "storeys": 3,
+      "id": "villa--modern-box--terraced-villa--auto--g3",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--terraced-villa--auto--g3.png",
+      "planId": "plan-6733b17325ffd7ad",
+      "seed": 650523944,
+      "actualLayout": "stepped",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "b4625114a164f3079facb95f2b9efb11aebffa7d02b5e2ef974cc4f25a9ac057"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "twin-wing",
+      "storeys": 0,
+      "id": "villa--modern-box--terraced-villa--twin-wing--g0",
+      "status": "unavailable",
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "twin-wing",
+      "storeys": 1,
+      "id": "villa--modern-box--terraced-villa--twin-wing--g1",
+      "status": "unavailable",
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "twin-wing",
+      "storeys": 2,
+      "id": "villa--modern-box--terraced-villa--twin-wing--g2",
+      "status": "unavailable",
+      "planId": "plan-e4dbb9d3068cbd2d",
+      "seed": 650523944,
+      "actualLayout": "stepped",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "twin-wing",
+      "storeys": 3,
+      "id": "villa--modern-box--terraced-villa--twin-wing--g3",
+      "status": "unavailable",
+      "planId": "plan-48e248be815b2580",
+      "seed": 650523944,
+      "actualLayout": "stepped",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "u-wing",
+      "storeys": 0,
+      "id": "villa--modern-box--terraced-villa--u-wing--g0",
+      "status": "unavailable",
+      "reason": "Reference floor plan did not pass validation"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "u-wing",
+      "storeys": 1,
+      "id": "villa--modern-box--terraced-villa--u-wing--g1",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--terraced-villa--u-wing--g1.png",
+      "planId": "plan-8da5418014a25f46",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        25,
+        30
+      ],
+      "renderDigest": "c64832cbb665c8a96ed6003ef6f42f12847f07121ca3105ca315fe58081cbd65"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "u-wing",
+      "storeys": 2,
+      "id": "villa--modern-box--terraced-villa--u-wing--g2",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--terraced-villa--u-wing--g2.png",
+      "planId": "plan-2bcc68c54a86648f",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        25,
+        30
+      ],
+      "renderDigest": "abdc30871905360db6adbfb8bb9608c112af6092d70ff4d91b721850c8057b1c"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "u-wing",
+      "storeys": 3,
+      "id": "villa--modern-box--terraced-villa--u-wing--g3",
+      "status": "ready",
+      "image": "/house-ideas/villa--modern-box--terraced-villa--u-wing--g3.png",
+      "planId": "plan-63501e6d74ee8eb7",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        25,
+        30
+      ],
+      "renderDigest": "8f1dd1ae26dd4be5299b4b430268a44c4d492b53569b0bcc63c585eb895bf50a"
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "courtyard-ring",
+      "storeys": 0,
+      "id": "villa--modern-box--terraced-villa--courtyard-ring--g0",
+      "status": "unavailable",
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "courtyard-ring",
+      "storeys": 1,
+      "id": "villa--modern-box--terraced-villa--courtyard-ring--g1",
+      "status": "unavailable",
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "courtyard-ring",
+      "storeys": 2,
+      "id": "villa--modern-box--terraced-villa--courtyard-ring--g2",
+      "status": "unavailable",
+      "planId": "plan-be69f08e396eeaa4",
+      "seed": 650523944,
+      "actualLayout": "stepped",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "courtyard-ring",
+      "storeys": 3,
+      "id": "villa--modern-box--terraced-villa--courtyard-ring--g3",
+      "status": "unavailable",
+      "planId": "plan-113ec39b03a29381",
+      "seed": 650523944,
+      "actualLayout": "stepped",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "pavilion",
+      "storeys": 0,
+      "id": "villa--modern-box--terraced-villa--pavilion--g0",
+      "status": "unavailable",
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "pavilion",
+      "storeys": 1,
+      "id": "villa--modern-box--terraced-villa--pavilion--g1",
+      "status": "unavailable",
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "pavilion",
+      "storeys": 2,
+      "id": "villa--modern-box--terraced-villa--pavilion--g2",
+      "status": "unavailable",
+      "planId": "plan-b469f9d9c76d6447",
+      "seed": 650523944,
+      "actualLayout": "stepped",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "pavilion",
+      "storeys": 3,
+      "id": "villa--modern-box--terraced-villa--pavilion--g3",
+      "status": "unavailable",
+      "planId": "plan-771460641a032406",
+      "seed": 650523944,
+      "actualLayout": "stepped",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "auto",
+      "storeys": 0,
+      "id": "villa--contemporary-indian--auto--auto--g0",
+      "status": "ready",
+      "image": "/house-ideas/villa--contemporary-indian--auto--auto--g0.png",
+      "planId": "plan-9c4a608c290a319e",
+      "seed": 650523944,
+      "actualLayout": "stepped",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "3c7e05b535e755ca7cc0bd5124fa1b469b4127baf574359238ff323402b5b328"
+    },
+    {
+      "type": "villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "auto",
+      "storeys": 1,
+      "id": "villa--contemporary-indian--auto--auto--g1",
+      "status": "ready",
+      "image": "/house-ideas/villa--contemporary-indian--auto--auto--g1.png",
+      "planId": "plan-bcd664dd3b3a626f",
+      "seed": 650523944,
+      "actualLayout": "stepped",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "16386f82a01c8ed2992007bff0a54813afaab2a27cbfe186cee93b0ecd289ac2"
+    },
+    {
+      "type": "villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "auto",
+      "storeys": 2,
+      "id": "villa--contemporary-indian--auto--auto--g2",
+      "status": "ready",
+      "image": "/house-ideas/villa--contemporary-indian--auto--auto--g2.png",
+      "planId": "plan-9cc448f77622a1a1",
+      "seed": 650523944,
+      "actualLayout": "stepped",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "53fee14582c743f8d2da43c50ccc74cbc23ec0512125a012db77f945cc59230f"
+    },
+    {
+      "type": "villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "auto",
+      "storeys": 3,
+      "id": "villa--contemporary-indian--auto--auto--g3",
+      "status": "ready",
+      "image": "/house-ideas/villa--contemporary-indian--auto--auto--g3.png",
+      "planId": "plan-cc4190eca9f2e042",
+      "seed": 650523944,
+      "actualLayout": "stepped",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "55bd3fc8ef35b5e7dd9551a77e9a58b99b04dc5e1ae5e6429eba15f7c538ae81"
+    },
+    {
+      "type": "villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "twin-wing",
+      "storeys": 0,
+      "id": "villa--contemporary-indian--auto--twin-wing--g0",
+      "status": "ready",
+      "image": "/house-ideas/villa--contemporary-indian--auto--twin-wing--g0.png",
+      "planId": "plan-3185a389cdc8a927",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "9f5add225bd11bcbb35dc25c7a75f09b5dcca3883e58d80d761638400a800486"
+    },
+    {
+      "type": "villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "twin-wing",
+      "storeys": 1,
+      "id": "villa--contemporary-indian--auto--twin-wing--g1",
+      "status": "ready",
+      "image": "/house-ideas/villa--contemporary-indian--auto--twin-wing--g1.png",
+      "planId": "plan-86c7a8517c435e2b",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "4aa50c646d8b22d1c6a5e358feffabc57bed70ce86d07b2b70e08a57e57600a7"
+    },
+    {
+      "type": "villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "twin-wing",
+      "storeys": 2,
+      "id": "villa--contemporary-indian--auto--twin-wing--g2",
+      "status": "ready",
+      "image": "/house-ideas/villa--contemporary-indian--auto--twin-wing--g2.png",
+      "planId": "plan-f263f9983ef92a02",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "83bf77e35875b684a05e850e4f0b685980994246b0196a1378c2cbc9046471d3"
+    },
+    {
+      "type": "villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "twin-wing",
+      "storeys": 3,
+      "id": "villa--contemporary-indian--auto--twin-wing--g3",
+      "status": "ready",
+      "image": "/house-ideas/villa--contemporary-indian--auto--twin-wing--g3.png",
+      "planId": "plan-362da3d3ef26b451",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "9fea0cbff511fb798fe806c042b979b41c5332749c91c6d14cd856e062401571"
+    },
+    {
+      "type": "villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "u-wing",
+      "storeys": 0,
+      "id": "villa--contemporary-indian--auto--u-wing--g0",
+      "status": "ready",
+      "image": "/house-ideas/villa--contemporary-indian--auto--u-wing--g0.png",
+      "planId": "plan-327f5a567f06fbac",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "d52cb936f1993dd717573468225c0d175ce42f71d32deedc321e1885729cda39"
+    },
+    {
+      "type": "villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "u-wing",
+      "storeys": 1,
+      "id": "villa--contemporary-indian--auto--u-wing--g1",
+      "status": "ready",
+      "image": "/house-ideas/villa--contemporary-indian--auto--u-wing--g1.png",
+      "planId": "plan-535d1a4db66b200f",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "f0ad8017d7dee9660ce8d23e53b15b57af217db0435c804507e123087214ab54"
+    },
+    {
+      "type": "villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "u-wing",
+      "storeys": 2,
+      "id": "villa--contemporary-indian--auto--u-wing--g2",
+      "status": "ready",
+      "image": "/house-ideas/villa--contemporary-indian--auto--u-wing--g2.png",
+      "planId": "plan-2e5cef10bbda3d12",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "862ae95640019b54d9265e7e9dd8d657481011bc3f2e128c5a2848ee3eb2ee21"
+    },
+    {
+      "type": "villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "u-wing",
+      "storeys": 3,
+      "id": "villa--contemporary-indian--auto--u-wing--g3",
+      "status": "ready",
+      "image": "/house-ideas/villa--contemporary-indian--auto--u-wing--g3.png",
+      "planId": "plan-4660a9adef0b8de7",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "8f4cabd7417a13b36765340bd6998b488c2a901913efcf5cc0d3aab06c5e1d58"
+    },
+    {
+      "type": "villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "courtyard-ring",
+      "storeys": 0,
+      "id": "villa--contemporary-indian--auto--courtyard-ring--g0",
+      "status": "ready",
+      "image": "/house-ideas/villa--contemporary-indian--auto--courtyard-ring--g0.png",
+      "planId": "plan-10289172b0e90f64",
+      "seed": 650523944,
+      "actualLayout": "courtyard-ring",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "73030e9bc9ad45bdcf232a1b73b3c327d3855e0d2c77248112044743b8c72e2e"
+    },
+    {
+      "type": "villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "courtyard-ring",
+      "storeys": 1,
+      "id": "villa--contemporary-indian--auto--courtyard-ring--g1",
+      "status": "ready",
+      "image": "/house-ideas/villa--contemporary-indian--auto--courtyard-ring--g1.png",
+      "planId": "plan-9a0951acee4fdaae",
+      "seed": 650523944,
+      "actualLayout": "courtyard-ring",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "eaa09d51ac2bd7d2388da88acf35fa0d3c8c9df86def55d1172f7e40672d1cfa"
+    },
+    {
+      "type": "villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "courtyard-ring",
+      "storeys": 2,
+      "id": "villa--contemporary-indian--auto--courtyard-ring--g2",
+      "status": "ready",
+      "image": "/house-ideas/villa--contemporary-indian--auto--courtyard-ring--g2.png",
+      "planId": "plan-712787d2566bc0dc",
+      "seed": 650523944,
+      "actualLayout": "courtyard-ring",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "3984169d9265eab9774fd01ca57cc7af9351ae0f279a5a20465c5d4883a73e2d"
+    },
+    {
+      "type": "villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "courtyard-ring",
+      "storeys": 3,
+      "id": "villa--contemporary-indian--auto--courtyard-ring--g3",
+      "status": "ready",
+      "image": "/house-ideas/villa--contemporary-indian--auto--courtyard-ring--g3.png",
+      "planId": "plan-2bd85eb18be4b83b",
+      "seed": 650523944,
+      "actualLayout": "courtyard-ring",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "1f807c53abf66c99cf053e719282eccbaa95c6607702695b23ab73081a0763d9"
+    },
+    {
+      "type": "villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "pavilion",
+      "storeys": 0,
+      "id": "villa--contemporary-indian--auto--pavilion--g0",
+      "status": "ready",
+      "image": "/house-ideas/villa--contemporary-indian--auto--pavilion--g0.png",
+      "planId": "plan-3cb6646fa917f929",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "e7fff878a460c593721e40c16b40246be653d0f32d216f4c2c727e1e600e67d3"
+    },
+    {
+      "type": "villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "pavilion",
+      "storeys": 1,
+      "id": "villa--contemporary-indian--auto--pavilion--g1",
+      "status": "ready",
+      "image": "/house-ideas/villa--contemporary-indian--auto--pavilion--g1.png",
+      "planId": "plan-369b6320382a2d6a",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "6c64b4d1b0f4398b88fc8860dabd0d70f276da036fbb5139e9cc527624bc2ef0"
+    },
+    {
+      "type": "villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "pavilion",
+      "storeys": 2,
+      "id": "villa--contemporary-indian--auto--pavilion--g2",
+      "status": "ready",
+      "image": "/house-ideas/villa--contemporary-indian--auto--pavilion--g2.png",
+      "planId": "plan-9ed2920a2ed30248",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "b75c677b2c3beb9c2d8a6c70d5b4b1b681fbe55a51115274bd008180bd5154ac"
+    },
+    {
+      "type": "villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "pavilion",
+      "storeys": 3,
+      "id": "villa--contemporary-indian--auto--pavilion--g3",
+      "status": "ready",
+      "image": "/house-ideas/villa--contemporary-indian--auto--pavilion--g3.png",
+      "planId": "plan-92e6e9a45a3e5cb2",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "09f46d79322846d8a0a12fdbe0200afb7cdb620ba99fd6e9369eba8c8fd11e45"
+    },
+    {
+      "type": "villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "auto",
+      "storeys": 0,
+      "id": "villa--courtyard-indian--auto--auto--g0",
+      "status": "ready",
+      "image": "/house-ideas/villa--courtyard-indian--auto--auto--g0.png",
+      "planId": "plan-db8ef307748018e5",
+      "seed": 650523944,
+      "actualLayout": "courtyard-ring",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "5d16039655f3af67ec943831675a29f66142850f2bf29a2a0a61a3e2288908b8"
+    },
+    {
+      "type": "villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "auto",
+      "storeys": 1,
+      "id": "villa--courtyard-indian--auto--auto--g1",
+      "status": "ready",
+      "image": "/house-ideas/villa--courtyard-indian--auto--auto--g1.png",
+      "planId": "plan-eb31b35de39ae60f",
+      "seed": 650523944,
+      "actualLayout": "courtyard-ring",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "0974048f3cfbb05eca6b0faf2fc10e7c26f64631a5a4c01f12f4d53f2cc5c7b4"
+    },
+    {
+      "type": "villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "auto",
+      "storeys": 2,
+      "id": "villa--courtyard-indian--auto--auto--g2",
+      "status": "ready",
+      "image": "/house-ideas/villa--courtyard-indian--auto--auto--g2.png",
+      "planId": "plan-76f0a96efc34b234",
+      "seed": 650523944,
+      "actualLayout": "courtyard-ring",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "9560fe83d44e15b79ecc34213a7bce9c0333440b1ca2e4724c330735dbb3e583"
+    },
+    {
+      "type": "villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "auto",
+      "storeys": 3,
+      "id": "villa--courtyard-indian--auto--auto--g3",
+      "status": "ready",
+      "image": "/house-ideas/villa--courtyard-indian--auto--auto--g3.png",
+      "planId": "plan-ede701c3248e093d",
+      "seed": 650523944,
+      "actualLayout": "courtyard-ring",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "e38b7bb4c8c91f608ab778dced4d769be57d907a2c9c1d11b463501d6bc4b52e"
+    },
+    {
+      "type": "villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "twin-wing",
+      "storeys": 0,
+      "id": "villa--courtyard-indian--auto--twin-wing--g0",
+      "status": "ready",
+      "image": "/house-ideas/villa--courtyard-indian--auto--twin-wing--g0.png",
+      "planId": "plan-8c1d65b2e51c00a4",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "6534fc646ca253fb64ac4faae0267efaaf9baef20a6de72d22b1e9f2e4806df2"
+    },
+    {
+      "type": "villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "twin-wing",
+      "storeys": 1,
+      "id": "villa--courtyard-indian--auto--twin-wing--g1",
+      "status": "ready",
+      "image": "/house-ideas/villa--courtyard-indian--auto--twin-wing--g1.png",
+      "planId": "plan-4c6466696de42823",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "d03f704cc43e50d0d3a5a41c865200091b9064819d5491457f730e3c1fc4d8bc"
+    },
+    {
+      "type": "villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "twin-wing",
+      "storeys": 2,
+      "id": "villa--courtyard-indian--auto--twin-wing--g2",
+      "status": "ready",
+      "image": "/house-ideas/villa--courtyard-indian--auto--twin-wing--g2.png",
+      "planId": "plan-40855f31c1201d53",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "ed11fc534f68eee08cdf56eefd11af8ebd6af04604ed570c03fbeed1aa06cec7"
+    },
+    {
+      "type": "villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "twin-wing",
+      "storeys": 3,
+      "id": "villa--courtyard-indian--auto--twin-wing--g3",
+      "status": "ready",
+      "image": "/house-ideas/villa--courtyard-indian--auto--twin-wing--g3.png",
+      "planId": "plan-a7b1c7304f629102",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "7d9d1d47e8fbf2f70ad3251e6b34281a166d859cfb00d4d5cdec4d7e83c80330"
+    },
+    {
+      "type": "villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "u-wing",
+      "storeys": 0,
+      "id": "villa--courtyard-indian--auto--u-wing--g0",
+      "status": "ready",
+      "image": "/house-ideas/villa--courtyard-indian--auto--u-wing--g0.png",
+      "planId": "plan-8c0ddb219a438cdb",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "edc2440bd2735af756dd84d5bef58aa9d35dad477f42c2287987381c0c46e909"
+    },
+    {
+      "type": "villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "u-wing",
+      "storeys": 1,
+      "id": "villa--courtyard-indian--auto--u-wing--g1",
+      "status": "ready",
+      "image": "/house-ideas/villa--courtyard-indian--auto--u-wing--g1.png",
+      "planId": "plan-34053765fbfa4863",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "488445a8ec82a09ad960592a3ab8a7a08771fc5d432b474bcfb90846c6b12445"
+    },
+    {
+      "type": "villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "u-wing",
+      "storeys": 2,
+      "id": "villa--courtyard-indian--auto--u-wing--g2",
+      "status": "ready",
+      "image": "/house-ideas/villa--courtyard-indian--auto--u-wing--g2.png",
+      "planId": "plan-588a4646eee7bc64",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "15143dace8e2beafd965a34fabd5b59d034eab9854c37401d3298ccbbea6b2c1"
+    },
+    {
+      "type": "villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "u-wing",
+      "storeys": 3,
+      "id": "villa--courtyard-indian--auto--u-wing--g3",
+      "status": "ready",
+      "image": "/house-ideas/villa--courtyard-indian--auto--u-wing--g3.png",
+      "planId": "plan-78cee423666ff5d9",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "cf4ee56ea7fcf0e96792e87d5359f3a6c94d23034d74142b5dd1e704b2707da3"
+    },
+    {
+      "type": "villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "courtyard-ring",
+      "storeys": 0,
+      "id": "villa--courtyard-indian--auto--courtyard-ring--g0",
+      "status": "ready",
+      "image": "/house-ideas/villa--courtyard-indian--auto--courtyard-ring--g0.png",
+      "planId": "plan-5c7d09a42d80c76a",
+      "seed": 650523944,
+      "actualLayout": "courtyard-ring",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "54b90794337e6419477b75784e12a990ffa38e58462aa63ba87732a87257e030"
+    },
+    {
+      "type": "villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "courtyard-ring",
+      "storeys": 1,
+      "id": "villa--courtyard-indian--auto--courtyard-ring--g1",
+      "status": "ready",
+      "image": "/house-ideas/villa--courtyard-indian--auto--courtyard-ring--g1.png",
+      "planId": "plan-9871a9bc44d7fe8e",
+      "seed": 650523944,
+      "actualLayout": "courtyard-ring",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "f176dede47040afdbea187d139a70479794710e7722644deb57b20a9468f6ece"
+    },
+    {
+      "type": "villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "courtyard-ring",
+      "storeys": 2,
+      "id": "villa--courtyard-indian--auto--courtyard-ring--g2",
+      "status": "ready",
+      "image": "/house-ideas/villa--courtyard-indian--auto--courtyard-ring--g2.png",
+      "planId": "plan-386dcac98c2efa87",
+      "seed": 650523944,
+      "actualLayout": "courtyard-ring",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "a08f3936e697da5da4972eec51c585cc66221da85366c8cd6cfa2e228a611fd2"
+    },
+    {
+      "type": "villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "courtyard-ring",
+      "storeys": 3,
+      "id": "villa--courtyard-indian--auto--courtyard-ring--g3",
+      "status": "ready",
+      "image": "/house-ideas/villa--courtyard-indian--auto--courtyard-ring--g3.png",
+      "planId": "plan-eb70ad8b2c8c7c1d",
+      "seed": 650523944,
+      "actualLayout": "courtyard-ring",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "d9b1e988da65d6effa6570ca6b593316c115176a1b281a352682425677b2a6df"
+    },
+    {
+      "type": "villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "pavilion",
+      "storeys": 0,
+      "id": "villa--courtyard-indian--auto--pavilion--g0",
+      "status": "ready",
+      "image": "/house-ideas/villa--courtyard-indian--auto--pavilion--g0.png",
+      "planId": "plan-e07daa31ec19815b",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "dddbb80317f33a58eb08a18f515359a40a51168cc9afa6bf5f02b8fdbb25c04f"
+    },
+    {
+      "type": "villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "pavilion",
+      "storeys": 1,
+      "id": "villa--courtyard-indian--auto--pavilion--g1",
+      "status": "ready",
+      "image": "/house-ideas/villa--courtyard-indian--auto--pavilion--g1.png",
+      "planId": "plan-f28e8c22d23c05b0",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "b5e0549f5cf9337e4a08a1fb10b941411fcb44340d0af1a957ac4b497e0dcf50"
+    },
+    {
+      "type": "villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "pavilion",
+      "storeys": 2,
+      "id": "villa--courtyard-indian--auto--pavilion--g2",
+      "status": "ready",
+      "image": "/house-ideas/villa--courtyard-indian--auto--pavilion--g2.png",
+      "planId": "plan-ca119798973e1126",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "350a567917cf6b753812f42d0188b2a7862d65cf76798ae947d59134520c8969"
+    },
+    {
+      "type": "villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "pavilion",
+      "storeys": 3,
+      "id": "villa--courtyard-indian--auto--pavilion--g3",
+      "status": "ready",
+      "image": "/house-ideas/villa--courtyard-indian--auto--pavilion--g3.png",
+      "planId": "plan-8c380394d3807d9a",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "d4e5895e1cf4b4d857c780daa15fe90169079acba040753eb79e07b1169f996b"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "auto",
+      "storeys": 0,
+      "id": "large-villa--modern-box--auto--auto--g0",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--auto--auto--g0.png",
+      "planId": "plan-968b6f3c6fd9c596",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "9eef30db5a97d4bea4c4f052e7c0aab95cc448a5ce3650166ee6e481dfd29849"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "auto",
+      "storeys": 1,
+      "id": "large-villa--modern-box--auto--auto--g1",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--auto--auto--g1.png",
+      "planId": "plan-93ca302e5fcf6e68",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "d34a835fd194eb2258831bb17b4f80e3d8a4f7d26310a07b8af5b5cbe4d31419"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "auto",
+      "storeys": 2,
+      "id": "large-villa--modern-box--auto--auto--g2",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--auto--auto--g2.png",
+      "planId": "plan-1cb806f92ae31847",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "54808af376fdf1b5da2503cd91f1505807c4efd90f22f4d386ee3f7d225ec13a"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "auto",
+      "storeys": 3,
+      "id": "large-villa--modern-box--auto--auto--g3",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--auto--auto--g3.png",
+      "planId": "plan-3cdbacf8a72d58ce",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "20bfb4befff7106b0898d3e4ac4f1d6611915e3179dc09edfbf06b6afc6284d0"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "twin-wing",
+      "storeys": 0,
+      "id": "large-villa--modern-box--auto--twin-wing--g0",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--auto--twin-wing--g0.png",
+      "planId": "plan-9268c88d517ec9b3",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "074ca250b0dbe54f1b4e36e2443cd29c96074221f1659ed32882ab87d5a87b91"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "twin-wing",
+      "storeys": 1,
+      "id": "large-villa--modern-box--auto--twin-wing--g1",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--auto--twin-wing--g1.png",
+      "planId": "plan-d8e2dda4650c10c2",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "3b359f24cc1d27077464b9e34e6003445cdfff9c8c239eb17870eeb0885f8f29"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "twin-wing",
+      "storeys": 2,
+      "id": "large-villa--modern-box--auto--twin-wing--g2",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--auto--twin-wing--g2.png",
+      "planId": "plan-67b65452801ec5ac",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "78f0751196ca83dd4eb30a5ab31008f0983b27461cc907de1fbd4f4066578a30"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "twin-wing",
+      "storeys": 3,
+      "id": "large-villa--modern-box--auto--twin-wing--g3",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--auto--twin-wing--g3.png",
+      "planId": "plan-f07b44a9f0eae75b",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "54ee3c9a2427752dde97aff925f7a4264c00f17867447eb1c0c0e8820087e2f1"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "u-wing",
+      "storeys": 0,
+      "id": "large-villa--modern-box--auto--u-wing--g0",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--auto--u-wing--g0.png",
+      "planId": "plan-aca5fea8eb26368a",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "cc499c51bfe0de0048ec9b1d8c9bb2c93e7b51d6d94647db5ce5e464729582ef"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "u-wing",
+      "storeys": 1,
+      "id": "large-villa--modern-box--auto--u-wing--g1",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--auto--u-wing--g1.png",
+      "planId": "plan-5b09a06525a3b403",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "0c6b2c396d64f7137c3cb1e8e29eeff3e30cfe40a47938fd7fcfd51813d0a394"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "u-wing",
+      "storeys": 2,
+      "id": "large-villa--modern-box--auto--u-wing--g2",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--auto--u-wing--g2.png",
+      "planId": "plan-1e65ed849af9e90a",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "e66a9b91c86ebf6359392c443ccd2a8917297a4810f2956e866f89dfcbafb155"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "u-wing",
+      "storeys": 3,
+      "id": "large-villa--modern-box--auto--u-wing--g3",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--auto--u-wing--g3.png",
+      "planId": "plan-940ad0fd6818ec3f",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "7277de8e09902cc515e12f1384157abf6d6d114d1596692edcd4749a8ce54d68"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "courtyard-ring",
+      "storeys": 0,
+      "id": "large-villa--modern-box--auto--courtyard-ring--g0",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--auto--courtyard-ring--g0.png",
+      "planId": "plan-3661d0bbec806ca9",
+      "seed": 650523944,
+      "actualLayout": "courtyard-ring",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "73d33fd4c993952d37199591d07aaa1ae3dec808ead685db3f56ee28fffef7da"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "courtyard-ring",
+      "storeys": 1,
+      "id": "large-villa--modern-box--auto--courtyard-ring--g1",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--auto--courtyard-ring--g1.png",
+      "planId": "plan-9414f9f54adc12bf",
+      "seed": 650523944,
+      "actualLayout": "courtyard-ring",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "51545f0c60b106806c5666ba5a112f591d893b30b9fd9b09f8ee5e736c475419"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "courtyard-ring",
+      "storeys": 2,
+      "id": "large-villa--modern-box--auto--courtyard-ring--g2",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--auto--courtyard-ring--g2.png",
+      "planId": "plan-cec31ceb04a61441",
+      "seed": 650523944,
+      "actualLayout": "courtyard-ring",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "17f4d640744bba821cbfd9acec9820b2d34e338c944b7392104848a8363c11dd"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "courtyard-ring",
+      "storeys": 3,
+      "id": "large-villa--modern-box--auto--courtyard-ring--g3",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--auto--courtyard-ring--g3.png",
+      "planId": "plan-2e993464aa63906e",
+      "seed": 650523944,
+      "actualLayout": "courtyard-ring",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "6a9f8843b8114d282f8a05c7d58ea54c56a4fe91968d7ae67ddb78f0ea008039"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "pavilion",
+      "storeys": 0,
+      "id": "large-villa--modern-box--auto--pavilion--g0",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--auto--pavilion--g0.png",
+      "planId": "plan-88e229398cd87807",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "9a41dfe8f9c4d7957df2bff4a4ee98ce0c9730c2893396554ccaf465fd01a261"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "pavilion",
+      "storeys": 1,
+      "id": "large-villa--modern-box--auto--pavilion--g1",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--auto--pavilion--g1.png",
+      "planId": "plan-22e48c4b0d7987f5",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        34,
+        40
+      ],
+      "renderDigest": "c516bf22f13f9d77f293d810d19fc4111e7d3eceba944cad9032c86950fc235b"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "pavilion",
+      "storeys": 2,
+      "id": "large-villa--modern-box--auto--pavilion--g2",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--auto--pavilion--g2.png",
+      "planId": "plan-38cf26dfb2778fc5",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        34,
+        40
+      ],
+      "renderDigest": "600de5af594f133b25b6f73160ffb9a5941a24eb7d25ed37790ce1756b106b31"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "auto",
+      "layout": "pavilion",
+      "storeys": 3,
+      "id": "large-villa--modern-box--auto--pavilion--g3",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--auto--pavilion--g3.png",
+      "planId": "plan-01b353e4989ed6ce",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        34,
+        40
+      ],
+      "renderDigest": "ed2815ff34b48c3e2d4c7b836d7c1d09893613f38df01afd89d442a2e8272a98"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "auto",
+      "storeys": 0,
+      "id": "large-villa--modern-box--glazed-bay--auto--g0",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--glazed-bay--auto--g0.png",
+      "planId": "plan-e85ec6e295795034",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "f2966c35ec166d95cc99e36c25d3ec0f65828d9db372d6ae53eded07eb13e39d"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "auto",
+      "storeys": 1,
+      "id": "large-villa--modern-box--glazed-bay--auto--g1",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--glazed-bay--auto--g1.png",
+      "planId": "plan-30a783fc924df7ce",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "2cc316fd70d0c207259fce9ea74b6894b9b33fe325b3ecaadc058ede12398f58"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "auto",
+      "storeys": 2,
+      "id": "large-villa--modern-box--glazed-bay--auto--g2",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--glazed-bay--auto--g2.png",
+      "planId": "plan-667a962824fce346",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "b1e0c78493aa117051811894716a81eee6a08b4ffa2508b4c79d71dc06b07962"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "auto",
+      "storeys": 3,
+      "id": "large-villa--modern-box--glazed-bay--auto--g3",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--glazed-bay--auto--g3.png",
+      "planId": "plan-022e4b21e16d1443",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "92018b6f22581decd602241fdf035383ae7a32051e8726e7ccfe072e14f09422"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "twin-wing",
+      "storeys": 0,
+      "id": "large-villa--modern-box--glazed-bay--twin-wing--g0",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--glazed-bay--twin-wing--g0.png",
+      "planId": "plan-04cc4fd3b6e52d81",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "dcc790554f3b39237893a63a49aed35e46eda3738e32f52bb349bad4b8436ce4"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "twin-wing",
+      "storeys": 1,
+      "id": "large-villa--modern-box--glazed-bay--twin-wing--g1",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--glazed-bay--twin-wing--g1.png",
+      "planId": "plan-18379fd01a3866b6",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "7a3cb78a7fe475954f780e09efa4ab3ad910289a18ed77f6b8623982aa9f15b9"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "twin-wing",
+      "storeys": 2,
+      "id": "large-villa--modern-box--glazed-bay--twin-wing--g2",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--glazed-bay--twin-wing--g2.png",
+      "planId": "plan-e410c81a17913fe8",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "2035fdf3295d4e774aad19647c04736308c6cb9ea635483b0a3e255a29c48b79"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "twin-wing",
+      "storeys": 3,
+      "id": "large-villa--modern-box--glazed-bay--twin-wing--g3",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--glazed-bay--twin-wing--g3.png",
+      "planId": "plan-fe2f12ce8e3e33ac",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "66a55dc59fca676d6404ba5e30a89198952f18fb5eed09c9cb836bcb0795504c"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "u-wing",
+      "storeys": 0,
+      "id": "large-villa--modern-box--glazed-bay--u-wing--g0",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--glazed-bay--u-wing--g0.png",
+      "planId": "plan-9932692bdffe1da5",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "154e4012c3a372ed6bf1fea6ddaf0dbf8402de7cf3458349ba83ac41fc3b3ad8"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "u-wing",
+      "storeys": 1,
+      "id": "large-villa--modern-box--glazed-bay--u-wing--g1",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--glazed-bay--u-wing--g1.png",
+      "planId": "plan-7c1423fd26f5aed7",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "a7ada3b989ac10eac1241656f35f8220c806d3c2de445968a91eb21d822a1dd6"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "u-wing",
+      "storeys": 2,
+      "id": "large-villa--modern-box--glazed-bay--u-wing--g2",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--glazed-bay--u-wing--g2.png",
+      "planId": "plan-dc35d29dfe20b7e3",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "89103b2231870159f20c12cab391c682779ee1bc0b74cac30c770d02b915e3ea"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "u-wing",
+      "storeys": 3,
+      "id": "large-villa--modern-box--glazed-bay--u-wing--g3",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--glazed-bay--u-wing--g3.png",
+      "planId": "plan-af11250267c54158",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "a2872531c3e0c0ce42a3bdd90b358c5104b032e436f65281ecaaa67e6a0250de"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "courtyard-ring",
+      "storeys": 0,
+      "id": "large-villa--modern-box--glazed-bay--courtyard-ring--g0",
+      "status": "unavailable",
+      "planId": "plan-b4fbafecbc01cb5a",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "courtyard-ring",
+      "storeys": 1,
+      "id": "large-villa--modern-box--glazed-bay--courtyard-ring--g1",
+      "status": "unavailable",
+      "planId": "plan-30a783fc924df7ce",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "courtyard-ring",
+      "storeys": 2,
+      "id": "large-villa--modern-box--glazed-bay--courtyard-ring--g2",
+      "status": "unavailable",
+      "planId": "plan-b64ebb4d3c4fbdeb",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "courtyard-ring",
+      "storeys": 3,
+      "id": "large-villa--modern-box--glazed-bay--courtyard-ring--g3",
+      "status": "unavailable",
+      "planId": "plan-40b7bd05eb0f51eb",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "pavilion",
+      "storeys": 0,
+      "id": "large-villa--modern-box--glazed-bay--pavilion--g0",
+      "status": "unavailable",
+      "planId": "plan-128be8225ccfdb0c",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "pavilion",
+      "storeys": 1,
+      "id": "large-villa--modern-box--glazed-bay--pavilion--g1",
+      "status": "unavailable",
+      "planId": "plan-011ed9f0244887b2",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "pavilion",
+      "storeys": 2,
+      "id": "large-villa--modern-box--glazed-bay--pavilion--g2",
+      "status": "unavailable",
+      "planId": "plan-585ef3920c5aead0",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "glazed-bay",
+      "layout": "pavilion",
+      "storeys": 3,
+      "id": "large-villa--modern-box--glazed-bay--pavilion--g3",
+      "status": "unavailable",
+      "planId": "plan-021db46dd1298a33",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "auto",
+      "storeys": 0,
+      "id": "large-villa--modern-box--staggered-wings--auto--g0",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--staggered-wings--auto--g0.png",
+      "planId": "plan-7983bcc3f9002661",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "143f1371138af319870365af3ded233f269e8218f5feef6d39198d83bab7be93"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "auto",
+      "storeys": 1,
+      "id": "large-villa--modern-box--staggered-wings--auto--g1",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--staggered-wings--auto--g1.png",
+      "planId": "plan-949f64c22386fb2c",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "af416f06fb2641447029661a3ca4f8805c07f97d6af56f37a01a3ab6fb29a14a"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "auto",
+      "storeys": 2,
+      "id": "large-villa--modern-box--staggered-wings--auto--g2",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--staggered-wings--auto--g2.png",
+      "planId": "plan-c078c25c3608e73a",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "45a62c12e2f4027933bd998ede2b96b807b986a94ac8b41a1c328234f37e799f"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "auto",
+      "storeys": 3,
+      "id": "large-villa--modern-box--staggered-wings--auto--g3",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--staggered-wings--auto--g3.png",
+      "planId": "plan-a71180c240299768",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "6fdf04790f06ad3fa23f248838374e41a297a3a58068d9266340448bcf0f33be"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "twin-wing",
+      "storeys": 0,
+      "id": "large-villa--modern-box--staggered-wings--twin-wing--g0",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--staggered-wings--twin-wing--g0.png",
+      "planId": "plan-4b5b01f18501f7af",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "ac52c696eb850805bf1c6aa91e3537dbff953b82ff2273bdccc4602143f16cbe"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "twin-wing",
+      "storeys": 1,
+      "id": "large-villa--modern-box--staggered-wings--twin-wing--g1",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--staggered-wings--twin-wing--g1.png",
+      "planId": "plan-a1efd49cda582e7a",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "aec321fc72b71f349136e360409ee4f86ce5f51875332c9c7fefa796ec36f77f"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "twin-wing",
+      "storeys": 2,
+      "id": "large-villa--modern-box--staggered-wings--twin-wing--g2",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--staggered-wings--twin-wing--g2.png",
+      "planId": "plan-d04da41b355a02cd",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "df90f1123f1ada7b1cb0fbaa521205a7046116d32e292a78d1ff2f798bef65b3"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "twin-wing",
+      "storeys": 3,
+      "id": "large-villa--modern-box--staggered-wings--twin-wing--g3",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--staggered-wings--twin-wing--g3.png",
+      "planId": "plan-b3b4a4959b94527b",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "b8a59623a544f1c33847f6a3d1a932e2c011b31c261c2a85506b7fc316fb8c11"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "u-wing",
+      "storeys": 0,
+      "id": "large-villa--modern-box--staggered-wings--u-wing--g0",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--staggered-wings--u-wing--g0.png",
+      "planId": "plan-58400a121155f910",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "86dde872b6d607d08e4c95526585047dcc2c37539147c0cf725be220bb854aef"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "u-wing",
+      "storeys": 1,
+      "id": "large-villa--modern-box--staggered-wings--u-wing--g1",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--staggered-wings--u-wing--g1.png",
+      "planId": "plan-b32ab1454303cc33",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "17f28acad497b3dc9b41642d1ff28447f0c19a33315861cd5f177eb960f392fc"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "u-wing",
+      "storeys": 2,
+      "id": "large-villa--modern-box--staggered-wings--u-wing--g2",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--staggered-wings--u-wing--g2.png",
+      "planId": "plan-a18e7d49366e213b",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "0a1eb352cdcf68c944c85a7e0e1f9d40ad13ddee82c157f64ae80fbbdc8281f3"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "u-wing",
+      "storeys": 3,
+      "id": "large-villa--modern-box--staggered-wings--u-wing--g3",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--staggered-wings--u-wing--g3.png",
+      "planId": "plan-65ff8954ba8d8796",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "a01356688c72670453e98732abc4ee4d1cce76506854937db2bf7c0f9e9e1677"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "courtyard-ring",
+      "storeys": 0,
+      "id": "large-villa--modern-box--staggered-wings--courtyard-ring--g0",
+      "status": "unavailable",
+      "planId": "plan-2f149ff61b0d782c",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "courtyard-ring",
+      "storeys": 1,
+      "id": "large-villa--modern-box--staggered-wings--courtyard-ring--g1",
+      "status": "unavailable",
+      "planId": "plan-c671843345f2140d",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "courtyard-ring",
+      "storeys": 2,
+      "id": "large-villa--modern-box--staggered-wings--courtyard-ring--g2",
+      "status": "unavailable",
+      "planId": "plan-3904d4c5f84cd7d7",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "courtyard-ring",
+      "storeys": 3,
+      "id": "large-villa--modern-box--staggered-wings--courtyard-ring--g3",
+      "status": "unavailable",
+      "planId": "plan-b5b5fdc48b2e32ca",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "pavilion",
+      "storeys": 0,
+      "id": "large-villa--modern-box--staggered-wings--pavilion--g0",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--staggered-wings--pavilion--g0.png",
+      "planId": "plan-2f149ff61b0d782c",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "a117e41052b0797c55f891dc25fad07b256db70ed4fc53d6397994afd9b29e81"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "pavilion",
+      "storeys": 1,
+      "id": "large-villa--modern-box--staggered-wings--pavilion--g1",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--staggered-wings--pavilion--g1.png",
+      "planId": "plan-087ca8e1a9717573",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        34,
+        40
+      ],
+      "renderDigest": "a0de1932c2710a284cb5077f851d1c46add42e1c6a48a37f3a124ac1047f5d61"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "pavilion",
+      "storeys": 2,
+      "id": "large-villa--modern-box--staggered-wings--pavilion--g2",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--staggered-wings--pavilion--g2.png",
+      "planId": "plan-b99c29c3a04592d1",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        34,
+        40
+      ],
+      "renderDigest": "2cc35f906f0ad40ccc9312be0c1a37f465d283d3c0e8cefc605c54e8752bb69e"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "staggered-wings",
+      "layout": "pavilion",
+      "storeys": 3,
+      "id": "large-villa--modern-box--staggered-wings--pavilion--g3",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--staggered-wings--pavilion--g3.png",
+      "planId": "plan-779bee52eee262a0",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        34,
+        40
+      ],
+      "renderDigest": "4b6d7dd3790df1cf091169da18ca79fd6a8a5934a4a3ecc4ace0bbbd657db548"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "auto",
+      "storeys": 0,
+      "id": "large-villa--modern-box--terraced-villa--auto--g0",
+      "status": "unavailable",
+      "reason": "Reference floor plan did not pass validation"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "auto",
+      "storeys": 1,
+      "id": "large-villa--modern-box--terraced-villa--auto--g1",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--terraced-villa--auto--g1.png",
+      "planId": "plan-83fdc0b7bcc4cc41",
+      "seed": 650523944,
+      "actualLayout": "stepped",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "82e55756c98fe05997de931fc8834dca0d3a9f071a76857642c303d3ad925e8c"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "auto",
+      "storeys": 2,
+      "id": "large-villa--modern-box--terraced-villa--auto--g2",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--terraced-villa--auto--g2.png",
+      "planId": "plan-154d84fbb6ed38a9",
+      "seed": 650523944,
+      "actualLayout": "stepped",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "9b2b7c8c64958d8bd64886866e14f41f7d705416a39f7e8293c64606405fa406"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "auto",
+      "storeys": 3,
+      "id": "large-villa--modern-box--terraced-villa--auto--g3",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--terraced-villa--auto--g3.png",
+      "planId": "plan-c0b9168229ae5328",
+      "seed": 650523944,
+      "actualLayout": "stepped",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "d4c8e4f276d04946bc6618fac8cd8654cacdbbaaff9275d2de3f325415cef5fb"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "twin-wing",
+      "storeys": 0,
+      "id": "large-villa--modern-box--terraced-villa--twin-wing--g0",
+      "status": "unavailable",
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "twin-wing",
+      "storeys": 1,
+      "id": "large-villa--modern-box--terraced-villa--twin-wing--g1",
+      "status": "unavailable",
+      "planId": "plan-bf54a64d0ad85e4f",
+      "seed": 650523944,
+      "actualLayout": "stepped",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "twin-wing",
+      "storeys": 2,
+      "id": "large-villa--modern-box--terraced-villa--twin-wing--g2",
+      "status": "unavailable",
+      "planId": "plan-845c40976c4c6741",
+      "seed": 650523944,
+      "actualLayout": "stepped",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "twin-wing",
+      "storeys": 3,
+      "id": "large-villa--modern-box--terraced-villa--twin-wing--g3",
+      "status": "unavailable",
+      "planId": "plan-5f67f303a2a1a4e9",
+      "seed": 650523944,
+      "actualLayout": "stepped",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "u-wing",
+      "storeys": 0,
+      "id": "large-villa--modern-box--terraced-villa--u-wing--g0",
+      "status": "unavailable",
+      "reason": "Reference floor plan did not pass validation"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "u-wing",
+      "storeys": 1,
+      "id": "large-villa--modern-box--terraced-villa--u-wing--g1",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--terraced-villa--u-wing--g1.png",
+      "planId": "plan-815f687f4147b0bd",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "b23fe2654ac963747f88e9a3b2ce424ae26fd3b906bffab9740ab10507a18c11"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "u-wing",
+      "storeys": 2,
+      "id": "large-villa--modern-box--terraced-villa--u-wing--g2",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--terraced-villa--u-wing--g2.png",
+      "planId": "plan-3ce420b94e20efaf",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "a1037d2717d790b062fc4e88563635a9c5b26830597417de08d45a6931f8a544"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "u-wing",
+      "storeys": 3,
+      "id": "large-villa--modern-box--terraced-villa--u-wing--g3",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--modern-box--terraced-villa--u-wing--g3.png",
+      "planId": "plan-943984c87d90aa9a",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "da331a34a1c81c8d3955203b17f80a880db51e5129e8d2b27b375dae15345e23"
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "courtyard-ring",
+      "storeys": 0,
+      "id": "large-villa--modern-box--terraced-villa--courtyard-ring--g0",
+      "status": "unavailable",
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "courtyard-ring",
+      "storeys": 1,
+      "id": "large-villa--modern-box--terraced-villa--courtyard-ring--g1",
+      "status": "unavailable",
+      "planId": "plan-24ed639ed50c63b4",
+      "seed": 650523944,
+      "actualLayout": "stepped",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "courtyard-ring",
+      "storeys": 2,
+      "id": "large-villa--modern-box--terraced-villa--courtyard-ring--g2",
+      "status": "unavailable",
+      "planId": "plan-73be6d17ca3abbcd",
+      "seed": 650523944,
+      "actualLayout": "stepped",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "courtyard-ring",
+      "storeys": 3,
+      "id": "large-villa--modern-box--terraced-villa--courtyard-ring--g3",
+      "status": "unavailable",
+      "planId": "plan-4f75300becc3c63d",
+      "seed": 650523944,
+      "actualLayout": "stepped",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "pavilion",
+      "storeys": 0,
+      "id": "large-villa--modern-box--terraced-villa--pavilion--g0",
+      "status": "unavailable",
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "pavilion",
+      "storeys": 1,
+      "id": "large-villa--modern-box--terraced-villa--pavilion--g1",
+      "status": "unavailable",
+      "planId": "plan-40a7289b2e716755",
+      "seed": 650523944,
+      "actualLayout": "stepped",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "pavilion",
+      "storeys": 2,
+      "id": "large-villa--modern-box--terraced-villa--pavilion--g2",
+      "status": "unavailable",
+      "planId": "plan-ab0ba3a6198a2d78",
+      "seed": 650523944,
+      "actualLayout": "stepped",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "large-villa",
+      "style": "modern-box",
+      "composition": "terraced-villa",
+      "layout": "pavilion",
+      "storeys": 3,
+      "id": "large-villa--modern-box--terraced-villa--pavilion--g3",
+      "status": "unavailable",
+      "planId": "plan-7731714d8367e197",
+      "seed": 650523944,
+      "actualLayout": "stepped",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "reason": "This composition uses a different building layout. Choose Auto layout or another composition."
+    },
+    {
+      "type": "large-villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "auto",
+      "storeys": 0,
+      "id": "large-villa--contemporary-indian--auto--auto--g0",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--contemporary-indian--auto--auto--g0.png",
+      "planId": "plan-cdbf4450c2b355ae",
+      "seed": 650523944,
+      "actualLayout": "stepped",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "2864642d7863de2e761303c31067674d1f632c65f24dbd59bb824ad34c225ebb"
+    },
+    {
+      "type": "large-villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "auto",
+      "storeys": 1,
+      "id": "large-villa--contemporary-indian--auto--auto--g1",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--contemporary-indian--auto--auto--g1.png",
+      "planId": "plan-8f0253112f242663",
+      "seed": 650523944,
+      "actualLayout": "l-shape",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "00f994488636bc9cf90ddc245faf97130926d4ea73367f6c90d0a80758412211"
+    },
+    {
+      "type": "large-villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "auto",
+      "storeys": 2,
+      "id": "large-villa--contemporary-indian--auto--auto--g2",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--contemporary-indian--auto--auto--g2.png",
+      "planId": "plan-3c24258759efe37d",
+      "seed": 650523944,
+      "actualLayout": "stepped",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "7479b24310127d26bfb8e507847d2b69a949e6fd5017811536ec036bbb8afabd"
+    },
+    {
+      "type": "large-villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "auto",
+      "storeys": 3,
+      "id": "large-villa--contemporary-indian--auto--auto--g3",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--contemporary-indian--auto--auto--g3.png",
+      "planId": "plan-89c74c57c68dcdc1",
+      "seed": 650523944,
+      "actualLayout": "l-shape",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "6dc3c19feff8ae941f8c49fe946e0bf5120d9b366949df4068be9d3494b6c80a"
+    },
+    {
+      "type": "large-villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "twin-wing",
+      "storeys": 0,
+      "id": "large-villa--contemporary-indian--auto--twin-wing--g0",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--contemporary-indian--auto--twin-wing--g0.png",
+      "planId": "plan-c91b751a682c59b4",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "4ea105f49172a84269da4a41f6811b087cf91cd23914d9ec4a3d44119565bb9a"
+    },
+    {
+      "type": "large-villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "twin-wing",
+      "storeys": 1,
+      "id": "large-villa--contemporary-indian--auto--twin-wing--g1",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--contemporary-indian--auto--twin-wing--g1.png",
+      "planId": "plan-300bb4eddb29dbf3",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "633383acb291d8baf0b2fd1b45e9a045864ad38714f147039697940275da7c4d"
+    },
+    {
+      "type": "large-villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "twin-wing",
+      "storeys": 2,
+      "id": "large-villa--contemporary-indian--auto--twin-wing--g2",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--contemporary-indian--auto--twin-wing--g2.png",
+      "planId": "plan-e54fb19bdd8d2efd",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "022c00e78ddcbd230cd7908177a5a8465527f1c9548d2c41d4a38e50ce362220"
+    },
+    {
+      "type": "large-villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "twin-wing",
+      "storeys": 3,
+      "id": "large-villa--contemporary-indian--auto--twin-wing--g3",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--contemporary-indian--auto--twin-wing--g3.png",
+      "planId": "plan-d68083c5d42b8927",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "dc6d3a9cd6cf894a8eec1ce3dc67a37aa5655bdc74613971931dc2e0a65e243a"
+    },
+    {
+      "type": "large-villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "u-wing",
+      "storeys": 0,
+      "id": "large-villa--contemporary-indian--auto--u-wing--g0",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--contemporary-indian--auto--u-wing--g0.png",
+      "planId": "plan-50370e5fce527175",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "c84073b925b069b85f4a8df6de2438a8e751fa9d699df464381f5598e9050b1f"
+    },
+    {
+      "type": "large-villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "u-wing",
+      "storeys": 1,
+      "id": "large-villa--contemporary-indian--auto--u-wing--g1",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--contemporary-indian--auto--u-wing--g1.png",
+      "planId": "plan-2a4ff46a5a176554",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "e7c21a387168d296aad1043add5c9104750f1ae70fe6066ab90c940e02183f7a"
+    },
+    {
+      "type": "large-villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "u-wing",
+      "storeys": 2,
+      "id": "large-villa--contemporary-indian--auto--u-wing--g2",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--contemporary-indian--auto--u-wing--g2.png",
+      "planId": "plan-5db4f5d17e3c46c7",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "56b5bf4036529c4cec5ada0cc287074b3cdf4442c60abf039680b39da452a7f9"
+    },
+    {
+      "type": "large-villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "u-wing",
+      "storeys": 3,
+      "id": "large-villa--contemporary-indian--auto--u-wing--g3",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--contemporary-indian--auto--u-wing--g3.png",
+      "planId": "plan-f5de4d5c0cc0c9e2",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "b47964ad48af2f3cb7c302f1f9d638c057a871e7a7ef2fd13679b4870a7d9cec"
+    },
+    {
+      "type": "large-villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "courtyard-ring",
+      "storeys": 0,
+      "id": "large-villa--contemporary-indian--auto--courtyard-ring--g0",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--contemporary-indian--auto--courtyard-ring--g0.png",
+      "planId": "plan-6b703ff832d7dbe2",
+      "seed": 650523944,
+      "actualLayout": "courtyard-ring",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "5ac49ae1a2e810f0d8f4f51ed058b57525c012c6e9c61575202f4405ffcdb25f"
+    },
+    {
+      "type": "large-villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "courtyard-ring",
+      "storeys": 1,
+      "id": "large-villa--contemporary-indian--auto--courtyard-ring--g1",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--contemporary-indian--auto--courtyard-ring--g1.png",
+      "planId": "plan-58e47d81fb96c5bb",
+      "seed": 650523944,
+      "actualLayout": "courtyard-ring",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "d10cf9fbf234cacdd35cc247022351a3a34acbffc16d822cdacaa17bb1b7f4be"
+    },
+    {
+      "type": "large-villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "courtyard-ring",
+      "storeys": 2,
+      "id": "large-villa--contemporary-indian--auto--courtyard-ring--g2",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--contemporary-indian--auto--courtyard-ring--g2.png",
+      "planId": "plan-ab5ab48aa71809e0",
+      "seed": 650523944,
+      "actualLayout": "courtyard-ring",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "f24911e9976025cd908e639a5407401d55b94fbd8b1abaf27c0feaac52f8c216"
+    },
+    {
+      "type": "large-villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "courtyard-ring",
+      "storeys": 3,
+      "id": "large-villa--contemporary-indian--auto--courtyard-ring--g3",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--contemporary-indian--auto--courtyard-ring--g3.png",
+      "planId": "plan-21c46fef86457469",
+      "seed": 650523944,
+      "actualLayout": "courtyard-ring",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "df7afa06c0130fc83122482a4fb90a83513ed4c1e80911ca7fb711cb70fc621a"
+    },
+    {
+      "type": "large-villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "pavilion",
+      "storeys": 0,
+      "id": "large-villa--contemporary-indian--auto--pavilion--g0",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--contemporary-indian--auto--pavilion--g0.png",
+      "planId": "plan-7e5f9833dee42fd9",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "04c01c5e9c5417716ec0bdd140e1d8d78d43d6387b92ed5f17ebf454ca02a730"
+    },
+    {
+      "type": "large-villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "pavilion",
+      "storeys": 1,
+      "id": "large-villa--contemporary-indian--auto--pavilion--g1",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--contemporary-indian--auto--pavilion--g1.png",
+      "planId": "plan-285b38c3da47a831",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        34,
+        40
+      ],
+      "renderDigest": "5abe2e33e89c34620f40744146c71600de9af5798ef7fb6844ec5676b1a42c3d"
+    },
+    {
+      "type": "large-villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "pavilion",
+      "storeys": 2,
+      "id": "large-villa--contemporary-indian--auto--pavilion--g2",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--contemporary-indian--auto--pavilion--g2.png",
+      "planId": "plan-08e94aacc8219866",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        34,
+        40
+      ],
+      "renderDigest": "ed6841d35a81160241f81a3b37c43c1b56ad4d5c21b9edf88b3344e1eff247b5"
+    },
+    {
+      "type": "large-villa",
+      "style": "contemporary-indian",
+      "composition": "auto",
+      "layout": "pavilion",
+      "storeys": 3,
+      "id": "large-villa--contemporary-indian--auto--pavilion--g3",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--contemporary-indian--auto--pavilion--g3.png",
+      "planId": "plan-580b16a65f4c8bc8",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        34,
+        40
+      ],
+      "renderDigest": "22b24255fd2fc2d9b617b79a601d9c4d193a9098cb0e0437ad385acb63eb9922"
+    },
+    {
+      "type": "large-villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "auto",
+      "storeys": 0,
+      "id": "large-villa--courtyard-indian--auto--auto--g0",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--courtyard-indian--auto--auto--g0.png",
+      "planId": "plan-65a1fb0151918b4f",
+      "seed": 650523944,
+      "actualLayout": "courtyard-ring",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "aa5033d59102d163afa3ea3b3411c1aed6365c04d4a896ba1fde7c043a025c19"
+    },
+    {
+      "type": "large-villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "auto",
+      "storeys": 1,
+      "id": "large-villa--courtyard-indian--auto--auto--g1",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--courtyard-indian--auto--auto--g1.png",
+      "planId": "plan-413a5b8d776f128f",
+      "seed": 650523944,
+      "actualLayout": "courtyard-ring",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "a0bb3f3ec2f2870db9d8538e411ad675f6995c5e38264291eaaf1c3126da844e"
+    },
+    {
+      "type": "large-villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "auto",
+      "storeys": 2,
+      "id": "large-villa--courtyard-indian--auto--auto--g2",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--courtyard-indian--auto--auto--g2.png",
+      "planId": "plan-e16149c75cd5ab75",
+      "seed": 650523944,
+      "actualLayout": "courtyard-ring",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "4374203858c4fd50000653a882062d890ffcce56dad2c413db831bd56373b876"
+    },
+    {
+      "type": "large-villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "auto",
+      "storeys": 3,
+      "id": "large-villa--courtyard-indian--auto--auto--g3",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--courtyard-indian--auto--auto--g3.png",
+      "planId": "plan-09dfce5902c35af3",
+      "seed": 650523944,
+      "actualLayout": "courtyard-ring",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "6acefc4805d1cfac96c405d9d1b1746d44139a908b0d29b5d4b5280b89bceba6"
+    },
+    {
+      "type": "large-villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "twin-wing",
+      "storeys": 0,
+      "id": "large-villa--courtyard-indian--auto--twin-wing--g0",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--courtyard-indian--auto--twin-wing--g0.png",
+      "planId": "plan-12927525de17729b",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "ad828ea836380cca8b12c070aab59c7e26d8d6bdb9e16e578bc2fc62baf61ef6"
+    },
+    {
+      "type": "large-villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "twin-wing",
+      "storeys": 1,
+      "id": "large-villa--courtyard-indian--auto--twin-wing--g1",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--courtyard-indian--auto--twin-wing--g1.png",
+      "planId": "plan-ee74403a7872e2f8",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "c2a85ab7ba7fb74eb281fc3754dab72c39d266d2e8f4393ecec0d19ffaa0408d"
+    },
+    {
+      "type": "large-villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "twin-wing",
+      "storeys": 2,
+      "id": "large-villa--courtyard-indian--auto--twin-wing--g2",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--courtyard-indian--auto--twin-wing--g2.png",
+      "planId": "plan-2250b6f88b3d8586",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "267fe84e650ad405dd11da1fa6eaf48bdb83950798522b12588534c51b06cf07"
+    },
+    {
+      "type": "large-villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "twin-wing",
+      "storeys": 3,
+      "id": "large-villa--courtyard-indian--auto--twin-wing--g3",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--courtyard-indian--auto--twin-wing--g3.png",
+      "planId": "plan-112cb1ddf50c1fcb",
+      "seed": 650523944,
+      "actualLayout": "twin-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "eabe7e4628e4159cbb328adebbebb92b0bdd5ebfa1a8d3afdfa1e5fe4c836a40"
+    },
+    {
+      "type": "large-villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "u-wing",
+      "storeys": 0,
+      "id": "large-villa--courtyard-indian--auto--u-wing--g0",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--courtyard-indian--auto--u-wing--g0.png",
+      "planId": "plan-69a35ddde6d7e2b7",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "bac946ed9db48e9528aef3a0e20fe4c74b50952242305e1a8c26ff7ebe0483f2"
+    },
+    {
+      "type": "large-villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "u-wing",
+      "storeys": 1,
+      "id": "large-villa--courtyard-indian--auto--u-wing--g1",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--courtyard-indian--auto--u-wing--g1.png",
+      "planId": "plan-3ca0b552e148bd88",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "70f0f8fff0dc15254eab93b44862ddc7af854857fc688ddad3c64db90c2be18d"
+    },
+    {
+      "type": "large-villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "u-wing",
+      "storeys": 2,
+      "id": "large-villa--courtyard-indian--auto--u-wing--g2",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--courtyard-indian--auto--u-wing--g2.png",
+      "planId": "plan-c69907a377f52585",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "92ca3ae42e389b9da8dc74dc27b75bacdc4c80f40c9575bbd0d175c360be7333"
+    },
+    {
+      "type": "large-villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "u-wing",
+      "storeys": 3,
+      "id": "large-villa--courtyard-indian--auto--u-wing--g3",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--courtyard-indian--auto--u-wing--g3.png",
+      "planId": "plan-3e5f5099a6c2a9bb",
+      "seed": 650523944,
+      "actualLayout": "u-wing",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "f882209fdcdd668a2ec53ce6a71060e65db1d88f4b87a53b3c92ea1d93fb2136"
+    },
+    {
+      "type": "large-villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "courtyard-ring",
+      "storeys": 0,
+      "id": "large-villa--courtyard-indian--auto--courtyard-ring--g0",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--courtyard-indian--auto--courtyard-ring--g0.png",
+      "planId": "plan-1974919cc888c6fe",
+      "seed": 650523944,
+      "actualLayout": "courtyard-ring",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "a69bfbfc8a172e1732c40f46c75d58e3a09f215c82740b1515cf7da61a17c18b"
+    },
+    {
+      "type": "large-villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "courtyard-ring",
+      "storeys": 1,
+      "id": "large-villa--courtyard-indian--auto--courtyard-ring--g1",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--courtyard-indian--auto--courtyard-ring--g1.png",
+      "planId": "plan-551e9239c69d74db",
+      "seed": 650523944,
+      "actualLayout": "courtyard-ring",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "28843ed338a1e278ebd93c34330e7624b0a0680b2c7bc5bd21005e165bc3b7e0"
+    },
+    {
+      "type": "large-villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "courtyard-ring",
+      "storeys": 2,
+      "id": "large-villa--courtyard-indian--auto--courtyard-ring--g2",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--courtyard-indian--auto--courtyard-ring--g2.png",
+      "planId": "plan-3d54c0eddbfa9ed3",
+      "seed": 650523944,
+      "actualLayout": "courtyard-ring",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "67ba1d2a020c57ceb188fa55bffb59d5ab08673bfd90f9960ac61c0ed7f5d2d0"
+    },
+    {
+      "type": "large-villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "courtyard-ring",
+      "storeys": 3,
+      "id": "large-villa--courtyard-indian--auto--courtyard-ring--g3",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--courtyard-indian--auto--courtyard-ring--g3.png",
+      "planId": "plan-361976841ad1efa6",
+      "seed": 650523944,
+      "actualLayout": "courtyard-ring",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "9e32d5531c6f640457f3c79be2c25b07e25ea2ccb83644350b7a3bc18c58eed5"
+    },
+    {
+      "type": "large-villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "pavilion",
+      "storeys": 0,
+      "id": "large-villa--courtyard-indian--auto--pavilion--g0",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--courtyard-indian--auto--pavilion--g0.png",
+      "planId": "plan-60b72c4d8b1015af",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        28,
+        34
+      ],
+      "renderDigest": "ddf1741d4fa7f327b83d22e001da3e8ba4c768c80b45378e036858a8c990c757"
+    },
+    {
+      "type": "large-villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "pavilion",
+      "storeys": 1,
+      "id": "large-villa--courtyard-indian--auto--pavilion--g1",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--courtyard-indian--auto--pavilion--g1.png",
+      "planId": "plan-3b12c17c178d674e",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        34,
+        40
+      ],
+      "renderDigest": "174e37c9589b4e2f3ee625fff9887fd39232bc3d7c9ceb923ee00408eba45b6d"
+    },
+    {
+      "type": "large-villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "pavilion",
+      "storeys": 2,
+      "id": "large-villa--courtyard-indian--auto--pavilion--g2",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--courtyard-indian--auto--pavilion--g2.png",
+      "planId": "plan-9fc4c5c3f261b5a5",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        34,
+        40
+      ],
+      "renderDigest": "bf3ed0c759c3aae7a1c14dd1d15d8b691901e702d89782a007d42321d79ca858"
+    },
+    {
+      "type": "large-villa",
+      "style": "courtyard-indian",
+      "composition": "auto",
+      "layout": "pavilion",
+      "storeys": 3,
+      "id": "large-villa--courtyard-indian--auto--pavilion--g3",
+      "status": "ready",
+      "image": "/house-ideas/large-villa--courtyard-indian--auto--pavilion--g3.png",
+      "planId": "plan-aef817148a699fce",
+      "seed": 650523944,
+      "actualLayout": "pavilion",
+      "plotMetres": [
+        34,
+        40
+      ],
+      "renderDigest": "71d4bfe5b63fc4ef2b700773df7d7590e587ba21d80a5d3188a95b8ab15d3e93"
+    }
+  ]
+}

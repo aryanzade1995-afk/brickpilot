@@ -89,7 +89,7 @@ function verifyStructuralDomains(info, geometry) {
  */
 export async function resolveWalkthroughImages(appearance) {
   const app = structuredClone(appearance), publicRoot = await realpath(resolve(PROJECT_ROOT, 'public')), hashes = {}
-  for (const look of Object.values(app.bindings)) {
+  for (const look of [...Object.values(app.bindings),...(app.models??[]).flatMap(m=>m.finish?[m.finish]:[])]) {
     const url = look.surface?.image
     if (!url) continue
     try {
@@ -175,18 +175,19 @@ export function createWalkthroughService({ root = resolve(PROJECT_ROOT, 'output/
         e.position[0] + .25 > c.min[0] && e.position[0] - .25 < c.max[0] && e.position[2] + .25 > c.min[2] && e.position[2] - .25 < c.max[2]))
       await save(stage, 'collision.json', { ...geometry.collision, designId, projectId, geometryKey, appearanceKey, colliders: all,
         visualCollisionGlb: 'collision.glb contains immutable structure; furniture AABBs and dynamic doors are in this JSON.' })
+      const browserAppearance=structuredClone(appearance),publicRoot=resolve(PROJECT_ROOT,'public')
+      for(const look of [...Object.values(browserAppearance.bindings),...(browserAppearance.models??[]).flatMap(m=>m.finish?[m.finish]:[])])
+        if(look.surface?.image?.startsWith(publicRoot+sep))look.surface.image='/'+look.surface.image.slice(publicRoot.length+1).replaceAll('\\','/')
       await save(stage, 'metadata.json', { ...geometry.metadata, version: WALKTHROUGH_DELIVERY_VERSION, designId, projectId, geometryKey, appearanceKey, entries,
         appearanceVersion: WALKTHROUGH_APPEARANCE_VERSION, appearanceIssues: appearance.issues, specifications: appearance.specifications, structuralSurfaceCount: geometry.faces.length,
         coordinateUnits: { sourceFootprintsAndOpenings: 'mm, plan x east / y south / z up', surfacesAndCollidersAndEntries: 'm, x east / y up / z plan north' },
         surfaces: geometry.faces.map(f => ({ id: f.id, canonicalSurfaceId: f.canonicalSurfaceId, sourceIds: f.sourceIds, floorId: f.floorId, roomId: f.roomId, binding: f.binding, vertices: f.vertices, normal: f.normal })),
-        openingParts: geometry.openingParts, furniture: appearance.furniture.map(b => ({ id: b.id, roomId: b.roomId, binding: b.binding })),
+        openingParts: geometry.openingParts, furniture: appearance.furniture.map(b => ({ id: b.id, roomId: b.roomId, binding: b.binding })), interiorModels:browserAppearance.models??[],
         finishSkins: appearance.skins, visualBasis: appearance.specifications.map(r => ({ roomId: r.roomId, products: r.finishes.visualBasis })),
         variants: { 'house.glb': { includesFurniture: true, finishesApplied: true }, 'structure.glb': { includesFurniture: false, finishesApplied: false }, 'furniture.glb': { furnitureOnly: true } },
         render: { bakedLighting: false, materials: 'glTF metallic-roughness; supported selected surface images embedded; procedural preview shading reduced to PBR', triangles: model.triangles, bytes: model.bytes } })
-      const browserBindings = structuredClone(appearance.bindings), publicRoot = resolve(PROJECT_ROOT, 'public')
-      for (const look of Object.values(browserBindings)) if (look.surface?.image?.startsWith(publicRoot + sep)) look.surface.image = '/' + look.surface.image.slice(publicRoot.length + 1).replaceAll('\\', '/')
-      await save(stage, 'materials.json', { designId, geometryKey, appearanceKey, appearanceVersion: WALKTHROUGH_APPEARANCE_VERSION, bindings: browserBindings,
-        furniture: appearance.furniture, skins: appearance.skins })
+      await save(stage, 'materials.json', { designId, geometryKey, appearanceKey, appearanceVersion: WALKTHROUGH_APPEARANCE_VERSION, bindings: browserAppearance.bindings,
+        furniture: appearance.furniture, skins: appearance.skins, models:browserAppearance.models??[] })
       const m = { version: WALKTHROUGH_DELIVERY_VERSION, identity: id, designId, projectId, geometryKey, appearanceKey, geometryReused: record.geometryReused,
         status: 'ready', reviewRequired: geometry.metadata.issues.length > 0 || appearance.issues.length > 0, createdAt: new Date().toISOString(), files: await inventory(stage, manifestFiles) }
       await save(stage, 'manifest.json', m); await verified(stage, 'manifest.json', id); await publish(stage, dir)

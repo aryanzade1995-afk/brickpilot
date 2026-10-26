@@ -2,6 +2,8 @@ import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import type { Look } from './dressRoom.ts'
 import { floorFinishDetail } from './floorFinishDetail.ts'
+import {worktopDetailMap} from './walkthroughSurfaceDetail.ts'
+import {surfaceProfile,applySurfaceMicrodetail} from './pbrSurfaces.ts'
 
 /** Loads the combined export exactly once. Do not add furniture.glb on top:
  * the combined model already contains the procedural furniture root.
@@ -29,6 +31,7 @@ export async function loadWalkthroughAsset(url: string, expectedPlanId: string, 
  */
 export async function applyWalkthroughMaterialBindings(root: THREE.Object3D, bindings: Record<string, Look>, isCurrent = () => true) {
   const prepared = new Map<string, THREE.MeshStandardMaterial>(), textures = new Map<string, THREE.Texture>()
+  const detailMaps=new Map<string,THREE.DataTexture>()
   const warnings = new Set<string>(), failedImages = new Set<string>(), missingKeys = new Set<string>()
   const originalTiles = new Map<string, number>()
   const previousLooks = new Map<string, string>(), originalSizes = new Map<string, number[]>()
@@ -47,12 +50,20 @@ export async function applyWalkthroughMaterialBindings(root: THREE.Object3D, bin
     for (const [key, look] of Object.entries(bindings)) {
       if (!originalTiles.has(key) || previousLooks.get(key) === JSON.stringify(look)) continue
       const polishedFloor = key.startsWith('[') && JSON.parse(key)[2] === 'floor' && look.rough < .3
-      const Material = polishedFloor ? THREE.MeshPhysicalMaterial : THREE.MeshStandardMaterial
+      const polishedWorktop=look.finish==='worktop'&&look.rough<.3
+      const Material = polishedFloor||polishedWorktop ? THREE.MeshPhysicalMaterial : THREE.MeshStandardMaterial
+      const shell=key.startsWith('[')&&['wall','floor','ceiling'].includes(JSON.parse(key)[2])
       const material = new Material({ color: look.color, roughness: look.rough, metalness: look.metal ?? 0,
-        transparent: (look.opacity ?? 1) < 1, opacity: look.opacity ?? 1, side: (look.opacity ?? 1) < 1 ? THREE.DoubleSide : THREE.FrontSide,
+        transparent: (look.opacity ?? 1) < 1, opacity: look.opacity ?? 1, side: shell||(look.opacity ?? 1) < 1 ? THREE.DoubleSide : THREE.FrontSide,
         emissive: look.emissive ?? '#000000', emissiveIntensity: look.glow ?? 0 })
       prepared.set(key, material)
-      if(material instanceof THREE.MeshPhysicalMaterial) { material.clearcoat=.15;material.clearcoatRoughness=.2 }
+      material.forceSinglePass=(look.opacity??1)<1
+      const profile=surfaceProfile(key,look);if(profile)applySurfaceMicrodetail(material,profile,detailMaps)
+      if(material instanceof THREE.MeshPhysicalMaterial) { material.clearcoat=polishedWorktop ? .25 : .15;material.clearcoatRoughness=Math.max(.12,look.rough) }
+      if(look.finish==='worktop') {
+        let detail=textures.get('worktop-detail');if(!detail){detail=worktopDetailMap();textures.set('worktop-detail',detail)}
+        material.bumpMap=detail;material.bumpScale=.00008
+      }
       // Reuse the source metre UVs. Finish joints are sub-millimetre shading,
       // not extra overlapping planes or bevelled slabs that trip the walker.
       if (key.startsWith('[') && JSON.parse(key)[2] === 'floor') {
@@ -100,7 +111,7 @@ export async function applyWalkthroughMaterialBindings(root: THREE.Object3D, bin
       for (const value of Object.values(material)) if (value instanceof THREE.Texture) oldTextures.add(value)
       material.dispose()
     }
-    for (const texture of oldTextures) if (!usedTextures.has(texture)) texture.dispose()
+    for (const texture of oldTextures) if (!usedTextures.has(texture)&&!texture.userData.bakedLighting) texture.dispose()
     for (const material of prepared.values()) if (!retained.has(material)) material.dispose()
     root.traverse(o => { if (o.userData.materialImageUnavailable) warnings.add(o.userData.materialImageUnavailable) })
     return [...warnings]
@@ -110,7 +121,8 @@ export async function applyWalkthroughMaterialBindings(root: THREE.Object3D, bin
 export function disposeWalkthroughAsset(root: THREE.Object3D) {
   const geometries = new Set<THREE.BufferGeometry>(), materials = new Set<THREE.Material>(), textures = new Set<THREE.Texture>()
   root.traverse(o => { if (!(o instanceof THREE.Mesh)) return; geometries.add(o.geometry)
+    if (o instanceof THREE.InstancedMesh) o.dispose()
     for (const m of Array.isArray(o.material) ? o.material : [o.material]) { materials.add(m); for (const value of Object.values(m)) if (value instanceof THREE.Texture) textures.add(value) }
   })
-  geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose()); textures.forEach(t => { (t.source?.data as { close?: () => void })?.close?.(); t.dispose() }); root.clear()
+  geometries.forEach(g => {if(!g.userData.sharedInteriorAsset)g.dispose()}); materials.forEach(m => m.dispose()); textures.forEach(t => { if(t.userData.sharedInteriorAsset||t.userData.bakedLighting)return;(t.source?.data as { close?: () => void })?.close?.(); t.dispose() }); root.clear()
 }

@@ -102,7 +102,7 @@ export function FastInteriorPreview({design}: {design:Design}) {
       .finally(()=>{if(!controller.signal.aborted && currentKey.current===savedKey)setChecking(false)})
     return()=>{controller.abort();activeRequest.current?.abort()}
   },[savedKey,design,config,store.quality])
-  const select=(label:string,value:string,list:readonly {id:string;label:string}[],change:(value:string)=>void)=><label className="block text-sm">{translateUi(label)}<select disabled={busy} className="mt-1 w-full border border-line bg-bg p-2" value={value} onChange={e=>change(e.target.value)}>{list.map(o=><option key={o.id} value={o.id}>{translateUi(o.label)}</option>)}</select></label>
+  const select=(label:string,value:string,list:readonly {id:string;label:string}[],change:(value:string)=>void)=><label className="block min-w-0 text-sm">{translateUi(label)}<select disabled={busy} className="mt-1 w-full min-w-0 max-w-full border border-line bg-bg p-2" value={value} onChange={e=>change(e.target.value)}>{list.map(o=><option key={o.id} value={o.id}>{translateUi(o.label)}</option>)}</select></label>
   const run=async()=> {
     if(!room || busy || checking)return
     setBusy(true);setError('');setStage('Preparing selected room');setFov(75)
@@ -138,15 +138,15 @@ export function FastInteriorPreview({design}: {design:Design}) {
       />
     </div>
 
-    <div className="mt-5 grid gap-6 lg:grid-cols-[320px_1fr]">
-      <div ref={panel} className="space-y-3">
+    <div className="mt-5 grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+      <div ref={panel} className="min-w-0 space-y-3">
         {translateUi(select('Floor',String(room?.floor??0),[...new Set(rooms.map(r=>r.floor))].map(f=>({id:String(f),label:rooms.find(r=>r.floor===f)!.floorName})),v=>{const r=rooms.find(r=>r.floor===Number(v))!;store.set({room:{floor:r.floor,roomId:r.id}})}))}
         {translateUi(select('Room',room?.id??'',rooms.filter(r=>r.floor===room?.floor).map(r=>({id:r.id,label:r.name})),v=>store.set({room:{floor:room!.floor,roomId:v}})))}
         {finishes && <div className="border border-line p-3" aria-label={translateUi("Finishes in this room")}>
-          <div className="flex items-baseline justify-between gap-2"><p className="label">{translateUi("From your Finishes & Cost")}</p><Link to="/workspace/finishes?tab=specifications" className="text-xs underline">{translateUi("Change")}</Link></div>
+          <div className="flex flex-wrap items-baseline justify-between gap-2"><p className="label">{translateUi("From your Finishes & Cost")}</p><Link to="/workspace/finishes?tab=specifications" className="text-xs underline">{translateUi("Change")}</Link></div>
           <ul className="mt-2 space-y-1.5 max-h-48 overflow-y-auto pr-1">{finishes.summary.map(s=><li key={s.label} className="flex items-center gap-2 text-xs">
             {s.image?<img src={s.image} alt={translateUi("")} className="h-7 w-7 flex-none rounded border border-line bg-white object-contain"/>:<span className="h-7 w-7 flex-none rounded border border-line bg-bg-inset"/>}
-            <span className="min-w-0"><span className="block text-ink-faint">{translateUi(s.label)}</span><span className="block truncate text-ink">{translateUi(s.value)}</span></span></li>)}</ul>
+            <span className="min-w-0"><span className="block break-words text-ink-faint">{translateUi(s.label)}</span><span className="block truncate text-ink" title={translateUi(s.value)}>{translateUi(s.value)}</span></span></li>)}</ul>
         </div>}
         {translateUi(select('Interior style',config.style,INTERIOR_STYLES,v=>store.set({style:v})))}
         {translateUi(select('Lighting',config.lighting,LIGHTINGS,v=>store.set({lighting:v})))}
@@ -242,7 +242,7 @@ export function FastInteriorPreview({design}: {design:Design}) {
           )}
         </div>
         {result && !busy && <p className="mt-3 text-sm">{translateUi(fresh?'Preview ready and saved.':`Saved preview · ${new Date(saved!.savedAt).toLocaleString()}`)} <a className="underline" href={result.url} download="interior-360.webp">{translateUi("Download panorama")}</a></p>}
-        {result && !busy && <div className="mt-3 flex gap-3 text-sm"><button onClick={run} className="border border-line p-2">{translateUi("Render again")}</button><Link to="/workspace/finishes?tab=specifications" className="border border-line p-2">{translateUi("Change finishes")}</Link><span className="p-2 text-ink-dim">{translateUi("Drag to look around · scroll or pinch to zoom")}</span></div>}
+        {result && !busy && <div className="mt-3 flex flex-wrap gap-3 text-sm"><button onClick={run} className="border border-line p-2">{translateUi("Render again")}</button><Link to="/workspace/finishes?tab=specifications" className="border border-line p-2">{translateUi("Change finishes")}</Link><span className="p-2 text-ink-dim">{translateUi("Drag to look around · scroll or pinch to zoom")}</span></div>}
       </div>
     </div>
   </section>

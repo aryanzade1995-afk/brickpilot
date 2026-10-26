@@ -1,0 +1,22 @@
+import assert from 'node:assert/strict'
+import test from 'node:test'
+import {registerHooks} from 'node:module'
+import {defaultBrief} from '../src/lib/model/brief.ts'
+import {finishSignature} from '../src/lib/cost/finishAssignments.ts'
+import {referenceSpec} from './fixtures/reference-facade.mjs'
+registerHooks({resolve(specifier,context,next){return specifier.startsWith('@/')?{url:new URL('../src/'+specifier.slice(2),import.meta.url).href,shortCircuit:true}:next(specifier,context)}})
+const storage=new Map();globalThis.localStorage={getItem:k=>storage.get(k)??null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)};globalThis.window={localStorage:globalThis.localStorage}
+const {useReference:R}=await import('../src/state/reference.ts'),{useStudio:S}=await import('../src/state/studio.ts'),{useProjects:P,parseCore,applyCore}=await import('../src/state/projects.ts')
+test('reference edits preserve source plan, pin, layout, finish signature and accepted building',()=>{
+ const brief=defaultBrief();brief.site.plotWidth=22;brief.site.plotDepth=28;S.setState({brief,pinned:null,result:null,directions:null,layout:null,existing:null});S.getState().run();const before=S.getState();assert.ok(before.result?.buildingModel);const signature=finishSignature(before.brief),plan=JSON.stringify(before.result.design)
+ R.getState().open(before.result.buildingModel.planId);R.getState().setSpec(referenceSpec());R.getState().settings({azimuthDeg:15,edits:{roof_accent:{uDelta:.01}}});R.getState().accept('test-signature');assert.equal(S.getState().result,before.result);assert.equal(S.getState().pinned,before.pinned);assert.equal(S.getState().layout,before.layout);assert.equal(JSON.stringify(S.getState().result.design),plan);assert.equal(finishSignature(S.getState().brief),signature)
+})
+test('edits undo/redo/reset and original toggle are reversible, without deleting the accepted spec',()=>{const before=structuredClone(R.getState().document);R.getState().settings({azimuthDeg:25});R.getState().undo();assert.deepEqual(R.getState().document,before);R.getState().redo();assert.equal(R.getState().document.settings.azimuthDeg,25);R.getState().reset();assert.equal(R.getState().document.settings.azimuthDeg,15);R.getState().enabled(false);assert.ok(R.getState().document.accepted);assert.equal(R.getState().document.enabled,false)})
+test('project save/reload/switch/version restore include the reference and preserve old projects',()=>{
+ P.setState({items:[],currentId:null});const one=P.getState().save({name:'Reference house'});assert.ok(one.core.reference?.accepted);R.getState().settings({azimuthDeg:30});const two=P.getState().save({label:'Camera changed'});const core=parseCore(JSON.parse(JSON.stringify(two.core)));assert.equal(core.reference.settings.azimuthDeg,30);R.getState().clear();applyCore(core);assert.equal(R.getState().document.settings.azimuthDeg,30)
+ P.getState().startNew();assert.equal(R.getState().document,null);P.getState().open(one.id);assert.equal(R.getState().document.settings.azimuthDeg,30);P.getState().restore(one.id,one.versions[0].id);assert.equal(R.getState().document.settings.azimuthDeg,15)
+ const legacy={...one.core};delete legacy.reference;applyCore(parseCore(legacy));assert.equal(R.getState().document,null)
+})
+test('reference persistence stores a hash, never image bytes, and clears invalid documents',()=>{const saved=JSON.parse(storage.get('formstead.reference.v1'));assert.ok(!JSON.stringify(saved).includes('base64'));R.getState().restore({version:999});assert.equal(R.getState().document,null)})
+test('starting on a different source and removing a reference remain undoable',()=>{R.getState().open('source-one');R.getState().setSpec(referenceSpec());const before=structuredClone(R.getState().document);R.getState().open('source-two');assert.equal(R.getState().document.sourcePlanId,'source-two');R.getState().undo();assert.deepEqual(R.getState().document,before);R.getState().remove();assert.equal(R.getState().document.spec,null);R.getState().undo();assert.deepEqual(R.getState().document,before)})
+test('style transfer always preserves the source architecture even after a reference-led study',()=>{R.getState().settings({operation:'reconstruction',mode:'reference-led'});R.getState().settings({operation:'style-transfer'});assert.equal(R.getState().document.settings.mode,'preserve-plan');R.getState().settings({mode:'reference-led'});assert.equal(R.getState().document.settings.mode,'preserve-plan')})

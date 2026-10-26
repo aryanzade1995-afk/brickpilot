@@ -4,6 +4,7 @@ import { roomFurnishing, type InteriorConfiguration } from '../interior/preview.
 import { interiorFinishes, type InteriorFinishes, type Surface } from '../interior/finishes.ts'
 import type { Piece } from '../interior/layout.ts'
 import type { DollMat, Dresser } from './buildDollhouse.ts'
+import {refineKitchenSlabs} from '../interior/kitchenSlabs.ts'
 
 /* ------------------------------------------------------------------ *
  *  dressRoom — one room of the furnished 3D view, dressed exactly as the
@@ -20,6 +21,7 @@ type V3 = [number, number, number]
 
 /** how a surface looks: colour, sheen, and for floors and tiles the pattern at its real size */
 export type Look = {
+  finish?: 'worktop'
   color: string
   rough: number
   metal?: number
@@ -32,6 +34,7 @@ export type DressBox = { id: string; look: Look; pos: V3; size: V3; shape?: 'box
   /** the rounded edge the 360 renderer gives this part (Blender bevel), metres */
   bevel?: number }
 export type DressedRoom = {
+  placements?: Piece[]
   boxes: DressBox[]
   floor: Look
   wall: Look
@@ -66,7 +69,7 @@ export function stylePalette(style: string) {
   return {
     wood: role('wood'), panel: role('panel'), fabric: role('soft'), accent: role('accent'), cream: role('cream'), stone: role('stone'),
     metal: role('metal'), rug: role('rug'), rugBorder: look(scale(s.rug[0], 0.55), 0.95),
-    linen: look('#EFE9DF', 0.9), ceramic: look('#EDE8DF', 0.2), leaf: look('#3C6534', 0.6), soil: look('#3B2A1E', 0.95),
+    linen: role('accent'), ceramic: look('#EDE8DF', 0.2), leaf: look('#3C6534', 0.6), soil: look('#3B2A1E', 0.95),
     shade: look('#F3E9D6', 0.7, 0, { emissive: '#FFC785', glow: 0.8 }), groove: look('#0B0B0B', 0.8), screen: look('#050506', 0.08),
     plant: look('#3E6B3A', 0.7), lamp: look('#F2E6D0', 0.8, 0, { emissive: '#FFD9A8', glow: 0.9 }), glass: look('#E6F2F7', 0.05, 0, { opacity: 0.3 }),
   }
@@ -341,6 +344,16 @@ export function dressRoom(design: Design, building: Building, level: number, roo
   // ---- the kitchen as the 360 fits it (interior_finishes.kitchen_details): shutters and drawers on the base cabinets,
   //      handles or a handleless groove, a recessed plinth, and the chosen sink set into an opening in the worktop
   const handles = look('#C4C7CB', 0.18, 1), recess = look('#1F2224', 0.6)
+  // Preserve the fitted run, but expose real-sized cabinet modules for the
+  // shared model library. The countertop stays independent of these bodies.
+  const cabinetBody = (id:string,pos:V3,size:V3,lk:Look,maxWidth=.6) => {
+    const side=nearest(pos[0],pos[2]),axis=side==='N'||side==='S'?0:2
+    const n=Math.max(1,Math.ceil(size[axis]/maxWidth))
+    for(let k=0;k<n;k++){
+      const p:V3=[...pos],s:V3=[...size];s[axis]=size[axis]/n-.002;p[axis]+= -size[axis]/2+(k+.5)*size[axis]/n
+      add({id:`${id}-module-${k}`,look:lk,pos:p,size:s,bevel:.003})
+    }
+  }
   const hardware = fin?.kitchenHardware
   const frontOf = (side: Side, [x, y, z]: V3, depth: number): V3 => {
     const off = depth / 2 + 0.002
@@ -383,7 +396,7 @@ export function dressRoom(design: Design, building: Building, level: number, roo
       if (body) {
         const h = Math.min(body.size[1], bottom - 0.04)
         skip.add(body.id)
-        add({ id: body.id, look: cabLook ?? m.panel, pos: [body.pos[0], h / 2, body.pos[2]], size: [body.size[0], h, body.size[2]], bevel: 0.008 })
+        cabinetBody(body.id,[body.pos[0],h/2,body.pos[2]],[body.size[0],h,body.size[2]],cabLook??m.panel)
       }
       for (const [tag, pos, size] of [
         ['n', [x, rim, c], [sw + 0.025, 0.012, 0.025]], ['s', [x, rim, d], [sw + 0.025, 0.012, 0.025]],
@@ -432,8 +445,13 @@ export function dressRoom(design: Design, building: Building, level: number, roo
     else if (fin?.kitchenSink && /-sink$/.test(fid)) lk = SINK_METAL[fin.kitchenSink.finish]
     else if (fittings && f.mat === 'metal' && /tap|shower|sink/.test(fid)) lk = fittings
     else if (sanitary && f.mat === 'ceramic') lk = ceramic
+    if(f.mat==='metal'&&/-hob$/.test(fid)){
+      add({id:fid,look:lk,pos:[f.pos[0],f.pos[1]-f.size[1]/2+.0225,f.pos[2]],size:[f.size[0],.045,f.size[2]],bevel:.002});continue
+    }
     // fitted pieces have the 360's softened edges; sanitary ware is moulded, so rounder still
-    add({ id: fid, look: lk, pos: f.pos, size: f.size, bevel: f.mat === 'ceramic' ? Math.min(...f.size) / 3 : 0.008 })
+    if(f.mat==='panel'&&/-counter\d*$/.test(fid))cabinetBody(fid,f.pos,f.size,lk)
+    else if(f.mat==='panel'&&(/-upper\d+$|-wall-cabinet$/.test(fid)))cabinetBody(fid,f.pos,f.size,lk,.9)
+    else add({ id: fid, look: lk, pos: f.pos, size: f.size, bevel: f.mat === 'ceramic' ? Math.min(...f.size) / 3 : 0.008 })
   }
 
   // nothing above the cut line of the cut-away: no water heater, wall cabinets, shower head, fans or ceiling lights
@@ -447,7 +465,7 @@ export function dressRoom(design: Design, building: Building, level: number, roo
     if (fin.wallTiles.zone === 'backsplash') for (const f of furniture) if (/-counter\d*$/.test(f.id) && f.mat === 'panel') sides.add(nearest(f.pos[0], f.pos[2]))
     tiles = { look: surfaceLook(fin.wallTiles), zone: fin.wallTiles.zone, sides: [...sides] }
   }
-  return { boxes, floor, wall, tiles }
+  return { boxes:refineKitchenSlabs(boxes,furniture.filter(f=>f.mat==='stone'&&/-top\d*$/.test(f.id)).map(f=>f.id)), floor, wall, tiles, placements: pieces }
 }
 
 /** the house-wide choices: door leaves (internal, main), window frames and glass */

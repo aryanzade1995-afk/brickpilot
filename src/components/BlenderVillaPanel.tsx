@@ -1,3 +1,8 @@
+import {useReference} from '@/state/reference.ts'
+import {reconstructFacade} from '@/lib/reference/reconstruct.ts'
+import {ReferenceLayer} from './reference/ReferenceLayer.tsx'
+import {Link} from 'react-router-dom'
+import { WALKTHROUGH_ACCESS_REVISION } from '@/lib/walkthrough/access.ts'
 import { plumbingExportScene } from '@/lib/plumbing/pipeGeometry.ts'
 import { createVillaPlumbing, selectedPipeSizes } from '@/lib/plumbing/villaPlumbing.ts'
 import { PlumbingLayer } from './PlumbingLayer.tsx'
@@ -6,42 +11,22 @@ import { exportThreeSceneToGlb } from '@/lib/export/index.ts'
 import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
 import { useStudio } from '@/state/studio.ts'
 import { finishSignature } from '@/lib/cost/finishAssignments.ts'
-import { Component, memo, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { Canvas, useThree } from '@react-three/fiber'
-import { OrbitControls, useGLTF } from '@react-three/drei'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import type { Design } from '@/lib/engine/types.ts'
 import { expandBalconyArea } from '@/lib/engine/balconyExtent.ts'
 import { createBuildingModel } from '@/lib/engine/buildingModel.ts'
 import { useBlender, directionRenderKey } from '@/state/blender.ts'
 import { RenderProgress } from './RenderProgress.tsx'
-import { StudioReflections } from './StudioReflections.tsx'
-import { prepareVillaScene } from '@/lib/three/prepareVillaScene.ts'
+import { VillaSceneCanvas, AcceptedVillaModel } from './VillaSceneCanvas.tsx'
 import { BuildingFormSummary } from './BuildingFormSummary.tsx'
 import { useSolarVillaEditor } from './solar/useSolarVillaEditor.ts'
 import { SolarVillaControls } from './solar/SolarVillaControls.tsx'
 import { SolarLayer } from '@/lib/three/SolarLayer.tsx'
-import { SolarCamera, FitAcceptedVilla } from '@/lib/three/SolarCamera.tsx'
+import { SolarCamera } from '@/lib/three/SolarCamera.tsx'
 import { useSolarArtifacts, solarArtifactKey, isCurrentSolarArtifact } from '@/state/solarArtifacts.ts'
 import { ExportDropdown } from '@/components/export/ExportDropdown.tsx'
 import { villaCadExportItems, VILLA_CAD_HELP } from '@/components/export/villaCadExports.ts'
 import { captureCanvasPng } from '@/lib/export/index.ts'
-
-// Stable Canvas options prevent React updates to solar controls from reconfiguring the camera.
-const VILLA_CAMERA = { position: [20, 14, -25] as [number, number, number], fov: 40 }
-const VILLA_GL = { antialias: true, logarithmicDepthBuffer: true, preserveDrawingBuffer: true }
-const VILLA_DPR: [number, number] = [1, 2]
-
-const Villa = memo(function Villa({ url }: { url: string }) {
-  const gltf = useGLTF(url)
-  const maxAnisotropy = useThree((state) => state.gl.capabilities.getMaxAnisotropy())
-  const scene = useMemo(() => prepareVillaScene(gltf.scene, maxAnisotropy), [gltf.scene, maxAnisotropy])
-  return <><primitive object={scene} dispose={null} /><FitAcceptedVilla scene={scene}/></>
-})
-class ModelBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
-  state = { failed: false }
-  static getDerivedStateFromError() { return { failed: true } }
-  render() { return this.state.failed ? <p className="p-6 text-sm text-ink-dim">{translateUi("The interactive model could not load. The images and downloads below are still available.")}</p> : this.props.children }
-}
 
 export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: { plan: Design; autoGenerate?: boolean; selectedSeed?: number }) {
   useLanguage(s => s.language);
@@ -51,6 +36,8 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
   // Solar is a sibling scene layer, never an input to the prepared building or its render effect.
   const finishedPlan = useMemo(() => ({ ...plan, model: { ...plan.model, brief: { ...plan.model.brief, finish: brief.finish, specs: brief.specs } } }), [plan, brief.finish, brief.specs])
   const building = useMemo(() => createBuildingModel(finishedPlan), [finishedPlan])
+  const referenceDocument = useReference(s=>s.document)
+  const referenceFacade = useMemo(()=>{const d=referenceDocument;if(!d?.enabled||d.sourcePlanId!==building.planId||!d.accepted||(d.accepted.settings.mode!=='preserve-plan'&&d.accepted.settings.operation!=='style-transfer'))return null;try{const geometry=reconstructFacade(building,d.accepted.spec,d.accepted.settings);return geometry.status==='rejected'?null:{geometry,operation:d.accepted.settings.operation}}catch{return null}},[referenceDocument,building])
   const plumbing = useMemo(() => createVillaPlumbing(building, selectedPipeSizes(brief)), [building, brief])
   const liveExport = useRef<Group>(null)
   const [waterPipes, setWaterPipes] = useState(true), [drainPipes, setDrainPipes] = useState(true), [pipeXray, setPipeXray] = useState(false)
@@ -124,10 +111,11 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
     {sourcePlanId === id && error && !busy && <button type="button" onClick={() => void generate(finishedPlan, result?.seed ?? selectedSeed ?? plan.dna.seed, quality, true)}
       className="mt-3 border border-line px-4 py-2 text-sm">{translateUi('Retry 3D model')}</button>}
     {result && <>
+      {result.geometryRevision !== WALKTHROUGH_ACCESS_REVISION && <div className="mt-4 flex flex-wrap items-center gap-3 border border-line bg-bg-inset p-3"><p className="flex-1 text-xs text-ink-dim">{translateUi('Update balcony sliders, roof doors and pipe fittings on the same villa. Your plan and finishes stay fixed.')}</p><button type="button" disabled={busy} onClick={() => void generate(finishedPlan, result.seed, quality, true)} className="min-h-11 border border-line bg-accent px-4 text-xs text-bg disabled:opacity-50">{translateUi(busy ? 'Updating Blender villa…' : 'Update doors & pipework')}</button></div>}
       {result.finishSignature !== signature && <p className="mt-3 text-sm text-ink-dim">{translateUi("Updating selected finishes on this same design…")}</p>}
       <p className="mt-4 font-mono text-xs text-ink-dim">{translateUi("Visualisation · Blender · Seed ")}{translateUi(result.seed)} · {translateUi(result.family.replaceAll('_', ' '))} · {translateUi(result.quality === 'final' ? 'Final render' : 'Preview')}</p>
-      <div className="mt-3 grid gap-4 lg:grid-cols-2">
-        <div id="villa-interactive-view" ref={villaContainerRef} role="region" aria-label={translateUi('Interactive villa with rooftop solar')} className="relative aspect-[4/3] border border-line">
+      <div className="mt-3 grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2">
+        <div id="villa-interactive-view" ref={villaContainerRef} role="region" aria-label={translateUi('Interactive villa with rooftop solar')} className="relative aspect-[4/3] w-full min-w-0 border border-line">
           <div className="absolute top-2 right-2 z-20 pointer-events-auto">
             <ExportDropdown
               label="Download Villa"
@@ -184,29 +172,26 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
               ]}
             />
           </div>
-          <ModelBoundary key={result.files.glb}><Canvas frameloop="demand" shadows dpr={VILLA_DPR} gl={VILLA_GL} camera={VILLA_CAMERA}>
-            <color attach="background" args={['#e5e5e5']} /><ambientLight intensity={.6} />
-            <directionalLight position={[20, 30, -10]} intensity={2} castShadow shadow-mapSize={[2048, 2048]}
-              shadow-camera-left={-35} shadow-camera-right={35} shadow-camera-top={35} shadow-camera-bottom={-35} shadow-camera-far={100} shadow-bias={-0.0005} shadow-normalBias={.05} />
-            <Suspense fallback={null}><StudioReflections /><group ref={liveExport}><Villa url={result.files.glb} />
+          {referenceFacade&&<p className="absolute bottom-2 left-2 right-2 z-10 bg-bg/90 px-3 py-2 text-xs text-ink-dim">Accepted reference facade overlay · source building retained. <Link className="underline" to="/workspace/plan#reference-facade">Edit / return to original</Link></p>}
+          <VillaSceneCanvas key={result.files.glb}>
+            <Suspense fallback={null}><group ref={liveExport}><AcceptedVillaModel url={result.files.glb} style={referenceFacade?.operation==='style-transfer'?referenceFacade.geometry.style:undefined}/>{referenceFacade&&<ReferenceLayer geometry={referenceFacade.geometry}/>}
               <SolarLayer layout={solar.displayLayout} roof={solar.displayRoof} reservedAreas={solar.displayConfiguration.inputs.reservedAreas} selectedIds={solar.selectedIds} onSelect={solar.pickPanel}/>
               <PlumbingLayer layout={plumbing} water={waterPipes} drain={drainPipes} xray={pipeXray}/>
-              </group><SolarCamera request={solar.camera} roof={solar.displayRoof} layout={solar.displayLayout} selectedIds={solar.selectedIds}/>
-            </Suspense>
-            <OrbitControls makeDefault minPolarAngle={0} maxPolarAngle={Math.PI / 2} />
-          </Canvas></ModelBoundary>
+            </group><SolarCamera request={solar.camera} roof={solar.displayRoof} layout={solar.displayLayout} selectedIds={solar.selectedIds}/></Suspense>
+          </VillaSceneCanvas>
         </div>
-        <div><p role="status" className="mb-2 text-xs text-ink-dim">{translateUi(currentSolar ? 'Current applied solar layout · accepted building unchanged.' : 'Building-only image · out of date for the current solar design. Render the applied solar layout to update.')}{solar.draft && ` ${translateUi('Unsaved layout preview is not included in exported images.')}`}</p><img src={(currentSolar ?? result).files[view]} alt={translateUi(currentSolar ? `${view} view with applied solar layout` : `${view} building-only reference; solar not current`)} className="aspect-[4/3] w-full object-contain" />
+        <div>{referenceFacade&&<p className="mb-2 border border-line bg-bg-inset p-2 text-xs text-ink-dim">Source image · reference facade changes are only shown in the live model. Export an updated image from Reference facade.</p>}<p role="status" className="mb-2 text-xs text-ink-dim">{translateUi(currentSolar ? 'Current applied solar layout · accepted building unchanged.' : 'Building-only image · out of date for the current solar design. Render the applied solar layout to update.')}{solar.draft && ` ${translateUi('Unsaved layout preview is not included in exported images.')}`}</p><img src={(currentSolar ?? result).files[view]} alt={translateUi(currentSolar ? `${view} view with applied solar layout` : `${view} building-only reference; solar not current`)} className="aspect-[4/3] w-full object-contain" />
           <div className="mt-2 flex gap-2">{(['hero', 'front', 'aerial'] as const).map((key) =>
             <button type="button" key={key} onClick={() => setView(key)} className="border border-line px-3 py-1 text-xs uppercase">{translateUi(key)}</button>)}</div>
         </div>
       </div>
       <section className="mt-4 border border-line bg-bg-raised p-4" aria-label={translateUi('Water & drainage pipelines')}>
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2"><h3 className="mr-auto font-display text-lg">{translateUi('Water & drainage pipelines')}</h3>{([[waterPipes,setWaterPipes,'Tank water supply'],[drainPipes,setDrainPipes,'Drainage & vents'],[pipeXray,setPipeXray,'See pipes through walls']] as const).map(([value,setter,label])=><label key={label} className="flex min-h-11 items-center gap-2 text-xs"><input type="checkbox" className="accent-accent" checked={value} onChange={e=>setter(e.target.checked)}/>{translateUi(label)}</label>)}</div>
-        <p className="mt-2 text-xs text-ink-dim">{translateUi('Blue: proposed water pipes. Grey: drainage stacks. Sand: vents. Existing shaft openings are preserved.')}</p>
+        <p className="mt-2 text-xs text-ink-dim">{translateUi('Ivory: water pipes. Charcoal: drainage stacks. Warm grey: vents. Existing shaft openings are preserved.')}</p>
         <p role="status" className="mt-2 text-xs text-ink-dim">{translateUi(`Tank-fed shafts: ${plumbing.pipes.filter(p=>p.id.startsWith('supply:')).length} · feeds to review: ${plumbing.issues.filter(i=>i.id.startsWith('supply:')).length}`)}</p>
         <details className="mt-2 text-xs text-ink-dim"><summary className="min-h-11 cursor-pointer py-3">{translateUi('Pipeline details & connections to review')}</summary><p>{translateUi('Selected pipe sizes')}: {selectedPipeSizes(brief).waterMm} mm · {translateUi('Tank water supply')}; {selectedPipeSizes(brief).soilMm} / {selectedPipeSizes(brief).wasteMm} mm · {translateUi('Drainage & vents')}</p><p className="mt-2">{translateUi('Pipe sizes are concept envelopes. Structural openings, fixture branches, vent sizing, gradients and final discharge need professional review. The house and estimate stay unchanged.')}</p><ul className="mt-3 space-y-2">{plumbing.issues.map(issue=><li key={issue.id}>{issue.id}: {translateUi(issue.reason)}</li>)}</ul><p className="mt-3">{translateUi('Use Live villa + visible pipelines GLB to download the pipework shown here. Saved images and original downloads keep their previously generated contents.')}</p></details>
       </section>
+      <p className="mt-2 text-xs text-ink-faint"><a href="https://polyhaven.com/a/modular_pipes" target="_blank" rel="noreferrer" className="underline">{translateUi('Pipe fittings · Poly Haven · CC0')}</a></p>
       <SolarVillaControls editor={solar}/>
       <div className="mt-4 border border-line p-4">
         <button type="button" disabled={busy || solarBusy || !!solar.draft || !!currentSolar || solar.solar.intention === 'install-now' && !solar.layout}

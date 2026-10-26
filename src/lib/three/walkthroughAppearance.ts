@@ -4,12 +4,14 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 import type { WalkthroughAppearancePayload } from '../walkthrough/delivery.ts'
 import { applyWalkthroughMaterialBindings, disposeWalkthroughAsset } from './loadWalkthroughAsset.ts'
 import { textileDetailMap, timberDetailMap, timberToneMap } from './walkthroughSurfaceDetail.ts'
+import {instantiateInteriorModel} from './interiorModelAssets.ts'
+import { detailedSwitchboard, detailedIndoorPlant, indoorPlantGroups, isSwitchboard, INTERIOR_DETAIL_VERSION } from './interiorDetails.ts'
 
-type AppearanceGeometry = Pick<WalkthroughAppearancePayload, 'bindings' | 'furniture' | 'skins'>
+type AppearanceGeometry = Pick<WalkthroughAppearancePayload, 'bindings' | 'furniture' | 'skins' | 'models'>
 export function walkthroughRoomAppearanceSignature(app: AppearanceGeometry, roomId: string | null) {
   const furniture = app.furniture.filter(p => p.roomId === roomId), skins = (app.skins ?? []).filter(p => p.roomId === roomId)
   const keys = [...new Set([...furniture, ...skins].map(p => p.binding))].sort()
-  return JSON.stringify([furniture, skins, Object.fromEntries(keys.map(k => [k, app.bindings[k]]))])
+  return JSON.stringify([INTERIOR_DETAIL_VERSION, furniture, skins, Object.fromEntries(keys.map(k => [k, app.bindings[k]])),app.models?.filter(m=>m.roomId===roomId)??[]])
 }
 
 /** Keep the actual Blender meshes, bevels, normals and embedded materials.
@@ -25,7 +27,8 @@ export function adoptBlenderWalkthroughAppearance(model: THREE.Group, exported: 
       const roomId = mesh.userData.roomId || null
       let group = roomGroups.get(roomId)
       if (!group) { group = new THREE.Group(); group.userData.roomId = roomId; group.userData.source = 'blender-glb';
-        if (exported.furniture && exported.bindings) group.userData.appearanceSignature = walkthroughRoomAppearanceSignature({ furniture: exported.furniture, skins: exported.skins ?? [], bindings: exported.bindings }, roomId)
+        if (exported.furniture && exported.bindings) group.userData.appearanceSignature = walkthroughRoomAppearanceSignature({ furniture: exported.furniture, skins: exported.skins ?? [], bindings: exported.bindings,models:exported.models }, roomId)
+        if (exported.furniture?.some(p => p.roomId === roomId && (isSwitchboard(p) || /(?:^|[-:])plant(?:[-:]|$)/i.test(p.sourceIds.join(' '))))) group.userData.appearanceSignature += ':legacy-detail-refresh'
         root.add(group); roomGroups.set(roomId, group) }
       group.attach(mesh)
     }
@@ -54,7 +57,24 @@ export async function buildWalkthroughAppearanceGroup(app: WalkthroughAppearance
     group.ids.push(id); groups.set(key, group)
   }
   try {
+    const replaced=new Set<string>(),modelWarnings:string[]=[]
+    // A missing asset retains its complete procedural representation.
+    const loaded=await Promise.all((app.models??[]).map(async instance=>{
+      try{return {instance,root:await instantiateInteriorModel(instance)}}catch{return {instance,root:null}}
+    }))
+    for(const item of loaded){
+      if(item.root){root.add(item.root);item.instance.replaces.forEach(id=>replaced.add(id))}
+      else modelWarnings.push(item.instance.assetId)
+    }
+    root.userData.modelWarnings=modelWarnings
+    root.userData.interiorModelCount=loaded.filter(item=>item.root).length
+    if(!isCurrent())throw new DOMException('Superseded finish update','AbortError')
+    for (const parts of indoorPlantGroups(app.furniture).filter(parts => !parts.some(p => replaced.has(p.id)))) {
+      root.add(detailedIndoorPlant(parts)); parts.forEach(p => replaced.add(p.id))
+    }
     for (const p of app.furniture) {
+      if(replaced.has(p.id))continue
+      if (isSwitchboard(p)) { root.add(detailedSwitchboard(p, app.bindings[p.binding])); continue }
       const soft = /sofa.*(?:seat|back|arm|cushion)|armchair|bed.*(?:mattress|duvet|headpad|pillow)/.test(p.id)
       const radius = Math.min(p.bevelM ?? .004, Math.min(...p.size) * (soft ? .32 : .18), soft ? .075 : .025)
       const g = p.shape === 'cyl' ? new THREE.CylinderGeometry(.5, .5, 1, 24) : p.shape === 'ball' ? new THREE.SphereGeometry(.5, 24, 12) : new RoundedBoxGeometry(...p.size, soft ? 3 : 2, radius)
@@ -88,7 +108,7 @@ export async function buildWalkthroughAppearanceGroup(app: WalkthroughAppearance
 }
 
 /** Identity excludes colours/maps: material-only changes keep all collision bodies. */
-export const walkthroughFurnishingGeometryKey = (app: WalkthroughAppearancePayload) => JSON.stringify([app.furniture, app.skins?.map(f => [f.id, f.vertices])])
+export const walkthroughFurnishingGeometryKey = (app: WalkthroughAppearancePayload) => JSON.stringify([app.furniture, app.skins?.map(f => [f.id, f.vertices]),app.models?.map(m=>[m.id,m.assetId,m.position,m.size,m.rotation])])
 
 /** Stage only changed rooms. Unchanged room groups are transferred at commit,
  * never cloned or disposed, so a paint/floor edit retains every furnishing mesh.
@@ -104,7 +124,7 @@ export async function prepareWalkthroughAppearanceUpdate(app: WalkthroughAppeara
       const bindings = Object.fromEntries(keys.map(k => [k, app.bindings[k]])), signature = walkthroughRoomAppearanceSignature(app, roomId)
       const old = previous?.children.find(g => g.userData.roomId === roomId && g.userData.appearanceSignature === signature)
       if (old) { reuse.push(old); continue }
-      const group = await buildWalkthroughAppearanceGroup({ ...app, furniture, skins, bindings }, isCurrent)
+      const group = await buildWalkthroughAppearanceGroup({ ...app, furniture, skins, bindings, models:app.models?.filter(m=>m.roomId===roomId) }, isCurrent)
       group.userData.roomId = roomId; group.userData.appearanceSignature = signature; root.add(group)
     }
     if (!isCurrent()) throw new DOMException('Superseded finish update', 'AbortError')
@@ -113,6 +133,8 @@ export async function prepareWalkthroughAppearanceUpdate(app: WalkthroughAppeara
       if (!isCurrent()) throw new DOMException('Superseded finish update', 'AbortError')
       reuse.forEach(g => root.add(g)); committed = true
       root.userData.textureWarnings = root.children.flatMap(g => g.userData.textureWarnings ?? [])
+      root.userData.modelWarnings=root.children.flatMap(g=>g.userData.modelWarnings??[])
+      root.userData.interiorModelCount=root.children.reduce((n,g)=>n+(g.userData.interiorModelCount??0),0)
       return root
     }, dispose() { disposeWalkthroughAsset(root) } }
   } catch (error) { disposeWalkthroughAsset(root); throw error }

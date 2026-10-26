@@ -13,7 +13,7 @@ def tank_bank(terrace):
     return t
 
 
-def create_roof_services(scene, building):
+def create_roof_services(scene, building, access=None):
     terrace=building.get("roofTerrace")
     if not terrace: return
     top=max(building["floors"],key=lambda f:f["level"])
@@ -32,6 +32,9 @@ def create_roof_services(scene, building):
                 x,y=(at+w/2,fixed) if horizontal else (fixed,at+w/2)
                 scene.box(f"Roof_Mumty_{name}_{i}","ROOF",x,y,z+bottom,w if horizontal else 120,120 if horizontal else w,height,"wall",top["id"])
         scene.rect("Roof_Mumty_Cap","ROOF",r,z+2200,120,"concrete",top["id"])
+    if access:
+        from .openings import create_roof_exit_door
+        create_roof_exit_door(scene, access)
     tank=tank_bank(terrace)
     if tank:
         # a battery of cylindrical tanks side by side on one steel stand

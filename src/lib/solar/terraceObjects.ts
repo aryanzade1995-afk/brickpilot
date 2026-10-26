@@ -1,6 +1,7 @@
 import type { BuildingModel } from '../engine/buildingModel.ts'
 import type { Rect } from '../geometry.ts'
 import { tankBank } from '../engine/terrace.ts'
+import { roofAccess } from '../walkthrough/openingAssemblies.ts'
 
 export type TerraceObjectExtent = { id: string; kind: 'lounger' | 'parasol' | 'bench' | 'planter'; rectMm: Rect; heightMm: number }
 /** Ordered subtraction must match geometry.plates: free[0]/free[1] locate the
@@ -21,8 +22,10 @@ export function realizedTerraceObjects(building: BuildingModel): TerraceObjectEx
   const terrace = building.roofTerrace, top = [...building.floors].sort((a, b) => a.level - b.level).at(-1)
   if (!terrace || !top) return []
   const bank = tankBank(terrace)
+  const access = roofAccess(building)?.protectedAreaMm
   const blockers = [terrace.mumty, bank, ...building.shafts.filter(s => s.floorId === top.id).map(s => s.rect),
     ...building.stairs.filter(s => s.floorId === top.id).map(s => s.rect)].filter((r): r is Rect => r !== null)
+  if(access)blockers.push(access)
   const grown = blockers.map(r => ({ x: r.x - 600, y: r.y - 600, w: r.w + 1200, h: r.h + 1200 }))
   const free = terrace.slab.flatMap(s => {
     const inner = { x: s.x + 750, y: s.y + 750, w: s.w - 1500, h: s.h - 1500 }
@@ -44,6 +47,7 @@ export function realizedTerraceObjects(building: BuildingModel): TerraceObjectEx
     }
   }
   const keep = [terrace.mumty, bank].filter((r): r is Rect => r !== null)
+  if(access)keep.push(access)
   let placed = 0
   for (const slab of terrace.slab) for (let index = 0; index < Math.max(0, Math.floor(slab.w / 2600)); index++) {
     if (placed >= 6) break

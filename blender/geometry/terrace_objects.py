@@ -10,13 +10,14 @@ EDGE = 750      # clear of the parapet
 CLEAR = 600     # clear of services
 
 
-def _free_rects(building, top):
+def _free_rects(building, top, access=None):
     blockers = []
     terrace = building["roofTerrace"]
     from .roof_services import tank_bank
     blockers += [r for r in (terrace.get("mumty"), tank_bank(terrace)) if r]
     blockers += [s["rect"] for s in building["shafts"] if s["floorId"] == top["id"]]
     blockers += [s["rect"] for s in building["stairs"] if s["floorId"] == top["id"]]
+    if access: blockers.append(access["protectedAreaMm"])
     pieces = []
     for slab in terrace["slab"]:
         inner = {"x": slab["x"] + EDGE, "y": slab["y"] + EDGE, "w": slab["w"] - 2 * EDGE, "h": slab["h"] - 2 * EDGE}
@@ -57,7 +58,7 @@ def _bench(scene, name, x, y, z, along_x, source):
         scene.box(f"{name}_Leg_{s}", "ROOF", lx, ly, z, 60 if along_x else d, d if along_x else 60, 400, "metal", source, bevel=5)
 
 
-def create_terrace_objects(scene, building):
+def create_terrace_objects(scene, building, access=None):
     terrace = building.get("roofTerrace")
     if not terrace:
         return {"terraceObjects": 0}
@@ -65,7 +66,7 @@ def create_terrace_objects(scene, building):
     top = max(building["floors"], key=lambda f: f["level"])
     z = top["elevationMm"] + top["heightMm"]
     source = top["id"]
-    free = _free_rects(building, top)
+    free = _free_rects(building, top, access)
     count = 0
     if free:
         area = free[0]
@@ -88,6 +89,7 @@ def create_terrace_objects(scene, building):
     deck = [s for s in terrace["slab"]]
     from .roof_services import tank_bank
     keep = [b for b in (terrace.get("mumty"), tank_bank(terrace)) if b]
+    if access: keep.append(access["protectedAreaMm"])
     placed = 0
     for slab in deck:
         for index in range(max(0, int(slab["w"] // 2600))):

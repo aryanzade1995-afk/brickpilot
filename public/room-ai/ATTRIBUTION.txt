@@ -1,0 +1,28 @@
+Formstead room narration and design insights
+
+Marathi neural voice:
+bol-tts-marathi-onnx by Shreyas Karnik / shreyask, a Marathi Kokoro-82M fine-tune.
+Model: https://huggingface.co/shreyask/bol-tts-marathi-onnx
+Revision: 985c7c42652bc9353598cc7ea8e086512bb04643
+Voice: mf_asha (Asha), published Marathi-trained Rasa voicepack.
+Voicepack source: https://huggingface.co/spaces/shreyask/bol-tts-marathi
+Revision: cc0aa0819b9b6db2ec916b2cf05832fe4f5a2e7b
+Model/voice assets are published under Apache-2.0.
+Base-model and dataset attribution: https://huggingface.co/shreyask/bol-tts-marathi
+Source and notices: https://github.com/shreyaskarnik/bol-tts-marathi
+
+Semantic recommendation ranking:
+Xenova/all-MiniLM-L6-v2, ONNX conversion of sentence-transformers/all-MiniLM-L6-v2.
+https://huggingface.co/Xenova/all-MiniLM-L6-v2
+Revision: 751bff37182d3f1213fa05d7196b954e230abad9
+License: Apache-2.0.
+
+Marathi text-to-IPA front end (server only; does not supply the audible voice):
+eSpeak NG via @echogarden/espeak-ng-emscripten 0.3.5, GPL-3.0.
+Source: https://github.com/echogarden-project/espeak-ng-emscripten
+Upstream source: https://github.com/espeak-ng/espeak-ng
+The installed package includes COPYING and its source/distribution notices.
+
+ONNX Runtime and Transformers.js retain their respective package notices.
+Model weights are setup-time downloads to output/room-guide-models, not bundled
+into the website or committed in this repository.

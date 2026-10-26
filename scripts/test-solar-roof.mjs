@@ -11,6 +11,7 @@ import { createBuildingModel } from '../src/lib/engine/buildingModel.ts'
 import { terraceLayout, terraceFreeRatio, TERRACE_LIMITS, tankBank } from '../src/lib/engine/terrace.ts'
 import { buildSolarRoofModel, solarAllocationPolicySchema } from '../src/lib/solar/roofModel.ts'
 import { realizedTerraceObjects } from '../src/lib/solar/terraceObjects.ts'
+import { roofAccess } from '../src/lib/walkthrough/openingAssemblies.ts'
 import { subtractRegions, intersectRegions, regionAreaM2, connectedRegions, insetRegions } from '../src/lib/solar/regions.ts'
 import { rectUnionArea, rectUnionBBox } from '../src/lib/geometry.ts'
 import { planToBlender, blenderToPlan, planToThreeGlb, threeGlbToPlan, trueAzimuthToPlan,
@@ -71,6 +72,8 @@ test('real accepted villa yields usable top roof without changing architecture, 
   assert.equal(JSON.stringify([actual, architecture]), before)
   checkExcluded(top)
   assert.ok(top.access.protectedRegionsMm.length)
+  const approach = roofAccess(architecture.buildingModel)?.protectedAreaMm
+  if (approach) assert.equal(intersectRegions(top.usableRegionsMm, [approach]).length, 0)
   assert.equal(model.surfaces.find(s => s.kind === 'balcony').status, 'excluded')
 })
 
@@ -130,7 +133,7 @@ covered=types.ModuleType("geometry.covered");covered._cylinder=lambda *a,**kw:No
 landscape=types.ModuleType("visualization.landscape");sys.modules["visualization.landscape"]=landscape
 import geometry.terrace_objects as objects
 output=[]
-for building in json.load(sys.stdin):
+for building,access in json.load(sys.stdin):
     result=[]
     def record(kind,w,h):
         def draw(scene,name,x,y,z,along_x,source):result.append({"id":name,"kind":kind,"rectMm":{"x":x-w/2,"y":y-h/2,"w":w,"h":h}})
@@ -138,9 +141,9 @@ for building in json.load(sys.stdin):
     objects._lounger=record("lounger",1900,650);objects._bench=record("bench",1600,420)
     objects._parasol=lambda scene,name,x,y,z,source:result.append({"id":name,"kind":"parasol","rectMm":{"x":x-1250,"y":y-1250,"w":2500,"h":2500}})
     landscape.planter=lambda scene,name,plan,seed,leaves:result.append({"id":name,"kind":"planter","rectMm":plan["rect"]})
-    objects.create_terrace_objects(None,building);output.append(result)
+    objects.create_terrace_objects(None,building,access);output.append(result)
 print(json.dumps(output))`
-  const fromExporter = JSON.parse(execFileSync(process.env.PYTHON ?? 'python', ['-c', script], { cwd: fileURLToPath(new URL('..', import.meta.url)), input: JSON.stringify(buildings), encoding: 'utf8' }))
+  const fromExporter = JSON.parse(execFileSync(process.env.PYTHON ?? 'python', ['-c', script], { cwd: fileURLToPath(new URL('..', import.meta.url)), input: JSON.stringify(buildings.map(b=>[b,roofAccess(b)])), encoding: 'utf8' }))
   assert.deepEqual(fromExporter, buildings.map(b => realizedTerraceObjects(b).map(({ heightMm: _heightMm, ...record }) => record)))
   const model = buildSolarRoofModel(f.design, { architecture: f.arch }), top = topSurface(model)
   const objects = top.obstacles.filter(o => o.kind === 'terrace-object')

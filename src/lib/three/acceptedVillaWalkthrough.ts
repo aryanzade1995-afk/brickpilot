@@ -32,7 +32,8 @@ export async function parseAcceptedVilla(bytes: ArrayBuffer, planId: string) {
 export async function loadAcceptedVilla(url: string, planId: string, signal?: AbortSignal) {
   const response = await fetch(acceptedVillaUrl(url), { signal })
   if (!response.ok) throw new Error('The accepted Blender villa is unavailable. Open 3D Massing to check its export.')
-  const scene = await parseAcceptedVilla(await response.arrayBuffer(), planId)
+  const bytes=await response.arrayBuffer(),scene = await parseAcceptedVilla(bytes, planId)
+  scene.userData.acceptedSourceSha256=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),b=>b.toString(16).padStart(2,'0')).join('')
   if (signal?.aborted) { disposeWalkthroughAsset(scene); throw new DOMException('Cancelled', 'AbortError') }
   return scene
 }
@@ -113,16 +114,17 @@ export function acceptedVillaDoors(scene: Group, openings: SceneOpening[]): Acce
     const source = opening.sourceId
     const groups = [
       { suffix: 'single', names: [`Door_${source}_Leaf`, `Door_${source}_Handle`], hinge: opening.hinge ?? 'a', swing: opening.swing ?? 1, operation: 'hinged' },
-      { suffix: 'left', names: [`MainEntry_${source}_Leaf_Left`, `MainEntry_${source}_CarvedPanel_Left_`, `MainEntry_${source}_Handle_-1`], hinge: 'a', swing: opening.swing ?? 1, operation: 'hinged' },
-      { suffix: 'right', names: [`MainEntry_${source}_Leaf_Right`, `MainEntry_${source}_CarvedPanel_Right_`, `MainEntry_${source}_Handle_1`], hinge: 'b', swing: opening.swing ?? 1, operation: 'hinged' },
+      { suffix: 'left', names: [`MainEntry_${source}_Leaf_Left`, `MainEntry_${source}_CarvedPanel_Left_`, `MainEntry_${source}_Handle_-1`, `Door_${source}_Leaf_Left`, `Door_${source}_Handle_Left`], hinge: 'a', swing: opening.swing ?? 1, operation: 'hinged' },
+      { suffix: 'right', names: [`MainEntry_${source}_Leaf_Right`, `MainEntry_${source}_CarvedPanel_Right_`, `MainEntry_${source}_Handle_1`, `Door_${source}_Leaf_Right`, `Door_${source}_Handle_Right`], hinge: 'b', swing: opening.swing ?? 1, operation: 'hinged' },
       { suffix: 'slider', names: [`Door_${source}_SlidingLeft_`], hinge: 'a', swing: 1, operation: 'sliding' },
+      { suffix: 'surface', names: [`Door_${source}_SurfaceSlide_`], hinge: 'a', swing: 1, operation: 'sliding' },
     ] as const
     for (const group of groups) {
       // Exported finish profiles are independent meshes (e.g. timber slats).
       // Their explicit finish_parent must follow the leaf too, otherwise the
       // opened door leaves an invisible-looking solid finish across the exit.
-      const members = parts.filter(p => group.names.some(name => [p.name, p.userData.finish_parent].some(part => typeof part === 'string' && (name.endsWith('_') ? part.startsWith(name) : part === name))) ||
-        group.suffix === 'single' && opening.emergencyExit && p.name.startsWith('EmergencyDoor_ReleaseBar'))
+      const members = parts.filter(p => (group.suffix !== 'surface' || p.userData.opening_operation === 'surface-sliding-door') && (group.names.some(name => [p.name, p.userData.finish_parent].some(part => typeof part === 'string' && (name.endsWith('_') ? part.startsWith(name) : part === name))) ||
+        group.suffix === 'single' && opening.emergencyExit && p.name.startsWith('EmergencyDoor_ReleaseBar')))
       if (!members.length) continue
       const box = new Box3(); members.forEach(p => box.expandByObject(p))
       if (box.isEmpty()) continue
@@ -131,8 +133,9 @@ export function acceptedVillaDoors(scene: Group, openings: SceneOpening[]): Acce
       const fixed = new Box3()
       if (group.operation === 'sliding') parts.filter(p => p.name.startsWith(`Door_${source}_SlidingRight_`)).forEach(p => fixed.expandByObject(p))
       const movement = !fixed.isEmpty() ? fixed.getCenter(new Vector3()).sub(box.getCenter(new Vector3())) : null
+      const slide = members.find(p => Array.isArray(p.userData.slide_translation_mm))?.userData.slide_translation_mm as number[] | undefined
       result.push({ id, openingId: opening.id, hinge: group.hinge, swing: group.swing as 1 | -1, operation: group.operation,
-        ...(movement ? { translation: (opening.orient === 'h' ? [movement.x, 0, 0] : [0, 0, movement.z]) as [number, number, number] } : {}),
+        ...(slide?.length === 3 && slide.every(Number.isFinite) ? { translation: [slide[0]/1000, slide[2]/1000, -slide[1]/1000] as [number, number, number] } : movement ? { translation: (opening.orient === 'h' ? [movement.x, 0, 0] : [0, 0, movement.z]) as [number, number, number] } : {}),
         collider: { id, sourceIds: [source], floorId: opening.floorId, kind: 'door', min: box.min.toArray(), max: box.max.toArray() } })
     }
   }

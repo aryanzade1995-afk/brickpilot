@@ -1,3 +1,4 @@
+import { balconySliders, roofAccess } from '../walkthrough/openingAssemblies.ts'
 import { createVillaPlumbing, selectedPipeSizes } from '../plumbing/villaPlumbing.ts'
 import type { Design } from './types.ts'
 import { validate } from '../rules/index.ts'
@@ -93,6 +94,6 @@ export function generateAlternativeDesign(plan: Design, seed: number) {
   villaDesignDNA.blockRotations = actualBlocks.map((m) => m.rotation)
   const facadeGrammar = ArchitecturalFeatureGenerator.generate(buildingModel, villaDesignDNA, massingModel, { usableTerrace: true })
   if (facadeGrammar.status !== 'valid') throw new Error(`Facade rejected: ${JSON.stringify(facadeGrammar.issues)}`)
-  return { schemaVersion: 1 as const, buildingModel, villaDesignDNA, massingModel, facadeGrammar, stairGuards: createStairGuards(buildingModel), plumbing: createVillaPlumbing(buildingModel, selectedPipeSizes(plan.model.brief)),
+  return { schemaVersion: 1 as const, buildingModel, villaDesignDNA, massingModel, facadeGrammar, stairGuards: createStairGuards(buildingModel), balconySliders: balconySliders(buildingModel), roofAccess: roofAccess(buildingModel), plumbing: createVillaPlumbing(buildingModel, selectedPipeSizes(plan.model.brief)),
     shapeFingerprint: createVillaShapeFingerprint(buildingModel, villaDesignDNA, massingModel, facadeGrammar) }
 }

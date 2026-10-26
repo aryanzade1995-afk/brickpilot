@@ -1,5 +1,6 @@
 """Independent preflight for source-anchored porch supports, without Blender imports."""
 import math
+import re
 from geometry.massing import mass_rect
 from geometry.plates import subtract_rectangles
 
@@ -125,6 +126,11 @@ def validate_covered_outdoor(payload):
     return layout
 
 
+def covered_support_name(name):
+    """Only source porch posts and envelope piers, never roof stair guards."""
+    return bool(re.fullmatch(r'GF_.+_Roof_\d+_Post_\d+(?:\.\d+)?', name)) or name.startswith('EnvelopePier_')
+
+
 def validate_outdoor_meshes(payload):
     """Check the generated solids too, including renderer-added aperture details."""
     import bpy
@@ -136,8 +142,7 @@ def validate_outdoor_meshes(payload):
         lo = [min(p[i] for p in pts)*1000 for i in range(3)]
         hi = [max(p[i] for p in pts)*1000 for i in range(3)]
         return dict(x=lo[0], y=lo[1], z=lo[2], w=hi[0]-lo[0], h=hi[1]-lo[1], height=hi[2]-lo[2])
-    posts = [o for o in objects if (o.name.startswith('GF_') and '_Roof_' in o.name and '_Post_' in o.name)
-             or o.name.startswith('EnvelopePier_')]
+    posts = [o for o in objects if covered_support_name(o.name)]
     blockers = [o for o in objects if any(c.name in ('FACADE', 'WALLS', 'WINDOWS', 'DOORS', 'LANDSCAPE') for c in o.users_collection)
                 or o.name.startswith(('GF_Parking_Car_', 'Column_'))]
     boxes = {o.name: bounds(o) for o in posts+blockers}

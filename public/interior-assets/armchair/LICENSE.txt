@@ -1,0 +1,6 @@
+Modern Arm Chair 01 — Vibrant Nordic
+Source: https://polyhaven.com/a/modern_arm_chair_01
+Download: https://polyhaven.com/a/modern_arm_chair_01
+Licence: CC0-1.0 https://creativecommons.org/publicdomain/zero/1.0/
+Adaptations: axis/unit normalization, mesh optimization and PBR conversion; colours may follow Formstead selections.
+

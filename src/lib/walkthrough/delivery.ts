@@ -8,13 +8,15 @@ import { intersectRegions, subtractRegions } from '../solar/regions.ts'
 import { fitWalkthroughFinishes } from './fittedFinishes.ts'
 import type { InteriorFinishes } from '../interior/finishes.ts'
 import { createStairGuards } from './stairGuards.ts'
+import {roomInteriorModels,type InteriorModelInstance} from '../interior-assets/placements.ts'
 
 export const WALKTHROUGH_DELIVERY_VERSION = 'walkthrough-assets-v1'
-export const WALKTHROUGH_APPEARANCE_VERSION = 'room-finishes-v2'
+export const WALKTHROUGH_APPEARANCE_VERSION = 'room-finishes-fittings-v6'
 type V3 = [number, number, number]
 export type AssetFace = SceneSurface & { binding: string; roomId: string | null; canonicalSurfaceId: string }
 export type AssetBox = { id: string; floorId: string; roomId: string | null; position: V3; size: V3; rotation: number;
-  shape: 'box' | 'cyl' | 'ball'; binding: string; sourceIds: string[]; kind: 'furniture' | 'door' | 'frame'; bevelM?: number }
+  shape: 'box' | 'cyl' | 'ball'; binding: string; sourceIds: string[]; kind: 'furniture' | 'door' | 'frame'; bevelM?: number;
+  support?:{surfaceId:string;point:V3;normal:V3;group:string} }
 export type Collider = { id: string; sourceIds: string[]; floorId: string; kind: string; min: V3; max: V3 }
 export type WalkthroughGeometryPayload = {
   version: typeof WALKTHROUGH_DELIVERY_VERSION; planId: string; coordinates: WalkthroughScene['coordinates']; faces: AssetFace[];
@@ -28,6 +30,7 @@ export type WalkthroughGeometryPayload = {
     issues: WalkthroughScene['issues']; navigation: { ready: false; reason: string; agentRadiusM: number; agentHeightM: number } };
 }
 export type WalkthroughAppearancePayload = { bindings: Record<string, Look>; furniture: AssetBox[]; skins: AssetFace[];
+  models?: InteriorModelInstance[];
   specifications: { roomId: string; selections: InteriorFinishes['specifications']; finishes: InteriorFinishes }[];
   issues: { code: string; roomId?: string; message: string }[] }
 
@@ -147,6 +150,7 @@ export function prepareWalkthroughGeometry(scene: WalkthroughScene): Walkthrough
 }
 
 export function prepareWalkthroughAppearance(design: Design, source: WalkthroughSource, geometry: WalkthroughGeometryPayload): WalkthroughAppearancePayload {
+  const models:InteriorModelInstance[]=[]
   const bindings: Record<string, Look> = {}, furniture: AssetBox[] = [], skins: AssetFace[] = [], specifications: WalkthroughAppearancePayload['specifications'] = [], issues: WalkthroughAppearancePayload['issues'] = []
   const looks = new Map<string, Record<string, Look>>()
   for (const room of source.rooms.filter(r => !r.outdoor)) {
@@ -161,25 +165,31 @@ export function prepareWalkthroughAppearance(design: Design, source: Walkthrough
     if (result.state !== 'resolved') { issues.push({ code: 'FURNISHING_UNAVAILABLE', roomId: room.key, message: 'This room has finishes but no supported procedural furnishing.' }); continue }
     const r = source.building.rooms.find(r => r.floorId === room.floorId && r.id === room.sourceRoomId)!, f = source.building.floors.find(f => f.id === room.floorId)!
     for (const box of result.furnishing.boxes) {
+      if (/bath|toilet|ensuite/i.test(r.name) && /mirror/i.test(box.id)) continue
       const id = JSON.stringify([room.key, box.id]), key = `furniture:${id}`
       bindings[key] = box.look
       furniture.push({ id, floorId: room.floorId, roomId: room.key, sourceIds: [box.id], kind: 'furniture', binding: key,
         position: roomLocalToWalkthrough(box.pos, r, f), size: [...box.size], rotation: -(box.rot ?? 0), shape: box.shape ?? 'box', bevelM: box.bevel })
     }
+    models.push(...roomInteriorModels(design.model.brief,room.key,room.finishRoomKey,furniture.filter(p=>p.roomId===room.key),result.furnishing.placements??[],fin,bindings,r.rect))
   }
   for (const item of [...geometry.faces, ...geometry.openingParts]) {
     const role = JSON.parse(item.binding)[2] as string
     bindings[item.binding] = item.roomId && looks.get(item.roomId)?.[role] || neutral[role] || neutral.wall
   }
   issues.push({ code: 'PROCEDURAL_ASSETS', message: 'Selected products follow Finishes & Cost. Product shapes, fitted positions, ceiling profiles, tile heights and PBR values are visual approximations; they are not manufacturer models or measured installation quantities. Product photographs remain references; swatches/material closeups are approximate textures. Opening profiles are illustrative 35mm sections. Unrepresented products remain listed in the room schedule.' })
-  return { bindings, furniture, skins, specifications, issues }
+  return { bindings, furniture, skins, specifications, issues,models }
 }
 
 /** Conservative rotated furniture boxes, separate from immutable structure. */
 export function furnitureColliders(appearance: WalkthroughAppearancePayload): Collider[] {
-  return appearance.furniture.filter(b => b.size[1] > .05).map(b => {
+  const original=appearance.furniture.filter(b => b.size[1] > .05).map(b => {
     const c = Math.abs(Math.cos(b.rotation)), s = Math.abs(Math.sin(b.rotation)), size: V3 = [b.size[0] * c + b.size[2] * s, b.size[1], b.size[0] * s + b.size[2] * c]
     return { id: b.id, floorId: b.floorId, kind: 'furniture-aabb', sourceIds: b.sourceIds,
       min: b.position.map((p, i) => p - size[i] / 2) as V3, max: b.position.map((p, i) => p + size[i] / 2) as V3 }
   })
+  return [...original,...(appearance.models??[]).map(m=>{
+    const c=Math.abs(Math.cos(m.rotation)),s=Math.abs(Math.sin(m.rotation)),size=[m.size[0]*c+m.size[2]*s,m.size[1],m.size[0]*s+m.size[2]*c]
+    return {id:m.id,floorId:m.floorId,kind:'furniture-model-aabb',sourceIds:[m.assetId],min:[m.position[0]-size[0]/2,m.position[1],m.position[2]-size[2]/2] as V3,max:[m.position[0]+size[0]/2,m.position[1]+size[1],m.position[2]+size[2]/2] as V3}
+  })]
 }

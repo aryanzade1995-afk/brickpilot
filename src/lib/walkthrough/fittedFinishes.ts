@@ -1,4 +1,6 @@
 import type { InteriorFinishes } from '../interior/finishes.ts'
+import {placeCeilingFitting,type CeilingPlacement} from './fittingLayout.ts'
+import {quantityRules} from '../cost/data/quantityRules.ts'
 import { surfaceLook, type Look } from '../three/dressRoom.ts'
 import type { AssetBox, AssetFace, WalkthroughAppearancePayload, WalkthroughGeometryPayload } from './delivery.ts'
 
@@ -9,6 +11,7 @@ import type { AssetBox, AssetFace, WalkthroughAppearancePayload, WalkthroughGeom
 export function fitWalkthroughFinishes(fin: InteriorFinishes, roomId: string, geometry: WalkthroughGeometryPayload,
   tileSides: string[] = []): Pick<WalkthroughAppearancePayload, 'skins' | 'furniture' | 'bindings'> {
   const skins: AssetFace[] = [], furniture: AssetBox[] = [], bindings: Record<string, Look> = {}
+  let mounting:AssetBox['support']
   const faces = geometry.faces.filter(f => f.roomId === roomId), room = geometry.metadata.rooms.find(r => r.id === roomId)!
   const ceilings = faces.filter(f => JSON.parse(f.binding)[2] === 'ceiling')
   const walls = faces.filter(f => JSON.parse(f.binding)[2] === 'wall' && Math.abs(f.normal[1]) < .1)
@@ -27,6 +30,18 @@ export function fitWalkthroughFinishes(fin: InteriorFinishes, roomId: string, ge
     const start = room.elevationM + (fin.wallTiles.zone === 'backsplash' ? .9 : 0)
     skin(f, 'wall-tiles', surfaceLook(fin.wallTiles), start, start + fin.wallTiles.heightM)
   }
+  // Same 100 mm skirting rule already quantified in BOQ; no additional cost
+  // selection. Source wall fragments keep every doorway/opening clear.
+  if(fin.wallTiles?.zone!=='full')for(const face of walls){
+    const b=bounds(face),h=quantityRules.finishes.skirtingHeightMm/1000
+    if(b[1][0]>room.elevationM+.005||b[1][1]<room.elevationM+h)continue
+    const alongX=Math.abs(face.normal[2])>.9,width=alongX?b[0][1]-b[0][0]:b[2][1]-b[2][0]
+    if(width<.04)continue
+    const point:[number,number,number]=[(b[0][0]+b[0][1])/2,room.elevationM+h/2,(b[2][0]+b[2][1])/2]
+    mounting={surfaceId:face.canonicalSurfaceId,point,normal:[...face.normal],group:'skirting:'+face.id}
+    add('skirting:'+face.id,[point[0]+face.normal[0]*.006,point[1],point[2]+face.normal[2]*.006],alongX?[width,h,.012]:[.012,h,width],surfaceLook(fin.floor))
+    mounting=undefined
+  }
   if (fin.ceiling.type !== 'plain') for (const f of ceilings) {
     skin(f, `ceiling-${fin.ceiling.type}`, { color: fin.ceiling.type === 'wooden' ? '#A58260' : fin.ceiling.color, rough: .7 }, undefined, undefined, .08)
     if (['tray', 'cove', 'wooden'].includes(fin.ceiling.type)) {
@@ -42,40 +57,48 @@ export function fitWalkthroughFinishes(fin: InteriorFinishes, roomId: string, ge
   function add(id: string, position: AssetBox['position'], size: AssetBox['size'], look: Look, shape: AssetBox['shape'] = 'box', rotation = 0) {
     if (size.some(n => n <= .001)) return
     const key = `fitted:${roomId}:${id}`; bindings[key] = look
-    furniture.push({ id: key, roomId, floorId: room.floorId, kind: 'furniture', binding: key, sourceIds: [id], position, size, shape, rotation })
+    furniture.push({ id: key, roomId, floorId: room.floorId, kind: 'furniture', binding: key, sourceIds: [id], position, size, shape, rotation, support:mounting&&{...mounting} })
   }
-  const area = (f: AssetFace) => { const b = bounds(f); return (b[0][1] - b[0][0]) * (b[2][1] - b[2][0]) }
-  const ceiling = ceilings.filter(f => area(f) > .25).sort((a, b) => area(b) - area(a))[0]
-  if (ceiling) {
-    const b = bounds(ceiling), x = (b[0][0] + b[0][1]) / 2, z = (b[2][0] + b[2][1]) / 2, y = b[1][0] - (fin.ceiling.type === 'plain' ? 0 : .16)
-    if (fin.fan && Math.min(b[0][1] - b[0][0], b[2][1] - b[2][0]) > 1.5) {
-      const color = fin.fan.profile?.color ?? '#ECEAE4', accent = fin.fan.profile?.accent ?? '#777777'
-      add('fan-rod', [x, y - .14, z], [.025, .28, .025], { color: accent, rough: .4 }, 'cyl')
-      add('fan-hub', [x, y - .31, z], [.24, .12, .24], { color, rough: .4 }, 'cyl')
-      for (let i = 0; i < 3; i++) {
-        const a = i * Math.PI * 2 / 3
-        add(`fan-blade-${i}`, [x + Math.cos(a) * .32, y - .32, z - Math.sin(a) * .32], [.56, .018, .12], { color, rough: .45 }, 'box', a)
-      }
-      if (fin.fan.style !== 'plain') add('fan-light', [x, y - .4, z], [.2, .04, .2], { color: '#fff4df', rough: .4, emissive: '#ffe2ad', glow: .4 }, 'cyl')
+  const occupied:CeilingPlacement[]=[]
+  const ceilingOffset=fin.ceiling.type==='plain'?0:.08
+  const mount=(p:CeilingPlacement,group:string)=>{mounting={surfaceId:p.surface.canonicalSurfaceId,point:[p.x,p.y,p.z],normal:[0,-1,0],group}}
+  const fan=fin.fan&&placeCeilingFitting(ceilings,1.3,1.3)
+  if(fan&&fin.fan){
+    fan.radius=.62;occupied.push(fan);mount(fan,'fan')
+    const {x,z}=fan,y=fan.y-ceilingOffset,color=fin.fan.profile?.color??'#8B6844',accent=fin.fan.profile?.accent??'#493B30'
+    add('fan-rod',[x,y-.14,z],[.025,.28,.025],{color:accent,rough:.4},'cyl')
+    add('fan-hub',[x,y-.31,z],[.24,.12,.24],{color,rough:.4},'cyl')
+    for(let i=0;i<3;i++){
+      const a=i*Math.PI*2/3
+      add('fan-blade-'+i,[x+Math.cos(a)*.32,y-.32,z-Math.sin(a)*.32],[.56,.018,.12],{color,rough:.45},'box',a)
     }
-    // An illustrative fitting, not the count of electrical points in the BOQ.
-    const lightX = fin.fan ? b[0][0] + .22 : x
-    add('ceiling-light', [lightX, y - .025, z], fin.lights.kind === 'panel' ? [.3, .04, .3] : [.16, .04, .16],
-      { color: fin.lights.profile?.color ?? '#ffffff', rough: .4, emissive: '#fff2d6', glow: .4 }, fin.lights.kind === 'panel' ? 'box' : 'cyl')
-    if (fin.batten) add('batten', [x, y - .03, b[2][0] + .15], [.6, .04, .06], { color: fin.batten.profile?.color ?? '#ffffff', rough: .4, emissive: '#fff4df', glow: .3 })
-    if (fin.bulb && b[2][1] - b[2][0] > .5) {
-      add('bulb-holder', [x, y - .035, b[2][1] - .18], [.06, .07, .06], { color: fin.bulb.profile?.accent ?? '#dddddd', rough: .4 }, 'cyl')
-      add('bulb', [x, y - .12, b[2][1] - .18], [.09, .12, .09], { color: fin.bulb.profile?.color ?? '#faf7ec', rough: .3, emissive: '#fff2d6', glow: .3 }, 'ball')
-    }
+    if(fin.fan.style!=='plain')add('fan-light',[x,y-.4,z],[.2,.04,.2],{color:'#fff4df',rough:.4,emissive:'#ffe2ad',glow:.4},'cyl')
   }
+  // Separate mount positions and full footprints prevent fans, panels, battens
+  // and bulbs from occupying each other's envelope. The mount touches the
+  // actual finished ceiling rather than hanging 80 mm below an invisible plane.
+  const mainSize:AssetBox['size']=fin.lights.kind==='panel'?[.3,.04,.3]:[.16,.04,.16]
+  const light=placeCeilingFitting(ceilings,mainSize[0],mainSize[2],occupied)
+  if(light){occupied.push(light);mount(light,'ceiling-light');add('ceiling-light',[light.x,light.y-ceilingOffset-mainSize[1]/2,light.z],mainSize,{color:fin.lights.profile?.color??'#eee2cb',rough:.4,emissive:'#fff2d6',glow:.4},fin.lights.kind==='panel'?'box':'cyl')}
+  const batten=fin.batten&&placeCeilingFitting(ceilings,.6,.06,occupied)
+  if(batten&&fin.batten){occupied.push(batten);mount(batten,'batten');add('batten',[batten.x,batten.y-ceilingOffset-.02,batten.z],[.6,.04,.06],{color:fin.batten.profile?.color??'#d9c49e',rough:.4,emissive:'#fff4df',glow:.3})}
+  const bulb=fin.bulb&&placeCeilingFitting(ceilings,.12,.12,occupied)
+  if(bulb&&fin.bulb){occupied.push(bulb);mount(bulb,'bulb');const y=bulb.y-ceilingOffset
+    add('bulb-holder',[bulb.x,y-.035,bulb.z],[.06,.07,.06],{color:fin.bulb.profile?.accent??'#a48654',rough:.4},'cyl')
+    add('bulb',[bulb.x,y-.12,bulb.z],[.09,.12,.09],{color:fin.bulb.profile?.color??'#faf7ec',rough:.3,emissive:'#fff2d6',glow:.3},'ball')
+  }
+  mounting=undefined
   const wallAt = (height: number, width: number, panelHeight: number) => walls.filter(f => {
     const b = bounds(f), span = Math.max(b[0][1] - b[0][0], b[2][1] - b[2][0])
     return span > width + .1 && b[1][0] <= room.elevationM + height - panelHeight / 2 && b[1][1] >= room.elevationM + height + panelHeight / 2
   }).sort((a, b) => a.id.localeCompare(b.id))[0]
   const wallProduct = (id: string, height: number, width: number, h: number, depth: number, color: string, metal = 0) => {
     const f = wallAt(height, width, h); if (!f) return
-    const b = bounds(f), x = (b[0][0] + b[0][1]) / 2 + f.normal[0] * (depth / 2 + .005), z = (b[2][0] + b[2][1]) / 2 + f.normal[2] * (depth / 2 + .005)
+    const standOff = id === 'switchboard' ? .0006 : .005
+    const b = bounds(f), x = (b[0][0] + b[0][1]) / 2 + f.normal[0] * (depth / 2 + standOff), z = (b[2][0] + b[2][1]) / 2 + f.normal[2] * (depth / 2 + standOff)
+    mounting={surfaceId:f.canonicalSurfaceId,point:[x-f.normal[0]*(depth/2+standOff),room.elevationM+height,z-f.normal[2]*(depth/2+standOff)],normal:[...f.normal],group:id}
     add(id, [x, room.elevationM + height, z], Math.abs(f.normal[0]) > .9 ? [depth, h, width] : [width, h, depth], { color, rough: .4, metal })
+    mounting=undefined
   }
   wallProduct('switchboard', 1.2, .16, .1, .018, fin.switches.profile?.color ?? '#f5f3ee')
   if (fin.exhaust) wallProduct('exhaust', 2.25, .24, .24, .07, fin.exhaust.profile?.color ?? '#f0f0ec')

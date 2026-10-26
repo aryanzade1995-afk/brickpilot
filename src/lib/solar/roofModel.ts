@@ -13,6 +13,7 @@ import { tankBank, TERRACE_LIMITS } from '../engine/terrace.ts'
 import { fnv } from '../engine/massing/rng.ts'
 import { solarInputsSchema, type SolarInputs } from '../model/solar.ts'
 import { realizedTerraceObjects } from './terraceObjects.ts'
+import { roofAccess } from '../walkthrough/openingAssemblies.ts'
 import { connectedRegions, containsPoint, edgeBand, expandRect, insetRegions, intersectRegions,
   portal, regionAreaM2, subtractRegions } from './regions.ts'
 
@@ -124,6 +125,12 @@ function allocate(surface: SolarRoofSurface, building: BuildingModel, inputs: So
   const edgeCuts = policy.edgeClearanceMm > 0 ? surface.edges.map(e => edgeBand(e, policy.edgeClearanceMm)) : []
   surface.exclusions.push(exclusion('edge-clearance', 'edge-clearance', intersectRegions(base, edgeCuts), 'Concept clearance from every outer edge and opening boundary.'))
   const blocked = surface.obstacles.flatMap(o => o.regionsMm.map(r => expandRect(r, o.clearanceMm)))
+  const roofDoor = roofAccess(building)
+  if (roofDoor) {
+    const keep = intersectRegions(base, [roofDoor.protectedAreaMm])
+    surface.exclusions.push(exclusion('roof-door-approach', 'protected-access', keep, 'Keep the modeled roof doors, outward leaf swing and landing clear of panels.'))
+    blocked.push(...keep)
+  }
   let candidates = subtractRegions(base, [...blocked, ...edgeCuts, ...reservations])
   if (!candidates.length) {
     surface.status = 'no-usable-area'; surface.issues.push({ code: 'ROOF_FULLY_EXCLUDED', message: 'Obstacles, edge clearances or reserved space leave no usable roof area.' }); return
@@ -312,6 +319,7 @@ export function buildSolarRoofModel(design: Design, options: SolarRoofOptions = 
   if (!top) modelIssues.push({ code: 'NO_ROOF', message: 'The building has no represented roof surface.' })
   // Geometric roof signature excludes user policy/reservations. Allocation changes have a separate key.
   const roofSignature = token('solar-roof-v1', [building.planId, arch?.villaDesignDNA.roofType ?? null,
+    roofAccess(building)?.protectedAreaMm ?? null,
     surfaces.map(s => [s.id, s.kind, s.elevationMm, s.grossRegionsMm, s.holes, s.obstacles.map(o => ({ ...o, clearanceMm: 0 }))])])
   const orientation = { planNorthBearingDeg: inputs.orientation.planNorthBearingDeg,
     status: inputs.orientation.planNorthBearingDeg === null ? 'unknown' as const : 'user-provided' as const }

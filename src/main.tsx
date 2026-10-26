@@ -36,6 +36,7 @@ const router = createBrowserRouter([
       { path: 'workspace', lazy: Brief },
       { path: 'workspace/directions', lazy: Directions },
       { path: 'workspace/plan', lazy: Plan },
+      { path: 'workspace/reference', element: <Navigate to="/workspace/plan#reference-facade" replace /> },
       { path: 'workspace/massing', lazy: Massing },
       { path: 'workspace/utilities', lazy: Utilities },
       { path: 'workspace/render', element: <Navigate to="/workspace/massing" replace /> },

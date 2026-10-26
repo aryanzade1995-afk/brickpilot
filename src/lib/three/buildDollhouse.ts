@@ -402,7 +402,7 @@ type Rect2 = { x0: number; z0: number; x1: number; z1: number }
 const overlaps = (a: Rect2, b: Rect2, eps = 0.02) =>
   a.x0 < b.x1 - eps && a.x1 > b.x0 + eps && a.z0 < b.z1 - eps && a.z1 > b.z0 + eps
 
-type RoomOpening = { side: Side; centre: number; half: number; kind: 'door' | 'window'; sill: number }
+type RoomOpening = { side: Side; centre: number; half: number; kind: 'door' | 'window'; sill: number; swinging?:boolean }
 
 type Placement = { cx: number; cz: number; w: number; d: number; side: Side }
 
@@ -444,7 +444,7 @@ class RoomPlan {
     this.windowSides = new Set(openings.filter((o) => o.kind === 'window').map((o) => o.side))
     for (const o of openings) {
       if (o.kind === 'door') {
-        const swing = Math.max(CLEAR.doorThreshold, Math.min(CLEAR.doorSwing, o.half * 2))
+        const swing = o.swinging===false?CLEAR.doorThreshold:Math.max(CLEAR.doorThreshold, Math.min(CLEAR.doorSwing, o.half * 2))
         this.keepOut.push(this.band(o.side, o.centre - o.half - 0.1, o.centre + o.half + 0.1, swing))
       } else {
         this.tallKeepOut.push(this.band(o.side, o.centre - o.half, o.centre + o.half, 0.35))
@@ -666,7 +666,7 @@ function furnishRoom(
     // only if it really sits on this room's wall line
     const off = isHoriz(side) ? Math.abs(Math.abs(lz) - D / 2) : Math.abs(Math.abs(lx) - W / 2)
     if (off > 0.3) continue
-    openings.push({ side, centre: isHoriz(side) ? lx : lz, half, kind, sill: (op.sill ?? 900) / 1000 })
+    openings.push({ side, centre: isHoriz(side) ? lx : lz, half, kind, sill: (op.sill ?? 900) / 1000, swinging:op.leaf!==false&&op.treatment!=='glazed-slide' })
   }
 
   const plan = new RoomPlan(W, D, openings)
@@ -693,6 +693,14 @@ function furnishRoom(
     if (op.kind === 'window') continue
     const inside = op.at.x > r.x + 200 && op.at.x < r.x + r.w - 200 && op.at.y > r.y + 200 && op.at.y < r.y + r.h - 200
     if (inside) plan.reserve(toLocal(op.at.x - op.width - 100, op.at.y - op.width - 100, op.at.x + op.width + 100, op.at.y + op.width + 100))
+  }
+  // Reserve actual structural intrusions before searching for fitted kitchen
+  // runs. Dropping a complete run after a tiny corner-column overlap could
+  // otherwise leave this room with no sink or slab at all.
+  if(recipeOf(room.id,type)==='kitchen')for(const column of floor.structuralSizing?.columns??floor.columns??[]){
+    const half=column.size/2+50
+    if(column.at.x+half>r.x&&column.at.x-half<r.x+r.w&&column.at.y+half>r.y&&column.at.y-half<r.y+r.h)
+      plan.reserve(toLocal(column.at.x-half,column.at.y-half,column.at.x+half,column.at.y+half))
   }
   const rng = rand(Math.round(r.x * 7 + r.y * 13 + r.w))
   const acc = ACCENTS[Math.floor(rng() * ACCENTS.length)]
@@ -922,7 +930,12 @@ function furnishRoom(
       if (placed.length >= 2 || len < 1.2) continue
       const across = isHoriz(s) ? D : W
       if (placed.length === 1 && across - 0.6 - 0.6 < CLEAR.kitchenAisle) continue
-      const p = plan.place({ w: Math.min(len - 0.05, isHoriz(s) ? W : D), d: 0.6, front: CLEAR.kitchenAisle, sides: [s], gap: 0.01 })
+      // A full wall-length run can overlap the swing/working zone of a door
+      // on an adjacent wall. Shorten the furniture, never the protected aisle
+      // or doorway. Previously a failed full-length attempt left no worktop.
+      let p:Placement|null=null
+      for(let width=Math.min(len-.05,isHoriz(s)?W:D);width>=1.2&&!p;width-=.1)
+        p=plan.place({w:width,d:.6,front:CLEAR.kitchenAisle,sides:[s],gap:.01})
       if (p) placed.push(p)
     }
     placed.forEach((p, i) => {
@@ -980,9 +993,6 @@ function furnishRoom(
       const vs = sz(basin, basin.w, 0.78, basin.d)
       P('vanity', 'panel', basin.cx, 0.0, basin.cz, vs[0], vs[1], vs[2])
       P('basin', 'ceramic', basin.cx, 0.78, basin.cz, vs[0] - 0.08, 0.14, vs[2] - 0.06)
-      const [mx, mz] = at(basin, 0, -(basin.d / 2))
-      const ms = sz(basin, basin.w - 0.1, 0.7, 0.03)
-      P('mirror', 'glass', mx, 1.1, mz, ms[0], ms[1], ms[2])
     }
     if (W * D >= 3.6) {
       const sh = tryPlace({ w: 0.9, d: 0.9, front: 0.3, gap: 0.01 }, { w: 0.8, d: 0.8, front: 0.25, gap: 0.01 })

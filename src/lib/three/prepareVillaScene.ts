@@ -4,19 +4,20 @@ import { separateCoplanar } from './separateCoplanar.ts'
 
 // A route remount must not repeat geometry repairs or upload new copies of the
 // same static villa. Each canvas gets its own hierarchy and shares prepared data.
-const prepared = new WeakMap<THREE.Object3D, Map<number, THREE.Object3D>>()
+const prepared = new WeakMap<THREE.Object3D, Map<string, THREE.Object3D>>()
 
-export function prepareVillaScene(source: THREE.Object3D, anisotropy: number) {
+export function prepareVillaScene(source: THREE.Object3D, anisotropy: number, separateRoofTanks=false) {
+  const key=`${anisotropy}:${separateRoofTanks}`
   let variants = prepared.get(source)
   if (!variants) { variants = new Map(); prepared.set(source, variants) }
-  let template = variants.get(anisotropy)
+  let template = variants.get(key)
   if (!template) {
     template = source.clone(true)
     const remove: THREE.Object3D[] = []
     template.traverse(object => {
       // Combined GLBs carry tagged PV. Strip before caching the architecture;
       // the current canonical SolarLayer is then attached exactly once.
-      if (object.userData.formstead_plumbing || object.userData.formstead_solar || object.userData.presentation_only || object.name.startsWith('Ground_Context') ||
+      if (separateRoofTanks&&/^Roof_WaterTank_\d+/.test(object.name) || object.userData.formstead_plumbing || object.userData.formstead_solar || object.userData.presentation_only || object.name.startsWith('Ground_Context') ||
         'isLight' in object || 'isCamera' in object) remove.push(object)
     })
     remove.forEach(object => object.removeFromParent())
@@ -46,7 +47,7 @@ export function prepareVillaScene(source: THREE.Object3D, anisotropy: number) {
     }
     separateCoplanar(template)
     batchOpaqueMeshes(template)
-    variants.set(anisotropy, template)
+    variants.set(key, template)
   }
   return template.clone(true)
 }

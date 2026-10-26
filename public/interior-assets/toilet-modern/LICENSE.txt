@@ -1,0 +1,6 @@
+Toilet unit — starapple
+Source: https://www.sweethome3d.com/free-3d-models/
+Download: https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/blendswap-cc-by/modernToilet.zip
+Licence: CC-BY-3.0 https://creativecommons.org/licenses/by/3.0/
+Adaptations: axis/unit normalization, mesh optimization and PBR conversion; colours may follow Formstead selections.
+

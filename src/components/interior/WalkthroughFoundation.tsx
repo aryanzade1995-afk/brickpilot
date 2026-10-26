@@ -39,7 +39,7 @@ export function WalkthroughFoundation({ design, report, acceptedBuilding }: {
   const job = useBlender(s => s.job)
   const [accessMessage, setAccessMessage] = useState('')
   const busy = !!job && !['complete', 'failed'].includes(job.status)
-  const exportOnly = ['walk-access-v5', 'walk-access-v6', 'walk-access-v7'].includes(asset?.geometryRevision ?? '')
+  const exportOnly = ['walk-access-v5', 'walk-access-v6', 'walk-access-v7', 'walk-access-v8'].includes(asset?.geometryRevision ?? '')
   const updateAccess = async () => {
     const seed = asset?.seed ?? useStudio.getState().pinned?.seed
     if (seed === undefined) { setAccessMessage('Choose and pin the villa direction first.'); return }
@@ -61,7 +61,7 @@ export function WalkthroughFoundation({ design, report, acceptedBuilding }: {
     {!source ? <p role="status" className="p-5 text-sm text-ink-dim">{t('The walkthrough source could not be prepared. Your existing previews are still available.')}</p> : <>
       {asset?.geometryRevision !== WALKTHROUGH_ACCESS_REVISION && <div className="border-t border-line bg-bg-inset p-5 md:px-7">
         <h3 className="font-display text-lg">{t('Update villa model')}</h3>
-        <p className="mt-2 text-xs text-ink-dim">{t(exportOnly ? 'Rebuild the same villa with stair railings. Your plan and finishes stay fixed.' : 'Update the source walking access and rebuild this villa.')}</p>
+        <p className="mt-2 text-xs text-ink-dim">{t(exportOnly ? 'Update balcony sliders, roof doors and pipe fittings on the same villa. Your plan and finishes stay fixed.' : 'Update the source walking access and rebuild this villa.')}</p>
         <button type="button" disabled={busy} onClick={() => void updateAccess()} className="mt-4 min-h-11 border border-line bg-accent px-4 text-xs text-bg disabled:opacity-40">{t(busy ? 'Updating Blender villa…' : 'Update villa model')}</button>
         {busy && <p role="status" className="mt-3 text-xs">{t(job!.phase)}</p>}
         {accessMessage && <p role="status" className="mt-3 text-xs">{t(accessMessage)}</p>}

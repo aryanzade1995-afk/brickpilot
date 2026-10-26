@@ -1,0 +1,6 @@
+Ceiling Fan — Ulan Cabanilla
+Source: https://polyhaven.com/a/ceiling_fan
+Download: https://polyhaven.com/a/ceiling_fan
+Licence: CC0-1.0 https://creativecommons.org/publicdomain/zero/1.0/
+Adaptations: axis/unit normalization, mesh optimization and PBR conversion; colours may follow Formstead selections.
+

@@ -107,7 +107,7 @@ def create_scene(payload, visualization=None):
         hosted = [opening for opening in openings if hosts[opening["id"]] == wall["id"]]
         serials[floor["id"]] = create_wall(scene, wall, floor, hosted, serials[floor["id"]])
     for opening in building["doors"]:
-        create_door_opening(scene, opening, wall_by_id[hosts[opening["id"]]], by_floor[opening["floorId"]])
+        create_door_opening(scene, opening, wall_by_id[hosts[opening["id"]]], by_floor[opening["floorId"]], next((s for s in payload.get("balconySliders", []) if s["sourceId"] == opening["id"]), None))
     for opening in building["windows"]:
         create_window_opening(scene, opening, wall_by_id[hosts[opening["id"]]], by_floor[opening["floorId"]])
     for stair in building["stairs"]:
@@ -129,10 +129,10 @@ def create_scene(payload, visualization=None):
                                  room["semanticId"] in mass["sourceRoomIds"]), None)
             customized = any(unit["category"] == "BALCONY" and room["semanticId"] in unit["sourceRoomIds"] for unit in assemblies)
             create_balcony(scene, room, by_floor[room["floorId"]], terrace_mass, building["doors"], with_railing=not customized)
-    create_roof_services(scene, building)
+    create_roof_services(scene, building, payload.get("roofAccess"))
     create_stair_guards(scene, payload)
     create_plumbing(scene, payload)
-    create_terrace_objects(scene, building)
+    create_terrace_objects(scene, building, payload.get("roofAccess"))
     # car porch / verandah roofs (a balcony where the upper floor opens onto
     # them), the parked car and a deck round the pool
     covered = create_covered_outdoor(scene, building, massing, facade)

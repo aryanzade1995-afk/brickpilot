@@ -92,6 +92,7 @@ export function prepareWalkthroughGlazing(root: Group) {
       if (!next) {
         next = material.clone(); (next as Material & { transmission: number }).transmission = 0
         next.transparent = true; next.opacity = o.userData.material_role === 'water' ? .7 : .28; next.depthWrite = false
+        next.forceSinglePass=true
         next.userData.walkthroughGlazing = true; prepared.set(material, next)
       }
       return next

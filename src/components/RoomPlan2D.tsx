@@ -587,14 +587,14 @@ export function RoomPlan2D({
         aria-label={translateUi("2D room model")}
       >
         {/* Header Bar */}
-        <div className="flex items-center justify-between border-b border-line pb-1 text-xs">
-          <div className="flex items-center gap-1.5 min-w-0">
+        <div className="flex flex-wrap items-center justify-between gap-1.5 border-b border-line pb-1 text-xs">
+          <div className="flex basis-full items-center gap-1.5 min-w-0">
             <span className="inline-block h-2 w-2 rounded-full bg-accent flex-none" />
             <span className="font-mono font-medium uppercase tracking-wider text-ink truncate text-[11px]">
               {translateUi("2D Plan")} · {currentRoomName}
             </span>
           </div>
-          <div className="flex items-center gap-1.5 flex-none">
+          <div className="flex max-w-full flex-wrap items-center gap-1.5">
             <span className="font-mono text-ink-dim text-[10px]">{area} m²</span>
             <ExportDropdown
               label="Download Plan"
@@ -673,10 +673,10 @@ export function RoomPlan2D({
           onClick={() => setExpanded(false)}
         >
           <div
-            className="relative w-full max-w-2xl rounded-sm border border-line bg-bg-raised p-6 shadow-2xl"
+            className="relative max-h-[calc(100dvh-2rem)] w-full min-w-0 max-w-2xl overflow-y-auto rounded-sm border border-line bg-bg-raised p-4 shadow-2xl sm:p-6"
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-line pb-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-3">
               <div>
                 <h3 className="font-display text-xl text-ink">
                   {currentRoomName} · {translateUi("2D Floor Plan")}
@@ -685,7 +685,7 @@ export function RoomPlan2D({
                   {w.toFixed(2)} × {d.toFixed(2)} m · {area} m² · Level {floorLevel}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <ExportDropdown
                   size="sm"
                   label="Download Blueprint"
@@ -731,12 +731,12 @@ export function RoomPlan2D({
               </div>
             </div>
 
-            <div className="mt-4 h-[440px] w-full flex items-center justify-center p-2 bg-bg-inset/40 rounded border border-line/60">
+            <div className="mt-4 h-[min(440px,50dvh)] w-full flex items-center justify-center p-2 bg-bg-inset/40 rounded border border-line/60">
               {renderSvgPlan(modalSvgRef)}
             </div>
 
             <div className="mt-4 flex flex-wrap items-center justify-between border-t border-line pt-3 text-xs text-ink-dim">
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <span className="flex items-center gap-1.5">
                   <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#e86b24]" />
                   {translateUi("360° Camera Viewpoint & Direction")}

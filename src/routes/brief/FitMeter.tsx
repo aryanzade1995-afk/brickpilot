@@ -59,13 +59,13 @@ export function FitMeter() {
     <div role="status" aria-live="polite" className={cx('mb-8 border-l-2 px-5 py-4', TONE[tone].soft)}>
       <div className="flex flex-wrap items-center gap-5">
         <PlotDiagram plotSqm={fit.plotSqm} w={fit.buildableWidthM} d={fit.buildableDepthM} need={need} tone={tone} />
-        <div className="min-w-[16rem] flex-1">
+        <div className="min-w-0 basis-64 flex-1">
           <p className={cx('flex items-center gap-2 font-medium', TONE[tone].text)}>
-            {tone === 'ok' ? <Check size={16} /> : <AlertTriangle size={16} />}{translateUi(title)}
+            {tone === 'ok' ? <Check size={16} className="shrink-0" /> : <AlertTriangle size={16} className="shrink-0" />}{translateUi(title)}
             {checking && <span className="font-mono text-[0.65rem] uppercase tracking-[0.1em] text-ink-faint">{translateUi("checking…")}</span>}
           </p>
           <div className="mt-3" aria-label={translateUi("Space used")}>
-            <div className="flex justify-between text-xs text-ink-dim">
+            <div className="flex flex-wrap justify-between gap-x-4 gap-y-1 text-xs text-ink-dim">
               <span>{translateUi("Rooms need about ")}{translateUi(Math.round(need))} {translateUi(" m² on ")}{translateUi(fit.busiestFloor.toLowerCase())}</span>
               <span>{translateUi(Math.round(buildable))} {translateUi(" m² buildable per floor")}</span>
             </div>

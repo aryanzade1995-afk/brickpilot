@@ -49,7 +49,7 @@ test('the validated generated 2D house becomes one immutable globally placed she
   build(copy); assert.equal(JSON.stringify(copy), before)
   assert.notEqual(generated.status, 'unsupported', JSON.stringify(generated.issues))
   assert.equal(generated.floors.length, design.floors.length); assert.equal(generated.rooms.length, building.rooms.length)
-  assert.equal(generated.openings.length, building.doors.length + building.windows.length)
+  assert.equal(generated.openings.filter(o=>o.sourceId!=='ROOF_STAIR_EXIT').length, building.doors.length + building.windows.length)
   assert.deepEqual(generated.source, createBuildingModel(design)); assert.equal(JSON.stringify(building), before)
   for (const room of generated.rooms) {
     const original = building.rooms.find(r => r.floorId === room.floorId && r.id === room.sourceId), floor = building.floors.find(f => f.id === room.floorId)
@@ -87,7 +87,7 @@ test('three- and four-storey sources keep real elevations and distinct floor-sco
 })
 
 test('source door/window holes retain exact widths and vertical limits; no wall fills an aperture', () => {
-  for (const o of generated.openings) {
+  for (const o of generated.openings.filter(o=>o.sourceId!=='ROOF_STAIR_EXIT')) {
     const source = [...building.doors, ...building.windows].find(x => x.id === o.sourceId && x.floorId === o.floorId)
     assert.equal(o.orient === 'h' ? o.apertureMm.w : o.apertureMm.d, source.width)
     assert.equal(o.sillMm, source.kind === 'window' ? source.sill ?? building.floors.find(f => f.id === o.floorId).openingLimits.defaultSillMm : 0)

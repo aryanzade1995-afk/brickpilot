@@ -40,7 +40,7 @@ export function HeroPreview() {
       <div className="absolute -right-3 -top-3 h-full w-full rounded-[var(--radius-card)] border border-line" />
       <div className="absolute -right-1.5 -top-1.5 h-full w-full rounded-[var(--radius-card)] border border-line" />
 
-      <div className="relative grid grid-cols-[1fr_1.15fr] gap-6 rounded-[var(--radius-card)] border border-line-strong bg-bg-raised/80 p-6 backdrop-blur-sm">
+      <div className="relative grid min-w-0 grid-cols-1 gap-6 rounded-[var(--radius-card)] border border-line-strong bg-bg-raised/80 p-4 backdrop-blur-sm sm:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] sm:p-6">
         {/* left: site summary */}
         <div className="space-y-5">
           <div className="label text-accent">{translateUi("Site summary")}</div>
@@ -89,8 +89,8 @@ export function HeroPreview() {
         </div>
 
         {/* right: schematic plan */}
-        <div className="flex flex-col">
-          <div className="flex items-baseline justify-between">
+        <div className="flex min-w-0 flex-col">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
             <span className="label">{translateUi("Ground floor plan")}</span>
             <span className="sheet-tag">{translateUi("Sheet A·02 — 1:100")}</span>
           </div>
@@ -99,7 +99,7 @@ export function HeroPreview() {
             <PlanSketch />
           </div>
 
-          <div className="grid grid-cols-4 gap-3 border-t border-line pt-4">
+          <div className="grid grid-cols-2 gap-3 border-t border-line pt-4 sm:grid-cols-4">
             <Stat k="Built-up" v="247.5 m²" />
             <Stat k="Stage" v="Concept" />
             <Stat k="Drawn" v="A·02" />
