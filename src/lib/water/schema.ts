@@ -29,7 +29,7 @@ export const sensorSchema = z.object({
 })
 export const waterConfigSchema = z.object({
   version: z.literal(1), sourcePlanId: z.string(), roofSignature: z.string(),
-  simple: z.object({version:z.literal(1),rainwater:z.boolean(),tankLitres:z.string().refine(v=>Number.isInteger(Number(v))&&Number(v)>=500&&Number(v)<=5000&&Number(v)%100===0,'Choose 500–5,000 litres in steps of 100'),roofDiameterScale:z.number().finite().min(.5).max(1).optional(),roofHeightScale:z.number().finite().min(.5).max(1.5).optional(),purpose:z.enum(['garden','cleaning']),rainfallMm:nonnegative.nullable()}).optional(),
+  simple: z.object({version:z.literal(1),rainwater:z.boolean(),drainage:z.boolean().optional(),tankLitres:z.string().refine(v=>Number.isInteger(Number(v))&&Number(v)>=500&&Number(v)<=5000&&Number(v)%100===0,'Choose 500–5,000 litres in steps of 100'),roofDiameterScale:z.number().finite().min(.5).max(1).optional(),roofHeightScale:z.number().finite().min(.5).max(1.5).optional(),purpose:z.enum(['garden','cleaning']),rainfallMm:nonnegative.nullable()}).optional(),
   designStorm: z.object({intensityMmH: nonnegative.nullable(), source: z.string().max(1000)}).default({intensityMmH:null,source:''}),
   catchments: z.array(catchmentSchema).max(100), components: z.array(componentSchema).max(300),
   connections: z.array(z.object({ id: z.string().min(1), from: z.string(), to: z.string(), kind: z.enum(['collection', 'overflow']),

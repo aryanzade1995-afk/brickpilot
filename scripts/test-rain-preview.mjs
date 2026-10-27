@@ -7,6 +7,7 @@ import {createBuildingModel} from '../src/lib/engine/buildingModel.ts'
 import {realizedTankPorts} from '../src/lib/plumbing/villaPlumbing.ts'
 import {proposeRainCollection} from '../src/lib/water/simpleSystem.ts'
 import {createRainField,rainSurfaces,rainImpactAt} from '../src/lib/water/rainPreview.ts'
+import {pipeAssembly} from '../src/lib/plumbing/assembly.ts'
 import {filterDisplayPipes} from '../src/lib/water/filterDisplay.ts'
 
 const brief=defaultBrief();brief.site.plotWidth=22;brief.site.plotDepth=28
@@ -15,7 +16,7 @@ test('rain covers actual roof and garden, is deterministic and leaves architectu
  const before=JSON.stringify(house),rain=proposeRainCollection(house),field=createRainField(house,ports,1,rain.tank)
  assert.equal(field.version,'rain-preview-v1');assert.ok(field.drops.length>=650&&field.drops.length<=2000);assert.ok(field.splashCount<=240)
  assert.ok(field.drops.some(d=>d.surface==='roof'));assert.ok(field.drops.some(d=>d.surface==='garden'))
- assert.ok(field.drops.some(d=>!d.canSplash));assert.ok(field.drops.filter(d=>d.canSplash).every(d=>d.impact[0]>=0&&d.impact[0]<=house.plot.widthMm/1000&&-d.impact[2]>=0&&-d.impact[2]<=house.plot.depthMm/1000))
+ assert.ok(field.drops.every(d=>d.canSplash));assert.ok(field.drops.filter(d=>d.canSplash).every(d=>d.impact[0]>=0&&d.impact[0]<=house.plot.widthMm/1000&&-d.impact[2]>=0&&-d.impact[2]<=house.plot.depthMm/1000))
  assert.deepEqual(field,createRainField(house,ports,1,rain.tank));assert.equal(JSON.stringify(house),before)
  const model=rainSurfaces(house,ports,1,rain.tank)
  for(const drop of field.drops){assert.ok([...drop.impact,drop.phase,drop.speedMps,drop.lengthM,...drop.wind].every(Number.isFinite));assert.ok(drop.speedMps>0);assert.ok(field.topM>drop.impact[1]);assert.ok(drop.phase>=0&&drop.phase<1)
@@ -59,4 +60,14 @@ test('drawn pipes end at filter heads rather than bypassing the visible media',(
    if(a.x===p.x&&a.y===p.y&&b.x===p.x&&b.y===p.y)assert.ok(Math.max(a.z,b.z)<=p.z-140||Math.min(a.z,b.z)>=p.z+140)
  }
  assert.deepEqual(rain.downpipes.pipes.find(p=>p.id==='rain:downpipe').points.at(-1),rain.tank.inlet)
+})
+
+
+test('filter-to-tank outlet leaves room for a seated elbow rather than two sharp cut ends',()=>{
+ const rain=proposeRainCollection(house),drawn=filterDisplayPipes(rain),assembly=pipeAssembly(drawn.segments)
+ assert.ok(rain.ready)
+ const bend={x:rain.filter.x,y:rain.filter.y,z:rain.tank.inlet.z}
+ assert.ok(assembly.fittings.some(f=>f.kind==='elbow'&&Math.hypot(f.position.x-bend.x,f.position.y-bend.y,f.position.z-bend.z)<.01))
+ const last=rain.treatment.stages.at(-1)
+ assert.ok(last.position.z-140-rain.tank.inlet.z>90*2.25)
 })

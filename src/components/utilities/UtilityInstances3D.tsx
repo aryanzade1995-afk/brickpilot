@@ -6,7 +6,7 @@ import type { ElectricalPoint3D } from '@/lib/utilities/electrical3D.ts'
 export type UtilityInstance3D = { position: ElectricalPoint3D; scale: ElectricalPoint3D; rotation?: ElectricalPoint3D; quaternion?: [number, number, number, number]; color: string; selection: string; faded: boolean }
 
 /** Shared demand-rendered geometry and picking for all utility overlays. */
-export function UtilityInstances3D({ items, round = false, sphere = false, onSelect }: { items: UtilityInstance3D[]; round?: boolean; sphere?: boolean; onSelect: (id: string) => void }) {
+export function UtilityInstances3D({ items, round = false, sphere = false, physical = false, radialSegments = 8, interactive = true, onSelect }: { items: UtilityInstance3D[]; round?: boolean; sphere?: boolean; physical?:boolean; radialSegments?:number; interactive?:boolean; onSelect: (id: string) => void }) {
   const mesh = useRef<InstancedMesh>(null), { invalidate } = useThree()
   useLayoutEffect(() => {
     if (!mesh.current) return
@@ -25,8 +25,8 @@ export function UtilityInstances3D({ items, round = false, sphere = false, onSel
   }, [items, invalidate])
   if (!items.length) return null
   const click = (e: ThreeEvent<MouseEvent>) => { const item = items[e.instanceId ?? -1]; if (item) { e.stopPropagation(); onSelect(item.selection) } }
-  return <instancedMesh ref={mesh} args={[undefined, undefined, items.length]} onClick={click} frustumCulled={false}>
-    {sphere ? <sphereGeometry args={[1, 12, 8]} /> : round ? <cylinderGeometry args={[1, 1, 1, 8]} /> : <boxGeometry args={[1, 1, 1]} />}
-    <meshBasicMaterial toneMapped={false} />
+  return <instancedMesh ref={mesh} args={[undefined, undefined, items.length]} onClick={interactive?click:undefined} raycast={interactive?undefined:()=>null} frustumCulled={false}>
+    {sphere ? <sphereGeometry args={[1, 12, 8]} /> : round ? <cylinderGeometry args={[1, 1, 1, radialSegments]} /> : <boxGeometry args={[1, 1, 1]} />}
+    {physical?<meshPhysicalMaterial roughness={.33} metalness={.15} clearcoat={.25}/>:<meshBasicMaterial toneMapped={false} />}
   </instancedMesh>
 }

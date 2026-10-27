@@ -1,0 +1,30 @@
+[
+  {
+    "asset": "Plastic010",
+    "source": "https://ambientcg.com/view?id=Plastic010",
+    "download": "https://ambientcg.com/get?file=Plastic010_1K-JPG.zip",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://docs.ambientcg.com/license/",
+    "retrieved": "2026-10-27",
+    "archiveSha256": "46a2504dbef278475b85c846713804a36823c7151cb79c90728d5c6eab283a19",
+    "files": [
+      "Plastic010_1K-JPG_Color.jpg",
+      "Plastic010_1K-JPG_NormalGL.jpg",
+      "Plastic010_1K-JPG_Roughness.jpg"
+    ]
+  },
+  {
+    "asset": "Concrete034",
+    "source": "https://ambientcg.com/view?id=Concrete034",
+    "download": "https://ambientcg.com/get?file=Concrete034_1K-JPG.zip",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://docs.ambientcg.com/license/",
+    "retrieved": "2026-10-27",
+    "archiveSha256": "5839d284d94ffb8d2a56df742ec522b13dd311c52dbd42b8fd33f0409ceedb81",
+    "files": [
+      "Concrete034_1K-JPG_Color.jpg",
+      "Concrete034_1K-JPG_NormalGL.jpg",
+      "Concrete034_1K-JPG_Roughness.jpg"
+    ]
+  }
+]

@@ -19,7 +19,7 @@ export function createPlumbingGroup(layout: VillaPlumbing, xray=false) {
   }
   for(const f of assembly.fittings){
     const asset=fittingAssets.parts[f.kind], geometry=new THREE.BufferGeometry()
-    geometry.setAttribute('position',new THREE.Float32BufferAttribute(asset.positions,3));geometry.setAttribute('normal',new THREE.Float32BufferAttribute(asset.normals,3));geometry.setAttribute('uv',new THREE.Float32BufferAttribute(new Float32Array(asset.positions.length/3*2),2))
+    geometry.setAttribute('position',new THREE.Float32BufferAttribute(asset.positions,3));geometry.setAttribute('normal',new THREE.Float32BufferAttribute(asset.normals,3));const uv=new Float32Array(asset.positions.length/3*2);for(let i=0;i<asset.positions.length/3;i++){uv[i*2]=Math.atan2(asset.positions[i*3+1],asset.positions[i*3])/(Math.PI*2)+.5;uv[i*2+1]=asset.positions[i*3+2]/asset.nominalDiameterM}geometry.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2))
     const [x,y,z]=f.basis,scale=f.diameterMm/asset.nominalDiameterM/1000,p=planToThreeGlb(f.position)
     const matrix=new THREE.Matrix4().set(x.x*scale,y.x*scale,z.x*scale,p.x,x.z*scale,y.z*scale,z.z*scale,p.y,-x.y*scale,-y.y*scale,-z.y*scale,p.z,0,0,0,1)
     geometry.applyMatrix4(matrix);add(f.system,geometry)

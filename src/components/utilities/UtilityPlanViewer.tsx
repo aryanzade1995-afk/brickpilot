@@ -1,4 +1,5 @@
-import { applyUtilityPlanning, traceSelection, connectionDescription } from '@/lib/utilities/planning.ts'
+import { resolveDrainageFloor } from '@/lib/utilities/sharedDrainage.ts'
+import { traceSelection, connectionDescription } from '@/lib/utilities/planning.ts'
 import { UtilityPointEditor } from './UtilityPointEditor.tsx'
 import { UtilityRiserDiagram } from './UtilityRiserDiagram.tsx'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
@@ -16,7 +17,7 @@ import { UtilityLayerPanel } from './UtilityLayerPanel.tsx'
 import { DRAWING_LAYERS, visibleLayers, sourceSignature, parseUtilityDrawing, type DrawingDocument, type UtilityDrawingProject } from '@/lib/utilities/drawingProject.ts'
 import { buildDrawingSheets, drawingOpsSvg, annotationOps, sheetSvg as serializeDrawingSheet } from '@/lib/utilities/drawingSheets.ts'
 import { downloadVectorSheets, downloadSheetPng, downloadSheetSvg, downloadUtilityDxf } from '@/lib/utilities/drawingExports.ts'
-import { withDrainageDesign, drainageBounds } from '@/lib/utilities/drainage.ts'
+import { drainageBounds } from '@/lib/utilities/drainage.ts'
 import { DRAINAGE_COLORS } from '@/lib/utilities/drainageRules.ts'
 import { DrainageWorkbench } from './DrainageWorkbench.tsx'
 import { ElectricalWorkbench } from './ElectricalWorkbench.tsx'
@@ -207,11 +208,11 @@ function UtilitySheet(props: SheetProps) {
   </svg>
 }
 
-export function UtilityPlanViewer({ model: sourceModel, models, project, reviewScope }: { model: UtilityFloor; models: UtilityFloor[]; project: string; reviewScope: string }) {
+export function UtilityPlanViewer({ model: sourceModel, models, project, reviewScope, initialSelection, initialService }: { initialService?:'drainage'|'water_supply'; initialSelection?:string; model: UtilityFloor; models: UtilityFloor[]; project: string; reviewScope: string }) {
   useLanguage(s => s.language)
-  const drawing = useUtilityDrawing(sourceModel, project, reviewScope), drawingDoc = drawing.document
-  const planning = useMemo(() => applyUtilityPlanning(drawing.model, drawingDoc.planning), [drawing.model, drawingDoc.planning])
-  const model = useMemo(() => withElectricalDesign(withDrainageDesign(planning.model, drawingDoc.drainage), drawingDoc.electrical), [planning.model, drawingDoc.drainage, drawingDoc.electrical])
+  const drawing = useUtilityDrawing(sourceModel, project, reviewScope, !!initialSelection&&initialService!=='water_supply', !!initialSelection&&initialService==='water_supply'), drawingDoc = drawing.document
+  const planning = useMemo(() => resolveDrainageFloor(drawing.model, drawingDoc.drainage, drawingDoc.planning), [drawing.model, drawingDoc.drainage, drawingDoc.planning])
+  const model = useMemo(() => withElectricalDesign(planning.model, drawingDoc.electrical), [planning.model, drawingDoc.electrical])
   const [riserOpen, setRiserOpen] = useState(false), [placing, setPlacing] = useState(false)
   const pickPosition = useRef<((p: Point) => void) | null>(null)
 
@@ -222,7 +223,7 @@ export function UtilityPlanViewer({ model: sourceModel, models, project, reviewS
   const [circuit, setCircuit] = useState('all')
   const [zone, setZone] = useState('all'), [showCoverage, setShowCoverage] = useState(false), [showEvacuation, setShowEvacuation] = useState(false)
   const [water, setWater] = useState('all')
-  const [room, setRoom] = useState('all'), [selected, setSelected] = useState<string | null>(null)
+  const [room, setRoom] = useState(initialService==='water_supply'&&initialSelection?sourceModel.fixtures.find(f=>f.id===initialSelection)?.roomId??'all':'all'), [selected, setSelected] = useState<string | null>(initialService==='water_supply'&&initialSelection?`water:${sourceModel.waterNetworks.find(n=>n.service==='cold')?.id??''}`:initialSelection??null)
   const trace = connectionDescription(model, selected)
   const [drainageTechnical, setDrainageTechnical] = useState(false)
   const visible = useMemo(() => visibleLayers(drawingDoc), [drawingDoc])

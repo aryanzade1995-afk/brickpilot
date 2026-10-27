@@ -86,6 +86,12 @@ export function designDrainage(model: UtilityFloor, raw: DrainageInputs): Draina
   })
   for (const f of input.fixtures.filter(f => existingIds.has(f.id))) check('Fixture inventory', f.id, 'Fail', 'Proposed fixture ID duplicates a source fixture; the duplicate was not applied.', 'Use a unique identifier for the additional fixture.', f.position, f.roomId)
   const beams = floor.structuralSizing?.beams?.map(b => ({ x: Math.min(b.a.x, b.b.x) - b.widthMm / 2, y: Math.min(b.a.y, b.b.y) - b.widthMm / 2, w: Math.abs(b.a.x - b.b.x) + b.widthMm, h: Math.abs(b.a.y - b.b.y) + b.widthMm })) ?? []
+  // Only the assigned shaft aperture is a valid branch destination. This is
+  // not permission to cross its enclosing wall or a different shaft/void.
+  const branchCuts = (point: Point) => {
+    const shaft = floor.shafts?.find(s => inRect(point, s.rect))
+    return utilityObstacles(floor).filter(r => !shaft || r !== shaft.rect).concat(input.reserved.map(x => x.rect))
+  }
   const baseCuts = [...utilityObstacles(floor), ...input.reserved.map(x => x.rect)]
   const walls = floor.walls.map(w => ({ x: Math.min(w.a.x, w.b.x) - w.thickness / 2, y: Math.min(w.a.y, w.b.y) - w.thickness / 2, w: Math.abs(w.a.x - w.b.x) + w.thickness, h: Math.abs(w.a.y - w.b.y) + w.thickness }))
   // Footing footprints stay protected at every level until a reviewed 3D route
@@ -107,8 +113,9 @@ export function designDrainage(model: UtilityFloor, raw: DrainageInputs): Draina
     const legacy = model.utilities.find(u => u.layer === 'drainage' && u.fixtureId === f.id)
     const radius = (rule?.minimumMm ?? (legacy?.layer === 'drainage' ? legacy.diameter : 0)) / 2 + input.conceptClearanceMm
     const room = floor.rooms.find(r => r.id === f.roomId)!
-    const candidates = [route(f.position, stack.position), route(f.position, stack.position, true), ...perimeterRoutes(f.position, stack.position, room.rect)].filter(p => allowed(p, baseCuts.map(r => inflated(r, radius)))).sort((a, b) => drainLength(a) - drainLength(b) || a.length - b.length)
-    const path = candidates[0] ?? routeDrain(f.position, stack.position, baseCuts.map(r => inflated(r, radius)), room.rect)
+    const cuts = branchCuts(stack.position)
+    const candidates = [route(f.position, stack.position), route(f.position, stack.position, true), ...perimeterRoutes(f.position, stack.position, room.rect)].filter(p => allowed(p, cuts.map(r => inflated(r, radius)))).sort((a, b) => drainLength(a) - drainLength(b) || a.length - b.length)
+    const path = candidates[0] ?? routeDrain(f.position, stack.position, cuts.map(r => inflated(r, radius)), {x:Math.min(room.rect.x,stack.position.x),y:Math.min(room.rect.y,stack.position.y),w:Math.max(room.rect.x+room.rect.w,stack.position.x)-Math.min(room.rect.x,stack.position.x),h:Math.max(room.rect.y+room.rect.h,stack.position.y)-Math.min(room.rect.y,stack.position.y)})
     if (!path) { check('Connectivity', f.id, 'Fail', 'No clear fixture branch can reach its stack.', 'Move fixture/stack or provide a reviewed service route; no line was drawn through structure.', f.position, f.roomId); continue }
     pipes.push({ id: legacy?.id ?? `D:${f.id}`, from: f.id, to: stack.id, service: start.service, path, lengthMm: drainLength(path), vertical: false, fixtureIds: [f.id], dfu: f.dfu, diameterMm: null, candidateDiameterMm: legacy?.layer === 'drainage' ? legacy.diameter : null, gradientRatio: null, inletInvertMm: start.elevationMm, outletInvertMm: null, sizingBasis: '', state: 'proposed', roomId: f.roomId })
   }
@@ -179,7 +186,7 @@ export function designDrainage(model: UtilityFloor, raw: DrainageInputs): Draina
     // level-specific permission spans the complete pipe envelope.
     if (!pipe.vertical) {
       const permitted = pipe.inletInvertMm !== null && pipe.outletInvertMm !== null && selected !== null ? input.penetrations.filter(p => Math.min(pipe.inletInvertMm!, pipe.outletInvertMm!) >= p.minElevationMm && Math.max(pipe.inletInvertMm!, pipe.outletInvertMm!) + selected <= p.maxElevationMm).map(p => p.rect) : []
-      const protectedAreas = [...baseCuts, ...footings, ...subtractRegions(walls, permitted)].map(r => inflated(r, (selected ?? pipe.candidateDiameterMm ?? 0) / 2 + input.conceptClearanceMm))
+      const protectedAreas = [...(nodes.find(n => n.id === pipe.to)?.kind === 'stack' ? branchCuts(nodes.find(n => n.id === pipe.to)!.position) : baseCuts), ...footings, ...subtractRegions(walls, permitted)].map(r => inflated(r, (selected ?? pipe.candidateDiameterMm ?? 0) / 2 + input.conceptClearanceMm))
       const blocked = !allowed(pipe.path, protectedAreas)
       pipe.state = blocked || pipe.state === 'blocked' ? 'blocked' : 'proposed'
       check('Structure / route', pipe.id, blocked ? 'Fail' : selected === null ? 'Not Checked' : 'Pass', blocked ? 'Pipe envelope intersects a protected wall, column, footing, void or reserved area. This line is an unresolved proposal.' : selected === null ? 'No centreline obstruction found, but the pipe diameter/envelope is unknown.' : 'No overlap with represented protected plan areas at the selected concept envelope.', 'Reroute around structure or enter a referenced, level-specific approved sleeve; verify unrepresented beam/slab/foundation details separately.', pipe.path[0], pipe.roomId, RULE_REFERENCES.structure)

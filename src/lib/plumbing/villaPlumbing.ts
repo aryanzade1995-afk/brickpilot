@@ -84,7 +84,7 @@ export function pipeCrossesStructure(building: BuildingModel, points: ServicePoi
   }
   return null
 }
-export function createVillaPlumbing(building: BuildingModel, sizes: PipeSizes, extraRoofObstacles: Rect[] = [], tankDiameterScale=1): VillaPlumbing {
+export function createVillaPlumbing(building: BuildingModel, sizes: PipeSizes, extraRoofObstacles: Rect[] = [], tankDiameterScale=1,multipleFeedPoints=false): VillaPlumbing {
   const pipes: VillaPipe[]=[], issues: VillaPlumbing['issues']=[], tanks=realizedTankPorts(building,tankDiameterScale), top=[...building.floors].sort((a,b)=>a.level-b.level).at(-1)
   const add=(pipe: VillaPipe) => {
     const points=pipe.points.filter((p,i,ps)=>!i||Math.hypot(p.x-ps[i-1].x,p.y-ps[i-1].y,p.z-ps[i-1].z)>.01)
@@ -96,9 +96,11 @@ export function createVillaPlumbing(building: BuildingModel, sizes: PipeSizes, e
   if(!top || !Object.values(sizes).every(n=>Number.isFinite(n)&&n>0&&n<=500)) return {version:'villa-plumbing-v1',planId:building.planId,signature:'invalid',segments:[],pipes,tankPorts:[],issues:[{id:'sizes',reason:'Source floors or selected pipe sizes are unavailable.'}],notes:[]}
   const roofZ=top.elevationMm+top.heightMm, headerZ=roofZ+PLUMBING_CONCEPT.roofHeaderMm, terrace=building.roofTerrace, bank=terrace?tankBank(terrace):null
   let main:ServicePoint|null=null
+  let feedPoints:ServicePoint[]=[]
   if(tanks.length && bank && terrace) {
     const alongX=bank.w>=bank.h
     const joints=tanks.map(t=>({...t.port,x:alongX?t.port.x:bank.x+bank.w+100,y:alongX?bank.y+bank.h+100:t.port.y,z:headerZ}))
+    feedPoints=joints
     const tankPaths=tanks.map((t,i)=>[t.port,{...joints[i],z:t.port.z},joints[i]])
     if(tankPaths.every(ps=>!pipeCrossesStructure(building,ps,sizes.waterMm/2))){
       tanks.forEach((t,i)=>add({id:`tank-port:${t.id}`,system:'water',purpose:'Tank outlet connection',shaftId:null,floorId:top.id,diameterMm:sizes.waterMm,sizeBasis:'selected nominal',points:tankPaths[i]}))
@@ -141,7 +143,8 @@ export function createVillaPlumbing(building: BuildingModel, sizes: PipeSizes, e
     // supported roof path exist. No cross-courtyard/free-air shortcuts.
     const upper=at(water,headerZ), lower=at(water,base)
     const verticalBlocked=pipeCrossesStructure(building,[upper,lower],sizes.waterMm/2)
-    const roofPath=main && terrace && !verticalBlocked ? routeDrain(main,upper,roofCuts,terrace.outline):null
+    const candidates=main&&terrace&&!verticalBlocked?(multipleFeedPoints?feedPoints:[main]):[]
+    const roofPath=candidates.map(start=>routeDrain(start,upper,roofCuts,terrace!.outline)).filter((p):p is NonNullable<typeof p>=>p!==null).sort((a,b)=>a.slice(1).reduce((n,p,i)=>n+Math.hypot(p.x-a[i].x,p.y-a[i].y),0)-b.slice(1).reduce((n,p,i)=>n+Math.hypot(p.x-b[i].x,p.y-b[i].y),0))[0]??null
     if(main && roofPath) {
       const header=roofPath.map(p=>({...p,z:headerZ}))
       if(add({id:`supply:${shaft.id}`,system:'water',purpose:'Tank-fed supply through recorded shaft openings',shaftId:shaft.id,floorId:f.id,diameterMm:sizes.waterMm,sizeBasis:'selected nominal',points:[...header,lower]})) continue

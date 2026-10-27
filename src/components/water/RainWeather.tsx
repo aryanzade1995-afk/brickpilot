@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { BufferGeometry, Float32BufferAttribute, InstancedBufferAttribute, InstancedBufferGeometry, RingGeometry, ShaderMaterial, DoubleSide, Color } from 'three'
+import { useGLTF } from '@react-three/drei'
+import { rainSceneSampler } from '@/lib/water/rainSceneSampler.ts'
 import { createRainField } from '@/lib/water/rainPreview.ts'
 import type { BuildingModel } from '@/lib/engine/buildingModel.ts'
 import type { VillaPlumbing } from '@/lib/plumbing/villaPlumbing.ts'
@@ -33,10 +35,11 @@ void main(){
 }`
 /** Two GPU draws: batched streaks + instanced impact rings. Uniforms change per
  * frame; there is no React state update or per-droplet mesh allocation. */
-export function RainWeather({building,ports,roofHeightScale,tank}:{building:BuildingModel;ports:VillaPlumbing['tankPorts'];roofHeightScale:number;tank:RainCollection['tank']}) {
+export function RainWeather({building,ports,roofHeightScale,tank,url}:{url:string;building:BuildingModel;ports:VillaPlumbing['tankPorts'];roofHeightScale:number;tank:RainCollection['tank']}) {
   const {invalidate,gl,scene}=useThree(),visible=useRef(true)
   const rainMaterialRef=useRef<ShaderMaterial>(null),splashMaterialRef=useRef<ShaderMaterial>(null)
-  const field=useMemo(()=>createRainField(building,ports,roofHeightScale,tank),[building,ports,roofHeightScale,tank])
+  const {scene:source}=useGLTF(url)
+  const field=useMemo(()=>{const collision=rainSceneSampler(source);const result=createRainField(building,ports,roofHeightScale,tank,collision);collision.dispose();return result},[building,ports,roofHeightScale,tank,source])
   const resources=useMemo(()=>{
     const drops=new BufferGeometry(),positions:number[]=[],impacts:number[]=[],motions:number[]=[],winds:number[]=[]
     for(const d of field.drops)for(const end of [0,1]){positions.push(0,end,0);impacts.push(...d.impact);motions.push(d.phase,d.speedMps,d.lengthM,0);winds.push(...d.wind)}

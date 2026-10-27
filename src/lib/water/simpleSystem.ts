@@ -60,13 +60,15 @@ export function proposeRainCollection(building:BuildingModel,capacityLitres=1000
     const center={x:collector.x+away.x*(radiusMm+400),y:collector.y+away.y*(radiusMm+400),z:heightMm/2+80},tankRect={x:center.x-radiusMm-200,y:center.y-radiusMm-200,w:2*(radiusMm+200),h:2*(radiusMm+200)}
     if(!insidePlot(tankRect)||obstacles.some(r=>intersects(tankRect,r)))continue
     const inlet={x:center.x-away.x*radiusMm,y:center.y,z:heightMm+20},outlet={x:center.x+away.x*radiusMm,y:center.y,z:280}
-    const firstFlush={...collector,z:heightMm+900},filter={x:inlet.x,y:collector.y,z:heightMm+500}
+    // Leave straight socket lengths above and below the filter heads so the
+    // existing fitting kit can seat real elbows instead of intersecting cut tubes.
+    const firstFlush={...collector,z:heightMm+1250},filter={x:inlet.x,y:collector.y,z:heightMm+700}
     const feed:ServicePoint[]=[collector,firstFlush,{x:filter.x,y:collector.y,z:firstFlush.z},{x:filter.x,y:collector.y,z:filter.z},filter,{...filter,z:inlet.z},{x:inlet.x,y:inlet.y,z:inlet.z}]
     const cleaned=feed.filter((p,j,ps)=>!j||!same(p,ps[j-1])||p.z!==ps[j-1].z)
     const flushDrain=[firstFlush,{...firstFlush,z:300}]
     const allGutters=vertices.map((v,j)=>[v,vertices[(j+1)%vertices.length]])
     // Filter heads are 140 mm radius; include a 5 mm visual fitting margin.
-    if(pipeCrossesStructure(building,cleaned,45)||pipeCrossesStructure(building,flushDrain,45)||pipeCrossesStructure(building,[{...filter,z:filter.z-420},{...filter,z:filter.z+300}],145)||allGutters.some(g=>pipeCrossesStructure(building,g,90)))continue
+    if(pipeCrossesStructure(building,cleaned,45)||pipeCrossesStructure(building,flushDrain,45)||pipeCrossesStructure(building,[{...filter,z:filter.z-450},{...filter,z:filter.z+350}],145)||allGutters.some(g=>pipeCrossesStructure(building,g,90)))continue
     const pipes:VillaPipe[]=[{id:'rain:downpipe',system:'water',purpose:'Proposed rainwater downpipe and filter feed',shaftId:null,floorId:top.id,diameterMm:90,sizeBasis:'selected outside diameter',points:cleaned},{id:'rain:first-flush',system:'water',purpose:'First-flush diversion leg; outlet needs review',shaftId:null,floorId:top.id,diameterMm:90,sizeBasis:'selected outside diameter',points:flushDrain}]
     const overflow=[{x:center.x+away.x*radiusMm,y:center.y,z:heightMm-100},{x:center.x+away.x*(radiusMm+300),y:center.y,z:heightMm-100},{x:center.x+away.x*(radiusMm+300),y:center.y,z:250}]
     if(!pipeCrossesStructure(building,overflow,45))pipes.push({id:'rain:overflow',system:'water',purpose:'Overflow stub — final discharge not established',shaftId:null,floorId:top.id,diameterMm:90,sizeBasis:'selected outside diameter',points:overflow})
@@ -77,7 +79,7 @@ export function proposeRainCollection(building:BuildingModel,capacityLitres=1000
       {id:'rain:coarse-filter',kind:'coarse-filter',position:{...filter,z:filter.z+150}},
       {id:'rain:sediment-cartridge',kind:'sediment-cartridge',position:{...filter,z:filter.z-250}},
     ]}
-    result.downpipes={...empty,signature:`rain-${building.planId}-${capacityLitres}-treatment-v1`,pipes,segments:plumbingSegments({pipes})};result.ready=true
+    result.downpipes={...empty,signature:`rain-${building.planId}-${capacityLitres}-treatment-fittings-v2`,pipes,segments:plumbingSegments({pipes})};result.ready=true
     result.notes.push('Roof screen → first-flush diversion → coarse filter → sediment cartridge → separate non-potable tank. Filter performance and water quality are unverified; drinking water requires a tested treatment design.', 'Gutters, 90 mm pipes and tank shell are planning geometry; roof falls, fittings, maintenance and final discharge need review.')
     return result
   }

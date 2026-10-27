@@ -4,6 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "test:water-supply": "node --experimental-strip-types --test scripts/test-supply-continuity.mjs scripts/test-utility-water.mjs",
+    "test:water-drainage": "node --experimental-strip-types --test scripts/test-water-drainage-storage.mjs scripts/test-drainage-linkage.mjs scripts/test-fixture-drainage.mjs scripts/test-drainage-continuity.mjs",
     "test:rain-preview": "node --experimental-strip-types --test scripts/test-rain-preview.mjs",
     "test:simple-water": "node --experimental-strip-types --test scripts/test-simple-water.mjs scripts/test-water-tank-sizing.mjs",
     "test:water-intelligence": "node --experimental-strip-types --test scripts/test-water-intelligence.mjs scripts/test-water-persistence.mjs",
