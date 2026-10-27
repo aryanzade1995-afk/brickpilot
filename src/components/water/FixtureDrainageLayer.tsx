@@ -42,7 +42,7 @@ function BranchPipe({points,diameter,selected,animate}:{points:ServicePoint[];di
 }
 /** Fixture and branch positions are projections of the 2D design. No routing,
  * architectural holes or hydraulic assumptions are created in this renderer. */
-export function FixtureDrainageLayer({scene,room,selected,onSelect,labels,animate,trace,openings=[],system='drain',xray=false}:{xray?:boolean;system?:'drain'|'water';openings?:DrainageOpening[];scene:FixtureDrainageScene;room:string;selected:string;onSelect:(id:string)=>void;labels:boolean;animate:boolean;trace:ServicePoint[][]}){
+export function FixtureDrainageLayer({scene,room,selected,onSelect,labels,animate,trace,openings=[],system='drain',xray=false,showFixtures=true}:{showFixtures?:boolean;xray?:boolean;system?:'drain'|'water';openings?:DrainageOpening[];scene:FixtureDrainageScene;room:string;selected:string;onSelect:(id:string)=>void;labels:boolean;animate:boolean;trace:ServicePoint[][]}){
   const fixtures=scene.fixtures.filter(f=>(system==='drain'||f.kind!=='floor_drain')&&(room==='all'||`${f.floorId}:${f.roomId}`===room))
   return <group name="Shared_2D_Drainage_Fixtures">
     {fixtures.map(f=>{
@@ -51,7 +51,7 @@ export function FixtureDrainageLayer({scene,room,selected,onSelect,labels,animat
       // no second external U trap is ever added to a toilet.
       const start=branch?.points[0],trap=fixtureWasteConnection(f)
       return <group key={f.key} onClick={e=>{e.stopPropagation();onSelect(`fixture:${f.key}`)}}>
-        <FixtureModel fixture={f}/>
+        {showFixtures&&<FixtureModel fixture={f}/>}
         {system==='drain'&&branch&&(branch.blocked?<Line points={branch.points.map(world)} color={active?'#AA763A':'#9B8A72'} dashed dashSize={.12} gapSize={.08} lineWidth={active?2.5:1.5}/>:<BranchPipe points={branch.points} diameter={branch.diameterMm} selected={active} animate={animate&&branch.connected&&(!selected||active)}/>)}
         {system==='drain'&&start&&<BranchPipe points={trap} diameter={f.kind==='toilet'?branch!.diameterMm:Math.min(branch!.diameterMm,50)} selected={active} animate={false}/>}
         {(labels&&room!=='all'||active)&&<Html position={world({...f.point,z:f.point.z+1050})} center zIndexRange={[8,0]}><button aria-label={`${FIXTURE_NAMES[f.kind]}, ${f.roomName}, ${f.floorName}`} onClick={()=>onSelect(`fixture:${f.key}`)} className={`min-h-11 rounded-lg border bg-bg/95 px-2 text-[10px] text-ink shadow-sm ${active?'border-accent':'border-line'}`}>{FIXTURE_NAMES[f.kind]}</button></Html>}

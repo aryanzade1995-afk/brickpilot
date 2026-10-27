@@ -75,3 +75,46 @@ The complete cold network includes floor feeders, room isolation valves, horizon
 Sockets, coupling collars, caps and isolation-valve details are derived from real pipe endpoints/legs and batched with the existing utility instancing component. Drainage hardware sees both the stack/collector segments and the fixture branches/traps, so horizontal-to-vertical junctions share the same positions. Fixture outlet/trap geometry has one shared pure producer. Native pipe bodies, demand rendering and the original accepted villa remain unchanged. These are visual coordination fittings, not a manufacturer specification or construction approval. The viewer uses neutral pipe colours; normal walls conceal embedded runs, and the existing See inside walls option reveals them.
 
 Selecting a water fixture traces from an actual roof tank outlet to its exact terminal; View in 2D opens the water layer and corresponding room. `scripts/test-supply-continuity.mjs` covers multi-floor connectivity, vertical/horizontal runs, wall-centre embedding, unit conversion, source preservation, missing tanks, separation from hot/drain networks, missing source routes, socket placement and duplicate/shared fitting removal.
+
+
+## Shared Massing and Walk inside layer (2026-10-27)
+
+`projectPipelines.ts` is the single read-only assembly used by Water Intelligence,
+3D Massing, the accepted-villa walkthrough and the alternate delivered-house
+viewer. It reuses the existing supply/drainage continuity engines and resolves
+all floors through `sharedDrainage.ts`, including project-scoped saved/manual
+utility edits. The same rain-storage exclusion keeps drain-tank placement stable
+between views. Saved roof-tank width/height are replayed from the original accepted
+tank meshes; only an active matching plan's settings are used.
+
+`useProjectPipelines` subscribes to same-tab drawing updates, cross-tab utility
+storage updates and the existing water/project stores. It calculates on input
+changes, never on animation frames. The walkthrough only prepares the network
+when its viewer opens. No extra canvas, architecture job, seed update, cost
+quantity, physics rebuild or duplicated sanitary furniture is introduced.
+
+Supply and drainage can be switched independently in Massing and walkthrough
+View settings. In first-person mode a compact Pipelines menu contains those
+switches. Normal mode conceals indoor runs with the existing walls. The optional
+inspection mode draws only the separate pipe layer through walls; it never
+changes walkthrough wall finishes. Floor cutaway planes also apply to the pipe
+layer in the alternate delivered-house viewer. Flow animation remains in Water
+Intelligence; these two general-purpose house views keep the added layer static.
+
+Explicitly tagged old GLB pipe meshes are hidden before walkthrough collision is
+prepared, then replaced with the shared current layer. Untagged architecture and
+furnishings are retained. Massing's existing Live villa + visible pipelines GLB
+export contains the shared current layer; reopening a combined GLB in the villa
+renderer strips the tagged old layer before replay, preventing duplicate pipes.
+Previously generated images, raw Blender files and original GLB downloads retain
+their generated contents. The combined live export is the current pipework export.
+
+Verification: `npm run test:project-pipelines` covers deterministic engine parity,
+unchanged source geometry and cost inputs, project-scoped saved additions,
+explicit sewer destinations, resized tank pivots, exclusion of old tagged pipes
+from walking collision, isolated inspection materials and combined-export replay.
+Visual QA confirmed 8/8 cold-water feeds and 13/13 drain branches for the current
+accepted two-floor house, independent layer controls, unchanged loaded house UUID
+when switching pipes, first-person entry and Escape return. Browser testing used
+an Intel integrated GPU and the existing drag-look fallback in the in-app browser;
+this is not an RTX 3050 frame-rate measurement or installation approval.

@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "test:project-pipelines": "node --experimental-strip-types --test scripts/test-project-pipelines.mjs",
     "test:water-supply": "node --experimental-strip-types --test scripts/test-supply-continuity.mjs scripts/test-utility-water.mjs",
     "test:water-drainage": "node --experimental-strip-types --test scripts/test-water-drainage-storage.mjs scripts/test-drainage-linkage.mjs scripts/test-fixture-drainage.mjs scripts/test-drainage-continuity.mjs",
     "test:rain-preview": "node --experimental-strip-types --test scripts/test-rain-preview.mjs",

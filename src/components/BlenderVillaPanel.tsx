@@ -4,8 +4,10 @@ import {ReferenceLayer} from './reference/ReferenceLayer.tsx'
 import {Link} from 'react-router-dom'
 import { WALKTHROUGH_ACCESS_REVISION } from '@/lib/walkthrough/access.ts'
 import { plumbingExportScene } from '@/lib/plumbing/pipeGeometry.ts'
-import { createVillaPlumbing, selectedPipeSizes } from '@/lib/plumbing/villaPlumbing.ts'
-import { PlumbingLayer } from './PlumbingLayer.tsx'
+import { selectedPipeSizes } from '@/lib/plumbing/villaPlumbing.ts'
+import { ProjectPipelineLayer } from './water/ProjectPipelineLayer.tsx'
+import { useProjectPipelines } from './water/useProjectPipelines.ts'
+import { ResizableRoofTanks } from './water/ResizableRoofTanks.tsx'
 import type { Group } from 'three'
 import { exportThreeSceneToGlb } from '@/lib/export/index.ts'
 import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
@@ -38,7 +40,7 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
   const building = useMemo(() => createBuildingModel(finishedPlan), [finishedPlan])
   const referenceDocument = useReference(s=>s.document)
   const referenceFacade = useMemo(()=>{const d=referenceDocument;if(!d?.enabled||d.sourcePlanId!==building.planId||!d.accepted||(d.accepted.settings.mode!=='preserve-plan'&&d.accepted.settings.operation!=='style-transfer'))return null;try{const geometry=reconstructFacade(building,d.accepted.spec,d.accepted.settings);return geometry.status==='rejected'?null:{geometry,operation:d.accepted.settings.operation}}catch{return null}},[referenceDocument,building])
-  const plumbing = useMemo(() => createVillaPlumbing(building, selectedPipeSizes(brief)), [building, brief])
+  const pipelines = useProjectPipelines(plan, building, brief)
   const liveExport = useRef<Group>(null)
   const [waterPipes, setWaterPipes] = useState(true), [drainPipes, setDrainPipes] = useState(true), [pipeXray, setPipeXray] = useState(false)
   const signature = finishSignature(brief)
@@ -174,9 +176,9 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
           </div>
           {referenceFacade&&<p className="absolute bottom-2 left-2 right-2 z-10 bg-bg/90 px-3 py-2 text-xs text-ink-dim">Accepted reference facade overlay · source building retained. <Link className="underline" to="/workspace/plan#reference-facade">Edit / return to original</Link></p>}
           <VillaSceneCanvas key={result.files.glb}>
-            <Suspense fallback={null}><group ref={liveExport}><AcceptedVillaModel url={result.files.glb} style={referenceFacade?.operation==='style-transfer'?referenceFacade.geometry.style:undefined}/>{referenceFacade&&<ReferenceLayer geometry={referenceFacade.geometry}/>}
+            <Suspense fallback={null}><group ref={liveExport}><AcceptedVillaModel url={result.files.glb} technicalXray={pipeXray} separateRoofTanks={!!pipelines} style={referenceFacade?.operation==='style-transfer'?referenceFacade.geometry.style:undefined}/>{referenceFacade&&<ReferenceLayer geometry={referenceFacade.geometry}/>}
               <SolarLayer layout={solar.displayLayout} roof={solar.displayRoof} reservedAreas={solar.displayConfiguration.inputs.reservedAreas} selectedIds={solar.selectedIds} onSelect={solar.pickPanel}/>
-              <PlumbingLayer layout={plumbing} water={waterPipes} drain={drainPipes} xray={pipeXray}/>
+              {pipelines&&<><ResizableRoofTanks url={result.files.glb} ports={pipelines.originalPorts} diameterScale={pipelines.options.roofDiameterScale??1} heightScale={pipelines.options.roofHeightScale??1} xray={false} onSelect={()=>{}}/><ProjectPipelineLayer network={pipelines} water={waterPipes} drain={drainPipes} xray={pipeXray}/></>}
             </group><SolarCamera request={solar.camera} roof={solar.displayRoof} layout={solar.displayLayout} selectedIds={solar.selectedIds}/></Suspense>
           </VillaSceneCanvas>
         </div>
@@ -188,8 +190,8 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
       <section className="mt-4 border border-line bg-bg-raised p-4" aria-label={translateUi('Water & drainage pipelines')}>
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2"><h3 className="mr-auto font-display text-lg">{translateUi('Water & drainage pipelines')}</h3>{([[waterPipes,setWaterPipes,'Tank water supply'],[drainPipes,setDrainPipes,'Drainage & vents'],[pipeXray,setPipeXray,'See pipes through walls']] as const).map(([value,setter,label])=><label key={label} className="flex min-h-11 items-center gap-2 text-xs"><input type="checkbox" className="accent-accent" checked={value} onChange={e=>setter(e.target.checked)}/>{translateUi(label)}</label>)}</div>
         <p className="mt-2 text-xs text-ink-dim">{translateUi('Ivory: water pipes. Charcoal: drainage stacks. Warm grey: vents. Existing shaft openings are preserved.')}</p>
-        <p role="status" className="mt-2 text-xs text-ink-dim">{translateUi(`Tank-fed shafts: ${plumbing.pipes.filter(p=>p.id.startsWith('supply:')).length} · feeds to review: ${plumbing.issues.filter(i=>i.id.startsWith('supply:')).length}`)}</p>
-        <details className="mt-2 text-xs text-ink-dim"><summary className="min-h-11 cursor-pointer py-3">{translateUi('Pipeline details & connections to review')}</summary><p>{translateUi('Selected pipe sizes')}: {selectedPipeSizes(brief).waterMm} mm · {translateUi('Tank water supply')}; {selectedPipeSizes(brief).soilMm} / {selectedPipeSizes(brief).wasteMm} mm · {translateUi('Drainage & vents')}</p><p className="mt-2">{translateUi('Pipe sizes are concept envelopes. Structural openings, fixture branches, vent sizing, gradients and final discharge need professional review. The house and estimate stay unchanged.')}</p><ul className="mt-3 space-y-2">{plumbing.issues.map(issue=><li key={issue.id}>{issue.id}: {translateUi(issue.reason)}</li>)}</ul><p className="mt-3">{translateUi('Use Live villa + visible pipelines GLB to download the pipework shown here. Saved images and original downloads keep their previously generated contents.')}</p></details>
+        <p role="status" className="mt-2 text-xs text-ink-dim">{translateUi(`Tank-fed fixtures: ${pipelines?.supply.fixtures.filter(f=>f.connected).length??0}/${pipelines?.supply.fixtures.length??0} · connected drains: ${pipelines?.fixtureScene.fixtures.filter(f=>f.branch?.connected).length??0}/${pipelines?.fixtureScene.fixtures.length??0}`)}</p>
+        <details className="mt-2 text-xs text-ink-dim"><summary className="min-h-11 cursor-pointer py-3">{translateUi('Pipeline details & connections to review')}</summary><p>{translateUi('Selected pipe sizes')}: {selectedPipeSizes(brief).waterMm} mm · {translateUi('Tank water supply')}; {selectedPipeSizes(brief).soilMm} / {selectedPipeSizes(brief).wasteMm} mm · {translateUi('Drainage & vents')}</p><p className="mt-2">{translateUi('Pipe sizes are concept envelopes. Structural openings, fixture branches, vent sizing, gradients and final discharge need professional review. The house and estimate stay unchanged.')}</p><ul className="mt-3 space-y-2">{[...new Set([...(pipelines?.issues??[]),...(pipelines?.supply.issues??[]),...(pipelines?.fixtureScene.issues??[]),...(pipelines?.continuity.issues??[]),...(pipelines?.drainNetwork.issues??[])])].map((issue,i)=><li key={i}>{translateUi(issue)}</li>)}</ul><p className="mt-3">{translateUi('Use Live villa + visible pipelines GLB to download the pipework shown here. Saved images and original downloads keep their previously generated contents.')}</p></details>
       </section>
       <p className="mt-2 text-xs text-ink-faint"><a href="https://polyhaven.com/a/modular_pipes" target="_blank" rel="noreferrer" className="underline">{translateUi('Pipe fittings · Poly Haven · CC0')}</a></p>
       <SolarVillaControls editor={solar}/>

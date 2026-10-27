@@ -1,3 +1,4 @@
+import { useProjectPipelines } from '../water/useProjectPipelines.ts'
 import { lazy, Suspense, useMemo, useState } from 'react'
 import type { BlenderResult } from '@/state/blender.ts'
 import type { WalkthroughSource } from '@/lib/walkthrough/source.ts'
@@ -15,6 +16,7 @@ const Preview = lazy(() => import('./WalkthroughAssetPreview.tsx'))
  * generates, modifies, dresses or replaces any displayed model geometry. */
 export function AcceptedVillaWalkthrough({ asset, source, design }: { asset?: BlenderResult; source: WalkthroughSource; design: Design }) {
   const [open, setOpen] = useState(false)
+  const pipelines=useProjectPipelines(design,source.building,design.model.brief,open)
   const [lightingId,setLightingId]=useState<string|null>(null)
   // Parent is keyed by plan ID. Material/preference changes keep navigation
   // metadata and the loaded accepted asset alive until a new export is selected.
@@ -32,7 +34,7 @@ export function AcceptedVillaWalkthrough({ asset, source, design }: { asset?: Bl
     {!acceptedVilla ? <div className="mt-4 border border-line bg-bg-inset p-4"><p className="text-sm">{t('Open 3D Massing and prepare your Blender villa first.')}</p><a href="/workspace/massing" className="mt-3 inline-flex min-h-11 items-center text-xs underline">{t('Open 3D Massing')}</a></div> : <>
       <div className="mt-4 flex flex-wrap gap-3"><button type="button" onClick={() => setOpen(v => !v)} className="min-h-11 border border-line bg-accent px-4 text-xs text-bg">{t(open ? 'Close 3D view' : 'Open 3D view')}</button>
         <a href={acceptedVilla.url} download className="inline-flex min-h-11 items-center border border-line px-4 text-xs underline">{t('Download GLB')}</a></div>
-      {open && <Suspense fallback={<p role="status" className="py-4 text-xs">{t('Loading the exported house…')}</p>}><Preview key={acceptedVilla.url+':'+(lightingId??'realtime')} planId={source.building.planId} acceptedVilla={acceptedVilla} appearance={appearance} floors={acceptedVilla.geometry?.metadata.floors ?? []} /></Suspense>}
+      {open && <Suspense fallback={<p role="status" className="py-4 text-xs">{t('Loading the exported house…')}</p>}><Preview key={acceptedVilla.url+':'+(lightingId??'realtime')} planId={source.building.planId} acceptedVilla={acceptedVilla} pipelines={pipelines} appearance={appearance} floors={acceptedVilla.geometry?.metadata.floors ?? []} /></Suspense>}
       {appearance&&<WalkthroughBakeControls design={design} source={source} acceptedUrl={acceptedVilla.url} signature={lightingSignature} onReady={setLightingId}/>}
       <details className="mt-3 text-xs text-ink-dim"><summary className="min-h-11 cursor-pointer py-3">{t('Controls & model details')}</summary>
         <p>{t('WASD: move · Mouse: look · E: doors · Esc: exit')}</p>

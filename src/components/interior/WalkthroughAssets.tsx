@@ -1,3 +1,4 @@
+import { useProjectPipelines } from '../water/useProjectPipelines.ts'
 import { Component, lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { Design } from '@/lib/engine/types.ts'
 import type { WalkthroughSource } from '@/lib/walkthrough/source.ts'
@@ -19,6 +20,7 @@ export function WalkthroughAssets({ design, source, projectId }: { design: Desig
   const [restored] = useState(() => readWalkthroughSession(projectId, source.geometryKey))
   const [job, setJob] = useState<Job | null>(restored), [busy, setBusy] = useState(false), [error, setError] = useState(''), [metadata, setMetadata] = useState<Metadata | null>(null), [preview, setPreview] = useState(false)
   const active = useRef<AbortController | null>(null)
+  const pipelines=useProjectPipelines(design,source.building,design.model.brief,preview)
   // Parent is keyed only by project/structural identity. Finish edits retain this
   // exact geometry package, loaded house, orbit camera and walking controller.
   const [geometry] = useState(() => prepareWalkthroughGeometry(buildWalkthroughScene(source.building, { hardChecksPass: source.state !== 'blocked' })))
@@ -92,7 +94,7 @@ export function WalkthroughAssets({ design, source, projectId }: { design: Desig
       <ul className="mt-3 max-h-72 space-y-3 overflow-y-auto text-xs">{schedule?.finishes.visualBasis.filter(v => roomItems.has(v.item)).map(v => { const item = specsCatalogue.items.find(i => i.id === v.item); return <li key={v.item} className="border-t border-line pt-2"><p>{t(item?.label ?? v.item)} · {v.name}{v.item === 'interior-paint' ? ` · ${schedule.finishes.walls.paint}` : ''}</p><p className="mt-1 text-ink-dim">{t(visualLabels[v.representation])} · {t(visualLabels[v.scale])}</p>{v.displayedOptionId !== v.optionId && <p className="mt-1 text-ink-dim">{t('Allowance exemplar; estimate retains the selected allowance.')}</p>}<div className="flex flex-wrap gap-3">{v.image && <a className="inline-flex min-h-11 items-center underline" href={v.image} target="_blank" rel="noreferrer">{t('Product reference')}</a>}{item && photographedOptions(item).length > 0 && <button type="button" className="min-h-11 border border-line px-3" onClick={() => setEditingItem(v.item)}>{t('Change in Finishes & Cost')}</button>}</div></li> })}</ul>
     </details>}
     {editingItem && schedule && <Suspense fallback={<p role="status" className="p-4 text-xs">{t('Loading…')}</p>}><ProductEditor design={design} itemId={editingItem} room={source.rooms.find(r => r.key === schedule.roomId)?.finishRoomKey} onClose={() => setEditingItem('')} /></Suspense>}
-    {ready && preview && appearance && <AssetReviewBoundary><Suspense fallback={<p role="status" className="py-4 text-xs">{t('Loading the exported house…')}</p>}><Preview id={job.id} planId={source.building.planId} floors={metadata.floors} appearance={appearance} /></Suspense></AssetReviewBoundary>}
+    {ready && preview && appearance && <AssetReviewBoundary><Suspense fallback={<p role="status" className="py-4 text-xs">{t('Loading the exported house…')}</p>}><Preview pipelines={pipelines} id={job.id} planId={source.building.planId} floors={metadata.floors} appearance={appearance} /></Suspense></AssetReviewBoundary>}
   </div>
 }
 

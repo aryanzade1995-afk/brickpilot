@@ -1,11 +1,9 @@
-import { coordinateSupply, supplyFixtureTrace } from '@/lib/water/supplyContinuity.ts'
-import { coordinateDrainageContinuity } from '@/lib/water/drainageContinuity.ts'
-import { utilityFloor } from '@/lib/utilities/plan.ts'
-import { readDrainageDrawing, resolveDrainageFloor, subscribeDrainage, drainageRevision, forgetDrainageSnapshot } from '@/lib/utilities/sharedDrainage.ts'
-import { fixtureDrainageScene, fixtureTankTrace, fixtureWasteConnection, FIXTURE_NAMES } from '@/lib/water/fixtureDrainage.ts'
+import { supplyFixtureTrace } from '@/lib/water/supplyContinuity.ts'
+import { useProjectPipelines } from './useProjectPipelines.ts'
+import { fixtureTankTrace, FIXTURE_NAMES } from '@/lib/water/fixtureDrainage.ts'
 import { interiorAsset } from '@/lib/interior-assets/catalogue.ts'
 import { FixtureDrainageLayer } from './FixtureDrainageLayer.tsx'
-import { Suspense, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
+import { Suspense, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, CloudRain, Droplets, Eye, EyeOff, Filter, Leaf, Play, Save, Waves, X } from 'lucide-react'
 import { useStudio } from '@/state/studio.ts'
@@ -13,15 +11,12 @@ import { useProjects } from '@/state/projects.ts'
 import { useBlender } from '@/state/blender.ts'
 import { useWaterIntelligence } from '@/state/waterIntelligence.ts'
 import { emptyWaterConfig, type WaterConfig } from '@/lib/water/schema.ts'
-import { SIMPLE_WATER_DEFAULTS, proposeRainCollection } from '@/lib/water/simpleSystem.ts'
-import { createVillaPlumbing, selectedPipeSizes } from '@/lib/plumbing/villaPlumbing.ts'
+import { SIMPLE_WATER_DEFAULTS } from '@/lib/water/simpleSystem.ts'
 import { waterRoof } from '@/lib/water/roof.ts'
 import { VillaSceneCanvas, AcceptedVillaModel } from '@/components/VillaSceneCanvas.tsx'
 import { SimpleWaterLayer } from './SimpleWaterLayer.tsx'
 import { WaterCamera, type WaterView } from './WaterCamera.tsx'
 import { ResizableRoofTanks } from './ResizableRoofTanks.tsx'
-import { connectedDrainageNetwork } from '@/lib/water/drainageNetwork.ts'
-import { proposeDrainStorage } from '@/lib/water/drainageStorage.ts'
 import { RainWeather } from './RainWeather.tsx'
 
 const button='inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-line px-3 py-2 text-xs transition-colors hover:bg-bg-inset focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-40'
@@ -49,37 +44,15 @@ export function WaterIntelligence() {
   const [raining,setRaining]=useState(false),[fillReplay,setFillReplay]=useState(0)
   const [reducedMotion]=useState(()=>typeof window!=='undefined'&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)
   const [mode,setMode]=useState<'home'|'rain'|'drain'>('home'),[xray,setXray]=useState(true),[flow,setFlow]=useState(false),[labels,setLabels]=useState(false),[selected,setSelected]=useState(''),[notice,setNotice]=useState('')
-  const projectId=useProjects(s=>s.currentId)
-  const drawingRevision=useSyncExternalStore(subscribeDrainage,drainageRevision,drainageRevision)
-  const [storageRevision,setStorageRevision]=useState(0),[drainRoom,setDrainRoom]=useState('all'),[showOpenings,setShowOpenings]=useState(false)
-  useEffect(()=>{const changed=(e:StorageEvent)=>{forgetDrainageSnapshot(e.key);setStorageRevision(v=>v+1)};window.addEventListener('storage',changed);return()=>window.removeEventListener('storage',changed)},[])
+  const [drainRoom,setDrainRoom]=useState('all'),[showOpenings,setShowOpenings]=useState(false)
   const building=result?.buildingModel
   const accepted=useBlender(s=>building?s.accepted[building.planId]:undefined)
   const asset=accepted&&accepted.seed===(result?.villaDesignDNA?.seed??result?.design.dna.seed)?accepted:null
-  const home=useMemo(()=>building?createVillaPlumbing(building,selectedPipeSizes(brief),[],diameterScale,true):null,[building,brief,diameterScale])
-  const originalPorts=useMemo(()=>building?createVillaPlumbing(building,selectedPipeSizes(brief)).tankPorts:[],[building,brief])
-  const rain=useMemo(()=>building?proposeRainCollection(building,Number(options.tankLitres)):null,[building,options.tankLitres])
-  const drainage=useMemo(()=>mode==='drain'&&building&&home?proposeDrainStorage(building,home,rain?.tank?[{x:rain.tank.center.x-rain.tank.radiusMm,y:rain.tank.center.y-rain.tank.radiusMm,w:rain.tank.radiusMm*2,h:rain.tank.radiusMm*2}]:[]):null,[mode,building,home,rain])
-  const drainNetwork=useMemo(()=>building&&home&&drainage?connectedDrainageNetwork(building,home,drainage):null,[building,home,drainage])
-  const sharedDrainage=useMemo(()=>{
-    if(mode==='rain'||!result)return {floors:[],issues:[] as string[]}
-    const issues:string[]=[]
-    const floors=result.design.floors.flatMap(f=>{
-      const source=utilityFloor(result.design,f.level,brief)
-      const saved=readDrainageDrawing(`${projectId??`draft:${result.design.id}`}:floor:${f.level}`,source)
-      issues.push(...saved.issues)
-      if(!saved.compatible)return []
-      const resolved=resolveDrainageFloor(saved.model,saved.drainage,saved.planning)
-      issues.push(...resolved.reviews.map(r=>r.reason));return [resolved.model]
-    })
-    return {floors,issues,revision:drawingRevision+storageRevision}
-  },[mode,result,brief,projectId,drawingRevision,storageRevision])
-  const rawFixtureScene=useMemo(()=>building&&home?fixtureDrainageScene(sharedDrainage.floors,building,home,drainNetwork,brief):null,[sharedDrainage,building,home,drainNetwork,brief])
-  const supply=useMemo(()=>mode==='home'&&building&&home?coordinateSupply(building,home,sharedDrainage.floors):null,[mode,building,home,sharedDrainage])
-  const continuity=useMemo(()=>building&&home&&drainage&&rawFixtureScene?coordinateDrainageContinuity(building,home,drainage,rawFixtureScene):null,[building,home,drainage,rawFixtureScene])
-  const fixtureScene=continuity?.scene??rawFixtureScene
-  const displayedDrainNetwork=useMemo(()=>fixtureScene?.configuredDischarge&&building&&home&&drainage?connectedDrainageNetwork(building,home,{...drainage,tank:null,layout:{...drainage.layout,pipes:[],segments:[]}}):continuity?.network??drainNetwork,[fixtureScene?.configuredDischarge,building,home,drainage,drainNetwork,continuity])
-  const drainFixtureRuns=useMemo(()=>mode==='drain'?fixtureScene?.fixtures.flatMap(f=>f.branch?[{system:'drain' as const,diameterMm:f.branch.diameterMm,points:f.branch.points},{system:'drain' as const,diameterMm:f.kind==='toilet'?f.branch.diameterMm:Math.min(f.branch.diameterMm,50),points:fixtureWasteConnection(f)}]:[])??[]:[],[mode,fixtureScene])
+  const pipelines=useProjectPipelines(result?.design,building,brief,true,options)
+  const home=pipelines?.home,rain=pipelines?.rain,originalPorts=pipelines?.originalPorts??[]
+  const drainage=pipelines?.drainage,supply=pipelines?.supply,continuity=pipelines?.continuity
+  const fixtureScene=pipelines?.fixtureScene,displayedDrainNetwork=pipelines?.drainNetwork
+  const drainFixtureRuns=pipelines?.drainFixtureRuns??[]
   const chosenFixture=fixtureScene?.fixtures.find(f=>`fixture:${f.key}`===selected)
   const supplyFixture=supply?.fixtures.find(f=>f.key===chosenFixture?.key)
   const fixtureTrace=useMemo(()=>mode==='home'&&supply?supplyFixtureTrace(supply,supplyFixture):displayedDrainNetwork?fixtureTankTrace(chosenFixture,displayedDrainNetwork,drainage?.tank?.inlet):[],[mode,supply,supplyFixture,chosenFixture,displayedDrainNetwork,drainage])
@@ -93,7 +66,7 @@ export function WaterIntelligence() {
   }
   const item=selected?descriptions[selected.startsWith('roof-tank:')?'roof-tank':selected]:null
   const roofRain=options.rainfallMm===null?null:options.rainfallMm*rain.areaM2
-  const review=mode==='drain'?[...sharedDrainage.issues,...(fixtureScene?.issues??[]),...(drainage?.issues??[]),...(continuity?.issues??[]),...(displayedDrainNetwork?.issues??[])]:mode==='rain'?rain.notes:supply?.issues??home.issues.filter(i=>['tank','tank-manifold','shafts'].includes(i.id)||i.id.startsWith('supply:')).map(i=>i.reason)
+  const review=mode==='drain'?[...(pipelines?.issues??[]),...(fixtureScene?.issues??[]),...(drainage?.issues??[]),...(continuity?.issues??[]),...(displayedDrainNetwork?.issues??[])]:mode==='rain'?rain.notes:supply?.issues??home.issues.filter(i=>['tank','tank-manifold','shafts'].includes(i.id)||i.id.startsWith('supply:')).map(i=>i.reason)
   return <section className="mt-6 space-y-4" aria-label="Water Intelligence">
     <header className="flex flex-wrap items-center justify-between gap-3"><div><p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-ink-faint"><Droplets size={14}/>Water Intelligence</p><h2 className="mt-2 font-display text-3xl">See how water moves through your home.</h2></div><button className={button} onClick={save}><Save size={14}/>Save setup</button></header>
     {(notice||error)&&<p role="status" className="rounded-lg border border-line bg-bg-inset px-4 py-3 text-sm">{notice||error}</p>}
