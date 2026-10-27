@@ -10,6 +10,7 @@ export type RainCollection={
   collector:ServicePoint|null;firstFlush:ServicePoint|null;filter:ServicePoint|null;
   tank:{center:ServicePoint;radiusMm:number;heightMm:number;capacityLitres:number;inlet:ServicePoint;outlet:ServicePoint}|null;
   overflow:ServicePoint[];areaM2:number;notes:string[];ready:boolean;
+  treatment:{version:'rain-treatment-v1';potable:false;bypassToTank:false;performance:'unverified';stages:{id:string;kind:'leaf-screen'|'first-flush'|'coarse-filter'|'sediment-cartridge';position:ServicePoint}[]}|null;
 }
 const same=(a:Point,b:Point)=>Math.abs(a.x-b.x)<.01&&Math.abs(a.y-b.y)<.01
 const normal=(side:BoundaryEdge['side']):Point=>({N:{x:0,y:-1},S:{x:0,y:1},E:{x:1,y:0},W:{x:-1,y:0}}[side])
@@ -34,7 +35,7 @@ export function outerRoofLoops(regions:Rect[]) {
 export function proposeRainCollection(building:BuildingModel,capacityLitres=1000):RainCollection {
   if(!Number.isInteger(capacityLitres)||capacityLitres<500||capacityLitres>5000||capacityLitres%100!==0)throw new RangeError('Choose 500–5,000 litres in steps of 100')
   const empty:VillaPlumbing={version:'villa-plumbing-v1',planId:building.planId,signature:'rain-empty',pipes:[],segments:[],tankPorts:[],issues:[],notes:[]}
-  const result:RainCollection={version:'rain-visual-v1',planId:building.planId,gutters:[],downpipes:empty,collector:null,firstFlush:null,filter:null,tank:null,overflow:[],areaM2:0,notes:[],ready:false}
+  const result:RainCollection={version:'rain-visual-v1',planId:building.planId,gutters:[],downpipes:empty,collector:null,firstFlush:null,filter:null,tank:null,overflow:[],areaM2:0,notes:[],ready:false,treatment:null}
   const top=[...building.floors].sort((a,b)=>a.level-b.level).at(-1)
   if(!top){result.notes.push('A represented roof is needed.');return result}
   if(!building.roofTerrace){result.notes.push('This roof needs a measured gutter and outlet design before a rainwater route can be shown.');return result}
@@ -64,13 +65,20 @@ export function proposeRainCollection(building:BuildingModel,capacityLitres=1000
     const cleaned=feed.filter((p,j,ps)=>!j||!same(p,ps[j-1])||p.z!==ps[j-1].z)
     const flushDrain=[firstFlush,{...firstFlush,z:300}]
     const allGutters=vertices.map((v,j)=>[v,vertices[(j+1)%vertices.length]])
-    if(pipeCrossesStructure(building,cleaned,45)||pipeCrossesStructure(building,flushDrain,45)||allGutters.some(g=>pipeCrossesStructure(building,g,90)))continue
+    // Filter heads are 140 mm radius; include a 5 mm visual fitting margin.
+    if(pipeCrossesStructure(building,cleaned,45)||pipeCrossesStructure(building,flushDrain,45)||pipeCrossesStructure(building,[{...filter,z:filter.z-420},{...filter,z:filter.z+300}],145)||allGutters.some(g=>pipeCrossesStructure(building,g,90)))continue
     const pipes:VillaPipe[]=[{id:'rain:downpipe',system:'water',purpose:'Proposed rainwater downpipe and filter feed',shaftId:null,floorId:top.id,diameterMm:90,sizeBasis:'selected outside diameter',points:cleaned},{id:'rain:first-flush',system:'water',purpose:'First-flush diversion leg; outlet needs review',shaftId:null,floorId:top.id,diameterMm:90,sizeBasis:'selected outside diameter',points:flushDrain}]
     const overflow=[{x:center.x+away.x*radiusMm,y:center.y,z:heightMm-100},{x:center.x+away.x*(radiusMm+300),y:center.y,z:heightMm-100},{x:center.x+away.x*(radiusMm+300),y:center.y,z:250}]
     if(!pipeCrossesStructure(building,overflow,45))pipes.push({id:'rain:overflow',system:'water',purpose:'Overflow stub — final discharge not established',shaftId:null,floorId:top.id,diameterMm:90,sizeBasis:'selected outside diameter',points:overflow})
     result.gutters=allGutters;result.collector=collector;result.firstFlush=firstFlush;result.filter=filter;result.tank={center,radiusMm,heightMm,capacityLitres,inlet,outlet};result.overflow=overflow
-    result.downpipes={...empty,signature:`rain-${building.planId}-${capacityLitres}`,pipes,segments:plumbingSegments({pipes})};result.ready=true
-    result.notes.push('Rainwater uses separate non-potable storage. Gutters, 90 mm pipes and tank shell are planning geometry; roof falls, fittings, filtration and final discharge need review.')
+    result.treatment={version:'rain-treatment-v1',potable:false,bypassToTank:false,performance:'unverified',stages:[
+      {id:'rain:leaf-screen',kind:'leaf-screen',position:collector},
+      {id:'rain:first-flush',kind:'first-flush',position:firstFlush},
+      {id:'rain:coarse-filter',kind:'coarse-filter',position:{...filter,z:filter.z+150}},
+      {id:'rain:sediment-cartridge',kind:'sediment-cartridge',position:{...filter,z:filter.z-250}},
+    ]}
+    result.downpipes={...empty,signature:`rain-${building.planId}-${capacityLitres}-treatment-v1`,pipes,segments:plumbingSegments({pipes})};result.ready=true
+    result.notes.push('Roof screen → first-flush diversion → coarse filter → sediment cartridge → separate non-potable tank. Filter performance and water quality are unverified; drinking water requires a tested treatment design.', 'Gutters, 90 mm pipes and tank shell are planning geometry; roof falls, fittings, maintenance and final discharge need review.')
     return result
   }
   result.notes.push('No clear location beside this house fits the selected tank and an exterior downpipe. Try a smaller tank or have a plumber choose the route.')

@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "test:rain-preview": "node --experimental-strip-types --test scripts/test-rain-preview.mjs",
     "test:simple-water": "node --experimental-strip-types --test scripts/test-simple-water.mjs scripts/test-water-tank-sizing.mjs",
     "test:water-intelligence": "node --experimental-strip-types --test scripts/test-water-intelligence.mjs scripts/test-water-persistence.mjs",
     "test:room-experience": "node --experimental-strip-types --test scripts/test-room-experience.mjs",
