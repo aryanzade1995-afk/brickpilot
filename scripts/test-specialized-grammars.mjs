@@ -25,6 +25,11 @@ test('all ten balcony grammars have distinct actual geometry on accessible sourc
     const unit = makeBalcony(ctx, ctx.building.rooms.find(r => r.id === 'balcony1'), type)
     assert.ok(valid(ctx, unit), `${type}: ${JSON.stringify(unit && validateSpecializedAssemblies(ctx, [unit]))}`)
     assert.ok(unit.openingIds.length); shapes.add(signature(unit))
+    const canopy = unit.parts.find(p => p.role === 'slab' && p.local.z === resolveAnchor(ctx, p.anchor).h - 100)
+    const source = ctx.building.rooms.find(r => r.id === 'balcony1').rect
+    assert.ok(canopy, `${type}: full balcony shade missing`)
+    assert.deepEqual({ x: canopy.world.x, y: canopy.world.y, w: canopy.world.w, h: canopy.world.h }, source, `${type}: shade must cover exactly the source balcony`)
+
     assert.ok(unit.parts.filter(p=>p.role==='post').every(p=>p.local.z===0),`${type}: floating support post`)
     assert.ok(unit.parts.filter(p=>p.role==='glass').every(p=>Math.max(p.local.w,p.local.d)<=1200),`${type}: unsupported glass span`)
     assert.ok(unit.parts.some(p=>p.role==='glass'),`${type}: balcony boundary must be glass`)

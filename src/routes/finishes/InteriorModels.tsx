@@ -1,6 +1,6 @@
 import {translate as t,useLanguage} from '@/lib/i18n/index.ts'
 import type {Brief} from '@/lib/model/brief.ts'
-import {interiorAsset,MODEL_CATEGORIES,selectedInteriorModel,setInteriorModel} from '@/lib/interior-assets/catalogue.ts'
+import {interiorAsset,automaticInteriorModel,MODEL_CATEGORIES,selectedInteriorModel,setInteriorModel} from '@/lib/interior-assets/catalogue.ts'
 import {resolveSpecification,specsCatalogue} from '@/lib/cost/catalogue.ts'
 import {sanitaryKind} from '@/lib/interior/finishes.ts'
 
@@ -15,7 +15,7 @@ export default function InteriorModels({brief,room,onBrief}:{brief:Brief;room?:s
   <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{MODEL_CATEGORIES.map(c=>{
    const item=specsCatalogue.items.find(i=>i.id===c.item),option=item?resolveSpecification(brief,item.id,room):null
    const selected=selectedInteriorModel(brief,c.id,room),wc=c.id==='toilet'&&option?sanitaryKind(option.name,option.id):null
-   const preview=c.id==='toilet'&&wc==='wall'?'toilet-wall':selected==='auto'||selected==='procedural'?c.assets[0]:selected
+   const preview=c.id==='toilet'&&wc==='wall'?'toilet-wall':selected==='auto'||selected==='procedural'?automaticInteriorModel(c.id):selected
    const asset=wc==='indian'?null:interiorAsset(preview)
    return <article key={c.id} className="overflow-hidden rounded-xl border border-line bg-bg">
     {asset&&<img src={asset.thumbnail} alt={t(c.label)} loading="lazy" className="aspect-[4/3] w-full bg-bg-inset object-contain"/>}

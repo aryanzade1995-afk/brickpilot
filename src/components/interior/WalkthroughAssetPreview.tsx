@@ -1,4 +1,4 @@
-import { ProjectPipelineLayer } from '../water/ProjectPipelineLayer.tsx'
+import { completeBalconyShades } from '@/lib/three/balconyShades.ts'
 import { ResizableRoofTanks } from '../water/ResizableRoofTanks.tsx'
 import type { ProjectPipelines } from '@/lib/water/projectPipelines.ts'
 import { hideBakedPipelines, hideReplacedRoofTanks } from '@/lib/three/pipelineVisibility.ts'
@@ -37,7 +37,6 @@ export default function WalkthroughAssetPreview({ id, planId, floors, appearance
   const [lightingNotice,setLightingNotice]=useState('')
   const [renderReady,setRenderReady]=useState(false)
   const [nativeResolution,setNativeResolution]=useState(false)
-  const [waterPipes,setWaterPipes]=useState(true),[drainPipes,setDrainPipes]=useState(true),[pipeXray,setPipeXray]=useState(false)
   const [simulation, setSimulation] = useState<HouseWalkingSimulation | null>(null), [walkingError, setWalkingError] = useState('')
   const [walking, setWalking] = useState(false), [controls, setControls] = useState<WalkingControls | null>(null)
   const [lookMode, setLookMode] = useState<'locked' | 'drag'>('locked')
@@ -92,8 +91,10 @@ export default function WalkthroughAssetPreview({ id, planId, floors, appearance
           }catch{setLightingNotice('Baked lighting is unavailable. The real-time villa remains available.')}
         }
         // Reuse the exterior viewer's face separation without batching doors.
+        // Walkthroughs omit service pipes, including those baked into older GLBs.
         hideBakedPipelines(group)
         hideReplacedRoofTanks(group)
+        completeBalconyShades(group)
         separateCoplanar(group)
         prepareWalkthroughShell(group)
         prepareWalkthroughGlazing(group)
@@ -199,7 +200,6 @@ export default function WalkthroughAssetPreview({ id, planId, floors, appearance
     {lightingNotice&&<p role="status" className="border-b border-line p-3 text-xs text-ink-dim">{t(lightingNotice)}</p>}
     <details className="border-b border-line px-4 text-xs text-ink-dim"><summary className="min-h-11 cursor-pointer py-3">{t('View settings')}</summary><div className="flex flex-wrap items-center gap-3 pb-3">
       <label className="flex min-h-11 items-center gap-2">{t('Graphics')}<select value={quality} onChange={e => { setQuality(e.target.value as WalkthroughQuality); setMetrics(null) }} className="min-h-11 border border-line bg-bg px-3 text-ink">{Object.entries(WALKTHROUGH_QUALITY).map(([key, value]) => <option key={key} value={key}>{t(value.label)}</option>)}</select></label>
-      {pipelines&&<PipelineControls water={waterPipes} drain={drainPipes} xray={pipeXray} onWater={setWaterPipes} onDrain={setDrainPipes} onXray={setPipeXray}/>}
       <span>{WALKTHROUGH_QUALITY[quality].target} {t('FPS target · quality adapts to your GPU')}</span>
       <span>{interiorModelCount} {t('realistic models loaded')}</span>
       <label className="flex min-h-11 items-center gap-2"><input type="checkbox" checked={nativeResolution} onChange={e=>{setNativeResolution(e.target.checked);setMetrics(null)}} className="h-4 w-4 accent-accent"/>{t('Lock native resolution for benchmarking')}</label>
@@ -212,13 +212,13 @@ export default function WalkthroughAssetPreview({ id, planId, floors, appearance
     {simulation && [...simulation.doors.values()].some(d => d.operation === 'unresolved') && <p className="border-b border-line px-4 py-2 text-xs leading-relaxed text-ink-dim">{t('Some door swings are unspecified. Those leaves are hidden when opened; the source openings stay unchanged.')}</p>}
     {!simulation && !walkingError && model && <p role="status" className="p-3 text-xs text-ink-dim">{t('Preparing walking physics…')}</p>}
     {failed ? <p role="alert" className="p-5 text-sm text-bad">{t(acceptedVilla ? 'The accepted Blender villa could not load. Check its export in 3D Massing.' : 'The exported model could not be loaded. Generate the assets again.')}</p> : !model ? <p role="status" className="p-5 text-sm text-ink-dim">{t('Loading the exported house…')}</p> : <div ref={viewport} className={walking ? 'fixed inset-0 z-[1000] h-dvh w-screen cursor-none bg-bg-inset [&_canvas]:cursor-none' : 'relative h-[420px] bg-bg-inset'} role={walking ? 'dialog' : undefined} aria-modal={walking || undefined} aria-label={t(walking ? 'First-person house walkthrough' : 'Exported house model')}
-      data-pipeline-plan={pipelines?.planId} data-water-pipes={waterPipes} data-drain-pipes={drainPipes} data-pipe-xray={pipeXray} data-model-source={acceptedVilla ? 'accepted-massing-glb' : 'blender-glb'} data-model-url={acceptedVilla?.url} data-blender-room-count={blenderRoomCount} data-building-instance={model.uuid} data-finish-revision={appearanceRevision} data-walk-mode={walking ? 'first-person' : 'orbit'} data-walk-input={lookMode} data-walk-feet={JSON.stringify(hud.feet)} data-walk-look={JSON.stringify(hud.look)} data-walk-grounded={hud.grounded} data-walk-floor={hud.floor}>
+      data-model-source={acceptedVilla ? 'accepted-massing-glb' : 'blender-glb'} data-model-url={acceptedVilla?.url} data-blender-room-count={blenderRoomCount} data-building-instance={model.uuid} data-finish-revision={appearanceRevision} data-walk-mode={walking ? 'first-person' : 'orbit'} data-walk-input={lookMode} data-walk-feet={JSON.stringify(hud.feet)} data-walk-look={JSON.stringify(hud.look)} data-walk-grounded={hud.grounded} data-walk-floor={hud.floor}>
       <ModelBoundary><Canvas frameloop={walking ? 'always' : 'demand'} shadows={{ type: PCFShadowMap, autoUpdate: false }} dpr={metrics?.dpr ?? WALKTHROUGH_QUALITY[quality].start} camera={cameraConfiguration} gl={{ antialias: true, powerPreference: 'high-performance' }} onCreated={({ gl }) => { gl.localClippingEnabled = true; gl.toneMapping = ACESFilmicToneMapping; gl.toneMappingExposure = 1; gl.shadowMap.type = PCFShadowMap; gl.shadowMap.autoUpdate = false; gl.shadowMap.needsUpdate = true }}>
         <color attach="background" args={['#e7e9e7']} /><WalkthroughLighting model={model} bounds={framing} />
         <WarmWalkthroughShaders revision={appearanceRevision} onReady={setRenderReady}/>
         <WalkthroughRoomLights appearance={appearance} geometry={acceptedVilla?.geometry} /><WalkthroughPerformance active={walking} revision={appearanceRevision} quality={quality} nativeResolution={nativeResolution} onMetrics={setMetrics} />
         <Bounds fit={!acceptedVilla && !walking} clip={!acceptedVilla && !walking} observe={false} margin={1.25}><primitive object={model} /></Bounds>
-        {pipelines&&<><ProjectPipelineLayer network={pipelines} water={waterPipes} drain={drainPipes} xray={pipeXray} plane={plane}/>{acceptedVilla&&<Suspense fallback={null}><ResizableRoofTanks url={acceptedVilla.url} ports={pipelines.originalPorts} diameterScale={pipelines.options.roofDiameterScale??1} heightScale={pipelines.options.roofHeightScale??1} xray={false} onSelect={()=>{}}/></Suspense>}</>}
+        {pipelines&&acceptedVilla&&<Suspense fallback={null}><ResizableRoofTanks url={acceptedVilla.url} ports={pipelines.originalPorts} diameterScale={pipelines.options.roofDiameterScale??1} heightScale={pipelines.options.roofHeightScale??1} xray={false} onSelect={()=>{}}/></Suspense>}
         {acceptedVilla && <FitAcceptedVilla scene={model} bounds={framing} />}
         <Clipping model={model} plane={plane} revision={appearanceRevision} /><OrbitControls enabled={!walking} makeDefault enableDamping={false} minDistance={1} maxDistance={80} />
         {simulation && <FirstPersonController simulation={simulation} model={model} lookSpeed={lookSpeed} onControls={setControls} onActive={(active, mode) => { setWalking(active); setMetrics(null); if (active) { setCut('all'); setLookMode(mode ?? 'locked') } else setWalkingError('') }} onHud={setHud} onError={setWalkingError} />}
@@ -227,7 +227,7 @@ export default function WalkthroughAssetPreview({ id, planId, floors, appearance
       {walking && <><div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white bg-black/30" />
         <div className="absolute inset-x-0 top-0 flex flex-wrap items-center justify-between gap-3 border-b border-line bg-bg/95 p-4 text-ink">
           <div className="pointer-events-none"><p className="font-display text-lg">{t('House walkthrough')}</p><p className="text-xs text-ink-dim">{t('Floor')} {hud.floor}{hud.room ? ` · ${t(hud.room)}` : ''}</p>{metrics && <p className="mt-1 text-[10px] text-ink-dim" data-walkthrough-performance data-performance-record={JSON.stringify(metrics)} data-fps={metrics.fps} data-draw-calls={metrics.calls} data-triangles={metrics.triangles} data-dpr={metrics.dpr} data-renderer={metrics.renderer} data-render-ms={metrics.renderMs} data-page-focused={metrics.focused} data-page-visible={metrics.pageVisible}>{metrics.fps} FPS · {t('Target')} {WALKTHROUGH_QUALITY[quality].target} · {t(nativeResolution ? 'Native resolution' : 'Adaptive quality')}</p>}</div>
-          <div className="flex cursor-auto flex-wrap items-center gap-4">{pipelines&&<PipelineControls compact water={waterPipes} drain={drainPipes} xray={pipeXray} onWater={setWaterPipes} onDrain={setDrainPipes} onXray={setPipeXray}/>}<label className="flex min-h-11 items-center gap-2 text-xs">{t('Graphics')}<select value={quality} onChange={e => { setQuality(e.target.value as WalkthroughQuality); setMetrics(null) }} className="min-h-11 max-w-40 border border-line bg-bg px-2">{Object.entries(WALKTHROUGH_QUALITY).map(([key,value])=><option key={key} value={key}>{t(value.label)}</option>)}</select></label>{metrics && <span className="hidden text-[10px] text-ink-dim sm:inline">GPU: {gpuLabel(metrics.renderer)}</span>}<label className="flex items-center gap-2 text-xs">{t('Look speed')}<input aria-label={t('Look speed')} type="range" min={LOOK_SPEED.min} max={LOOK_SPEED.max} step="0.25" value={lookSpeed} onChange={e => setLookSpeed(Number(e.target.value))} className="w-20 accent-accent" /><span>{lookSpeed.toFixed(2)}×</span></label>
+          <div className="flex cursor-auto flex-wrap items-center gap-4"><label className="flex min-h-11 items-center gap-2 text-xs">{t('Graphics')}<select value={quality} onChange={e => { setQuality(e.target.value as WalkthroughQuality); setMetrics(null) }} className="min-h-11 max-w-40 border border-line bg-bg px-2">{Object.entries(WALKTHROUGH_QUALITY).map(([key,value])=><option key={key} value={key}>{t(value.label)}</option>)}</select></label>{metrics && <span className="hidden text-[10px] text-ink-dim sm:inline">GPU: {gpuLabel(metrics.renderer)}</span>}<label className="flex items-center gap-2 text-xs">{t('Look speed')}<input aria-label={t('Look speed')} type="range" min={LOOK_SPEED.min} max={LOOK_SPEED.max} step="0.25" value={lookSpeed} onChange={e => setLookSpeed(Number(e.target.value))} className="w-20 accent-accent" /><span>{lookSpeed.toFixed(2)}×</span></label>
             <button type="button" onClick={() => controls?.exit()} className="min-h-11 border border-line bg-bg px-4 text-xs focus-visible:outline-2 focus-visible:outline-accent">{t('Exit')} <kbd className="ml-2 border border-line px-1.5 py-1">Esc</kbd></button></div>
         </div>
         <div className="absolute bottom-4 left-4 grid cursor-auto grid-cols-3 gap-1.5 rounded-lg border border-line bg-bg/90 p-2 text-ink" aria-label={t('Movement controls')}>
@@ -242,14 +242,6 @@ export default function WalkthroughAssetPreview({ id, planId, floors, appearance
         </div></>}
     </div>}
   </div>
-}
-
-function PipelineControls({water,drain,xray,onWater,onDrain,onXray,compact=false}:{compact?:boolean;water:boolean;drain:boolean;xray:boolean;onWater:(v:boolean)=>void;onDrain:(v:boolean)=>void;onXray:(v:boolean)=>void}) {
-  const fields=<fieldset className="flex flex-wrap items-center gap-x-4 text-xs" aria-label={t('Water & drainage pipelines')}>
-    <legend className="sr-only">{t('Water & drainage pipelines')}</legend>
-    {([[water,onWater,'Tank water supply'],[drain,onDrain,'Drainage & vents'],[xray,onXray,'See pipes through walls']] as const).map(([checked,change,label])=><label key={label} className="flex min-h-11 items-center gap-2"><input type="checkbox" className="h-4 w-4 accent-accent" checked={checked} onChange={e=>change(e.target.checked)}/>{t(label)}</label>)}
-  </fieldset>
-  return compact?<details className="relative"><summary className="flex min-h-11 cursor-pointer items-center border border-line bg-bg px-3">{t('Pipelines')}</summary><div className="absolute left-0 top-full z-50 w-64 rounded-lg border border-line bg-bg p-3 shadow-lg">{fields}</div></details>:fields
 }
 
 function MoveButton({ direction, label, text, controls }: { direction: 'forward' | 'back' | 'left' | 'right'; label: string; text: string; controls: WalkingControls | null }) {

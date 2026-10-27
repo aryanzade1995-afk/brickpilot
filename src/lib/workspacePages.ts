@@ -8,6 +8,7 @@ export const workspacePages = {
   '/workspace/utilities': () => import('../routes/Utilities.tsx'),
   '/workspace/finishes': () => import('../routes/FinishesCost.tsx'),
   '/workspace/interior': () => import('../routes/Interior.tsx'),
+  '/workspace/impact': () => import('../routes/SocialImpact.tsx'),
   '/workspace/report': () => import('../routes/Report.tsx'),
   '/workspace/dataset': () => import('../routes/VillaDataset.tsx'),
 }

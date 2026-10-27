@@ -4,7 +4,7 @@ import fs from 'node:fs'
 import {createHash} from 'node:crypto'
 import {Box3,Texture,Vector3,Group,Mesh,BoxGeometry,MeshStandardMaterial} from 'three'
 import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader.js'
-import {interiorAssets,setInteriorModel,selectedInteriorModel} from '../src/lib/interior-assets/catalogue.ts'
+import {interiorAssets,automaticInteriorModel,setInteriorModel,selectedInteriorModel} from '../src/lib/interior-assets/catalogue.ts'
 import {instantiateInteriorModel} from '../src/lib/three/interiorModelAssets.ts'
 import {defaultBrief,briefSchema,geometryBrief} from '../src/lib/model/brief.ts'
 import {compile} from '../src/lib/model/canonical.ts'
@@ -18,10 +18,11 @@ import {disposeWalkthroughAsset} from '../src/lib/three/loadWalkthroughAsset.ts'
 const b=defaultBrief();b.site.plotWidth=25;b.site.plotDepth=30;b.levels.storeys=1
 const plan=generate(compile(b),{seed:41}),prefs={style:'modern',lighting:'daylight',furnitureDensity:'medium'}
 const prepare=d=>{const source=createWalkthroughSource(d,{hardChecksPass:true},prefs);const geometry=prepareWalkthroughGeometry(buildWalkthroughScene(source.building,{hardChecksPass:true}));return {source,geometry,app:prepareWalkthroughAppearance(d,source,geometry)}}
-test('all shipped models have verified attribution, bounded detail, matching hashes and metre Y-up geometry',async()=>{
- assert.equal(interiorAssets.length,22)
+test('all shipped models have source notices, bounded detail, matching hashes and metre Y-up geometry',async()=>{
+ assert.equal(interiorAssets.filter(a=>!a.id.startsWith('user-')).length,22)
+ assert.equal(interiorAssets.filter(a=>a.id.startsWith('user-')).length,13)
  for(const a of interiorAssets){
-  assert.ok(a.author&&['CC-BY-3.0','CC0-1.0'].includes(a.license),a.id)
+  assert.ok(a.author&&(a.provenance==='user-supplied'?a.license==='User-supplied · rights unverified':['CC-BY-3.0','CC0-1.0'].includes(a.license)),a.id)
   assert.ok(a.triangles<=18100&&a.bytes<6e6,a.id)
   const bytes=fs.readFileSync('public'+a.url)
   assert.equal(createHash('sha256').update(bytes).digest('hex'),a.sha256)
@@ -41,14 +42,14 @@ test('model selection persists in the existing brief without architectural or co
  assert.throws(()=>setInteriorModel(next,'bed','fan'))
 })
 test('room-scoped model changes affect only that room and leave shared architecture immutable',()=>{
- const before=prepare(plan),sofa=before.app.models.find(m=>m.assetId==='sofa');assert.ok(sofa)
+ const before=prepare(plan),sofa=before.app.models.find(m=>m.assetId===automaticInteriorModel('sofa'));assert.ok(sofa)
  const room=before.source.rooms.find(r=>r.key===sofa.roomId),next=structuredClone(plan)
  next.model.brief=setInteriorModel(next.model.brief,'sofa','procedural',room.finishRoomKey)
  const after=prepare(next)
  assert.notEqual(before.source.appearanceKey,after.source.appearanceKey)
  assert.equal(before.source.geometryKey,after.source.geometryKey)
  assert.deepEqual(before.geometry,after.geometry)
- assert.ok(!after.app.models.some(m=>m.roomId===room.key&&m.assetId==='sofa'))
+ assert.ok(!after.app.models.some(m=>m.roomId===room.key&&m.assetId===automaticInteriorModel('sofa')))
  assert.deepEqual(after.app.models.filter(m=>m.roomId!==room.key),before.app.models.filter(m=>m.roomId!==room.key))
  assert.deepEqual(after.app.furniture,before.app.furniture,'the source placement/collision fallback is retained')
 })
@@ -76,4 +77,33 @@ test('selected paint recolours owned materials and preserves shared PBR geometry
  const rendered=await instantiateInteriorModel(instance,async()=>template),mesh=rendered.children[0].children[0]
  assert.equal(mesh.material.color.getHexString(),'eeeedd');assert.equal(material.color.getHexString(),'111111');assert.equal(mesh.geometry,geometry)
  let disposed=false;geometry.addEventListener('dispose',()=>disposed=true);disposeWalkthroughAsset(rendered);assert.equal(disposed,false)
+})
+
+
+test('all seven user files contribute individually traced furniture, with no imported room shells or mirrors',()=>{
+ const imported=interiorAssets.filter(a=>a.provenance==='user-supplied')
+ assert.equal(new Set(imported.map(a=>a.sourceFile)).size,7)
+ for(const a of imported){
+  assert.match(a.sourceSha256,/^[a-f0-9]{64}$/)
+  assert.ok(a.sourceObjects.length>0&&a.sourceObjects.length<60,a.id)
+  assert.ok(a.sourceObjects.every(n=>!/mirror|window wall|groundPlane|^Plane$/i.test(n)),a.id)
+  assert.ok(fs.readFileSync('public'+a.notice,'utf8').includes('No open licence is asserted'))
+ }
+})
+test('uploaded defaults and selectable alternatives preserve existing product costs and room architecture',()=>{
+ assert.equal(automaticInteriorModel('sofa'),'user-sofa')
+ assert.equal(automaticInteriorModel('desk'),'user-office-desk')
+ assert.equal(automaticInteriorModel('office-chair'),'user-office-chair')
+ assert.equal(automaticInteriorModel('storage-cabinet'),'procedural')
+ let next=plan.model.brief
+ for(const [category,id] of [['kitchen-upper','user-kitchen-upper'],['kitchen-base','user-library-drawers'],['storage-cabinet','user-service-cabinet']]){
+  next=setInteriorModel(next,category,id)
+  assert.equal(selectedInteriorModel(briefSchema.parse(next),category),id)
+ }
+ assert.deepEqual(geometryBrief(next),geometryBrief(plan.model.brief))
+ assert.deepEqual(estimateBoq(plan,next),estimateBoq(plan,plan.model.brief))
+ const {app}=prepare(plan)
+ assert.ok(app.models.some(m=>m.assetId==='user-sofa'))
+ assert.ok(app.models.some(m=>m.assetId==='user-bathroom-basin'))
+ assert.ok(!app.models.some(m=>m.assetId==='user-service-cabinet'),'industrial roadside cabinet is opt-in')
 })

@@ -1,3 +1,4 @@
+import { EntryRampLayer } from './EntryRampLayer.tsx'
 import {useReference} from '@/state/reference.ts'
 import {reconstructFacade} from '@/lib/reference/reconstruct.ts'
 import {ReferenceLayer} from './reference/ReferenceLayer.tsx'
@@ -177,6 +178,7 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
           {referenceFacade&&<p className="absolute bottom-2 left-2 right-2 z-10 bg-bg/90 px-3 py-2 text-xs text-ink-dim">Accepted reference facade overlay · source building retained. <Link className="underline" to="/workspace/plan#reference-facade">Edit / return to original</Link></p>}
           <VillaSceneCanvas key={result.files.glb}>
             <Suspense fallback={null}><group ref={liveExport}><AcceptedVillaModel url={result.files.glb} technicalXray={pipeXray} separateRoofTanks={!!pipelines} style={referenceFacade?.operation==='style-transfer'?referenceFacade.geometry.style:undefined}/>{referenceFacade&&<ReferenceLayer geometry={referenceFacade.geometry}/>}
+              {building.entryRamp&&<EntryRampLayer ramp={building.entryRamp}/>}
               <SolarLayer layout={solar.displayLayout} roof={solar.displayRoof} reservedAreas={solar.displayConfiguration.inputs.reservedAreas} selectedIds={solar.selectedIds} onSelect={solar.pickPanel}/>
               {pipelines&&<><ResizableRoofTanks url={result.files.glb} ports={pipelines.originalPorts} diameterScale={pipelines.options.roofDiameterScale??1} heightScale={pipelines.options.roofHeightScale??1} xray={false} onSelect={()=>{}}/><ProjectPipelineLayer network={pipelines} water={waterPipes} drain={drainPipes} xray={pipeXray}/></>}
             </group><SolarCamera request={solar.camera} roof={solar.displayRoof} layout={solar.displayLayout} selectedIds={solar.selectedIds}/></Suspense>
@@ -194,6 +196,7 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
         <details className="mt-2 text-xs text-ink-dim"><summary className="min-h-11 cursor-pointer py-3">{translateUi('Pipeline details & connections to review')}</summary><p>{translateUi('Selected pipe sizes')}: {selectedPipeSizes(brief).waterMm} mm · {translateUi('Tank water supply')}; {selectedPipeSizes(brief).soilMm} / {selectedPipeSizes(brief).wasteMm} mm · {translateUi('Drainage & vents')}</p><p className="mt-2">{translateUi('Pipe sizes are concept envelopes. Structural openings, fixture branches, vent sizing, gradients and final discharge need professional review. The house and estimate stay unchanged.')}</p><ul className="mt-3 space-y-2">{[...new Set([...(pipelines?.issues??[]),...(pipelines?.supply.issues??[]),...(pipelines?.fixtureScene.issues??[]),...(pipelines?.continuity.issues??[]),...(pipelines?.drainNetwork.issues??[])])].map((issue,i)=><li key={i}>{translateUi(issue)}</li>)}</ul><p className="mt-3">{translateUi('Use Live villa + visible pipelines GLB to download the pipework shown here. Saved images and original downloads keep their previously generated contents.')}</p></details>
       </section>
       <p className="mt-2 text-xs text-ink-faint"><a href="https://polyhaven.com/a/modular_pipes" target="_blank" rel="noreferrer" className="underline">{translateUi('Pipe fittings · Poly Haven · CC0')}</a></p>
+      {building.entryRamp&&<section className="mt-4 rounded-lg border border-line p-4" aria-label="Entry ramp"><h3 className="font-display text-lg">{translateUi('Wheelchair entry ramp')}</h3><p className="mt-2 text-xs text-ink-dim">{building.entryRamp.status==='ready'?`${building.entryRamp.riseMm} mm rise · 1:${building.entryRamp.gradientRatio} · ${building.entryRamp.clearWidthMm} mm clear width`:'Ramp needs a revised site layout.'}</p>{building.entryRamp.issues.map((issue,i)=><p key={i} className="mt-2 text-xs text-ink-dim">{translateUi(issue)}</p>)}</section>}
       <SolarVillaControls editor={solar}/>
       <div className="mt-4 border border-line p-4">
         <button type="button" disabled={busy || solarBusy || !!solar.draft || !!currentSolar || solar.solar.intention === 'install-now' && !solar.layout}

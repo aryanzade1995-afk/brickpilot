@@ -1,0 +1,6 @@
+Peach & Navy porcelain WC
+User-supplied asset
+Source: user-supplied Peach_Navy_Bathroom.blend
+Author and redistribution licence not supplied/verified. No open licence is asserted.
+Prepared for this local project at the user's request. Confirm rights before publishing these assets.
+Adaptations: individual-object extraction, triangle/texture budgets, PBR materials, Y-up metre normalization and selected-finish binding.

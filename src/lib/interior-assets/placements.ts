@@ -1,12 +1,12 @@
 import type {Brief} from '../model/brief.ts'
 import type {Piece} from '../interior/layout.ts'
 import type {AssetBox,WalkthroughAppearancePayload} from '../walkthrough/delivery.ts'
-import {interiorAsset,selectedInteriorModel,type ModelCategory} from './catalogue.ts'
+import {interiorAsset,selectedInteriorModel,automaticInteriorModel,type ModelCategory} from './catalogue.ts'
 import type {Look} from '../three/dressRoom.ts'
 import type {Rect} from '../geometry.ts'
 type V3=[number,number,number]
 export type InteriorModelInstance={id:string;assetId:string;assetRevision:string;roomId:string;floorId:string;position:V3;size:V3;rotation:number;scale:V3;color?:string;hardwareColor?:string;materialColors?:Record<string,string>;finish?:Look;replaces:string[];sourceProduct?:string}
-const pieceCategory:Partial<Record<Piece['type'],ModelCategory>>={'sofa':'sofa','bed':'bed','armchair':'armchair','coffee-table':'coffee-table','dining-table':'dining-table','dining-chair':'dining-chair','chair':'dining-chair','wardrobe':'wardrobe','nightstand':'nightstand','side-table':'nightstand','pendant':'lamp','table-lamp':'lamp'}
+const pieceCategory:Partial<Record<Piece['type'],ModelCategory>>={'sofa':'sofa','bed':'bed','armchair':'armchair','coffee-table':'coffee-table','dining-table':'dining-table','dining-chair':'dining-chair','chair':'office-chair','desk':'desk','sideboard':'storage-cabinet','wardrobe':'wardrobe','nightstand':'nightstand','side-table':'nightstand','pendant':'lamp','table-lamp':'lamp'}
 /** Replaces only existing appearance parts. The current placer remains the
  * authority: no new furniture positions, walls or openings are introduced. */
 export function roomInteriorModels(brief:Brief,roomId:string,finishRoomId:string,parts:AssetBox[],pieces:Piece[],fin:WalkthroughAppearancePayload['specifications'][number]['finishes'],bindings:Record<string,Look>,rect:Rect):InteriorModelInstance[]{
@@ -15,7 +15,7 @@ export function roomInteriorModels(brief:Brief,roomId:string,finishRoomId:string
   group=group.filter(p=>!used.has(p.id));if(!group.length)return
   const choice=selectedInteriorModel(brief,category,finishRoomId)
   if(choice==='procedural')return
-  const fallback=compatible?.[0]??category,asset=interiorAsset(choice==='auto'||compatible&&!compatible.includes(choice)?fallback:choice)
+  const fallback=category==='kitchen-base'&&fin.kitchenHardware?.drawers?compatible?.[0]??automaticInteriorModel(category):automaticInteriorModel(category,compatible),asset=interiorAsset(choice==='auto'||compatible&&!compatible.includes(choice)?fallback:choice)
   if(!asset)return
   // Work in the model's rotated frame so E/W placements retain their shape.
   const c=Math.cos(rotation),s=Math.sin(rotation),xs:number[]=[],ys:number[]=[],zs:number[]=[]
@@ -59,8 +59,8 @@ export function roomInteriorModels(brief:Brief,roomId:string,finishRoomId:string
  if(fin.fan)add('fan',match(/^fan-(?:rod|hub|blade)/),0,['fan'],fin.fan.profile?.color,'top')
  if(fin.exhaust){const g=match(/^exhaust$/);add('exhaust',g,facing(g),['exhaust'],fin.exhaust.profile?.color)}
  const wc=fin.sanitary?.wc
- if(wc&&wc!=='indian'){const g=match(/-toilet(?:-|$)|-selected-cistern$|-flush-plate$/);add('toilet',g,facing(g),wc==='wall'?['toilet-wall']:['toilet-modern','toilet'],fin.sanitary?.profile?.color)}
- if(fin.basin){const g=match(/-basin(?:-|$)/);add('basin',g,facing(g),['basin'],fin.basin.profile?.color)}
+ if(wc&&wc!=='indian'){const g=match(/-toilet(?:-|$)|-selected-cistern$|-flush-plate$/);add('toilet',g,facing(g),wc==='wall'?['toilet-wall']:['user-bathroom-toilet','toilet-modern','toilet'],fin.sanitary?.profile?.color)}
+ if(fin.basin){const g=match(/-basin(?:-|$)/);add('basin',g,facing(g),['user-bathroom-basin','basin'],fin.basin.profile?.color)}
  if(fin.tub)add('bathtub',match(/-tub(?:-|$)|-bathtub(?:-|$)/),0,['bathtub'],fin.tub.profile?.color)
  if(fin.kitchenSink?.bowls===1)add('kitchen-sink',match(/-sink-(?:rim|bowl|drain|\d)|-faucet-/),0,['kitchen-sink'])
  // Countertop/sink geometry is never part of a cabinet replacement. Preserve
@@ -69,11 +69,11 @@ export function roomInteriorModels(brief:Brief,roomId:string,finishRoomId:string
   for(const body of match(/-counter\d+-module-\d+$/)){
    const id=body.sourceIds[0],m=id.match(/^(.*)-module-(\d+)$/)!
    const group=[body,...parts.filter(p=>p.sourceIds.some(s=>s.startsWith(`${m[1]}-front-${m[2]}-`)||s.startsWith(`${m[1]}-handle-${m[2]}-`)))]
-   add('kitchen-base',group,facing([body]),fin.kitchenHardware?.drawers?['kitchen-drawers','kitchen-base']:['kitchen-base'],fin.cabinets.color,'floor',true)
+   add('kitchen-base',group,facing([body]),fin.kitchenHardware?.drawers?['user-library-drawers','user-library-base','kitchen-drawers','kitchen-base']:['user-library-base','kitchen-base'],fin.cabinets.color,'floor',true)
   }
-  for(const upper of match(/(?:-upper\d+|-wall-cabinet)-module-\d+$/))add('kitchen-upper',[upper],facing([upper]),['kitchen-upper'],fin.cabinets.color,'floor',true)
+  for(const upper of match(/(?:-upper\d+|-wall-cabinet)-module-\d+$/))add('kitchen-upper',[upper],facing([upper]),['user-library-upper','user-kitchen-upper','kitchen-upper'],fin.cabinets.color,'floor',true)
  }
- for(const hob of match(/-hob$/))add('kitchen-hob',[hob],facing([hob]),['kitchen-hob'])
+ for(const hob of match(/-hob$/))add('kitchen-hob',[hob],facing([hob]),['user-kitchen-hob','kitchen-hob'])
  add('washing-machine',match(/-(?:washer|washing-machine)(?:-|$)/))
  return models
 }

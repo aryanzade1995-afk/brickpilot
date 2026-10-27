@@ -111,3 +111,98 @@ Gas hob — Jay-Artist
 CC-BY-3.0 https://creativecommons.org/licenses/by/3.0/
 https://www.sweethome3d.com/wp-content/themes/sweet-home-3d/theme/assets/models/blendswap-cc-by/largeStove.zip
 Licence notice: /interior-assets/kitchen-hob/LICENSE.txt
+
+
+User-supplied Blender collection
+Original creators and redistribution rights were not supplied/verified. No open licence asserted.
+
+Matching fabric armchair
+User-supplied asset
+Source: user-supplied Sofa set.blend
+Author and redistribution licence not supplied/verified. No open licence is asserted.
+Prepared for this local project at the user's request. Confirm rights before publishing these assets.
+Adaptations: individual-object extraction, triangle/texture budgets, PBR materials, Y-up metre normalization and selected-finish binding.
+
+Rounded basin with fluted taps
+User-supplied asset
+Source: user-supplied Peach_Navy_Bathroom.blend
+Author and redistribution licence not supplied/verified. No open licence is asserted.
+Prepared for this local project at the user's request. Confirm rights before publishing these assets.
+Adaptations: individual-object extraction, triangle/texture budgets, PBR materials, Y-up metre normalization and selected-finish binding.
+
+Peach & Navy porcelain WC
+User-supplied asset
+Source: user-supplied Peach_Navy_Bathroom.blend
+Author and redistribution licence not supplied/verified. No open licence is asserted.
+Prepared for this local project at the user's request. Confirm rights before publishing these assets.
+Adaptations: individual-object extraction, triangle/texture budgets, PBR materials, Y-up metre normalization and selected-finish binding.
+
+Detailed four-burner hob
+User-supplied asset
+Source: user-supplied Kitchen cabinet.blend
+Author and redistribution licence not supplied/verified. No open licence is asserted.
+Prepared for this local project at the user's request. Confirm rights before publishing these assets.
+Adaptations: individual-object extraction, triangle/texture budgets, PBR materials, Y-up metre normalization and selected-finish binding.
+
+Slim kitchen pendant
+User-supplied asset
+Source: user-supplied Kitchen interior design.blend
+Author and redistribution licence not supplied/verified. No open licence is asserted.
+Prepared for this local project at the user's request. Confirm rights before publishing these assets.
+Adaptations: individual-object extraction, triangle/texture budgets, PBR materials, Y-up metre normalization and selected-finish binding.
+
+Compact kitchen wall unit
+User-supplied asset
+Source: user-supplied Kitchen interior design.blend
+Author and redistribution licence not supplied/verified. No open licence is asserted.
+Prepared for this local project at the user's request. Confirm rights before publishing these assets.
+Adaptations: individual-object extraction, triangle/texture budgets, PBR materials, Y-up metre normalization and selected-finish binding.
+
+600 mm shaker base cabinet
+User-supplied asset
+Source: user-supplied Kitchen Cabinet Library.blend
+Author and redistribution licence not supplied/verified. No open licence is asserted.
+Prepared for this local project at the user's request. Confirm rights before publishing these assets.
+Adaptations: individual-object extraction, triangle/texture budgets, PBR materials, Y-up metre normalization and selected-finish binding.
+
+Three-drawer kitchen cabinet
+User-supplied asset
+Source: user-supplied Kitchen Cabinet Library.blend
+Author and redistribution licence not supplied/verified. No open licence is asserted.
+Prepared for this local project at the user's request. Confirm rights before publishing these assets.
+Adaptations: individual-object extraction, triangle/texture budgets, PBR materials, Y-up metre normalization and selected-finish binding.
+
+Shaker kitchen wall cabinet
+User-supplied asset
+Source: user-supplied Kitchen Cabinet Library.blend
+Author and redistribution licence not supplied/verified. No open licence is asserted.
+Prepared for this local project at the user's request. Confirm rights before publishing these assets.
+Adaptations: individual-object extraction, triangle/texture budgets, PBR materials, Y-up metre normalization and selected-finish binding.
+
+Upholstered swivel chair
+User-supplied asset
+Source: user-supplied Office Furniture.blend
+Author and redistribution licence not supplied/verified. No open licence is asserted.
+Prepared for this local project at the user's request. Confirm rights before publishing these assets.
+Adaptations: individual-object extraction, triangle/texture budgets, PBR materials, Y-up metre normalization and selected-finish binding.
+
+Veneer office desk
+User-supplied asset
+Source: user-supplied Office Furniture.blend
+Author and redistribution licence not supplied/verified. No open licence is asserted.
+Prepared for this local project at the user's request. Confirm rights before publishing these assets.
+Adaptations: individual-object extraction, triangle/texture budgets, PBR materials, Y-up metre normalization and selected-finish binding.
+
+Grey service cabinet Â· industrial
+User-supplied asset
+Source: user-supplied Grey Roadside Cabinets 1.blend
+Author and redistribution licence not supplied/verified. No open licence is asserted.
+Prepared for this local project at the user's request. Confirm rights before publishing these assets.
+Adaptations: individual-object extraction, triangle/texture budgets, PBR materials, Y-up metre normalization and selected-finish binding.
+
+Textured three-seat sofa
+User-supplied asset
+Source: user-supplied Sofa set.blend
+Author and redistribution licence not supplied/verified. No open licence is asserted.
+Prepared for this local project at the user's request. Confirm rights before publishing these assets.
+Adaptations: individual-object extraction, triangle/texture budgets, PBR materials, Y-up metre normalization and selected-finish binding.

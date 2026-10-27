@@ -1,5 +1,6 @@
 import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
 import { BudgetNotice } from './BudgetNotice.tsx'
+import { resolveSpecification } from '@/lib/cost/catalogue.ts'
 import { RoomList, FurnitureReview } from './RoomPanel.tsx'
 import { useMemo } from 'react'
 import { MODERN_COMPOSITION_CHOICES, type ModernComposition } from '@/lib/model/modernCompositions.ts'
@@ -393,6 +394,11 @@ export function LevelsStep() {
           ]}
         />
       </Field>
+      <Field label="House height above site ground" hint="The same plinth setting used by Finishes & Cost and Blender. A raised floor alone does not guarantee flood protection; verify road levels and local flood levels.">
+        <Segmented value={resolveSpecification(brief,'plinth-height').id} onChange={v=>edit(b=>{b.specs.overrides['plinth-height']=v})} options={[
+          {value:'standard',label:'450 mm'}, {value:'raised',label:'600 mm'}, {value:'flood',label:'900 mm'},
+        ]}/>
+      </Field>
       <div className="grid grid-cols-2 gap-6">
         <Field label="Floor-to-floor (m)">
           <NumberInput value={l.floorToFloor} min={2.7} max={4} step={0.05} suffix="m" onChange={(v) => edit((b) => void (b.levels.floorToFloor = v))} />
@@ -649,6 +655,7 @@ export function EntryStep() {
       <Field label="Main door clear width (mm)">
         <NumberInput value={e.mainDoorWidth} min={1200} max={1800} step={50} suffix="mm" onChange={(v) => edit((b) => void (b.entry.mainDoorWidth = v))} />
       </Field>
+      <Toggle checked={e.ramp??brief.spaces.stepFree} onChange={v=>edit(b=>{b.entry.ramp=v})} label="Wheelchair entry ramp" hint="Adds a ramp, level landings and handrails where the site has enough clear space. Your room layout stays fixed; an obstructed ramp is flagged for review."/>
     </div>
   )
 }

@@ -194,6 +194,7 @@ export const briefSchema = z
         climate: z.enum(['hot', 'moderate', 'humid']).optional(),
         plotWidth: z.number().min(6).max(80).default(15),
         plotDepth: z.number().min(6).max(80).default(18),
+        ventilation: z.object({ version: z.literal(1), direction: z.enum(['N','E','S','W','cycle']), speed: z.number().finite().min(.5).max(3), doorsOpen: z.boolean() }).optional(),
         facing: directionSchema.default('N'),
         roadEdges: z.array(directionSchema).min(1).default(['N']),
         openSpace: z.object({
@@ -271,6 +272,8 @@ export const briefSchema = z
       .prefault({}),
     entry: z
       .object({
+        ramp: z.boolean().optional(),
+        accessIdentity: z.object({planId:z.string().min(1).max(120),compositionId:z.string().min(1).max(120)}).optional(),
         primarySide: z.union([directionSchema, z.literal('auto')]).default('auto'),
         mainDoorWidth: z.number().min(900).max(1800).default(1500).transform(v => Math.max(1200, v)),
         design: z.enum(['auto', 'indian-carved', 'wide-pivot', 'framed-portico', 'stone-surround']).default('auto'),
@@ -317,13 +320,14 @@ export function parseStoredBrief(value: unknown) {
 /** Excludes cost preferences, preserving pre-specification saved-project seeds. */
 export function geometryBrief(brief: Brief) {
   const { finish: _finish, specs: _specs, budget: _budget, solar: _solar, ...geometry } = brief
-  const { climate: _climate, ...site } = geometry.site
+  const { climate: _climate, ventilation: _ventilation, ...site } = geometry.site
+  const { ramp: _ramp, accessIdentity: _accessIdentity, ...entry } = geometry.entry
   const { sizes, starred: _starred, ...rooms } = geometry.rooms
   // Optional choices may be appended by the editor or reordered by schema
   // parsing. Give the composition one stable position in the seed input.
   const {composition,...legacyStyle}=geometry.style
   const style=composition?{...legacyStyle,composition}:legacyStyle
-  return { ...geometry, style, site, rooms: Object.keys(sizes).length ? { ...rooms, sizes } : rooms }
+  return { ...geometry, entry, style, site, rooms: Object.keys(sizes).length ? { ...rooms, sizes } : rooms }
 }
 
 /** people in the household — `spaces.occupants` is kept only for old briefs */

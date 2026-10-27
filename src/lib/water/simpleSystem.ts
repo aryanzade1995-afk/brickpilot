@@ -45,7 +45,7 @@ export function proposeRainCollection(building:BuildingModel,capacityLitres=1000
   // Apertures affect collection area, not the outside fascia line. A shaft
   // opening meeting an edge must not pull a gutter into the source wall.
   const loops=outerRoofLoops(top.footprint),roofZ=top.elevationMm+top.heightMm+80,offset=260
-  const obstacles=[...building.floors.flatMap(f=>f.footprint),...(building.siteFeatures??[]).filter(f=>f.kind!=='lawn'&&f.kind!=='utilityYard').map(f=>f.rect)]
+  const obstacles=[...building.floors.flatMap(f=>f.footprint),...(building.siteFeatures??[]).filter(f=>f.kind!=='lawn'&&f.kind!=='utilityYard').map(f=>f.rect),...(building.entryRamp?.status==='ready'?[...building.entryRamp.landings.map(l=>l.rect),...building.entryRamp.flights.map(f=>f.rect)]:[])]
   const radiusMm=Math.min(950,Math.max(420,Math.cbrt(capacityLitres/1000)*550)),heightMm=capacityLitres*1e6/(Math.PI*(radiusMm-25)**2)
   const insidePlot=(r:Rect)=>r.x>=200&&r.y>=200&&r.x+r.w<=building.plot.widthMm-200&&r.y+r.h<=building.plot.depthMm-200
   if(roofZ<heightMm+1500){result.notes.push('The available roof height does not support this gravity-fed preview.');return result}

@@ -4,6 +4,7 @@ import { planFindings } from './planner/validate.ts'
 import { siteGate } from './siteGate.ts'
 import { quantityRules } from '../cost/data/quantityRules.ts'
 import { resolveSpecification } from '../cost/catalogue.ts'
+import { entryRamp } from './entryRamp.ts'
 
 /** Concept dimensions only. This is not a fire-code or engineering certificate. */
 export const ESCAPE_LIMITS = Object.freeze({ doorWidthMm: 1000, doorHeightMm: 2200,
@@ -30,6 +31,7 @@ export function exitAccess(design: Design, door: Opening): ExitAccess | null {
 /** Same source-derived stoop for the front entrance. A modelled verandah is
  * paved at grade+70mm by covered.py; do not leave an unsupported plinth drop. */
 export function entranceAccess(design: Design): ExitAccess | null {
+  if(entryRamp(design)?.status==='ready')return null
   const door = design.floors[0]?.openings.find(o => o.kind === 'entry' && !o.emergencyExit)
   return door ? doorAccess(design, door, true) : null
 }

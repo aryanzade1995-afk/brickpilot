@@ -13,6 +13,7 @@ const TABS = [
   { to: '/workspace/finishes', label: 'Finishes & Cost', n: '06' },
   { to: '/workspace/interior', label: 'AI Interior', n: '07' },
   { to: '/workspace/report', label: 'Report', n: '08' },
+  { to: '/workspace/impact', label: 'Social Impact', n: '09' },
 ]
 
 export function WorkspaceTabs() {

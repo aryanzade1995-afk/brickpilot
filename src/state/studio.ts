@@ -36,7 +36,9 @@ import { validate, type ValidationReport } from '@/lib/rules/index.ts'
 import { estimateBoq, type CostEstimate } from '@/lib/cost/index.ts'
 import { varyExterior } from '@/lib/engine/variation.ts'
 import { parseInspirationPreferences, type InspirationPreferences } from '@/lib/engine/designDna.ts'
-import type { BuildingModel } from '@/lib/engine/buildingModel.ts'
+import { createBuildingModel, type BuildingModel } from '@/lib/engine/buildingModel.ts'
+import { resolveSpecification } from '@/lib/cost/catalogue.ts'
+import { exposeStructuralSizing } from '@/lib/engine/structuralSizing.ts'
 import { createVillaDesignDNA, type VillaDesignDNA } from '@/lib/engine/villaDesignDna.ts'
 import type { MassingModel } from '@/lib/engine/massing/model.ts'
 import type { ProceduralFacadeModel } from '@/lib/engine/facade/proceduralTypes.ts'
@@ -480,17 +482,34 @@ export const useStudio = create<StudioState>()(
 
       edit: (recipe) => {
         // Choices are never blocked: the Brief page shows how the brief fits and how to adjust it.
-        const choice = { brief: applyBriefChoice(get().brief, recipe), reason: null as string | null }
+        const previous=get().brief
+        const choice = { brief: applyBriefChoice(previous, recipe), reason: null as string | null }
+        const siteAccessChanged=resolveSpecification(previous,'plinth-height').id!==resolveSpecification(choice.brief,'plinth-height').id || previous.entry.ramp!==choice.brief.entry.ramp
+        if(siteAccessChanged&&!get().result&&(get().pinned||get().layout))get().run()
+        const current=get().result
+        if(siteAccessChanged&&current?.buildingModel)choice.brief.entry.accessIdentity??=current.design.exteriorIdentity??{planId:current.buildingModel.exteriorSeedPlanId??current.buildingModel.planId,compositionId:current.buildingModel.compositionId??current.buildingModel.planId}
+        const accessDesign=siteAccessChanged&&current?exposeStructuralSizing(structuredClone({...current.design,
+          ...(current.buildingModel?{exteriorIdentity:current.design.exteriorIdentity??{planId:current.buildingModel.exteriorSeedPlanId??current.buildingModel.planId,compositionId:current.buildingModel.compositionId??current.buildingModel.planId}}:{}),
+          model:{...current.design.model,brief:choice.brief}})):null
+        const accessBuilding=accessDesign?createBuildingModel(accessDesign):null
         set((s) => {
           const geometryBefore = JSON.stringify(geometryBrief(s.brief))
           s.brief = choice.brief
           s.briefChoiceIssue = choice.reason
           // Finish/specification edits save in the brief without regenerating rooms or a villa.
           if (geometryBefore === JSON.stringify(geometryBrief(s.brief))) {
+            // Site height and a ramp update the shared geometry without
+            // replanning rooms or losing the pinned architectural direction.
+            if(accessDesign&&s.result){
+              s.result.design=accessDesign
+              s.result.model=accessDesign.model
+              s.result.buildingModel=accessBuilding
+            }
             if (s.result) s.result.cost = estimateBoq(s.result.design, s.brief, undefined, s.result)
             return
           }
           // Only geometry-relevant brief changes invalidate the generated plan.
+          delete s.brief.entry.accessIdentity
           s.directions = null
           s.pinned = null
           s.layout = null

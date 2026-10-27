@@ -18,6 +18,7 @@ const Utilities = page(workspacePages['/workspace/utilities'], 'Utilities')
 const FinishesCost = page(workspacePages['/workspace/finishes'], 'FinishesCost')
 const VillaDataset = page(workspacePages['/workspace/dataset'], 'VillaDataset')
 const Interior = page(workspacePages['/workspace/interior'], 'Interior')
+const SocialImpact = page(workspacePages['/workspace/impact'], 'SocialImpact')
 const Report = page(workspacePages['/workspace/report'], 'Report')
 const Designs = page(() => import('./routes/Designs.tsx'), 'Designs')
 const SharedFinishes = page(() => import('./routes/SharedFinishes.tsx'), 'SharedFinishes')
@@ -43,6 +44,7 @@ const router = createBrowserRouter([
       { path: 'workspace/finishes', lazy: FinishesCost },
       { path: 'workspace/dataset', lazy: VillaDataset },
       { path: 'workspace/interior', lazy: Interior },
+      { path: 'workspace/impact', lazy: SocialImpact },
       { path: 'workspace/report', lazy: Report },
       { path: 'designs', lazy: Designs },
     ],

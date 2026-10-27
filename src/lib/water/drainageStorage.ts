@@ -20,7 +20,8 @@ export function proposeDrainStorage(building:BuildingModel,home:VillaPlumbing,ex
   if(!ground){result.issues.push('Source ground floor unavailable.');return result}
   const stacks=home.pipes.filter(p=>p.system==='drain'&&p.floorId===ground.id&&p.id.startsWith('soil:'))
   if(!stacks.length){result.issues.push('No represented ground-floor drain stacks can connect to storage.');return result}
-  const placementCuts=[...building.floors.flatMap(f=>f.footprint.map(r=>expandRect(r,750))),...building.floors.flatMap(f=>f.courtyard?[f.courtyard]:[]),...(building.siteFeatures??[]).filter(f=>!['lawn','utilityYard'].includes(f.kind)).map(f=>expandRect(f.rect,200)),...exclude.map(r=>expandRect(r,400))]
+  const rampCuts=building.entryRamp?.status==='ready'?[...building.entryRamp.landings.map(l=>l.rect),...building.entryRamp.flights.map(f=>f.rect)]:[]
+  const placementCuts=[...building.floors.flatMap(f=>f.footprint.map(r=>expandRect(r,750))),...building.floors.flatMap(f=>f.courtyard?[f.courtyard]:[]),...(building.siteFeatures??[]).filter(f=>!['lawn','utilityYard'].includes(f.kind)).map(f=>expandRect(f.rect,200)),...exclude.map(r=>expandRect(r,400)),...rampCuts.map(r=>expandRect(r,200))]
   const bases=stacks.map(p=>p.points.reduce((a,b)=>a.z<b.z?a:b)),mean={x:bases.reduce((n,p)=>n+p.x,0)/bases.length,y:bases.reduce((n,p)=>n+p.y,0)/bases.length}
   const candidates:Rect[]=[]
   for(const [w,h]of [[3000,1600],[1600,3000]])for(let x=400;x+w<=building.plot.widthMm-400;x+=400)for(let y=400;y+h<=building.plot.depthMm-400;y+=400){const r={x,y,w,h};if((w>=h?x:y)>=500&&!placementCuts.some(c=>overlap(r,c)))candidates.push(r)}

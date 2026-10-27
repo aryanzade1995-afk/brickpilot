@@ -4,6 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "test:social-impact": "node --experimental-strip-types --test scripts/test-social-impact.mjs",
+    "test:ventilation": "node --experimental-strip-types --test scripts/test-ventilation.mjs",
+    "test:entry-ramp": "node --experimental-strip-types --test scripts/test-entry-ramp.mjs scripts/test-site-access-state.mjs",
     "test:project-pipelines": "node --experimental-strip-types --test scripts/test-project-pipelines.mjs",
     "test:water-supply": "node --experimental-strip-types --test scripts/test-supply-continuity.mjs scripts/test-utility-water.mjs",
     "test:water-drainage": "node --experimental-strip-types --test scripts/test-water-drainage-storage.mjs scripts/test-drainage-linkage.mjs scripts/test-fixture-drainage.mjs scripts/test-drainage-continuity.mjs",

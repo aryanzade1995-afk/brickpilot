@@ -1,3 +1,5 @@
+import { useSocialImpact } from './socialImpact.ts'
+import { parseImpact, type ImpactDocument } from '../lib/impact/schema.ts'
 import { create } from 'zustand'
 import { useWaterIntelligence } from './waterIntelligence.ts'
 import { parseWaterConfig, type WaterConfig } from '../lib/water/schema.ts'
@@ -34,6 +36,7 @@ export const stageLabel = (id: StageId) => STAGES.find((s) => s.id === id)?.labe
 
 /** everything that rebuilds the design */
 export type Core = {
+  socialImpact?: ImpactDocument | null
   waterIntelligence?: WaterConfig | null
   brief: Brief
   pinned: string | null
@@ -110,7 +113,7 @@ function currentCore(stage: StageId): Core {
   const { brief, pinned, layout, existing, result } = useStudio.getState()
   const key = result ? geometryCostKey(result.design) : null
   const selection = key ? useFinishes.getState().entries[key] : undefined
-  return { waterIntelligence: structuredClone(useWaterIntelligence.getState().document), reference: structuredClone(useReference.getState().document), brief: structuredClone(brief), pinned: serializePinned(pinned), layout: layout ? structuredClone(layout) : null,
+  return { socialImpact: structuredClone(useSocialImpact.getState().document), waterIntelligence: structuredClone(useWaterIntelligence.getState().document), reference: structuredClone(useReference.getState().document), brief: structuredClone(brief), pinned: serializePinned(pinned), layout: layout ? structuredClone(layout) : null,
     existing: existing ? structuredClone(existing) : null, finishes: key && selection ? { key, selection: structuredClone(selection) } : null, stage }
 }
 
@@ -124,7 +127,7 @@ export function parseCore(value: unknown): Core | null {
   const ex = v.existing as Core['existing']
   const existing = ex && ex.structure && Array.isArray(ex.structure.columns) && Array.isArray(ex.structure.footings) && Array.isArray(ex.structure.beams) && Array.isArray(ex.structure.walls) ? ex : null
   const fin = v.finishes as Core['finishes']
-  return { waterIntelligence: parseWaterConfig(v.waterIntelligence), reference: parseReferenceDocument(v.reference), brief: brief.data, pinned: typeof v.pinned === 'string' ? v.pinned : null, layout: parseLayout(v.layout), existing,
+  return { socialImpact: parseImpact(v.socialImpact), waterIntelligence: parseWaterConfig(v.waterIntelligence), reference: parseReferenceDocument(v.reference), brief: brief.data, pinned: typeof v.pinned === 'string' ? v.pinned : null, layout: parseLayout(v.layout), existing,
     finishes: fin && typeof fin.key === 'string' ? fin : null, stage }
 }
 
@@ -164,6 +167,7 @@ function persist(items: Project[], currentId: string | null): string | null {
 
 /** put a stored core into the working studio */
 export function applyCore(core: Core): void {
+  useSocialImpact.getState().restore(core.socialImpact)
   useWaterIntelligence.getState().restore(core.waterIntelligence)
   restoreCostReplay(null)
   useReference.getState().restore(core.reference)
@@ -294,7 +298,7 @@ export const useProjects = create<ProjectsState>((set, get) => {
       return true
     },
 
-    startNew: () => { useWaterIntelligence.getState().clear(); useReference.getState().clear(); set({ currentId: null, stage: 'concept' }) },
+    startNew: () => { useSocialImpact.getState().clear(); useWaterIntelligence.getState().clear(); useReference.getState().clear(); set({ currentId: null, stage: 'concept' }) },
   }
 })
 
@@ -304,7 +308,7 @@ let pendingLabel: string | undefined
 export function noteChange(label: string) { pendingLabel = label }
 export function startAutosave(): () => void {
   let last = ''
-  const sign = () => { const s = useStudio.getState(); return JSON.stringify([s.pinned, s.layout, s.existing, s.brief.site, s.brief.rooms, s.brief.levels, s.brief.style, s.brief.project.name, s.brief.solar, useReference.getState().document, useWaterIntelligence.getState().document]) }
+  const sign = () => { const s = useStudio.getState(); return JSON.stringify([s.pinned, s.layout, s.existing, s.brief.site, s.brief.rooms, s.brief.levels, s.brief.style, s.brief.project.name, s.brief.solar, useReference.getState().document, useWaterIntelligence.getState().document, useSocialImpact.getState().document]) }
   last = sign()
   const changed = () => {
     const now = sign()
@@ -313,6 +317,6 @@ export function startAutosave(): () => void {
     clearTimeout(timer)
     timer = setTimeout(() => { const label = pendingLabel; pendingLabel = undefined; useProjects.getState().autoSave(label) }, 1500)
   }
-  const unsub = useStudio.subscribe(changed), unsubReference = useReference.subscribe(changed), unsubWater = useWaterIntelligence.subscribe(changed)
-  return () => { clearTimeout(timer); unsub(); unsubReference(); unsubWater() }
+  const unsub = useStudio.subscribe(changed), unsubReference = useReference.subscribe(changed), unsubWater = useWaterIntelligence.subscribe(changed), unsubImpact = useSocialImpact.subscribe(changed)
+  return () => { clearTimeout(timer); unsub(); unsubReference(); unsubWater(); unsubImpact() }
 }

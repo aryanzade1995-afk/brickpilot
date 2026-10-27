@@ -41,7 +41,7 @@ export function applySolarEditor(brief: Brief, preview: SolarEditorPreview, curr
 }
 /** Solar is not a finish level. Preserve both structured preferences and the legacy allowance. */
 export function resetFinishSpecifications(brief: Brief, finish: Brief['finish'] = brief.finish): Brief {
-  return { ...brief, finish, specs: { overrides: Object.fromEntries(Object.entries(brief.specs.overrides).filter(([id]) => id.split('@')[0] === 'solar')) } }
+  return { ...brief, finish, specs: { overrides: Object.fromEntries(Object.entries(brief.specs.overrides).filter(([id]) => ['solar','plinth-height'].includes(id.split('@')[0]))) } }
 }
 
 /** Friendly presentation keys; technical engine codes stay out of the product UI. */

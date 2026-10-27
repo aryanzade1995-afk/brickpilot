@@ -57,5 +57,8 @@ export function makeBalcony(ctx: GrammarContext, room: BuildingRoom, type: strin
     add(ctx, unit, anchor, 'beam', 0, 160, a.h - 360, width, D - 160, 140, 'wall')
     for (const u of [30, width - 100]) add(ctx, unit, anchor, 'post', u, D - 100, 0, 70, 70, a.h - 360, 'metal')
   }
+  // One continuous shade covers the authoritative balcony footprint, including
+  // its inner edge. Frames/rails retain their treatment and never close access.
+  add(ctx, unit, anchor, 'slab', 0, 0, a.h - 100, W, D, 100, 'wall')
   return unit
 }

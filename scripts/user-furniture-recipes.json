@@ -1,0 +1,168 @@
+[
+  {
+    "id": "user-sofa",
+    "label": "Textured three-seat sofa",
+    "source": "Sofa set.blend",
+    "collections": [
+      "couch 3 seater"
+    ],
+    "category": "sofa",
+    "role": "upholstery",
+    "rotation": 0
+  },
+  {
+    "id": "user-armchair",
+    "label": "Matching fabric armchair",
+    "source": "Sofa set.blend",
+    "collections": [
+      "sofa/ armchair"
+    ],
+    "category": "armchair",
+    "rotationObject": "sides.002",
+    "role": "upholstery"
+  },
+  {
+    "id": "user-office-desk",
+    "label": "Veneer office desk",
+    "source": "Office Furniture.blend",
+    "collections": [
+      "Desk"
+    ],
+    "exclude": [
+      "Plane"
+    ],
+    "category": "desk",
+    "rotation": 180
+  },
+  {
+    "id": "user-office-chair",
+    "label": "Upholstered swivel chair",
+    "source": "Office Furniture.blend",
+    "collections": [
+      "Chair",
+      "Caster Wheel",
+      "Pattern"
+    ],
+    "category": "office-chair",
+    "role": "upholstery",
+    "rotation": 180
+  },
+  {
+    "id": "user-bathroom-toilet",
+    "label": "Peach & Navy porcelain WC",
+    "source": "Peach_Navy_Bathroom.blend",
+    "collectionPrefixes": [
+      "08"
+    ],
+    "excludePrefixes": [
+      "Paper"
+    ],
+    "category": "toilet",
+    "role": "ceramic",
+    "rotation": -90
+  },
+  {
+    "id": "user-bathroom-basin",
+    "label": "Rounded basin with fluted taps",
+    "source": "Peach_Navy_Bathroom.blend",
+    "namePrefixes": [
+      "Refined",
+      "Basin drain flange",
+      "Drain perforation"
+    ],
+    "category": "basin",
+    "role": "ceramic",
+    "rotation": 180,
+    "nameContains": [
+      "Original rounded basin",
+      "Original swan-neck faucet",
+      "Original twin fluted taps"
+    ]
+  },
+  {
+    "id": "user-kitchen-hob",
+    "label": "Detailed four-burner hob",
+    "source": "Kitchen cabinet.blend",
+    "namePrefixes": [
+      "Hob"
+    ],
+    "category": "kitchen-hob",
+    "rotation": 0
+  },
+  {
+    "id": "user-library-base",
+    "label": "600 mm shaker base cabinet",
+    "source": "Kitchen Cabinet Library.blend",
+    "names": [
+      "600mm BU1D",
+      "600mm BU1D.001",
+      "Cube.043"
+    ],
+    "category": "kitchen-base",
+    "role": "paint",
+    "rotation": 0
+  },
+  {
+    "id": "user-library-drawers",
+    "label": "Three-drawer kitchen cabinet",
+    "source": "Kitchen Cabinet Library.blend",
+    "namePrefixes": [
+      "600mm BU3DR"
+    ],
+    "names": [
+      "Cube.012",
+      "Cube.013",
+      "Cube.025",
+      "Cube.037",
+      "Cube.038"
+    ],
+    "category": "kitchen-base",
+    "role": "paint",
+    "rotation": 0
+  },
+  {
+    "id": "user-library-upper",
+    "label": "Shaker kitchen wall cabinet",
+    "source": "Kitchen Cabinet Library.blend",
+    "names": [
+      "600mmWU1d",
+      "WU1D.001"
+    ],
+    "category": "kitchen-upper",
+    "role": "paint",
+    "rotation": 0
+  },
+  {
+    "id": "user-kitchen-upper",
+    "label": "Compact kitchen wall unit",
+    "source": "Kitchen interior design.blend",
+    "names": [
+      "Cube.009"
+    ],
+    "category": "kitchen-upper",
+    "alignObject": "Cube.009",
+    "role": "paint"
+  },
+  {
+    "id": "user-kitchen-pendant",
+    "label": "Slim kitchen pendant",
+    "source": "Kitchen interior design.blend",
+    "names": [
+      "Cylinder.009",
+      "Cylinder.010",
+      "Cylinder.011"
+    ],
+    "category": "lamp",
+    "rotation": 0
+  },
+  {
+    "id": "user-service-cabinet",
+    "label": "Grey service cabinet · industrial",
+    "source": "Grey Roadside Cabinets 1.blend",
+    "collections": [
+      "GreyCab01"
+    ],
+    "category": "storage-cabinet",
+    "rotation": 0
+  }
+]

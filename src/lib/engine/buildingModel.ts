@@ -12,6 +12,7 @@ import { quantityRules } from '../cost/data/quantityRules.ts'
 import { OUTDOOR_ASSET_VERSION } from './outdoorAssets.ts'
 import { modernCanopies, type CompositionCanopy } from './modernCanopies.ts'
 import type { ModernComposition } from '../model/modernCompositions.ts'
+import { entryRamp, type EntryRamp } from './entryRamp.ts'
 
 /** A serialized view of the verified 2D plan. All plan coordinates are millimetres. */
 export type BuildingFloor = {
@@ -47,6 +48,7 @@ export type BuildingSupportZone = SupportZone & { floorId: string }
 export type BuildingSlab = { id: string; floorId: string; rect: Rect; topMm: number; thicknessMm: number }
 
 export type BuildingModel = {
+  entryRamp?: EntryRamp
   openingPolicy?: {version:'window-access-v1';minWindowSillMm:number}
   modernComposition?: {id:ModernComposition;canopies:CompositionCanopy[]}
   emergency: EmergencyPlan
@@ -152,6 +154,7 @@ export function createBuildingModel(design: Design): BuildingModel {
 
   const setbacks: Record<Direction, number> = { ...model.setbacksMm }
   const base = {
+    ...(entryRamp(design)?{entryRamp:entryRamp(design)!}:{}),
     ...(!design.existingStructure?{openingPolicy:{version:'window-access-v1' as const,minWindowSillMm:900}}:{}),
     ...(model.brief.style.character==='modern-box'&&model.brief.style.composition?
       {modernComposition:{id:model.brief.style.composition,canopies:modernCanopies({floors,rooms,walls,windows,plot:{widthMm:model.plot.width,depthMm:model.plot.depth,
@@ -191,13 +194,14 @@ export function createBuildingModel(design: Design): BuildingModel {
   const hash = (value: string) => fnv(value).toString(16).padStart(8, '0')
   // Preserve the original seed namespace projection. These historical sizes
   // are identity tokens only: no drawing, quantity or mesh uses them as dimensions.
-  const {quantityRules:_rules,structuralSizing:_sizing,emergency:_emergency,siteGate:_gate,openingPolicy:_openingPolicy,...original}=base
+  const {quantityRules:_rules,structuralSizing:_sizing,emergency:_emergency,siteGate:_gate,openingPolicy:_openingPolicy,entryRamp:_ramp,...original}=base
   const originalSignature=JSON.stringify({...original,
     floors:original.floors.map(({slabThicknessMm:_thickness,openingLimits:_openings,...floor})=>floor),
     columns:original.columns.map(c=>({...c,size:quantityRules.seedIdentityDefaults.columnMm})),
     beams:original.beams.map(({widthMm:_width,depthMm:_depth,...beam})=>beam),
     slabs:original.slabs.map(s=>({...s,thicknessMm:quantityRules.seedIdentityDefaults.slabMm}))})
+  const exteriorIdentity=design.exteriorIdentity??model.brief.entry.accessIdentity
   return { ...base, planId: `plan-${hash(signature)}${hash(`building|${signature}`)}`,
-    ...(design.exteriorIdentity?{exteriorSeedPlanId:design.exteriorIdentity.planId}:{}),
-    compositionId:design.exteriorIdentity?.compositionId??`plan-${hash(originalSignature)}${hash(`building|${originalSignature}`)}` }
+    ...(exteriorIdentity?{exteriorSeedPlanId:exteriorIdentity.planId}:{}),
+    compositionId:exteriorIdentity?.compositionId??`plan-${hash(originalSignature)}${hash(`building|${originalSignature}`)}` }
 }
