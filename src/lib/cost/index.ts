@@ -7,6 +7,7 @@ import { estimateBoq, type CostEstimate } from './boq.ts'
 import { parseSelection } from './specifications.ts'
 import { writeSelectionToBrief } from './briefSelections.ts'
 import type { PricingContext } from './research/types.ts'
+import { referenceBrandsForBoq } from '../finishes/brandLinks.ts'
 export { estimateBoq } from './boq.ts'
 export type { Band, CostLine, BoqLine, CostEstimate } from './boq.ts'
 export { createPricingResolver, pricingContextKey, classifyTradeScope, isLineInScope } from './pricingContext.ts'
@@ -75,6 +76,8 @@ export function boqCsv(cost: CostEstimate): string {
       ...[...cost.solar.notes, ...cost.solar.inclusions, ...cost.solar.exclusions, ...cost.solar.inverter.reasons, ...cost.solar.energy.reasons, ...cost.solar.energy.basis,
         ...(cost.solar.delivery?.assumptions ?? []), ...cost.solar.sources].map(n => ['Solar qualification', n])] : []),
     ...cost.topCostDrivers.map(d => ['Cost driver vs preset', d.label, '', '', '', '', d.amount, '', '', '', `Default ${d.defaultAmount}; difference ${d.difference}`]),
+    ['Reference brands'],
+    ...referenceBrandsForBoq(cost).map(b => ['Reference brand', b.name, b.url, '', '', '', '', '', '', '', b.note ?? '']),
     ...cost.assumptions.map(a => ['Measurement assumption', a]),
     ...cost.excluded.map(a => ['Excluded', a]), ...cost.sources.map(a => ['Source', a])]
   return rows.map(row => row.map(value => {

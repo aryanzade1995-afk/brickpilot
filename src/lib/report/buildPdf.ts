@@ -2,6 +2,7 @@ import { specificationSchedule } from '../cost/schedule.ts'
 import { appendSolarSchedule } from './solarSchedule.ts'
 import { solarVisualSignature } from '../solar/renderContract.ts'
 import { appendSpecificationSchedule, schedulePhotos } from './specSheet.ts'
+import { referenceBrandsForBoq } from '../finishes/brandLinks.ts'
 import { jsPDF } from 'jspdf'
 import { autoTable } from 'jspdf-autotable'
 import type { Brief } from '@/lib/model/brief.ts'
@@ -320,6 +321,17 @@ export async function buildReportPdf(data: ReportData): Promise<Blob> {
   )
   // Helvetica has no ₹ glyph; any ₹ in free text would garble the whole line
   paragraph(`Sources — ${cost.sources.join(' · ').replaceAll('₹', 'Rs')}`)
+
+  const refBrands = referenceBrandsForBoq(cost)
+  if (refBrands.length) {
+    heading('Reference brands & manufacturers', 90)
+    paragraph('External manufacturer and authority references for specified materials. Prices and availability on manufacturer websites may differ from this concept estimate.')
+    table(
+      ['Material / Brand', 'Website reference URL'],
+      refBrands.map(b => [b.name + (b.note ? ` (${b.note})` : ''), b.url]),
+      [0.35, 0.65],
+    )
+  }
 
   /* ------------------------------- validation ----------------------------- */
   heading('Validation findings', 90)

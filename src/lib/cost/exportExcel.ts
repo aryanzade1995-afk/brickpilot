@@ -1,5 +1,6 @@
 import type { CostEstimate } from './boq.ts'
 import { solarScheduleRows, SOLAR_SCHEDULE_HEADERS } from '../solar/delivery.ts'
+import { referenceBrandsForBoq } from '../finishes/brandLinks.ts'
 
 /** Browser-compatible workbook; quantities/rates are numbers and amounts are formulas. */
 export async function buildBoqExcel(cost: CostEstimate, projectName = 'Formstead project'): Promise<Blob> {
@@ -87,7 +88,8 @@ export async function buildBoqExcel(cost: CostEstimate, projectName = 'Formstead
   const notesStart = summary.rowCount + 1
   summary.addRows([
     ['Assumptions'], ...cost.assumptions.map(v => [v]), ['Included'], ...cost.included.map(v => [v]),
-    ['Excluded'], ...cost.excluded.map(v => [v]), ['Sources'], ...cost.sources.map(v => [v])])
+    ['Excluded'], ...cost.excluded.map(v => [v]), ['Sources'], ...cost.sources.map(v => [v]),
+    ['Reference brands'], ...referenceBrandsForBoq(cost).map(b => [`${b.name}: ${b.url}`])])
   summary.getColumn(2).numFmt = money; summary.getColumn(3).numFmt = '0.0%'
   summary.getColumn(4).numFmt = money; summary.getColumn(5).numFmt = money
   decorate(summary, [76, 22, 20, 22, 22, 65], 6)

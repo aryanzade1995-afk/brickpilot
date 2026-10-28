@@ -1,0 +1,2599 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "groupId": "site-earthwork",
+      "brands": [
+        {
+          "name": "JCB India",
+          "url": "https://www.jcb.com/en-in",
+          "kind": "brand-home",
+          "note": "Earthmoving & excavation equipment reference"
+        },
+        {
+          "name": "Tata Hitachi",
+          "url": "https://www.tatahitachi.co.in",
+          "kind": "brand-home",
+          "note": "Excavators & earthmoving machinery"
+        },
+        {
+          "name": "Survey of India",
+          "url": "https://surveyofindia.gov.in",
+          "kind": "official-reference",
+          "note": "National survey & topographical mapping authority"
+        },
+        {
+          "name": "Bureau of Indian Standards",
+          "url": "https://www.bis.gov.in",
+          "kind": "official-reference",
+          "note": "National building code & site investigation norms"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "site-earthwork",
+      "itemId": "anti-termite",
+      "brands": [
+        {
+          "name": "Bayer India (Premise)",
+          "url": "https://www.bayer.in",
+          "kind": "product-finder",
+          "note": "Non-repellent pre-construction anti-termite treatment"
+        },
+        {
+          "name": "Pest Control India",
+          "url": "https://www.pestcontrolindia.com",
+          "kind": "brand-home",
+          "note": "Professional termite barrier systems"
+        },
+        {
+          "name": "Dr. Fixit",
+          "url": "https://www.drfixit.co.in",
+          "kind": "category-page",
+          "note": "Foundation waterproofing & anti-termite sealants"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "site-earthwork",
+      "itemId": "site-survey",
+      "brands": [
+        {
+          "name": "Survey of India",
+          "url": "https://surveyofindia.gov.in",
+          "kind": "official-reference",
+          "note": "National mapping agency & geodetic reference"
+        },
+        {
+          "name": "Geological Survey of India",
+          "url": "https://www.gsi.gov.in",
+          "kind": "official-reference",
+          "note": "Baseline geological surveys and mapping"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "site-earthwork",
+      "itemId": "soil-type",
+      "brands": [
+        {
+          "name": "Geological Survey of India",
+          "url": "https://www.gsi.gov.in",
+          "kind": "official-reference",
+          "note": "Geotechnical data and soil strata identification"
+        },
+        {
+          "name": "Bureau of Indian Standards",
+          "url": "https://www.bis.gov.in",
+          "kind": "official-reference",
+          "note": "IS 1892 code of practice for subsurface investigations"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "site-earthwork",
+      "itemId": "plinth-height",
+      "brands": [
+        {
+          "name": "Bureau of Indian Standards",
+          "url": "https://www.bis.gov.in",
+          "kind": "official-reference",
+          "note": "IS National Building Code provisions for minimum plinth height"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "foundation-structure",
+      "brands": [
+        {
+          "name": "UltraTech RMC",
+          "url": "https://www.ultratechcement.com",
+          "kind": "category-page",
+          "note": "Ready-mix concrete and specialized design mixes"
+        },
+        {
+          "name": "ACC Concrete",
+          "url": "https://www.acclimited.com",
+          "kind": "brand-home",
+          "note": "Engineered ready-mix concrete formulations"
+        },
+        {
+          "name": "Ambuja Concrete",
+          "url": "https://www.ambujacement.com",
+          "kind": "brand-home",
+          "note": "High strength structural concrete solutions"
+        },
+        {
+          "name": "Bureau of Indian Standards",
+          "url": "https://www.bis.gov.in",
+          "kind": "official-reference",
+          "note": "IS 456 plain and reinforced concrete code of practice"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "foundation-structure",
+      "itemId": "cement",
+      "brands": [
+        {
+          "name": "UltraTech Cement",
+          "url": "https://www.ultratechcement.com",
+          "kind": "brand-home",
+          "note": "India's leading cement manufacturer"
+        },
+        {
+          "name": "ACC Limited",
+          "url": "https://www.acclimited.com",
+          "kind": "brand-home",
+          "note": "Portland Pozzolana & composite cements"
+        },
+        {
+          "name": "Ambuja Cements",
+          "url": "https://www.ambujacement.com",
+          "kind": "brand-home",
+          "note": "Water-repellent and structural grade cement"
+        },
+        {
+          "name": "Dalmia Bharat Cement",
+          "url": "https://www.dalmiacement.com",
+          "kind": "brand-home",
+          "note": "Specialised high-durability green cements"
+        },
+        {
+          "name": "JK Cement",
+          "url": "https://www.jkcement.com",
+          "kind": "brand-home",
+          "note": "Grey & white Portland cement portfolio"
+        },
+        {
+          "name": "Shree Cement",
+          "url": "https://www.shreecement.com",
+          "kind": "brand-home",
+          "note": "Bangur and Rockstrong structural cement ranges"
+        },
+        {
+          "name": "Orient Cement",
+          "url": "https://www.orientcement.com",
+          "kind": "brand-home",
+          "note": "Birla.A1 premium structural cement"
+        },
+        {
+          "name": "Ramco Cements",
+          "url": "https://www.ramcocements.in",
+          "kind": "brand-home",
+          "note": "Supergrade blended cement"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "foundation-structure",
+      "itemId": "reinforcement",
+      "brands": [
+        {
+          "name": "Tata Tiscon",
+          "url": "https://tatatiscon.co.in",
+          "kind": "brand-home",
+          "note": "Fe 550D Super Ductile TMT rebars"
+        },
+        {
+          "name": "JSW Neosteel",
+          "url": "https://www.jswneosteel.in",
+          "kind": "brand-home",
+          "note": "High-strength pure steel TMT bars"
+        },
+        {
+          "name": "Jindal Panther",
+          "url": "https://www.jindalpanther.com",
+          "kind": "brand-home",
+          "note": "Fe 550D earthquake resistant TMT rebars"
+        },
+        {
+          "name": "Kamdhenu",
+          "url": "https://www.kamdhenulimited.com",
+          "kind": "brand-home",
+          "note": "NXT double-ribbed TMT bars"
+        },
+        {
+          "name": "Shyam Steel",
+          "url": "https://shyamsteel.com",
+          "kind": "brand-home",
+          "note": "Primary steel producer Fe 500D TMT bars"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "foundation-structure",
+      "itemId": "future-floor",
+      "brands": [
+        {
+          "name": "Indian Concrete Institute",
+          "url": "https://www.indianconcreteinstitute.org",
+          "kind": "official-reference",
+          "note": "Professional guidance for multi-tier concrete framing"
+        },
+        {
+          "name": "Bureau of Indian Standards",
+          "url": "https://www.bis.gov.in",
+          "kind": "official-reference",
+          "note": "IS 456 / IS 875 structural load and expansion codes"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "masonry",
+      "brands": [
+        {
+          "name": "Siporex India",
+          "url": "https://www.siporexindia.com",
+          "kind": "brand-home",
+          "note": "Autoclaved aerated concrete (AAC) blocks & slabs"
+        },
+        {
+          "name": "Magicrete",
+          "url": "https://www.magicrete.in",
+          "kind": "brand-home",
+          "note": "Lightweight AAC blocks and jointing adhesive"
+        },
+        {
+          "name": "Biltech",
+          "url": "https://biltechindia.com",
+          "kind": "brand-home",
+          "note": "Eco-friendly AAC building blocks"
+        },
+        {
+          "name": "Ecolite",
+          "url": "https://www.ecolite.in",
+          "kind": "brand-home",
+          "note": "Thermal insulation AAC walling blocks"
+        },
+        {
+          "name": "Wienerberger India",
+          "url": "https://www.wienerberger.in",
+          "kind": "brand-home",
+          "note": "Porotherm clay hollow blocks and natural bricks"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "masonry",
+      "itemId": "lintels",
+      "brands": [
+        {
+          "name": "UltraTech Cement",
+          "url": "https://www.ultratechcement.com",
+          "kind": "category-page",
+          "note": "Reinforced concrete lintel formulations"
+        },
+        {
+          "name": "Tata Tiscon",
+          "url": "https://tatatiscon.co.in",
+          "kind": "category-page",
+          "note": "Superlinks prefabricated stirrups for lintels"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "plaster",
+      "brands": [
+        {
+          "name": "UltraTech Cement",
+          "url": "https://www.ultratechcement.com",
+          "kind": "category-page",
+          "note": "Readymix plaster & Super Stucco mortars"
+        },
+        {
+          "name": "Birla White",
+          "url": "https://www.birlawhite.com",
+          "kind": "brand-home",
+          "note": "White cement plaster and Levelplast solutions"
+        },
+        {
+          "name": "Dr. Fixit",
+          "url": "https://www.drfixit.co.in",
+          "kind": "category-page",
+          "note": "Integral waterproofing plaster additives"
+        },
+        {
+          "name": "Ambuja Cements",
+          "url": "https://www.ambujacement.com",
+          "kind": "category-page",
+          "note": "Specially engineered plastering dry-mix"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "plaster",
+      "itemId": "wall-putty",
+      "brands": [
+        {
+          "name": "Birla White",
+          "url": "https://www.birlawhite.com",
+          "kind": "product-finder",
+          "note": "WallSeal and white cement-based wall putty"
+        },
+        {
+          "name": "Asian Paints",
+          "url": "https://www.asianpaints.com",
+          "kind": "category-page",
+          "note": "TruCare white cement and acrylic wall putty"
+        },
+        {
+          "name": "Berger Paints",
+          "url": "https://www.bergerpaints.com",
+          "kind": "category-page",
+          "note": "Bison Wall Putty and Home Shield leveling"
+        },
+        {
+          "name": "Saint-Gobain Gyproc",
+          "url": "https://www.gyproc.in",
+          "kind": "category-page",
+          "note": "One-coat gypsum leveling plaster"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "flooring",
+      "brands": [
+        {
+          "name": "Kajaria Ceramics",
+          "url": "https://www.kajariaceramics.com",
+          "kind": "brand-home",
+          "note": "Polished vitrified and glazed porcelain tiles"
+        },
+        {
+          "name": "Somany Ceramics",
+          "url": "https://www.somanyceramics.com",
+          "kind": "brand-home",
+          "note": "Duragres vitrified and Slip Shield tiles"
+        },
+        {
+          "name": "H&R Johnson India",
+          "url": "https://www.hrjohnsonindia.com",
+          "kind": "brand-home",
+          "note": "Marbonite & Porselano floor collections"
+        },
+        {
+          "name": "Orientbell Tiles",
+          "url": "https://www.orientbell.com",
+          "kind": "brand-home",
+          "note": "Double charge and glazed vitrified tiles"
+        },
+        {
+          "name": "Nitco",
+          "url": "https://www.nitco.in",
+          "kind": "brand-home",
+          "note": "Imported marble, stone & porcelain tiles"
+        },
+        {
+          "name": "Simpolo Ceramics",
+          "url": "https://www.simpolo.net",
+          "kind": "brand-home",
+          "note": "Large format vitrified tiles and slabs"
+        }
+      ],
+      "relatedMaterials": [
+        {
+          "label": "Tile adhesive & grout",
+          "brands": [
+            {
+              "name": "MYK Laticrete",
+              "url": "https://myklaticrete.com",
+              "kind": "category-page",
+              "note": "Polymer modified tile adhesive and epoxy grout"
+            },
+            {
+              "name": "Roff (Pidilite)",
+              "url": "https://www.roff.in",
+              "kind": "brand-home",
+              "note": "Specialised tile joint fillers and bonding adhesive"
+            },
+            {
+              "name": "Ardex Endura",
+              "url": "https://www.ardexendura.com",
+              "kind": "brand-home",
+              "note": "High performance tile fixing mortars and grouts"
+            },
+            {
+              "name": "Birla White",
+              "url": "https://www.birlawhite.com",
+              "kind": "category-page",
+              "note": "White cement based tile adhesive"
+            }
+          ]
+        },
+        {
+          "label": "Skirting & trims",
+          "brands": [
+            {
+              "name": "Kajaria Ceramics",
+              "url": "https://www.kajariaceramics.com",
+              "kind": "category-page",
+              "note": "Matched step skirting and edge bullnose"
+            },
+            {
+              "name": "Somany Ceramics",
+              "url": "https://www.somanyceramics.com",
+              "kind": "category-page",
+              "note": "Coordinated perimeter tile skirting"
+            }
+          ]
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "flooring",
+      "itemId": "floor-living",
+      "brands": [
+        {
+          "name": "Kajaria Ceramics",
+          "url": "https://www.kajariaceramics.com",
+          "kind": "category-page",
+          "note": "Living room glazed vitrified porcelain slabs"
+        },
+        {
+          "name": "Somany Ceramics",
+          "url": "https://www.somanyceramics.com",
+          "kind": "category-page",
+          "note": "Polished large slab vitrified flooring"
+        },
+        {
+          "name": "H&R Johnson India",
+          "url": "https://www.hrjohnsonindia.com",
+          "kind": "category-page",
+          "note": "Marbonite high-gloss living room tiles"
+        },
+        {
+          "name": "Orientbell Tiles",
+          "url": "https://www.orientbell.com",
+          "kind": "category-page",
+          "note": "Granalt luxury large vitrified slabs"
+        },
+        {
+          "name": "RK Marble",
+          "url": "https://www.rkmarble.com",
+          "kind": "brand-home",
+          "note": "Imported Italian and Indian marble slabs"
+        },
+        {
+          "name": "Square Foot",
+          "url": "https://www.squarefoot.co.in",
+          "kind": "brand-home",
+          "note": "Engineered hardwood and laminate flooring"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "flooring",
+      "itemId": "floor-bathrooms",
+      "brands": [
+        {
+          "name": "Kajaria Ceramics",
+          "url": "https://www.kajariaceramics.com",
+          "kind": "category-page",
+          "note": "Anti-skid matte bathroom vitrified tiles"
+        },
+        {
+          "name": "Somany Ceramics",
+          "url": "https://www.somanyceramics.com",
+          "kind": "category-page",
+          "note": "Slip Shield water-resistant bathroom flooring"
+        },
+        {
+          "name": "H&R Johnson India",
+          "url": "https://www.hrjohnsonindia.com",
+          "kind": "category-page",
+          "note": "Endura slip-resistant safety floor tiles"
+        },
+        {
+          "name": "Orientbell Tiles",
+          "url": "https://www.orientbell.com",
+          "kind": "category-page",
+          "note": "Matte & textured wet area floor tiles"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "flooring",
+      "itemId": "floor-outdoor",
+      "brands": [
+        {
+          "name": "Kajaria Ceramics",
+          "url": "https://www.kajariaceramics.com",
+          "kind": "category-page",
+          "note": "Heavy duty exterior pavers and outdoor vitrified tiles"
+        },
+        {
+          "name": "Somany Ceramics",
+          "url": "https://www.somanyceramics.com",
+          "kind": "category-page",
+          "note": "Duragres outdoor verandah and patio tiles"
+        },
+        {
+          "name": "Orientbell Tiles",
+          "url": "https://www.orientbell.com",
+          "kind": "category-page",
+          "note": "Weather-resistant outdoor vitrified tiles"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "flooring",
+      "itemId": "stair-finish",
+      "brands": [
+        {
+          "name": "Kajaria Ceramics",
+          "url": "https://www.kajariaceramics.com",
+          "kind": "category-page",
+          "note": "Bullnose step and riser anti-skid tile sets"
+        },
+        {
+          "name": "Somany Ceramics",
+          "url": "https://www.somanyceramics.com",
+          "kind": "category-page",
+          "note": "Full-body step and riser staircase tiles"
+        },
+        {
+          "name": "H&R Johnson India",
+          "url": "https://www.hrjohnsonindia.com",
+          "kind": "category-page",
+          "note": "Endura heavy-duty staircase steps"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "wall-tiles-cladding",
+      "brands": [
+        {
+          "name": "Kajaria Ceramics",
+          "url": "https://www.kajariaceramics.com",
+          "kind": "category-page",
+          "note": "Designer ceramic and vitrified wall tiles"
+        },
+        {
+          "name": "Somany Ceramics",
+          "url": "https://www.somanyceramics.com",
+          "kind": "category-page",
+          "note": "Glazed wall tiles and highlighters"
+        },
+        {
+          "name": "H&R Johnson India",
+          "url": "https://www.hrjohnsonindia.com",
+          "kind": "category-page",
+          "note": "Kitchen and bathroom dado wall tiles"
+        },
+        {
+          "name": "Orientbell Tiles",
+          "url": "https://www.orientbell.com",
+          "kind": "category-page",
+          "note": "Germ-free and decorative wall tiles"
+        }
+      ],
+      "relatedMaterials": [
+        {
+          "label": "Tile adhesive & grout",
+          "brands": [
+            {
+              "name": "MYK Laticrete",
+              "url": "https://myklaticrete.com",
+              "kind": "category-page",
+              "note": "Vertical wall tile adhesive and epoxy grout"
+            },
+            {
+              "name": "Roff (Pidilite)",
+              "url": "https://www.roff.in",
+              "kind": "category-page",
+              "note": "Non-skid vertical tile adhesive"
+            }
+          ]
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "wall-tiles-cladding",
+      "itemId": "bath-wall-tiles",
+      "brands": [
+        {
+          "name": "Kajaria Ceramics",
+          "url": "https://www.kajariaceramics.com",
+          "kind": "category-page",
+          "note": "Gloss & satin bathroom wall tiles"
+        },
+        {
+          "name": "Somany Ceramics",
+          "url": "https://www.somanyceramics.com",
+          "kind": "category-page",
+          "note": "Water-resistant ceramic wall tiles"
+        },
+        {
+          "name": "H&R Johnson India",
+          "url": "https://www.hrjohnsonindia.com",
+          "kind": "category-page",
+          "note": "Germ-free sanitary wall tiles"
+        },
+        {
+          "name": "Orientbell Tiles",
+          "url": "https://www.orientbell.com",
+          "kind": "category-page",
+          "note": "Bathroom highlighter tile concepts"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "wall-tiles-cladding",
+      "itemId": "facade-cladding",
+      "brands": [
+        {
+          "name": "Fundermax",
+          "url": "https://www.fundermax.com",
+          "kind": "brand-home",
+          "note": "Exterior architectural compact laminates"
+        },
+        {
+          "name": "Greenlam Clads",
+          "url": "https://www.greenlamclads.com",
+          "kind": "brand-home",
+          "note": "Exterior grade high-pressure cladding"
+        },
+        {
+          "name": "Asian Paints",
+          "url": "https://www.asianpaints.com",
+          "kind": "category-page",
+          "note": "Apex Ultima exterior textured cladding"
+        },
+        {
+          "name": "Kajaria Ceramics",
+          "url": "https://www.kajariaceramics.com",
+          "kind": "category-page",
+          "note": "Vitrified stone-look facade tiles"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "kitchen",
+      "brands": [
+        {
+          "name": "Sleek (Asian Paints)",
+          "url": "https://www.sleekworld.com",
+          "kind": "brand-home",
+          "note": "Complete modular kitchen systems"
+        },
+        {
+          "name": "Godrej Interio",
+          "url": "https://www.godrejinterio.com",
+          "kind": "category-page",
+          "note": "Galvanized steel and wood modular kitchens"
+        },
+        {
+          "name": "Hettich India",
+          "url": "https://www.hettich.com",
+          "kind": "brand-home",
+          "note": "Kitchen drawer systems & smart fittings"
+        },
+        {
+          "name": "Hafele India",
+          "url": "https://www.hafele.com/in/en/",
+          "kind": "brand-home",
+          "note": "Kitchen storage and architectural hardware"
+        },
+        {
+          "name": "Ebco",
+          "url": "https://www.ebco.in",
+          "kind": "brand-home",
+          "note": "Kitchen organizers and soft-close slides"
+        },
+        {
+          "name": "Blum",
+          "url": "https://www.blum.com",
+          "kind": "brand-home",
+          "note": "Lift mechanisms and runner systems"
+        }
+      ],
+      "relatedMaterials": [
+        {
+          "label": "Chimney & hob",
+          "brands": [
+            {
+              "name": "Elica India",
+              "url": "https://www.elicaindia.com",
+              "kind": "brand-home",
+              "note": "Filterless kitchen chimneys and built-in hobs"
+            },
+            {
+              "name": "Faber India",
+              "url": "https://faberindia.com",
+              "kind": "brand-home",
+              "note": "Auto-clean chimneys and brass burner hobs"
+            },
+            {
+              "name": "Bosch Home India",
+              "url": "https://www.bosch-home.in",
+              "kind": "category-page",
+              "note": "Built-in gas hobs and extraction hoods"
+            }
+          ]
+        },
+        {
+          "label": "Modular fittings",
+          "brands": [
+            {
+              "name": "Hettich India",
+              "url": "https://www.hettich.com",
+              "kind": "category-page",
+              "note": "InnoTech Atira drawer pull-outs"
+            },
+            {
+              "name": "Hafele India",
+              "url": "https://www.hafele.com/in/en/",
+              "kind": "category-page",
+              "note": "Pantry larder units and magic corners"
+            },
+            {
+              "name": "Ebco",
+              "url": "https://www.ebco.in",
+              "kind": "category-page",
+              "note": "Cutlery trays and spice pull-out wire baskets"
+            }
+          ]
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "kitchen",
+      "itemId": "kitchen-cabinets",
+      "brands": [
+        {
+          "name": "Sleek (Asian Paints)",
+          "url": "https://www.sleekworld.com",
+          "kind": "category-page",
+          "note": "Acrylic, PU and membrane cabinet finishes"
+        },
+        {
+          "name": "Godrej Interio",
+          "url": "https://www.godrejinterio.com",
+          "kind": "category-page",
+          "note": "Modular kitchen carcass and shutter options"
+        },
+        {
+          "name": "Hettich India",
+          "url": "https://www.hettich.com",
+          "kind": "category-page",
+          "note": "Sensys integrated damping cabinet hinges"
+        },
+        {
+          "name": "Hafele India",
+          "url": "https://www.hafele.com/in/en/",
+          "kind": "category-page",
+          "note": "Free flap cabinet lift systems"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "kitchen",
+      "itemId": "kitchen-sink",
+      "brands": [
+        {
+          "name": "Franke",
+          "url": "https://www.franke.com/in/en/home-solutions.html",
+          "kind": "category-page",
+          "note": "Stainless steel and Fragranite composite sinks"
+        },
+        {
+          "name": "Carysil",
+          "url": "https://carysil.com",
+          "kind": "brand-home",
+          "note": "Quartz composite designer kitchen sinks"
+        },
+        {
+          "name": "Nirali NG",
+          "url": "https://niraling.com",
+          "kind": "brand-home",
+          "note": "Handcrafted stainless steel kitchen sinks"
+        },
+        {
+          "name": "Hindware Homes",
+          "url": "https://www.hindware.com",
+          "kind": "category-page",
+          "note": "Single and double bowl stainless steel sinks"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "kitchen",
+      "itemId": "kitchen-counter",
+      "brands": [
+        {
+          "name": "Quantra Quartz",
+          "url": "https://www.quantra.in",
+          "kind": "brand-home",
+          "note": "Engineered quartz kitchen countertops"
+        },
+        {
+          "name": "Caesarstone India",
+          "url": "https://www.caesarstone.in",
+          "kind": "brand-home",
+          "note": "Premium quartz surfaces"
+        },
+        {
+          "name": "Greenlam",
+          "url": "https://www.greenlam.com",
+          "kind": "category-page",
+          "note": "Solid compact surfaces for countertops"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "doors",
+      "brands": [
+        {
+          "name": "Greenply",
+          "url": "https://www.greenply.com",
+          "kind": "brand-home",
+          "note": "Flush doors, solid core doors and veneers"
+        },
+        {
+          "name": "CenturyPly",
+          "url": "https://www.centuryply.com",
+          "kind": "brand-home",
+          "note": "Sainik and Club Prime water-proof doors"
+        },
+        {
+          "name": "Tata Pravesh",
+          "url": "https://www.tatapravesh.com",
+          "kind": "brand-home",
+          "note": "Steel doors with embossed wood finish"
+        },
+        {
+          "name": "Godrej",
+          "url": "https://www.godrej.com",
+          "kind": "category-page",
+          "note": "Entrance doors and architectural door solutions"
+        },
+        {
+          "name": "Hormann India",
+          "url": "https://www.hormann.in",
+          "kind": "brand-home",
+          "note": "High security steel and timber entrance doors"
+        }
+      ],
+      "relatedMaterials": [
+        {
+          "label": "Door frames",
+          "brands": [
+            {
+              "name": "Greenply",
+              "url": "https://www.greenply.com",
+              "kind": "category-page",
+              "note": "Solid hardwood & composite door frames"
+            },
+            {
+              "name": "Tata Pravesh",
+              "url": "https://www.tatapravesh.com",
+              "kind": "category-page",
+              "note": "Termite and fire resistant steel frames"
+            }
+          ]
+        },
+        {
+          "label": "Plywood & flush boards",
+          "brands": [
+            {
+              "name": "Greenply",
+              "url": "https://www.greenply.com",
+              "kind": "category-page",
+              "note": "BWR and Marine grade structural plywood"
+            },
+            {
+              "name": "CenturyPly",
+              "url": "https://www.centuryply.com",
+              "kind": "category-page",
+              "note": "Boiling waterproof (BWP) plywood"
+            },
+            {
+              "name": "Kitply",
+              "url": "https://www.kitply.com",
+              "kind": "brand-home",
+              "note": "Flush boards and marine plywood"
+            },
+            {
+              "name": "Greenlam",
+              "url": "https://www.greenlam.com",
+              "kind": "category-page",
+              "note": "Decorative door facing laminates"
+            }
+          ]
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "doors",
+      "itemId": "main-door",
+      "brands": [
+        {
+          "name": "Tata Pravesh",
+          "url": "https://www.tatapravesh.com",
+          "kind": "category-page",
+          "note": "Embossed steel main entry doors with multi-point lock"
+        },
+        {
+          "name": "Hormann India",
+          "url": "https://www.hormann.in",
+          "kind": "category-page",
+          "note": "ThermoPro high security entry door systems"
+        },
+        {
+          "name": "Greenply",
+          "url": "https://www.greenply.com",
+          "kind": "category-page",
+          "note": "Decorative natural wood veneer entrance doors"
+        },
+        {
+          "name": "Godrej",
+          "url": "https://www.godrej.com",
+          "kind": "category-page",
+          "note": "Engineered solid core main entry doors"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "doors",
+      "itemId": "internal-door",
+      "brands": [
+        {
+          "name": "CenturyPly",
+          "url": "https://www.centuryply.com",
+          "kind": "category-page",
+          "note": "BWP flush doors for bedrooms and wet areas"
+        },
+        {
+          "name": "Greenply",
+          "url": "https://www.greenply.com",
+          "kind": "category-page",
+          "note": "Ecotec internal flush doors"
+        },
+        {
+          "name": "Tata Pravesh",
+          "url": "https://www.tatapravesh.com",
+          "kind": "category-page",
+          "note": "Oyster and Vista series residential internal doors"
+        },
+        {
+          "name": "Dorset India",
+          "url": "https://www.dorsetindia.com",
+          "kind": "category-page",
+          "note": "Pre-hung engineered interior doors"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "doors",
+      "itemId": "door-hardware",
+      "brands": [
+        {
+          "name": "Godrej",
+          "url": "https://www.godrej.com",
+          "kind": "category-page",
+          "note": "Mortise locksets, euro-profile cylinders & latches"
+        },
+        {
+          "name": "Yale India",
+          "url": "https://www.yalehome.com/in/en",
+          "kind": "brand-home",
+          "note": "Digital smart locks and architectural mortise handles"
+        },
+        {
+          "name": "Dorset India",
+          "url": "https://www.dorsetindia.com",
+          "kind": "brand-home",
+          "note": "Solid brass lever handles, hinges and door closers"
+        },
+        {
+          "name": "Hafele India",
+          "url": "https://www.hafele.com/in/en/",
+          "kind": "category-page",
+          "note": "Architectural lock cases, pull handles and latches"
+        },
+        {
+          "name": "Ebco",
+          "url": "https://www.ebco.in",
+          "kind": "category-page",
+          "note": "Stainless steel bearing hinges and tower bolts"
+        },
+        {
+          "name": "Ozone",
+          "url": "https://www.ozone.in",
+          "kind": "brand-home",
+          "note": "Architectural door control hardware and floor springs"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "windows-glass-grills",
+      "brands": [
+        {
+          "name": "Fenesta",
+          "url": "https://www.fenesta.com",
+          "kind": "brand-home",
+          "note": "UPVC and aluminium window systems"
+        },
+        {
+          "name": "AIS Windows",
+          "url": "https://www.aiswindows.com",
+          "kind": "brand-home",
+          "note": "Acoustic and solar control windows"
+        },
+        {
+          "name": "Saint-Gobain Glass India",
+          "url": "https://www.saint-gobain.co.in",
+          "kind": "category-page",
+          "note": "Architectural flat and float glass"
+        },
+        {
+          "name": "Asahi India Glass (AIS)",
+          "url": "https://www.aisglass.com",
+          "kind": "brand-home",
+          "note": "Safety glass and insulated glazing units"
+        },
+        {
+          "name": "Schueco India",
+          "url": "https://www.schueco.com/in",
+          "kind": "brand-home",
+          "note": "Thermal break aluminium facade systems"
+        },
+        {
+          "name": "Koemmerling",
+          "url": "https://www.koemmerling.com",
+          "kind": "brand-home",
+          "note": "Energy-saving uPVC window systems"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "windows-glass-grills",
+      "itemId": "windows",
+      "brands": [
+        {
+          "name": "Fenesta",
+          "url": "https://www.fenesta.com",
+          "kind": "category-page",
+          "note": "Casement, sliding and tilt-and-turn uPVC windows"
+        },
+        {
+          "name": "AIS Windows",
+          "url": "https://www.aiswindows.com",
+          "kind": "category-page",
+          "note": "Noise cancelling and weather-proof window frames"
+        },
+        {
+          "name": "Koemmerling",
+          "url": "https://www.koemmerling.com",
+          "kind": "category-page",
+          "note": "German engineered greenline uPVC window profiles"
+        },
+        {
+          "name": "Schueco India",
+          "url": "https://www.schueco.com/in",
+          "kind": "category-page",
+          "note": "High performance insulated aluminium windows"
+        },
+        {
+          "name": "Aluplast",
+          "url": "https://www.aluplast.net",
+          "kind": "brand-home",
+          "note": "Innovative multi-chamber uPVC profiles"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "windows-glass-grills",
+      "itemId": "glass",
+      "brands": [
+        {
+          "name": "Saint-Gobain Glass India",
+          "url": "https://www.saint-gobain.co.in",
+          "kind": "category-page",
+          "note": "Clear float, tinted and low-E energy glass"
+        },
+        {
+          "name": "Asahi India Glass (AIS)",
+          "url": "https://www.aisglass.com",
+          "kind": "category-page",
+          "note": "Toughened safety glass & double glazed units"
+        },
+        {
+          "name": "Gold Plus Glass",
+          "url": "https://www.goldplusgroup.com",
+          "kind": "brand-home",
+          "note": "Architectural float and reflective glass"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "windows-glass-grills",
+      "itemId": "window-grills",
+      "brands": [
+        {
+          "name": "Jindal Stainless",
+          "url": "https://www.jindalstainless.com",
+          "kind": "category-page",
+          "note": "SS 304 architectural window security grills"
+        },
+        {
+          "name": "Tata Pravesh",
+          "url": "https://www.tatapapravesh.com",
+          "kind": "category-page",
+          "note": "Galvanized steel security grills & insect screens"
+        },
+        {
+          "name": "Hindalco",
+          "url": "https://www.hindalco.com",
+          "kind": "category-page",
+          "note": "Extruded aluminium architectural security grills"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "railings-gates",
+      "brands": [
+        {
+          "name": "Q-Railing",
+          "url": "https://www.q-railing.com",
+          "kind": "brand-home",
+          "note": "Modular glass balustrades & stainless railings"
+        },
+        {
+          "name": "Jindal Stainless",
+          "url": "https://www.jindalstainless.com",
+          "kind": "brand-home",
+          "note": "Grade 304 and 316 railing pipes and fittings"
+        },
+        {
+          "name": "Tata Pravesh",
+          "url": "https://www.tatapravesh.com",
+          "kind": "category-page",
+          "note": "Perimeter compound gates and security gates"
+        },
+        {
+          "name": "Gandhi Automations",
+          "url": "https://www.geapl.com",
+          "kind": "brand-home",
+          "note": "Motorized sliding and swing driveway gates"
+        },
+        {
+          "name": "Asian Paints",
+          "url": "https://www.asianpaints.com",
+          "kind": "category-page",
+          "note": "Exterior weather textures for compound walls"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "waterproofing",
+      "brands": [
+        {
+          "name": "Dr. Fixit",
+          "url": "https://www.drfixit.co.in",
+          "kind": "brand-home",
+          "note": "Complete building waterproofing solutions"
+        },
+        {
+          "name": "Fosroc India",
+          "url": "https://www.fosroc.com",
+          "kind": "brand-home",
+          "note": "Cementitious and elastomeric waterproofing membranes"
+        },
+        {
+          "name": "Sika India",
+          "url": "https://ind.sika.com",
+          "kind": "brand-home",
+          "note": "Polyurethane and liquid applied waterproofing systems"
+        },
+        {
+          "name": "Asian Paints",
+          "url": "https://www.asianpaints.com",
+          "kind": "category-page",
+          "note": "SmartCare Damp Proof and water barrier coatings"
+        },
+        {
+          "name": "Roff (Pidilite)",
+          "url": "https://www.roff.in",
+          "kind": "category-page",
+          "note": "Wet-area waterproofing and tile joint sealing"
+        },
+        {
+          "name": "Choksey Chemicals",
+          "url": "https://www.chokseychem.com",
+          "kind": "brand-home",
+          "note": "Polysulphide sealants and structural waterproofing"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "waterproofing",
+      "itemId": "bath-waterproofing",
+      "brands": [
+        {
+          "name": "Dr. Fixit",
+          "url": "https://www.drfixit.co.in",
+          "kind": "category-page",
+          "note": "Bathseal tape and two-component elastomeric slurry"
+        },
+        {
+          "name": "Fosroc India",
+          "url": "https://www.fosroc.com",
+          "kind": "category-page",
+          "note": "Brushbond acrylic polymer waterproof coating"
+        },
+        {
+          "name": "Sika India",
+          "url": "https://ind.sika.com",
+          "kind": "category-page",
+          "note": "SikaTop Seal-107 cementitious waterproofing mortar"
+        },
+        {
+          "name": "Asian Paints",
+          "url": "https://www.asianpaints.com",
+          "kind": "category-page",
+          "note": "SmartCare Damp Block 2K for bathroom sunken slabs"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "waterproofing",
+      "itemId": "terrace-waterproofing",
+      "brands": [
+        {
+          "name": "Dr. Fixit",
+          "url": "https://www.drfixit.co.in",
+          "kind": "category-page",
+          "note": "Newcoat Ezee elastomeric roof coating system"
+        },
+        {
+          "name": "Asian Paints",
+          "url": "https://www.asianpaints.com",
+          "kind": "category-page",
+          "note": "SmartCare Damp Proof Ultra with 10-year warranty"
+        },
+        {
+          "name": "Sika India",
+          "url": "https://ind.sika.com",
+          "kind": "category-page",
+          "note": "Sikalastic polyurethane UV-resistant roof membrane"
+        },
+        {
+          "name": "Fosroc India",
+          "url": "https://www.fosroc.com",
+          "kind": "category-page",
+          "note": "Nitoproof exterior membrane waterproofing"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "painting",
+      "brands": [
+        {
+          "name": "Asian Paints",
+          "url": "https://www.asianpaints.com",
+          "kind": "brand-home",
+          "note": "Architectural emulsions and surface primers"
+        },
+        {
+          "name": "Berger Paints",
+          "url": "https://www.bergerpaints.com",
+          "kind": "brand-home",
+          "note": "Interior and exterior emulsions and coatings"
+        },
+        {
+          "name": "Kansai Nerolac",
+          "url": "https://www.nerolac.com",
+          "kind": "brand-home",
+          "note": "Low-VOC paints and Japanese polymer technology"
+        },
+        {
+          "name": "Dulux India",
+          "url": "https://www.dulux.in",
+          "kind": "brand-home",
+          "note": "Velvet Touch and Weathershield paint range"
+        },
+        {
+          "name": "Indigo Paints",
+          "url": "https://indigopaints.com",
+          "kind": "brand-home",
+          "note": "Dirtproof & tile-coat specialized emulsions"
+        },
+        {
+          "name": "Birla Opus",
+          "url": "https://www.birlaopus.com",
+          "kind": "brand-home",
+          "note": "Modern high-coverage interior and exterior paints"
+        },
+        {
+          "name": "Nippon Paint India",
+          "url": "https://www.nipponpaint.co.in",
+          "kind": "brand-home",
+          "note": "Eco-friendly and anti-microbial paint range"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "painting",
+      "itemId": "interior-paint",
+      "brands": [
+        {
+          "name": "Asian Paints",
+          "url": "https://www.asianpaints.com",
+          "kind": "product-finder",
+          "note": "Royale luxury emulsion colour catalogues"
+        },
+        {
+          "name": "Berger Paints",
+          "url": "https://www.bergerpaints.com",
+          "kind": "product-finder",
+          "note": "Silk glamour luxury interior emulsions"
+        },
+        {
+          "name": "Kansai Nerolac",
+          "url": "https://www.nerolac.com",
+          "kind": "product-finder",
+          "note": "Impressions HD luxury interior finishes"
+        },
+        {
+          "name": "Dulux India",
+          "url": "https://www.dulux.in",
+          "kind": "product-finder",
+          "note": "Velvet Touch diamond glo interior paints"
+        },
+        {
+          "name": "Birla Opus",
+          "url": "https://www.birlaopus.com",
+          "kind": "category-page",
+          "note": "Opus interior high-sheen emulsions"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "painting",
+      "itemId": "exterior-paint",
+      "brands": [
+        {
+          "name": "Asian Paints",
+          "url": "https://www.asianpaints.com",
+          "kind": "product-finder",
+          "note": "Apex Ultima Protek weather-proof exterior paint"
+        },
+        {
+          "name": "Berger Paints",
+          "url": "https://www.bergerpaints.com",
+          "kind": "product-finder",
+          "note": "WeatherCoat Anti Dust exterior emulsion"
+        },
+        {
+          "name": "Kansai Nerolac",
+          "url": "https://www.nerolac.com",
+          "kind": "product-finder",
+          "note": "Excel Total exterior acrylic emulsion"
+        },
+        {
+          "name": "Dulux India",
+          "url": "https://www.dulux.in",
+          "kind": "product-finder",
+          "note": "Weathershield Powerflex exterior paint"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "plumbing-sanitary",
+      "brands": [
+        {
+          "name": "Jaquar",
+          "url": "https://www.jaquar.com",
+          "kind": "brand-home",
+          "note": "Complete sanitaryware, brassware and accessories"
+        },
+        {
+          "name": "Kohler India",
+          "url": "https://www.kohler.co.in",
+          "kind": "brand-home",
+          "note": "Designer bathroom fixtures and sanitary systems"
+        },
+        {
+          "name": "Hindware Homes",
+          "url": "https://www.hindware.com",
+          "kind": "brand-home",
+          "note": "Sanitaryware, faucets and wellness products"
+        },
+        {
+          "name": "Cera India",
+          "url": "https://www.cera-india.com",
+          "kind": "brand-home",
+          "note": "Sanitaryware, taps and bathroom accessories"
+        },
+        {
+          "name": "Parryware",
+          "url": "https://www.parryware.in",
+          "kind": "brand-home",
+          "note": "Vitreous china sanitaryware and CP fittings"
+        },
+        {
+          "name": "Astral Pipes",
+          "url": "https://www.astralpipes.com",
+          "kind": "brand-home",
+          "note": "CPVC, UPVC and SWR plumbing network systems"
+        },
+        {
+          "name": "Supreme Industries",
+          "url": "https://www.supreme.co.in",
+          "kind": "brand-home",
+          "note": "Plumbing pipes, drainage fittings and tanks"
+        }
+      ],
+      "relatedMaterials": [
+        {
+          "label": "Bathroom accessories",
+          "brands": [
+            {
+              "name": "Jaquar",
+              "url": "https://www.jaquar.com",
+              "kind": "category-page",
+              "note": "Brass chrome-plated towel rails, robe hooks & soap dishes"
+            },
+            {
+              "name": "Kohler India",
+              "url": "https://www.kohler.co.in",
+              "kind": "category-page",
+              "note": "Luxury bathroom hardware and accessories"
+            },
+            {
+              "name": "Hindware Homes",
+              "url": "https://www.hindware.com",
+              "kind": "category-page",
+              "note": "Chrome finish bathroom wall accessories"
+            },
+            {
+              "name": "Cera India",
+              "url": "https://www.cera-india.com",
+              "kind": "category-page",
+              "note": "Stainless steel and brass vanity accessories"
+            }
+          ]
+        },
+        {
+          "label": "Mirrors & vanity",
+          "brands": [
+            {
+              "name": "Jaquar",
+              "url": "https://www.jaquar.com",
+              "kind": "category-page",
+              "note": "LED sensor mirrors and bathroom vanity cabinets"
+            },
+            {
+              "name": "Kohler India",
+              "url": "https://www.kohler.co.in",
+              "kind": "category-page",
+              "note": "Tailored vanity consoles and backlit mirrors"
+            },
+            {
+              "name": "Hindware Homes",
+              "url": "https://www.hindware.com",
+              "kind": "category-page",
+              "note": "Water-resistant vanity counters and mirrors"
+            }
+          ]
+        },
+        {
+          "label": "Shower enclosures & glass partitions",
+          "brands": [
+            {
+              "name": "Jaquar",
+              "url": "https://www.jaquar.com",
+              "kind": "category-page",
+              "note": "Frameless glass shower cubicles and partitions"
+            },
+            {
+              "name": "Kohler India",
+              "url": "https://www.kohler.co.in",
+              "kind": "category-page",
+              "note": "Custom glass shower screen assemblies"
+            },
+            {
+              "name": "Saint-Gobain Glass India",
+              "url": "https://www.saint-gobain.co.in",
+              "kind": "category-page",
+              "note": "Toughened safety glass partition panels"
+            }
+          ]
+        },
+        {
+          "label": "Exhaust fans",
+          "brands": [
+            {
+              "name": "Havells India",
+              "url": "https://www.havells.com",
+              "kind": "category-page",
+              "note": "High suction silent bathroom ventilation fans"
+            },
+            {
+              "name": "Crompton",
+              "url": "https://www.crompton.co.in",
+              "kind": "category-page",
+              "note": "Air 360 & Brisk Air bathroom exhaust fans"
+            },
+            {
+              "name": "Usha International",
+              "url": "https://www.usha.com",
+              "kind": "category-page",
+              "note": "Crisp Air and Turbo ventilation fans"
+            },
+            {
+              "name": "Bajaj Electricals",
+              "url": "https://www.bajajelectricals.com",
+              "kind": "category-page",
+              "note": "Maxio and Bahar exhaust fans"
+            }
+          ]
+        },
+        {
+          "label": "Concealed cisterns & flush plates",
+          "brands": [
+            {
+              "name": "Geberit India",
+              "url": "https://www.geberit.in",
+              "kind": "brand-home",
+              "note": "In-wall concealed cisterns and dual-flush actuator plates"
+            },
+            {
+              "name": "Jaquar",
+              "url": "https://www.jaquar.com",
+              "kind": "category-page",
+              "note": "Slim concealed flushing cisterns"
+            },
+            {
+              "name": "Cera India",
+              "url": "https://www.cera-india.com",
+              "kind": "category-page",
+              "note": "Concealed cisterns and pneumatic flush plates"
+            }
+          ]
+        },
+        {
+          "label": "Floor drains & traps",
+          "brands": [
+            {
+              "name": "Jaquar",
+              "url": "https://www.jaquar.com",
+              "kind": "category-page",
+              "note": "Tile insert floor drains with anti-odour traps"
+            },
+            {
+              "name": "Hindware Homes",
+              "url": "https://www.hindware.com",
+              "kind": "category-page",
+              "note": "Stainless steel cockroach trap floor drains"
+            },
+            {
+              "name": "Cera India",
+              "url": "https://www.cera-india.com",
+              "kind": "category-page",
+              "note": "Anti-foul floor drain gratings"
+            }
+          ]
+        },
+        {
+          "label": "Plumbing solvent & fittings",
+          "brands": [
+            {
+              "name": "Astral Pipes",
+              "url": "https://www.astralpipes.com",
+              "kind": "category-page",
+              "note": "CPVC Pro solvent cement and pipe transition fittings"
+            },
+            {
+              "name": "Supreme Industries",
+              "url": "https://www.supreme.co.in",
+              "kind": "category-page",
+              "note": "Pressure pipe bends, tees and solvent cements"
+            },
+            {
+              "name": "Ashirvad Pipes",
+              "url": "https://www.ashirvad.com",
+              "kind": "category-page",
+              "note": "FlowGuard Plus solvent and high-pressure fittings"
+            }
+          ]
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "plumbing-sanitary",
+      "itemId": "sanitary",
+      "brands": [
+        {
+          "name": "Jaquar",
+          "url": "https://www.jaquar.com",
+          "kind": "category-page",
+          "note": "Wall-hung rimless water closets and vanity basins"
+        },
+        {
+          "name": "Kohler India",
+          "url": "https://www.kohler.co.in",
+          "kind": "category-page",
+          "note": "Intelligent toilets and Veil sanitary collection"
+        },
+        {
+          "name": "Hindware Homes",
+          "url": "https://www.hindware.com",
+          "kind": "category-page",
+          "note": "Italian collection rimless WCs and wash basins"
+        },
+        {
+          "name": "Cera India",
+          "url": "https://www.cera-india.com",
+          "kind": "category-page",
+          "note": "Glazed vitreous china sanitaryware sets"
+        },
+        {
+          "name": "Parryware",
+          "url": "https://www.parryware.in",
+          "kind": "category-page",
+          "note": "Contemporary wall-hung and floor-mounted WCs"
+        },
+        {
+          "name": "TOTO India",
+          "url": "https://in.toto.com",
+          "kind": "brand-home",
+          "note": "Washlet electronic bidet and rimless sanitaryware"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "plumbing-sanitary",
+      "itemId": "cp-fittings",
+      "brands": [
+        {
+          "name": "Jaquar",
+          "url": "https://www.jaquar.com",
+          "kind": "category-page",
+          "note": "Basin mixers, diverters and rain showers"
+        },
+        {
+          "name": "Grohe India",
+          "url": "https://www.grohe.co.in",
+          "kind": "brand-home",
+          "note": "Thermostatic shower systems and precision faucets"
+        },
+        {
+          "name": "Kohler India",
+          "url": "https://www.kohler.co.in",
+          "kind": "category-page",
+          "note": "Statement shower heads and Purist taps"
+        },
+        {
+          "name": "Hindware Homes",
+          "url": "https://www.hindware.com",
+          "kind": "category-page",
+          "note": "Brass chrome-plated faucets and rain showers"
+        },
+        {
+          "name": "Cera India",
+          "url": "https://www.cera-india.com",
+          "kind": "category-page",
+          "note": "Quarter turn CP basin and sink mixers"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "plumbing-sanitary",
+      "itemId": "water-pipes",
+      "brands": [
+        {
+          "name": "Astral Pipes",
+          "url": "https://www.astralpipes.com",
+          "kind": "category-page",
+          "note": "Astral CPVC Pro hot and cold water plumbing"
+        },
+        {
+          "name": "Supreme Industries",
+          "url": "https://www.supreme.co.in",
+          "kind": "category-page",
+          "note": "Lifeline CPVC and composite piping systems"
+        },
+        {
+          "name": "Finolex Pipes",
+          "url": "https://www.finolexpipes.com",
+          "kind": "brand-home",
+          "note": "CPVC and lead-free UPVC potable water pipes"
+        },
+        {
+          "name": "Ashirvad Pipes",
+          "url": "https://www.ashirvad.com",
+          "kind": "brand-home",
+          "note": "FlowGuard Plus chlorinated polyvinyl chloride pipes"
+        },
+        {
+          "name": "Prince Pipes",
+          "url": "https://www.princepipes.com",
+          "kind": "brand-home",
+          "note": "Flowpact CPVC and Smartfit UPVC pipe systems"
+        },
+        {
+          "name": "Kisan Mouldings",
+          "url": "https://www.kisangroup.com",
+          "kind": "brand-home",
+          "note": "CPVC and UPVC pressure piping"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "plumbing-sanitary",
+      "itemId": "water-heater",
+      "brands": [
+        {
+          "name": "Racold",
+          "url": "https://www.racold.com",
+          "kind": "brand-home",
+          "note": "Titanium Plus storage water heaters"
+        },
+        {
+          "name": "A. O. Smith India",
+          "url": "https://www.aosmithindia.com",
+          "kind": "brand-home",
+          "note": "Blue Diamond glass-lined geysers"
+        },
+        {
+          "name": "Havells India",
+          "url": "https://www.havells.com",
+          "kind": "category-page",
+          "note": "Adonia and Monza storage water heaters"
+        },
+        {
+          "name": "Crompton",
+          "url": "https://www.crompton.co.in",
+          "kind": "category-page",
+          "note": "Arno Neo and Solarium energy-saving geysers"
+        },
+        {
+          "name": "Bajaj Electricals",
+          "url": "https://www.bajajelectricals.com",
+          "kind": "category-page",
+          "note": "Compacto and New Shakti water geysers"
+        },
+        {
+          "name": "V-Guard",
+          "url": "https://www.vguard.in",
+          "kind": "category-page",
+          "note": "Pebble and Iris vitreous enamel storage heaters"
+        },
+        {
+          "name": "Venus Home Appliances",
+          "url": "https://www.venushomeappliances.com",
+          "kind": "brand-home",
+          "note": "Porcelain enamel tank water heaters"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "plumbing-sanitary",
+      "itemId": "water-tanks",
+      "brands": [
+        {
+          "name": "Sintex",
+          "url": "https://www.sintexonline.com",
+          "kind": "brand-home",
+          "note": "Triple-layer and antibiotic overhead water tanks"
+        },
+        {
+          "name": "Supreme Industries",
+          "url": "https://www.supreme.co.in",
+          "kind": "category-page",
+          "note": "Weather-shield multi-layer plastic water tanks"
+        },
+        {
+          "name": "Plasto",
+          "url": "https://www.rcplasto.com",
+          "kind": "brand-home",
+          "note": "6-layer gold water storage tanks"
+        },
+        {
+          "name": "Kisan Mouldings",
+          "url": "https://www.kisangroup.com",
+          "kind": "category-page",
+          "note": "Overhead roto-moulded water storage tanks"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "electrical",
+      "brands": [
+        {
+          "name": "Polycab India",
+          "url": "https://polycab.com",
+          "kind": "brand-home",
+          "note": "Wires, cables, switches, lighting and conduits"
+        },
+        {
+          "name": "Havells India",
+          "url": "https://www.havells.com",
+          "kind": "brand-home",
+          "note": "Crabtree switches, house wiring and lighting"
+        },
+        {
+          "name": "Legrand India",
+          "url": "https://www.legrand.co.in",
+          "kind": "brand-home",
+          "note": "Modular switches, MCBs and smart automation"
+        },
+        {
+          "name": "Schneider Electric",
+          "url": "https://www.se.com/in/en",
+          "kind": "brand-home",
+          "note": "AvatarOn switches and residential protection"
+        },
+        {
+          "name": "Anchor by Panasonic",
+          "url": "https://lsin.panasonic.com",
+          "kind": "brand-home",
+          "note": "Roma modular switches and electrical accessories"
+        },
+        {
+          "name": "Finolex Cables",
+          "url": "https://www.finolex.com",
+          "kind": "brand-home",
+          "note": "Flame retardant low smoke (FRLS) electrical wiring"
+        }
+      ],
+      "relatedMaterials": [
+        {
+          "label": "Conduit pipes & electrical tubes",
+          "brands": [
+            {
+              "name": "Precision Pipes",
+              "url": "https://www.precisionpipes.com",
+              "kind": "brand-home",
+              "note": "Rigid PVC conduit pipes and fitting accessories"
+            },
+            {
+              "name": "Supreme Industries",
+              "url": "https://www.supreme.co.in",
+              "kind": "category-page",
+              "note": "Flame retardant electrical conduit pipes"
+            },
+            {
+              "name": "Finolex Cables",
+              "url": "https://www.finolex.com",
+              "kind": "category-page",
+              "note": "Concealed PVC wiring conduits"
+            },
+            {
+              "name": "Polycab India",
+              "url": "https://polycab.com",
+              "kind": "category-page",
+              "note": "Polyflex and rigid electrical conduits"
+            },
+            {
+              "name": "Astral Pipes",
+              "url": "https://www.astralpipes.com",
+              "kind": "category-page",
+              "note": "WireGuard electrical conduit pipes"
+            }
+          ]
+        },
+        {
+          "label": "Junction boxes, MCB & RCCB",
+          "brands": [
+            {
+              "name": "Legrand India",
+              "url": "https://www.legrand.co.in",
+              "kind": "category-page",
+              "note": "DX3 MCBs, RCCBs and metal distribution boxes"
+            },
+            {
+              "name": "Schneider Electric",
+              "url": "https://www.se.com/in/en",
+              "kind": "category-page",
+              "note": "Acti9 miniature circuit breakers and residual current isolators"
+            },
+            {
+              "name": "Havells India",
+              "url": "https://www.havells.com",
+              "kind": "category-page",
+              "note": "Euroload MCBs and isolators"
+            }
+          ]
+        },
+        {
+          "label": "LED tube lights / battens",
+          "brands": [
+            {
+              "name": "Philips Lighting India",
+              "url": "https://www.lighting.philips.co.in",
+              "kind": "category-page",
+              "note": "Bright light LED battens and slim tube lights"
+            },
+            {
+              "name": "Wipro Lighting",
+              "url": "https://wiprolighting.com",
+              "kind": "category-page",
+              "note": "Garnet high-lumen LED tube battens"
+            },
+            {
+              "name": "Syska",
+              "url": "https://syska.co.in",
+              "kind": "category-page",
+              "note": "T5 and T8 LED tube lights"
+            },
+            {
+              "name": "Havells India",
+              "url": "https://www.havells.com",
+              "kind": "category-page",
+              "note": "Adore and Glaze LED linear fixtures"
+            },
+            {
+              "name": "Crompton",
+              "url": "https://www.crompton.co.in",
+              "kind": "category-page",
+              "note": "Laser Ray surface LED battens"
+            }
+          ]
+        },
+        {
+          "label": "Wires & cable accessories",
+          "brands": [
+            {
+              "name": "Polycab India",
+              "url": "https://polycab.com",
+              "kind": "category-page",
+              "note": "Insulation tapes, wire saddles and cable ties"
+            },
+            {
+              "name": "Havells India",
+              "url": "https://www.havells.com",
+              "kind": "category-page",
+              "note": "Wiring accessories and cable clips"
+            }
+          ]
+        },
+        {
+          "label": "Smart switches / dimmers",
+          "brands": [
+            {
+              "name": "Legrand India",
+              "url": "https://www.legrand.co.in",
+              "kind": "category-page",
+              "note": "Arteor with Netatmo connected smart switches"
+            },
+            {
+              "name": "Schneider Electric",
+              "url": "https://www.se.com/in/en",
+              "kind": "category-page",
+              "note": "Wiser smart home wireless switches"
+            },
+            {
+              "name": "Havells India",
+              "url": "https://www.havells.com",
+              "kind": "category-page",
+              "note": "Crabtree smart automation controls"
+            }
+          ]
+        },
+        {
+          "label": "Doorbells & outdoor fittings",
+          "brands": [
+            {
+              "name": "Havells India",
+              "url": "https://www.havells.com",
+              "kind": "category-page",
+              "note": "Electronic polyphonic door chimes"
+            },
+            {
+              "name": "Legrand India",
+              "url": "https://www.legrand.co.in",
+              "kind": "category-page",
+              "note": "Weatherproof outdoor sockets & bell pushes"
+            }
+          ]
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "electrical",
+      "itemId": "wiring",
+      "brands": [
+        {
+          "name": "Polycab India",
+          "url": "https://polycab.com",
+          "kind": "category-page",
+          "note": "Green Wire FRLS copper house wiring"
+        },
+        {
+          "name": "Havells India",
+          "url": "https://www.havells.com",
+          "kind": "category-page",
+          "note": "Life Line Plus S3 HRFR wires"
+        },
+        {
+          "name": "Finolex Cables",
+          "url": "https://www.finolex.com",
+          "kind": "category-page",
+          "note": "Flame retardant electrical house wires"
+        },
+        {
+          "name": "KEI Industries",
+          "url": "https://www.kei-ind.com",
+          "kind": "brand-home",
+          "note": "Con घर copper domestic building cables"
+        },
+        {
+          "name": "RR Kabel",
+          "url": "https://www.rrkabel.com",
+          "kind": "brand-home",
+          "note": "Superex FR fire-resistant home wires"
+        },
+        {
+          "name": "Anchor by Panasonic",
+          "url": "https://lsin.panasonic.com",
+          "kind": "category-page",
+          "note": "Advance FR-LSH house wires"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "electrical",
+      "itemId": "switches",
+      "brands": [
+        {
+          "name": "Legrand India",
+          "url": "https://www.legrand.co.in",
+          "kind": "category-page",
+          "note": "Myrius & Arteor modular switches"
+        },
+        {
+          "name": "Schneider Electric",
+          "url": "https://www.se.com/in/en",
+          "kind": "category-page",
+          "note": "Livia & AvatarOn designer switches"
+        },
+        {
+          "name": "Havells India",
+          "url": "https://www.havells.com",
+          "kind": "category-page",
+          "note": "Crabtree Verona & Athena modular switches"
+        },
+        {
+          "name": "Anchor by Panasonic",
+          "url": "https://lsin.panasonic.com",
+          "kind": "category-page",
+          "note": "Roma Classic and Urban modular switches"
+        },
+        {
+          "name": "GM Modular",
+          "url": "https://gmmodular.com",
+          "kind": "brand-home",
+          "note": "G-Nine & Four-Five switch plates"
+        },
+        {
+          "name": "Wipro",
+          "url": "https://wiprolighting.com",
+          "kind": "category-page",
+          "note": "North-West modular switch ranges"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "electrical",
+      "itemId": "light-fittings",
+      "brands": [
+        {
+          "name": "Philips Lighting India",
+          "url": "https://www.lighting.philips.co.in",
+          "kind": "brand-home",
+          "note": "Downlights, panel lights and decorative fixtures"
+        },
+        {
+          "name": "Wipro Lighting",
+          "url": "https://wiprolighting.com",
+          "kind": "brand-home",
+          "note": "Recessed architectural downlights & COB spots"
+        },
+        {
+          "name": "Syska",
+          "url": "https://syska.co.in",
+          "kind": "brand-home",
+          "note": "LED slim panel lights and spotlights"
+        },
+        {
+          "name": "Havells India",
+          "url": "https://www.havells.com",
+          "kind": "category-page",
+          "note": "Adore & Endura ceiling downlights"
+        },
+        {
+          "name": "Crompton",
+          "url": "https://www.crompton.co.in",
+          "kind": "category-page",
+          "note": "Star Lord & Galaxy recessed panels"
+        },
+        {
+          "name": "Jaquar",
+          "url": "https://www.jaquar.com",
+          "kind": "category-page",
+          "note": "Architectural & decorative indoor lighting"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "electrical",
+      "itemId": "fans",
+      "brands": [
+        {
+          "name": "Havells India",
+          "url": "https://www.havells.com",
+          "kind": "category-page",
+          "note": "Stealth and Enticer BLDC decorative ceiling fans"
+        },
+        {
+          "name": "Crompton",
+          "url": "https://www.crompton.co.in",
+          "kind": "category-page",
+          "note": "SilentPro and Energion energy-saving fans"
+        },
+        {
+          "name": "Orient Electric",
+          "url": "https://www.orientelectric.com",
+          "kind": "brand-home",
+          "note": "Aeroquiet and inverter BLDC ceiling fans"
+        },
+        {
+          "name": "Atomberg",
+          "url": "https://atomberg.com",
+          "kind": "brand-home",
+          "note": "Renesa & Studio smart BLDC ceiling fans"
+        },
+        {
+          "name": "Usha International",
+          "url": "https://www.usha.com",
+          "kind": "category-page",
+          "note": "Striker & Fontana decorative fans"
+        },
+        {
+          "name": "Bajaj Electricals",
+          "url": "https://www.bajajelectricals.com",
+          "kind": "category-page",
+          "note": "MaxAir & Frore BLDC fans"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "electrical",
+      "itemId": "distribution-board",
+      "brands": [
+        {
+          "name": "Legrand India",
+          "url": "https://www.legrand.co.in",
+          "kind": "category-page",
+          "note": "Practibox and Ekinoxe3 distribution boards"
+        },
+        {
+          "name": "Schneider Electric",
+          "url": "https://www.se.com/in/en",
+          "kind": "category-page",
+          "note": "Mini Kaedra and Acti9 DB enclosures"
+        },
+        {
+          "name": "Havells India",
+          "url": "https://www.havells.com",
+          "kind": "category-page",
+          "note": "QVE Plus sheet metal distribution boards"
+        },
+        {
+          "name": "ABB India",
+          "url": "https://new.abb.com",
+          "kind": "brand-home",
+          "note": "System pro M compact distribution consumer units"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "electrical",
+      "itemId": "earthing",
+      "brands": [
+        {
+          "name": "Ashlok",
+          "url": "https://www.ashlok.com",
+          "kind": "brand-home",
+          "note": "Safe chemical earthing electrodes and compound"
+        },
+        {
+          "name": "Legrand India",
+          "url": "https://www.legrand.co.in",
+          "kind": "category-page",
+          "note": "Chemical earthing rods and grounding"
+        },
+        {
+          "name": "Havells India",
+          "url": "https://www.havells.com",
+          "kind": "category-page",
+          "note": "Copper bonded grounding electrodes"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "false-ceiling",
+      "itemId": "false-ceiling",
+      "brands": [
+        {
+          "name": "Saint-Gobain Gyproc",
+          "url": "https://www.gyproc.in",
+          "kind": "brand-home",
+          "note": "Gyproc plasterboards & false ceiling channel grids"
+        },
+        {
+          "name": "Knauf India",
+          "url": "https://www.knauf.com",
+          "kind": "brand-home",
+          "note": "Standard & acoustic gypsum ceiling boards"
+        },
+        {
+          "name": "Armstrong Ceilings",
+          "url": "https://www.armstrongceilings.in",
+          "kind": "brand-home",
+          "note": "Mineral fibre & acoustic metal ceiling panels"
+        },
+        {
+          "name": "Everest Industries",
+          "url": "https://www.everestind.com",
+          "kind": "brand-home",
+          "note": "Fibre cement false ceiling boards"
+        }
+      ],
+      "relatedMaterials": [
+        {
+          "label": "Ceiling lights & cove lights",
+          "brands": [
+            {
+              "name": "Philips Lighting India",
+              "url": "https://www.lighting.philips.co.in",
+              "kind": "category-page",
+              "note": "Linear cove light LED strips and profile channels"
+            },
+            {
+              "name": "Wipro Lighting",
+              "url": "https://wiprolighting.com",
+              "kind": "category-page",
+              "note": "Cove lighting strips and concealed drivers"
+            },
+            {
+              "name": "Syska",
+              "url": "https://syska.co.in",
+              "kind": "category-page",
+              "note": "Flexible waterproof LED strip lights"
+            },
+            {
+              "name": "Havells India",
+              "url": "https://www.havells.com",
+              "kind": "category-page",
+              "note": "Decorative LED strip lights and spot luminaires"
+            }
+          ]
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "roof-exterior",
+      "brands": [
+        {
+          "name": "Tata BlueScope Steel",
+          "url": "https://tatabluescopesteel.com",
+          "kind": "brand-home",
+          "note": "Colorbond coated steel roofing sheets"
+        },
+        {
+          "name": "Everest Industries",
+          "url": "https://www.everestind.com",
+          "kind": "category-page",
+          "note": "Corrugated roofing and cladding sheets"
+        },
+        {
+          "name": "Asian Paints",
+          "url": "https://www.asianpaints.com",
+          "kind": "category-page",
+          "note": "Apex Floor Guard and roof heat barrier paints"
+        },
+        {
+          "name": "Dr. Fixit",
+          "url": "https://www.drfixit.co.in",
+          "kind": "category-page",
+          "note": "Roofseal heat-reflective elastomeric coating"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "external-works",
+      "brands": [
+        {
+          "name": "Kajaria Ceramics",
+          "url": "https://www.kajariaceramics.com",
+          "kind": "category-page",
+          "note": "Exterior vitrified paving and driveway tiles"
+        },
+        {
+          "name": "Somany Ceramics",
+          "url": "https://www.somanyceramics.com",
+          "kind": "category-page",
+          "note": "Duragres heavy-duty exterior parking pavers"
+        },
+        {
+          "name": "Orientbell Tiles",
+          "url": "https://www.orientbell.com",
+          "kind": "category-page",
+          "note": "Punch & matte outdoor pavers"
+        },
+        {
+          "name": "UltraTech Cement",
+          "url": "https://www.ultratechcement.com",
+          "kind": "category-page",
+          "note": "Concrete interlocking pavers & kerbstones"
+        },
+        {
+          "name": "Hayward Pool",
+          "url": "https://www.hayward.com",
+          "kind": "brand-home",
+          "note": "Swimming pool filtration systems & pumps"
+        },
+        {
+          "name": "Pentair",
+          "url": "https://www.pentair.com",
+          "kind": "brand-home",
+          "note": "Pool automation, water filtration and sanitization"
+        },
+        {
+          "name": "Ugaoo",
+          "url": "https://www.ugaoo.com",
+          "kind": "brand-home",
+          "note": "Garden plants, soil mixes and lawn turf"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "extras",
+      "brands": [
+        {
+          "name": "Godrej Interio",
+          "url": "https://www.godrejinterio.com",
+          "kind": "brand-home",
+          "note": "Full home bespoke interior turnkey solutions"
+        },
+        {
+          "name": "Pepperfry",
+          "url": "https://www.pepperfry.com",
+          "kind": "brand-home",
+          "note": "Curated furniture and decor collections"
+        },
+        {
+          "name": "Livspace",
+          "url": "https://www.livspace.com/in",
+          "kind": "brand-home",
+          "note": "Turnkey residential interior design"
+        },
+        {
+          "name": "Daikin India",
+          "url": "https://www.daikinindia.com",
+          "kind": "brand-home",
+          "note": "Inverter split and VRV central air-conditioning"
+        },
+        {
+          "name": "Voltas",
+          "url": "https://www.voltas.com",
+          "kind": "brand-home",
+          "note": "Residential inverter split and cassette air-conditioners"
+        },
+        {
+          "name": "Blue Star",
+          "url": "https://www.bluestarindia.com",
+          "kind": "brand-home",
+          "note": "Energy-efficient residential inverter ACs"
+        },
+        {
+          "name": "CP Plus",
+          "url": "https://www.cpplusworld.com",
+          "kind": "brand-home",
+          "note": "HD CCTV cameras, NVRs and smart IP cameras"
+        },
+        {
+          "name": "Hikvision India",
+          "url": "https://www.hikvisionindia.com",
+          "kind": "brand-home",
+          "note": "Smart surveillance and video intercom security"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "extras",
+      "itemId": "solar",
+      "brands": [
+        {
+          "name": "Tata Power Solar",
+          "url": "https://www.tatapowersolar.com",
+          "kind": "brand-home",
+          "note": "Rooftop solar PV solutions and microinverters"
+        },
+        {
+          "name": "Waaree Energies",
+          "url": "https://www.waaree.com",
+          "kind": "brand-home",
+          "note": "Monocrystalline & bifacial solar panels"
+        },
+        {
+          "name": "Adani Solar",
+          "url": "https://www.adanisolar.com",
+          "kind": "brand-home",
+          "note": "Tier-1 PV modules and solar cells"
+        },
+        {
+          "name": "Vikram Solar",
+          "url": "https://www.vikramsolar.com",
+          "kind": "brand-home",
+          "note": "High-efficiency half-cut solar panels"
+        },
+        {
+          "name": "Loom Solar",
+          "url": "https://www.loomsolar.com",
+          "kind": "brand-home",
+          "note": "Mono perc and AC modules for residential roofs"
+        },
+        {
+          "name": "PM Surya Ghar",
+          "url": "https://pmsuryaghar.gov.in",
+          "kind": "official-reference",
+          "note": "Official Ministry of New & Renewable Energy rooftop subsidy portal"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    },
+    {
+      "groupId": "fees-contract",
+      "brands": [
+        {
+          "name": "Council of Architecture",
+          "url": "https://www.coa.gov.in",
+          "kind": "official-reference",
+          "note": "Architectural practice standards & fee scale guidance"
+        },
+        {
+          "name": "Institute of Indian Interior Designers",
+          "url": "https://www.iiid.in",
+          "kind": "official-reference",
+          "note": "Professional interior design charter & practice"
+        },
+        {
+          "name": "Pune Municipal Corporation",
+          "url": "https://www.pmc.gov.in",
+          "kind": "official-reference",
+          "note": "Building permission & water connection authority"
+        },
+        {
+          "name": "Pimpri Chinchwad Municipal Corporation",
+          "url": "https://www.pcmcindia.gov.in",
+          "kind": "official-reference",
+          "note": "Town planning approvals & municipal services"
+        },
+        {
+          "name": "MahaRERA",
+          "url": "https://maharera.maharashtra.gov.in",
+          "kind": "official-reference",
+          "note": "Real estate regulatory authority compliance"
+        },
+        {
+          "name": "MSEDCL",
+          "url": "https://www.mahadiscom.in",
+          "kind": "official-reference",
+          "note": "Maharashtra state electricity domestic service connections"
+        },
+        {
+          "name": "GST Portal",
+          "url": "https://www.gst.gov.in",
+          "kind": "official-reference",
+          "note": "Official goods and services tax portal"
+        },
+        {
+          "name": "Central Public Works Department",
+          "url": "https://cpwd.gov.in",
+          "kind": "official-reference",
+          "note": "General conditions of contract & schedule of rates"
+        },
+        {
+          "name": "Indian Buildings Congress",
+          "url": "https://ibc.org.in",
+          "kind": "official-reference",
+          "note": "National building construction norms"
+        }
+      ],
+      "verifiedAt": "2026-10-27"
+    }
+  ],
+  "noLinkNeeded": [
+    {
+      "itemId": "overhead",
+      "reason": "Internal contractor overhead and management margin; no external manufacturer or regulatory reference."
+    },
+    {
+      "itemId": "contingency",
+      "reason": "Internal budget risk contingency; no external manufacturer or regulatory reference."
+    }
+  ]
+}

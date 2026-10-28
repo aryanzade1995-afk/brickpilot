@@ -3,6 +3,7 @@ import { autoTable } from 'jspdf-autotable'
 import type { SpecificationRow } from '../cost/schedule.ts'
 import type { CostEstimate } from '../cost/boq.ts'
 import { appendSolarSchedule } from './solarSchedule.ts'
+import { referenceBrandsForBoq } from '../finishes/brandLinks.ts'
 
 export type SheetEstimate = Pick<CostEstimate, 'solar' | 'label' | 'qualification' | 'expected' | 'total' | 'ratePerSqft' | 'rateVersion' | 'tradeTotals' | 'included' | 'excluded' | 'assumptions' | 'sources'>
 export type SpecSheetData = { projectName: string; schedule: SpecificationRow[]; cost: SheetEstimate; photos?: Record<string, string> }
@@ -58,7 +59,8 @@ export async function buildSpecSheetPdf(data: SpecSheetData): Promise<Blob> {
   doc.text(`${rupees(data.cost.expected)} expected · ${rupees(data.cost.total.low)} – ${rupees(data.cost.total.high)}`, 42, y); y += 18
   doc.text(`${rupees(data.cost.ratePerSqft)} / sq ft`, 42, y); y += 20
   autoTable(doc, { startY: y, margin: { left: 42, right: 42, bottom: 60 }, head: [['Trade', 'Amount (INR)', 'Share of works']], body: data.cost.tradeTotals.map(t => [t.trade, rupees(t.amount), `${(t.share * 100).toFixed(1)}%`]), styles: { fontSize: 9 }, headStyles: { fillColor: [51, 51, 51] } })
-  const notes = [...data.cost.assumptions, ...data.cost.excluded.map(v => `Excluded: ${v}`), ...data.cost.sources.map(v => `Source: ${v}`)]
+  const refBrands = 'boq' in data.cost ? referenceBrandsForBoq(data.cost as CostEstimate) : []
+  const notes = [...data.cost.assumptions, ...data.cost.excluded.map(v => `Excluded: ${v}`), ...data.cost.sources.map(v => `Source: ${v}`), ...refBrands.map(b => `Reference brand: ${b.name} (${b.url})`)]
   if (data.cost.solar) {
     const solar = data.cost.solar
     doc.addPage(); doc.setFont('helvetica', 'bold').setFontSize(12); doc.text('ROOFTOP SOLAR ASSESSMENT', 42, 50)
