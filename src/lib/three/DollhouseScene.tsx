@@ -218,7 +218,7 @@ function patternTexture(pattern: string, color: string, aniso: number) {
   return texture
 }
 
-export function DollhouseEnv({ doll }: { doll: Dollhouse }) {
+export function DollhouseEnv({ doll, contactShadows = true }: { doll: Dollhouse; contactShadows?: boolean }) {
   const span = Math.max(doll.footprint.w, doll.footprint.d, doll.stats.storeys * doll.floorHeight)
   const [cx, , cz] = doll.center
   // high and only lightly raked — a soft top light keeps the far rooms from blowing out
@@ -256,7 +256,7 @@ export function DollhouseEnv({ doll }: { doll: Dollhouse }) {
         <planeGeometry args={[doll.bounds.w * 10, doll.bounds.d * 10]} />
         <meshStandardMaterial color="#403a32" roughness={0.98} />
       </mesh>
-      <ContactShadows position={[cx, 0.03, cz]} scale={span * 2.6} far={span} opacity={0.55} blur={2.4} resolution={1024} color="#000000" />
+      {contactShadows && <ContactShadows position={[cx, 0.03, cz]} scale={span * 2.6} far={span} opacity={0.55} blur={2.4} resolution={1024} color="#000000" />}
     </>
   )
 }

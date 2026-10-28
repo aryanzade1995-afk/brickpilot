@@ -281,9 +281,9 @@ function assemble(brief: Brief, pinned: PinnedDir | null, inspiration: Inspirati
   }
   if(pinned?.balconyExtent==='full-slab')plan={...plan,balconyExtent:'full-slab'}
   if (!validate(plan).hardChecksPass) return { result: resultForPlan(plan), history, debug: [], notice: null, layout: layoutUsed }
-  if (pinned) {
+  if (pinned || layoutUsed?.exteriorSeed !== undefined) {
     // Loading/pinning/navigation is an exact replay, not another new candidate.
-    return { ...replayResult(plan, pinned.seed, inspiration), history, layout: layoutUsed }
+    return { ...replayResult(plan, layoutUsed?.exteriorSeed ?? pinned!.seed, inspiration), history, layout: layoutUsed }
   }
   const selected = generateDistinct(plan, brief.variation + 1, inspiration, history, limits)
   return { result: selected.accepted?.candidate ?? { ...resultForPlan(plan), shapeStatus: 'rejected' as const },
@@ -303,7 +303,10 @@ function runPlanOp(get: () => StudioState, set: Setter, run: (layout: LayoutDoc,
   const start = before ?? extractLayout(plan)
   const res = run(start, plan)
   if (!res.ok) return res
-  let layout = res.layout
+  const source=cur.result?.buildingModel??createBuildingModel(plan)
+  let layout:LayoutDoc = {...res.layout,
+    exteriorIdentity:cur.layout?.exteriorIdentity??cur.result?.design.exteriorIdentity??{planId:source.exteriorSeedPlanId??source.planId,compositionId:source.compositionId??source.planId},
+    exteriorSeed:cur.layout?.exteriorSeed??cur.result?.villaDesignDNA?.seed??cur.pinned?.seed??plan.dna.seed}
   let message = res.message
   let affected = res.affected
   if (opts.autoReplan) {

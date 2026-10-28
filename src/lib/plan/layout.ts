@@ -9,6 +9,7 @@ import { reachability } from '../engine/planner/index.ts'
 import { placeSiteFeatures } from '../engine/planner/siteFeatures.ts'
 import { withEmergencyExit } from '../engine/safety.ts'
 import { beamDepthMm, exposeStructuralSizing } from '../engine/structuralSizing.ts'
+import { createBuildingModel } from '../engine/buildingModel.ts'
 import { FIXED_KINDS, constraintsOf, typeOfKind, type RoomConstraints, type RoomType } from './roomTypes.ts'
 
 /* ------------------------------------------------------------------ *
@@ -45,6 +46,7 @@ export type Outline = { N: number; S: number; E: number; W: number }
 export const noOutline = (): Outline => ({ N: 0, S: 0, E: 0, W: 0 })
 export const hasOutline = (o?: Outline) => !!o && (o.N !== 0 || o.S !== 0 || o.E !== 0 || o.W !== 0)
 export type LayoutDoc = { version: 1; signature: string; floors: FloorLayout[]; outline?: Outline
+  exteriorIdentity?: Design['exteriorIdentity']; exteriorSeed?: number
   /** site features the person placed by hand (driveway, yards, pool, sit-out); the rest follow the house automatically */
   features?: Partial<Record<SiteFeature['kind'], Rect>> }
 
@@ -129,8 +131,11 @@ export const layoutSignature = (plan: Design) => plan.id
 /** every enclosed room of the plan as an editable object */
 export function extractLayout(plan: Design): LayoutDoc {
   const owners = ownerMap(plan.model)
+  const building=createBuildingModel(plan)
   return {
     version: 1,
+    exteriorIdentity:plan.exteriorIdentity??{planId:building.exteriorSeedPlanId??building.planId,compositionId:building.compositionId??building.planId},
+    exteriorSeed:plan.dna.seed,
     signature: layoutSignature(plan),
     outline: noOutline(),
     floors: plan.floors.map((floor) => ({
@@ -317,7 +322,9 @@ export function applyLayout(plan: Design, layout: LayoutDoc): Design {
   const moved = hasOutline(O)
   const B = baseBox(plan)
   const baseFloors = moved ? plan.floors.map((f) => shiftFloor(f, B, O)) : plan.floors
-  const draft: Design = { ...plan, model, userEdited: true,
+    const source=createBuildingModel(plan)
+    const exteriorIdentity=layout.exteriorIdentity??plan.exteriorIdentity??{planId:source.exteriorSeedPlanId??source.planId,compositionId:source.compositionId??source.planId}
+    const draft: Design = { ...plan, model, userEdited: true, exteriorIdentity,
     ...(moved && plan.structure ? { structure: { ...plan.structure, axes: plan.structure.axes.map((a) => ({ ...a, at: a.orient === 'v' ? (near(a.at, B.x) ? a.at - O.W : near(a.at, B.x + B.w) ? a.at + O.E : a.at) : (near(a.at, B.y) ? a.at - O.N : near(a.at, B.y + B.h) ? a.at + O.S : a.at) })) } } : {}) }
   const floors: FloorPlan[] = []
   for (const [i, floor] of baseFloors.entries()) {

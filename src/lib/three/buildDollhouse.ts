@@ -89,7 +89,7 @@ const rand = (seed: number) => {
  *              a clean single-floor cut-away; otherwise every storey is
  *              stacked as trays with an open band between.
  */
-export function buildDollhouse(design: Design, only?: number, dresser?: Dresser): Dollhouse {
+export function buildDollhouse(design: Design, only?: number, dresser?: Dresser, options: { fullHeightOpenings?: boolean } = {}): Dollhouse {
   const { model } = design
   const isolate = only !== undefined
   const plotW = model.plot.width
@@ -210,7 +210,8 @@ export function buildDollhouse(design: Design, only?: number, dresser?: Dresser)
           framedDoors.add(key)
           const dw = m(d.width)
           const isEntry = d.kind === 'entry'
-          const hgt = Math.min(CUT, isEntry ? 2.1 : 2.02)
+          const doorHeight = (d.head ?? (isEntry ? 2100 : 2020)) / 1000
+          const hgt = options.fullHeightOpenings ? doorHeight : Math.min(CUT, doorHeight)
           const leafT = 0.045
           const jz = baseY + hgt / 2
           if (horiz) {
@@ -219,6 +220,7 @@ export function buildDollhouse(design: Design, only?: number, dresser?: Dresser)
             push(`door-j0-${key}`, 'door', [fx - dw / 2, jz, fy], [JAMB, hgt, t + 0.03], dl)
             push(`door-j1-${key}`, 'door', [fx + dw / 2, jz, fy], [JAMB, hgt, t + 0.03], dl)
             push(`door-sill-${key}`, 'door', [fx, baseY + 0.01, fy], [dw, 0.03, t + 0.12], dl)
+            if (options.fullHeightOpenings) push(`door-head-${key}`, 'door', [fx, baseY + hgt, fy], [dw + JAMB, JAMB, t + 0.03], dl)
             // the leaf, hinged at one jamb and swung fully open into the room
             const hingeX = fx + (d.hinge === 'b' ? dw / 2 : -dw / 2)
             if (d.leaf !== false) push(`door-leaf-${key}`, 'door', [hingeX, jz, fy + (d.swing ?? 1) * (dw / 2 + leafT)], [leafT, hgt - 0.06, dw], dl)
@@ -229,6 +231,7 @@ export function buildDollhouse(design: Design, only?: number, dresser?: Dresser)
             push(`door-j0-${key}`, 'door', [fx, jz, fy - dw / 2], [t + 0.03, hgt, JAMB], dl)
             push(`door-j1-${key}`, 'door', [fx, jz, fy + dw / 2], [t + 0.03, hgt, JAMB], dl)
             push(`door-sill-${key}`, 'door', [fx, baseY + 0.01, fy], [t + 0.12, 0.03, dw], dl)
+            if (options.fullHeightOpenings) push(`door-head-${key}`, 'door', [fx, baseY + hgt, fy], [t + 0.03, JAMB, dw + JAMB], dl)
             const hingeZ = fy + (d.hinge === 'b' ? dw / 2 : -dw / 2)
             if (d.leaf !== false) push(`door-leaf-${key}`, 'door', [fx + (d.swing ?? 1) * (dw / 2 + leafT), jz, hingeZ], [dw, hgt - 0.06, leafT], dl)
             if (d.treatment === 'glazed-slide') push(`door-glass-${key}`, 'glass', [fx, jz, fy], [0.03, hgt - 0.06, dw])
@@ -236,16 +239,16 @@ export function buildDollhouse(design: Design, only?: number, dresser?: Dresser)
         }
       }
       // windows: the wall steps down to the sill, with glass and the chosen frame above it up to the cut
-      const windows: { s: number; e: number; sill: number }[] = []
+      const windows: { s: number; e: number; sill: number; head: number }[] = []
       for (const o of floor.openings) {
         if (o.kind !== 'window') continue
         const perp = horiz ? o.at.y : o.at.x, along = horiz ? o.at.x : o.at.y
         if ((o.orient === 'h') !== horiz || Math.abs(perp - fixed) > 240 || along < a0 - 200 || along > a1 + 200) continue
         const sill = (o.sill ?? 900) / 1000
-        if (sill > CUT - 0.08) continue
+        if (!options.fullHeightOpenings && sill > CUT - 0.08) continue
         const s = Math.max(a0, along - o.width / 2), e = Math.min(a1, along + o.width / 2)
         if (e - s < 200 || gaps.some(([gs, ge]) => gs < e && ge > s)) continue
-        windows.push({ s, e, sill })
+        windows.push({ s, e, sill, head: options.fullHeightOpenings ? (o.head ?? 2200) / 1000 : CUT })
       }
       for (const w2 of windows) gaps.push([w2.s, w2.e])
       gaps.sort((p, q) => p[0] - q[0])
@@ -257,14 +260,16 @@ export function buildDollhouse(design: Design, only?: number, dresser?: Dresser)
       }
       if (a1 - cursor > 120) segs.push([cursor, a1])
       segs.forEach(([s0, s1], si) => wallPiece(`w${L}-${i}-${si}`, horiz, fixed, s0, s1, 0, CUT, t))
-      windows.forEach(({ s, e, sill }, wi) => {
-        wallPiece(`w${L}-${i}-sill${wi}`, horiz, fixed, s, e, 0, sill, t)
-        const mid = (s + e) / 2, len = m(e - s), h = CUT - sill, cy = baseY + sill + h / 2
+      windows.forEach(({ s, e, sill, head }, wi) => {
+        wallPiece(`w${L}-${i}-sill${wi}`, horiz, fixed, s, e, 0, Math.min(sill,CUT), t)
+        const mid = (s + e) / 2, len = m(e - s), h = head - sill, cy = baseY + sill + h / 2
+        if (h <= 0) return
         const at = (along: number, y: number): [number, number, number] => (horiz ? [wx(along), y, wz(fixed)] : [wx(fixed), y, wz(along)])
         const sz = (along: number, hh: number, deep: number): [number, number, number] => (horiz ? [along, hh, deep] : [deep, hh, along])
         push(`win-glass-${L}-${i}-${wi}`, 'glass', at(mid, cy), sz(len, h, 0.02), house ? { look: house.glass } : undefined)
         const frame = house ? { look: house.frame } : undefined, thin = house?.slim ? 0.025 : 0.06
         push(`win-f-b-${L}-${i}-${wi}`, 'metal', at(mid, baseY + sill + thin / 2), sz(len, thin, 0.07), frame)
+        if (options.fullHeightOpenings) push(`win-f-t-${L}-${i}-${wi}`, 'metal', at(mid, baseY + head - thin / 2), sz(len, thin, 0.07), frame)
         push(`win-f-l-${L}-${i}-${wi}`, 'metal', at(s + thin * 500, cy), sz(thin, h, 0.07), frame)
         push(`win-f-r-${L}-${i}-${wi}`, 'metal', at(e - thin * 500, cy), sz(thin, h, 0.07), frame)
         if (house?.style !== 'fixed') push(`win-f-m-${L}-${i}-${wi}`, 'metal', at(mid, cy), sz(0.035, h, 0.07), frame)

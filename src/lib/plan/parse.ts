@@ -32,5 +32,7 @@ export function parseLayout(value: unknown): LayoutDoc | null {
   const outline = o && ['N', 'S', 'E', 'W'].every((k) => num(o[k])) ? { N: o.N as number, S: o.S as number, E: o.E as number, W: o.W as number } : undefined
   const feats = (v as { features?: Record<string, unknown> }).features
   const features = feats && typeof feats === 'object' ? Object.fromEntries(Object.entries(feats).filter(([, r]) => rect(r))) as LayoutDoc['features'] : undefined
-  return { version: 1, signature: v.signature, floors, ...(outline ? { outline } : {}), ...(features && Object.keys(features).length ? { features } : {}) }
+  const identity=v.exteriorIdentity
+  const exteriorIdentity=identity&&typeof identity.planId==='string'&&identity.planId.length<160&&typeof identity.compositionId==='string'&&identity.compositionId.length<160?{planId:identity.planId,compositionId:identity.compositionId}:undefined
+  return { version: 1, signature: v.signature, floors, ...(exteriorIdentity?{exteriorIdentity}:{}),...(Number.isSafeInteger(v.exteriorSeed)?{exteriorSeed:v.exteriorSeed}:{}), ...(outline ? { outline } : {}), ...(features && Object.keys(features).length ? { features } : {}) }
 }

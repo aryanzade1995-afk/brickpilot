@@ -18,15 +18,18 @@ export type SupplyFixture={id:string;key:string;floorId:string;roomId:string;poi
 /** Place suitable wall runs on actual wall centre planes. Where embedding
  * would hit a represented column, retain the source service-side bypass.
  * Every concealed chase/threshold crossing remains an unapproved proposal. */
-export function concealedWaterPath(points:ServicePoint[],model:UtilityFloor){
-  const snapped=points.map(p=>{
+export function concealedWaterPath(points:ServicePoint[],model:UtilityFloor,diameterMm=25,preserveEnds=false){
+  const snapped=points.map((p,i)=>{
+    if(preserveEnds&&(i===0||i===points.length-1))return p
     const walls=model.floor.walls.flatMap(w=>{
       const h=Math.abs(w.a.y-w.b.y)<.01,v=Math.abs(w.a.x-w.b.x)<.01
       const d=h?Math.abs(p.y-w.a.y):Math.abs(p.x-w.a.x)
       const along=h?p.x:p.y,lo=Math.min(h?w.a.x:w.a.y,h?w.b.x:w.b.y),hi=Math.max(h?w.a.x:w.a.y,h?w.b.x:w.b.y)
-      return (h||v)&&along>=lo&&along<=hi&&d<=w.thickness/2+65?[{p:{...p,...(h?{y:w.a.y}:{x:w.a.x})},d}]:[]
+      return (h||v)&&w.thickness>=diameterMm+40&&along>=lo&&along<=hi&&d<=w.thickness/2+65?[{p:{...p,...(h?{y:w.a.y}:{x:w.a.x})},d,h}]:[]
     }).sort((a,b)=>a.d-b.d)
-    return walls[0]?.p??p
+    // Both centre planes are needed at a corner, not just the closest wall.
+    const horizontal=walls.find(w=>w.h),vertical=walls.find(w=>!w.h)
+    return {...p,...(horizontal?{y:horizontal.p.y}:{}),...(vertical?{x:vertical.p.x}:{})}
   })
   const result=clean(snapped.flatMap((p,i)=>i?bridge(snapped[i-1],p).slice(1):[p]))
   const columns=(model.floor.columns??[]).map(c=>expandRect({x:c.at.x-c.size/2,y:c.at.y-c.size/2,w:c.size,h:c.size},20))
@@ -70,7 +73,7 @@ export function coordinateSupply(building:BuildingModel,source:VillaPlumbing,flo
     if(!network)continue
     const convert=(p:[number,number,number])=>({x:p[0]*1000,y:p[2]*1000,z:floor.elevationMm+p[1]*1000})
     for(const run of scene.pipes){
-      const points=concealedWaterPath(run.points.map(convert),model)
+      const points=concealedWaterPath(run.points.map(convert),model,run.diameter)
       pipes.push(pipe(`water:drawing:${floor.id}:${run.id}`,floor.id,null,run.diameter,points))
     }
     for(const inlet of scene.nodes.filter(n=>n.type==='supply_inlet'&&n.world)){
@@ -86,7 +89,9 @@ export function coordinateSupply(building:BuildingModel,source:VillaPlumbing,flo
       const candidates=perimeterRoutes(end,point,room.rect).filter(ps=>!ps.some((p,i)=>i&&roomColumns.some(r=>segmentHitsRect(ps[i-1],p,r))))
       const path=candidates.sort((a,b)=>drainLength(a)-drainLength(b))[0]??routeDrain(end,point,roomColumns,bounds)
       if(!path){issues.push(`${inlet.id}: no local feeder around columns.`);continue}
-      pipes.push(pipe(`water:floor-feed:${floor.id}`,floor.id,riser.shaftId,network.riserDiameterMm,clean([...path.map(p=>({...p,z:end.z})),point])))
+      const feed=clean([...path.map(p=>({...p,z:end.z})),point])
+      const concealed=concealedWaterPath(feed,model,network.riserDiameterMm,true)
+      pipes.push(pipe(`water:floor-feed:${floor.id}`,floor.id,riser.shaftId,network.riserDiameterMm,clear(concealed,network.riserDiameterMm/2)?concealed:feed))
     }
     for(const n of scene.nodes.filter(n=>n.type==='isolation_valve'&&n.world))valves.push(concealedWaterPath([convert(n.world!)],model)[0])
     for(const f of scene.fixtures){

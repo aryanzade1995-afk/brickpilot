@@ -7,11 +7,12 @@ import type {ConnectedDrainage} from './drainageNetwork.ts'
 import {interiorAsset,selectedInteriorModel,type ModelCategory} from '../interior-assets/catalogue.ts'
 import type {InteriorModelInstance} from '../interior-assets/placements.ts'
 import {planToThreeGlb} from '../solar/coordinates.ts'
+import {segmentHitsRect} from '../utilities/drainage.ts'
 
 export const FIXTURE_NAMES:Record<DrainageFixtureKind,string>={toilet:'Toilet',washbasin:'Washbasin',shower:'Shower',bathtub:'Bath',kitchen_sink:'Kitchen sink',washing_machine:'Washing machine',floor_drain:'Floor drain',unknown_sink:'Sink'}
 const categories:Partial<Record<DrainageFixtureKind,ModelCategory>>={toilet:'toilet',washbasin:'basin',bathtub:'bathtub',kitchen_sink:'kitchen-sink',washing_machine:'washing-machine',unknown_sink:'basin'}
 const heights:Record<DrainageFixtureKind,number>={toilet:800,washbasin:850,shower:70,bathtub:550,kitchen_sink:380,washing_machine:850,floor_drain:20,unknown_sink:850}
-export type DrainFixture3D={key:string;id:string;roomId:string;roomName:string;floorId:string;floorName:string;level:number;kind:DrainageFixtureKind;point:ServicePoint;widthMm:number;depthMm:number;rotation:number;basis:string;model:InteriorModelInstance|null;branch:DrainBranch3D|null;issues:string[]}
+export type DrainFixture3D={wasteConnection?:ServicePoint[];key:string;id:string;roomId:string;roomName:string;floorId:string;floorName:string;level:number;kind:DrainageFixtureKind;point:ServicePoint;widthMm:number;depthMm:number;rotation:number;basis:string;model:InteriorModelInstance|null;branch:DrainBranch3D|null;issues:string[]}
 export type DrainBranch3D={proposalReview?:boolean;stackAligned?:boolean;id:string;fixtureId:string;points:ServicePoint[];diameterMm:number;sizeKnown:boolean;levelsKnown:boolean;blocked:boolean;shaftId:string|null;connected:boolean;reason:string}
 export type DrainCollector3D={id:string;points:ServicePoint[];diameterMm:number;blocked:boolean;levelsKnown:boolean}
 
@@ -105,7 +106,33 @@ export function fixtureTankTrace(fixture:DrainFixture3D|undefined,network:Connec
 
 /** One canonical visible fixture outlet/trap path for rendering and joint QA. */
 export function fixtureWasteConnection(f:DrainFixture3D):ServicePoint[]{
+  if(f.wasteConnection)return f.wasteConnection
   const start=f.branch?.points[0];if(!start)return []
   const outlet=f.kind==='kitchen_sink'?720:f.kind==='washbasin'||f.kind==='unknown_sink'?650:f.kind==='washing_machine'?350:f.kind==='toilet'?180:20
   return ['washbasin','unknown_sink','kitchen_sink'].includes(f.kind)?[{...f.point,z:f.point.z+outlet},{...f.point,z:f.point.z+outlet-130},{...f.point,x:f.point.x+70,z:f.point.z+outlet-130},{...f.point,x:f.point.x+70,z:f.point.z+outlet-60},{...f.point,x:f.point.x+140,z:f.point.z+outlet-60},{...f.point,x:f.point.x+140,z:start.z},start]:[{...f.point,z:f.point.z+outlet},start]
+}
+
+/** Keep the trap accessible, embed only its drop in a sufficiently thick
+ * source wall, and meet the unchanged 2D underfloor branch at its real start.
+ * 20 mm each side is a concept envelope, not permission to chase a wall. */
+export function concealedFixtureWaste(f:DrainFixture3D,building:BuildingModel):ServicePoint[]{
+  const source=fixtureWasteConnection(f),start=f.branch?.points[0]
+  if(!start||!['washbasin','unknown_sink','kitchen_sink','washing_machine'].includes(f.kind))return source
+  const diameter=Math.min(f.branch!.diameterMm,50),room=building.rooms.find(r=>r.floorId===f.floorId&&r.id===f.roomId)
+  if(!room)return source
+  const r=room.rect,candidates=building.walls.filter(w=>w.floorId===f.floorId&&w.thickness>=diameter+40).flatMap(w=>{
+    const h=Math.abs(w.a.y-w.b.y)<1,v=Math.abs(w.a.x-w.b.x)<1
+    if(!h&&!v)return []
+    const along=h?f.point.x:f.point.y,lo=Math.min(h?w.a.x:w.a.y,h?w.b.x:w.b.y),hi=Math.max(h?w.a.x:w.a.y,h?w.b.x:w.b.y)
+    const fixed=h?w.a.y:w.a.x,edge=h?Math.min(Math.abs(fixed-r.y),Math.abs(fixed-r.y-r.h)):Math.min(Math.abs(fixed-r.x),Math.abs(fixed-r.x-r.w))
+    const point={...f.point,...(h?{y:fixed}:{x:fixed})},distance=Math.hypot(point.x-f.point.x,point.y-f.point.y)
+    if(edge>150||along<lo+diameter||along>hi-diameter||distance>Math.max(f.widthMm,f.depthMm)/2+250)return []
+    if(building.columns.some(c=>c.floorId===f.floorId&&segmentHitsRect(f.point,point,{x:c.at.x-c.size/2-diameter/2,y:c.at.y-c.size/2-diameter/2,w:c.size+diameter,h:c.size+diameter})))return []
+    return [{point,distance}]
+  }).sort((a,b)=>a.distance-b.distance)
+  const wall=candidates[0];if(!wall||wall.distance<1)return source
+  const outlet=source[0],drop=outlet.z-130,exit=outlet.z-60
+  const at=(distance:number,z:number)=>({...outlet,x:outlet.x+(wall.point.x-outlet.x)*distance/wall.distance,y:outlet.y+(wall.point.y-outlet.y)*distance/wall.distance,z})
+  const leg=Math.min(70,wall.distance/3)
+  return [outlet,{...outlet,z:drop},at(leg,drop),at(leg,exit),at(wall.distance,exit),{...wall.point,z:start.z},start]
 }

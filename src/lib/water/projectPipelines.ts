@@ -8,7 +8,7 @@ import { SIMPLE_WATER_DEFAULTS, proposeRainCollection } from './simpleSystem.ts'
 import type { WaterConfig } from './schema.ts'
 import { proposeDrainStorage } from './drainageStorage.ts'
 import { connectedDrainageNetwork } from './drainageNetwork.ts'
-import { fixtureDrainageScene, fixtureWasteConnection } from './fixtureDrainage.ts'
+import { fixtureDrainageScene, fixtureWasteConnection, concealedFixtureWaste } from './fixtureDrainage.ts'
 import { coordinateDrainageContinuity } from './drainageContinuity.ts'
 import { coordinateSupply } from './supplyContinuity.ts'
 
@@ -41,7 +41,7 @@ export function projectPipelines(design: Design, building: BuildingModel, brief:
   const initialNetwork = connectedDrainageNetwork(building, home, drainage)
   const rawFixtureScene = fixtureDrainageScene(floors, building, home, initialNetwork, brief)
   const continuity = coordinateDrainageContinuity(building, home, drainage, rawFixtureScene)
-  const fixtureScene = continuity.scene
+  const fixtureScene = {...continuity.scene,fixtures:continuity.scene.fixtures.map(f=>({...f,wasteConnection:concealedFixtureWaste(f,building)}))}
   const drainNetwork = fixtureScene.configuredDischarge ? connectedDrainageNetwork(building, home,
     { ...drainage, tank: null, layout: { ...drainage.layout, pipes: [], segments: [] } }) : continuity.network
   const supply = coordinateSupply(building, home, floors)

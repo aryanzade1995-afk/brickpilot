@@ -3,7 +3,10 @@ import type { Direction } from '../model/brief.ts'
 import type { Point } from '../geometry.ts'
 
 export type AirPoint = Point & { z: number }
-export type AirPath = { id: string; floorId: string; inletId: string; outletId: string; roomIds: string[]; points: AirPoint[] }
+export type AirPath = { id: string; floorId: string; inletId: string; outletId: string; roomIds: string[]; points: AirPoint[];
+  /** Cutaway presentation only; never an engineering airflow calculation. */
+  visualHeight?: { baseMm:number; inletMm:number; outletMm:number; lengthMm:number; entryMm:number; exitMm:number; dropMm:number; riseMm:number }
+}
 export const AIR_SIDES: Direction[] = ['N', 'E', 'S', 'W']
 const opposite: Record<Direction, Direction> = { N: 'S', S: 'N', E: 'W', W: 'E' }
 

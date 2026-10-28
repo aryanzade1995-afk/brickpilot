@@ -18,7 +18,7 @@ export function prepareVillaScene(source: THREE.Object3D, anisotropy: number, se
     template.traverse(object => {
       // Combined GLBs carry tagged PV. Strip before caching the architecture;
       // the current canonical SolarLayer is then attached exactly once.
-      if (separateRoofTanks&&/^Roof_WaterTank_\d+/.test(object.name) || object.userData.formstead_entry_ramp || object.userData.formstead_plumbing || object.userData.formstead_solar || object.userData.presentation_only || object.name.startsWith('Ground_Context') ||
+      if (separateRoofTanks&&/^Roof_WaterTank_\d+/.test(object.name) || object.userData.formstead_shade || object.userData.formstead_entry_ramp || object.userData.formstead_plumbing || object.userData.formstead_solar || object.userData.presentation_only || object.name.startsWith('Ground_Context') ||
         'isLight' in object || 'isCamera' in object) remove.push(object)
     })
     remove.forEach(object => object.removeFromParent())

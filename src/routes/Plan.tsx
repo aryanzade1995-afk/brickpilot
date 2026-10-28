@@ -1,12 +1,11 @@
 import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
-import { emergencyPlan } from '@/lib/engine/safety.ts'
 import { useFinishes } from '@/state/finishes.ts'
 import { estimateProjectBoq } from '@/lib/cost/index.ts'
 import { geometryCostKey } from '@/lib/cost/quantities.ts'
 import { formatINR, formatRange } from '@/lib/format.ts'
 import { lazy, Suspense, useEffect, useMemo } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
-import { ArrowRight, Dices, Pencil } from 'lucide-react'
+import { Pencil } from 'lucide-react'
 import { useStudio } from '@/state/studio.ts'
 import { DrawingWorkspace } from '@/components/DrawingWorkspace.tsx'
 import { PlanEditor } from '@/components/PlanEditor.tsx'
@@ -15,7 +14,6 @@ import { cx } from '@/lib/cx.ts'
 import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
 import { VillaGenerationNotice } from '@/components/VillaGenerationNotice.tsx'
 import { InvalidPlanNotice } from '@/components/InvalidPlanNotice.tsx'
-import { preferenceScore } from '@/lib/engine/score.ts'
 import { ExportDropdown } from '@/components/export/ExportDropdown.tsx'
 import { downloadSvg, downloadSvgAsPng } from '@/lib/export/index.ts'
 import { downloadSheetPdf } from '@/lib/draw/exportSheet.ts'
@@ -30,7 +28,6 @@ export function Plan() {
   const brief = useStudio(s => s.brief)
   const result = useStudio((s) => s.result)
   const run = useStudio((s) => s.run)
-  const reroll = useStudio((s) => s.reroll)
   const layout = useStudio((s) => s.layout)
   const basePlan = useStudio((s) => s.basePlan)
   const editable = useMemo(() => (result ? isEditable(basePlan() ?? result.design) : false), [result?.design.id, basePlan]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -56,20 +53,13 @@ export function Plan() {
   if (!result.report.hardChecksPass) return <InvalidPlanNotice report={result.report} />
 
   const { design } = result
-  // cheap to compute; not a hook, so it is fine after the early returns
-  const why = preferenceScore(design)
-  const whyTerms = why.terms.filter((t) => t.value !== 0)
 
   return (
     <div className="mx-auto max-w-[1400px] px-6 py-8 md:px-10">
       <WorkspaceTabs />
       <VillaGenerationNotice />
 
-      {design.siteNotes?.length ? <div className="mt-4 border border-line px-4 py-3 text-xs text-ink-dim" role="status">{design.siteNotes.map(note => <p key={note}>{translateUi(note)}</p>)}</div> : null}
-      <details className="mt-4 border border-line p-4 text-sm text-ink-dim"><summary>{translateUi("Emergency escape layout")}</summary>
-        <ul className="mt-3 list-disc space-y-2 pl-5">{emergencyPlan(design).notes.map(note=><li key={note}>{translateUi(note)}</li>)}</ul>
-        <p className="mt-3 text-xs">{translateUi(emergencyPlan(design).disclaimer)}</p>
-      </details>
+      {design.siteNotes?.length ? <div className="mt-4 border border-line px-4 py-3 text-xs text-ink-dim" role="status">{design.siteNotes.map(note => <p key={note}>{translateUi(note)}</p>)}</div> : null}
       {/* metric bar */}
       <div className="mt-5 flex flex-wrap items-center gap-x-10 gap-y-3 border-b border-line pb-4">
         <Metric k="Built area" v={`${design.builtAreaSqm.toFixed(1)} m²`} />
@@ -131,47 +121,7 @@ export function Plan() {
         <Suspense fallback={<p role="status" className="py-8 text-sm text-ink-dim">{translateUi("Loading reference facade…")}</p>}>
           <ReferenceFacadeSection />
         </Suspense>
-      </div>
-      <div className="mt-6 grid gap-6 md:grid-cols-3">
-          <Panel title={translateUi("Study record")}>
-            <RecRow k="Seed" v={design.seed} />
-            <RecRow k="Candidate" v={design.candidate} />
-            <RecRow k="Footprint" v={`${design.footprintSqm.toFixed(1)} m²`} />
-            <RecRow k="Openings" v={`${design.openingCounts.doors} doors · ${design.openingCounts.windows} windows`} />
-            <RecRow k="Rooms" v={String(design.floors.reduce((n, f) => n + f.rooms.length, 0))} />
-          </Panel>
-
-          <Panel title={translateUi("Why this plan")}>
-            {whyTerms.length === 0 ? (
-              <p className="text-xs text-ink-dim">{translateUi("No orientation or lifestyle preferences changed the choice.")}</p>
-            ) : (
-              whyTerms.map((t) => (
-                <Row2 key={t.name} k={t.name}>
-                  <span className={cx('font-mono text-xs tnum', t.value > 0 ? 'text-ok' : 'text-bad')}>
-                    {translateUi(t.value > 0 ? '+' : '')}{translateUi(t.value)}
-                  </span>
-                </Row2>
-              ))
-            )}
-            <Row2 k="Preference score">
-              <span className="font-mono text-xs text-ink tnum">{translateUi(why.total)}</span>
-            </Row2>
-          </Panel>
-
-          <button
-            type="button"
-            onClick={reroll}
-            className="flex w-full items-center justify-center gap-2 border border-line-strong py-3 font-mono text-xs uppercase tracking-[0.12em] text-ink-dim hover:border-ink-dim hover:text-ink"
-          >
-            <Dices size={13} />
-            {translateUi("Reroll variation")}</button>
-          <Link
-            to="/workspace/massing"
-            className="flex w-full items-center justify-center gap-2 border border-line-strong py-3 font-mono text-xs uppercase tracking-[0.12em] text-ink-dim hover:border-ink-dim hover:text-ink"
-          >
-            <ArrowRight size={13} />
-            {translateUi("Continue to 3D")}</Link>
-      </div>
+      </div>
 
 
     </div>
@@ -191,35 +141,4 @@ function Metric({ k, v }: { k: string; v: string }) {
   )
 }
 
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
-  useLanguage(s => s.language);
 
-  return (
-    <div className="border border-line">
-      <div className="label border-b border-line px-4 py-2.5">{translateUi(title)}</div>
-      <div className="space-y-2.5 p-4">{translateUi(children)}</div>
-    </div>
-  )
-}
-
-function Row2({ k, children }: { k: string; children: React.ReactNode }) {
-  useLanguage(s => s.language);
-
-  return (
-    <div className="flex items-center justify-between">
-      <span className="text-xs text-ink-dim">{translateUi(k)}</span>
-      {translateUi(children)}
-    </div>
-  )
-}
-
-function RecRow({ k, v }: { k: string; v: string }) {
-  useLanguage(s => s.language);
-
-  return (
-    <div className="flex items-baseline justify-between gap-3">
-      <span className="text-xs text-ink-dim">{translateUi(k)}</span>
-      <span className="truncate font-mono text-[0.7rem] text-ink tnum">{translateUi(v)}</span>
-    </div>
-  )
-}

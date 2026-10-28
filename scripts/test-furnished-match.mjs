@@ -21,6 +21,21 @@ const centreOf = (floor, room, doll) => {
   return [(room.rect.x + room.rect.w / 2 - design.model.plot.width / 2) / 1000, baseY, (room.rect.y + room.rect.h / 2 - design.model.plot.depth / 2) / 1000]
 }
 
+test('ventilation can show full-height source openings without changing furnished floors or the source plan',()=>{
+ const before=JSON.stringify(design),dresser=furnishedDresser(design,'modern','medium')
+ const baseline=buildDollhouse(design,0,dresser),detailed=buildDollhouse(design,0,dresser,{fullHeightOpenings:true})
+ assert.deepEqual(detailed.floors,baseline.floors)
+ assert.deepEqual(detailed.boxes.filter(b=>b.id.startsWith('finish-floor-')),baseline.boxes.filter(b=>b.id.startsWith('finish-floor-')))
+ assert.ok(detailed.boxes.some(b=>b.id.startsWith('door-head-')))
+ assert.ok(detailed.boxes.some(b=>b.id.startsWith('win-f-t-')))
+ assert.ok(detailed.boxes.some(b=>b.id.startsWith('win-glass-')&&b.size[1]>1))
+ for(const part of detailed.boxes.filter(b=>b.id.startsWith('door-j0-'))){
+  const old=baseline.boxes.find(b=>b.id===part.id)
+  if(old){assert.equal(part.pos[0],old.pos[0]);assert.equal(part.pos[2],old.pos[2]);assert.ok(part.size[1]>old.size[1])}
+ }
+ assert.equal(JSON.stringify(design),before)
+})
+
 test('every designed piece of the 360 stands in the same place in the furnished view', () => {
   const t0 = performance.now()
   const doll = buildDollhouse(design, undefined, furnishedDresser(design, 'luxury', 'full'))

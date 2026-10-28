@@ -1,4 +1,6 @@
 import { EntryRampLayer } from './EntryRampLayer.tsx'
+import { BalconyShadeLayer } from './BalconyShadeLayer.tsx'
+import { SHADE_CHOICES, SHADE_CONTROL, shadeChoice } from '@/lib/three/shadeVariants.ts'
 import {useReference} from '@/state/reference.ts'
 import {reconstructFacade} from '@/lib/reference/reconstruct.ts'
 import {ReferenceLayer} from './reference/ReferenceLayer.tsx'
@@ -36,6 +38,7 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
   const villaContainerRef = useRef<HTMLDivElement>(null)
 
   const brief = useStudio(s => s.result?.design === plan ? s.brief : plan.model.brief)
+  const edit=useStudio(s=>s.edit),shade=shadeChoice(brief.specs?.overrides[SHADE_CONTROL])
   // Solar is a sibling scene layer, never an input to the prepared building or its render effect.
   const finishedPlan = useMemo(() => ({ ...plan, model: { ...plan.model, brief: { ...plan.model.brief, finish: brief.finish, specs: brief.specs } } }), [plan, brief.finish, brief.specs])
   const building = useMemo(() => createBuildingModel(finishedPlan), [finishedPlan])
@@ -177,8 +180,9 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
           </div>
           {referenceFacade&&<p className="absolute bottom-2 left-2 right-2 z-10 bg-bg/90 px-3 py-2 text-xs text-ink-dim">Accepted reference facade overlay · source building retained. <Link className="underline" to="/workspace/plan#reference-facade">Edit / return to original</Link></p>}
           <VillaSceneCanvas key={result.files.glb}>
-            <Suspense fallback={null}><group ref={liveExport}><AcceptedVillaModel url={result.files.glb} technicalXray={pipeXray} separateRoofTanks={!!pipelines} style={referenceFacade?.operation==='style-transfer'?referenceFacade.geometry.style:undefined}/>{referenceFacade&&<ReferenceLayer geometry={referenceFacade.geometry}/>}
+            <Suspense fallback={null}><group ref={liveExport}><AcceptedVillaModel url={result.files.glb} separateRoofTanks={!!pipelines} style={referenceFacade?.operation==='style-transfer'?referenceFacade.geometry.style:undefined}/>{referenceFacade&&<ReferenceLayer geometry={referenceFacade.geometry}/>}
               {building.entryRamp&&<EntryRampLayer ramp={building.entryRamp}/>}
+              {shade!=='original'&&<BalconyShadeLayer url={result.files.glb} choice={shade}/>}
               <SolarLayer layout={solar.displayLayout} roof={solar.displayRoof} reservedAreas={solar.displayConfiguration.inputs.reservedAreas} selectedIds={solar.selectedIds} onSelect={solar.pickPanel}/>
               {pipelines&&<><ResizableRoofTanks url={result.files.glb} ports={pipelines.originalPorts} diameterScale={pipelines.options.roofDiameterScale??1} heightScale={pipelines.options.roofHeightScale??1} xray={false} onSelect={()=>{}}/><ProjectPipelineLayer network={pipelines} water={waterPipes} drain={drainPipes} xray={pipeXray}/></>}
             </group><SolarCamera request={solar.camera} roof={solar.displayRoof} layout={solar.displayLayout} selectedIds={solar.selectedIds}/></Suspense>
@@ -190,6 +194,7 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
         </div>
       </div>
       <section className="mt-4 border border-line bg-bg-raised p-4" aria-label={translateUi('Water & drainage pipelines')}>
+        <label className="mb-4 flex flex-wrap items-center gap-3 text-xs">Balcony shade<select aria-label="Balcony shade" className="min-h-11 border border-line bg-bg px-3" value={shade} onChange={e=>edit(b=>{b.specs??={overrides:{}};b.specs.overrides[SHADE_CONTROL]=shadeChoice(e.target.value)})}>{SHADE_CHOICES.map(([id,label])=><option key={id} value={id}>{label}</option>)}</select><span className="text-ink-dim">Existing framed balconies · live 3D / combined GLB only · saved images unchanged</span><a className="underline" href="https://kenney.nl/assets/city-kit-commercial" target="_blank" rel="noreferrer">Kenney · CC0</a></label>
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2"><h3 className="mr-auto font-display text-lg">{translateUi('Water & drainage pipelines')}</h3>{([[waterPipes,setWaterPipes,'Tank water supply'],[drainPipes,setDrainPipes,'Drainage & vents'],[pipeXray,setPipeXray,'See pipes through walls']] as const).map(([value,setter,label])=><label key={label} className="flex min-h-11 items-center gap-2 text-xs"><input type="checkbox" className="accent-accent" checked={value} onChange={e=>setter(e.target.checked)}/>{translateUi(label)}</label>)}</div>
         <p className="mt-2 text-xs text-ink-dim">{translateUi('Ivory: water pipes. Charcoal: drainage stacks. Warm grey: vents. Existing shaft openings are preserved.')}</p>
         <p role="status" className="mt-2 text-xs text-ink-dim">{translateUi(`Tank-fed fixtures: ${pipelines?.supply.fixtures.filter(f=>f.connected).length??0}/${pipelines?.supply.fixtures.length??0} · connected drains: ${pipelines?.fixtureScene.fixtures.filter(f=>f.branch?.connected).length??0}/${pipelines?.fixtureScene.fixtures.length??0}`)}</p>

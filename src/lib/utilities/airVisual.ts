@@ -1,21 +1,34 @@
 import { CurvePath, LineCurve3, QuadraticBezierCurve3, Vector3 } from 'three'
 import { planToThreeGlb } from '../solar/coordinates.ts'
-import type { AirPath } from './ventilation.ts'
+import type { AirPath, AirPoint } from './ventilation.ts'
 import type { BuildingModel } from '../engine/buildingModel.ts'
 
-/** Rounded wisps stay within the source path's obstacle margin. */
-export function airWispRoute(path:AirPath,samples=192){
-  const points=path.points.map(p=>{const q=planToThreeGlb(p);return new Vector3(q.x,q.y,q.z)}).filter((p,i,ps)=>!i||p.distanceTo(ps[i-1])>.0001)
+/** Local fillets, not an unconstrained spline that can overshoot room corners.
+ * A 350 mm trim deviates less than 175 mm from the source polyline, within
+ * the routing engine's 200 mm column/shaft margin. */
+export type AirProjection = (point:AirPoint,path:AirPath)=>[number,number,number]
+export function airWispRoute(path:AirPath,samples=192,project?:AirProjection){
+  const profile=path.visualHeight
+  const points=path.points.map(source=>{const p=profile?{...source,z:profile.baseMm}:source;if(project)return new Vector3(...project(p,path));const q=planToThreeGlb(p);return new Vector3(q.x,q.y,q.z)}).filter((p,i,ps)=>!i||p.distanceTo(ps[i-1])>.0001)
   if(points.length<2)return null
   const curve=new CurvePath<Vector3>();let previous=points[0]
   for(let i=1;i<points.length-1;i++){
-    const at=points[i],before=points[i-1],after=points[i+1],trim=Math.min(.08,at.distanceTo(before)/4,at.distanceTo(after)/4)
+    const at=points[i],before=points[i-1],after=points[i+1],trim=Math.min(.35,at.distanceTo(before)*.45,at.distanceTo(after)*.45)
     const a=at.clone().lerp(before,trim/at.distanceTo(before)),b=at.clone().lerp(after,trim/at.distanceTo(after))
     curve.add(new LineCurve3(previous,a));curve.add(new QuadraticBezierCurve3(a,at,b));previous=b
   }
   curve.add(new LineCurve3(previous,points.at(-1)!))
   const length=curve.getLength();if(length<.001)return null
-  return {length,points:Array.from({length:samples},(_,i)=>curve.getPointAt(i/(samples-1)).toArray() as [number,number,number])}
+  const ease=(value:number)=>{const t=Math.max(0,Math.min(1,value));return t*t*t*(t*(t*6-15)+10)}
+  return {length,points:Array.from({length:samples},(_,i)=>{
+    const t=i/(samples-1),point=curve.getPointAt(t)
+    if(profile){
+      const d=t*profile.lengthMm
+      point.y+=((profile.inletMm-profile.baseMm)*(1-ease((d-profile.entryMm)/Math.max(1,profile.dropMm)))
+        +(profile.outletMm-profile.baseMm)*ease((d-profile.exitMm+profile.riseMm)/Math.max(1,profile.riseMm)))/1000
+    }
+    return point.toArray() as [number,number,number]
+  })}
 }
 
 export function airOverviewPose(building:BuildingModel,fovDeg:number,aspect:number){
