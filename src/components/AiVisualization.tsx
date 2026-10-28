@@ -68,7 +68,6 @@ export function AiVisualization({ design }: { design: Design }) {
     } finally { if (request.current === controller) { setPhase('idle'); request.current = null } }
   }
   return <section aria-label={translateUi("AI villa visualization")} className="mt-10 border-t border-line pt-6">
-    <p className="mb-3 text-xs text-ink-dim">{translateUi('Building-only AI reference · out of date for the solar design. Use the canonical solar render and combined export for current panels and keep-free areas.')}</p>
     {/* the Blender villa the image is made from, rendered off screen for the capture only */}
     {hasModel && phase === 'capture' && <div aria-hidden className="pointer-events-none h-px w-px overflow-hidden opacity-0">
       <div className="w-[800px]"><VillaVisualizationViewport key={sourceId} ref={viewport} design={plan} url={blender!.files.glb} onReady={readyChanged} /></div>
@@ -88,6 +87,5 @@ export function AiVisualization({ design }: { design: Design }) {
         </div><figcaption className="mt-3 flex items-center justify-between gap-2 text-sm"><span>{translateUi(VILLA_VIEW_LABELS[view])}</span>{image && <a href={image.url} download={`${source}_${seed}_${view}.png`} className="flex items-center gap-1 text-xs underline"><Download size={13} />{translateUi("Download")}</a>}</figcaption></figure>
       })}
     </div>
-    <p className="mt-3 text-xs text-ink-faint">{translateUi("AI Visualisation · Compare generated images against the authoritative model before presenting architectural details.")}</p>
   </section>
 }

@@ -287,7 +287,6 @@ export async function buildReportPdf(data: ReportData): Promise<Blob> {
     ['Turnkey works subtotal', money(cost.procurement.turnkey)], ['Other project add-ons', money(cost.procurement.projectAddOns)],
     ['Expected project total', money(cost.expected)],
   ])
-  paragraph(cost.procurement.note)
   heading('Largest costs & changes from preset', 90)
   paragraph(`Same plan and finish level before finish overrides. Default total ${money(cost.defaultExpected)}.`)
   table(['Specification', 'Amount', 'Change from preset'], cost.topCostDrivers.map(d => [d.label, money(d.amount), d.difference ? `${d.difference > 0 ? '+' : '-'}${money(Math.abs(d.difference))}` : 'Matches preset']), [0.46, 0.27, 0.27])

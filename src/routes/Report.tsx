@@ -4,7 +4,7 @@ import { VILLA_VIEW_LABELS, visualizationSourceId } from '@/lib/render/villaVisu
 import { CostShareButton } from '@/components/CostShareButton.tsx'
 import { SpecificationSchedule } from '@/components/SpecificationSchedule.tsx'
 import { specificationSchedule } from '@/lib/cost/schedule.ts'
-import { QuantitiesView, EstimateView, AssumptionsView } from './finishes/CostViews.tsx'
+import { QuantitiesView, EstimateView } from './finishes/CostViews.tsx'
 import { useBlender } from '@/state/blender.ts'
 import { useSolarArtifacts, solarArtifactKey, isCurrentSolarArtifact } from '@/state/solarArtifacts.ts'
 import { createBuildingModel } from '@/lib/engine/buildingModel.ts'
@@ -27,16 +27,10 @@ import { estimateProjectBoq } from '@/lib/cost/index.ts'
 import { geometryCostKey } from '@/lib/cost/quantities.ts'
 import { ZONE_LABEL } from '@/lib/model/canonical.ts'
 import { cx } from '@/lib/cx.ts'
-import type { Severity } from '@/lib/rules/index.ts'
 import type { ReportImage } from '@/lib/report/buildPdf.ts'
 
-const SEV_COLOR: Record<Severity, string> = {
-  error: 'text-bad',
-  warning: 'text-warn',
-  info: 'text-ink-dim',
-}
-
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
 const slug = (s: string) => s.replace(/[^a-z0-9]+/gi, '-').toLowerCase().replace(/^-|-$/g, '') || 'project'
 
 function triggerDownload(blob: Blob, name: string) {
@@ -314,32 +308,7 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
           <SpecificationSchedule rows={specificationSchedule(brief, cost)} />
           <details className="border-t border-line pt-4"><summary className="cursor-pointer font-display text-xl">{translateUi("Quantities summary")}</summary><div className="mt-5"><QuantitiesView cost={cost}/></div></details>
           <section><h2 className="mb-5 font-display text-xl">{translateUi("Estimate by trade")}</h2><EstimateView cost={cost}/><Link to="/workspace/finishes?tab=estimate" className="mt-4 inline-block text-sm underline">{translateUi("Edit finishes & view BOQ")}</Link></section>
-          <AssumptionsView cost={cost}/>
-          {/* findings */}
-          <section>
-            <h2 className="font-display text-xl">{translateUi("Validation findings")}</h2>
-            {report.findings.length === 0 ? (
-              <p className="mt-3 text-sm text-ok">{translateUi("No findings — the concept passes every rule in this pack.")}</p>
-            ) : (
-              <ul className="mt-4 divide-y divide-line border-y border-line">
-                {report.findings.map((f, i) => (
-                  <li key={i} className="flex gap-4 py-2.5 text-sm">
-                    <span
-                      className={cx(
-                        'flex-none font-mono text-[0.7rem] uppercase tracking-[0.1em]',
-                        SEV_COLOR[f.severity],
-                      )}
-                    >
-                      {translateUi(f.severity)}
-                    </span>
-                    <span className="text-ink-dim">{translateUi(f.message)}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
 
-          <section className="border-t border-line pt-4"><h2 className="font-display text-xl">{translateUi("Disclaimer")}</h2><p className="mt-3 text-sm leading-relaxed text-ink-dim">{translateUi("Concept feasibility and approximate quantities only. No structural engineering certification. A licensed architect and engineers must verify the design before construction. Final cost depends on structural design, site conditions, actual products and contractor quotes.")}</p></section>
         </div>
 
         {/* actions */}

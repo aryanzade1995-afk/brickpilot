@@ -23,7 +23,6 @@ import { createBuildingModel } from '@/lib/engine/buildingModel.ts'
 import { useBlender, directionRenderKey } from '@/state/blender.ts'
 import { RenderProgress } from './RenderProgress.tsx'
 import { VillaSceneCanvas, AcceptedVillaModel } from './VillaSceneCanvas.tsx'
-import { BuildingFormSummary } from './BuildingFormSummary.tsx'
 import { useSolarVillaEditor } from './solar/useSolarVillaEditor.ts'
 import { SolarVillaControls } from './solar/SolarVillaControls.tsx'
 import { SolarLayer } from '@/lib/three/SolarLayer.tsx'
@@ -100,21 +99,19 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
   }, [autoGenerate, existingStructure, needsFullBalcony, id, jobBusy, previewBusy, fillBalconyArea, quality, finishedPlan, selectedSeed, ensureForPlan, fillingBalcony])
   return <section className="mt-5 border border-line p-4 md:p-6">
     <div className="flex flex-wrap items-center justify-between gap-4">
-      <div><h2 className="font-display text-xl">{translateUi("Blender architectural design")}</h2>
-        <p className="mt-1 text-sm text-ink-dim">{translateUi("Your current rooms, footprint and planned outdoor spaces become one editable 3D villa.")}</p></div>
+      <div><h2 className="font-display text-xl">{translateUi("Blender architectural design")}</h2></div>
     </div>
-    <BuildingFormSummary plan={plan}/>
     {previewBusy && <RenderProgress progress={preview!.progress} label={preview!.phase} />}
-    {previewBusy && <p role="status" className="mt-4 text-sm text-ink-dim">{translateUi("Preparing your selected direction: ")}{translateUi(preview!.phase)}{translateUi(". The same villa will appear here when ready.")}</p>}
+    {previewBusy && !preview!.phase.includes('Set BLENDER_BIN') && <p role="status" className="mt-4 text-sm text-ink-dim">{translateUi("Preparing your selected direction: ")}{translateUi(preview!.phase)}{translateUi(". The same villa will appear here when ready.")}</p>}
     {displayJob && jobBusy && !previewBusy && <RenderProgress progress={displayJob.progress} label={displayJob.phase} />}
-    {displayJob && jobBusy && <p role="status" className="mt-4 text-sm text-ink-dim">{translateUi(displayJob.phase)}{translateUi(displayJob.attempt ? ` · candidate ${displayJob.attempt}` : '')}{translateUi(". Rendering can take a few minutes.")}</p>}
+    {displayJob && jobBusy && !displayJob.phase.includes('Set BLENDER_BIN') && <p role="status" className="mt-4 text-sm text-ink-dim">{translateUi(displayJob.phase)}{translateUi(displayJob.attempt ? ` · candidate ${displayJob.attempt}` : '')}{translateUi(". Rendering can take a few minutes.")}</p>}
     {jobBusy && !currentJob && !fillingBalcony && !previewBusy && <p role="status" className="mt-4 text-sm text-ink-dim">{translateUi("Another plan is being generated. This plan will start when it finishes.")}</p>}
-      {shapeNotice && <p role="status" className="mt-3 text-sm text-ink-dim">{translateUi(shapeNotice)}</p>}
-      {!result && <div className="mt-4 flex aspect-[4/3] items-center justify-center border border-line bg-bg-inset p-8 text-center text-sm text-ink-dim">
+    {shapeNotice && !shapeNotice.includes('Valid directions are shown') && <p role="status" className="mt-3 text-sm text-ink-dim">{translateUi(shapeNotice)}</p>}
+    {!result && <div className="mt-4 flex aspect-[4/3] items-center justify-center border border-line bg-bg-inset p-8 text-center text-sm text-ink-dim">
       {translateUi(busy ? 'Building and rendering your villa…' : 'The interactive Blender model and three rendered views will appear here.')}
     </div>}
-    {sourcePlanId === id && error && <p role="alert" className="mt-4 text-sm text-bad">{translateUi(error)}</p>}
-    {sourcePlanId === id && error && !busy && <button type="button" onClick={() => void generate(finishedPlan, result?.seed ?? selectedSeed ?? plan.dna.seed, quality, true)}
+    {sourcePlanId === id && error && !error.includes('Set BLENDER_BIN') && <p role="alert" className="mt-4 text-sm text-bad">{translateUi(error)}</p>}
+    {sourcePlanId === id && error && !error.includes('Set BLENDER_BIN') && !busy && <button type="button" onClick={() => void generate(finishedPlan, result?.seed ?? selectedSeed ?? plan.dna.seed, quality, true)}
       className="mt-3 border border-line px-4 py-2 text-sm">{translateUi('Retry 3D model')}</button>}
     {result && <>
       {result.geometryRevision !== WALKTHROUGH_ACCESS_REVISION && <div className="mt-4 flex flex-wrap items-center gap-3 border border-line bg-bg-inset p-3"><p className="flex-1 text-xs text-ink-dim">{translateUi('Update balcony sliders, roof doors and pipe fittings on the same villa. Your plan and finishes stay fixed.')}</p><button type="button" disabled={busy} onClick={() => void generate(finishedPlan, result.seed, quality, true)} className="min-h-11 border border-line bg-accent px-4 text-xs text-bg disabled:opacity-50">{translateUi(busy ? 'Updating Blender villa…' : 'Update doors & pipework')}</button></div>}

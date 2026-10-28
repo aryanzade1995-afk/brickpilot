@@ -38,7 +38,7 @@ test('cost step has defaults, seven-step navigation and collapsed advanced choic
  useFinishes.setState({entries:{}})
  const html=render()
  assert.ok(html.includes('Finishes &amp; Cost'));assert.ok(html.includes('Concept estimate ±15%'))
- assert.ok(html.includes('Continue to AI Interior'));assert.ok(html.includes('06.1'));assert.ok(html.includes('06.4'))
+ assert.ok(html.includes('Continue to AI Interior'));assert.ok(html.includes('06.1'));assert.ok(html.includes('06.3'));assert.ok(!html.includes('06.4'))
  assert.ok(html.includes('More options'));assert.ok(html.includes('0 changes'))
  assert.ok(html.includes('<img'));assert.ok(html.includes('real texture close-up'));assert.ok(!html.toLowerCase().includes('budget'))
  assert.ok(html.indexOf('Finishes &amp; Cost')<html.indexOf('AI Interior'))
@@ -51,12 +51,11 @@ test('invalid source plan does not show prices or allow specification editing',(
  assert.ok(!html.includes('Estimated total'));assert.ok(!html.includes('Indoor flooring'))
 })
 
-test('four cost tabs expose quantities, trade shares and assumptions; room filters restrict per-room finishes',()=>{
+test('cost tabs expose quantities and trade shares; room filters restrict per-room finishes',()=>{
  useFinishes.setState({entries:{}})
- const q=render(result,'quantities'),e=render(result,'estimate'),a=render(result,'assumptions')
+ const q=render(result,'quantities'),e=render(result,'estimate')
  assert.ok(q.includes('Measured quantities'));assert.ok(q.includes('Show on plan'));assert.ok(q.includes('NetVolume'))
  assert.ok(e.includes('Material + labour'));assert.ok(e.includes('Download BOQ CSV'));assert.ok(e.includes('share')||e.includes('%'))
- assert.ok(a.includes('Rates source &amp; date'));assert.ok(a.includes('Excluded'))
  const room=estimateProjectBoq(design).quantities.rooms.find(r=>r.name==='Kitchen')
  const html=renderToStaticMarkup(React.createElement(MemoryRouter,{initialEntries:[`/workspace/finishes?room=${encodeURIComponent(room.id)}`]},React.createElement(FinishesCostView,{result})))
  assert.ok(html.includes('Kitchen flooring'));assert.ok(!html.includes('Bedroom flooring'))

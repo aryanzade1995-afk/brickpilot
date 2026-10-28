@@ -3,7 +3,7 @@ import { emergencyPlan } from '@/lib/engine/safety.ts'
 import { useRef, useState } from 'react'
 import type { Design } from '@/lib/engine/types.ts'
 import { FloorDrawing, TerraceDrawing, type Theme } from '@/lib/draw/FloorDrawing.tsx'
-import { DRAWING_PRESETS, LAYER_LABELS, drawingLayerCounts, terraceLayerCounts, type DrawingPreset, type LayerId } from '@/lib/draw/layers.ts'
+import { DRAWING_PRESETS, LAYER_LABELS, type DrawingPreset, type LayerId } from '@/lib/draw/layers.ts'
 import { downloadSheetPdf } from '@/lib/draw/exportSheet.ts'
 import { downloadSvg, downloadSvgAsPng } from '@/lib/export/index.ts'
 import { ExportDropdown } from '@/components/export/ExportDropdown.tsx'
@@ -22,7 +22,6 @@ export function DrawingWorkspace({ design, onFloorChange, initialFloorLevel, hig
   const svgRef = useRef<SVGSVGElement>(null)
   const floor = design.floors[Math.min(floorIdx, design.floors.length - 1)]
   const terrace = floorIdx >= design.floors.length
-  const counts = terrace ? terraceLayerCounts(design) : drawingLayerCounts(floor, design.siteFeatures)
   const name = `plan_${design.dna.seed}_${terrace ? 'terrace' : floor.prefix ?? floor.level}`
   const bg = theme === 'cad' ? '#11161c' : '#ffffff'
   const button = 'border border-line-strong px-2 py-2 text-xs text-ink-dim hover:text-ink'
@@ -63,7 +62,7 @@ export function DrawingWorkspace({ design, onFloorChange, initialFloorLevel, hig
         </select>
       </label>
       <div className="divide-y divide-line">{(Object.keys(LAYER_LABELS) as LayerId[]).map(id => <label key={id} className="flex cursor-pointer items-center justify-between gap-2 py-2">
-        <span className="flex flex-1 items-center justify-between gap-2"><span className="text-xs text-ink">{translateUi(LAYER_LABELS[id])}</span><span className="whitespace-nowrap text-[9px] text-ink-faint">{translateUi(counts[id])} {translateUi(" on this floor")}</span></span>
+        <span className="text-xs text-ink">{translateUi(LAYER_LABELS[id])}</span>
         <input type="checkbox" aria-label={translateUi(LAYER_LABELS[id])} checked={layers[id]} onChange={e => { setLayers({ ...layers, [id]: e.target.checked }); setPreset('Custom') }} className="accent-neutral-500" />
       </label>)}</div>
       <p className="my-3 text-[10px] text-ink-faint">{translateUi("Supports shows columns, beams and ground-floor footings and plinth. Approximate; structural design by a licensed engineer required. Layers change only the drawing.")}</p>
