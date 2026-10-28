@@ -22,7 +22,7 @@ export function Interior() {
   if (!result || !plan) return <div className="mx-auto max-w-[1400px] px-10 py-24 text-ink-dim">{translateUi("Preparing model…")}</div>
   if (!result.report.hardChecksPass) return <InvalidPlanNotice report={result.report} />
   return (
-    <div className="mx-auto max-w-[1700px] px-6 py-8 md:px-10">
+    <div className="mx-auto max-w-[1400px] px-6 py-8 md:px-10">
       <WorkspaceTabs />
       <div className="mt-8">
         <p className="label">{translateUi("Step 06 · AI Interior")}</p>
