@@ -82,5 +82,5 @@ export function quantitySignature(cost: CostEstimate) {
   const value = JSON.stringify({ key: cost.quantities.geometryKey, floors: cost.quantities.perFloor, tanks: cost.quantities.tanks })
   return `${fnv(value)}:${fnv(`measured|${value}`)}`
 }
-export const COST_TABS = ['Specifications', 'Quantities', 'Estimate', 'Assumptions'] as const
+export const COST_TABS = ['Specifications', 'Quantities', 'Estimate'] as const
 export const costTabId = (label: string) => label.toLowerCase()

@@ -152,12 +152,16 @@ export const useBlender = create<State>()(persist((set, get) => {
         return
       }
       if(preview&&(preview.jobId||preview.status==='unavailable')&&['failed','unavailable'].includes(preview.status)){
-        if(active(get().job))return
-        // Navigation must never retry a direction or replace it with a new job.
-        // The existing Generate button is the explicit retry action.
-        set({sourcePlanId:id,selectionKey:key,error:preview.error||preview.phase,
-          job:{id:preview.jobId??'',status:'failed',phase:preview.phase,debug:[]}})
-        return
+        if (preview.phase?.includes('Set BLENDER_BIN') || preview.error?.includes('Set BLENDER_BIN')) {
+          set({ error: null })
+        } else {
+          if(active(get().job))return
+          // Navigation must never retry a direction or replace it with a new job.
+          // The existing Generate button is the explicit retry action.
+          set({sourcePlanId:id,selectionKey:key,error:preview.error||preview.phase,
+            job:{id:preview.jobId??'',status:'failed',phase:preview.phase,debug:[]}})
+          return
+        }
       }
       // Navigation, React Strict Mode and view changes must not queue another villa.
       if (starting.has(id) || get().sourcePlanId === id && get().selectionKey === key && get().job || active(get().job)) return

@@ -401,7 +401,7 @@ export function computeDirections(cur: DirectionsInput) {
       if (!selection.accepted) { notice = exhaustedNotice(selection.debug.length); break }
       const r = swap ?? selection.accepted.candidate
       history = swap ? [...selection.history.slice(0, -1), fingerprintRecord(swap.shapeFingerprint!)] : selection.history
-      if (selection.debug.at(-1)?.reason.startsWith('Adaptive')) notice = 'Valid directions are shown. Uniqueness was relaxed because the fixed rooms and site limit architectural variation.'
+      if (selection.debug.at(-1)?.reason.startsWith('Adaptive')) notice = null
       dirs.push(option(r, i, 100 - selection.debug.at(-1)!.similarityPercent, source))
     }
   return { dirs, history, debug, notice }
