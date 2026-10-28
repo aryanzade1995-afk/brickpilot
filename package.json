@@ -36,6 +36,9 @@
     "test:solar-pipeline": "node --experimental-strip-types --test scripts/test-solar-pipeline.mjs",
     "test:solar-government": "node --experimental-strip-types --test scripts/test-solar-government.mjs",
     "test:solar-cost": "node --experimental-strip-types --test scripts/test-solar-cost.mjs",
+    "test:cost-research": "node --experimental-strip-types --test --test-concurrency=1 scripts/test-cost-research-schema.mjs scripts/test-pricing-context.mjs scripts/test-deterministic-preparser.mjs scripts/test-cost-research-normalizer.mjs scripts/test-cost-research-outliers.mjs scripts/test-cost-research-integrity.mjs scripts/test-cost-research-security.mjs scripts/test-cost-research-pipeline.mjs scripts/test-cost-research-persistence.mjs",
+    "eval:cost-research": "node scripts/eval-cost-extractor.mjs",
+
     "test:solar-viewer": "node --experimental-strip-types --test scripts/test-solar-viewer.mjs",
     "test:solar-editor": "node --experimental-strip-types --test scripts/test-solar-editor.mjs",
     "test:solar-placement": "node --experimental-strip-types --test scripts/test-solar-placement.mjs",
@@ -92,6 +95,7 @@
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.3",
     "three": "^0.185.1",
+    "three-stdlib": "^2.36.1",
     "zod": "^4.5.4",
     "zustand": "^5.0.15"
   },

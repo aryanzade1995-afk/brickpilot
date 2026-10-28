@@ -6,7 +6,8 @@ import materialsRaw from '../../../../blender/assets/spec-materials.json' with {
 import finishesRaw from './finishes.json' with { type: 'json' }
 import puneRaw from './pune.json' with { type: 'json' }
 import legacyRaw from './legacy-rates.json' with { type: 'json' }
-import { ratesSchema, specsCatalogueSchema, presetsSchema, materialRegistrySchema, finishesSchema, puneSchema, legacyRatesSchema } from './schemas.ts'
+import labourRaw from './labour.json' with { type: 'json' }
+import { ratesSchema, specsCatalogueSchema, presetsSchema, materialRegistrySchema, finishesSchema, puneSchema, legacyRatesSchema, labourSchema } from './schemas.ts'
 import { flooringProducts, flooringRates, flooringSpecificationOptions } from '../../flooring/catalogue.ts'
 import { finishProducts, finishRates, finishSpecificationOptions } from '../../finishes/catalogue.ts'
 import serviceItems from '../../finishes/service-items.json' with { type: 'json' }
@@ -73,3 +74,4 @@ export const validatedPunePolicy = { ...compatibilityPolicy, city: settings.city
   defaults: { ...compatibilityPolicy.defaults, overheadPercent: settings.overheadPct, contingencyPercent: settings.contingencyPct,
     feePercent: settings.feePct, gstPercent: settings.gstPct, includeGst: settings.includeGst } }
 export const validatedLegacyRates = legacyRatesSchema.parse(legacyRaw)
+export const validatedLabour = labourSchema.parse(labourRaw)

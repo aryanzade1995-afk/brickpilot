@@ -1,0 +1,898 @@
+[
+  {
+    "id": "sample_01_rmc_m20",
+    "target": {
+      "rateId": "boq-concrete-m20",
+      "itemLabel": "M20 Ready Mix Concrete",
+      "trade": "Civil & structure",
+      "requiredUnit": "m³",
+      "specSummary": "M20 grade RMC ready-mix concrete",
+      "queryTerm": "M20 ready mix concrete price Pune"
+    },
+    "doc": {
+      "docId": "doc_01",
+      "url": "https://rmcpune.example.in/products/m20-grade",
+      "publisher": "Pune RMC Concrete Suppliers",
+      "title": "Ready Mix Concrete M20 Price in Pune - Ultratech RMC Supplier",
+      "textSample": "UltraTech M20 grade ready-mix concrete price in Pune is Rs 4,250 per cubic metre (m3) inclusive of transit mixer delivery within 15 km. Pumping charges extra if required. Published October 2026 for Pune construction projects.",
+      "fetchTimestamp": "2026-10-24T10:00:00Z"
+    },
+    "groundTruth": {
+      "hasPrice": true,
+      "quotedPrice": 4250,
+      "quotedUnit": "m³",
+      "pricingBasis": "supply-only",
+      "taxIncluded": "unknown",
+      "deliveryIncluded": true,
+      "expectedExcerpt": "UltraTech M20 grade ready-mix concrete price in Pune is Rs 4,250 per cubic metre (m3) inclusive of transit mixer delivery within 15 km."
+    }
+  },
+  {
+    "id": "sample_02_steel_tmt",
+    "target": {
+      "rateId": "boq-steel",
+      "itemLabel": "TMT Rebars Fe550D",
+      "trade": "Civil & structure",
+      "requiredUnit": "kg",
+      "specSummary": "Primary TMT steel bars grade Fe 550D",
+      "queryTerm": "Tata Tiscon 550D TMT steel price Pune"
+    },
+    "doc": {
+      "docId": "doc_02",
+      "url": "https://steeldepot.example.in/tata-tiscon-pune",
+      "publisher": "Maharashtra Steel Distributors",
+      "title": "Tata Tiscon 550D TMT Steel Rebars Price List Pune",
+      "textSample": "Tata Tiscon 550D primary TMT steel bars current price in Pune is Rs 68.50 per kg (Rs 68,500 per metric tonne) excluding 18% GST. Delivery available across Pune and PCMC. Quotation valid for October 2026.",
+      "fetchTimestamp": "2026-10-24T10:05:00Z"
+    },
+    "groundTruth": {
+      "hasPrice": true,
+      "quotedPrice": 68.5,
+      "quotedUnit": "kg",
+      "pricingBasis": "supply-only",
+      "taxIncluded": false,
+      "deliveryIncluded": "unknown",
+      "expectedExcerpt": "Tata Tiscon 550D primary TMT steel bars current price in Pune is Rs 68.50 per kg (Rs 68,500 per metric tonne) excluding 18% GST."
+    }
+  },
+  {
+    "id": "sample_03_vitrified_tiles_sqft",
+    "target": {
+      "rateId": "floor-living-vitrified",
+      "itemLabel": "Vitrified Floor Tiles",
+      "trade": "Flooring & tiling",
+      "requiredUnit": "m²",
+      "specSummary": "600x1200 mm glazed vitrified tiles",
+      "queryTerm": "Kajaria 600x1200 glazed vitrified tiles price Pune"
+    },
+    "doc": {
+      "docId": "doc_03",
+      "url": "https://tileshop.example.in/kajaria-gvt-120x60",
+      "publisher": "Kajaria Tile Gallery Pune",
+      "title": "Kajaria 600x1200 mm Glazed Vitrified Tiles Price Pune Showroom",
+      "textSample": "Kajaria 600x1200 mm (2x4 ft) premium glazed vitrified floor tiles price is Rs 62 per sq ft (Rs 667 per m2) in Pune. Each box contains 2 tiles covering 15.5 sq ft (1.44 sq m) priced at Rs 961 per box. Supply only basis.",
+      "fetchTimestamp": "2026-10-24T10:10:00Z"
+    },
+    "groundTruth": {
+      "hasPrice": true,
+      "quotedPrice": 62,
+      "quotedUnit": "sqft",
+      "pricingBasis": "supply-only",
+      "taxIncluded": "unknown",
+      "deliveryIncluded": "unknown",
+      "expectedExcerpt": "Kajaria 600x1200 mm (2x4 ft) premium glazed vitrified floor tiles price is Rs 62 per sq ft (Rs 667 per m2) in Pune."
+    }
+  },
+  {
+    "id": "sample_04_interior_paint_20l",
+    "target": {
+      "rateId": "boq-internal-paint",
+      "itemLabel": "Interior Emulsion Paint",
+      "trade": "Finishes & painting",
+      "requiredUnit": "m²",
+      "specSummary": "Luxury interior acrylic emulsion paint 2 coats",
+      "queryTerm": "Asian Paints Royale luxury emulsion 20 litre price"
+    },
+    "doc": {
+      "docId": "doc_04",
+      "url": "https://paintmart.example.in/asian-paints-royale-pune",
+      "publisher": "Asian Paints Dealer Pune",
+      "title": "Asian Paints Royale Luxury Emulsion Paint 20L Bucket Price Pune",
+      "textSample": "Asian Paints Royale Luxury Emulsion interior paint 20 Litre bucket price is Rs 8,800 in Pune. Coverage approximately 140-160 sq ft per litre for 2 coats. Material cost equals approximately Rs 30 per sq ft (Rs 322 per m2) for two coats.",
+      "fetchTimestamp": "2026-10-24T10:15:00Z"
+    },
+    "groundTruth": {
+      "hasPrice": true,
+      "quotedPrice": 8800,
+      "quotedUnit": "bucket",
+      "pricingBasis": "supply-only",
+      "taxIncluded": "unknown",
+      "deliveryIncluded": "unknown",
+      "expectedExcerpt": "Asian Paints Royale Luxury Emulsion interior paint 20 Litre bucket price is Rs 8,800 in Pune."
+    }
+  },
+  {
+    "id": "sample_05_water_tank_1000l",
+    "target": {
+      "rateId": "boq-water-tank",
+      "itemLabel": "Overhead Water Tank 1000L",
+      "trade": "Plumbing & sanitary",
+      "requiredUnit": "item",
+      "specSummary": "Triple layer anti-bacterial 1000 litre overhead plastic tank",
+      "queryTerm": "Sintex 1000 litre water storage tank price"
+    },
+    "doc": {
+      "docId": "doc_05",
+      "url": "https://plumbingsupply.example.in/sintex-1000l-tank",
+      "publisher": "Sintex Distributor Pune",
+      "title": "Sintex 1000 Litre Overhead Triple Layer Water Tank Price Pune",
+      "textSample": "Sintex 1000 Litre triple layer anti-bacterial overhead plastic water storage tank price in Pune is Rs 7,200 per unit. Installation and plumbing fittings charged separately.",
+      "fetchTimestamp": "2026-10-24T10:20:00Z"
+    },
+    "groundTruth": {
+      "hasPrice": true,
+      "quotedPrice": 7200,
+      "quotedUnit": "item",
+      "pricingBasis": "supply-only",
+      "taxIncluded": "unknown",
+      "deliveryIncluded": "unknown",
+      "expectedExcerpt": "Sintex 1000 Litre triple layer anti-bacterial overhead plastic water storage tank price in Pune is Rs 7,200 per unit."
+    }
+  },
+  {
+    "id": "sample_06_cpvc_pipe",
+    "target": {
+      "rateId": "boq-water-supply-pipe",
+      "itemLabel": "CPVC Water Supply Pipe 25mm",
+      "trade": "Plumbing & sanitary",
+      "requiredUnit": "m",
+      "specSummary": "25mm SDR 11 CPVC hot and cold potable water pipe",
+      "queryTerm": "Astral CPVC Pro pipe 25mm SDR 11 price per meter"
+    },
+    "doc": {
+      "docId": "doc_06",
+      "url": "https://astraldealer.example.in/cpvc-25mm-pune",
+      "publisher": "Astral Pipes Pune",
+      "title": "Astral CPVC Pro Pipes 25mm (1 inch) SDR 11 Price List",
+      "textSample": "Astral CPVC Pro 25 mm Class 1 (SDR 11) water supply pipe price is Rs 115 per metre in Pune. Tough, leak-proof and NSF certified for potable hot and cold residential water lines.",
+      "fetchTimestamp": "2026-10-24T10:25:00Z"
+    },
+    "groundTruth": {
+      "hasPrice": true,
+      "quotedPrice": 115,
+      "quotedUnit": "m",
+      "pricingBasis": "supply-only",
+      "taxIncluded": "unknown",
+      "deliveryIncluded": "unknown",
+      "expectedExcerpt": "Astral CPVC Pro 25 mm Class 1 (SDR 11) water supply pipe price is Rs 115 per metre in Pune."
+    }
+  },
+  {
+    "id": "sample_07_aac_blocks",
+    "target": {
+      "rateId": "boq-masonry-aac",
+      "itemLabel": "AAC Masonry Blocks",
+      "trade": "Civil & structure",
+      "requiredUnit": "m³",
+      "specSummary": "Autoclaved aerated concrete blocks 600x200x150 mm",
+      "queryTerm": "AAC blocks price per cubic meter Pune"
+    },
+    "doc": {
+      "docId": "doc_07",
+      "url": "https://aacblocks.example.in/pune-rates",
+      "publisher": "Siporex Block Distributors",
+      "title": "Lightweight AAC Blocks Price per Cubic Metre Pune",
+      "textSample": "Grade 1 Autoclaved Aerated Concrete (AAC) blocks 600x200x150 mm rate is Rs 3,400 per cubic metre in Pune. Minimum order 1 truck load (18 cubic metres). Free delivery within Pune municipal limits.",
+      "fetchTimestamp": "2026-10-24T10:30:00Z"
+    },
+    "groundTruth": {
+      "hasPrice": true,
+      "quotedPrice": 3400,
+      "quotedUnit": "m³",
+      "pricingBasis": "supply-only",
+      "taxIncluded": "unknown",
+      "deliveryIncluded": true,
+      "expectedExcerpt": "Grade 1 Autoclaved Aerated Concrete (AAC) blocks 600x200x150 mm rate is Rs 3,400 per cubic metre in Pune."
+    }
+  },
+  {
+    "id": "sample_08_clay_bricks",
+    "target": {
+      "rateId": "boq-masonry-clay",
+      "itemLabel": "Red Clay Bricks",
+      "trade": "Civil & structure",
+      "requiredUnit": "item",
+      "specSummary": "Standard kiln-burnt clay red bricks class 1",
+      "queryTerm": "Red clay bricks price per 1000 Pune"
+    },
+    "doc": {
+      "docId": "doc_08",
+      "url": "https://brickkiln.example.in/red-bricks-pune",
+      "publisher": "Maharashtra Brick Kiln Syndicate",
+      "title": "First Class Red Clay Bricks Price Pune Kiln",
+      "textSample": "First class red clay kiln bricks rate is Rs 9.50 per piece (Rs 9,500 per 1000 pieces) ex-kiln. Transport extra as per actual distance. High compressive strength > 75 kg/cm2.",
+      "fetchTimestamp": "2026-10-24T10:35:00Z"
+    },
+    "groundTruth": {
+      "hasPrice": true,
+      "quotedPrice": 9.5,
+      "quotedUnit": "item",
+      "pricingBasis": "supply-only",
+      "taxIncluded": "unknown",
+      "deliveryIncluded": false,
+      "expectedExcerpt": "First class red clay kiln bricks rate is Rs 9.50 per piece (Rs 9,500 per 1000 pieces) ex-kiln."
+    }
+  },
+  {
+    "id": "sample_09_granite_kitchen_counter",
+    "target": {
+      "rateId": "boq-granite-counter",
+      "itemLabel": "Black Granite Slab",
+      "trade": "Flooring & tiling",
+      "requiredUnit": "m²",
+      "specSummary": "18mm thick mirror polished Black Galaxy granite slab",
+      "queryTerm": "Black granite countertop slab price per sqft Pune"
+    },
+    "doc": {
+      "docId": "doc_09",
+      "url": "https://marblestore.example.in/black-granite-pune",
+      "publisher": "Pune Marble & Granite Emporium",
+      "title": "Jet Black Granite Kitchen Platform Slabs Price",
+      "textSample": "Premium 18mm mirror polished Black Granite slab for kitchen platform is Rs 185 per sq ft (Rs 1,991 per m2) in Pune. Pre-cut sizes available with edge chamfering on request.",
+      "fetchTimestamp": "2026-10-24T10:40:00Z"
+    },
+    "groundTruth": {
+      "hasPrice": true,
+      "quotedPrice": 185,
+      "quotedUnit": "sqft",
+      "pricingBasis": "supply-only",
+      "taxIncluded": "unknown",
+      "deliveryIncluded": "unknown",
+      "expectedExcerpt": "Premium 18mm mirror polished Black Granite slab for kitchen platform is Rs 185 per sq ft (Rs 1,991 per m2) in Pune."
+    }
+  },
+  {
+    "id": "sample_10_gypsum_false_ceiling_installed",
+    "target": {
+      "rateId": "boq-false-ceiling",
+      "itemLabel": "Gypsum Board False Ceiling",
+      "trade": "Finishes & painting",
+      "requiredUnit": "m²",
+      "specSummary": "12.5mm Saint-Gobain Gyproc false ceiling including GI channels and finishing",
+      "queryTerm": "Gyproc gypsum false ceiling turnkey installed rate per sqft"
+    },
+    "doc": {
+      "docId": "doc_10",
+      "url": "https://interiorceilings.example.in/gyproc-rates",
+      "publisher": "Deccan Interior Solutions",
+      "title": "Saint Gobain Gypsum False Ceiling Installed Rate Pune",
+      "textSample": "Complete Saint-Gobain Gyproc false ceiling turnkey installed price is Rs 115 per sq ft including GI framing channels, jointing compound, paper tape and two coats of primer. Light cutouts included.",
+      "fetchTimestamp": "2026-10-24T10:45:00Z"
+    },
+    "groundTruth": {
+      "hasPrice": true,
+      "quotedPrice": 115,
+      "quotedUnit": "sqft",
+      "pricingBasis": "installed",
+      "taxIncluded": "unknown",
+      "deliveryIncluded": "unknown",
+      "expectedExcerpt": "Complete Saint-Gobain Gyproc false ceiling turnkey installed price is Rs 115 per sq ft including GI framing channels, jointing compound, paper tape and two coats of primer."
+    }
+  },
+  {
+    "id": "sample_11_flushing_cistern_jaquar",
+    "target": {
+      "rateId": "boq-sanitary-cistern",
+      "itemLabel": "Concealed Dual Flush Cistern",
+      "trade": "Plumbing & sanitary",
+      "requiredUnit": "item",
+      "specSummary": "Jaquar concealed dual-flush cistern with wall plate",
+      "queryTerm": "Jaquar concealed cistern price Pune"
+    },
+    "doc": {
+      "docId": "doc_11",
+      "url": "https://bathandmore.example.in/jaquar-concealed-cistern",
+      "publisher": "Jaquar Bath Gallery",
+      "title": "Jaquar Dual Flush Concealed Cistern Price in Pune",
+      "textSample": "Jaquar dual flush concealed cistern with installation frame and chrome push plate is Rs 4,850 per piece in Pune showroom. Supply only without plumber installation.",
+      "fetchTimestamp": "2026-10-24T10:50:00Z"
+    },
+    "groundTruth": {
+      "hasPrice": true,
+      "quotedPrice": 4850,
+      "quotedUnit": "item",
+      "pricingBasis": "supply-only",
+      "taxIncluded": "unknown",
+      "deliveryIncluded": "unknown",
+      "expectedExcerpt": "Jaquar dual flush concealed cistern with installation frame and chrome push plate is Rs 4,850 per piece in Pune showroom."
+    }
+  },
+  {
+    "id": "sample_12_electrical_wire_polycab",
+    "target": {
+      "rateId": "boq-electrical-wire",
+      "itemLabel": "2.5 sq mm Copper Electrical Wire",
+      "trade": "Electrical & lighting",
+      "requiredUnit": "m",
+      "specSummary": "Polycab 2.5 sq mm single core FRLS copper electrical wire",
+      "queryTerm": "Polycab 2.5 sq mm copper wire 90m coil price"
+    },
+    "doc": {
+      "docId": "doc_12",
+      "url": "https://electromart.example.in/polycab-2-5mm-wire",
+      "publisher": "Pune Electric Supplies",
+      "title": "Polycab 2.5 sq mm FRLS Copper Wire Price per Coil",
+      "textSample": "Polycab 2.5 sq mm single core flame retardant FRLS copper wire 90 meter coil is priced at Rs 2,450 per unit in Pune (Rs 27.22 per meter). 100% pure electrolytic copper.",
+      "fetchTimestamp": "2026-10-24T10:55:00Z"
+    },
+    "groundTruth": {
+      "hasPrice": true,
+      "quotedPrice": 2450,
+      "quotedUnit": "item",
+      "pricingBasis": "supply-only",
+      "taxIncluded": "unknown",
+      "deliveryIncluded": "unknown",
+      "expectedExcerpt": "Polycab 2.5 sq mm single core flame retardant FRLS copper wire 90 meter coil is priced at Rs 2,450 per unit in Pune (Rs 27.22 per meter)."
+    }
+  },
+  {
+    "id": "sample_13_modular_switch_schneider",
+    "target": {
+      "rateId": "boq-electrical-switch",
+      "itemLabel": "6A Modular Switch",
+      "trade": "Electrical & lighting",
+      "requiredUnit": "point",
+      "specSummary": "Schneider Electric 6A 1-way modular switch white",
+      "queryTerm": "Schneider Livia 6A modular switch price Pune"
+    },
+    "doc": {
+      "docId": "doc_13",
+      "url": "https://switchexpo.example.in/schneider-livia-6a",
+      "publisher": "Modern Electric Hub",
+      "title": "Schneider Livia 6A 1-Way Modular Switch Price",
+      "textSample": "Schneider Electric Livia 6A 1-module white switch price is Rs 75 per point in Pune retail stores. ISI marked with spark shield protection.",
+      "fetchTimestamp": "2026-10-24T11:00:00Z"
+    },
+    "groundTruth": {
+      "hasPrice": true,
+      "quotedPrice": 75,
+      "quotedUnit": "point",
+      "pricingBasis": "supply-only",
+      "taxIncluded": "unknown",
+      "deliveryIncluded": "unknown",
+      "expectedExcerpt": "Schneider Electric Livia 6A 1-module white switch price is Rs 75 per point in Pune retail stores."
+    }
+  },
+  {
+    "id": "sample_14_exterior_paint_weathercoat",
+    "target": {
+      "rateId": "boq-external-paint",
+      "itemLabel": "Exterior Weatherproof Paint",
+      "trade": "Finishes & painting",
+      "requiredUnit": "m²",
+      "specSummary": "100% acrylic exterior anti-fungal weatherproof emulsion",
+      "queryTerm": "Berger WeatherCoat exterior emulsion price per litre"
+    },
+    "doc": {
+      "docId": "doc_14",
+      "url": "https://bergerpaints.example.in/weathercoat-longlife",
+      "publisher": "Berger Paint Store Pune",
+      "title": "Berger WeatherCoat Anti-Dust Exterior Paint Price List",
+      "textSample": "Berger WeatherCoat Anti-Dust exterior emulsion price is Rs 380 per litre in Pune. High resistance to heavy monsoon rains and UV fading. 7 years performance warranty.",
+      "fetchTimestamp": "2026-10-24T11:05:00Z"
+    },
+    "groundTruth": {
+      "hasPrice": true,
+      "quotedPrice": 380,
+      "quotedUnit": "m²",
+      "pricingBasis": "supply-only",
+      "taxIncluded": "unknown",
+      "deliveryIncluded": "unknown",
+      "expectedExcerpt": "Berger WeatherCoat Anti-Dust exterior emulsion price is Rs 380 per litre in Pune."
+    }
+  },
+  {
+    "id": "sample_15_upvc_windows_installed",
+    "target": {
+      "rateId": "boq-upvc-window",
+      "itemLabel": "UPVC Sliding Windows",
+      "trade": "Doors & windows",
+      "requiredUnit": "m²",
+      "specSummary": "3-track 3-panel UPVC sliding window with mosquito mesh and 5mm clear float glass",
+      "queryTerm": "UPVC 3 track sliding windows price per sqft Pune installed"
+    },
+    "doc": {
+      "docId": "doc_15",
+      "url": "https://fenestrations.example.in/upvc-windows-pune",
+      "publisher": "Western UPVC Fabricators",
+      "title": "UPVC 3-Track Sliding Windows Price with Installation Pune",
+      "textSample": "Heavy-duty 3-track UPVC sliding window with SS mosquito mesh and 5mm Saint-Gobain glass turnkey installed price is Rs 480 per sq ft in Pune. Includes silicon sealant sealing and EPDM gaskets.",
+      "fetchTimestamp": "2026-10-24T11:10:00Z"
+    },
+    "groundTruth": {
+      "hasPrice": true,
+      "quotedPrice": 480,
+      "quotedUnit": "sqft",
+      "pricingBasis": "installed",
+      "taxIncluded": "unknown",
+      "deliveryIncluded": "unknown",
+      "expectedExcerpt": "Heavy-duty 3-track UPVC sliding window with SS mosquito mesh and 5mm Saint-Gobain glass turnkey installed price is Rs 480 per sq ft in Pune."
+    }
+  },
+  {
+    "id": "sample_16_swr_drainage_pipe",
+    "target": {
+      "rateId": "boq-drainage-pipe",
+      "itemLabel": "PVC Drainage Pipe 110mm",
+      "trade": "Plumbing & sanitary",
+      "requiredUnit": "m",
+      "specSummary": "110mm ring-fit PVC soil and waste drainage pipe Type B",
+      "queryTerm": "Supreme PVC 110mm SWR pipe price per meter"
+    },
+    "doc": {
+      "docId": "doc_16",
+      "url": "https://pipingcenter.example.in/supreme-110mm-swr",
+      "publisher": "Supreme Pipes Agency",
+      "title": "Supreme 110 mm PVC SWR Soil & Rainwater Pipe Price",
+      "textSample": "Supreme 110 mm Type B SWR drainage pipe is Rs 240 per metre in Pune. Rubber ring socket design prevents joint leakage and withstands underground soil pressure.",
+      "fetchTimestamp": "2026-10-24T11:15:00Z"
+    },
+    "groundTruth": {
+      "hasPrice": true,
+      "quotedPrice": 240,
+      "quotedUnit": "m",
+      "pricingBasis": "supply-only",
+      "taxIncluded": "unknown",
+      "deliveryIncluded": "unknown",
+      "expectedExcerpt": "Supreme 110 mm Type B SWR drainage pipe is Rs 240 per metre in Pune."
+    }
+  },
+  {
+    "id": "sample_17_marine_plywood_19mm",
+    "target": {
+      "rateId": "boq-interior-plywood",
+      "itemLabel": "BWP Marine Plywood 19mm",
+      "trade": "Woodwork & carpentry",
+      "requiredUnit": "m²",
+      "specSummary": "19mm boiling waterproof BWP marine grade plywood IS 710",
+      "queryTerm": "CenturyPly 19mm BWP marine plywood price per sqft"
+    },
+    "doc": {
+      "docId": "doc_17",
+      "url": "https://timbermart.example.in/centuryply-bwp-19mm",
+      "publisher": "Pune Plywood Depot",
+      "title": "CenturyPly Club Prime 19mm Marine Plywood Rate",
+      "textSample": "CenturyPly 19mm BWP Marine Plywood IS 710 calibrated current rate is Rs 128 per sq ft in Pune. Guaranteed borer and termite proof with 25 years warranty.",
+      "fetchTimestamp": "2026-10-24T11:20:00Z"
+    },
+    "groundTruth": {
+      "hasPrice": true,
+      "quotedPrice": 128,
+      "quotedUnit": "sqft",
+      "pricingBasis": "supply-only",
+      "taxIncluded": "unknown",
+      "deliveryIncluded": "unknown",
+      "expectedExcerpt": "CenturyPly 19mm BWP Marine Plywood IS 710 calibrated current rate is Rs 128 per sq ft in Pune."
+    }
+  },
+  {
+    "id": "sample_18_modular_kitchen_joinery",
+    "target": {
+      "rateId": "boq-kitchen-cabinets",
+      "itemLabel": "Modular Kitchen Cabinets",
+      "trade": "Woodwork & carpentry",
+      "requiredUnit": "m",
+      "specSummary": "Base and wall modular kitchen units in HDHMR with acrylic shutters and soft-close hinges",
+      "queryTerm": "Modular kitchen cabinets price per running feet Pune installed"
+    },
+    "doc": {
+      "docId": "doc_18",
+      "url": "https://kitchenstudio.example.in/acrylic-kitchen-rates",
+      "publisher": "Modern Living Kitchens",
+      "title": "Acrylic Modular Kitchen Rate per Running Foot Pune",
+      "textSample": "Custom acrylic finish modular kitchen cabinets in waterproof HDHMR with Hettich soft-close channels turnkey installed price is Rs 2,200 per running foot in Pune.",
+      "fetchTimestamp": "2026-10-24T11:25:00Z"
+    },
+    "groundTruth": {
+      "hasPrice": true,
+      "quotedPrice": 2200,
+      "quotedUnit": "ft",
+      "pricingBasis": "installed",
+      "taxIncluded": "unknown",
+      "deliveryIncluded": "unknown",
+      "expectedExcerpt": "Custom acrylic finish modular kitchen cabinets in waterproof HDHMR with Hettich soft-close channels turnkey installed price is Rs 2,200 per running foot in Pune."
+    }
+  },
+  {
+    "id": "sample_19_tile_fixing_labour",
+    "target": {
+      "rateId": "boq-tile-labour",
+      "itemLabel": "Tile Laying Labour Rate",
+      "trade": "Flooring & tiling",
+      "requiredUnit": "m²",
+      "specSummary": "Labour charge for laying vitrified floor tiles with mortar bedding and epoxy grouting",
+      "queryTerm": "Tile laying labour rate per sqft Pune"
+    },
+    "doc": {
+      "docId": "doc_19",
+      "url": "https://labourcontractor.example.in/tile-laying-rates",
+      "publisher": "Pune Mistry & Tile Contractor",
+      "title": "Tile Fixing Labour Charges per Sq Ft Pune",
+      "textSample": "Vitrified floor tile laying labour charges is Rs 24 per sq ft in Pune for residential floors including skirting and leveling. Material supplied by client.",
+      "fetchTimestamp": "2026-10-24T11:30:00Z"
+    },
+    "groundTruth": {
+      "hasPrice": true,
+      "quotedPrice": 24,
+      "quotedUnit": "sqft",
+      "pricingBasis": "labour-only",
+      "taxIncluded": "unknown",
+      "deliveryIncluded": "unknown",
+      "expectedExcerpt": "Vitrified floor tile laying labour charges is Rs 24 per sq ft in Pune for residential floors including skirting and leveling."
+    }
+  },
+  {
+    "id": "sample_20_wall_plaster_labour",
+    "target": {
+      "rateId": "boq-plaster-labour",
+      "itemLabel": "Internal Wall Plaster Labour",
+      "trade": "Civil & structure",
+      "requiredUnit": "m²",
+      "specSummary": "12mm smooth cement sand internal wall plastering labour only",
+      "queryTerm": "Internal plastering labour rate per sqft Pune"
+    },
+    "doc": {
+      "docId": "doc_20",
+      "url": "https://civilworks.example.in/plastering-labour-pune",
+      "publisher": "Shree Ganesh Civil Contractors",
+      "title": "Internal Cement Plaster Labour Rate per Sq Ft",
+      "textSample": "Internal single-coat smooth finish wall plaster labour only rate is Rs 18 per sq ft across Pune sites. Scaffolding provided by contractor.",
+      "fetchTimestamp": "2026-10-24T11:35:00Z"
+    },
+    "groundTruth": {
+      "hasPrice": true,
+      "quotedPrice": 18,
+      "quotedUnit": "sqft",
+      "pricingBasis": "labour-only",
+      "taxIncluded": "unknown",
+      "deliveryIncluded": "unknown",
+      "expectedExcerpt": "Internal single-coat smooth finish wall plaster labour only rate is Rs 18 per sq ft across Pune sites."
+    }
+  },
+  {
+    "id": "sample_21_basin_mixer_jaquar",
+    "target": {
+      "rateId": "boq-basin-mixer",
+      "itemLabel": "Single Lever Basin Mixer",
+      "trade": "Plumbing & sanitary",
+      "requiredUnit": "item",
+      "specSummary": "Jaquar Lyric single-lever basin mixer tap chrome",
+      "queryTerm": "Jaquar Lyric basin mixer tap price Pune"
+    },
+    "doc": {
+      "docId": "doc_21",
+      "url": "https://sanitarygallery.example.in/jaquar-lyric-mixer",
+      "publisher": "Sanitary Emporium",
+      "title": "Jaquar Lyric Basin Mixer Chrome Plated Price List",
+      "textSample": "Jaquar Lyric single lever basin mixer with 450mm braided connection pipes is Rs 3,150 per piece in Pune showroom.",
+      "fetchTimestamp": "2026-10-24T11:40:00Z"
+    },
+    "groundTruth": {
+      "hasPrice": true,
+      "quotedPrice": 3150,
+      "quotedUnit": "item",
+      "pricingBasis": "supply-only",
+      "taxIncluded": "unknown",
+      "deliveryIncluded": "unknown",
+      "expectedExcerpt": "Jaquar Lyric single lever basin mixer with 450mm braided connection pipes is Rs 3,150 per piece in Pune showroom."
+    }
+  },
+  {
+    "id": "sample_22_flush_door_shutter",
+    "target": {
+      "rateId": "boq-door-shutter",
+      "itemLabel": "Flush Door Shutter 35mm",
+      "trade": "Doors & windows",
+      "requiredUnit": "m²",
+      "specSummary": "35mm solid core commercial flush door shutter IS 2202",
+      "queryTerm": "Flush door 35mm solid core price per sqft Pune"
+    },
+    "doc": {
+      "docId": "doc_22",
+      "url": "https://doorsupply.example.in/flush-doors-pune",
+      "publisher": "National Doors Pune",
+      "title": "Commercial Solid Core Flush Door Shutters Rate List",
+      "textSample": "Greenpanel 35mm solid pine core commercial flush door shutter price is Rs 95 per sq ft in Pune. Kiln seasoned and vacuum pressure treated.",
+      "fetchTimestamp": "2026-10-24T11:45:00Z"
+    },
+    "groundTruth": {
+      "hasPrice": true,
+      "quotedPrice": 95,
+      "quotedUnit": "sqft",
+      "pricingBasis": "supply-only",
+      "taxIncluded": "unknown",
+      "deliveryIncluded": "unknown",
+      "expectedExcerpt": "Greenpanel 35mm solid pine core commercial flush door shutter price is Rs 95 per sq ft in Pune."
+    }
+  },
+  {
+    "id": "sample_23_italian_marble",
+    "target": {
+      "rateId": "boq-flooring-marble",
+      "itemLabel": "Italian Marble Flooring",
+      "trade": "Flooring & tiling",
+      "requiredUnit": "m²",
+      "specSummary": "Imported Botticino Italian marble floor slab 18mm",
+      "queryTerm": "Italian Botticino marble price per sqft Pune"
+    },
+    "doc": {
+      "docId": "doc_23",
+      "url": "https://luxuryitalianmarble.example.in/botticino-rates",
+      "publisher": "Classic Marble Company",
+      "title": "Imported Italian Botticino Marble Slabs Price Pune",
+      "textSample": "Original Italian Botticino Classico beige marble slabs price is Rs 380 per sq ft in Pune stockyard. Thickness 18mm with epoxy net reinforcement.",
+      "fetchTimestamp": "2026-10-24T11:50:00Z"
+    },
+    "groundTruth": {
+      "hasPrice": true,
+      "quotedPrice": 380,
+      "quotedUnit": "sqft",
+      "pricingBasis": "supply-only",
+      "taxIncluded": "unknown",
+      "deliveryIncluded": "unknown",
+      "expectedExcerpt": "Original Italian Botticino Classico beige marble slabs price is Rs 380 per sq ft in Pune stockyard."
+    }
+  },
+  {
+    "id": "sample_24_wall_hung_wc_hindware",
+    "target": {
+      "rateId": "boq-sanitary-commode",
+      "itemLabel": "Wall Hung WC Commode",
+      "trade": "Plumbing & sanitary",
+      "requiredUnit": "item",
+      "specSummary": "Hindware Italian collection rimless wall-hung water closet with soft close seat",
+      "queryTerm": "Hindware wall hung commode price Pune"
+    },
+    "doc": {
+      "docId": "doc_24",
+      "url": "https://hindwaresanitary.example.in/wall-hung-toilet",
+      "publisher": "Hindware Ceramic Mart",
+      "title": "Hindware Rimless Wall Hung Water Closet Price",
+      "textSample": "Hindware Italian Collection rimless wall hung European commode with UF soft close seat cover is Rs 6,800 per unit in Pune. Pure ceramic white finish.",
+      "fetchTimestamp": "2026-10-24T11:55:00Z"
+    },
+    "groundTruth": {
+      "hasPrice": true,
+      "quotedPrice": 6800,
+      "quotedUnit": "item",
+      "pricingBasis": "supply-only",
+      "taxIncluded": "unknown",
+      "deliveryIncluded": "unknown",
+      "expectedExcerpt": "Hindware Italian Collection rimless wall hung European commode with UF soft close seat cover is Rs 6,800 per unit in Pune."
+    }
+  },
+  {
+    "id": "sample_25_somany_tile_box",
+    "target": {
+      "rateId": "floor-living-vitrified",
+      "itemLabel": "Vitrified Tiles Box",
+      "trade": "Flooring & tiling",
+      "requiredUnit": "m²",
+      "specSummary": "Somany Duragres vitrified tiles box pricing",
+      "queryTerm": "Somany 600x600 vitrified tile price per box Pune"
+    },
+    "doc": {
+      "docId": "doc_25",
+      "url": "https://somanyshowroom.example.in/600x600-box",
+      "publisher": "Somany Ceramics Pune",
+      "title": "Somany Duragres Vitrified Floor Tiles Price per Box",
+      "textSample": "Somany Duragres 600x600 mm vitrified floor tiles price is Rs 720 per box covering 15.5 sq ft in Pune showroom. 4 pieces per carton.",
+      "fetchTimestamp": "2026-10-24T12:00:00Z"
+    },
+    "groundTruth": {
+      "hasPrice": true,
+      "quotedPrice": 720,
+      "quotedUnit": "box",
+      "pricingBasis": "supply-only",
+      "taxIncluded": "unknown",
+      "deliveryIncluded": "unknown",
+      "expectedExcerpt": "Somany Duragres 600x600 mm vitrified floor tiles price is Rs 720 per box covering 15.5 sq ft in Pune showroom."
+    }
+  },
+  {
+    "id": "sample_26_jsw_steel_tmt",
+    "target": {
+      "rateId": "boq-steel",
+      "itemLabel": "JSW Neosteel TMT Rebars",
+      "trade": "Civil & structure",
+      "requiredUnit": "kg",
+      "specSummary": "JSW Neosteel 500D TMT reinforcement rebars",
+      "queryTerm": "JSW Neosteel Fe500D price per kg Pune"
+    },
+    "doc": {
+      "docId": "doc_26",
+      "url": "https://jswsteelsuppliers.example.in/neosteel-pune",
+      "publisher": "Shree Steel Corporation",
+      "title": "JSW Neosteel Fe 500D TMT Rebar Price List Pune",
+      "textSample": "JSW Neosteel 500D high ductility TMT steel rebar price is Rs 66 per kg in Pune stockyard. Minimum billing 500 kg.",
+      "fetchTimestamp": "2026-10-24T12:05:00Z"
+    },
+    "groundTruth": {
+      "hasPrice": true,
+      "quotedPrice": 66,
+      "quotedUnit": "kg",
+      "pricingBasis": "supply-only",
+      "taxIncluded": "unknown",
+      "deliveryIncluded": "unknown",
+      "expectedExcerpt": "JSW Neosteel 500D high ductility TMT steel rebar price is Rs 66 per kg in Pune stockyard."
+    }
+  },
+  {
+    "id": "sample_27_rmc_m25_turnkey",
+    "target": {
+      "rateId": "boq-concrete-m25",
+      "itemLabel": "M25 Ready Mix Concrete",
+      "trade": "Civil & structure",
+      "requiredUnit": "m³",
+      "specSummary": "M25 grade ready mix concrete design mix with pump",
+      "queryTerm": "M25 ready mix concrete turnkey price per cum Pune"
+    },
+    "doc": {
+      "docId": "doc_27",
+      "url": "https://accconcreting.example.in/m25-pune",
+      "publisher": "ACC Concrete Ready Mix",
+      "title": "ACC M25 Concrete Price with Pumping Pune",
+      "textSample": "ACC M25 concrete ready mix with site boom placer pumping turnkey installed is Rs 4,900 per cubic metre in Pune city area.",
+      "fetchTimestamp": "2026-10-24T12:10:00Z"
+    },
+    "groundTruth": {
+      "hasPrice": true,
+      "quotedPrice": 4900,
+      "quotedUnit": "m³",
+      "pricingBasis": "installed",
+      "taxIncluded": "unknown",
+      "deliveryIncluded": "unknown",
+      "expectedExcerpt": "ACC M25 concrete ready mix with site boom placer pumping turnkey installed is Rs 4,900 per cubic metre in Pune city area."
+    }
+  },
+  {
+    "id": "sample_28_flyash_bricks",
+    "target": {
+      "rateId": "boq-masonry-flyash",
+      "itemLabel": "Fly Ash Bricks",
+      "trade": "Civil & structure",
+      "requiredUnit": "item",
+      "specSummary": "High density machine compressed fly ash cement bricks",
+      "queryTerm": "Fly ash bricks price per 1000 Pune"
+    },
+    "doc": {
+      "docId": "doc_28",
+      "url": "https://flyashproducts.example.in/pune-bricks",
+      "publisher": "Green Building Bricks Pune",
+      "title": "Fly Ash Cement Bricks Price per Piece Pune",
+      "textSample": "Heavy duty machine pressed fly ash bricks 9x4x3 inch rate is Rs 6.50 per piece in Pune. Uniform sharp edges with lower mortar consumption.",
+      "fetchTimestamp": "2026-10-24T12:15:00Z"
+    },
+    "groundTruth": {
+      "hasPrice": true,
+      "quotedPrice": 6.5,
+      "quotedUnit": "item",
+      "pricingBasis": "supply-only",
+      "taxIncluded": "unknown",
+      "deliveryIncluded": "unknown",
+      "expectedExcerpt": "Heavy duty machine pressed fly ash bricks 9x4x3 inch rate is Rs 6.50 per piece in Pune."
+    }
+  },
+  {
+    "id": "sample_29_armstrong_grid_ceiling",
+    "target": {
+      "rateId": "boq-grid-ceiling",
+      "itemLabel": "Armstrong Mineral Fiber Grid Ceiling",
+      "trade": "Finishes & painting",
+      "requiredUnit": "m²",
+      "specSummary": "2x2 ft Armstrong mineral fiber acoustic false ceiling with T-grid system",
+      "queryTerm": "Armstrong false ceiling price per sqft Pune installed"
+    },
+    "doc": {
+      "docId": "doc_29",
+      "url": "https://acousticceilings.example.in/armstrong-rates",
+      "publisher": "Armstrong Ceiling Hub",
+      "title": "Armstrong Acoustic Ceiling Installed Rate per Sq Ft",
+      "textSample": "Armstrong 600x600 mm fine fissured mineral fiber false ceiling with Silhouette T-grid turnkey installed is Rs 85 per sq ft in Pune.",
+      "fetchTimestamp": "2026-10-24T12:20:00Z"
+    },
+    "groundTruth": {
+      "hasPrice": true,
+      "quotedPrice": 85,
+      "quotedUnit": "sqft",
+      "pricingBasis": "installed",
+      "taxIncluded": "unknown",
+      "deliveryIncluded": "unknown",
+      "expectedExcerpt": "Armstrong 600x600 mm fine fissured mineral fiber false ceiling with Silhouette T-grid turnkey installed is Rs 85 per sq ft in Pune."
+    }
+  },
+  {
+    "id": "sample_30_commercial_plywood_18mm",
+    "target": {
+      "rateId": "boq-plywood-commercial",
+      "itemLabel": "Commercial Plywood 18mm",
+      "trade": "Woodwork & carpentry",
+      "requiredUnit": "m²",
+      "specSummary": "18mm MR commercial grade moisture resistant plywood IS 303",
+      "queryTerm": "18mm commercial plywood price per sqft Pune"
+    },
+    "doc": {
+      "docId": "doc_30",
+      "url": "https://punetimber.example.in/18mm-plywood",
+      "publisher": "Timber & Ply Wholesale",
+      "title": "18mm MR Grade Commercial Plywood Sheet Price",
+      "textSample": "18mm MR grade commercial pine core plywood price is Rs 72 per sq ft in Pune wholesale market. High density and calibrated thickness.",
+      "fetchTimestamp": "2026-10-24T12:25:00Z"
+    },
+    "groundTruth": {
+      "hasPrice": true,
+      "quotedPrice": 72,
+      "quotedUnit": "sqft",
+      "pricingBasis": "supply-only",
+      "taxIncluded": "unknown",
+      "deliveryIncluded": "unknown",
+      "expectedExcerpt": "18mm MR grade commercial pine core plywood price is Rs 72 per sq ft in Pune wholesale market."
+    }
+  },
+  {
+    "id": "sample_31_discursive_steel_quote",
+    "target": {
+      "rateId": "boq-steel",
+      "itemLabel": "TMT Rebars Fe500",
+      "trade": "Civil & structure",
+      "requiredUnit": "kg",
+      "specSummary": "Primary steel rebars for foundation and columns",
+      "queryTerm": "Steel rebar supply terms and rates Pune"
+    },
+    "doc": {
+      "docId": "doc_31",
+      "url": "https://metalmarket-blog.example.in/pune-trends",
+      "publisher": "Steel Market Digest",
+      "title": "Weekly Western India Steel Rebar Price Outlook",
+      "textSample": "Contractors looking to book project supplies can secure primary Fe 500 rebars around Rs 67 per kg for bulk shipments of 20 MT or more, subject to rolling schedule confirmations.",
+      "fetchTimestamp": "2026-10-24T12:30:00Z"
+    },
+    "groundTruth": {
+      "hasPrice": true,
+      "quotedPrice": 67,
+      "quotedUnit": "kg",
+      "pricingBasis": "supply-only",
+      "taxIncluded": "unknown",
+      "deliveryIncluded": "unknown",
+      "expectedExcerpt": "Contractors looking to book project supplies can secure primary Fe 500 rebars around Rs 67 per kg for bulk shipments of 20 MT or more, subject to rolling schedule confirmations."
+    }
+  },
+  {
+    "id": "sample_32_no_price_contact_page",
+    "target": {
+      "rateId": "boq-concrete-m20",
+      "itemLabel": "M20 Ready Mix Concrete",
+      "trade": "Civil & structure",
+      "requiredUnit": "m³",
+      "specSummary": "M20 concrete mix",
+      "queryTerm": "Pune RMC plant contact and enquiry"
+    },
+    "doc": {
+      "docId": "doc_32",
+      "url": "https://contact-rmc.example.in/support",
+      "publisher": "Pune RMC Office",
+      "title": "Contact Pune RMC Batching Plant Support",
+      "textSample": "For commercial enquiries, site feasibility assessments, concrete cube testing reports, and batch plant visits in Hadapsar and Hinjawadi, please submit our online enquiry form.",
+      "fetchTimestamp": "2026-10-24T12:35:00Z"
+    },
+    "groundTruth": {
+      "hasPrice": false,
+      "quotedPrice": 0,
+      "quotedUnit": "m³",
+      "pricingBasis": "supply-only",
+      "taxIncluded": "unknown",
+      "deliveryIncluded": "unknown",
+      "expectedExcerpt": ""
+    }
+  }
+]

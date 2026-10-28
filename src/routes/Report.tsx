@@ -22,6 +22,7 @@ import { rasterizeSvg } from '@/lib/render/rasterizeSvg.ts'
 import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
 import { InvalidPlanNotice } from '@/components/InvalidPlanNotice.tsx'
 import { useFinishes } from '@/state/finishes.ts'
+import { useCostResearch } from '@/state/costResearch.ts'
 import { estimateProjectBoq } from '@/lib/cost/index.ts'
 import { geometryCostKey } from '@/lib/cost/quantities.ts'
 import { ZONE_LABEL } from '@/lib/model/canonical.ts'
@@ -59,7 +60,20 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
   const brief = sourceBrief ?? storedBrief
   const costKey = useMemo(() => result ? geometryCostKey(result.design) : '', [result])
   const selection = useFinishes(s => s.entries[costKey])
-  const cost = useMemo(() => result ? estimateProjectBoq(result.design, brief, selection, result) : null, [result, selection, brief])
+  const pricingSnapshot = useCostResearch(s => s.acceptedSnapshot)
+  const manualOverrides = useCostResearch(s => s.manualOverrides)
+  const interiorSchedule = useCostResearch(s => s.interiorSchedule)
+  const scopeMode = useCostResearch(s => s.scopeMode)
+  const location = useCostResearch(s => s.location)
+  const pricingContext = useMemo(() => ({
+    id: pricingSnapshot?.id || 'baseline',
+    location: pricingSnapshot?.location || location,
+    rates: pricingSnapshot?.rates || {},
+    manualOverrides,
+    interiorSchedule: interiorSchedule || undefined,
+    scopeMode,
+  }), [pricingSnapshot, manualOverrides, interiorSchedule, scopeMode, location])
+  const cost = useMemo(() => result ? estimateProjectBoq(result.design, brief, selection, result, pricingContext) : null, [result, selection, brief, pricingContext])
   useEffect(() => {
     if (!result) run()
   }, [result, run])

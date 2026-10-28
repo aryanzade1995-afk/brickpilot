@@ -92,3 +92,33 @@ export const puneSchema = z.strictObject({ version: z.string(), city: z.string()
 })
 export const legacyRatesSchema = z.strictObject({ finish: z.record(z.string(), amount), interiors: z.record(z.string(), amount), interiorAreaShare: z.number().min(0).max(1),
   storey: z.record(z.string(), amount), family: z.record(z.string(), amount), style: z.record(z.string(), amount), styleReference: z.number().positive(), styleLimits: z.strictObject({ low: amount, high: amount }), largeVillaFactor: z.number().positive() })
+
+export const labourSchema = z.strictObject({
+  version: z.string(),
+  city: z.string().min(1),
+  date,
+  currency: z.literal('INR'),
+  status: z.string().min(1),
+  qualification: z.string().min(1),
+  sources: z.array(z.strictObject({ label: z.string().min(1), url: z.url() })).min(1),
+  defaults: z.strictObject({
+    skilledDailyRate: amount,
+    unskilledDailyRate: amount,
+    skilledShare: z.number().min(0).max(1),
+    crewSize: z.number().int().positive(),
+    personDaysPerSqft: z.number().positive(),
+    workingDaysPerMonth: z.number().positive(),
+    finishFactors: z.record(z.string(), z.number().positive()),
+    storeyFactors: z.record(z.string(), z.number().positive()),
+  }),
+  cityTiers: z.record(
+    z.string(),
+    z.strictObject({
+      name: z.string(),
+      tier: z.number(),
+      skilledDailyRate: amount,
+      unskilledDailyRate: amount,
+      notes: z.string().optional(),
+    }),
+  ).optional(),
+})

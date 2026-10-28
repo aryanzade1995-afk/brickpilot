@@ -1,4 +1,5 @@
 import { handleCostShareRequest } from './cost-shares.mjs'
+import { handleCostResearchRequest } from './cost-research.mjs'
 import { handleInteriorPreview } from './interior-preview.mjs'
 import { handleWalkthroughAssets } from './walkthrough-assets.mjs'
 import { handleWalkthroughGuide } from './walkthrough-guide.mjs'
@@ -153,6 +154,7 @@ const server = createServer(async (req, res) => {
   }
 
   if (await handleCostShareRequest(req, res, readJson)) return
+  if (await handleCostResearchRequest(req, res, readJson)) return
   if (await handleInteriorPreview(req, res, readJson)) return
   if (await handleWalkthroughAssets(req, res, readJson)) return
   if (await handleWalkthroughGuide(req, res, readJson)) return

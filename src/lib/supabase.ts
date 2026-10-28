@@ -12,8 +12,8 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
  *  Security (see supabase/schema.sql) is what actually protects data.
  * ------------------------------------------------------------------ */
 
-const url = import.meta.env.VITE_SUPABASE_URL?.trim()
-const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim()
+const url = import.meta.env?.VITE_SUPABASE_URL?.trim()
+const anonKey = import.meta.env?.VITE_SUPABASE_ANON_KEY?.trim()
 
 export const isAuthConfigured = Boolean(url && anonKey)
 

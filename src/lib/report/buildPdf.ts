@@ -230,7 +230,24 @@ export async function buildReportPdf(data: ReportData): Promise<Blob> {
 
   heading('Specification schedule', 90)
   paragraph('Room-by-room choices and whole-home specifications. Close-ups are real CC0 texture photos, not installed product photographs.')
-  const schedule = specificationSchedule(brief, cost)
+  const hasResearchedOrManual = cost.boq.some(l => l.rateSource === 'researched' || l.rateSource === 'manual')
+  const pricingSnapshot = (cost.pricingContext || hasResearchedOrManual) ? {
+    id: cost.pricingContext?.id || 'pricing_context',
+    location: cost.pricingContext?.location || { city: 'Pune', state: 'Maharashtra', country: 'IN' as const, currency: 'INR' as const },
+    rates: Object.fromEntries(cost.boq.filter(l => l.rateSource === 'researched' || l.rateSource === 'manual').map(l => [l.rateId, {
+      rateId: l.rateId, unit: l.unit, material: l.materialRate, labour: l.labourRate, installed: l.rate,
+      pricingBasis: 'installed' as const, sources: [], appliedAt: cost.pricingContext?.date || new Date().toISOString(),
+      source: l.rateSource === 'manual' ? 'manual' : 'researched',
+      notes: l.provenance || (l.rateSource === 'manual' ? 'Manual user override' : 'Researched rate'),
+    }])),
+    manualOverrides: Object.fromEntries(cost.boq.filter(l => l.rateSource === 'manual').map(l => [l.rateId, {
+      rateId: l.rateId, unit: l.unit, material: l.materialRate, labour: l.labourRate, installed: l.rate,
+      updatedAt: cost.pricingContext?.date || new Date().toISOString(),
+      reason: l.provenance || 'Manual user override',
+    }])),
+  } : undefined
+  const schedule = specificationSchedule(brief, cost, pricingSnapshot)
+
   const photos = data.specPhotos ?? await schedulePhotos(schedule)
   y = appendSpecificationSchedule(doc, schedule, y, photos)
   heading('Quantities summary', 90)
@@ -244,6 +261,12 @@ export async function buildReportPdf(data: ReportData): Promise<Blob> {
   paragraph(cost.label)
   paragraph(cost.qualification)
   paragraph(`${cost.basis} · ${cost.currency}.`)
+  if (cost.scopeTotals) {
+    paragraph(`Scope breakdown: Construction ${money(cost.scopeTotals.construction)} · Interiors ${money(cost.scopeTotals.interiors)} · Combined ${money(cost.scopeTotals.combined)}.`)
+  }
+  if (cost.labour) {
+    paragraph(`Site labour & duration: ${cost.labour.workingDays} working days (~${cost.labour.workingMonths.toFixed(1)} months) · Crew of ${cost.labour.crewSize} workers @ ${money(cost.labour.blendedDailyRate)}/day (${cost.labour.wageSourceLabel ?? (cost.labour.wageMode === 'manual' ? 'manual contractor rate' : 'auto city benchmark')}; ${cost.labour.mode === 'additional' ? 'additional on-site allowance' : 'replaces embedded BOQ labour'}).`)
+  }
   paragraph(`Concept range: ${moneyRange(cost.total.low, cost.total.high)}. Rate version: ${cost.rateVersion}.`)
   paragraph(`${money(cost.ratePerSqft)} / sq ft, including project allowances. Supply/labour splits are approximate.`)
   table(

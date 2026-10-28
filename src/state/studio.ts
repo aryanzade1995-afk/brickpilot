@@ -582,6 +582,7 @@ export const useStudio = create<StudioState>()(
           s.layout = null
           s.pinned = assembled.result.shapeStatus === 'accepted'
             ? { massing: assembled.result.design.massingType, seed: assembled.result.design.dna.seed,
+              balconyExtent: assembled.result.design.balconyExtent,
               planSeed:assembled.result.design.planSeed, planFamily:assembled.result.design.planFamily,
               recipe:assembled.result.design.planRecipe, formVersion:assembled.result.design.formVersion,
               planner:assembled.result.design.planProposal?'ml':'baseline', inspiration: current.referencePreferences } : null
@@ -787,6 +788,7 @@ export const useStudio = create<StudioState>()(
           s.generationNotice = assembled.notice
           if (assembled.result.shapeStatus === 'accepted') s.pinned = { massing: assembled.result.design.massingType,
             seed: assembled.result.design.dna.seed,planSeed:assembled.result.design.planSeed,
+            balconyExtent: assembled.result.design.balconyExtent,
             planFamily:assembled.result.design.planFamily,
             recipe:assembled.result.design.planRecipe,formVersion:assembled.result.design.formVersion,
             planner:assembled.result.design.planProposal?'ml':'baseline', inspiration: cur.referencePreferences }

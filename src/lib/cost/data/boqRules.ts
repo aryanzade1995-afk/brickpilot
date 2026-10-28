@@ -6,6 +6,7 @@ import {PLUMBING_SIZES} from '../plumbingCatalogue.ts'
 
 const positive = z.number().positive().finite(), nonnegative = z.number().nonnegative().finite()
 export const TRADES = ['Civil & structure', 'Flooring & tiling', 'Doors & windows', 'Plumbing & sanitary', 'Electrical', 'Painting', 'Waterproofing', 'Exterior & site', 'Extras'] as const
+export type Trade = (typeof TRADES)[number]
 export const boqRulesSchema = z.strictObject({
   version: z.string(), memoEntries: positive.int(), driverCount: positive.int(),
   recipes: z.array(z.strictObject({ item: z.string(), key: z.string(), label: z.string(), trade: z.enum(TRADES),

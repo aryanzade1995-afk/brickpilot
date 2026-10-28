@@ -8,10 +8,36 @@ export function CostSummary({ cost }: { cost: CostEstimate }) {
   return <section aria-label={translateUi("Concept cost estimate")}>
     <p className="text-xs text-ink-dim">{translateUi(cost.label)}</p>
     <div className="mt-3 border-y border-line py-5">
-      <p className="label">{translateUi("Estimated total")}</p>
+      <div className="flex items-center justify-between">
+        <p className="label">{translateUi("Estimated total")}</p>
+        {cost.pricingContext && (
+          <span className="inline-flex items-center rounded border border-line bg-bg-inset px-2 py-0.5 font-mono text-[0.7rem] uppercase tracking-wider text-ink-dim">
+            {translateUi(cost.pricingContext.status === 'researched' ? `Live rates · ${cost.pricingContext.location.city}` : `${cost.pricingContext.researchedCount} live rates · ${cost.pricingContext.location.city}`)}
+          </span>
+        )}
+      </div>
       <p className="mt-2 font-display text-3xl tnum">{translateUi(formatINR(cost.expected))}</p>
       <p className="mt-2 text-sm text-ink-dim">{translateUi("Concept range ")}{translateUi(formatRange(cost.total.low, cost.total.high, formatINR))}</p>
       <p className="mt-2 text-xs text-ink-dim">{translateUi(formatINR(cost.ratePerSqft))} {translateUi(" / sq ft · includes project allowances")}</p>
+      {cost.scopeTotals && (
+        <div className="mt-3 flex flex-wrap gap-4 border-t border-line/60 pt-2 text-xs text-ink-dim">
+          <span>{translateUi("Construction")}: <strong className="font-mono text-ink">{translateUi(formatINR(cost.scopeTotals.construction))}</strong></span>
+          <span>{translateUi("Interiors")}: <strong className="font-mono text-ink">{translateUi(formatINR(cost.scopeTotals.interiors))}</strong></span>
+        </div>
+      )}
+      {cost.labour && (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-line/60 pt-2 text-xs text-ink-dim">
+          <span>
+            {translateUi("Duration: ")}
+            <strong className="text-ink">{cost.labour.workingDays} {translateUi("working days")}</strong>
+            {` (~${cost.labour.workingMonths.toFixed(1)} ${translateUi("months")})`}
+            {` · ${cost.labour.crewSize} ${translateUi("crew")} @ ${formatINR(cost.labour.blendedDailyRate)}/d`}
+          </span>
+          <span className="inline-flex items-center rounded border border-line bg-bg-inset px-2 py-0.5 font-mono text-[0.65rem] uppercase tracking-wider text-ink-dim">
+            {cost.labour.mode === 'additional' ? translateUi("Additional labour") : translateUi("Replaces embedded")}
+          </span>
+        </div>
+      )}
       <p className="mt-3 max-w-2xl text-xs leading-relaxed text-ink-faint">{translateUi(cost.qualification)}</p>
     </div>
     <dl className="mt-4 divide-y divide-line">

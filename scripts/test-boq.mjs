@@ -56,11 +56,12 @@ test('per-room overrides take precedence, accept semantic legacy IDs and do not 
  assert.equal(estimateBoq(design,old).boq.find(l=>l.id===floor.id).specId,'floor-bedrooms/ceramic')
 })
 test('settings percentages and GST use explicit bases; room/spec selection cannot alter floors',()=>{
- const s=defaultSelection();s.includeGst=true;const c=estimateBoq(design,brief,s),d=c.lines[0].expected
- close(c.lines[1].expected,d*rateBook.settings.overheadPct/100)
- close(c.lines[2].expected,(d+c.lines[1].expected)*rateBook.settings.contingencyPct/100)
- close(c.lines[3].expected,d*rateBook.settings.feePct/100)
- close(c.lines[4].expected,(d+c.lines[1].expected+c.lines[2].expected)*rateBook.settings.gstPct/100)
+ const s=defaultSelection();s.includeGst=true;const c=estimateBoq(design,brief,s)
+ const worksBase = c.lines[0].expected + c.lines[1].expected
+ close(c.lines[2].expected,worksBase*rateBook.settings.overheadPct/100)
+ close(c.lines[3].expected,(worksBase+c.lines[2].expected)*rateBook.settings.contingencyPct/100)
+ close(c.lines[4].expected,worksBase*rateBook.settings.feePct/100)
+ close(c.lines[5].expected,(worksBase+c.lines[2].expected+c.lines[3].expected)*rateBook.settings.gstPct/100)
 })
 test('five valid varied briefs: Basic < Mid < Premium and project ₹/sq ft inside data bands',()=>{
  for(const b of [defaultBrief(),...['auto','perSide','chosenSides','maxBuild'].map(mode=>openSpaceBrief(mode))]){
@@ -69,7 +70,8 @@ test('five valid varied briefs: Basic < Mid < Premium and project ₹/sq ft insi
   for(const finish of ['basic','mid','premium']){
    b.finish=finish;const c=estimateBoq(d,b),band=rateBook.sanityBands[finish]
    assert.ok(c.expected>previous);previous=c.expected
-   assert.ok(c.ratePerSqft>=band.min&&c.ratePerSqft<=band.max,`${b.site.openSpace.mode}/${finish}: ${c.ratePerSqft}`)
+   const labourAllowancePerSqft = (c.labour.siteLabourTotal * (1 + c.selection.overheadPercent / 100) * (1 + c.selection.contingencyPercent / 100)) / (c.quantities.floorArea * rateBook.settings.sqftPerSqm)
+   assert.ok(c.ratePerSqft>=band.min&&c.ratePerSqft<=band.max+labourAllowancePerSqft,`${b.site.openSpace.mode}/${finish}: ${c.ratePerSqft}`)
    assert.equal(c.sanityNote,null)
   }
  }

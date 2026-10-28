@@ -5,7 +5,31 @@ import { TRADES } from './data/boqRules.ts'
 const number = z.number().nonnegative().finite(), text = z.string().max(12000), texts = z.array(text).max(2000)
 const band = z.object({ low: number, high: number }).refine(v => v.high >= v.low)
 const trade = z.object({ trade: z.enum(TRADES), amount: number, share: number.max(1), material: number, labour: number })
-export const sheetEstimateSchema = z.object({ solar: solarEstimateSchema.optional(), label: text, qualification: text, expected: number, total: band, ratePerSqft: number,
+export const labourEstimateSchema = z.object({
+  mode: z.enum(['additional', 'replace']),
+  rate: number,
+  crew: number,
+  days: number,
+  months: number,
+  total: number,
+  embeddedLabour: number,
+  personDays: number,
+  daysOverride: number.optional(),
+  skilledDailyRate: number,
+  unskilledDailyRate: number,
+  blendedDailyRate: number,
+  crewSize: number.optional(),
+  workingDays: number.optional(),
+  workingMonths: number.optional(),
+  dailyCrewCost: number.optional(),
+  siteLabourTotal: number.optional(),
+  builtUpAreaSqft: number.optional(),
+  finishFactor: number.optional(),
+  storeyFactor: number.optional(),
+  skilledShare: number.optional(),
+  note: text,
+})
+export const sheetEstimateSchema = z.object({ solar: solarEstimateSchema.optional(), labour: labourEstimateSchema.optional(), label: text, qualification: text, expected: number, total: band, ratePerSqft: number,
   rateVersion: text, tradeTotals: z.array(trade).length(TRADES.length), included: texts, excluded: texts, assumptions: texts, sources: texts })
 export const specificationRowSchema = z.object({ id: text, item: text, group: text, label: text, where: text, roomId: text.optional(),
   optionId: text, choice: text, material: text, facts: z.array(text).max(4), quantity: text, rate: number, unit: text,
@@ -28,7 +52,8 @@ const amounts = z.record(z.string(), number)
 const floor = z.object({ level: z.number().int(), name: text, items: z.record(z.string(), ifc),
   members: z.array(z.object({ id: text, category: text, quantities: ifc, steelKg: number, formworkM2: number })), steelKg: amounts, formworkM2: amounts })
 const selection = z.object({ preset: text, catalogue: z.literal(true).optional(), choices: z.object({ floor: text, wall: text, door: text, window: text, roof: text }),
-  roomFloors: z.record(z.string(), text), includeGst: z.boolean(), overheadPercent: number.max(100), contingencyPercent: number.max(100), feePercent: number.max(100), gstPercent: number.max(100) })
+  roomFloors: z.record(z.string(), text), includeGst: z.boolean(), overheadPercent: number.max(100), contingencyPercent: number.max(100), feePercent: number.max(100), gstPercent: number.max(100),
+  labourMode: z.enum(['additional', 'replace']).optional(), crewSize: number.optional(), skilledDailyRate: number.optional(), unskilledDailyRate: number.optional(), daysOverride: number.optional() })
 const serviceTank=z.object({kind:z.enum(['water','chamber','septic','holding']),capacityLitres:number,lengthM:number.positive(),widthM:number.positive(),depthM:number.positive(),pricingUnits:number})
 const plumbing=z.object({schemaVersion:z.literal(1),occupants:number,overheadLitres:number,underground:serviceTank.nullable(),drain:serviceTank.nullable(),
   runs:z.array(z.object({id:text,floor:z.number().int().nonnegative(),floorName:text,system:z.enum(['water','drain']),
@@ -39,9 +64,27 @@ export const savedCostSchema = sheetEstimateSchema.extend({ currency: z.literal(
   selection, sanityNote: text.nullable(), defaultExpected: number,
   topCostDrivers: z.array(z.object({ item: text, label: text, amount: number, defaultAmount: number, difference: z.number().finite() })),
   procurement: z.object({ contractType: text, turnkey: number, material: number, labour: number, overhead: number, projectAddOns: number, total: number, note: text }),
+  pricingContext: z.object({
+    id: text,
+    location: z.object({ city: text, state: text.optional(), pincode: text.optional(), country: z.literal('IN'), currency: z.literal('INR') }),
+    researchedCount: number,
+    manualCount: number,
+    baselineCount: number,
+    status: z.enum(['baseline', 'researched', 'partial']),
+    date: text,
+  }).optional(),
+  scopeTotals: z.object({
+    construction: number,
+    interiors: number,
+    combined: number,
+  }).optional(),
   boq: z.array(z.object({ id: text, item: text, specId: text, rateId: text, group: z.enum(TRADES), label: text, specification: text,
     qty: number, quantity: number, unit: text, rate: number, amount: number, materialRate: number, labourRate: number,
-    materialAmount: number, labourAmount: number, roomId: text.optional(), floor: z.number().int().optional(), note: text })).max(20000),
+    materialAmount: number, labourAmount: number, roomId: text.optional(), floor: z.number().int().optional(), note: text,
+    rateSource: z.enum(['baseline', 'researched', 'manual']).optional(),
+    provenance: text.optional(),
+    scopeCategory: z.enum(['construction', 'interiors']).optional(),
+  })).max(20000),
   quantities: z.object({ geometryKey: text, floorArea: number, groundArea: number, wallArea: number, paintArea: number, doorArea: number, windowArea: number,
     roofArea: number, pavingArea: number, lawnArea: number, poolArea: number, doorCount: number, windowCount: number,
     rooms: z.array(z.object({ id: text, floor: text, name: text, area: number })), assumptions: texts,
@@ -72,4 +115,11 @@ export const savedCostSchema = sheetEstimateSchema.extend({ currency: z.literal(
     if(cost.quantities.tanks.undergroundLitres!==(services.underground?.capacityLitres??0))fail('Saved underground capacity does not match the storage schedule')
   }
 })
-export const costReplaySchema = z.object({ version: z.literal(1), geometryKey: z.string(), signature: z.string(), cost: savedCostSchema })
+export const costReplaySchema = z.object({
+  version: z.literal(1),
+  geometryKey: z.string(),
+  signature: z.string(),
+  cost: savedCostSchema,
+  pricingSnapshot: z.unknown().optional(),
+  interiorSchedule: z.unknown().optional(),
+})

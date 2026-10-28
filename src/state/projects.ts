@@ -13,6 +13,7 @@ import { geometryCostKey } from '@/lib/cost/quantities.ts'
 import { useFinishes } from '@/state/finishes.ts'
 import { parsePinned, serializePinned, useStudio, type PinnedDir } from '@/state/studio.ts'
 import { restoreCostReplay } from '@/lib/cost/replay.ts'
+import { useCostResearch } from '@/state/costResearch.ts'
 
 /* ------------------------------------------------------------------ *
  *  Projects saved on this device. A project is the brief, the pinned
@@ -43,6 +44,7 @@ export type Core = {
   layout: LayoutDoc | null
   existing: { structure: ExistingStructure; seed: number } | null
   finishes: { key: string; selection: unknown } | null
+  costResearch?: unknown | null
   stage: StageId
   reference?: ReferenceDocument | null
 }
@@ -113,8 +115,28 @@ function currentCore(stage: StageId): Core {
   const { brief, pinned, layout, existing, result } = useStudio.getState()
   const key = result ? geometryCostKey(result.design) : null
   const selection = key ? useFinishes.getState().entries[key] : undefined
-  return { socialImpact: structuredClone(useSocialImpact.getState().document), waterIntelligence: structuredClone(useWaterIntelligence.getState().document), reference: structuredClone(useReference.getState().document), brief: structuredClone(brief), pinned: serializePinned(pinned), layout: layout ? structuredClone(layout) : null,
-    existing: existing ? structuredClone(existing) : null, finishes: key && selection ? { key, selection: structuredClone(selection) } : null, stage }
+  const cr = useCostResearch.getState()
+  const costResearch = (cr.acceptedSnapshot || Object.keys(cr.manualOverrides).length > 0 || cr.interiorSchedule)
+    ? {
+        acceptedSnapshot: cr.acceptedSnapshot ? structuredClone(cr.acceptedSnapshot) : null,
+        manualOverrides: structuredClone(cr.manualOverrides),
+        interiorSchedule: cr.interiorSchedule ? structuredClone(cr.interiorSchedule) : null,
+        location: structuredClone(cr.location),
+        scopeMode: cr.scopeMode,
+      }
+    : null
+  return {
+    socialImpact: structuredClone(useSocialImpact.getState().document),
+    waterIntelligence: structuredClone(useWaterIntelligence.getState().document),
+    reference: structuredClone(useReference.getState().document),
+    brief: structuredClone(brief),
+    pinned: serializePinned(pinned),
+    layout: layout ? structuredClone(layout) : null,
+    existing: existing ? structuredClone(existing) : null,
+    finishes: key && selection ? { key, selection: structuredClone(selection) } : null,
+    costResearch,
+    stage,
+  }
 }
 
 /** read a stored core back defensively; null when it is no longer usable */
@@ -127,8 +149,18 @@ export function parseCore(value: unknown): Core | null {
   const ex = v.existing as Core['existing']
   const existing = ex && ex.structure && Array.isArray(ex.structure.columns) && Array.isArray(ex.structure.footings) && Array.isArray(ex.structure.beams) && Array.isArray(ex.structure.walls) ? ex : null
   const fin = v.finishes as Core['finishes']
-  return { socialImpact: parseImpact(v.socialImpact), waterIntelligence: parseWaterConfig(v.waterIntelligence), reference: parseReferenceDocument(v.reference), brief: brief.data, pinned: typeof v.pinned === 'string' ? v.pinned : null, layout: parseLayout(v.layout), existing,
-    finishes: fin && typeof fin.key === 'string' ? fin : null, stage }
+  return {
+    socialImpact: parseImpact(v.socialImpact),
+    waterIntelligence: parseWaterConfig(v.waterIntelligence),
+    reference: parseReferenceDocument(v.reference),
+    brief: brief.data,
+    pinned: typeof v.pinned === 'string' ? v.pinned : null,
+    layout: parseLayout(v.layout),
+    existing,
+    finishes: fin && typeof fin.key === 'string' ? fin : null,
+    costResearch: v.costResearch ?? null,
+    stage,
+  }
 }
 
 const parseProject = (v: unknown): Project | null => {
@@ -174,6 +206,11 @@ export function applyCore(core: Core): void {
   const pinned: PinnedDir | null = parsePinned(core.pinned)
   useStudio.getState().loadSaved(core.brief, pinned, core.layout, core.existing)
   if (core.finishes) useFinishes.getState().setSelection(core.finishes.key, core.finishes.selection)
+  if (core.costResearch && typeof core.costResearch === 'object') {
+    useCostResearch.getState().loadSavedResearchState(core.costResearch as any)
+  } else {
+    useCostResearch.getState().reset()
+  }
 }
 
 type ProjectsState = {
@@ -308,15 +345,28 @@ let pendingLabel: string | undefined
 export function noteChange(label: string) { pendingLabel = label }
 export function startAutosave(): () => void {
   let last = ''
-  const sign = () => { const s = useStudio.getState(); return JSON.stringify([s.pinned, s.layout, s.existing, s.brief.site, s.brief.rooms, s.brief.levels, s.brief.style, s.brief.project.name, s.brief.solar, useReference.getState().document, useWaterIntelligence.getState().document, useSocialImpact.getState().document]) }
+  const sign = () => {
+    const s = useStudio.getState()
+    const cr = useCostResearch.getState()
+    return JSON.stringify([
+      s.pinned, s.layout, s.existing, s.brief.site, s.brief.rooms, s.brief.levels, s.brief.style, s.brief.project.name, s.brief.solar,
+      s.brief.finish, s.brief.specs,
+      cr.acceptedSnapshot?.id, Object.keys(cr.manualOverrides).length, cr.scopeMode, cr.location?.city,
+      useReference.getState().document, useWaterIntelligence.getState().document, useSocialImpact.getState().document,
+    ])
+  }
   last = sign()
-  const changed = () => {
+  const onChange = () => {
     const now = sign()
     if (now === last) return
     last = now
     clearTimeout(timer)
     timer = setTimeout(() => { const label = pendingLabel; pendingLabel = undefined; useProjects.getState().autoSave(label) }, 1500)
   }
-  const unsub = useStudio.subscribe(changed), unsubReference = useReference.subscribe(changed), unsubWater = useWaterIntelligence.subscribe(changed), unsubImpact = useSocialImpact.subscribe(changed)
-  return () => { clearTimeout(timer); unsub(); unsubReference(); unsubWater(); unsubImpact() }
+  const unsubStudio = useStudio.subscribe(onChange)
+  const unsubReference = useReference.subscribe(onChange)
+  const unsubWater = useWaterIntelligence.subscribe(onChange)
+  const unsubImpact = useSocialImpact.subscribe(onChange)
+  const unsubCost = useCostResearch.subscribe(onChange)
+  return () => { clearTimeout(timer); unsubStudio(); unsubReference(); unsubWater(); unsubImpact(); unsubCost() }
 }

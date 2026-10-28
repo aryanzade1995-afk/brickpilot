@@ -26,42 +26,72 @@ export async function buildBoqExcel(cost: CostEstimate, projectName = 'Formstead
     sheet.pageSetup = { orientation: 'landscape', paperSize: 9, fitToPage: true, fitToWidth: 1, fitToHeight: 0, printTitlesRow: `${header}:${header}` }
     sheet.headerFooter = { oddFooter: `${cost.label.replaceAll('±', '+/-')} | &P / &N` }
   }
-  summary.addRows([[projectName], [cost.label], [cost.qualification], ['Rate version', cost.rateVersion], [],
+  summary.addRows([[projectName], [cost.label], [cost.qualification], ['Rate version', cost.rateVersion], ['Pricing basis', cost.basis], [],
     ['Trade / add-on', 'Amount (INR)', 'Share of works', 'Material (INR)', 'Labour (INR)']])
   let direct = 0
   cost.tradeTotals.forEach((trade, i) => {
     const name = `${String(i + 1).padStart(2, '0')} ${trade.trade}`.replaceAll('&', 'and').slice(0, 31)
     const sheet = book.addWorksheet(name)
     sheet.addRows([[trade.trade], [cost.label], ['Rate version', cost.rateVersion], [],
-      ['Work / specification', 'Room / floor', 'Qty', 'Unit', 'Rate INR', 'Amount INR', 'Material INR', 'Labour INR', 'Spec ID', 'Assumption']])
+      ['Work / specification', 'Room / floor', 'Qty', 'Unit', 'Rate INR', 'Amount INR', 'Material INR', 'Labour INR', 'Spec ID', 'Rate source', 'Assumption']])
     const lines = cost.boq.filter(l => l.group === trade.trade)
     for (const line of lines) {
       const row = sheet.rowCount + 1
+      const sourceLabel = line.rateSource === 'researched' ? `Live research (${cost.pricingContext?.location.city || 'local'})` :
+        line.rateSource === 'manual' ? 'Manual override' : 'Baseline concept allowance'
       sheet.addRow([`${line.label}\n${line.specification}`, line.roomId ?? (line.floor === undefined ? 'Whole home' : `Floor ${line.floor}`),
-        line.qty, line.unit, line.rate, { formula: `C${row}*E${row}`, result: line.amount }, line.materialAmount, line.labourAmount, line.specId, line.note])
+        line.qty, line.unit, line.rate, { formula: `C${row}*E${row}`, result: line.amount }, line.materialAmount, line.labourAmount, line.specId, sourceLabel, line.note])
     }
     const last = sheet.rowCount, totalRow = last + 1
     sheet.addRow(['WORKS TOTAL', null, null, null, null, { formula: lines.length ? `SUM(F6:F${last})` : '0', result: trade.amount },
       { formula: lines.length ? `SUM(G6:G${last})` : '0', result: trade.material }, { formula: lines.length ? `SUM(H6:H${last})` : '0', result: trade.labour }])
     sheet.getRow(totalRow).font = { bold: true }
     for (const col of [3, 5, 6, 7, 8]) sheet.getColumn(col).numFmt = money
-    sheet.autoFilter = { from: 'A5', to: `J${Math.max(5, last)}` }
-    decorate(sheet, [48, 24, 13, 10, 16, 18, 18, 18, 26, 56], 5)
+    sheet.autoFilter = { from: 'A5', to: `K${Math.max(5, last)}` }
+    decorate(sheet, [48, 24, 13, 10, 16, 18, 18, 18, 26, 28, 56], 5)
     summary.addRow([trade.trade, { formula: `'${name}'!F${totalRow}`, result: trade.amount }, trade.share, trade.material, trade.labour])
     direct += trade.amount
   })
   const subtotal = summary.rowCount + 1
   summary.addRow(['WORKS SUBTOTAL', { formula: `SUM(B7:B${subtotal - 1})`, result: direct }])
+  if (cost.labour?.mode === 'replace') {
+    summary.addRow(['Less: Embedded BOQ labour', -cost.labour.embeddedLabour, null, null, null, 'Deducted from trade works; replaced by site labour line below'])
+  }
   for (const line of cost.lines.slice(1)) summary.addRow([line.label, line.expected, null, null, null, line.note])
   const end = summary.rowCount
   summary.addRow(['EXPECTED PROJECT TOTAL', { formula: `SUM(B${subtotal}:B${end})`, result: cost.expected }])
-  summary.addRows([['Range - low (INR)', cost.total.low], ['Range - high (INR)', cost.total.high], ['INR / sq ft', cost.ratePerSqft], [],
+  if (cost.scopeTotals) {
+    summary.addRows([
+      [],
+      ['Scope views (same project)'],
+      ['Construction scope total (INR)', cost.scopeTotals.construction],
+      ['Interiors scope total (INR)', cost.scopeTotals.interiors],
+      ['Combined project total (INR)', cost.scopeTotals.combined],
+    ])
+  }
+  if (cost.labour) {
+    summary.addRows([
+      [],
+      ['Site labour & construction duration estimate'],
+      ['Estimated duration (working days)', cost.labour.workingDays],
+      ['Estimated duration (months)', cost.labour.workingMonths],
+      ['Average site crew size (workers)', cost.labour.crewSize],
+      ['Blended daily labour wage (INR)', cost.labour.blendedDailyRate],
+      ['Wage calculation source', cost.labour.wageSourceLabel],
+      ['Site labour allowance total (INR)', cost.labour.siteLabourTotal],
+      ['Embedded BOQ labour in rates (INR)', cost.labour.embeddedLabour],
+      ['Labour costing mode', cost.labour.mode === 'additional' ? 'Additional allowance (stacked on rates)' : 'Replace (deducted from trade works)'],
+    ])
+  }
+  summary.addRows([['Range - low (INR)', cost.total.low], ['Range - high (INR)', cost.total.high], ['INR / sq ft', cost.ratePerSqft], []])
+  const notesStart = summary.rowCount + 1
+  summary.addRows([
     ['Assumptions'], ...cost.assumptions.map(v => [v]), ['Included'], ...cost.included.map(v => [v]),
     ['Excluded'], ...cost.excluded.map(v => [v]), ['Sources'], ...cost.sources.map(v => [v])])
   summary.getColumn(2).numFmt = money; summary.getColumn(3).numFmt = '0.0%'
   summary.getColumn(4).numFmt = money; summary.getColumn(5).numFmt = money
   decorate(summary, [76, 22, 20, 22, 22, 65], 6)
-  for (let r = end + 6; r <= summary.rowCount; r++) { summary.mergeCells(r, 1, r, 6); summary.getRow(r).height = 48 }
+  for (let r = notesStart; r <= summary.rowCount; r++) { summary.mergeCells(r, 1, r, 6); summary.getRow(r).height = 48 }
   if (cost.solar) {
     const solar = cost.solar, sheet = book.addWorksheet('Solar assessment')
     sheet.addRows([['Rooftop solar'], [cost.label], ['Gross direct solar cost before shared add-ons and unconfirmed tax; no subsidy deducted'], [], ['Assessment', 'Value / basis'],
