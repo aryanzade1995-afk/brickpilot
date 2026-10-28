@@ -14,6 +14,7 @@ import { COST_TABS, costTabId, quantitySignature } from '@/lib/cost/workspace.ts
 import { Specifications } from './finishes/Specifications.tsx'
 import { QuantitiesView, EstimateView } from './finishes/CostViews.tsx'
 import { solarConfigurationSchema } from '@/lib/model/solar.ts'
+import { useCostResearch } from '@/state/costResearch.ts'
 
 export function FinishesCost() {
   useLanguage(s => s.language);
@@ -30,12 +31,25 @@ export function FinishesCostView({ result, brief, onBrief }: { result: Pick<Resu
   const key = useMemo(() => result ? geometryCostKey(result.design) : '', [result])
   const saved = useFinishes(s => s.entries[key]), setSelection = useFinishes(s => s.setSelection)
   const noteQuantities = useFinishes(s => s.noteQuantities), updated = useFinishes(s => s.quantitiesUpdated)
+  const pricingSnapshot = useCostResearch(s => s.acceptedSnapshot)
+  const manualOverrides = useCostResearch(s => s.manualOverrides)
+  const interiorSchedule = useCostResearch(s => s.interiorSchedule)
+  const scopeMode = useCostResearch(s => s.scopeMode)
+  const location = useCostResearch(s => s.location)
+  const pricingContext = useMemo(() => ({
+    id: pricingSnapshot?.id || 'baseline',
+    location: pricingSnapshot?.location || location,
+    rates: pricingSnapshot?.rates || {},
+    manualOverrides,
+    interiorSchedule: interiorSchedule || undefined,
+    scopeMode,
+  }), [pricingSnapshot, manualOverrides, interiorSchedule, scopeMode, location])
   const current = useMemo(() => {
     const source = brief ?? localBrief ?? result?.design.model.brief
     if (!source || !result) return null
     return projectFinishBrief(result.design, source, saved)
   }, [brief, localBrief, result, saved])
-  const cost = useMemo(() => result && current ? estimateProjectBoq(result.design, current, saved, result) : null, [result, current, saved])
+  const cost = useMemo(() => result && current ? estimateProjectBoq(result.design, current, saved, result, pricingContext) : null, [result, current, saved, pricingContext])
   useEffect(() => { if (cost && result?.report.hardChecksPass) noteQuantities(quantitySignature(cost)) }, [cost, result, noteQuantities])
   const update = (next: Brief) => {
     if (!result) return

@@ -9,6 +9,7 @@ import { useStudio, parsePinned, serializePinned, type PinnedDir } from '@/state
 import { useAuth } from '@/state/auth.ts'
 import { parseLayout } from '@/lib/plan/parse.ts'
 import type { LayoutDoc } from '@/lib/plan/layout.ts'
+import { useCostResearch } from '@/state/costResearch.ts'
 
 /* ------------------------------------------------------------------ *
  *  Saved designs — one row per project in Supabase `public.designs`,
@@ -24,6 +25,8 @@ export type SavedDesign = {
   costReplay: CostReplay | null
   /** the room-by-room edits made to the pinned plan */
   layout: LayoutDoc | null
+  costResearch?: unknown | null
+  existing?: unknown | null
   createdAt: string
   updatedAt: string
 }
@@ -33,16 +36,28 @@ export function parseSavedDesignRow(row: {
   name: string
   brief: unknown
   pinned: string | null
+  cost_research?: unknown
+  existing?: unknown
   created_at: string
   updated_at: string
 }): SavedDesign | null {
   const brief = parseStoredBrief(row.brief)
   if (!brief.success) return null
-  let savedCost: unknown, savedLayout: unknown
-  if (row.pinned?.startsWith('{')) { try { const j = JSON.parse(row.pinned); savedCost = j.costReplay; savedLayout = j.planLayout } catch { /* Legacy pin. */ } }
+  let savedCost: unknown, savedLayout: unknown, legacyResearch: unknown, legacyExisting: unknown
+  if (row.pinned?.startsWith('{')) {
+    try {
+      const j = JSON.parse(row.pinned)
+      savedCost = j.costReplay
+      savedLayout = j.planLayout
+      legacyResearch = j.costResearch
+      legacyExisting = j.existingStructure
+    } catch { /* Legacy pin. */ }
+  }
   return {
     costReplay: parseCostReplay(savedCost),
     layout: parseLayout(savedLayout),
+    costResearch: row.cost_research ?? legacyResearch ?? null,
+    existing: row.existing ?? legacyExisting ?? null,
     id: row.id,
     name: row.name,
     brief: brief.data,
@@ -82,7 +97,7 @@ export const useDesigns = create<DesignsState>((set, get) => ({
     set({ loading: true, error: null })
     const { data, error } = await supabase
       .from('designs')
-      .select('id,name,brief,pinned,created_at,updated_at')
+      .select('id,name,brief,pinned,cost_research,existing,created_at,updated_at')
       .order('updated_at', { ascending: false })
     if (error) {
       set({ loading: false, error: error.message })
@@ -95,20 +110,32 @@ export const useDesigns = create<DesignsState>((set, get) => ({
     const user = useAuth.getState().user
     if (!supabase || !user) return { error: 'Sign in to save a design.' }
 
-    const { brief, pinned, result, layout } = useStudio.getState()
+    const { brief, pinned, result, layout, existing } = useStudio.getState()
     const savedSelection = result ? useFinishes.getState().entries[geometryCostKey(result.design)] : undefined
     const replay = result?.report.hardChecksPass ? snapshotCost(result.design, brief, estimateProjectBoq(result.design, brief, savedSelection, result)) : null
     const { currentId } = get()
+    const cr = useCostResearch.getState()
+    const costResearchData = (cr.acceptedSnapshot || Object.keys(cr.manualOverrides).length > 0 || cr.interiorSchedule)
+      ? {
+          acceptedSnapshot: cr.acceptedSnapshot,
+          manualOverrides: cr.manualOverrides,
+          interiorSchedule: cr.interiorSchedule,
+          location: cr.location,
+          scopeMode: cr.scopeMode,
+        }
+      : null
     const payload = {
       user_id: user.id,
       name: (name ?? brief.project.name ?? 'Untitled design').trim() || 'Untitled design',
       brief,
       pinned: replay || layout ? JSON.stringify({ ...pinned, ...(replay ? { costReplay: replay } : {}), ...(layout ? { planLayout: layout } : {}) }) : serializePinned(pinned),
+      cost_research: costResearchData,
+      existing: existing ? structuredClone(existing) : null,
     }
 
     const q = currentId
-      ? supabase.from('designs').update(payload).eq('id', currentId).select('id,name,brief,pinned,created_at,updated_at').single()
-      : supabase.from('designs').insert(payload).select('id,name,brief,pinned,created_at,updated_at').single()
+      ? supabase.from('designs').update(payload).eq('id', currentId).select('id,name,brief,pinned,cost_research,existing,created_at,updated_at').single()
+      : supabase.from('designs').insert(payload).select('id,name,brief,pinned,cost_research,existing,created_at,updated_at').single()
 
     const { data, error } = await q
     if (error || !data) return { error: error?.message ?? 'save failed' }
@@ -145,7 +172,12 @@ export const useDesigns = create<DesignsState>((set, get) => ({
     if (!design) return null
     restoreCostReplay(design.costReplay)
     if (design.costReplay) useFinishes.getState().setSelection(design.costReplay.geometryKey, design.costReplay.cost.selection)
-    useStudio.getState().loadSaved(design.brief, design.pinned, design.layout)
+    useStudio.getState().loadSaved(design.brief, design.pinned, design.layout, design.existing as any)
+    if (design.costResearch && typeof design.costResearch === 'object') {
+      useCostResearch.getState().loadSavedResearchState(design.costResearch as any)
+    } else {
+      useCostResearch.getState().reset()
+    }
     set({ currentId: id })
     return design
   },

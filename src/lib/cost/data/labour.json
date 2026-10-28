@@ -1,0 +1,105 @@
+{
+  "version": "labour-concept-2026-10-27",
+  "city": "Pune",
+  "date": "2026-10-27",
+  "currency": "INR",
+  "status": "Provisional labour rates. Confirm with your contractor.",
+  "qualification": "Statutory Maharashtra construction minimum wages are around INR 850/day-equivalent for unskilled in Zone I. Market defaults are provisional planning allowances.",
+  "sources": [
+    {
+      "label": "Maharashtra Minimum Wages (Construction Zone I) & regional market averages",
+      "url": "https://mahakamgar.maharashtra.gov.in"
+    }
+  ],
+  "defaults": {
+    "skilledDailyRate": 1100,
+    "unskilledDailyRate": 600,
+    "skilledShare": 0.3333333333,
+    "crewSize": 6,
+    "personDaysPerSqft": 0.6,
+    "workingDaysPerMonth": 26,
+    "finishFactors": {
+      "basic": 0.9,
+      "mid": 1.0,
+      "standard": 1.0,
+      "premium": 1.15
+    },
+    "storeyFactors": {
+      "1": 1.0,
+      "2": 1.05,
+      "3": 1.10
+    }
+  },
+  "cityTiers": {
+    "pune": {
+      "name": "Pune",
+      "tier": 2,
+      "skilledDailyRate": 1100,
+      "unskilledDailyRate": 600,
+      "notes": "Tier-2 Maharashtra metro baseline"
+    },
+    "mumbai": {
+      "name": "Mumbai",
+      "tier": 1,
+      "skilledDailyRate": 1350,
+      "unskilledDailyRate": 750,
+      "notes": "Tier-1 MMR metro benchmark"
+    },
+    "delhi": {
+      "name": "Delhi NCR",
+      "tier": 1,
+      "skilledDailyRate": 1300,
+      "unskilledDailyRate": 700,
+      "notes": "Tier-1 NCR benchmark"
+    },
+    "bengaluru": {
+      "name": "Bengaluru",
+      "tier": 1,
+      "skilledDailyRate": 1300,
+      "unskilledDailyRate": 725,
+      "notes": "Tier-1 South tech hub"
+    },
+    "hyderabad": {
+      "name": "Hyderabad",
+      "tier": 1,
+      "skilledDailyRate": 1250,
+      "unskilledDailyRate": 700,
+      "notes": "Tier-1 metro benchmark"
+    },
+    "chennai": {
+      "name": "Chennai",
+      "tier": 1,
+      "skilledDailyRate": 1250,
+      "unskilledDailyRate": 675,
+      "notes": "Tier-1 coastal metro"
+    },
+    "ahmedabad": {
+      "name": "Ahmedabad",
+      "tier": 2,
+      "skilledDailyRate": 1050,
+      "unskilledDailyRate": 575,
+      "notes": "Tier-2 Gujarat industrial hub"
+    },
+    "nashik": {
+      "name": "Nashik",
+      "tier": 3,
+      "skilledDailyRate": 950,
+      "unskilledDailyRate": 500,
+      "notes": "Tier-3 regional city"
+    },
+    "kolhapur": {
+      "name": "Kolhapur",
+      "tier": 3,
+      "skilledDailyRate": 950,
+      "unskilledDailyRate": 500,
+      "notes": "Tier-3 regional city"
+    },
+    "rural": {
+      "name": "Rural / Tier 4",
+      "tier": 4,
+      "skilledDailyRate": 800,
+      "unskilledDailyRate": 400,
+      "notes": "Rural / semi-urban local contractor average"
+    }
+  }
+}

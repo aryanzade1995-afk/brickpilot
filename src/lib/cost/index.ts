@@ -6,34 +6,67 @@ import type { Brief } from '../model/brief.ts'
 import { estimateBoq, type CostEstimate } from './boq.ts'
 import { parseSelection } from './specifications.ts'
 import { writeSelectionToBrief } from './briefSelections.ts'
+import type { PricingContext } from './research/types.ts'
 export { estimateBoq } from './boq.ts'
 export type { Band, CostLine, BoqLine, CostEstimate } from './boq.ts'
+export { createPricingResolver, pricingContextKey, classifyTradeScope, isLineInScope } from './pricingContext.ts'
+export type { RateResolver, ResolvedRate } from './pricingContext.ts'
 
 /** Saved pre-catalogue controls migrate into a copy, never into source geometry. */
-export function estimateSelectedBoq(design: Design, preferences?: unknown, brief: Brief = design.model.brief, context?: SolarCostContext): CostEstimate {
-  if (!preferences) return estimateBoq(design, brief, undefined, context)
+export function estimateSelectedBoq(
+  design: Design,
+  preferences?: unknown,
+  brief: Brief = design.model.brief,
+  context?: SolarCostContext,
+  pricingContext?: PricingContext | null,
+): CostEstimate {
+  if (!preferences) return estimateBoq(design, brief, undefined, context, pricingContext)
   const projected = { ...brief, specs: { overrides: { ...brief.specs.overrides } } }
   const selection = parseSelection(preferences)
   writeSelectionToBrief(projected, design, selection)
-  return estimateBoq(design, projected, selection, context)
+  return estimateBoq(design, projected, selection, context, pricingContext)
 }
 /** Full current Brief wins; only untouched legacy projects import browser-only finish choices. */
-export function estimateProjectBoq(design: Design, brief: Brief = design.model.brief, saved?: unknown, context?: SolarCostContext): CostEstimate {
-  const restored = replayedCost(design, brief, saved)
-  if (restored) return restored
-  if (saved && !parseSelection(saved).catalogue && brief.finish === 'mid' && !Object.keys(brief.specs.overrides).length) return estimateSelectedBoq(design, saved, brief, context)
-  return estimateBoq(design, brief, saved ? parseSelection(saved) : undefined, context)
+export function estimateProjectBoq(
+  design: Design,
+  brief: Brief = design.model.brief,
+  saved?: unknown,
+  context?: SolarCostContext,
+  pricingContext?: PricingContext | null,
+): CostEstimate {
+  const hasLiveOverrides = pricingContext && (
+    Object.keys(pricingContext.rates || {}).length > 0 ||
+    Object.keys(pricingContext.manualOverrides || {}).length > 0
+  )
+  if (!hasLiveOverrides) {
+    const restored = replayedCost(design, brief, saved)
+    if (restored) return restored
+  }
+  if (saved && !parseSelection(saved).catalogue && brief.finish === 'mid' && !Object.keys(brief.specs.overrides).length) {
+    return estimateSelectedBoq(design, saved, brief, context, pricingContext)
+  }
+  return estimateBoq(design, brief, saved ? parseSelection(saved) : undefined, context, pricingContext)
 }
 /** Export the same calculation as screen/PDF, including assumptions and provenance. */
 export function boqCsv(cost: CostEstimate): string {
   const rows: (string | number)[][] = [[cost.label], [cost.qualification], ['Rate version', cost.rateVersion], [cost.basis],
-    ['Group', 'Item', 'Specification', 'Quantity', 'Unit', 'Rate (INR)', 'Amount (INR)', 'Spec ID', 'Material (INR)', 'Labour (INR)', 'Assumption'],
-    ...cost.boq.map(l => [l.group, l.label, l.specification, l.quantity, l.unit, l.rate, l.amount, l.specId, l.materialAmount, l.labourAmount, l.note]),
-    ...cost.tradeTotals.map(t => ['Trade total', t.trade, '', '', '', '', t.amount, '', t.material, t.labour, `${(t.share * 100).toFixed(1)}% of works`]),
+    ['Group', 'Item', 'Specification', 'Quantity', 'Unit', 'Rate (INR)', 'Amount (INR)', 'Spec ID', 'Material (INR)', 'Labour (INR)', 'Rate source', 'Provenance', 'Assumption'],
+    ...cost.boq.map(l => [l.group, l.label, l.specification, l.quantity, l.unit, l.rate, l.amount, l.specId, l.materialAmount, l.labourAmount, l.rateSource || 'baseline', l.provenance || '', l.note]),
+    ...cost.tradeTotals.map(t => ['Trade total', t.trade, '', '', '', '', t.amount, '', t.material, t.labour, '', '', `${(t.share * 100).toFixed(1)}% of works`]),
     ...cost.lines.map(l => ['Summary', l.label, l.note, '', '', '', l.expected]),
+
     ['Expected total', cost.expected], ['Low', cost.total.low], ['High', cost.total.high],
     ['INR / sq ft', cost.ratePerSqft], ['Turnkey works', cost.procurement.turnkey], ['Materials', cost.procurement.material], ['Labour', cost.procurement.labour],
     ['Default preset total', cost.defaultExpected],
+    ...(cost.labour ? [
+      ['Estimated duration (working days)', cost.labour.workingDays],
+      ['Estimated duration (months)', cost.labour.workingMonths],
+      ['Average site crew (workers)', cost.labour.crewSize],
+      ['Blended daily labour wage', cost.labour.blendedDailyRate],
+      ['Site labour total', cost.labour.siteLabourTotal],
+      ['Embedded BOQ labour', cost.labour.embeddedLabour],
+      ['Labour mode', cost.labour.mode],
+    ] : []),
     ...(cost.solar ? [['Solar status', cost.solar.status], ['Applied PV panels', cost.solar.panelCount], ['Applied DC capacity (kWp)', cost.solar.capacityKwp], ['Gross solar installation before shared add-ons and unconfirmed tax', cost.solar.grossInstallationCost], ['Legacy solar allowance', cost.solar.legacyAllowanceCost], ['Potential assistance', 'Unverified; INR 0 deducted', cost.solar.assistance.url], ['Solar goal', cost.solar.objective], ['Backup configuration', cost.solar.backup], ['Preliminary annual energy (kWh)', cost.solar.energy.annualKwh ? `${cost.solar.energy.annualKwh.low}–${cost.solar.energy.annualKwh.high}` : cost.solar.energy.state]] : []),
     ...(cost.solar ? [['Solar layout status', cost.solar.delivery?.layoutStatus ?? 'Historical schedule unavailable'],
       ['Solar roof signature', cost.solar.delivery?.roofSignature ?? 'Not recorded'], ['Solar layout signature', cost.solar.delivery?.layoutSignature ?? 'Not recorded'],

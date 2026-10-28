@@ -11,9 +11,15 @@ create table if not exists public.designs (
   name       text not null default 'Untitled design',
   brief      jsonb not null,
   pinned     text,
+  cost_research jsonb,
+  existing   jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- additive columns for existing installations
+alter table public.designs add column if not exists cost_research jsonb;
+alter table public.designs add column if not exists existing jsonb;
 
 create index if not exists designs_user_updated_idx
   on public.designs (user_id, updated_at desc);

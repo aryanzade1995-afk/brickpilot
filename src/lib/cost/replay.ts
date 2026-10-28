@@ -7,7 +7,14 @@ import { costReplaySchema } from './deliverySchemas.ts'
 import { solarSignature, defaultSolarConfiguration } from '../model/solar.ts'
 import { parseSelection } from './specifications.ts'
 
-export type CostReplay = { version: 1; geometryKey: string; signature: string; cost: CostEstimate }
+export type CostReplay = {
+  version: 1
+  geometryKey: string
+  signature: string
+  cost: CostEstimate
+  pricingSnapshot?: unknown
+  interiorSchedule?: unknown
+}
 const loaded = new Map<string, CostReplay>()
 export function pricingSignature(brief: Brief) {
   // Preserve untouched historical keys; structured solar pricing and assessment edits invalidate replay.
@@ -17,8 +24,21 @@ export function pricingSignature(brief: Brief) {
   return fnv(JSON.stringify({ ...pricedBrief, ...extra, project: { ...brief.project, name: '' },
     specs: { overrides: Object.fromEntries(Object.entries(brief.specs.overrides).sort(([a], [b]) => a.localeCompare(b))) } })).toString(16)
 }
-export function snapshotCost(design: Design, brief: Brief, cost: CostEstimate): CostReplay {
-  const replay = { version: 1 as const, geometryKey: geometryCostKey(design), signature: pricingSignature(brief), cost }
+export function snapshotCost(
+  design: Design,
+  brief: Brief,
+  cost: CostEstimate,
+  pricingSnapshot?: unknown,
+  interiorSchedule?: unknown,
+): CostReplay {
+  const replay = {
+    version: 1 as const,
+    geometryKey: geometryCostKey(design),
+    signature: pricingSignature(brief),
+    cost,
+    pricingSnapshot: pricingSnapshot ?? undefined,
+    interiorSchedule: interiorSchedule ?? undefined,
+  }
   costReplaySchema.parse(replay)
   return structuredClone(replay)
 }
@@ -29,6 +49,9 @@ export function parseCostReplay(value: unknown): CostReplay | null {
 export function restoreCostReplay(replay: CostReplay | null) {
   loaded.clear()
   if (replay) loaded.set(replay.geometryKey, structuredClone(replay))
+}
+export function getLoadedCostReplay(geometryKey: string): CostReplay | null {
+  return loaded.get(geometryKey) ?? null
 }
 export function replayedCost(design: Design, brief: Brief, preferences?: unknown): CostEstimate | null {
   // Applied solar must always be rechecked against the current roof, not replayed from a cost snapshot.

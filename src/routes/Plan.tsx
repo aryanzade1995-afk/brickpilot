@@ -1,5 +1,6 @@
 import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
 import { useFinishes } from '@/state/finishes.ts'
+import { useCostResearch } from '@/state/costResearch.ts'
 import { estimateProjectBoq } from '@/lib/cost/index.ts'
 import { geometryCostKey } from '@/lib/cost/quantities.ts'
 import { formatINR, formatRange } from '@/lib/format.ts'
@@ -35,7 +36,21 @@ export function Plan() {
   const toggleEdit = () => { const next = new URLSearchParams(params); if (editing) next.delete('edit'); else next.set('edit', '1'); setParams(next, { replace: true }) }
 
   const saved = useFinishes(s => s.entries[result ? geometryCostKey(result.design) : ''])
-  const cost = useMemo(() => result?.report.hardChecksPass ? estimateProjectBoq(result.design, brief, saved, result) : null, [result, brief, saved])
+  const pricingSnapshot = useCostResearch(s => s.acceptedSnapshot)
+  const manualOverrides = useCostResearch(s => s.manualOverrides)
+  const interiorSchedule = useCostResearch(s => s.interiorSchedule)
+  const scopeMode = useCostResearch(s => s.scopeMode)
+  const location = useCostResearch(s => s.location)
+  const pricingContext = useMemo(() => ({
+    id: pricingSnapshot?.id || 'baseline',
+    location: pricingSnapshot?.location || location,
+    rates: pricingSnapshot?.rates || {},
+    manualOverrides,
+    interiorSchedule: interiorSchedule || undefined,
+    scopeMode,
+  }), [pricingSnapshot, manualOverrides, interiorSchedule, scopeMode, location])
+
+  const cost = useMemo(() => result?.report.hardChecksPass ? estimateProjectBoq(result.design, brief, saved, result, pricingContext) : null, [result, brief, saved, pricingContext])
   const drawingDesign = useMemo(() => result ? { ...result.design, model: { ...result.design.model, brief } } : null, [result, brief])
   useEffect(() => {
     if (!result) run()
@@ -59,7 +74,7 @@ export function Plan() {
       <WorkspaceTabs />
       <VillaGenerationNotice />
 
-      {design.siteNotes?.length ? <div className="mt-4 border border-line px-4 py-3 text-xs text-ink-dim" role="status">{design.siteNotes.map(note => <p key={note}>{translateUi(note)}</p>)}</div> : null}
+      {design.siteNotes?.length ? <div className="mt-4 border border-line px-4 py-3 text-xs text-ink-dim" role="status">{design.siteNotes.map(note => <p key={note}>{translateUi(note)}</p>)}</div> : null}
       {/* metric bar */}
       <div className="mt-5 flex flex-wrap items-center gap-x-10 gap-y-3 border-b border-line pb-4">
         <Metric k="Built area" v={`${design.builtAreaSqm.toFixed(1)} m²`} />
@@ -121,9 +136,7 @@ export function Plan() {
         <Suspense fallback={<p role="status" className="py-8 text-sm text-ink-dim">{translateUi("Loading reference facade…")}</p>}>
           <ReferenceFacadeSection />
         </Suspense>
-      </div>
-
-
+      </div>
     </div>
   )
 }
@@ -140,5 +153,3 @@ function Metric({ k, v }: { k: string; v: string }) {
     </div>
   )
 }
-
-
