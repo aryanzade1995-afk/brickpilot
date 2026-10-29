@@ -218,7 +218,7 @@ export function UtilityPlanViewer({ model: sourceModel, models, project, reviewS
 
   const changeDrawing = (edit: (doc: DrawingDocument) => void) => { drawing.change(edit) }
   const [sheetOpen, setSheetOpen] = useState(false), [panelsOpen, setPanelsOpen] = useState(false), [helpOpen, setHelpOpen] = useState(false), [exportBusy, setExportBusy] = useState('')
-  const [restoreCandidate, setRestoreCandidate] = useState<UtilityDrawingProject | null>(null), [sessionMessage, setSessionMessage] = useState(''), [printPage, setPrintPage] = useState(0)
+  const [sessionMessage, setSessionMessage] = useState(''), [printPage, setPrintPage] = useState(0)
   const helpDialog = useRef<HTMLDialogElement>(null)
   const [circuit, setCircuit] = useState('all')
   const [zone, setZone] = useState('all'), [showCoverage, setShowCoverage] = useState(false), [showEvacuation, setShowEvacuation] = useState(false)
@@ -298,11 +298,10 @@ export function UtilityPlanViewer({ model: sourceModel, models, project, reviewS
   const sheetResult = useMemo(() => { try { return { pages: buildDrawingSheets(model, drawingDoc, drawingDoc.activeLayer, []), error: '' } } catch (e) { return { pages: [], error: (e as Error).message } } }, [model, drawingDoc])
   const modelSignature = useMemo(() => sourceSignature(drawing.model), [drawing.model])
   const snapshot: UtilityDrawingProject = { format: 'formstead-utility-project', version: 1, savedAt: new Date().toISOString(), sourceSignature: modelSignature, model: drawing.model, document: drawingDoc, reviews: {}, view: { room, circuit, zone, water, showClashes: false, showCoverage, showEvacuation, mode: '2d', sheetOpen, showClashes3D: false, showElectrical3D: false, showWater3D: false, showHotWater: true, seeThroughWalls: false, seeThroughFloor: false, showRoomNames3D: false, selected } }
-  const session = useRef({ snapshot, pending: false })
-  useEffect(() => { session.current = { snapshot, pending: !!restoreCandidate } }, [snapshot, restoreCandidate])
+  const session = useRef({ snapshot })
+  useEffect(() => { session.current = { snapshot } }, [snapshot])
   useEffect(() => {
-    try { const saved = localStorage.getItem(`formstead.utility-session.v1:${reviewScope}`); if (saved) setRestoreCandidate(parseUtilityDrawing(JSON.parse(saved))) } catch { setSessionMessage('The last utility session could not be read. Your live plan is unchanged.') }
-    const timer = setInterval(() => { if (session.current.pending) return; try { localStorage.setItem(`formstead.utility-session.v1:${reviewScope}`, JSON.stringify(session.current.snapshot)); setSessionMessage('Session saved on this device.') } catch { setSessionMessage('Session storage is unavailable. Save project JSON to keep your drawing.') } }, 30000)
+    const timer = setInterval(() => { try { localStorage.setItem(`formstead.utility-session.v1:${reviewScope}`, JSON.stringify(session.current.snapshot)); setSessionMessage('Session saved on this device.') } catch { setSessionMessage('Session storage is unavailable. Save project JSON to keep your drawing.') } }, 30000)
     return () => clearInterval(timer)
   }, [reviewScope])
   useEffect(() => { if (helpOpen) helpDialog.current?.showModal(); else helpDialog.current?.close() }, [helpOpen])
@@ -310,7 +309,7 @@ export function UtilityPlanViewer({ model: sourceModel, models, project, reviewS
   const restoreProject = (saved: UtilityDrawingProject) => {
     drawing.load(saved); setRoom(saved.view.room); setCircuit(saved.view.circuit); setZone(saved.view.zone); setWater(saved.view.water)
     setShowCoverage(saved.view.showCoverage); setShowEvacuation(saved.view.showEvacuation)
-    setSelected(saved.view.selected?.startsWith('clash:') ? null : saved.view.selected); setRiserOpen(false); setPlacing(false); pickPosition.current = null; setBox(null); setRestoreCandidate(null); setSheetOpen(saved.view.sheetOpen); setError('')
+    setSelected(saved.view.selected?.startsWith('clash:') ? null : saved.view.selected); setRiserOpen(false); setPlacing(false); pickPosition.current = null; setBox(null); setSheetOpen(saved.view.sheetOpen); setError('')
   }
   const loadProject = async (file: File) => { try { if (file.size > 15000000) throw new Error('File is too large.'); restoreProject(parseUtilityDrawing(JSON.parse(await file.text()))) } catch { setError('This is not a valid Formstead Utility project JSON. No data was changed.') } }
   const exportDrawing = async (kind: SheetExportKind, page = 0) => {
@@ -347,7 +346,6 @@ export function UtilityPlanViewer({ model: sourceModel, models, project, reviewS
   const printDrawing = (page: number) => { setPrintPage(page); requestAnimationFrame(() => requestAnimationFrame(() => window.print())) }
   const printed = sheetResult.pages[Math.min(printPage, Math.max(0, sheetResult.pages.length - 1))]
   return <div className="utility-workspace mt-5" data-theme={drawingDoc.theme}>
-    {restoreCandidate && <section className="mb-4 flex flex-wrap items-center gap-3 border border-line bg-bg-inset p-4 text-xs" aria-label={t('Restore last session')}><p className="flex-1">{t('A previous utility drawing session is available. Restore its routes and drawing settings?')} <span className="font-mono">{new Date(restoreCandidate.savedAt).toLocaleString()}</span></p><button className={button} onClick={() => restoreProject(restoreCandidate)}>{t('Restore last session')}</button><button className={button} onClick={() => setRestoreCandidate(null)}>{t('Keep live plan')}</button></section>}
     {drawing.imported && <div className="mb-4 flex flex-wrap items-center gap-3 border border-line bg-bg-inset p-4 text-xs"><p className="flex-1">{t('Viewing a saved utility snapshot. Your Formstead building and BOQ have not been replaced.')}</p><button className={button} onClick={() => { drawing.returnToLive(); setRoom('all'); setCircuit('all'); setZone('all'); setWater('all'); select(null); setBox(null) }}>{t('Return to live plan')}</button></div>}
     {drawing.sourceChanged && drawingDoc.annotations.length > 0 && <p className="mb-4 border border-line p-3 text-xs">{t('The source plan changed. Review annotation positions before issuing this drawing.')}</p>}
     <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div className="flex flex-wrap gap-2" role="group" aria-label={t('Utility views')}>
