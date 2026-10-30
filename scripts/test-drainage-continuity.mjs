@@ -89,3 +89,13 @@ test('a configured discharge, an absent tank or an offset user stack does not ac
  const edited=structuredClone(world.scene);edited.fixtures[0].branch.stackAligned=false;edited.fixtures[0].branch.connected=false
  assert.equal(coordinateDrainageContinuity(world.building,world.home,world.storage,edited).scene.fixtures[0].branch.connected,false)
 })
+test('previously capped stacks gain a connected roof vent with explicit sleeve reviews',()=>{
+ const roof=Math.max(...world.building.floors.map(f=>f.elevationMm+f.heightMm))
+ const added=coordinated.network.layout.pipes.filter(p=>p.id.startsWith('drain:roof-vent:'))
+ assert.ok(added.length,'expected a missing vent to be completed')
+ for(const pipe of added){
+  assert.equal(pipe.system,'vent');assert.ok(pipe.points.at(-1).z>roof)
+  assert.ok(coordinated.network.layout.pipes.some(p=>p.id!==pipe.id&&p.points.some(q=>same(q,pipe.points[0]))),'vent must meet a real stack port')
+ }
+ assert.ok(coordinated.openings.some(o=>o.kind==='slab-sleeve'))
+})

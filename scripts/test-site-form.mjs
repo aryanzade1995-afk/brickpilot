@@ -102,7 +102,8 @@ test('door-connected setback terraces are present in source plans and old form p
   assert.equal(parseFormVersion('site-form-v2'),'site-form-v2')
   assert.equal(parseFormVersion('site-form-v3'),SITE_FORM_VERSION)
   assert.equal(parseFormVersion('unknown'),undefined)
-  const design=form(briefOf(30,36),42,'u-wing')
+  const b=briefOf(30,36);b.rooms.priorities.coveredParking=false
+  const design=form(b,42,'u-wing')
   assert.ok(setbackTerraceArea(design)>=6)
   assert.ok(design.floors.some(f=>f.rooms.some(r=>r.name==='Setback terrace')))
   const withoutDoors=structuredClone(design)

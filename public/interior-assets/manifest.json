@@ -982,6 +982,38 @@
         "Warning01"
       ],
       "preparedAt": "2026-10-27"
+    },
+    {
+      "id": "bedroom-essentials-bed",
+      "label": "Bedroom essentials · upholstered bed",
+      "author": "Blend Swap 91629 contributor (name not included in supplied archive)",
+      "license": "CC-BY-3.0",
+      "licenseUrl": "/interior-assets/bedroom-essentials-bed/SOURCE-LICENSE.html",
+      "sourceUrl": "https://www.blendswap.com/blends/view/91629",
+      "sourcePage": "https://www.blendswap.com/blends/view/91629",
+      "verifiedAt": "2026-10-30",
+      "preparedAt": "2026-10-30",
+      "url": "/interior-assets/bedroom-essentials-bed/model.glb",
+      "thumbnail": "/interior-assets/bedroom-essentials-bed/preview.png",
+      "notice": "/interior-assets/bedroom-essentials-bed/LICENSE.txt",
+      "sizeM": [
+        0.911967,
+        0.3673581,
+        1.0
+      ],
+      "triangles": 9312,
+      "bytes": 299200,
+      "sha256": "bca6f45dfa6be434b4390ed336a674676e0a847dbe60f7b456a7a1caf748fbe1",
+      "version": 1,
+      "provenance": "uploaded-licensed",
+      "sourceFile": "Bed room essentials.zip / bed room.blend",
+      "sourceSha256": "b3f32702bc4287430294e4fbca6ed7ccc3536c74890310eae13b4144c45b1a2b",
+      "sourceObjects": [
+        "Cube.002",
+        "Cube.003",
+        "Plane.005",
+        "Plane.002"
+      ]
     }
   ],
   "updatedAt": "2026-10-27"

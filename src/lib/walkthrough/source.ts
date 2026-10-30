@@ -42,7 +42,7 @@ export type WalkthroughSource = {
 
 export const walkthroughRoomKey = (floorId: string, roomId: string) => JSON.stringify([floorId, roomId])
 export const walkthroughAppearanceKey = (design: Design, preferences: WalkthroughPreferences) =>
-  `walk-appearance-v1-${fnv(JSON.stringify([finishSignature(design.model.brief), interiorModelSignature(design.model.brief), preferences.style, preferences.lighting, preferences.furnitureDensity])).toString(16)}`
+  `walk-appearance-v4-${fnv(JSON.stringify([finishSignature(design.model.brief), interiorModelSignature(design.model.brief), preferences.style, preferences.lighting, preferences.furnitureDensity])).toString(16)}`
 
 function openingOnRoom(door: BuildingDoor, room: BuildingRoom, toleranceMm: number) {
   const r = room.rect, horizontal = door.orient === 'h', fixed = horizontal ? door.at.y : door.at.x

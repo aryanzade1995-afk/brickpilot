@@ -1,5 +1,6 @@
 import type { Design, FloorPlan, PlacedRoom } from '../engine/types.ts'
 import type { DressedRoom, Look, houseLooks } from './dressRoom.ts'
+import type { InteriorModelInstance } from '../interior-assets/placements.ts'
 
 /* ------------------------------------------------------------------ *
  *  buildDollhouse — a warm, furnished cut-away model of the whole
@@ -33,6 +34,7 @@ export type DollMat =
 const ACCENTS: DollMat[] = ['sage', 'blush', 'clay']
 
 export type DollBox = {
+  modelSourceId?: string
   id: string
   mat: DollMat
   /** world-space centre, metres */
@@ -50,11 +52,13 @@ export type DollBox = {
 
 /** dresses each room as the 360 preview does (src/lib/three/dressRoom.ts): same furniture, style and finishes */
 export type Dresser = {
+  models?: (level:number,roomId:string,dressed:DressedRoom)=>InteriorModelInstance[]
   room: (level: number, roomId: string) => DressedRoom | null
   house: ReturnType<typeof houseLooks>
 }
 
 export type Dollhouse = {
+  models?: {instance:InteriorModelInstance;offset:[number,number,number]}[]
   boxes: DollBox[]
   floors: { level: number; baseY: number }[]
   bounds: { w: number; d: number }
@@ -100,6 +104,7 @@ export function buildDollhouse(design: Design, only?: number, dresser?: Dresser,
   const m = (mm: number) => mm / 1000
 
   const boxes: DollBox[] = []
+  const models: NonNullable<Dollhouse['models']> = []
   const push = (id: string, mat: DollMat, pos: [number, number, number], size: [number, number, number], extra?: Pick<DollBox, 'look' | 'shape' | 'rot'>) => {
     if (size[0] > 0.015 && size[1] > 0.015 && size[2] > 0.015) boxes.push({ id, mat, pos, size, ...extra })
   }
@@ -334,13 +339,14 @@ export function buildDollhouse(design: Design, only?: number, dresser?: Dresser,
         continue
       }
       const r = room.rect, cxw = wx(r.x + r.w / 2), czw = wz(r.y + r.h / 2)
+      for(const instance of dresser?.models?.(L,room.id,d)??[]) models.push({instance,offset:[-plotW/2000,baseY+.009,-plotD/2000]})
       // the chosen flooring laid over the slab, at its real tile size
       push(`finish-floor-${L}-${room.id}`, 'floor', [cxw, baseY - 0.002, czw], [m(r.w), 0.02, m(r.h)], { look: d.floor })
       for (const b of d.boxes) {
         // the cut-away stops at the cut line: a tall piece is trimmed there, anything wholly above it is left out
         const y0 = b.pos[1] - b.size[1] / 2, y1 = Math.min(b.pos[1] + b.size[1] / 2, CUT)
         if (y0 > CUT - 0.02 || y1 - y0 < 0.001) continue
-        boxes.push({ id: `${room.id}-${b.id}`, mat: 'panel', pos: [cxw + b.pos[0], baseY + 0.009 + (y0 + y1) / 2, czw + b.pos[2]],
+        boxes.push({ id: `${room.id}-${b.id}`, modelSourceId:JSON.stringify([L,room.id,b.id]), mat: 'panel', pos: [cxw + b.pos[0], baseY + 0.009 + (y0 + y1) / 2, czw + b.pos[2]],
           size: [b.size[0], y1 - y0, b.size[2]], look: b.look, shape: b.shape, rot: b.rot, bevel: b.bevel })
         pieces++
       }
@@ -350,6 +356,7 @@ export function buildDollhouse(design: Design, only?: number, dresser?: Dresser,
   const storeys = floors.length
   const tiers = isolate ? 1 : storeys
   return {
+    models,
     boxes,
     floors: floors.map((f) => ({ level: f.level, baseY: PLINTH + tierOf(f.level) * TRAY })),
     bounds: { w: plotW / 1000, d: plotD / 1000 },
@@ -702,7 +709,7 @@ function furnishRoom(
   // Reserve actual structural intrusions before searching for fitted kitchen
   // runs. Dropping a complete run after a tiny corner-column overlap could
   // otherwise leave this room with no sink or slab at all.
-  if(recipeOf(room.id,type)==='kitchen')for(const column of floor.structuralSizing?.columns??floor.columns??[]){
+  if(['kitchen','bath','toilet'].includes(recipeOf(room.id,type)))for(const column of floor.structuralSizing?.columns??floor.columns??[]){
     const half=column.size/2+50
     if(column.at.x+half>r.x&&column.at.x-half<r.x+r.w&&column.at.y+half>r.y&&column.at.y-half<r.y+r.h)
       plan.reserve(toLocal(column.at.x-half,column.at.y-half,column.at.x+half,column.at.y+half))
@@ -977,10 +984,19 @@ function furnishRoom(
   /* ---------------- bath / WC ---------------- */
   if (recipe === 'bath' || recipe === 'toilet') {
     // away from the door: the WC is the piece you least want to see from it
-    const away = SIDES.filter((s) => !plan.doorSides.has(s))
+    const opposite:Record<Side,Side>={N:'S',S:'N',E:'W',W:'E'}
+    const facingDoor=new Set([...plan.doorSides].map(s=>opposite[s]))
+    // Allocate the wet zone before fixtures consume its footprint. Prefer the
+    // rear wall; its entrance stays open, never crossed by a full-width pane.
+    const shower = recipe==='bath' && W*D>=2.5 ? tryPlace(
+      {w:.9,d:.9,front:.25,gap:.01,sides:[...facingDoor,...SIDES.filter(s=>!plan.doorSides.has(s)&&!facingDoor.has(s))]},
+      {w:.8,d:.9,front:.25,gap:.01,sides:[...facingDoor]},
+    ) : null
+    const privateSides=SIDES.filter(s=>!plan.doorSides.has(s)&&!facingDoor.has(s))
+    const away = privateSides.length?privateSides:SIDES.filter(s=>!facingDoor.has(s))
     const wc = tryPlace(
-      { w: 0.42, d: 0.7, front: CLEAR.wcFront, sides: away.length ? away : SIDES, gap: 0.02 },
-      { w: 0.42, d: 0.7, front: 0.5, gap: 0.02 },
+      { w: 0.42, d: 0.65, front: Math.max(.6,CLEAR.wcFront), sides: away, gap: 0.02 },
+      { w: 0.42, d: 0.6, front: .6, sides:away, gap: 0.02 },
     )
     if (wc) {
       const ws = sz(wc, wc.w, 0.42, wc.d)
@@ -999,13 +1015,14 @@ function furnishRoom(
       P('vanity', 'panel', basin.cx, 0.0, basin.cz, vs[0], vs[1], vs[2])
       P('basin', 'ceramic', basin.cx, 0.78, basin.cz, vs[0] - 0.08, 0.14, vs[2] - 0.06)
     }
-    if (W * D >= 3.6) {
-      const sh = tryPlace({ w: 0.9, d: 0.9, front: 0.3, gap: 0.01 }, { w: 0.8, d: 0.8, front: 0.25, gap: 0.01 })
+    {
+      const sh = shower
       if (sh) {
-        P('shower-tray', 'stone', sh.cx, 0.0, sh.cz, 0.9, 0.08, 0.9)
-        const [gx, gz] = at(sh, 0, 0.45)
-        const gs = sz(sh, 0.9, 1.9, 0.02)
-        P('shower-glass', 'glass', gx, 0.08, gz, gs[0], gs[1], gs[2])
+        const traySize = sz(sh, sh.w, .02, sh.d)
+        P('shower-tray', 'stone', sh.cx, 0.0, sh.cz, ...traySize)
+        const [gx, gz] = at(sh, sh.w/2-.012, 0)
+        const gs = sz(sh, .018, 1.95, sh.d-.04)
+        P('shower-glass', 'glass', gx, .02, gz, gs[0], gs[1], gs[2])
       }
     }
     return n

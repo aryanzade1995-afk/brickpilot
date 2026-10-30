@@ -19,7 +19,15 @@ def create_roof_services(scene, building, access=None):
     top=max(building["floors"],key=lambda f:f["level"])
     z=top["elevationMm"]+top["heightMm"]
     r=terrace.get("mumty")
-    if r:
+    if r and access:
+        # The canonical aperture occupies only the arriving stair flight.
+        # Reuse its adjacent wall spans too, not just its door leaf.
+        for wall in access['walls']:
+            b=wall['boundsMm']
+            scene.box(wall['name'],'ROOF',b['x']+b['w']/2,b['y']+b['d']/2,b['z'],b['w'],b['d'],b['h'],'wall',top['id'])
+        b=access['cap']
+        scene.box('Roof_Mumty_Cap','ROOF',b['x']+b['w']/2,b['y']+b['d']/2,b['z'],b['w'],b['d'],b['h'],'concrete',top['id'])
+    elif r:
         stair=next((s for s in building["stairs"] if s["floorId"]==top["id"]),None)
         side=stair.get("startSide","N") if stair else "N"
         for name,horizontal,fixed,lo,length in [("N",True,r["y"],r["x"],r["w"]),("S",True,r["y"]+r["h"],r["x"],r["w"]),("W",False,r["x"],r["y"],r["h"]),("E",False,r["x"]+r["w"],r["y"],r["h"])]:

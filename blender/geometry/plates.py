@@ -89,3 +89,14 @@ def roof_plate_regions(floor, exterior_walls=()):
                   "w": t, "h": abs(b["y"] - a["y"])})
         regions.extend(subtract_rectangles(strip, regions))
     return regions
+
+
+def interstorey_edge_regions(lower, upper, exterior_walls=()):
+    """Close the exterior half-wall bearing omitted by centre-line floor plates.
+
+    Only actual wall strips are added. Both storeys' existing plate regions are
+    removed, so setbacks, courtyards and disconnected wings are never bridged.
+    """
+    occupied = [*lower["footprint"], *upper["footprint"]]
+    return [piece for region in roof_plate_regions(lower, exterior_walls)
+            for piece in subtract_rectangles(region, occupied)]

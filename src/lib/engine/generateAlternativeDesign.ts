@@ -59,15 +59,15 @@ export function generateAlternativeDesign(plan: Design, seed: number) {
     .sort((a, b) => b.w * b.h - a.w * a.h)
   const additions: Mass[] = []
   const forecourt = forecourts[0]
-  if (forecourt) {
+  if (forecourt && plan.model.brief.rooms.priorities.garden && plan.model.brief.rooms.priorities.gardenShade) {
     const rect = { ...forecourt, w: Math.min(5500, forecourt.w), h: Math.round(forecourt.h * rng.range(.55, 1)) }
-    const canopyFloors = buildingModel.floors.filter((f) => f.elevationMm + f.heightMm - 220 <= DEFAULT_ENVELOPE_LIMITS.maxSupportHeightMm)
+    const canopyFloors = [ground]
     const level = rng.pick(canopyFloors).level
     const host = occupied.filter((m) => m.usage === 'enclosed' && m.floor === level &&
       (sharedEdge(massRect(m), rect)?.length ?? 0) >= Math.min(rect.w, rect.h) * .5)[0]
     const groundHost = occupied.find((m) => m.usage === 'enclosed' && m.floor === ground.level)
     if (host && groundHost) {
-      const elevation = host.elevation + host.height - 220
+      const elevation = ground.elevationMm + Math.min(2750, ground.heightMm - 220)
       for (const [index, x] of [rect.x, rect.x + rect.w - 250].entries()) additions.push({ ...groundHost,
         id: `exterior-pier-${index}`, x, y: rect.y + rect.h - 250, width: 250, depth: 250,
         elevation: ground.elevationMm, height: elevation - ground.elevationMm, role: 'verticalFeature', usage: 'support', parentId: null })

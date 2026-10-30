@@ -1324,16 +1324,6 @@ function buildLandscape(
   if (P.garden) {
     push('lawn', 'lawn', 0, [wx(plotW / 2), 0.02, wz(plotD / 2)], [m(plotW - 400), 0.04, m(plotD - 400)])
 
-    // driveway from the approach (plan-south) to the carport / house front
-    const driveW = carport ? Math.min(carport.rect.w, 3400) : 3000
-    const driveN = carport ? carport.rect.y + carport.rect.h : gy1
-    push(
-      'drive',
-      'paving',
-      0,
-      [wx(driveX), 0.03, wz((driveN + plotD) / 2)],
-      [m(driveW), 0.06, m(plotD - driveN + 200)],
-    )
     if (entry) {
       const walkFromY = carport ? carport.rect.y : gy1
       push(

@@ -9,9 +9,16 @@ import {createPlumbingGroup,disposePlumbingGroup,PIPE_COLORS} from '../src/lib/p
 const rect={x:0,y:0,w:12000,h:10000}
 const source={planId:'detail-test',floors:[{id:'FF',level:1,name:'FF',elevationMm:3000,heightMm:3000,slabThicknessMm:150,footprint:[rect]}],rooms:[{id:'stair',floorId:'FF'}],stairs:[{floorId:'FF',startSide:'S',rect:{x:3000,y:2000,w:2400,h:3300}}],shafts:[{id:'shaft',floorId:'FF',roomId:'bath',rect:{x:10000,y:8000,w:600,h:600}}],walls:[],columns:[],beams:[],doors:[],roofTerrace:{slab:[rect],outline:rect,mumty:{x:3000,y:2000,w:2400,h:3300},tank:{x:600,y:600,w:1100,h:1100}}}
 const overlaps=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y
+function recordTreads(building){
+ const s=building.stairs[0],r=s.rect,horizontal=['N','S'].includes(s.startSide)
+ const lo=horizontal?r.x:r.y,size=horizontal?r.w:r.h
+ s.treads=[0,1].map(f=>[lo+f*size/2+50,lo+(f+1)*size/2-50].map(at=>horizontal?{x:at,y:r.y+1000}:{x:r.x+1000,y:at}))
+ return building
+}
+recordTreads(source)
 test('roof exit reuses the enclosure aperture and preserves source architecture',()=>{
  for(const side of ['N','E','S','W']){
-  const b=structuredClone(source);b.stairs[0].startSide=side;const before=JSON.stringify(b),r=roofAccess(b),a=r.opening.apertureMm
+  const b=structuredClone(source);b.stairs[0].startSide=side;recordTreads(b);const before=JSON.stringify(b),r=roofAccess(b),a=r.opening.apertureMm
   assert.equal(JSON.stringify(b),before);assert.equal(r.opening.sourceId,'ROOF_STAIR_EXIT');assert.equal(a.z,6000)
   assert.equal(r.opening.swing,side==='N'||side==='W'?-1:1)
   for(const w of r.walls){const q=w.boundsMm;assert.ok(!(overlaps({x:a.x,y:a.y,w:a.w,h:a.d},{x:q.x,y:q.y,w:q.w,h:q.d})&&q.z<a.z+a.h&&q.z+q.h>a.z))}

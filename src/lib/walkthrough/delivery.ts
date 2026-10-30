@@ -9,6 +9,7 @@ import { fitWalkthroughFinishes } from './fittedFinishes.ts'
 import type { InteriorFinishes } from '../interior/finishes.ts'
 import { createStairGuards } from './stairGuards.ts'
 import {roomInteriorModels,type InteriorModelInstance} from '../interior-assets/placements.ts'
+import {bathroomServiceCovers} from './serviceCovers.ts'
 
 export const WALKTHROUGH_DELIVERY_VERSION = 'walkthrough-assets-v1'
 export const WALKTHROUGH_APPEARANCE_VERSION = 'room-finishes-fittings-v6'
@@ -160,10 +161,15 @@ export function prepareWalkthroughAppearance(design: Design, source: Walkthrough
     looks.set(room.key, { floor: surfaceLook(fin.floor), wall: { color: fin.walls.color, rough: fin.walls.rough, metal: fin.walls.metallic ? .35 : 0 },
       ceiling: { color: fin.ceiling.color, rough: .9 }, glass: house.glass, frame: house.frame, door: house.door, mainDoor: house.mainDoor })
     specifications.push({ roomId: room.key, selections: fin.specifications, finishes: fin })
-    const fitted = fitWalkthroughFinishes(fin, room.key, geometry, result.state === 'resolved' ? result.furnishing.tiles?.sides : [])
+    const sourceRoom=source.building.rooms.find(r=>r.floorId===room.floorId&&r.id===room.sourceRoomId)!,sourceFloor=source.building.floors.find(f=>f.id===room.floorId)!
+    const occupiedFixtures=result.state==='resolved'?result.furnishing.boxes.map(b=>({position:roomLocalToWalkthrough(b.pos,sourceRoom,sourceFloor),size:b.size})):[]
+    const fitted = fitWalkthroughFinishes(fin, room.key, geometry, result.state === 'resolved' ? result.furnishing.tiles?.sides : [],occupiedFixtures)
     Object.assign(bindings, fitted.bindings); furniture.push(...fitted.furniture); skins.push(...fitted.skins)
     if (result.state !== 'resolved') { issues.push({ code: 'FURNISHING_UNAVAILABLE', roomId: room.key, message: 'This room has finishes but no supported procedural furnishing.' }); continue }
     const r = source.building.rooms.find(r => r.floorId === room.floorId && r.id === room.sourceRoomId)!, f = source.building.floors.find(f => f.id === room.floorId)!
+    const coverBinding=`shaft-cover-finish:${room.key}`
+    bindings[coverBinding]=surfaceLook(fin.floor)
+    furniture.push(...bathroomServiceCovers(source.building,r,room.key,coverBinding))
     for (const box of result.furnishing.boxes) {
       if (/bath|toilet|ensuite/i.test(r.name) && /mirror/i.test(box.id)) continue
       const id = JSON.stringify([room.key, box.id]), key = `furniture:${id}`
@@ -171,7 +177,9 @@ export function prepareWalkthroughAppearance(design: Design, source: Walkthrough
       furniture.push({ id, floorId: room.floorId, roomId: room.key, sourceIds: [box.id], kind: 'furniture', binding: key,
         position: roomLocalToWalkthrough(box.pos, r, f), size: [...box.size], rotation: -(box.rot ?? 0), shape: box.shape ?? 'box', bevelM: box.bevel })
     }
-    models.push(...roomInteriorModels(design.model.brief,room.key,room.finishRoomKey,furniture.filter(p=>p.roomId===room.key),result.furnishing.placements??[],fin,bindings,r.rect))
+    const role=design.model.floors.find(fl=>fl.level===f.level)?.spaces.find(s=>s.id===r.id)?.role
+    const audience=role==='child'||/child|teen|kids?/i.test(r.name)?'child':'adult'
+    models.push(...roomInteriorModels(design.model.brief,room.key,room.finishRoomKey,furniture.filter(p=>p.roomId===room.key),result.furnishing.placements??[],fin,bindings,r.rect,audience))
   }
   for (const item of [...geometry.faces, ...geometry.openingParts]) {
     const role = JSON.parse(item.binding)[2] as string
@@ -183,7 +191,8 @@ export function prepareWalkthroughAppearance(design: Design, source: Walkthrough
 
 /** Conservative rotated furniture boxes, separate from immutable structure. */
 export function furnitureColliders(appearance: WalkthroughAppearancePayload): Collider[] {
-  const original=appearance.furniture.filter(b => b.size[1] > .05).map(b => {
+  const replaced=new Set((appearance.models??[]).flatMap(m=>m.replaces))
+  const original=appearance.furniture.filter(b => b.size[1] > .05 && !replaced.has(b.id)).map(b => {
     const c = Math.abs(Math.cos(b.rotation)), s = Math.abs(Math.sin(b.rotation)), size: V3 = [b.size[0] * c + b.size[2] * s, b.size[1], b.size[0] * s + b.size[2] * c]
     return { id: b.id, floorId: b.floorId, kind: 'furniture-aabb', sourceIds: b.sourceIds,
       min: b.position.map((p, i) => p - size[i] / 2) as V3, max: b.position.map((p, i) => p + size[i] / 2) as V3 }

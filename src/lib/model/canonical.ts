@@ -176,6 +176,8 @@ export const PROGRAMME_GROWTH_LIMITS = { minimumEnvelopeSqm: 600, targetPlotRati
   maximumBarLengthMm: 32000, maximumRoomBandDepthMm: 10800, packingRatio: .78 } as const
 
 export function compile(brief: Brief): CanonicalModel {
+  // Retain the legacy field for saved-project compatibility; new villas omit covered verandahs.
+  brief = {...brief, rooms:{...brief.rooms, priorities:{...brief.rooms.priorities, coveredVerandah:false}}}
   const seed = `${hashSeed(brief)}-${brief.variation}`
   const grid = 100
 

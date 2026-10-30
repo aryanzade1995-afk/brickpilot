@@ -190,7 +190,7 @@ export function planExisting(model: CanonicalModel, request: PlanRequest): PlanR
     const bbox = rectUnionBBox(footprint)
     if (level === 0) frontYard(rooms, req.outdoor.filter((r) => r.kind !== 'courtyard'), bbox, site, nb.twoCar, nb.large, outdoorRoom)
     else for (const r of req.outdoor.filter((x) => x.kind === 'balcony')) {
-      const b = placeBalcony(rooms, bbox, site, kindOf, lowerPlate)
+      const b = placeBalcony(rooms, bbox, site, kindOf, lowerPlate,false,floors[0]?.rooms.filter(r=>r.id==='parking').map(r=>r.rect))
       if (b) rooms.push(outdoorRoom(r, b))
     }
 

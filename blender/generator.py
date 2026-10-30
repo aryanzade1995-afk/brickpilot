@@ -23,7 +23,7 @@ from geometry.common import SceneBuilder, MM  # noqa: E402
 from geometry.site import create_site  # noqa: E402
 from geometry.structure import (create_foundation, create_slab, create_wall, create_column,
                                 create_beam, create_staircase, create_massing_volume,
-                                create_roof_slab)  # noqa: E402
+                                create_roof_slab, create_interstorey_edges)  # noqa: E402
 from geometry.safety import create_emergency_system
 from geometry.openings import create_door_opening, create_window_opening  # noqa: E402
 from geometry.stairs import stair_opening, stair_layout  # noqa: E402
@@ -93,6 +93,13 @@ def create_scene(payload, visualization=None):
         if floor.get("courtyard"):
             voids.append(floor["courtyard"])
         create_slab(scene, slab, floor, voids)
+    for lower, upper in zip(floors, floors[1:]):
+        voids = [s["rect"] for s in building["shafts"] if s["floorId"] in (lower["id"], upper["id"])]
+        voids += [v["rect"] for v in upper.get("doubleHeightVoids", [])]
+        voids += [f["courtyard"] for f in (lower, upper) if f.get("courtyard")]
+        voids += [stair_opening(s) for s in building["stairs"] if s["floorId"] == lower["id"]]
+        create_interstorey_edges(scene, lower, upper,
+            [w for w in building["walls"] if w["floorId"] == lower["id"] and w["kind"] == "exterior"], voids)
     for column in building["columns"]:
         create_column(scene, column, by_floor[column["floorId"]])
     for beam in building["beams"]:
@@ -105,7 +112,9 @@ def create_scene(payload, visualization=None):
     for wall in building["walls"]:
         floor = by_floor[wall["floorId"]]
         hosted = [opening for opening in openings if hosts[opening["id"]] == wall["id"]]
-        serials[floor["id"]] = create_wall(scene, wall, floor, hosted, serials[floor["id"]])
+        above = next((f for f in floors if f["level"] == floor["level"] + 1), None)
+        serials[floor["id"]] = create_wall(scene, wall, floor, hosted, serials[floor["id"]],
+            above.get("slabThicknessMm") if above else None)
     for opening in building["doors"]:
         create_door_opening(scene, opening, wall_by_id[hosts[opening["id"]]], by_floor[opening["floorId"]], next((s for s in payload.get("balconySliders", []) if s["sourceId"] == opening["id"]), None))
     for opening in building["windows"]:

@@ -27,6 +27,9 @@ def create_plumbing(scene, payload):
         for old in list(obj.users_collection): old.objects.unlink(obj)
         collection.objects.link(obj);obj.data.materials.append(materials[system])
         obj['formstead_plumbing']=True;obj['source_plan_id']=scene.plan_id;obj['plumbing_signature']=layout['signature'];obj['service']=system
+        # Exterior beauty renders conceal services; Utilities replays the same
+        # canonical network as an explicit technical overlay for inspection.
+        obj.hide_render=True
         for p in obj.data.polygons: p.use_smooth=True
     for i,s in enumerate(assembly['tubes'] if assembly else layout['segments']):
         diameter=s['diameterMm'];system=s['system']

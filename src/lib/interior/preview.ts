@@ -50,7 +50,7 @@ export type InteriorConfiguration = {
 }
 export type Quality = 'fast' | 'high'
 /** Also retires browser-saved panoramas when fitted kitchen rendering changes. */
-export const INTERIOR_PREVIEW_VERSION = 'resolved-finishes-kitchen-v4'
+export const INTERIOR_PREVIEW_VERSION = 'resolved-furnished-layout-v6'
 
 export const defaultConfiguration = (roomId: string, floor: number): InteriorConfiguration => ({
   roomId, floor, style: 'modern', flooring: { material: 'beige-marble', color: '#D8CBB8' }, walls: { color: '#F2EADC' },

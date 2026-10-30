@@ -93,7 +93,8 @@ test('wall tile and backsplash skins stay inside real wall faces and never fill 
 
 test('selected ceiling, fan, light, switches, shower, exhaust and heater are separate from architectural geometry', () => {
   const d = changed({ 'false-ceiling': 'premium' }), result = appearance(d)
-  for (const suffix of ['fan-hub', 'ceiling-light', 'bulb', 'switchboard', 'shower-head', 'exhaust', 'water-heater']) assert.ok(result.furniture.some(b => b.id.endsWith(suffix)), suffix)
+  for (const suffix of ['fan-hub', 'ceiling-light', 'switchboard', 'shower-head', 'exhaust', 'water-heater']) assert.ok(result.furniture.some(b => b.id.endsWith(suffix)||b.sourceIds.some(id=>id.endsWith(suffix))), suffix)
+  assert.ok(!result.furniture.some(b=>b.sourceIds.some(id=>/^bulb(?:-holder)?$/.test(id))))
   assert.ok(result.skins.some(s => s.id.includes('ceiling-')))
   assert.ok(geometry.faces.every(f => !f.id.includes('ceiling-trim')))
   assert.equal(estimateBoq(d).quantities.rooms.length, estimateBoq(design).quantities.rooms.length)

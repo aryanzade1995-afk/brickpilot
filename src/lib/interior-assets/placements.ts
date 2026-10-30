@@ -9,11 +9,12 @@ export type InteriorModelInstance={id:string;assetId:string;assetRevision:string
 const pieceCategory:Partial<Record<Piece['type'],ModelCategory>>={'sofa':'sofa','bed':'bed','armchair':'armchair','coffee-table':'coffee-table','dining-table':'dining-table','dining-chair':'dining-chair','chair':'office-chair','desk':'desk','sideboard':'storage-cabinet','wardrobe':'wardrobe','nightstand':'nightstand','side-table':'nightstand','pendant':'lamp','table-lamp':'lamp'}
 /** Replaces only existing appearance parts. The current placer remains the
  * authority: no new furniture positions, walls or openings are introduced. */
-export function roomInteriorModels(brief:Brief,roomId:string,finishRoomId:string,parts:AssetBox[],pieces:Piece[],fin:WalkthroughAppearancePayload['specifications'][number]['finishes'],bindings:Record<string,Look>,rect:Rect):InteriorModelInstance[]{
+export function roomInteriorModels(brief:Brief,roomId:string,finishRoomId:string,parts:AssetBox[],pieces:Piece[],fin:WalkthroughAppearancePayload['specifications'][number]['finishes'],bindings:Record<string,Look>,rect:Rect,roomAudience:'child'|'adult'='adult'):InteriorModelInstance[]{
  const models:InteriorModelInstance[]=[],used=new Set<string>()
  function add(category:ModelCategory,group:AssetBox[],rotation=0,compatible?:string[],color?:string,anchor:'floor'|'top'='floor',fitEnvelope=false){
   group=group.filter(p=>!used.has(p.id));if(!group.length)return
-  const choice=selectedInteriorModel(brief,category,finishRoomId)
+  let choice=selectedInteriorModel(brief,category,finishRoomId)
+  if(category==='bed'&&choice!=='procedural')choice=roomAudience==='child'?'bed':choice==='bed'?'auto':choice
   if(choice==='procedural')return
   const fallback=category==='kitchen-base'&&fin.kitchenHardware?.drawers?compatible?.[0]??automaticInteriorModel(category):automaticInteriorModel(category,compatible),asset=interiorAsset(choice==='auto'||compatible&&!compatible.includes(choice)?fallback:choice)
   if(!asset)return
@@ -44,10 +45,12 @@ export function roomInteriorModels(brief:Brief,roomId:string,finishRoomId:string
  for(const p of pieces){
   const category=pieceCategory[p.type];if(!category)continue
   const group=parts.filter(b=>b.sourceIds.some(id=>id===p.id||id.startsWith(p.id+'-')))
-  const angle={S:0,E:Math.PI/2,N:Math.PI,W:Math.PI*1.5}[p.face]
+   .filter(b=>category!=='dining-table'||!b.sourceIds.some(id=>/-(?:runner|bowl)$/.test(id)))
+  let angle={S:0,E:Math.PI/2,N:Math.PI,W:Math.PI*1.5}[p.face]
+  if(category==='dining-table'&&p.d>p.w)angle+=Math.PI/2
   const fabric=group.find(b=>b.sourceIds.some(id=>id.includes('-seat')))
   const linen=group.find(b=>b.sourceIds.some(id=>id.includes('-duvet')))
-  add(category,group,Math.PI-angle,undefined,p.type==='sofa'&&fabric?bindings[fabric.binding]?.color:p.type==='bed'&&linen?bindings[linen.binding]?.color:undefined)
+  add(category,group,Math.PI-angle,undefined,p.type==='sofa'&&fabric?bindings[fabric.binding]?.color:p.type==='bed'&&linen?bindings[linen.binding]?.color:undefined,'floor',category==='dining-table'||category==='bed'&&roomAudience==='adult')
  }
  const match=(re:RegExp)=>parts.filter(p=>p.sourceIds.some(id=>re.test(id)))
  const facing=(group:AssetBox[])=>{
@@ -60,7 +63,7 @@ export function roomInteriorModels(brief:Brief,roomId:string,finishRoomId:string
  if(fin.exhaust){const g=match(/^exhaust$/);add('exhaust',g,facing(g),['exhaust'],fin.exhaust.profile?.color)}
  const wc=fin.sanitary?.wc
  if(wc&&wc!=='indian'){const g=match(/-toilet(?:-|$)|-selected-cistern$|-flush-plate$/);add('toilet',g,facing(g),wc==='wall'?['toilet-wall']:['user-bathroom-toilet','toilet-modern','toilet'],fin.sanitary?.profile?.color)}
- if(fin.basin){const g=match(/-basin(?:-|$)/);add('basin',g,facing(g),['user-bathroom-basin','basin'],fin.basin.profile?.color)}
+ if(fin.basin){const g=match(/-(?:selected-basin|basin)(?:-|$)/).filter(p=>!p.sourceIds.some(id=>/-basin-pedestal$/.test(id)));add('basin',g,facing(g),['user-bathroom-basin','basin'],fin.basin.profile?.color)}
  if(fin.tub)add('bathtub',match(/-tub(?:-|$)|-bathtub(?:-|$)/),0,['bathtub'],fin.tub.profile?.color)
  if(fin.kitchenSink?.bowls===1)add('kitchen-sink',match(/-sink-(?:rim|bowl|drain|\d)|-faucet-/),0,['kitchen-sink'])
  // Countertop/sink geometry is never part of a cabinet replacement. Preserve

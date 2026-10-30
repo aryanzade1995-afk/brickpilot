@@ -9,7 +9,7 @@ import type { AssetBox, AssetFace, WalkthroughAppearancePayload, WalkthroughGeom
  * Fitted products are concept representations, never new measured BOQ items.
  */
 export function fitWalkthroughFinishes(fin: InteriorFinishes, roomId: string, geometry: WalkthroughGeometryPayload,
-  tileSides: string[] = []): Pick<WalkthroughAppearancePayload, 'skins' | 'furniture' | 'bindings'> {
+  tileSides: string[] = [], occupiedFixtures: Pick<AssetBox,'position'|'size'>[] = []): Pick<WalkthroughAppearancePayload, 'skins' | 'furniture' | 'bindings'> {
   const skins: AssetFace[] = [], furniture: AssetBox[] = [], bindings: Record<string, Look> = {}
   let mounting:AssetBox['support']
   const faces = geometry.faces.filter(f => f.roomId === roomId), room = geometry.metadata.rooms.find(r => r.id === roomId)!
@@ -82,27 +82,34 @@ export function fitWalkthroughFinishes(fin: InteriorFinishes, roomId: string, ge
   if(light){occupied.push(light);mount(light,'ceiling-light');add('ceiling-light',[light.x,light.y-ceilingOffset-mainSize[1]/2,light.z],mainSize,{color:fin.lights.profile?.color??'#eee2cb',rough:.4,emissive:'#fff2d6',glow:.4},fin.lights.kind==='panel'?'box':'cyl')}
   const batten=fin.batten&&placeCeilingFitting(ceilings,.6,.06,occupied)
   if(batten&&fin.batten){occupied.push(batten);mount(batten,'batten');add('batten',[batten.x,batten.y-ceilingOffset-.02,batten.z],[.6,.04,.06],{color:fin.batten.profile?.color??'#d9c49e',rough:.4,emissive:'#fff4df',glow:.3})}
-  const bulb=fin.bulb&&placeCeilingFitting(ceilings,.12,.12,occupied)
-  if(bulb&&fin.bulb){occupied.push(bulb);mount(bulb,'bulb');const y=bulb.y-ceilingOffset
-    add('bulb-holder',[bulb.x,y-.035,bulb.z],[.06,.07,.06],{color:fin.bulb.profile?.accent??'#a48654',rough:.4},'cyl')
-    add('bulb',[bulb.x,y-.12,bulb.z],[.09,.12,.09],{color:fin.bulb.profile?.color??'#faf7ec',rough:.3,emissive:'#fff2d6',glow:.3},'ball')
-  }
   mounting=undefined
   const wallAt = (height: number, width: number, panelHeight: number) => walls.filter(f => {
     const b = bounds(f), span = Math.max(b[0][1] - b[0][0], b[2][1] - b[2][0])
     return span > width + .1 && b[1][0] <= room.elevationM + height - panelHeight / 2 && b[1][1] >= room.elevationM + height + panelHeight / 2
-  }).sort((a, b) => a.id.localeCompare(b.id))[0]
+  }).sort((a, b) => a.id.localeCompare(b.id))
   const wallProduct = (id: string, height: number, width: number, h: number, depth: number, color: string, metal = 0) => {
-    const f = wallAt(height, width, h); if (!f) return
+    for(const f of wallAt(height, width, h))for(const fraction of [.5,.25,.75]){
     const standOff = id === 'switchboard' ? .0006 : .005
-    const b = bounds(f), x = (b[0][0] + b[0][1]) / 2 + f.normal[0] * (depth / 2 + standOff), z = (b[2][0] + b[2][1]) / 2 + f.normal[2] * (depth / 2 + standOff)
+    const b = bounds(f), axis=Math.abs(f.normal[0])>.9?2:0
+    const along=b[axis][0]+width/2+.05+(b[axis][1]-b[axis][0]-width-.1)*fraction
+    const x = (axis===0?along:(b[0][0]+b[0][1])/2) + f.normal[0] * (depth / 2 + standOff), z = (axis===2?along:(b[2][0]+b[2][1])/2) + f.normal[2] * (depth / 2 + standOff)
+    const position:AssetBox['position']=[x,room.elevationM+height,z],size:AssetBox['size']=axis===2?[depth,h,width]:[width,h,depth]
+    if([...occupiedFixtures,...furniture].some(o=>position.every((v,i)=>Math.abs(v-o.position[i])<(size[i]+o.size[i])/2+.12)))continue
     mounting={surfaceId:f.canonicalSurfaceId,point:[x-f.normal[0]*(depth/2+standOff),room.elevationM+height,z-f.normal[2]*(depth/2+standOff)],normal:[...f.normal],group:id}
-    add(id, [x, room.elevationM + height, z], Math.abs(f.normal[0]) > .9 ? [depth, h, width] : [width, h, depth], { color, rough: .4, metal })
+    add(id, position, size, { color, rough: .4, metal },id==='water-heater'&&fin.waterHeater?.kind!=='instant'?'cyl':'box')
+    if(id==='water-heater'){
+      furniture[furniture.length-1].bevelM=.025
+      add('water-heater-control',[x+f.normal[0]*(depth/2+.006),position[1]-.08,z+f.normal[2]*(depth/2+.006)],axis===2?[.015,.09,.12]:[.12,.09,.015],{color:'#555b5c',rough:.35})
+      for(const offset of [-.07,.07])add(`water-heater-connection-${offset}`,[x+(axis===0?offset:0),position[1]-h/2-.06,z+(axis===2?offset:0)],[.018,.12,.018],{color:'#a4a8a7',rough:.25,metal:.8},'cyl')
+    }
     mounting=undefined
+    return
+    }
   }
   wallProduct('switchboard', 1.2, .16, .1, .018, fin.switches.profile?.color ?? '#f5f3ee')
   if (fin.exhaust) wallProduct('exhaust', 2.25, .24, .24, .07, fin.exhaust.profile?.color ?? '#f0f0ec')
-  if (fin.waterHeater) wallProduct('water-heater', 2.05, .35, fin.waterHeater.kind === 'instant' ? .25 : .5, .25, fin.waterHeater.profile?.color ?? '#eeeeee')
-  if (fin.shower) wallProduct('shower-head', 2.05, .2, .03, .24, fin.fittings?.finish === 'black' ? '#151515' : fin.fittings?.finish === 'gold' ? '#ba9856' : '#bdc2c5', 1)
+  if (fin.waterHeater) wallProduct('water-heater', 2.05, .35, fin.waterHeater.kind === 'instant' ? .25 : .5, fin.waterHeater.kind==='instant'?.18:.35, fin.waterHeater.profile?.color ?? '#eeeeee')
+  // Shower hardware is mounted by dressRoom at the allocated wet zone, rather
+  // than an arbitrary first wall that may stand over a basin or doorway.
   return { skins, furniture, bindings }
 }

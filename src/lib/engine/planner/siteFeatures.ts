@@ -2,6 +2,7 @@ import type { Rect } from '../../geometry.ts'
 import type { CanonicalModel } from '../../model/canonical.ts'
 import type { FloorPlan, SiteFeature } from '../types.ts'
 import { SITE_LIMITS, COURTYARD_POOL_LIMITS } from './limits.ts'
+import { PARKING_HOUSE_GAP } from './program.ts'
 
 export const overlapsSite = (a: Rect, b: Rect) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y
 
@@ -57,10 +58,13 @@ export function placeSiteFeatures(model: CanonicalModel, ground: FloorPlan, fixe
   }
   const available = () => freeSiteRects(plot, taken).sort((a, b) => b.w * b.h - a.w * a.h)
   const allocate = (kind: SiteFeature['kind'], w: number, h: number, near?: Rect) => {
+    const occupied = kind === 'parking' ? [...taken, ...ground.rooms.filter(r => !r.outdoor).map(({rect:r}) => ({
+      x:r.x-PARKING_HOUSE_GAP,y:r.y-PARKING_HOUSE_GAP,w:r.w+2*PARKING_HOUSE_GAP,h:r.h+2*PARKING_HOUSE_GAP,
+    }))] : taken
     // a feature the person has placed stays where they put it, unless that spot is now taken
     const own = fixed[kind]
-    if (own && !taken.some(r => overlapsSite(r, own))) { add(kind, own); taken.push(own); return own }
-    const candidates = available().filter(r => r.w >= w && r.h >= h)
+    if (own && !occupied.some(r => overlapsSite(r, own))) { add(kind, own); taken.push(own); return own }
+    const candidates = (kind === 'parking' ? freeSiteRects(plot, occupied) : available()).filter(r => r.w >= w && r.h >= h)
       .sort((a, b) => near ? Math.hypot(a.x - near.x, a.y - near.y) - Math.hypot(b.x - near.x, b.y - near.y) : b.y + b.h - a.y - a.h)
     const at = (kind === 'parking' ? candidates.find(r => r.h >= h + SITE_LIMITS.pathWidthMm) : undefined) ?? candidates[0]
     if (!at) return null
@@ -72,11 +76,7 @@ export function placeSiteFeatures(model: CanonicalModel, ground: FloorPlan, fixe
   if (parkingRoom) add('parking', parkingRoom.rect, true, parkingRoom.id)
   const parking = parkingRoom?.rect ?? allocate('parking', 3000, 5000)
   if (!parking) notes.push('A 3 × 5 m parking bay cannot fit in the remaining open space. Increase the road-side open margin or request covered parking.')
-  if (parking) {
-    const drive = fixed.driveway ?? { x: parking.x, y: parking.y + parking.h, w: parking.w, h: plot.h - parking.y - parking.h }
-    if (drive.h > 0 && !taken.some(r => overlapsSite(r, drive))) { add('driveway', drive); taken.push(drive) }
-    else if (drive.h > 0) notes.push('Parking needs a clear route from the road; the current open-space choice blocks a straight driveway.')
-  }
+  // Keep the parking bay, without creating a separate driveway paving feature.
   // Preserve the actual main door and its clear approach, even without a porch.
   const door = ground.openings.find(o => o.kind === 'entry')
   if (door && door.orient === 'h') {

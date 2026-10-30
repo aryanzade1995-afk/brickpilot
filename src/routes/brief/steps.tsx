@@ -456,7 +456,6 @@ export function RoomsStep() {
         <span className="label">{translateUi("Ground-floor priorities")}</span>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           <Toggle checked={p.coveredParking} onChange={(v) => edit((b) => void (b.rooms.priorities.coveredParking = v))} label="Covered parking" />
-          <Toggle checked={p.coveredVerandah} onChange={(v) => edit((b) => void (b.rooms.priorities.coveredVerandah = v))} label="Covered verandah" />
           <Toggle checked={p.utility} onChange={(v) => edit((b) => void (b.rooms.priorities.utility = v))} label="Utility / laundry" />
           <Toggle checked={p.pooja} onChange={(v) => edit((b) => void (b.rooms.priorities.pooja = v))} label="Pooja / sacred room" />
           <Toggle checked={p.courtyard} onChange={(v) => edit((b) => void (b.rooms.priorities.courtyard = v))} label="Central courtyard" />
@@ -466,7 +465,8 @@ export function RoomsStep() {
       <div>
         <span className="label">{translateUi("Site")}</span>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          <Toggle checked={p.garden} onChange={(v) => edit((b) => void (b.rooms.priorities.garden = v))} label="Garden & landscaping" hint="Lawn, hedges and driveway" />
+          <Toggle checked={p.garden} onChange={(v) => edit((b) => void (b.rooms.priorities.garden = v))} label="Garden & landscaping" hint="Lawn and planting" />
+          <Toggle checked={p.gardenShade} onChange={(v) => edit((b) => void (b.rooms.priorities.gardenShade = v))} label="Garden shade" hint="Optional ground-floor canopy where clear garden space is available" />
           <Toggle checked={r.pool} onChange={v => edit(b => void (b.rooms.pool = v))} label="Swimming pool" hint="A small courtyard plunge pool where it fits, or a 2.5 × 5 m garden pool" />
           <Toggle checked={p.compoundWall} onChange={(v) => edit((b) => void (b.rooms.priorities.compoundWall = v))} label="Compound wall" hint="Boundary wall with a gate" />
         </div>

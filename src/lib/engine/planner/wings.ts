@@ -48,8 +48,7 @@ function balanceWings(north: Unit[], south: Unit[], depth: number, length: numbe
  * remain intact; no room coordinate or source opening is copied from a 3D mass. */
 export function planWings(model: CanonicalModel, request: PlanRequest): PlanResult | null {
  const nb=normalizeBrief(model), stair=stairGeometry(nb), site=siteModel(model)
- // Covered outdoor rooms may abut a wing: they need their depth, no spare yard gap.
- if (site.frontStripMm >= 5300) site.houseZone.h += 300
+ // Keep the site model's full detached parking strip; wings must not consume its gap.
  const reqs=programRequirements(nb,stair.slotWidth), zone=site.houseZone
  // Two end columns and the opening placer's jamb clearance need more than a
  // 1.2 m shared edge. Use the same accessible gallery junction for both sizes.
@@ -198,7 +197,7 @@ export function planWings(model: CanonicalModel, request: PlanRequest): PlanResu
   const footprint=rooms.filter(r=>!r.outdoor).map(r=>r.rect), outline=rectUnionBBox(footprint)
   const outdoor=(r:RoomReq,rect:Rect)=>placed(r,rect)
   if(fi===0){
-   if(choices?.verandah==='wrap'){
+   if(choices?.verandah==='wrap'&&f.outdoor.some(r=>r.id==='verandahWingN')){
     const depth=1800
     if(court.w-depth<3000||court.h-depth<3000)return null
     const north=f.outdoor.find(r=>r.id==='verandahWingN')!,west=f.outdoor.find(r=>r.id==='verandahWingW')!
@@ -215,7 +214,7 @@ export function planWings(model: CanonicalModel, request: PlanRequest): PlanResu
    }
    frontYard(rooms,f.outdoor.filter(r=>r.kind!=='courtyard'&&!r.id.startsWith('verandahWing')),outline,site,nb.twoCar,nb.large,outdoor)
   }else for(const r of f.outdoor.filter(r=>r.kind==='balcony')){
-   const rect=placeBalcony(rooms,outline,site,id=>kinds.get(id)??'',floors[fi-1].footprint,usesSetbackTerraces(request.formVersion))
+   const rect=placeBalcony(rooms,outline,site,id=>kinds.get(id)??'',floors[fi-1].footprint,usesSetbackTerraces(request.formVersion),floors[0]?.rooms.filter(r=>r.id==='parking').map(r=>r.rect))
    if(rect){
     const supported=floors[fi-1].footprint.reduce((n,p)=>n+Math.max(0,Math.min(rect.x+rect.w,p.x+p.w)-Math.max(rect.x,p.x))*Math.max(0,Math.min(rect.y+rect.h,p.y+p.h)-Math.max(rect.y,p.y)),0)>=rectArea(rect)-1000
     rooms.push(outdoor(usesSetbackTerraces(request.formVersion)&&supported?{...r,name:'Setback terrace'}:r,rect))

@@ -243,11 +243,12 @@ export const briefSchema = z
         priorities: z
           .object({
             coveredParking: z.boolean().default(true),
-            coveredVerandah: z.boolean().default(true),
+            coveredVerandah: z.boolean().default(false),
             utility: z.boolean().default(true),
             pooja: z.boolean().default(true),
             courtyard: z.boolean().default(false),
             garden: z.boolean().default(true),
+            gardenShade: z.boolean().default(false),
             compoundWall: z.boolean().default(false),
           })
           .prefault({}),

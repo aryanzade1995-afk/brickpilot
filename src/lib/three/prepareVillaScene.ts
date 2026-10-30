@@ -7,8 +7,8 @@ import { separateCoplanar } from './separateCoplanar.ts'
 // same static villa. Each canvas gets its own hierarchy and shares prepared data.
 const prepared = new WeakMap<THREE.Object3D, Map<string, THREE.Object3D>>()
 
-export function prepareVillaScene(source: THREE.Object3D, anisotropy: number, separateRoofTanks=false) {
-  const key=`${anisotropy}:${separateRoofTanks}`
+export function prepareVillaScene(source: THREE.Object3D, anisotropy: number, separateRoofTanks=false, gardenShade=false) {
+  const key=`${anisotropy}:${separateRoofTanks}:${gardenShade}`
   let variants = prepared.get(source)
   if (!variants) { variants = new Map(); prepared.set(source, variants) }
   let template = variants.get(key)
@@ -16,9 +16,10 @@ export function prepareVillaScene(source: THREE.Object3D, anisotropy: number, se
     template = source.clone(true)
     const remove: THREE.Object3D[] = []
     template.traverse(object => {
+      if (!gardenShade && (/^EnvelopeCanopy_forecourt-canopy/.test(object.name) || /^Envelope(?:Pier|Foundation)_exterior-pier-/.test(object.name))) remove.push(object)
       // Combined GLBs carry tagged PV. Strip before caching the architecture;
       // the current canonical SolarLayer is then attached exactly once.
-      if (separateRoofTanks&&/^Roof_WaterTank_\d+/.test(object.name) || object.userData.formstead_shade || object.userData.formstead_entry_ramp || object.userData.formstead_plumbing || object.userData.formstead_solar || object.userData.presentation_only || object.name.startsWith('Ground_Context') ||
+      if (separateRoofTanks&&/^Roof_WaterTank_\d+/.test(object.name) || object.userData.formstead_shade || object.userData.formstead_entry_ramp || object.userData.formstead_plumbing || /^Service_(water|drain|vent)_/.test(object.name) || object.userData.formstead_solar || object.userData.presentation_only || object.name.startsWith('Ground_Context') ||
         'isLight' in object || 'isCamera' in object) remove.push(object)
     })
     remove.forEach(object => object.removeFromParent())

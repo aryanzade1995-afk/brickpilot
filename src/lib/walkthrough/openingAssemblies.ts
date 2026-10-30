@@ -33,14 +33,32 @@ export function roofAccess(building: BuildingModel): RoofAccess | null {
   if(!stair)return null
   const stairRoom=building.rooms.find(r=>r.floorId===top.id&&r.id==='stair')
   const side=stair.startSide??'N',z=top.elevationMm+top.heightMm,height=TERRACE_LIMITS.headroomHeightMm,t=120
+  const acrossX=side==='N'||side==='S'
+  const acrossStart=acrossX?stair.rect.x:stair.rect.y,acrossSize=acrossX?stair.rect.w:stair.rect.h
+  // The return flight reaches the top on the second half of the source nosings.
+  // Keep the descending-flight half as a solid wall, never a second door leaf.
+  const returnLines=(stair.treads??[]).filter(line=>line.length===2&&line.every(p=>Number.isFinite(acrossX?p.x:p.y)))
+    .map(line=>line.map(p=>acrossX?p.x:p.y).sort((a,b)=>a-b))
+    .filter(([a,b])=>(a+b)/2>=acrossStart+acrossSize/2)
+  if(!returnLines.length)return null
+  const flightLo=Math.min(...returnLines.map(l=>l[0])),flightHi=Math.max(...returnLines.map(l=>l[1]))
+  // Keep the jamb clear of the perimeter parapet as well as the flight edge.
+  // These 30/50 mm assembly allowances are not statutory access dimensions.
+  const parapet=building.quantityRules?.roof.parapetThicknessMm??0
+  const clearLo=Math.max(flightLo+50,acrossStart+parapet+30)
+  const clearHi=Math.min(flightHi-50,acrossStart+acrossSize-parapet-30)
+  const doorWidth=Math.min(900,clearHi-clearLo)
+  if(doorWidth<750)return null
   const sides=[['N',true,r.y,r.x,r.w],['S',true,r.y+r.h,r.x,r.w],['W',false,r.x,r.y,r.h],['E',false,r.x+r.w,r.y,r.h]] as const
   const walls:RoofAccess['walls']=[]
   let opening:SceneOpening|null=null
   for(const [name,horizontal,fixed,lo,length] of sides){
     let spans=[[lo,length,0,height]]
     if(name===side){
-      const width=Math.max(900,length-500),margin=(length-width)/2
-      spans=[[lo,margin,0,height],[lo+margin+width,margin,0,height],[lo+margin,width,2100,height-2100]]
+      const width=doorWidth,margin=(clearLo+clearHi-width)/2-lo
+      const right=length-margin-width
+      if(margin<0||right<0)return null
+      spans=[[lo,margin,0,height],[lo+margin+width,right,0,height],[lo+margin,width,2100,height-2100]]
       const a:SourceBox=horizontal?{x:lo+margin,y:fixed-t/2,z,w:width,d:t,h:2100}:{x:fixed-t/2,y:lo+margin,z,w:t,d:width,h:2100}
       opening={id:'roof-stair-exit',sourceId:'ROOF_STAIR_EXIT',floorId:top.id,wallId:`Roof_Mumty_${name}`,kind:'door',orient:horizontal?'h':'v',apertureMm:a,sillMm:0,headMm:2100,headBasis:'explicit',operation:'door-leaf-unmodelled',hinge:'a',swing:name==='N'||name==='W'?-1:1,rooms:stairRoom?[JSON.stringify([top.id,stairRoom.id]),null]:null}
     }

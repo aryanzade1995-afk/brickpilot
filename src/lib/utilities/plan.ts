@@ -137,7 +137,7 @@ export function utilityFloor(design: Design, level: number, brief: Brief = desig
     // model. These are proposed furnishings, never measurements of an existing home.
     const pieces = furnishSingleRoom(design, level, room.id), center = rectCenter(room.rect)
     for (const piece of pieces) {
-      const type: Fixture['type'] | null = /-wc$/.test(piece.id) ? 'toilet' : /-(basin|sink)$/.test(piece.id) ? 'sink' : /-shower-tray$/.test(piece.id) ? 'shower' : /-(bathtub|bath-tub)$/.test(piece.id) ? 'bathtub' : /-(washing-machine|washer)$/.test(piece.id) ? 'washing_machine' : null
+      const type: Fixture['type'] | null = /-wc$/.test(piece.id) ? 'toilet' : /-(basin|sink)$/.test(piece.id) ? 'sink' : /-shower-tray$/.test(piece.id) ? 'shower' : /-(bathtub|bath-tub|tub)$/.test(piece.id) ? 'bathtub' : /-(washing-machine|washer)$/.test(piece.id) ? 'washing_machine' : null
       if (!type) continue
       const position = { x: Math.round(center.x + piece.pos[0] * 1000), y: Math.round(center.y + piece.pos[2] * 1000) }
       if (!inside(room.rect, position) || cuts.some(c => inside(c, position))) continue

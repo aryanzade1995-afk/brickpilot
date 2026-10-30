@@ -5,6 +5,8 @@ import { interiorFinishes, type InteriorFinishes, type Surface } from '../interi
 import type { Piece } from '../interior/layout.ts'
 import type { DollMat, Dresser } from './buildDollhouse.ts'
 import {refineKitchenSlabs} from '../interior/kitchenSlabs.ts'
+import {roomInteriorModels} from '../interior-assets/placements.ts'
+import type {AssetBox} from '../walkthrough/delivery.ts'
 
 /* ------------------------------------------------------------------ *
  *  dressRoom — one room of the furnished 3D view, dressed exactly as the
@@ -312,9 +314,10 @@ export function dressRoom(design: Design, building: Building, level: number, roo
     const model = basinChoice.profile?.model ?? 'basin-oval'
     const vanity = find('-vanity')
     let [x, y, z] = basin.pos, [w, h, d] = basin.size
-    if (model === 'basin-pedestal' && vanity) {
-      skip.add(vanity.id)
-      add({ id: `${roomId}-basin-pedestal`, look: ceramic, pos: [x, 0.37, z], size: [Math.min(w, d) * 0.38, 0.74, Math.min(w, d) * 0.38], shape: 'cyl' })
+    if (model === 'basin-pedestal') {
+      if(vanity)skip.add(vanity.id)
+      const supportHeight=Math.max(.3,y-h/2+.015)
+      add({ id: `${roomId}-basin-pedestal`, look: ceramic, pos: [x, supportHeight/2, z], size: [Math.min(w, d) * 0.38, supportHeight, Math.min(w, d) * 0.38], shape: 'cyl' })
     }
     if (model === 'basin-square') w = d = Math.min(w, d)
     if (model === 'basin-undermount') {
@@ -329,9 +332,9 @@ export function dressRoom(design: Design, building: Building, level: number, roo
     add({ id: `${roomId}-basin-spout`, look: fittings ?? m.metal, pos: [mx - dx * 0.05, y + h / 2 + 0.14, mz - dz * 0.05], size: [dx ? 0.12 : 0.025, 0.025, dz ? 0.12 : 0.025] })
   }
   const glassBox = find('-shower-glass')
-  if (glassBox && fin?.enclosure) {
+  if (glassBox) {
     skip.add(glassBox.id)
-    const accent = fin.enclosure.profile?.accent ?? '#AEB8BD'
+    const accent = fin?.enclosure?.profile?.accent ?? '#AEB8BD'
     add({ id: glassBox.id, look: look('#E6F2F5', 0.03, 0, { opacity: 0.3 }), pos: glassBox.pos, size: glassBox.size })
     const horizontal = glassBox.size[0] > glassBox.size[2], span = horizontal ? glassBox.size[0] : glassBox.size[2]
     for (const off of [-span / 2, span / 2]) {
@@ -339,6 +342,21 @@ export function dressRoom(design: Design, building: Building, level: number, roo
       pos[horizontal ? 0 : 2] += off
       add({ id: `${roomId}-enclosure-post${off > 0 ? 1 : 0}`, look: look(accent, 0.18, 1), pos, size: [0.022, glassBox.size[1], 0.022] })
     }
+  }
+  const showerTray=find('-shower-tray')
+  if(showerTray&&fin?.shower){
+    const [x,,z]=showerTray.pos,side=nearest(x,z),metal=fittings??m.metal
+    const outward:Record<Side,[number,number]>={N:[0,-1],S:[0,1],W:[-1,0],E:[1,0]}
+    const [dx,dz]=outward[side]
+    // All shower hardware belongs to this wet zone and its actual back wall.
+    const wallX=dx?dx*(hw-.14):x,wallZ=dz?dz*(hd-.14):z
+    const fixture=(id:string,pos:V3,size:V3,shape?:DressBox['shape'])=>add({id:`${roomId}-shower-${id}`,pos,size,shape,look:metal,bevel:.008})
+    fixture('riser',[wallX,1.55,wallZ],[.022,1.05,.022],'cyl')
+    fixture('arm',[wallX-dx*.12,2.08,wallZ-dz*.12],[dx?.26:.025,.025,dz?.26:.025])
+    fixture('head',[wallX-dx*.24,2.06,wallZ-dz*.24],[.22,.025,.22],'cyl')
+    fixture('mixer',[wallX-dx*.035,1.05,wallZ-dz*.035],oriented(side,.22,.07,.08))
+    fixture('handle',[wallX-dx*.08,1.09,wallZ-dz*.08],oriented(side,.08,.025,.035))
+    add({id:`${roomId}-shower-drain`,pos:[x,.023,z],size:[.11,.006,.11],look:metal,bevel:.004})
   }
 
   // ---- the kitchen as the 360 fits it (interior_finishes.kitchen_details): shutters and drawers on the base cabinets,
@@ -497,7 +515,21 @@ export function furnishedDresser(design: Design, style: string, density: Interio
   }
   const first = design.floors.flatMap((f) => f.rooms.filter((r) => !r.outdoor).map((r) => [f.level, r.id] as const))[0]
   return {
-    room: (level, roomId) => dressRoom(design, building, level, roomId, style, density, finishesOf(level, roomId)),
+    models:(level,roomId,dressed)=>{
+      const floor=building.floors.find(f=>f.level===level),room=building.rooms.find(r=>r.floorId===floor?.id&&r.id===roomId),fin=finishesOf(level,roomId)
+      if(!floor||!room||!fin)return []
+      if(!/kitchen/i.test(room.id+' '+room.name))return []
+      const bindings:Record<string,Look>={}
+      // Reuse the walkthrough model fitter. X is east and Z north here;
+      // height is floor-local so exploded trays can move as a complete group.
+      const parts:AssetBox[]=dressed.boxes.map(b=>{
+        const id=JSON.stringify([level,roomId,b.id]);bindings[id]=b.look
+        return {id,floorId:floor.id,roomId,sourceIds:[b.id],kind:'furniture',binding:id,position:[(room.rect.x+room.rect.w/2)/1000+b.pos[0],b.pos[1],-(room.rect.y+room.rect.h/2)/1000-b.pos[2]],size:[...b.size],rotation:-(b.rot??0),shape:b.shape??'box'}
+      })
+      return roomInteriorModels(design.model.brief,roomId,`${level}:${room.semanticId??roomId}`,parts,dressed.placements??[],fin,bindings,room.rect)
+        .filter(m=>/^user-(library-|kitchen-)|^kitchen-/.test(m.assetId))
+    },
+    room: (level, roomId) => dressRoom(design, building, level, roomId, style, density, finishesOf(level, roomId),/kitchen/i.test(roomId)),
     house: first ? houseLooks(finishesOf(first[0], first[1])) : null,
   }
 }

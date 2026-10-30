@@ -1,7 +1,7 @@
 import type {BuildingModel} from '../engine/buildingModel.ts'
 import type {Rect} from '../geometry.ts'
 import type {ServicePoint,VillaPipe,VillaPlumbing} from '../plumbing/villaPlumbing.ts'
-import {pipeCrossesStructure} from '../plumbing/villaPlumbing.ts'
+import {PLUMBING_CONCEPT,pipeCrossesStructure} from '../plumbing/villaPlumbing.ts'
 import {routeDrain,drainLength} from '../utilities/drainage.ts'
 import {expandRect} from '../solar/regions.ts'
 import {segmentDistance} from '../utilities/clashGeometry.ts'
@@ -9,7 +9,7 @@ import {connectedDrainageNetwork} from './drainageNetwork.ts'
 import type {DrainStorage} from './drainageStorage.ts'
 import type {FixtureDrainageScene} from './fixtureDrainage.ts'
 
-export type DrainageOpening={id:string;point:ServicePoint;kind:'wall-sleeve'|'fixture-drop';axis:'x'|'y'|'z';reason:string}
+export type DrainageOpening={id:string;point:ServicePoint;kind:'wall-sleeve'|'fixture-drop'|'slab-sleeve';axis:'x'|'y'|'z';reason:string}
 const distance=(a:ServicePoint,b:ServicePoint)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z)
 const clean=(ps:ServicePoint[])=>ps.filter((p,i)=>!i||distance(p,ps[i-1])>.01)
 
@@ -82,7 +82,7 @@ export function coordinateDrainageContinuity(building:BuildingModel,home:VillaPl
     const start=low.z<base.z?low:base,radius=soil.diameterMm/2
     const margin=200+radius,minX=Math.min(...footprint.map(r=>r.x))-margin,maxX=Math.max(...footprint.map(r=>r.x+r.w))+margin,minY=Math.min(...footprint.map(r=>r.y))-margin,maxY=Math.max(...footprint.map(r=>r.y+r.h))+margin
     const candidates=[{x:minX,y:start.y},{x:maxX,y:start.y},{x:start.x,y:minY},{x:start.x,y:maxY}].filter(p=>p.x>bounds.x&&p.y>bounds.y&&p.x<bounds.x+bounds.w&&p.y<bounds.y+bounds.h)
-    const columns:Rect[]=building.columns.map(c=>expandRect({x:c.at.x-c.size/2,y:c.at.y-c.size/2,w:c.size,h:c.size},radius+50))
+    const columns:Rect[]=building.columns.map(c=>expandRect({x:c.at.x-c.size/2,y:c.at.y-c.size/2,w:c.size,h:c.size},radius+1))
     const otherCuts=[...(building.siteFeatures??[]).filter(s=>s.kind==='pool').map(s=>expandRect(s.rect,radius+100))]
     const routes=candidates.flatMap(p=>{
       const upper=routeDrain(start,p,columns,bounds),lower=routeDrain(p,junction,[...columns,...otherCuts],bounds)
@@ -94,6 +94,45 @@ export function coordinateDrainageContinuity(building:BuildingModel,home:VillaPl
     const route=routes[0]
     if(!route){issues.push(`${id}: no external bypass clears represented columns and slabs within the site.`);continue}
     add(soil,`drain:bypass:${soil.shaftId}`,route.points);wallReviews(id,route.points,radius)
+  }
+  // Close capped stacks with continuous roof vent proposals. A continuation
+  // is not wastewater rising upwards: only ventilation extends above branches.
+  // Preserve existing vent runs and explicitly record every new slab sleeve.
+  const roofZ=Math.max(...building.floors.map(f=>f.elevationMm+f.heightMm))
+  const existing=[...pipes]
+  const seen=new Set<string>()
+  for(const soil of existing.filter(p=>p.id.startsWith('soil:'))){
+    const high=soil.points.reduce((a,b)=>a.z>b.z?a:b)
+    const key=`${high.x}:${high.y}`,terminal={...high,z:roofZ+PLUMBING_CONCEPT.ventAboveRoofMm}
+    if(seen.has(key))continue
+    seen.add(key)
+    const collinear=existing.filter(p=>p.points.every(q=>Math.hypot(q.x-high.x,q.y-high.y)<.01))
+    const spans=collinear.map(p=>({pipe:p,low:Math.min(...p.points.map(q=>q.z)),high:Math.max(...p.points.map(q=>q.z))})).sort((a,b)=>a.low-b.low)
+    let end=spans[0]?.high??high.z
+    for(const span of spans.slice(1)){
+      if(span.low>end+.01){
+        const bridge=[{...high,z:end},{...high,z:span.low}]
+        const blocked=pipeCrossesStructure({...building,walls:[]},bridge,soil.diameterMm/2,{slabSleeves:true})
+        if(blocked)issues.push(`${soil.id}: inter-floor continuation meets ${blocked}.`)
+        else {
+          pipes.push({...soil,id:`drain:stack-continuation:${soil.shaftId}:${end}`,points:bridge,purpose:'Proposed inter-floor stack continuation; sleeves and size transitions require review'})
+          openings.push({id:`${soil.id}:continuation:${end}`,kind:'slab-sleeve',axis:'z',point:bridge[0],reason:'Proposed inter-floor stack sleeve; structural and waterproofing approval required.'})
+        }
+      }
+      end=Math.max(end,span.high)
+    }
+    const top=collinear.flatMap(p=>p.points).reduce((a,b)=>a.z>b.z?a:b,high)
+    if(top.z>=terminal.z-.01)continue
+    const points=[top,terminal]
+    // Slabs and walls require declared sleeves; beams and columns stay blocking.
+    const blocked=pipeCrossesStructure({...building,walls:[]},points,soil.diameterMm/2,{slabSleeves:true})
+    if(blocked){issues.push(`${soil.id}: roof vent continuation meets ${blocked}; review the route.`);continue}
+    pipes.push({...soil,id:`drain:roof-vent:${soil.shaftId}`,system:'vent',points,purpose:'Proposed continuous stack vent to roof; new slab sleeves and terminal arrangement require review'})
+    for(const floor of building.floors){
+      const z=floor.elevationMm+floor.heightMm
+      if(z>top.z&&z<terminal.z)openings.push({id:`${soil.id}:vent-sleeve:${floor.id}`,kind:'slab-sleeve',axis:'z',point:{...high,z},reason:`Proposed vent sleeve at ${floor.name}. Structural and waterproofing review required; no slab opening is assumed approved.`})
+    }
+    wallReviews(soil.id,points,soil.diameterMm/2)
   }
   const ports=scene.fixtures.flatMap(f=>f.branch&&!f.branch.blocked?[f.branch.points.at(-1)!]:[])
   network=connectedDrainageNetwork(building,{...home,pipes},storage,ports)

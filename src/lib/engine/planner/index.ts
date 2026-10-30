@@ -8,7 +8,7 @@ import type { Column, ExistingStructure, FloorRequirements, LocalRoom, PlanStruc
 import { TERRACE_LIMITS } from '../terrace.ts'
 import { makeRng } from '../massing/rng.ts'
 import {
-  BALCONY_DEPTH, VERANDAH_DEPTH, PARKING_DEPTH,
+  BALCONY_DEPTH, VERANDAH_DEPTH, PARKING_DEPTH, PARKING_WIDTH, PARKING_HOUSE_GAP,
   normalizeBrief, programRequirements, siteModel, stairGeometry, snap, snapUp, GOING,
 } from './program.ts'
 import { placeFloors, plateCandidates, type LayoutInput, type PlateCandidate } from './layout.ts'
@@ -233,7 +233,7 @@ export function planVilla(model: CanonicalModel, request: PlanRequest): PlanResu
         bbox, site, nb.twoCar, nb.large, outdoorRoom)
     } else {
       for (const r of req.outdoor.filter((x) => x.kind === 'balcony')) {
-        const b = placeBalcony(rooms, bbox, site, kindOf, lowerPlate,usesSetbackTerraces(request.formVersion))
+        const b = placeBalcony(rooms, bbox, site, kindOf, lowerPlate,usesSetbackTerraces(request.formVersion),floors[0]?.rooms.filter(r=>r.id==='parking').map(r=>r.rect))
         if (b) rooms.push(outdoorRoom(usesSetbackTerraces(request.formVersion)&&covered(b,lowerPlate)?{...r,name:'Setback terrace'}:r, b))
       }
     }
@@ -371,13 +371,16 @@ export function frontYard(
   const foyer = rooms.find((r) => r.id === 'foyer')
   const cx = foyer ? foyer.rect.x + foyer.rect.w / 2 : house.x + house.w / 2
   // the house itself is taken ground; outdoor spaces go around it
-  const taken: Rect[] = rooms.filter((r) => !r.outdoor).map((r) => r.rect)
-  const free = (r: Rect) => r.x >= env.x && rectRight(r) <= rectRight(env) && r.y >= env.y && rectBottom(r) <= rectBottom(env) &&
-    !taken.some((t) => r.x < rectRight(t) && rectRight(r) > t.x && r.y < rectBottom(t) && rectBottom(r) > t.y)
+  const enclosed = rooms.filter((r) => !r.outdoor).map((r) => r.rect)
+  const taken: Rect[] = [...enclosed, ...rooms.filter(r => r.outdoor).map(r => r.rect)]
+  const free = (r: Rect, detached: boolean) => r.x >= env.x && rectRight(r) <= rectRight(env) && r.y >= env.y && rectBottom(r) <= rectBottom(env) &&
+    !taken.some((t) => r.x < rectRight(t) && rectRight(r) > t.x && r.y < rectBottom(t) && rectBottom(r) > t.y) &&
+    (!detached || enclosed.every(t => r.x >= rectRight(t) + PARKING_HOUSE_GAP || rectRight(r) <= t.x - PARKING_HOUSE_GAP ||
+      r.y >= rectBottom(t) + PARKING_HOUSE_GAP || rectBottom(r) <= t.y - PARKING_HOUSE_GAP))
   /** the front strip first (tight against the house), then rows flush with
    *  the front setback line working back — beside the house on a shallow plot */
-  const tryAt = (w: number, h: number, prefer: number): Rect | null => {
-    const rows = [y0]
+  const tryAt = (w: number, h: number, prefer: number, detached: boolean): Rect | null => {
+    const rows = [y0 + (detached ? PARKING_HOUSE_GAP : 0)]
     for (let y = rectBottom(env) - h; y >= env.y; y -= 300) rows.push(y)
     for (const [i, y] of rows.entries()) {
       const step = i === 0 ? 100 : 300
@@ -385,7 +388,7 @@ export function frontYard(
       for (let dx = step; dx <= env.w; dx += step) xs.push(snap(prefer - w / 2 - dx), snap(prefer - w / 2 + dx))
       for (const x of xs) {
         const r = { x, y, w, h }
-        if (free(r)) return r
+        if (free(r, detached)) return r
       }
     }
     return null
@@ -394,7 +397,8 @@ export function frontYard(
   // (on a narrow plot it becomes a rear sit-out rather than blocking the gate)
   const order = ['parking', 'verandah', 'courtyard']
   const verandahW = site.fillPlot ? env.w : large ? 4200 : 3400
-  const parkingW = twoCar ? 5200 : 3000
+  const parkingW = PARKING_WIDTH
+  void twoCar // Compact single-car canopy with four corner supports.
   // on a narrow frontage the verandah gives way to the car, down to the foyer width
   const hasParking = outdoor.some((s) => s.kind === 'parking')
   const room = env.w - (hasParking ? parkingW : 0)
@@ -402,14 +406,14 @@ export function frontYard(
   for (const s of [...outdoor].sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind))) {
     if (!order.includes(s.kind)) continue
     const grownVerandahW = large && s.targetSqm >= 28 ? Math.min(snap(env.w-parkingW-200), Math.max(vW,snap(s.targetSqm*1e6/3200))) : vW
-    const widths = s.kind === 'parking' ? [...new Set([parkingW, 3000])] : s.kind === 'verandah' ? [grownVerandahW, vW] : [large ? 4600 : 3200]
+    const widths = s.kind === 'parking' ? [parkingW] : s.kind === 'verandah' ? [grownVerandahW, vW] : [large ? 4600 : 3200]
     const h = s.kind === 'parking' ? PARKING_DEPTH : s.kind === 'verandah' ? (site.fillPlot ? 3400 : large ? 3200 : VERANDAH_DEPTH) : 3200
     let rect: Rect | null = null
     for (const w of widths) {
       // the car hugs the envelope edge away from the entrance, leaving the
       // frontage in front of the foyer for the verandah
       const carAt = cx < env.x + env.w / 2 ? rectRight(env) - w / 2 : env.x + w / 2
-      rect = rect ?? tryAt(w, h, s.kind === 'parking' ? carAt : cx)
+      rect = rect ?? tryAt(w, h, s.kind === 'parking' ? carAt : cx, s.kind === 'parking')
     }
     const w = widths[0]
     if (!rect && s.kind === 'courtyard') {
@@ -428,9 +432,9 @@ export function frontYard(
  * roof of the floor below (fully supported), then any other face (a declared
  * cantilever). Habitable rooms host first; a lobby only when nothing else can.
  */
-export function placeBalcony(rooms: PlacedRoom[], house: Rect, site: SiteModel, kindOf: (id: string) => string, lowerPlate: Rect[], preferSetback=false): Rect | null {
+export function placeBalcony(rooms: PlacedRoom[], house: Rect, site: SiteModel, kindOf: (id: string) => string, lowerPlate: Rect[], preferSetback=false, parking: Rect[]=[]): Rect | null {
   const enclosed = rooms.filter((r) => !r.outdoor)
-  const clear = (b: Rect) => rooms.every((o) => {
+  const clear = (b: Rect) => !parking.some(p=>b.x<rectRight(p)&&rectRight(b)>p.x&&b.y<rectBottom(p)&&rectBottom(b)>p.y) && rooms.every((o) => {
     const ox = Math.min(rectRight(b), rectRight(o.rect)) - Math.max(b.x, o.rect.x)
     const oy = Math.min(rectBottom(b), rectBottom(o.rect)) - Math.max(b.y, o.rect.y)
     return ox <= 0 || oy <= 0
@@ -455,7 +459,9 @@ export function placeBalcony(rooms: PlacedRoom[], house: Rect, site: SiteModel, 
             :{x:r.x-depth,y:r.y+offset,w:depth,h:width}
           if(rectArea(b)<6e6||!clear(b)||!inEnv(b)||!covered(b,lowerPlate))continue
           const publicAccess=['lounge','lobby','corridor'].includes(kind)
-          options.push({rect:b,rank:-100+(publicAccess?0:10)-rectArea(b)/1e7})
+          const front=side==='S'&&Math.abs(rectBottom(r)-rectBottom(house))<2
+          const facesParking=front&&parking.some(p=>b.x<rectRight(p)&&rectRight(b)>p.x)
+          options.push({rect:b,rank:(front&&parking.length?-300:-100)+(facesParking?-20:0)+(publicAccess?0:10)-rectArea(b)/1e7})
           break
         }
       }
@@ -478,7 +484,8 @@ export function placeBalcony(rooms: PlacedRoom[], house: Rect, site: SiteModel, 
       if (!clear(rect) || !inEnv(rect)) continue
       const supported = covered(rect, lowerPlate)
       const road = side === 'S' && Math.abs(rectBottom(r) - rectBottom(house)) < 2
-      options.push({ rect, rank: hostRank * 10 + (road ? 0 : supported ? 1 : 2) - Math.min(0.9, h.area / 100) })
+      const facesParking=road&&parking.some(p=>rect.x<rectRight(p)&&rectRight(rect)>p.x)
+      options.push({ rect, rank: (road&&parking.length ? -200 : 0) + (facesParking?-20:0) + hostRank * 10 + (road ? 0 : supported ? 1 : 2) - Math.min(0.9, h.area / 100) })
     }
   }
   options.sort((a, b) => a.rank - b.rank || a.rect.x - b.rect.x || a.rect.y - b.rect.y)

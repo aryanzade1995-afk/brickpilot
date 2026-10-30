@@ -88,7 +88,9 @@ export function makeRoofline(ctx: GrammarContext, type: string) {
       const inset = type === 'OFFSET_PARAPET' ? 180 : 0
       const r = h ? { x: start, y: fixed - (positive ? thickness + inset : -inset), w: end - start, h: thickness } :
         { x: fixed - (positive ? thickness + inset : -inset), y: start, w: thickness, h: end - start }
-      for (const piece of subtract(r, blockers).filter((p) => Math.max(p.w, p.h) >= 400)) {
+      // Short perimeter returns are real wall sections, not decoration. Dropping
+      // runs below 400 mm leaves visible holes beside roof steps and cutouts.
+      for (const piece of subtract(r, blockers).filter((p) => p.w >= 1 && p.h >= 1)) {
         const height = type === 'STEPPED_PARAPET' ? (index++ % 2 ? 900 : 1250) : 900
         const u = piece.x - a.x, v = piece.y - a.y
         if (type === 'STEPPED_PARAPET' && Math.max(piece.w, piece.h) >= 1200) {
@@ -96,7 +98,7 @@ export function makeRoofline(ctx: GrammarContext, type: string) {
           add(ctx, unit, anchor, 'rail', u + (h ? piece.w / 2 : 0), v + (h ? 0 : piece.h / 2), 0,
             h ? piece.w / 2 : piece.w, h ? piece.h : piece.h / 2, 1250, 'wall')
         } else add(ctx, unit, anchor, 'rail', u, v, 0, piece.w, piece.h, height, 'wall')
-        if (type === 'PLANTER_PARAPET') add(ctx, unit, anchor, 'finish', u + 25, v + 25, height,
+        if (type === 'PLANTER_PARAPET' && piece.w > 50 && piece.h > 50) add(ctx, unit, anchor, 'finish', u + 25, v + 25, height,
           piece.w - 50, piece.h - 50, 60, 'landscape')
         if (type === 'OFFSET_PARAPET') add(ctx, unit, anchor, 'cap', u, v, height, piece.w, piece.h, 60, 'stone')
       }

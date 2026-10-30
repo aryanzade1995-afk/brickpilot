@@ -1,4 +1,4 @@
-import type { CanonicalModel, SpaceReq } from '../../model/canonical.ts'
+import type { CanonicalModel } from '../../model/canonical.ts'
 import { makeRng } from '../massing/rng.ts'
 
 export type LayoutChoices = {
@@ -15,14 +15,14 @@ export type LayoutChoices = {
 export function layoutChoices(model: CanonicalModel, seed: number, sideWing: boolean): LayoutChoices {
  const composition=model.brief.style.character==='modern-box'?model.brief.style.composition:undefined
  if(composition)return {living:'front',stair:composition==='glazed-bay'?'front':'side',centralBay:composition==='glazed-bay',master:'upper',
-  kitchen:'service',verandah:model.brief.rooms.priorities.coveredVerandah?'front':'none',doubleHeight:composition==='glazed-bay'&&model.floors.length===2}
+  kitchen:'service',verandah:'none',doubleHeight:composition==='glazed-bay'&&model.floors.length===2}
  if(model.envelope.width*model.envelope.depth<600e6)return {living:'front',stair:'side',master:'upper',
-  kitchen:'garden',verandah:model.brief.rooms.priorities.coveredVerandah?'front':'none',doubleHeight:false}
+  kitchen:'garden',verandah:'none',doubleHeight:false}
  const rng=makeRng(seed,`${model.seed.split('-')[0]}|layout-choices`)
  return {living:rng.pick(sideWing?['front','back','side']:['front','back']),
   stair:rng.pick(['front','centre','side']),master:model.floors.length>1?rng.pick(['ground','upper']):'ground',
   kitchen:rng.pick(['garden','service']),
-  verandah:rng.pick(model.brief.rooms.priorities.coveredVerandah?['front','wrap']:['none','front','wrap']),
+  verandah:'none',
   doubleHeight:model.floors.length>1&&rng.chance(.35)}
 }
 
@@ -30,6 +30,9 @@ export function layoutChoices(model: CanonicalModel, seed: number, sideWing: boo
  * senior ground-floor accommodation and every bedroom/ensuite group. */
 export function layoutProgramme(source: CanonicalModel, choices: LayoutChoices): CanonicalModel {
  const model=structuredClone(source),ground=model.floors[0]
+ // Old pinned recipes may still request a wrap verandah. Retire that outdoor programme too.
+ ground.spaces=ground.spaces.filter(s=>s.id!=='verandah'&&!s.id.startsWith('verandahWing'))
+ model.relationships=model.relationships.filter(r=>![r.a,r.b].some(id=>id==='verandah'||id.startsWith('verandahWing')))
  if(choices.master==='ground'){
   const upper=model.floors.slice(1).find(f=>f.spaces.some(s=>s.role==='master'))
   if(upper){
@@ -42,11 +45,5 @@ export function layoutProgramme(source: CanonicalModel, choices: LayoutChoices):
    for(const owner of owners)model.relationships.push({a:'foyer',b:owner.id,kind:'connected'})
   }
  }
- const verandah=(id:string,name:string,min:number,target:number):SpaceReq=>({id,name,zone:'outdoor',
-  min,target,max:150,wantsWindow:false,wet:false,outdoor:true})
- if(choices.verandah!=='none'&&!ground.spaces.some(s=>s.id==='verandah'))
-  ground.spaces.push(verandah('verandah','Entry verandah',8,12))
- if(choices.verandah==='wrap')ground.spaces.push(verandah('verandahWingN','Garden verandah',8,20),
-  verandah('verandahWingW','Return verandah',8,20))
  return model
 }

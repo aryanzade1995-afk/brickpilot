@@ -2,7 +2,7 @@ import { Component, Suspense, memo, useEffect, useLayoutEffect, useMemo, type Re
 import { ghostWaterArchitecture } from '@/lib/water/ghostScene.ts';
 import { Canvas, useThree, type RootState } from '@react-three/fiber';
 import { OrbitControls, useGLTF } from '@react-three/drei';
-import { Mesh, MeshStandardMaterial, type Material } from 'three';
+import { Mesh, MeshStandardMaterial, ACESFilmicToneMapping, PCFSoftShadowMap, SRGBColorSpace, type Material } from 'three';
 import { prepareVillaScene } from '@/lib/three/prepareVillaScene.ts';
 import { FitAcceptedVilla } from '@/lib/three/SolarCamera.tsx';
 import { StudioReflections } from './StudioReflections.tsx';
@@ -15,12 +15,13 @@ const CAMERA = { position: [20, 14, -25] as [
     number,
     number
 ] = [1, 2];
-export const AcceptedVillaModel = memo(function AcceptedVillaModel({ url, fit = true, style, technicalXray = false, separateRoofTanks = false }: {
+export const AcceptedVillaModel = memo(function AcceptedVillaModel({ url, fit = true, style, technicalXray = false, separateRoofTanks = false, gardenShade=false }: {
     url: string;
     fit?: boolean;
     style?: ReferenceGeometry['style'];
     technicalXray?: boolean;
     separateRoofTanks?: boolean;
+    gardenShade?: boolean;
 }) {
     const gltf = useGLTF(url), anisotropy = useThree(s => s.gl.capabilities.getMaxAnisotropy());
     const { scene, owned } = useMemo(() => {
@@ -29,7 +30,7 @@ export const AcceptedVillaModel = memo(function AcceptedVillaModel({ url, fit = 
             for (const m of Array.isArray(o.material) ? o.material : [o.material])
                 if (o.userData.material_role)
                     roles.set(m, o.userData.material_role); });
-        const scene = prepareVillaScene(gltf.scene, anisotropy, separateRoofTanks), owned: Material[] = [], cache = new Map<Material, Material>();
+        const scene = prepareVillaScene(gltf.scene, anisotropy, separateRoofTanks, gardenShade), owned: Material[] = [], cache = new Map<Material, Material>();
         if (style)
             scene.traverse(o => { if (!(o instanceof Mesh))
                 return; const convert = (m: Material) => { const look = style[roles.get(m) ?? '']; if (!look || !(m instanceof MeshStandardMaterial))
@@ -46,7 +47,7 @@ export const AcceptedVillaModel = memo(function AcceptedVillaModel({ url, fit = 
                 owned.push(v);
             } return v; }; o.material = Array.isArray(o.material) ? o.material.map(convert) : convert(o.material); });
         return { scene, owned };
-    }, [gltf.scene, anisotropy, style, separateRoofTanks]);
+    }, [gltf.scene, anisotropy, style, separateRoofTanks, gardenShade]);
     useEffect(() => () => owned.forEach(m => m.dispose()), [owned]);
     const invalidate = useThree(s=>s.invalidate)
     useLayoutEffect(()=>{if(!technicalXray){invalidate();return}const restore=ghostWaterArchitecture(scene);invalidate();return()=>{restore();invalidate()}},[scene,technicalXray,invalidate]);
@@ -66,9 +67,10 @@ export function VillaSceneCanvas({ children, onCreated }: {
     children: ReactNode;
     onCreated?: (state: RootState) => void;
 }) {
-    return <ModelBoundary><Canvas frameloop="demand" shadows dpr={DPR} gl={GL} camera={CAMERA} onCreated={onCreated}>
- <color attach="background" args={['#e5e5e5']}/><ambientLight intensity={.6}/>
- <directionalLight position={[20, 30, -10]} intensity={2} castShadow shadow-mapSize={[2048, 2048]} shadow-camera-left={-35} shadow-camera-right={35} shadow-camera-top={35} shadow-camera-bottom={-35} shadow-camera-far={100} shadow-bias={-.0005} shadow-normalBias={.05}/>
+    return <ModelBoundary><Canvas frameloop="demand" shadows dpr={DPR} gl={GL} camera={CAMERA} onCreated={state=>{state.gl.toneMapping=ACESFilmicToneMapping;state.gl.toneMappingExposure=1;state.gl.outputColorSpace=SRGBColorSpace;state.gl.shadowMap.type=PCFSoftShadowMap;onCreated?.(state)}}>
+ <color attach="background" args={['#e8e7e3']}/><hemisphereLight args={['#e5efff','#b4a18b',1.1]}/>
+ <directionalLight color="#fff2df" position={[14, 24, -16]} intensity={2.5} castShadow shadow-mapSize={[2048, 2048]} shadow-camera-left={-35} shadow-camera-right={35} shadow-camera-top={35} shadow-camera-bottom={-35} shadow-camera-far={100} shadow-bias={-.0002} shadow-normalBias={.025}/>
+ <directionalLight color="#dce8ff" position={[-18,10,12]} intensity={.65}/>
  <Suspense fallback={null}><StudioReflections />{children}</Suspense><OrbitControls makeDefault minPolarAngle={0} maxPolarAngle={Math.PI / 2}/>
  </Canvas></ModelBoundary>;
 }

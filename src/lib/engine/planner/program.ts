@@ -19,8 +19,11 @@ export const MAX_CANTILEVER = 1500
 export const BALCONY_DEPTH = 1500
 export const LIFT_SLOT = 1800
 export const PARKING_DEPTH = 5000
+export const PARKING_WIDTH = 3200
 export const VERANDAH_DEPTH = 2600
 export const YARD_GAP = 300
+/** Design separation from enclosed rooms, including room-edge wall projections. Not a code setback. */
+export const PARKING_HOUSE_GAP = 1800
 export const RISER_MAX = 175
 export const GOING = 250
 
@@ -86,7 +89,7 @@ export function siteModel(model: CanonicalModel, yard: 'front' | 'side' = 'front
     h: model.envelope.depth,
   }
   const ground = new Set(model.floors[0].spaces.map((s) => s.id))
-  const covered = (ground.has('parking') ? (occupantCount(model.brief) >= 4 ? 5200 : 3000) * PARKING_DEPTH : 0) + (ground.has('verandah') ? 3400 * VERANDAH_DEPTH : 0)
+  const covered = (ground.has('parking') ? PARKING_WIDTH * PARKING_DEPTH : 0) + (ground.has('verandah') ? 3400 * VERANDAH_DEPTH : 0)
   // a large villa's house always grows to fill its buildable area (up to the
   // coverage limit); a villa / bungalow fills it only when the open-space
   // choice asks, and only that choice changes the front yard
@@ -94,11 +97,11 @@ export function siteModel(model: CanonicalModel, yard: 'front' | 'side' = 'front
     growPlate: model.brief.project.buildingType === 'large-villa',
     maxEnclosedMm2: plot.w * plot.h * PLANNING_LIMITS.maxCoverage - covered * 0.5 }
   if (yard === 'side') {
-    const carW = ground.has('parking') ? (occupantCount(model.brief) >= 4 ? 5200 : 3000) + YARD_GAP : 0
+    const carW = ground.has('parking') ? PARKING_WIDTH + PARKING_HOUSE_GAP : 0
     return { plot, envelope, ...sizing, frontStripMm: 0, houseZone: { ...envelope, w: Math.max(0, envelope.w - carW) } }
   }
   let frontStripMm = 0
-  if (ground.has('parking')) frontStripMm = PARKING_DEPTH + YARD_GAP
+  if (ground.has('parking')) frontStripMm = PARKING_DEPTH + PARKING_HOUSE_GAP
   else if (ground.has('verandah')) frontStripMm = VERANDAH_DEPTH + YARD_GAP
   // a front balcony oversails the front yard — keep it inside the setback line
   const balcony = model.floors.some((f) => f.spaces.some((s) => s.id.startsWith('balcony')))

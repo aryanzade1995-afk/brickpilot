@@ -39,10 +39,12 @@ test('shortened parking regenerates clear bearings and only cars that fit', () =
     assert.equal(JSON.stringify(edited.design),saved,'support placement preserves source walls, rooms and openings')
   }
 })
-test('swapping exterior spaces and changing room dimensions rebuilds pillar placements', () => {
-  const l=extractLayout(source), op=swapRooms(l,source,0,'parking','verandah')
+test('legacy saved exterior spaces can still be swapped and rebuild pillar placements', () => {
+  // Newly generated villas omit verandahs; preserve editing coverage for older saved plans.
+  const legacy=JSON.parse(readFileSync(new URL('./fixtures/canopy-source.json',import.meta.url)))
+  const l=extractLayout(legacy), op=swapRooms(l,legacy,0,'parking','verandah')
   assert.ok(op.ok,op.reason)
-  const edited=commit(source,op.layout,l,op.affected); assert.ok(edited.ok,edited.reason)
+  const edited=commit(legacy,op.layout,l,op.affected); assert.ok(edited.ok,edited.reason)
   for (const seed of [6,12,23]) checked(edited.design,seed)
 })
 test('canopy piers reject paths and driveways even outside room bounds', () => {

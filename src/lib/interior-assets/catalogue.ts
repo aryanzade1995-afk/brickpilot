@@ -3,12 +3,12 @@ import type {Brief} from '../model/brief.ts'
 
 export const INTERIOR_MODEL_SECTION='furniture-models'
 export const MODEL_PREFIX='visual-model-'
-export const INTERIOR_PACK_VERSION='user-blender-interiors-v4'
+export const INTERIOR_PACK_VERSION='bedroom-essentials-v5'
 export type InteriorAsset=typeof raw.assets[number]
 export const interiorAssets:InteriorAsset[]=raw.assets
 export const MODEL_CATEGORIES=[
  {id:'sofa',label:'Sofas',assets:['user-sofa','sofa'],item:'interiors',rooms:'Living rooms'},
- {id:'bed',label:'Beds',assets:['bed'],item:'interiors',rooms:'Bedrooms'},
+ {id:'bed',label:'Beds',assets:['bedroom-essentials-bed','bed'],item:'interiors',rooms:'Bedrooms'},
  {id:'armchair',label:'Armchairs',assets:['user-armchair','armchair'],item:'interiors',rooms:'Living rooms'},
  {id:'desk',label:'Desks',assets:['user-office-desk'],item:'interiors',rooms:'Studies and existing bedroom desks'},
  {id:'office-chair',label:'Office chairs',assets:['user-office-chair','dining-chair'],item:'interiors',rooms:'Existing desk chairs'},

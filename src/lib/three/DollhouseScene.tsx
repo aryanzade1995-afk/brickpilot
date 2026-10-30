@@ -7,6 +7,7 @@ import { ContactShadows, Environment, Lightformer } from '@react-three/drei'
 import type { Dollhouse, DollMat } from './buildDollhouse.ts'
 import type { Look } from './dressRoom.ts'
 import { separateCoplanar } from './separateCoplanar.ts'
+import {instantiateInteriorModel} from './interiorModelAssets.ts'
 
 /* ------------------------------------------------------------------ *
  *  DollhouseScene — the furnished cut-away, warm and soft. Walls are
@@ -59,9 +60,30 @@ function worldUV(geo: THREE.BufferGeometry, tileM: number) {
 }
 
 export function DollhouseModel({ doll }: { doll: Dollhouse }) {
+  const [imports,setImports]=useState<{source:Dollhouse;roots:THREE.Group[];replaced:Set<string>}|null>(null)
+  const invalidate=useThree(s=>s.invalidate),gl=useThree(s=>s.gl)
+  useEffect(()=>{
+    let active=true
+    const roots:THREE.Group[]=[]
+    const dispose=()=>roots.forEach(root=>root.traverse(o=>{if(o instanceof THREE.Mesh)for(const m of Array.isArray(o.material)?o.material:[o.material])m.dispose()}))
+    Promise.all((doll.models??[]).map(async entry=>{
+      try{
+        const model=await instantiateInteriorModel(entry.instance),root=new THREE.Group()
+        root.position.set(...entry.offset);root.scale.z=-1;root.add(model);roots.push(root)
+        return {root,ids:entry.instance.replaces}
+      }catch{return null}
+    })).then(loaded=>{
+      if(!active){dispose();return}
+      setImports({source:doll,roots:loaded.flatMap(item=>item?[item.root]:[]),replaced:new Set(loaded.flatMap(item=>item?.ids??[]))})
+      gl.shadowMap.needsUpdate=true;invalidate()
+    })
+    return()=>{active=false;dispose()}
+  },[doll,invalidate,gl])
+  const current=imports?.source===doll?imports:null
   const merged = useMemo(() => {
     const groups = new Map<string, { mat: DollMat; look?: Look; list: THREE.BufferGeometry[] }>()
     for (const b of doll.boxes) {
+      if(b.modelSourceId&&current?.replaced.has(b.modelSourceId))continue
       const key = b.look ? JSON.stringify(b.look) : `mat:${b.mat}`
       // the 360 renderer's bevels: upholstery, bedding and fitted pieces have softened edges, not knife-sharp boxes
       const radius = Math.min(b.bevel ?? 0, Math.min(...b.size) / 2 - 0.001)
@@ -103,11 +125,11 @@ export function DollhouseModel({ doll }: { doll: Dollhouse }) {
       }
     })
     return out
-  }, [doll])
+  }, [doll,current])
 
   useEffect(() => () => merged.forEach((x) => x.geo.dispose()), [merged])
 
-  return <group>{merged.map((g) => <DollMesh key={g.key} group={g} />)}</group>
+  return <group>{merged.map((g) => <DollMesh key={g.key} group={g} />)}{current?.roots.map(root=><primitive key={root.uuid} object={root} dispose={null}/>)}</group>
 }
 
 function DollMesh({ group: { mat, look, geo } }: { group: Group }) {

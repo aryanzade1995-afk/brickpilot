@@ -120,7 +120,7 @@ export class HouseWalkingSimulation {
   /** Finish packages replace only fitted-product collision; doors, stairs, body
    * position and architectural colliders remain untouched. Never respawn. */
   replaceFurnishing(colliders: Collider[]) {
-    for (const [handle, record] of this.collidersByHandle) if (record.kind === 'furniture-aabb') {
+    for (const [handle, record] of this.collidersByHandle) if (record.kind === 'furniture-aabb'||record.kind==='furniture-model-aabb') {
       const item = this.world.getCollider(handle); if (item) this.world.removeCollider(item, true)
       this.collidersByHandle.delete(handle)
     }

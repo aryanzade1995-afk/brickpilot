@@ -55,19 +55,19 @@ const pathRect = (a: ServicePoint, b: ServicePoint, radius: number): Rect => ({ 
 const overlap = (a: Rect, b: Rect) => a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y
 /** A real shaft aperture is required at EVERY crossed slab. Stair/courtyard
  * voids are never borrowed for service risers. No new penetration is created. */
-export function pipeCrossesStructure(building: BuildingModel, points: ServicePoint[], radius: number): string | null {
+export function pipeCrossesStructure(building: BuildingModel, points: ServicePoint[], radius: number, proposal: { slabSleeves?: boolean } = {}): string | null {
   for (let i=1;i<points.length;i++) {
     const a=points[i-1], b=points[i], low=Math.min(a.z,b.z)-radius, high=Math.max(a.z,b.z)+radius, envelope=pathRect(a,b,radius)
     for(const f of building.floors) {
       const holes=building.shafts.filter(s=>s.floorId===f.id).map(s=>s.rect)
       const slabSolid=subtractRegions(f.footprint, holes)
       const bottom=f.elevationMm-(f.slabThicknessMm??0), top=f.elevationMm
-      if(low<top && high>bottom && slabSolid.some(r=>overlap(envelope,r))) return `${f.name}: solid floor slab`
+      if(!proposal.slabSleeves && low<top && high>bottom && slabSolid.some(r=>overlap(envelope,r))) return `${f.name}: solid floor slab`
       const cap=f.elevationMm+f.heightMm
       const above=building.floors.find(g=>g.level===f.level+1)
       // Exposed lower roofs currently do not cut shaft holes in Blender.
       const capRegions=above ? subtractRegions(f.footprint,above.footprint) : subtractRegions(f.footprint,holes)
-      if(low<cap && high>cap-(f.slabThicknessMm??0) && capRegions.some(r=>overlap(envelope,r))) return `${f.name}: roof slab without a service opening`
+      if(!proposal.slabSleeves && low<cap && high>cap-(f.slabThicknessMm??0) && capRegions.some(r=>overlap(envelope,r))) return `${f.name}: roof slab without a service opening`
       if(high<f.elevationMm || low>cap) continue
       for(const c of building.columns.filter(c=>c.floorId===f.id)) if(overlap(envelope,{x:c.at.x-c.size/2,y:c.at.y-c.size/2,w:c.size,h:c.size})) return `${f.name}: column ${c.id}`
       for(const beam of building.beams.filter(b=>b.floorId===f.id)) {

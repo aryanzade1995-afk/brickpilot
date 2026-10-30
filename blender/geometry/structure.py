@@ -7,7 +7,7 @@ import bpy
 import bmesh
 
 from .common import floor_prefix
-from .plates import create_plate, subtract_rectangles, roof_plate_regions
+from .plates import create_plate, subtract_rectangles, roof_plate_regions, interstorey_edge_regions
 from .stairs import stair_layout
 from .massing import mass_rect
 from validation import opening_vertical_span
@@ -46,6 +46,16 @@ def create_roof_slab(scene, floor, voids=(), exterior_walls=()):
                       roof_plate_regions(floor, exterior_walls), top - thickness, thickness, floor["id"], voids)
 
 
+def create_interstorey_edges(scene, lower, upper, exterior_walls=(), voids=()):
+    """Solid slab fascia at the actual exterior wall bearing, without a fake band."""
+    regions = interstorey_edge_regions(lower, upper, exterior_walls)
+    top = upper["elevationMm"]
+    thickness = slab_thickness(upper)
+    for index, region in enumerate(regions, 1):
+        create_plate(scene, f"{floor_prefix(lower)}_SlabEdge_{index:03d}", "STRUCTURE",
+                     region, top-thickness, thickness, lower["id"], voids)
+
+
 def _wall_piece(scene, wall, floor, axis, fixed, start, end, bottom, top, serial):
     if end - start < 20 or top - bottom < 20:
         return None
@@ -58,7 +68,7 @@ def _wall_piece(scene, wall, floor, axis, fixed, start, end, bottom, top, serial
                      bottom, width, depth, top - bottom, material, wall["id"], bevel=0)
 
 
-def create_wall(scene, wall, floor, hosted_openings, serial_start):
+def create_wall(scene, wall, floor, hosted_openings, serial_start, ceiling_thickness_mm=None):
     """Emit piers, sills and headers around each void. No wall exists in the opening."""
     a, b = wall["a"], wall["b"]
     axis = "h" if abs(a["y"] - b["y"]) <= 2 else "v"
@@ -69,7 +79,8 @@ def create_wall(scene, wall, floor, hosted_openings, serial_start):
     # wall caps compete with the terrace deck and show through its finish.
     height = wall.get("heightMm", floor["heightMm"])
     if wall["kind"] != "parapet":
-        height = min(height, floor["heightMm"] - slab_thickness(floor))
+        ceiling_thickness = slab_thickness(floor) if ceiling_thickness_mm is None else ceiling_thickness_mm
+        height = min(height, floor["heightMm"] - ceiling_thickness)
     top = base + height
     openings = sorted(hosted_openings, key=lambda item: item["at"]["x" if axis == "h" else "y"])
     serial = serial_start

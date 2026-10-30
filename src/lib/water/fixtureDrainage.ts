@@ -40,7 +40,7 @@ export function fixtureDrainageScene(floors:UtilityFloor[],building:BuildingMode
         const turn=Math.abs(Math.sin(nearest.rotation))>.5
         const s=Math.min((turn?depthMm:widthMm)/1000/asset.sizeM[0],(turn?widthMm:depthMm)/1000/asset.sizeM[2],heights[kind]/1000/asset.sizeM[1])
         const world=planToThreeGlb(point)
-        model={id:`drain-fixture:${fixture.id}`,assetId:asset.id,assetRevision:asset.sha256,roomId:room.id,floorId:floor.id,position:[world.x,world.y+(kind==='kitchen_sink'?.70:0),world.z],rotation:nearest.rotation,size:asset.sizeM.map(n=>n*s) as [number,number,number],scale:[s,s,s],replaces:[],color:'#EEEAE1',hardwareColor:'#A6AAA7'}
+        model={id:`drain-fixture:${fixture.id}`,assetId:asset.id,assetRevision:asset.sha256,roomId:room.id,floorId:floor.id,position:[world.x,world.y+(kind==='kitchen_sink'?.70:kind==='washbasin'||kind==='unknown_sink'?.65:0),world.z],rotation:nearest.rotation,size:asset.sizeM.map(n=>n*s) as [number,number,number],scale:[s,s,s],replaces:[],color:'#EEEAE1',hardwareColor:'#A6AAA7'}
       }
       const pipe=design.pipes.find(p=>p.from===fixture.id&&!p.vertical&&p.service!=='vent')
       const issues:string[]=[]
@@ -109,7 +109,7 @@ export function fixtureWasteConnection(f:DrainFixture3D):ServicePoint[]{
   if(f.wasteConnection)return f.wasteConnection
   const start=f.branch?.points[0];if(!start)return []
   const outlet=f.kind==='kitchen_sink'?720:f.kind==='washbasin'||f.kind==='unknown_sink'?650:f.kind==='washing_machine'?350:f.kind==='toilet'?180:20
-  return ['washbasin','unknown_sink','kitchen_sink'].includes(f.kind)?[{...f.point,z:f.point.z+outlet},{...f.point,z:f.point.z+outlet-130},{...f.point,x:f.point.x+70,z:f.point.z+outlet-130},{...f.point,x:f.point.x+70,z:f.point.z+outlet-60},{...f.point,x:f.point.x+140,z:f.point.z+outlet-60},{...f.point,x:f.point.x+140,z:start.z},start]:[{...f.point,z:f.point.z+outlet},start]
+  return ['washbasin','unknown_sink','kitchen_sink'].includes(f.kind)?[{...f.point,z:f.point.z+outlet},{...f.point,z:f.point.z+outlet-130},{...f.point,x:f.point.x+70,z:f.point.z+outlet-130},{...f.point,x:f.point.x+70,z:f.point.z+outlet-60},{...f.point,x:f.point.x+140,z:f.point.z+outlet-60},{...f.point,x:f.point.x+140,z:start.z},{...start,y:f.point.y},start]:[{...f.point,z:f.point.z+outlet},{...f.point,z:start.z},{...start,y:f.point.y},start].filter((p,i,all)=>!i||Math.hypot(p.x-all[i-1].x,p.y-all[i-1].y,p.z-all[i-1].z)>.01)
 }
 
 /** Keep the trap accessible, embed only its drop in a sufficiently thick

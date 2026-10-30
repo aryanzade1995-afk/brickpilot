@@ -1,0 +1,5 @@
+Bed room essentials — Blend Swap #91629
+Blend Swap 91629 contributor (name not included in supplied archive)
+Source: https://www.blendswap.com/blends/view/91629
+Licence: CC BY 3.0, as included in the uploaded archive.
+Adaptations: bed-only extraction, mattress/pillow assembly, origin and scale normalization, browser GLB conversion. Original creator name could not be independently retrieved; preserve the supplied licence and source link.

@@ -43,9 +43,9 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
   const building = useMemo(() => createBuildingModel(finishedPlan), [finishedPlan])
   const referenceDocument = useReference(s=>s.document)
   const referenceFacade = useMemo(()=>{const d=referenceDocument;if(!d?.enabled||d.sourcePlanId!==building.planId||!d.accepted||(d.accepted.settings.mode!=='preserve-plan'&&d.accepted.settings.operation!=='style-transfer'))return null;try{const geometry=reconstructFacade(building,d.accepted.spec,d.accepted.settings);return geometry.status==='rejected'?null:{geometry,operation:d.accepted.settings.operation}}catch{return null}},[referenceDocument,building])
-  const pipelines = useProjectPipelines(plan, building, brief)
+  const pipelines = useProjectPipelines(finishedPlan, building, brief)
   const liveExport = useRef<Group>(null)
-  const [waterPipes, setWaterPipes] = useState(true), [drainPipes, setDrainPipes] = useState(true), [pipeXray, setPipeXray] = useState(false)
+  const [waterPipes, setWaterPipes] = useState(false), [drainPipes, setDrainPipes] = useState(false), [pipeXray, setPipeXray] = useState(false)
   const signature = finishSignature(brief)
   const id = building.planId
   const accepted = useBlender((s) => s.accepted[id])
@@ -114,7 +114,7 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
     {sourcePlanId === id && error && !error.includes('Set BLENDER_BIN') && !busy && <button type="button" onClick={() => void generate(finishedPlan, result?.seed ?? selectedSeed ?? plan.dna.seed, quality, true)}
       className="mt-3 border border-line px-4 py-2 text-sm">{translateUi('Retry 3D model')}</button>}
     {result && <>
-      {result.geometryRevision !== WALKTHROUGH_ACCESS_REVISION && <div className="mt-4 flex flex-wrap items-center gap-3 border border-line bg-bg-inset p-3"><p className="flex-1 text-xs text-ink-dim">{translateUi('Update balcony sliders, roof doors and pipe fittings on the same villa. Your plan and finishes stay fixed.')}</p><button type="button" disabled={busy} onClick={() => void generate(finishedPlan, result.seed, quality, true)} className="min-h-11 border border-line bg-accent px-4 text-xs text-bg disabled:opacity-50">{translateUi(busy ? 'Updating Blender villa…' : 'Update doors & pipework')}</button></div>}
+      {result.geometryRevision !== WALKTHROUGH_ACCESS_REVISION && <div className="mt-4 flex flex-wrap items-center gap-3 border border-line bg-bg-inset p-3"><p className="flex-1 text-xs text-ink-dim">{translateUi('Update terrace walls and floor edges on this same villa.')}</p><button type="button" disabled={busy} onClick={() => void generate(finishedPlan, result.seed, quality, true)} className="min-h-11 border border-line bg-accent px-4 text-xs text-bg disabled:opacity-50">{translateUi(busy ? 'Updating Blender villa…' : 'Update 3D model')}</button></div>}
       {result.finishSignature !== signature && <p className="mt-3 text-sm text-ink-dim">{translateUi("Updating selected finishes on this same design…")}</p>}
       <p className="mt-4 font-mono text-xs text-ink-dim">{translateUi("Visualisation · Blender · Seed ")}{translateUi(result.seed)} · {translateUi(result.family.replaceAll('_', ' '))} · {translateUi(result.quality === 'final' ? 'Final render' : 'Preview')}</p>
       <div className="mt-3 grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2">
@@ -177,7 +177,7 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
           </div>
           {referenceFacade&&<p className="absolute bottom-2 left-2 right-2 z-10 bg-bg/90 px-3 py-2 text-xs text-ink-dim">Accepted reference facade overlay · source building retained. <Link className="underline" to="/workspace/plan#reference-facade">Edit / return to original</Link></p>}
           <VillaSceneCanvas key={result.files.glb}>
-            <Suspense fallback={null}><group ref={liveExport}><AcceptedVillaModel url={result.files.glb} separateRoofTanks={!!pipelines} style={referenceFacade?.operation==='style-transfer'?referenceFacade.geometry.style:undefined}/>{referenceFacade&&<ReferenceLayer geometry={referenceFacade.geometry}/>}
+            <Suspense fallback={null}><group ref={liveExport}><AcceptedVillaModel url={result.files.glb} gardenShade={brief.rooms.priorities.garden && brief.rooms.priorities.gardenShade} separateRoofTanks={!!pipelines} style={referenceFacade?.operation==='style-transfer'?referenceFacade.geometry.style:undefined}/>{referenceFacade&&<ReferenceLayer geometry={referenceFacade.geometry}/>}
               {building.entryRamp&&<EntryRampLayer ramp={building.entryRamp}/>}
               {shade!=='original'&&<BalconyShadeLayer url={result.files.glb} choice={shade}/>}
               <SolarLayer layout={solar.displayLayout} roof={solar.displayRoof} reservedAreas={solar.displayConfiguration.inputs.reservedAreas} selectedIds={solar.selectedIds} onSelect={solar.pickPanel}/>

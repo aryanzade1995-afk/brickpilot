@@ -122,7 +122,7 @@ class Planner {
     return { id: `${this.id}-${id}`, type, x, z, w, d, h, face }
   }
   /** stretches of a wall with no door and (for pieces taller than a sill) no window, at least `min` long */
-  solid(side: Side, height: number, min: number): [number, number][] {
+  solid(side: Side, height: number, min: number, wallGap=0): [number, number][] {
     const [lo, hi] = this.span(side)
     const cuts: [number, number][] = []
     for (const o of this.openings) {
@@ -134,6 +134,8 @@ class Planner {
     }
     for (const b of this.blocked) {
       const r = b.rect
+      const projection=side==='N'?r.z1-this.room.z0:side==='S'?this.room.z1-r.z0:side==='W'?r.x1-this.room.x0:this.room.x1-r.x0
+      if(b.tag==='column'&&projection<=wallGap)continue
       const touches = side === 'N' ? r.z0 <= this.room.z0 + 0.05 : side === 'S' ? r.z1 >= this.room.z1 - 0.05 : side === 'W' ? r.x0 <= this.room.x0 + 0.05 : r.x1 >= this.room.x1 - 0.05
       if (touches) cuts.push(along(side) ? [r.x0, r.x1] : [r.z0, r.z1])
     }
@@ -204,7 +206,7 @@ function readingCorner(p: Planner) {
 function living(p: Planner, ceiling: number) {
   // the TV wall: a solid stretch for the unit (the screen is above sill height); the sofa faces it from the opposite side
   const sides: Side[] = ['N', 'S', 'E', 'W']
-  type Plan = { tv: Side; seg: [number, number]; score: number }
+  type Plan = { tv: Side; seg: [number, number]; centre: number; score: number }
   const plans: Plan[] = []
   for (const tv of sides) {
     const span = p.distance(tv)
@@ -212,13 +214,18 @@ function living(p: Planner, ceiling: number) {
     for (const seg of p.solid(tv, 1.5, 1.6)) {
       // a comfortable viewing distance across the room scores highest; a longer wall gives more room for the unit
       const view = Math.min(span, 3.6)
-      plans.push({ tv, seg, score: -Math.abs(view - 3.0) * 2 + Math.min(len(seg), 3) * 0.6 - (span > 4.8 ? 0.5 : 0) })
+      const half=Math.min(2.2,len(seg)-.1)/2
+      for(const shift of [0,.2,-.2,.4,-.4,.6,-.6]){
+        const centre=mid(seg)+shift
+        if(centre-half<seg[0]||centre+half>seg[1])continue
+        plans.push({ tv, seg, centre, score: -Math.abs(view - 3.0) * 2 + Math.min(len(seg), 3) * 0.6 - (span > 4.8 ? 0.5 : 0) - Math.abs(shift)*.1 })
+      }
     }
   }
   plans.sort((a, b) => b.score - a.score)
   for (const plan of plans) {
     const before = p.pieces.length
-    const c = mid(plan.seg)
+    const c = plan.centre
     const unitW = Math.min(2.2, len(plan.seg) - 0.1)
     const sofaSide = OPP[plan.tv]
     const span = p.distance(plan.tv)
@@ -230,7 +237,7 @@ function living(p: Planner, ceiling: number) {
     // the sofa: against the far wall when the room allows a normal viewing distance, else floating at 3.2 m
     const sofaW = 2.2, sofaD = 0.92
     const windowBehindSofa = p.windowBehind(sofaSide, c - sofaW / 2, c + sofaW / 2, 3)
-    const gaps = span <= 4.4 ? [windowBehindSofa ? 0.16 : 0.04] : [3.2, 3.0, 2.8, 2.6, 2.4].map((view) => span - 0.42 - view - sofaD)
+    const gaps = span <= 4.4 ? [windowBehindSofa ? 0.16 : 0.04,.95,1.2] : [3.2, 3.0, 2.8, 2.6, 2.4].map((view) => span - 0.42 - view - sofaD)
     const fixed = p.pieces.length
     let sofa: Piece | null = null, sofaGap = 0, gapSofaTv = 0
     for (const g of gaps) {
@@ -274,6 +281,15 @@ function living(p: Planner, ceiling: number) {
       const r = p.room
       const [x, z] = sofaSide === 'N' ? [at, r.z0 + tableCentre] : sofaSide === 'S' ? [at, r.z1 - tableCentre] : sofaSide === 'W' ? [r.x0 + tableCentre, at] : [r.x1 - tableCentre, at]
       if (p.add({ id: `${p.id}-armchair`, type: 'armchair', x, z, w: 0.8, d: 0.82, h: 0.8, face }, 0.25)) break
+    }
+    if(!p.pieces.some(q=>q.type==='armchair')){
+      // A narrow sitting room can use a compact chair at an end of the seating
+      // zone. It still passes the same door, column and furniture checks.
+      const candidates:Piece[]=[]
+      for(let x=p.room.x0+.4;x<=p.room.x1-.4;x+=.25)for(let z=p.room.z0+.4;z<=p.room.z1-.4;z+=.25)
+        candidates.push({id:`${p.id}-armchair`,type:'armchair',x,z,w:.7,d:.72,h:.8,face:plan.tv})
+      candidates.sort((a,b)=>Math.hypot(a.x-sofa!.x,a.z-sofa!.z)-Math.hypot(b.x-sofa!.x,b.z-sofa!.z))
+      for(const chair of candidates)if(p.add(chair,.15))break
     }
     // the other half of a long room: a console or bookshelf on a solid wall
     for (const side of sides) {
@@ -319,7 +335,7 @@ function bedroom(p: Planner, ceiling: number, master: boolean) {
   // first a solid wall with room for both nightstands, then any solid wall, then under a window with a low headboard
   const tries: { side: Side; seg: [number, number]; low: boolean }[] = []
   for (const [height, low, need] of [[1.1, false, bedW + 1.0], [1.1, false, bedW + 0.1], [0.85, true, bedW + 0.1]] as const)
-    for (const side of sides) for (const seg of p.solid(side, height, need)) tries.push({ side, seg, low })
+    for (const side of sides) for (const seg of p.solid(side, height, need,low?.08:0)) tries.push({ side, seg, low })
   // every bed position along its wall, centre first, 0.2 m apart
   const spots = (seg: [number, number]) => {
     const lo = seg[0] + bedW / 2 + 0.05, hi = seg[1] - bedW / 2 - 0.05, c = Math.max(lo, Math.min(hi, mid(seg)))
@@ -379,7 +395,7 @@ function dining(p: Planner, ceiling: number) {
   const centre = { x: (p.room.x0 + p.room.x1) / 2, z: (p.room.z0 + p.room.z1) / 2 }
   let table: Piece | null = null, seats = 0, tl = 0, tw = 0
   outer: for (const n of [L >= 3.6 && S >= 2.7 ? 6 : 4, 4, 2]) {
-    seats = n; tl = n === 6 ? 1.8 : n === 4 ? 1.3 : 0.8; tw = n === 2 ? 0.75 : 0.9
+    seats = n; tl = n === 6 ? 2.1 : n === 4 ? 1.5 : 0.9; tw = n === 6 ? 1 : n === 2 ? 0.75 : 0.9
     for (const s1 of [0, 0.2, -0.2, 0.4, -0.4, 0.6, -0.6]) for (const s2 of [0, 0.2, -0.2, 0.4, -0.4]) {
       const cand: Piece = { id: `${p.id}-table`, type: 'dining-table', x: centre.x + (longX ? s1 : s2), z: centre.z + (longX ? s2 : s1), w: longX ? tl : tw, d: longX ? tw : tl, h: 0.75, face: 'S' }
       // the table with its chairs tucked in, and room to pull one out against the walls

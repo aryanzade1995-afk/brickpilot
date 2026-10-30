@@ -19,7 +19,7 @@ const b=defaultBrief();b.site.plotWidth=25;b.site.plotDepth=30;b.levels.storeys=
 const plan=generate(compile(b),{seed:41}),prefs={style:'modern',lighting:'daylight',furnitureDensity:'medium'}
 const prepare=d=>{const source=createWalkthroughSource(d,{hardChecksPass:true},prefs);const geometry=prepareWalkthroughGeometry(buildWalkthroughScene(source.building,{hardChecksPass:true}));return {source,geometry,app:prepareWalkthroughAppearance(d,source,geometry)}}
 test('all shipped models have source notices, bounded detail, matching hashes and metre Y-up geometry',async()=>{
- assert.equal(interiorAssets.filter(a=>!a.id.startsWith('user-')).length,22)
+ assert.equal(interiorAssets.filter(a=>!a.id.startsWith('user-')).length,23)
  assert.equal(interiorAssets.filter(a=>a.id.startsWith('user-')).length,13)
  for(const a of interiorAssets){
   assert.ok(a.author&&(a.provenance==='user-supplied'?a.license==='User-supplied · rights unverified':['CC-BY-3.0','CC0-1.0'].includes(a.license)),a.id)
