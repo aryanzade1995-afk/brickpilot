@@ -225,7 +225,7 @@ export function Brief() {
             )}
           </Button>
         </div>
-        </section>{[4,5,7].includes(step) && <div className="order-1 z-[5] min-w-0 self-start lg:sticky lg:top-[calc(var(--brief-rail-height)+16px)] lg:order-2">{step === 5 ? <HouseIdeaPreview /> : <RoomPanel />}</div>}
+        </section>{[5,7].includes(step) && <div className="order-1 z-[5] min-w-0 self-start lg:sticky lg:top-[calc(var(--brief-rail-height)+16px)] lg:order-2">{step === 5 ? <HouseIdeaPreview /> : null}</div>}
         </div>
       </div>
     </div>

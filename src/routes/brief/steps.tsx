@@ -1,7 +1,6 @@
 import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
-import { BudgetNotice } from './BudgetNotice.tsx'
 import { resolveSpecification } from '@/lib/cost/catalogue.ts'
-import { RoomList, FurnitureReview } from './RoomPanel.tsx'
+import { FurnitureReview } from './RoomPanel.tsx'
 import { useMemo } from 'react'
 import { MODERN_COMPOSITION_CHOICES, type ModernComposition } from '@/lib/model/modernCompositions.ts'
 import { assessShape, SHAPE_CHOICES } from '@/lib/engine/planner/fit.ts'
@@ -60,8 +59,6 @@ export function ProjectStep() {
       <Field label="Project name">
         <TextInput value={brief.project.name} onChange={(v) => edit((b) => void (b.project.name = v))} />
       </Field>
-      <p className="border-l-2 border-line-strong pl-4 text-sm text-ink-dim">
-        {translateUi("Formstead produces a residential concept and feasibility package — a villa or bungalow, ground-only through G+3. Pick the typology and character on the Style step. A licensed architect and engineers must verify it before permits or construction.")}</p>
     </div>
   )
 }
@@ -124,7 +121,7 @@ export function SiteStep() {
           options={DIRECTIONS.map((d) => ({ value: d, label: d }))}
         />
       </Field>
-      <Field label="Climate context" hint="Optional. Used for finish suggestions; your plan stays the same.">
+      <Field label="Climate context">
         <select aria-label={translateUi("Climate context")} value={s.climate ?? ''} onChange={e => edit(b => { b.site.climate = (e.target.value || undefined) as typeof s.climate })} className="w-full border border-line bg-bg px-3 py-2.5 text-sm">
           <option value="">{translateUi("Not specified")}</option><option value="hot">{translateUi("Hot")}</option><option value="moderate">{translateUi("Moderate")}</option><option value="humid">{translateUi("Humid")}</option>
         </select>
@@ -148,7 +145,7 @@ export function SiteStep() {
         </div>
       </div>
       <div className="space-y-4">
-        <Field label="Open space" hint="Clear margins from the property edge. Setbacks are the minimum.">
+        <Field label="Open space">
           <Segmented value={s.openSpace.mode} onChange={v => edit(b => void (b.site.openSpace.mode = v))}
             options={Object.entries(OPEN_SPACE_LABEL).map(([value, label]) => ({ value: value as typeof s.openSpace.mode, label }))} />
         </Field>
@@ -163,7 +160,7 @@ export function SiteStep() {
           })} />)}</div>
           <Field label="Open margin on chosen sides (m)"><NumberInput value={s.openSpace.amount} min={0} max={30} step={0.1} suffix="m" onChange={v => edit(b => void (b.site.openSpace.amount = v))} /></Field>
         </>}
-        <p className="text-xs text-ink-dim" role="status">{translateUi(s.openSpace.mode === 'auto' ? 'The planner chooses an edge placement and sizes the house to the room programme.' : 'The planner fills the permitted area with connected rectilinear wings, while retaining room access and structure.')}</p>
+        {s.openSpace.mode !== 'auto' && <p className="text-xs text-ink-dim" role="status">{translateUi('The planner fills the permitted area with connected rectilinear wings, while retaining room access and structure.')}</p>}
         {open.notes.map(note => <p key={note} role="status" className="text-xs text-warn">{translateUi(note)}</p>)}
         {s.openSpace.mode === 'maxBuild' && maxBuildLimit < 0.85 && <p role="status" className="text-xs text-warn">{translateUi("The existing 60% plot coverage limit prevents 85% buildable-area use on this plot. Max build stops at the coverage limit; parking and room checks still apply.")}</p>}
       </div>
@@ -394,7 +391,7 @@ export function LevelsStep() {
           ]}
         />
       </Field>
-      <Field label="House height above site ground" hint="The same plinth setting used by Finishes & Cost and Blender. A raised floor alone does not guarantee flood protection; verify road levels and local flood levels.">
+      <Field label="House height above site ground">
         <Segmented value={resolveSpecification(brief,'plinth-height').id} onChange={v=>edit(b=>{b.specs.overrides['plinth-height']=v})} options={[
           {value:'standard',label:'450 mm'}, {value:'raised',label:'600 mm'}, {value:'flood',label:'900 mm'},
         ]}/>
@@ -474,8 +471,6 @@ export function RoomsStep() {
           <Toggle checked={p.compoundWall} onChange={(v) => edit((b) => void (b.rooms.priorities.compoundWall = v))} label="Compound wall" hint="Boundary wall with a gate" />
         </div>
       </div>
-      <BudgetNotice />
-      <RoomList />
     </div>
   )
 }
@@ -560,14 +555,6 @@ export function StyleStep() {
             // never blocked: a shape that may not fit says so, and the fit panel offers adjustments
             note: !shapeChecks[o.value as ShapeChoiceValue].ok ? 'May not fit this plot' : undefined })}
         />
-        <p className="text-xs text-ink-dim">{translateUi("Changing this layout creates a new floor plan. Generate another 3D design keeps your selected plan and varies its exterior.")}</p>
-        <ul className="space-y-1 text-xs" role="status" aria-label={translateUi("Shape checks")}>
-          {SHAPE_CHOICES.map((shape) => (
-            <li key={shape} className={shapeChecks[shape].ok ? 'text-ok' : 'text-warn'}>
-              {translateUi(shapeChecks[shape].ok ? '✓' : '!')} {translateUi(SHAPE_LABEL[shape])} — {translateUi(shapeChecks[shape].reason)}
-            </li>
-          ))}
-        </ul>
         {!['auto', ...SHAPE_CHOICES].includes(brief.style.massing) && (
           <p className="text-sm text-ink-dim" role="status">
             {translateUi("This saved brief uses an older massing choice (")}{translateUi(brief.style.massing.replaceAll('-', ' '))}{translateUi("). It still loads; choose Auto or one of the four wing designs above to change it.")}</p>
@@ -583,11 +570,8 @@ export function StyleStep() {
         />
       </Field>
 
-      <div className="grid gap-8 sm:grid-cols-2">
-        <Field
-          label="Design variation"
-          hint="How far exterior features and style may vary while the plan stays fixed"
-        >
+      <div>
+        <Field label="Design variation">
           <Segmented
             value={brief.style.diversity}
             onChange={(v) => edit((b) => void (b.style.diversity = v))}
@@ -599,7 +583,6 @@ export function StyleStep() {
             ]}
           />
         </Field>
-        <p className="text-sm text-ink-dim">{translateUi("Every new 3D design gets an automatic variation. Your floor plan stays fixed.")}</p>
       </div>
     </div>
   )
@@ -635,7 +618,7 @@ export function EntryStep() {
   const e = brief.entry
   return (
     <div className="max-w-xl space-y-8">
-      <Field label="Primary entry side" hint="Auto uses the main facing when it is a road edge; otherwise the first road edge">
+      <Field label="Primary entry side">
         <Segmented
           value={e.primarySide}
           onChange={(v) => edit((b) => void (b.entry.primarySide = v))}
@@ -645,7 +628,7 @@ export function EntryStep() {
           ]}
         />
       </Field>
-      <Field label="Entrance design" hint="A taller main door with a surround and shade; Auto follows the selected style.">
+      <Field label="Entrance design">
         <Segmented value={e.design} onChange={v => edit(b => { b.entry.design = v })} options={[
           {value:'auto',label:'Auto'}, {value:'indian-carved',label:'Indian carved double-door'},
           {value:'wide-pivot',label:'Wide pivot'}, {value:'framed-portico',label:'Framed portico'},
@@ -704,12 +687,6 @@ export function ReviewStep() {
             </div>
           ))}
         </div>
-      </div>
-
-      <div className="flex items-start gap-3 text-sm text-ink-dim">
-        <span className="label flex-none pt-1">{translateUi("Next")}</span>
-        <p>
-          {translateUi("Formstead assigns a variation seed, generates a fixed candidate, normalises shared walls, places doors, windows and stairs, then tests reachability and geometry.")}</p>
       </div>
     </div>
   )

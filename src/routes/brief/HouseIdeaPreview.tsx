@@ -45,8 +45,6 @@ export function HouseIdeaPreview() {
         {image ? <img key={key} src={image} alt={t('Blender design example')+` · ${t(STYLE_LABELS[selection.style] ?? selection.style)} · ${t(LAYOUT_LABELS[selection.layout] ?? selection.layout)} · ${t(level)}`} width={768} height={576} decoding="async" onError={() => setFailedImage(key)} className="h-full w-full object-contain" /> : <div role="status" className="flex h-full items-center justify-center p-6 text-center text-sm text-ink-dim">{t(!gallery && !error ? 'Loading design images…' : selection.composition === 'terraced-villa' && selection.storeys === 0 ? 'Terraced villas need an upper floor. Choose G+1 or above for this example.' : 'No Blender image is available for this combination.')}</div>}
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-ink-dim"><span>{t('Blender design example')}</span>{image && <a href={image} download className="inline-flex min-h-11 items-center gap-2 text-ink underline underline-offset-4"><Download size={14} aria-hidden="true" />{t('Download image')}</a>}</div>
-      <p className="border-t border-line pt-3 text-xs text-ink-dim">{t('Images use a sample plot and balanced design settings. Your final home follows your own plan and selections.')}</p>
-      <a href="/house-ideas/CREDITS.md" target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center text-xs text-ink-faint underline underline-offset-4">{t('Image credits')}</a>
     </div>}
   </aside>
 }
