@@ -1,7 +1,5 @@
 import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
-import { RoomPanel } from './brief/RoomPanel.tsx'
 import { HouseIdeaPreview } from './brief/HouseIdeaPreview.tsx'
-import { SelectionsBar } from './brief/SelectionsBar.tsx'
 import { useDeferredValue, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, RotateCcw, Sparkles } from 'lucide-react'
@@ -169,7 +167,6 @@ export function Brief() {
             </Button>
           </div>
         </div>
-        <SelectionsBar jump={setStep} />
       </div>
 
       {/* step body */}

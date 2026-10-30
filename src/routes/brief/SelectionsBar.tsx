@@ -1,5 +1,4 @@
 import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
-import { useState } from 'react'
 import { useStudio } from '@/state/studio.ts'
 import { CHARACTER_LABEL } from '@/lib/model/brief.ts'
 import { briefRooms } from '@/lib/furniture/rooms.ts'
