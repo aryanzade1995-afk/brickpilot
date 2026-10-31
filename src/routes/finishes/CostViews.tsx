@@ -661,13 +661,6 @@ export function EstimateView({ cost, onAllowances }: { cost: CostEstimate; onAll
           <div className="border border-line bg-bg p-6 flex flex-col h-full justify-between">
             <div>
               <h3 className="font-display text-lg font-medium text-ink">{translateUi("Top Cost Drivers")}</h3>
-              <p className="mt-1 text-xs text-ink-faint leading-relaxed">
-                {translateUi("Compared against ")}
-                <strong className="text-ink">
-                  {{ simple: 'Basic', standard: 'Mid', refined: 'Premium' }[cost.selection.preset] ?? cost.selection.preset}
-                </strong>
-                {translateUi(" baseline configuration.")}
-              </p>
             </div>
 
             <ul className="mt-5 space-y-3 flex-1 flex flex-col justify-around">
@@ -831,9 +824,6 @@ export function EstimateView({ cost, onAllowances }: { cost: CostEstimate; onAll
                 {translateUi("Live Web & Supplier Rate Research")}
               </h3>
             </div>
-            <p className="mt-1 text-xs text-ink-dim">
-              {translateUi("Extracts verifiable regional supplier quotes using Ollama Qwen3.5:2b while retaining deterministic plan geometry and BOQ logic.")}
-            </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
