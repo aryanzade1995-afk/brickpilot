@@ -379,30 +379,23 @@ function KeyMaterialsCard({ current, floor, q }: { current: CostEstimate['quanti
   )
 }
 
-function TradeCard({ trade, tradeBoq, share, amount, split }: { trade: string; tradeBoq: BoqLine[]; share: number; amount: number; split: boolean }) {
+function TradeCard({ trade, tradeBoq, amount, split }: { trade: string; tradeBoq: BoqLine[]; share?: number; amount: number; split: boolean }) {
   const [open, setOpen] = useState(false)
-  const sharePercent = (share * 100).toFixed(1)
 
   return (
     <details
       className="group/trade border border-line bg-bg transition-all hover:border-line-strong"
       onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}
     >
-      <summary className="flex cursor-pointer select-none items-center justify-between p-4 sm:p-5 hover:bg-bg-inset transition-colors">
+      <summary className="flex cursor-pointer select-none items-center justify-between p-4 hover:bg-bg-inset transition-colors">
         <div className="flex items-center gap-3 min-w-0">
-          <ChevronRight size={18} className="text-ink-faint transition-transform duration-200 group-open/trade:rotate-90 shrink-0" />
-          <span className="font-medium text-ink text-sm sm:text-base">{translateUi(trade)}</span>
+          <ChevronRight size={16} className="text-ink-faint transition-transform duration-200 group-open/trade:rotate-90 shrink-0" />
+          <span className="font-medium text-ink text-sm">{translateUi(trade)}</span>
         </div>
 
-        <div className="flex items-center gap-4 shrink-0">
-          <div className="flex flex-col items-end">
-            <span className="font-mono text-sm sm:text-base font-semibold text-ink">{translateUi(formatINR(amount))}</span>
-            <span className="font-mono text-xs text-ink-dim">{sharePercent}%</span>
-          </div>
-          <div className="w-16 sm:w-28 h-2 bg-bg-inset overflow-hidden border border-line">
-            <div className="h-full bg-ink" style={{ width: `${Math.min(100, Math.max(5, share * 100))}%` }} />
-          </div>
-        </div>
+        <span className="shrink-0 font-mono font-medium text-ink text-xs sm:text-sm">
+          {translateUi(formatINR(amount))}
+        </span>
       </summary>
 
       {open && (
@@ -412,7 +405,7 @@ function TradeCard({ trade, tradeBoq, share, amount, split }: { trade: string; t
               <li key={l.id} className="py-3 text-sm">
                 <div className="flex flex-wrap items-baseline justify-between gap-3">
                   <p className="font-medium text-ink text-sm">{translateUi(l.label)}</p>
-                  <p className="shrink-0 font-mono text-sm font-semibold text-ink">{translateUi(formatINR(l.amount))}</p>
+                  <p className="shrink-0 font-mono text-xs sm:text-sm font-medium text-ink">{translateUi(formatINR(l.amount))}</p>
                 </div>
                 <div className="mt-1 flex flex-wrap items-center justify-between gap-2 text-xs text-ink-dim">
                   <p className="text-ink-faint leading-relaxed">{translateUi(l.specification)}</p>
@@ -668,7 +661,7 @@ export function EstimateView({ cost, onAllowances }: { cost: CostEstimate; onAll
                 <li key={d.item} className="border border-line bg-bg-inset p-3 text-xs">
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-medium text-ink">{translateUi(d.label)}</span>
-                    <span className="font-mono font-semibold text-ink">{translateUi(formatINR(d.amount))}</span>
+                    <span className="font-mono font-medium text-ink">{translateUi(formatINR(d.amount))}</span>
                   </div>
                   <div className="mt-1.5 flex items-center gap-1.5">
                     {d.difference ? (
