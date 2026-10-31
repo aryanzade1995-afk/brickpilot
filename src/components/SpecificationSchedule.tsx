@@ -127,6 +127,10 @@ export function SpecificationSchedule({ rows }: { rows: SpecificationRow[] }) {
     return result
   }, [rows])
 
+  const splitIndex = floors.length === 3 ? 2 : Math.max(1, Math.ceil(floors.length / 2))
+  const leftFloors = floors.slice(0, splitIndex)
+  const rightFloors = floors.slice(splitIndex)
+
   return (
     <section>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -139,11 +143,21 @@ export function SpecificationSchedule({ rows }: { rows: SpecificationRow[] }) {
         {translateUi("Real texture close-ups. Confirm actual products and samples with your supplier.")}
       </p>
 
-      {/* Two-tier hierarchy: Floors as main accordions (all collapsed by default, lazy rendered) */}
-      <div className="mt-5 space-y-4">
-        {floors.map(floor => (
-          <FloorCard key={floor.floorName} floor={floor} />
-        ))}
+      {/* 2-Column Split: 2 options on Left, 1 on Right (matching Measured Quantities layout) */}
+      <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        {/* Left Column (2 options) */}
+        <div className="space-y-4">
+          {leftFloors.map(floor => (
+            <FloorCard key={floor.floorName} floor={floor} />
+          ))}
+        </div>
+
+        {/* Right Column (1 option) */}
+        <div className="space-y-4">
+          {rightFloors.map(floor => (
+            <FloorCard key={floor.floorName} floor={floor} />
+          ))}
+        </div>
       </div>
     </section>
   )
@@ -171,44 +185,44 @@ function FloorCard({ floor }: { floor: GroupedFloor }) {
 
       {/* Room list inside floor - Rendered only when expanded for lightning-fast navigation */}
       {open && (
-        <div className="border-t border-line bg-bg-inset/20 p-4 sm:p-6 space-y-4">
+        <div className="border-t border-line bg-bg-inset/20 p-4 sm:p-5 space-y-4">
           {floor.rooms.map(room => (
             <div
               key={room.whereKey}
               className="border border-line bg-bg overflow-hidden"
             >
-              <div className="flex items-center justify-between px-4 py-3 bg-bg-inset/50 border-b border-line">
-                <span className="font-medium text-ink text-sm sm:text-base">{translateUi(room.roomName)}</span>
-                <span className="bg-bg px-2.5 py-0.5 font-mono text-xs text-ink-dim border border-line">
+              <div className="flex items-center justify-between px-3.5 py-2.5 bg-bg-inset/50 border-b border-line">
+                <span className="font-medium text-ink text-sm">{translateUi(room.roomName)}</span>
+                <span className="bg-bg px-2 py-0.5 font-mono text-[0.7rem] text-ink-dim border border-line">
                   {room.rows.length} {translateUi(room.rows.length === 1 ? "finish" : "finishes")}
                 </span>
               </div>
 
               {/* Finishes list */}
-              <ul className="divide-y divide-line px-4 sm:px-6 py-1">
+              <ul className="divide-y divide-line px-3.5 sm:px-4 py-1">
                 {room.rows.map(r => (
-                  <li key={r.id} className="flex items-center gap-4 py-3.5">
+                  <li key={r.id} className="flex items-center gap-3.5 py-3">
                     {r.photo ? (
                       <img
                         loading="lazy"
                         decoding="async"
                         src={assetUrl(r.photo)}
                         alt={translateUi(`Real texture close-up: ${r.choice}`)}
-                        className="h-14 w-20 shrink-0 border border-line object-cover"
+                        className="h-12 w-16 shrink-0 border border-line object-cover"
                       />
                     ) : (
-                      <div className="h-14 w-20 shrink-0 border border-line bg-bg-inset flex items-center justify-center text-[0.65rem] text-ink-faint font-mono uppercase">
+                      <div className="h-12 w-16 shrink-0 border border-line bg-bg-inset flex items-center justify-center text-[0.62rem] text-ink-faint font-mono uppercase">
                         {translateUi("No photo")}
                       </div>
                     )}
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium text-ink text-sm">{translateUi(r.label)}</p>
-                      <p className="mt-0.5 text-xs text-ink-dim leading-relaxed">{translateUi(r.choice)}</p>
+                      <p className="font-medium text-ink text-xs sm:text-sm">{translateUi(r.label)}</p>
+                      <p className="mt-0.5 text-[0.72rem] text-ink-dim leading-snug">{translateUi(r.choice)}</p>
                     </div>
                     <div className="text-right shrink-0">
                       <span className="font-mono text-xs text-ink font-semibold">{translateUi(r.quantity)}</span>
                       {r.rate && (
-                        <p className="mt-0.5 font-mono text-[0.72rem] text-ink-faint">
+                        <p className="mt-0.5 font-mono text-[0.68rem] text-ink-faint">
                           ₹{r.rate.toLocaleString('en-IN')} / {r.unit}
                         </p>
                       )}
