@@ -1,10 +1,10 @@
+import { formatINR, formatRange } from '@/lib/format.ts'
 import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
 import { useVillaVisualizations } from '@/state/villaVisualizations.ts'
 import { VILLA_VIEW_LABELS, visualizationSourceId } from '@/lib/render/villaVisualizations.ts'
-import { CostShareButton } from '@/components/CostShareButton.tsx'
 import { SpecificationSchedule } from '@/components/SpecificationSchedule.tsx'
 import { specificationSchedule } from '@/lib/cost/schedule.ts'
-import { QuantitiesView, EstimateView } from './finishes/CostViews.tsx'
+import { QuantitiesView, EstimateView, LabourEstimateCard } from './finishes/CostViews.tsx'
 import { useBlender } from '@/state/blender.ts'
 import { useSolarArtifacts, solarArtifactKey, isCurrentSolarArtifact } from '@/state/solarArtifacts.ts'
 import { createBuildingModel } from '@/lib/engine/buildingModel.ts'
@@ -13,7 +13,7 @@ import type { Result } from '@/state/studio.ts'
 import type { Brief } from '@/lib/model/brief.ts'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Download, FileText, Loader2, Trash2 } from 'lucide-react'
+import { Download, FileText, Loader2 } from 'lucide-react'
 import { useStudio } from '@/state/studio.ts'
 import { useRender, REF_LABEL, type RefKey } from '@/state/render.ts'
 import { FloorDrawing, TerraceDrawing } from '@/lib/draw/FloorDrawing.tsx'
@@ -79,13 +79,12 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
   const currentSolar = isCurrentSolarArtifact(solarFinal, blender, brief.solar) ? solarFinal :
     isCurrentSolarArtifact(solarPreview, blender, brief.solar) ? solarPreview : undefined
   const blenderImages = useMemo<ReportImage[]>(() => blender?.finishSignature === finishSignature(brief)
-    ? (['hero','front','aerial'] as const).map(view => currentSolar ? ({ label: `Current applied solar · Blender — ${view}`, dataUrl: currentSolar.files[view],
+    ? (['hero','front'] as const).map(view => currentSolar ? ({ label: view === 'front' ? 'Front view' : 'Perspective', dataUrl: currentSolar.files[view],
       artifactScope: 'building-plus-solar', solarVisualSignature: currentSolar.solarVisualSignature }) :
-      ({label: `Building-only reference · not current solar design — ${view}`, dataUrl: blender.files[view], artifactScope: 'building-only'})) : visualisations,
+      ({label: view === 'front' ? 'Front view' : 'Perspective', dataUrl: blender.files[view], artifactScope: 'building-only'})) : visualisations,
     [blender, brief, visualisations, currentSolar])
-  const villaPairs=useVillaVisualizations(s=>s.pairs),resetVillaPairs=useVillaVisualizations(s=>s.reset)
+  const villaPairs=useVillaVisualizations(s=>s.pairs)
   const renderJobs = useRender((s) => s.jobs)
-  const resetRender = useRender((s) => s.reset)
 
   const svgRefs = useRef<(SVGSVGElement | null)[]>([])
   // the 3D massing canvas is mounted only during a capture — no persistent WebGL context
@@ -94,7 +93,6 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
   const [floorIdx, setFloorIdx] = useState(0)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [confirmClear, setConfirmClear] = useState(false)
 
   const character = result?.model.brief.style.character ?? 'modern-indian'
 
@@ -206,11 +204,6 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
     }
   }
 
-  const clearImages = () => {
-    resetRender()
-    resetVillaPairs()
-    setConfirmClear(false)
-  }
 
   return (
     <div className="mx-auto max-w-[1400px] px-6 py-8 md:px-10">
@@ -221,23 +214,88 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
         <div className="label text-accent">{translateUi("Step 7 · Report")}</div>
       </div>
 
-      {/* metric bar */}
-      <div className="mt-5 flex flex-wrap items-center gap-x-10 gap-y-3 border-b border-line pb-4">
-        <Metric k="Validation" v={`${report.score} / 100`} />
-        <div
-          className={cx(
-            'font-mono text-xs uppercase tracking-[0.1em]',
-            report.hardChecksPass ? 'text-ok' : 'text-bad',
-          )}
-        >
-          {translateUi(report.hardChecksPass ? '● Hard checks pass' : '● Hard checks fail')}
+      {/* Top Cards: Expected Total Investment & Project Report */}
+      <div className="mt-4 flex flex-wrap items-stretch gap-4">
+        {/* Expected Total Investment Box */}
+        <div className="flex-1 min-w-[280px] rounded-xl border border-line bg-bg p-5 sm:p-6 shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-mono text-[0.7rem] uppercase tracking-wider text-ink-dim">
+                {translateUi("Expected Total Investment")}
+              </span>
+              <span className="rounded-full border border-line bg-bg-inset px-2.5 py-0.5 font-mono text-xs text-ink font-medium">
+                {translateUi("Built area: ")}{design.builtAreaSqm.toFixed(1)} m²
+              </span>
+            </div>
+            <div className="mt-2 flex flex-wrap items-baseline gap-3">
+              <h2 className="font-display text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
+                {translateUi(formatINR(cost.expected))}
+              </h2>
+              <span className="rounded-full border border-line bg-bg-inset px-2.5 py-0.5 font-mono text-xs text-ink-dim">
+                {translateUi(formatINR(cost.ratePerSqft))} / sq ft
+              </span>
+            </div>
+          </div>
+          <p className="mt-4 font-mono text-xs text-ink-dim">
+            {translateUi("Projected range: ")}
+            <span className="text-ink">{translateUi(formatRange(cost.total.low, cost.total.high, formatINR))}</span>
+          </p>
         </div>
-        <Metric k="Built area" v={`${design.builtAreaSqm.toFixed(1)} m²`} />
-        <Metric k="Coverage" v={`${(design.coverage * 100).toFixed(0)} %`} />
+
+        {/* Project Report Box - Matching exact styling */}
+        <div className="flex-1 min-w-[280px] rounded-xl border border-line bg-bg p-5 sm:p-6 shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="flex items-center gap-2 font-display text-lg font-medium text-ink">
+              <FileText size={18} className="text-accent" />
+              <span>{translateUi("Project Report")}</span>
+            </div>
+            <p className="mt-1 text-xs text-ink-faint">
+              {translateUi("Complete project documentation & schedule exports")}
+            </p>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-2.5">
+            <button
+              type="button"
+              onClick={download}
+              disabled={!!busy}
+              className={cx(
+                'inline-flex items-center gap-2 rounded-lg px-4 py-2.5 font-mono text-xs uppercase tracking-wider transition-colors',
+                busy ? 'border border-line text-ink-faint' : 'bg-accent text-white hover:bg-accent-hot shadow-xs',
+              )}
+            >
+              {busy ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+              {translateUi(busy ?? 'Download PDF')}
+            </button>
+
+            <button
+              type="button"
+              disabled={!!busy}
+              onClick={()=>void downloadExtra('xlsx')}
+              className="rounded-lg border border-line bg-bg px-3.5 py-2.5 text-xs text-ink hover:bg-bg-inset disabled:opacity-50 transition-colors"
+            >
+              {translateUi("BOQ Excel")}
+            </button>
+
+            <button
+              type="button"
+              disabled={!!busy}
+              onClick={()=>void downloadExtra('spec')}
+              className="rounded-lg border border-line bg-bg px-3.5 py-2.5 text-xs text-ink hover:bg-bg-inset disabled:opacity-50 transition-colors"
+            >
+              {translateUi("Spec PDF")}
+            </button>
+          </div>
+
+          {error && (
+            <p className="mt-2 text-xs text-bad">{translateUi(error)}</p>
+          )}
+        </div>
       </div>
 
-      <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_320px]">
-        <div className="min-w-0 space-y-10">
+
+
+      <div className="mt-6 space-y-10">
           {/* plan preview + floor picker */}
           <section>
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -272,8 +330,8 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
                   </tr>
                 </thead>
                 <tbody>
-                  {floor.rooms.map((r) => (
-                    <tr key={r.id} className="border-t border-line [&>td]:py-2 [&>td]:pr-6">
+                  {floor.rooms.map((r, i) => (
+                    <tr key={r.id} className={cx('border-t border-line [&>td]:py-2.5 [&>td]:px-4', i % 2 === 1 && 'bg-bg-inset/50')}>
                       <td className="text-ink">{translateUi(r.name)}</td>
                       <td className="text-ink-dim">{translateUi(ZONE_LABEL[r.zone])}</td>
                       <td className="text-right font-mono text-xs text-ink-dim tnum">
@@ -282,17 +340,23 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
                     </tr>
                   ))}
                 </tbody>
+                <tfoot>
+                  <tr className="border-t-2 border-line bg-bg-inset [&>td]:py-2.5 [&>td]:px-4 font-medium">
+                    <td colSpan={3} className="text-ink-dim">{translateUi("Total")}</td>
+                    <td className="text-right font-mono text-xs text-ink tnum">{translateUi(floor.rooms.reduce((sum, r) => sum + r.area, 0).toFixed(1))} {translateUi(" m²")}</td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
           </section>
 
-          <section><h2 className="font-display text-xl">{translateUi("3D & renders")}</h2><p className="mt-2 text-xs text-ink-dim">{translateUi('Building-only report images · the live rooftop PV layout is not included.')}</p>
+          <section><h2 className="font-display text-xl">{translateUi("3D & renders")}</h2><p className="mt-2 text-xs text-ink-dim">{translateUi('')}</p>
             {blenderImages.length ? <div className="mt-4 grid gap-3 sm:grid-cols-2">{blenderImages.map(img => <figure key={img.label} className="border border-line"><img src={img.dataUrl} alt={translateUi(img.label)} className="aspect-[4/3] w-full object-contain"/><figcaption className="p-3 text-xs text-ink-dim">{translateUi(img.label)}</figcaption></figure>)}</div> : <p className="mt-3 text-sm text-ink-dim">{translateUi("Generate views on ")}<Link to="/workspace/massing" className="underline">{translateUi("3D Massing")}</Link>{translateUi(". Your report can also capture the current 3D study.")}</p>}
           </section>
 
           {conceptImages.length > 0 && (
             <section>
-              <h2 className="font-display text-xl">{translateUi("Generated concepts")}</h2><p className="mt-2 text-xs text-ink-dim">{translateUi('Building-only reference and AI image · live rooftop PV and keep-free areas are not included.')}</p>
+              <h2 className="font-display text-xl">{translateUi("Generated concepts")}</h2><p className="mt-2 text-xs text-ink-dim">{translateUi('')}</p>
               <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {conceptImages.map((img, i) => (
                   <figure key={i} className="border border-line">
@@ -306,76 +370,10 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
             </section>
           )}
           <SpecificationSchedule rows={specificationSchedule(brief, cost)} />
-          <details className="border-t border-line pt-4"><summary className="cursor-pointer font-display text-xl">{translateUi("Quantities summary")}</summary><div className="mt-5"><QuantitiesView cost={cost}/></div></details>
-          <section><h2 className="mb-5 font-display text-xl">{translateUi("Estimate by trade")}</h2><EstimateView cost={cost}/><Link to="/workspace/finishes?tab=estimate" className="mt-4 inline-block text-sm underline">{translateUi("Edit finishes & view BOQ")}</Link></section>
+          <div className="border-t border-line pt-6"><LabourEstimateCard cost={cost} /></div>
+          <div className="border-t border-line pt-4"><QuantitiesView cost={cost}/></div>
+          <section className="border-t border-line pt-6"><EstimateView cost={cost}/></section>
 
-        </div>
-
-        {/* actions */}
-        <div className="space-y-4">
-          <div className="border border-line p-4">
-            <div className="flex items-center gap-2 font-display text-lg">
-              <FileText size={16} className="text-accent" /> {translateUi(" Project report")}</div>
-            <p className="mt-1.5 text-[0.8rem] leading-relaxed text-ink-faint">
-              {translateUi("Plans, room schedules, visualisations, room-by-room finishes, measured quantities, the estimate and its assumptions.")}</p>
-
-            <button
-              type="button"
-              onClick={download}
-              disabled={!!busy}
-              className={cx(
-                'mt-4 flex w-full items-center justify-center gap-2 px-5 py-3 font-mono text-xs uppercase tracking-[0.12em] transition-colors',
-                busy ? 'border border-line text-ink-faint' : 'bg-accent text-white hover:bg-accent-hot',
-              )}
-            >
-              {busy ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
-              {translateUi(busy ?? 'Download PDF')}
-            </button>
-
-            <button type="button" disabled={!!busy} onClick={()=>void downloadExtra('xlsx')} className="mt-3 w-full border border-line px-4 py-3 text-xs disabled:opacity-50">{translateUi("Download BOQ Excel")}</button>
-            <button type="button" disabled={!!busy} onClick={()=>void downloadExtra('spec')} className="mt-3 w-full border border-line px-4 py-3 text-xs disabled:opacity-50">{translateUi("Download spec sheet PDF")}</button>
-
-            {error && (
-              <p className="mt-3 border-l-2 border-bad/60 bg-bad/5 px-3 py-2 text-xs text-bad">{translateUi(error)}</p>
-            )}
-          </div>
-
-          <CostShareButton brief={brief} cost={cost}/>
-          <div className="border border-line p-4">
-            <div className="label mb-2">{translateUi("Generated images")}</div>
-            <p className="text-[0.8rem] leading-relaxed text-ink-faint">
-              {translateUi(conceptImages.length > 0
-                ? `${conceptImages.length} generated image${conceptImages.length === 1 ? '' : 's'} held in this browser.`
-                : 'No generated concept images yet.')}
-            </p>
-            {confirmClear ? (
-              <div className="mt-3 flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={clearImages}
-                  className="border border-bad/60 px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.1em] text-bad"
-                >
-                  {translateUi("Clear them")}</button>
-                <button
-                  type="button"
-                  onClick={() => setConfirmClear(false)}
-                  className="font-mono text-[0.65rem] uppercase tracking-[0.1em] text-ink-faint hover:text-ink"
-                >
-                  {translateUi("Cancel")}</button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setConfirmClear(true)}
-                disabled={conceptImages.length === 0}
-                className="mt-3 flex items-center gap-1.5 border border-line-strong px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.1em] text-ink-dim hover:border-ink-dim hover:text-ink disabled:opacity-40"
-              >
-                <Trash2 size={12} /> {translateUi(" Clear")}</button>
-            )}
-            <p className="mt-2 text-[0.7rem] text-ink-faint">
-              {translateUi("Clears only the generated images — the brief, plan, findings and cost stay.")}</p>
-          </div>
-        </div>
       </div>
 
       {/* offscreen plan sources for the PDF raster */}
@@ -411,13 +409,4 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
   )
 }
 
-function Metric({ k, v }: { k: string; v: string }) {
-  useLanguage(s => s.language);
 
-  return (
-    <div>
-      <span className="label">{translateUi(k)}</span>
-      <div className="mt-0.5 font-mono text-sm text-ink tnum">{translateUi(v)}</div>
-    </div>
-  )
-}

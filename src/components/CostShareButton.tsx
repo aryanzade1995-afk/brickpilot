@@ -21,7 +21,7 @@ export function CostShareButton({ brief, cost }: { brief: Brief; cost: CostEstim
     finally { setBusy(false) }
   }
   const current = saved?.sheet === sheet ? saved : null
-  return <section className="border border-line p-4"><h3 className="font-display text-lg">{translateUi("Share finishes & estimate")}</h3><p className="mt-2 text-xs leading-relaxed text-ink-faint">{translateUi("Anyone with the link can view this saved sheet. It has no editing controls; later changes need a new link.")}</p>
+  return <section className="border border-line p-4"><h3 className="font-display text-lg">{translateUi("Share finishes & estimate")}</h3><p className="mt-2 text-xs leading-relaxed text-ink-faint">{translateUi("Share a read-only snapshot of this estimate")}</p>
     <button type="button" disabled={busy} onClick={()=>void share()} className="mt-3 w-full border border-line px-4 py-3 text-xs disabled:opacity-50">{translateUi(busy ? 'Preparing link…' : current ? 'Create another read-only link' : 'Create read-only link')}</button>
     {current && <label className="mt-3 block text-xs">{translateUi("Read-only link")}<input readOnly aria-label={translateUi("Read-only specification link")} value={current.url} onFocus={e=>e.target.select()} className="mt-2 w-full border border-line bg-bg px-2 py-2 text-xs"/><a href={current.url} target="_blank" rel="noreferrer" className="mt-2 inline-block underline">{translateUi("Open shared sheet")}</a></label>}
     {error && <p role="alert" className="mt-3 text-xs text-bad">{translateUi(error)}</p>}

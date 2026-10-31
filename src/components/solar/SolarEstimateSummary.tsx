@@ -14,12 +14,14 @@ export function SolarEstimateSummary({ solar }: { solar?: SolarEstimate }) {
     {solar.status === 'applied' && <p className="mt-4 text-xs text-ink-dim">{t(solar.inverter.state === 'concept-compatible' ? 'Inverter: concept compatibility checks passed' : solar.inverter.state === 'incompatible' ? 'Inverter: incompatible data · selection pending' : 'Inverter: allowance only · compatibility pending')}</p>}
     {solar.status === 'applied' && <p className="mt-2 text-xs text-ink-faint">{t('Internal solar concept allowances · Pune · 19 Oct 2026. Confirm with an installer quotation.')}</p>}
     {solar.backup === 'pending' && <div className="mt-4 border-l-2 border-accent pl-3"><p className="text-sm">{t('Backup configuration pending')}</p><p className="mt-2 text-xs leading-relaxed text-ink-dim">{t('Ordinary grid-connected solar switches off during a grid outage. Hybrid, battery and critical-load design are not implemented or priced. This estimate does not provide outage backup.')}</p></div>}
-    <div className="mt-5 border-t border-line pt-4"><p className="text-sm">{t('Preliminary annual solar energy')}</p><p className="mt-2 text-sm">{solar.energy.annualKwh ? `${solar.energy.annualKwh.low.toLocaleString('en-IN')}–${solar.energy.annualKwh.high.toLocaleString('en-IN')} kWh/year` : t(solar.energy.state === 'not-applicable' ? 'No installed energy claim' : 'Insufficient information')}</p>
-      <p className="mt-2 text-xs text-ink-dim">{t('A monthly rupee bill is not electricity consumption in kWh. No bill savings or payback is calculated.')}</p>
-      {solar.energy.annualConsumptionKwh !== null && <p className="mt-2 text-xs text-ink-dim">{t('User consumption basis (12 × monthly kWh)')}: {solar.energy.annualConsumptionKwh.toLocaleString('en-IN')} kWh/year</p>}
-      <p className="mt-2 text-xs text-ink-faint">{t('The 3D shadow preview is decorative, not a validated shading or energy analysis.')}</p>
-    </div>
-    {solar.delivery && <p className="mt-3 text-xs text-ink-dim">{t('Solar layout status')}: {t(solar.delivery.layoutStatus)} · {t('Reserved areas')}: {solar.delivery.reservedAreaCount}</p>}
-    <details className="mt-4 text-xs"><summary className="cursor-pointer">{t('Solar basis, inclusions and exclusions')}</summary><div className="mt-3 space-y-3 break-words leading-relaxed text-ink-dim">{[...solar.notes, ...solar.inverter.reasons, ...solar.energy.reasons, ...solar.energy.basis, ...solar.inclusions, ...solar.exclusions, ...(solar.delivery?.assumptions ?? []), ...solar.sources].map((line, i) => <p key={i}>{t(line)}</p>)}</div></details>
+    {solar.status !== 'undecided' && (
+      <>
+        <div className="mt-5 border-t border-line pt-4"><p className="text-sm">{t('Preliminary annual solar energy')}</p><p className="mt-2 text-sm">{solar.energy.annualKwh ? `${solar.energy.annualKwh.low.toLocaleString('en-IN')}–${solar.energy.annualKwh.high.toLocaleString('en-IN')} kWh/year` : t(solar.energy.state === 'not-applicable' ? 'No installed energy claim' : 'Insufficient information')}</p>
+          {solar.energy.annualConsumptionKwh !== null && <p className="mt-2 text-xs text-ink-dim">{t('User consumption basis (12 × monthly kWh)')}: {solar.energy.annualConsumptionKwh.toLocaleString('en-IN')} kWh/year</p>}
+        </div>
+        {solar.delivery && <p className="mt-3 text-xs text-ink-dim">{t('Solar layout status')}: {t(solar.delivery.layoutStatus)} · {t('Reserved areas')}: {solar.delivery.reservedAreaCount}</p>}
+        <details className="mt-4 text-xs"><summary className="cursor-pointer">{t('Solar basis, inclusions and exclusions')}</summary><div className="mt-3 space-y-3 break-words leading-relaxed text-ink-dim">{[...solar.notes, ...solar.inverter.reasons, ...solar.energy.reasons, ...solar.energy.basis, ...solar.inclusions, ...solar.exclusions, ...(solar.delivery?.assumptions ?? []), ...solar.sources].map((line, i) => <p key={i}>{t(line)}</p>)}</div></details>
+      </>
+    )}
   </section>
 }
