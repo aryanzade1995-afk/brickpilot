@@ -2,7 +2,7 @@ import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
 import { floorEscapeRoutes, type EmergencyPlan } from '../engine/safety.ts'
 import { QuantityHighlight } from './QuantityHighlight.tsx'
 import { DRAWING_PRESETS, type DrawingLayers } from './layers.ts'
-import { Fragment } from 'react'
+import { Fragment, memo } from 'react'
 import { rectBottom, rectCenter, rectRight, rectUnionEdges, type Rect } from '../geometry.ts'
 import type { Design, FloorPlan, Opening, SiteFeature } from '../engine/types.ts'
 import { terraceLayout, tankBank } from '../engine/terrace.ts'
@@ -25,7 +25,7 @@ const ZONE_COLOR: Record<Zone, string> = {
   work: '#9b8cb3', sacred: '#bcac79', outdoor: '#829c7d',
 }
 
-export function FloorDrawing({
+export const FloorDrawing = memo(function FloorDrawing({
   floor,
   model,
   theme = 'dark',
@@ -310,7 +310,7 @@ export function FloorDrawing({
       </g>}
     </svg>
   )
-}
+})
 
 function OpeningMark({ o, ink, bg, theme }: { o: Opening; ink: string; bg: string; theme: Theme }) {
   useLanguage(s => s.language);
@@ -585,7 +585,7 @@ function Landscape({ floor, model }: { floor: FloorPlan; model: CanonicalModel }
  * The roof terrace over the top floor, from terraceLayout() — the same
  * stair headroom room, water tank and pergola the 3D model builds.
  */
-export function TerraceDrawing({ design, svgRef, theme = 'presentation', layers }: { design: Design; svgRef?: React.Ref<SVGSVGElement>; theme?: Theme; layers?: Partial<DrawingLayers> }) {
+export const TerraceDrawing = memo(function TerraceDrawing({ design, svgRef, theme = 'presentation', layers }: { design: Design; svgRef?: React.Ref<SVGSVGElement>; theme?: Theme; layers?: Partial<DrawingLayers> }) {
   useLanguage(s => s.language);
 
   const model = design.model
@@ -662,7 +662,7 @@ export function TerraceDrawing({ design, svgRef, theme = 'presentation', layers 
       )}
     </svg>
   )
-}
+})
 
 export function SiteFeatureDrawing({ features, ink, showLabels = true, showFurniture = true, dark = false }: { features: SiteFeature[]; ink: string; faint?: string; showLabels?: boolean; showFurniture?: boolean; dark?: boolean }) {
   useLanguage(s => s.language);

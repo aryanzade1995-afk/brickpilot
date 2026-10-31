@@ -1,5 +1,22 @@
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import { ChevronRight, Download, FileSpreadsheet, ArrowUpRight, CheckCircle2 } from 'lucide-react'
+import { SolarEstimateSummary } from '@/components/solar/SolarEstimateSummary.tsx'
+import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
+import type { CostEstimate, BoqLine } from '@/lib/cost/index.ts'
+import { boqCsv } from '@/lib/cost/index.ts'
+import { formatINR } from '@/lib/format.ts'
+import { Field } from '@/components/ui/controls.tsx'
+import { policy, type CostSelection } from '@/lib/cost/specifications.ts'
+import { cx } from '@/lib/cx.ts'
+import { useCostResearch } from '@/state/costResearch.ts'
+import { useStudio } from '@/state/studio.ts'
+import type { ScopeMode, ProposedRate } from '@/lib/cost/research/types.ts'
+import { detectUserCity } from '@/lib/location/detectLocation.ts'
+
 export function LabourEstimateCard({ cost, onAllowances }: { cost: CostEstimate; onAllowances?: (change: Partial<CostSelection>) => void }) {
   useLanguage(s => s.language)
+  const [open, setOpen] = useState(false)
   if (!cost.labour) return null
 
   return (
@@ -15,7 +32,10 @@ export function LabourEstimateCard({ cost, onAllowances }: { cost: CostEstimate;
       </p>
 
       <div className="mt-5">
-        <details className="group/labour rounded-lg border border-line bg-bg transition-colors">
+        <details
+          className="group/labour rounded-lg border border-line bg-bg transition-colors"
+          onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}
+        >
           <summary className="flex cursor-pointer select-none items-center justify-between p-4 font-display text-base hover:bg-bg-inset transition-colors">
             <div className="flex items-center gap-3">
               <ChevronRight size={16} className="text-ink-faint transition-transform duration-200 group-open/labour:rotate-90" />
@@ -35,122 +55,108 @@ export function LabourEstimateCard({ cost, onAllowances }: { cost: CostEstimate;
             </div>
           </summary>
 
-          <div className="border-t border-line bg-bg p-5 space-y-4">
-            {/* Labour Controls */}
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
-              <span className="text-xs font-medium text-ink">{translateUi("Labour Costing Mode:")}</span>
-              <div className="flex flex-wrap items-center gap-2">
-                {/* Wage Source Toggle */}
-                <div className="flex items-center gap-1 rounded border border-line p-0.5 bg-bg-inset">
-                  {(['auto', 'manual'] as const).map(wMode => (
-                    <button
-                      type="button"
-                      key={wMode}
-                      aria-pressed={(cost.selection.wageMode ?? 'auto') === wMode}
-                      onClick={() => onAllowances?.({
-                        wageMode: wMode,
-                        ...(wMode === 'manual' && !cost.selection.customDailyWage ? { customDailyWage: cost.labour?.blendedDailyRate ?? 767 } : {})
-                      })}
-                      className={cx(
-                        'rounded px-2.5 py-1 font-mono text-[0.68rem] uppercase tracking-wider transition-colors',
-                        (cost.selection.wageMode ?? 'auto') === wMode ? 'bg-bg text-ink font-semibold shadow-xs' : 'text-ink-dim hover:text-ink'
-                      )}
-                    >
-                      {translateUi(wMode === 'auto' ? "Auto (City)" : "Manual")}
-                    </button>
-                  ))}
+          {open && (
+            <div className="border-t border-line bg-bg p-5 space-y-4">
+              {/* Labour Controls */}
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
+                <span className="text-xs font-medium text-ink">{translateUi("Labour Costing Mode:")}</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Wage Source Toggle */}
+                  <div className="flex items-center gap-1 rounded border border-line p-0.5 bg-bg-inset">
+                    {(['auto', 'manual'] as const).map(wMode => (
+                      <button
+                        type="button"
+                        key={wMode}
+                        aria-pressed={(cost.selection.wageMode ?? 'auto') === wMode}
+                        onClick={() => onAllowances?.({
+                          wageMode: wMode,
+                          ...(wMode === 'manual' && !cost.selection.customDailyWage ? { customDailyWage: cost.labour?.blendedDailyRate ?? 767 } : {})
+                        })}
+                        className={cx(
+                          'rounded px-2.5 py-1 font-mono text-[0.68rem] uppercase tracking-wider transition-colors',
+                          (cost.selection.wageMode ?? 'auto') === wMode ? 'bg-bg text-ink font-semibold shadow-xs' : 'text-ink-dim hover:text-ink'
+                        )}
+                      >
+                        {translateUi(wMode === 'auto' ? "Auto (City)" : "Manual")}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Labour Mode Toggle */}
+                  <div className="flex items-center gap-1 rounded border border-line p-0.5 bg-bg-inset">
+                    {(['additional', 'replace'] as const).map(mode => (
+                      <button
+                        type="button"
+                        key={mode}
+                        aria-pressed={cost.labour?.mode === mode}
+                        onClick={() => onAllowances?.({ labourMode: mode })}
+                        className={cx(
+                          'rounded px-2.5 py-1 font-mono text-[0.68rem] uppercase tracking-wider transition-colors',
+                          cost.labour?.mode === mode ? 'bg-bg text-ink font-semibold shadow-xs' : 'text-ink-dim hover:text-ink'
+                        )}
+                      >
+                        {translateUi(mode === 'additional' ? "Additional" : "Replaces embedded")}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* 4 Metrics in Clean Cards */}
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="rounded-lg border border-line bg-bg-inset p-3.5">
+                  <span className="text-xs text-ink-dim">{translateUi("Blended Daily Wage")}</span>
+                  <p className="mt-1 font-mono text-sm font-semibold text-ink">
+                    {formatINR(cost.labour.blendedDailyRate)} <span className="text-[0.68rem] font-normal text-ink-dim">/ day</span>
+                  </p>
+                  <p className="mt-1 truncate text-[0.65rem] text-ink-faint" title={cost.labour.wageSourceLabel}>
+                    {cost.labour.wageSourceLabel}
+                  </p>
                 </div>
 
-                {/* Labour Mode Toggle */}
-                <div className="flex items-center gap-1 rounded border border-line p-0.5 bg-bg-inset">
-                  {(['additional', 'replace'] as const).map(mode => (
-                    <button
-                      type="button"
-                      key={mode}
-                      aria-pressed={cost.labour?.mode === mode}
-                      onClick={() => onAllowances?.({ labourMode: mode })}
-                      className={cx(
-                        'rounded px-2.5 py-1 font-mono text-[0.68rem] uppercase tracking-wider transition-colors',
-                        cost.labour?.mode === mode ? 'bg-bg text-ink font-semibold shadow-xs' : 'text-ink-dim hover:text-ink'
-                      )}
-                    >
-                      {translateUi(mode === 'additional' ? "Additional" : "Replaces embedded")}
-                    </button>
-                  ))}
+                <div className="rounded-lg border border-line bg-bg-inset p-3.5">
+                  <span className="text-xs text-ink-dim">{translateUi("Average Crew")}</span>
+                  <p className="mt-1 font-mono text-sm font-semibold text-ink">
+                    {cost.labour.crewSize} {translateUi("workers")}
+                  </p>
+                  <p className="mt-1 text-[0.65rem] text-ink-faint">
+                    {`Daily payroll ${formatINR(cost.labour.dailyCrewCost)}`}
+                  </p>
+                </div>
+
+                <div className="rounded-lg border border-line bg-bg-inset p-3.5">
+                  <span className="text-xs text-ink-dim">{translateUi("Site Labour Total")}</span>
+                  <p className="mt-1 font-mono text-sm font-semibold text-ink">
+                    {formatINR(cost.labour.siteLabourTotal)}
+                  </p>
+                  <p className="mt-1 text-[0.65rem] text-ink-faint">
+                    {cost.labour.mode === 'additional' ? translateUi("Added allowance") : translateUi("Replaces embedded")}
+                  </p>
+                </div>
+
+                <div className="rounded-lg border border-line bg-bg-inset p-3.5">
+                  <span className="text-xs text-ink-dim">{translateUi("Embedded Labour")}</span>
+                  <p className="mt-1 font-mono text-sm font-semibold text-ink">
+                    {formatINR(cost.labour.embeddedLabour)}
+                  </p>
+                  <p className="mt-1 text-[0.65rem] text-ink-faint">
+                    {translateUi("Inside item unit rates")}
+                  </p>
                 </div>
               </div>
+
+              <p className="text-[0.7rem] leading-relaxed text-ink-dim">
+                {cost.labour.mode === 'additional'
+                  ? translateUi(`Existing rates already include ${formatINR(cost.labour.embeddedLabour)} of installed labour. This allowance covers supervision, idle time, rework, and site clean-up.`)
+                  : translateUi(`Deducts ${formatINR(cost.labour.embeddedLabour)} of embedded labour from works and substitutes the ${formatINR(cost.labour.siteLabourTotal)} payroll allowance.`)}
+              </p>
             </div>
-
-            {/* 4 Metrics in Clean Cards */}
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-lg border border-line bg-bg-inset p-3.5">
-                <span className="text-xs text-ink-dim">{translateUi("Blended Daily Wage")}</span>
-                <p className="mt-1 font-mono text-sm font-semibold text-ink">
-                  {formatINR(cost.labour.blendedDailyRate)} <span className="text-[0.68rem] font-normal text-ink-dim">/ day</span>
-                </p>
-                <p className="mt-1 truncate text-[0.65rem] text-ink-faint" title={cost.labour.wageSourceLabel}>
-                  {cost.labour.wageSourceLabel}
-                </p>
-              </div>
-
-              <div className="rounded-lg border border-line bg-bg-inset p-3.5">
-                <span className="text-xs text-ink-dim">{translateUi("Average Crew")}</span>
-                <p className="mt-1 font-mono text-sm font-semibold text-ink">
-                  {cost.labour.crewSize} {translateUi("workers")}
-                </p>
-                <p className="mt-1 text-[0.65rem] text-ink-faint">
-                  {`Daily payroll ${formatINR(cost.labour.dailyCrewCost)}`}
-                </p>
-              </div>
-
-              <div className="rounded-lg border border-line bg-bg-inset p-3.5">
-                <span className="text-xs text-ink-dim">{translateUi("Site Labour Total")}</span>
-                <p className="mt-1 font-mono text-sm font-semibold text-ink">
-                  {formatINR(cost.labour.siteLabourTotal)}
-                </p>
-                <p className="mt-1 text-[0.65rem] text-ink-faint">
-                  {cost.labour.mode === 'additional' ? translateUi("Added allowance") : translateUi("Replaces embedded")}
-                </p>
-              </div>
-
-              <div className="rounded-lg border border-line bg-bg-inset p-3.5">
-                <span className="text-xs text-ink-dim">{translateUi("Embedded Labour")}</span>
-                <p className="mt-1 font-mono text-sm font-semibold text-ink">
-                  {formatINR(cost.labour.embeddedLabour)}
-                </p>
-                <p className="mt-1 text-[0.65rem] text-ink-faint">
-                  {translateUi("Inside item unit rates")}
-                </p>
-              </div>
-            </div>
-
-            <p className="text-[0.7rem] leading-relaxed text-ink-dim">
-              {cost.labour.mode === 'additional'
-                ? translateUi(`Existing rates already include ${formatINR(cost.labour.embeddedLabour)} of installed labour. This allowance covers supervision, idle time, rework, and site clean-up.`)
-                : translateUi(`Deducts ${formatINR(cost.labour.embeddedLabour)} of embedded labour from works and substitutes the ${formatINR(cost.labour.siteLabourTotal)} payroll allowance.`)}
-            </p>
-          </div>
+          )}
         </details>
       </div>
     </section>
   )
 }
-
-import { ChevronRight, Download, FileSpreadsheet, ArrowUpRight, CheckCircle2 } from 'lucide-react'
-import { SolarEstimateSummary } from '@/components/solar/SolarEstimateSummary.tsx'
-import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import type { CostEstimate } from '@/lib/cost/index.ts'
-import { boqCsv } from '@/lib/cost/index.ts'
-import { formatINR } from '@/lib/format.ts'
-import { Field } from '@/components/ui/controls.tsx'
-import { policy, type CostSelection } from '@/lib/cost/specifications.ts'
-import { cx } from '@/lib/cx.ts'
-import { useCostResearch } from '@/state/costResearch.ts'
-import { useStudio } from '@/state/studio.ts'
-import type { ScopeMode, ProposedRate } from '@/lib/cost/research/types.ts'
-import { detectUserCity } from '@/lib/location/detectLocation.ts'
 
 const quantityGroups = [
   ['Earthwork & foundation', ['earthwork.', 'concrete.footings', 'concrete.plinthBeams']],
@@ -200,48 +206,13 @@ export function QuantitiesView({ cost }: { cost: CostEstimate }) {
             if (matchingItems.length === 0) return null
 
             return (
-              <details
+              <QuantityGroupCard
                 key={label}
-                className="group/qgroup rounded-lg border border-line bg-bg transition-colors shadow-2xs"
-              >
-                <summary className="flex cursor-pointer select-none items-center justify-between p-4 font-display text-base hover:bg-bg-inset transition-colors">
-                  <div className="flex items-center gap-3">
-                    <ChevronRight size={16} className="text-ink-faint transition-transform duration-200 group-open/qgroup:rotate-90" />
-                    <span className="font-medium text-ink text-sm sm:text-base">{translateUi(label)}</span>
-                  </div>
-                  <span className="rounded bg-bg-inset px-2.5 py-0.5 font-mono text-xs text-ink-dim border border-line">
-                    {matchingItems.length} {translateUi(matchingItems.length === 1 ? "item" : "items")}
-                  </span>
-                </summary>
-
-                <div className="border-t border-line bg-bg px-5 py-2">
-                  <dl className="divide-y divide-line">
-                    {matchingItems.map(([id, values]) => (
-                      <div key={id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-                        <dt className="text-xs font-medium capitalize text-ink">
-                          {translateUi(id.replaceAll('.', ' · ').replace(/([a-z])([A-Z])/g, '$1 $2'))}
-                        </dt>
-                        <dd className="flex items-center gap-3 text-xs">
-                          <span className="font-mono text-ink-dim text-xs">
-                            {translateUi(
-                              Object.entries(values)
-                                .filter(([, v]) => v > 0)
-                                .map(([k, v]) => `${k} ${v.toFixed(2)}${k === 'NetVolume' ? ' m³' : k === 'Length' ? ' m' : k === 'Count' ? '' : ' m²'}`)
-                                .join(' · ')
-                            )}
-                          </span>
-                          <Link
-                            to={`/workspace/plan?floor=${floor === 'all' ? q.perFloor[0]?.level ?? 0 : current.level}&highlight=${encodeURIComponent(id)}`}
-                            className="font-mono text-[0.68rem] uppercase tracking-wider text-accent underline hover:text-accent-hot shrink-0"
-                          >
-                            {translateUi("Show on plan")}
-                          </Link>
-                        </dd>
-                      </div>
-                    ))}
-                  </dl>
-                </div>
-              </details>
+                label={label}
+                matchingItems={matchingItems}
+                floor={floor}
+                currentLevel={current.level}
+              />
             )
           })}
         </div>
@@ -253,119 +224,213 @@ export function QuantitiesView({ cost }: { cost: CostEstimate }) {
             if (matchingItems.length === 0) return null
 
             return (
-              <details
+              <QuantityGroupCard
                 key={label}
-                className="group/qgroup rounded-lg border border-line bg-bg transition-colors shadow-2xs"
-              >
-                <summary className="flex cursor-pointer select-none items-center justify-between p-4 font-display text-base hover:bg-bg-inset transition-colors">
-                  <div className="flex items-center gap-3">
-                    <ChevronRight size={16} className="text-ink-faint transition-transform duration-200 group-open/qgroup:rotate-90" />
-                    <span className="font-medium text-ink text-sm sm:text-base">{translateUi(label)}</span>
-                  </div>
-                  <span className="rounded bg-bg-inset px-2.5 py-0.5 font-mono text-xs text-ink-dim border border-line">
-                    {matchingItems.length} {translateUi(matchingItems.length === 1 ? "item" : "items")}
-                  </span>
-                </summary>
-
-                <div className="border-t border-line bg-bg px-5 py-2">
-                  <dl className="divide-y divide-line">
-                    {matchingItems.map(([id, values]) => (
-                      <div key={id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-                        <dt className="text-xs font-medium capitalize text-ink">
-                          {translateUi(id.replaceAll('.', ' · ').replace(/([a-z])([A-Z])/g, '$1 $2'))}
-                        </dt>
-                        <dd className="flex items-center gap-3 text-xs">
-                          <span className="font-mono text-ink-dim text-xs">
-                            {translateUi(
-                              Object.entries(values)
-                                .filter(([, v]) => v > 0)
-                                .map(([k, v]) => `${k} ${v.toFixed(2)}${k === 'NetVolume' ? ' m³' : k === 'Length' ? ' m' : k === 'Count' ? '' : ' m²'}`)
-                                .join(' · ')
-                            )}
-                          </span>
-                          <Link
-                            to={`/workspace/plan?floor=${floor === 'all' ? q.perFloor[0]?.level ?? 0 : current.level}&highlight=${encodeURIComponent(id)}`}
-                            className="font-mono text-[0.68rem] uppercase tracking-wider text-accent underline hover:text-accent-hot shrink-0"
-                          >
-                            {translateUi("Show on plan")}
-                          </Link>
-                        </dd>
-                      </div>
-                    ))}
-                  </dl>
-                </div>
-              </details>
+                label={label}
+                matchingItems={matchingItems}
+                floor={floor}
+                currentLevel={current.level}
+              />
             )
           })}
 
           {/* 7. Key Materials Summary Accordion */}
-          <details className="group/materials rounded-lg border border-line bg-bg transition-colors">
-            <summary className="flex cursor-pointer select-none items-center justify-between p-4 font-display text-base hover:bg-bg-inset transition-colors">
-              <div className="flex items-center gap-3">
-                <ChevronRight size={16} className="text-ink-faint transition-transform duration-200 group-open/materials:rotate-90" />
-                <span className="font-medium text-ink text-sm sm:text-base">{translateUi("Key Materials Summary")}</span>
-              </div>
-              <span className="rounded bg-bg-inset px-2.5 py-0.5 font-mono text-xs text-ink-dim border border-line">
-                {translateUi("Takeoff")}
-              </span>
-            </summary>
-
-            <div className="border-t border-line bg-bg p-4 sm:p-5">
-              <dl className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded border border-line bg-bg-inset p-3">
-                  <dt className="text-xs text-ink-dim">{translateUi("Steel")}</dt>
-                  <dd className="mt-1 font-mono text-base font-semibold text-ink">
-                    {translateUi(Object.values(current.steelKg).reduce((n, v) => n + v, 0).toFixed(1))} {translateUi("kg")}
-                  </dd>
-                </div>
-                <div className="rounded border border-line bg-bg-inset p-3">
-                  <dt className="text-xs text-ink-dim">{translateUi("Formwork")}</dt>
-                  <dd className="mt-1 font-mono text-base font-semibold text-ink">
-                    {translateUi(Object.values(current.formworkM2).reduce((n, v) => n + v, 0).toFixed(1))} {translateUi("m²")}
-                  </dd>
-                </div>
-              </dl>
-
-              {floor === 'all' && (
-                <dl className="mt-3 grid gap-3 sm:grid-cols-2">
-                  <div className="rounded border border-line bg-bg-inset p-3">
-                    <dt className="text-xs text-ink-dim">{translateUi(q.masonryMaterials.type)}</dt>
-                    <dd className="mt-1 font-mono text-base font-semibold text-ink">
-                      {translateUi(Math.ceil(q.masonryMaterials.Count).toLocaleString())} {translateUi("units")}
-                    </dd>
-                  </div>
-                  <div className="rounded border border-line bg-bg-inset p-3">
-                    <dt className="text-xs text-ink-dim">{translateUi("Water storage")}</dt>
-                    <dd className="mt-1 font-mono text-xs font-semibold text-ink">
-                      {translateUi(q.tanks.overheadLitres.toLocaleString())}L overhead · {translateUi(q.tanks.undergroundLitres.toLocaleString())}L tank
-                    </dd>
-                  </div>
-                  {q.concreteMaterials.cementBags !== null && (
-                    <>
-                      <div className="rounded border border-line bg-bg-inset p-3">
-                        <dt className="text-xs text-ink-dim">{translateUi("Cement (M20)")}</dt>
-                        <dd className="mt-1 font-mono text-base font-semibold text-ink">
-                          {translateUi(q.concreteMaterials.cementBags.toFixed(1))} {translateUi("bags")}
-                        </dd>
-                      </div>
-                      <div className="rounded border border-line bg-bg-inset p-3">
-                        <dt className="text-xs text-ink-dim">{translateUi("Sand / aggregate")}</dt>
-                        <dd className="mt-1 font-mono text-xs font-semibold text-ink">
-                          {translateUi(q.concreteMaterials.sandM3?.toFixed(2))} / {translateUi(q.concreteMaterials.aggregateM3?.toFixed(2))} {translateUi("m³")}
-                        </dd>
-                      </div>
-                    </>
-                  )}
-                </dl>
-              )}
-              <p className="mt-4 text-[0.68rem] leading-relaxed text-ink-faint">
-                {translateUi("Approximate member sizes and material ratios. Aggregated rows and room breakdowns describe the same work.")}
-              </p>
-            </div>
-          </details>
+          <KeyMaterialsCard current={current} floor={floor} q={q} />
         </div>
       </div>
     </section>
+  )
+}
+
+function QuantityGroupCard({
+  label,
+  matchingItems,
+  floor,
+  currentLevel,
+}: {
+  label: string
+  matchingItems: [string, Record<string, number>][]
+  floor: string
+  currentLevel: number
+}) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <details
+      className="group/qgroup rounded-lg border border-line bg-bg transition-colors shadow-2xs"
+      onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}
+    >
+      <summary className="flex cursor-pointer select-none items-center justify-between p-4 font-display text-base hover:bg-bg-inset transition-colors">
+        <div className="flex items-center gap-3">
+          <ChevronRight size={16} className="text-ink-faint transition-transform duration-200 group-open/qgroup:rotate-90" />
+          <span className="font-medium text-ink text-sm sm:text-base">{translateUi(label)}</span>
+        </div>
+        <span className="rounded bg-bg-inset px-2.5 py-0.5 font-mono text-xs text-ink-dim border border-line">
+          {matchingItems.length} {translateUi(matchingItems.length === 1 ? "item" : "items")}
+        </span>
+      </summary>
+
+      {open && (
+        <div className="border-t border-line bg-bg px-5 py-2">
+          <dl className="divide-y divide-line">
+            {matchingItems.map(([id, values]) => (
+              <div key={id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                <dt className="text-xs font-medium capitalize text-ink">
+                  {translateUi(id.replaceAll('.', ' · ').replace(/([a-z])([A-Z])/g, '$1 $2'))}
+                </dt>
+                <dd className="flex items-center gap-3 text-xs">
+                  <span className="font-mono text-ink-dim text-xs">
+                    {translateUi(
+                      Object.entries(values)
+                        .filter(([, v]) => v > 0)
+                        .map(([k, v]) => `${k} ${v.toFixed(2)}${k === 'NetVolume' ? ' m³' : k === 'Length' ? ' m' : k === 'Count' ? '' : ' m²'}`)
+                        .join(' · ')
+                    )}
+                  </span>
+                  <Link
+                    to={`/workspace/plan?floor=${floor === 'all' ? 0 : currentLevel}&highlight=${encodeURIComponent(id)}`}
+                    className="font-mono text-[0.68rem] uppercase tracking-wider text-accent underline hover:text-accent-hot shrink-0"
+                  >
+                    {translateUi("Show on plan")}
+                  </Link>
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      )}
+    </details>
+  )
+}
+
+function KeyMaterialsCard({ current, floor, q }: { current: CostEstimate['quantities']['total']; floor: string; q: CostEstimate['quantities'] }) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <details
+      className="group/materials rounded-lg border border-line bg-bg transition-colors shadow-2xs"
+      onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}
+    >
+      <summary className="flex cursor-pointer select-none items-center justify-between p-4 font-display text-base hover:bg-bg-inset transition-colors">
+        <div className="flex items-center gap-3">
+          <ChevronRight size={16} className="text-ink-faint transition-transform duration-200 group-open/materials:rotate-90" />
+          <span className="font-medium text-ink text-sm sm:text-base">{translateUi("Key Materials Summary")}</span>
+        </div>
+        <span className="rounded bg-bg-inset px-2.5 py-0.5 font-mono text-xs text-ink-dim border border-line">
+          {translateUi("Takeoff")}
+        </span>
+      </summary>
+
+      {open && (
+        <div className="border-t border-line bg-bg p-4 sm:p-5">
+          <dl className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded border border-line bg-bg-inset p-3">
+              <dt className="text-xs text-ink-dim">{translateUi("Steel")}</dt>
+              <dd className="mt-1 font-mono text-base font-semibold text-ink">
+                {translateUi(Object.values(current.steelKg).reduce((n, v) => n + v, 0).toFixed(1))} {translateUi("kg")}
+              </dd>
+            </div>
+            <div className="rounded border border-line bg-bg-inset p-3">
+              <dt className="text-xs text-ink-dim">{translateUi("Formwork")}</dt>
+              <dd className="mt-1 font-mono text-base font-semibold text-ink">
+                {translateUi(Object.values(current.formworkM2).reduce((n, v) => n + v, 0).toFixed(1))} {translateUi("m²")}
+              </dd>
+            </div>
+          </dl>
+
+          {floor === 'all' && (
+            <dl className="mt-3 grid gap-3 sm:grid-cols-2">
+              <div className="rounded border border-line bg-bg-inset p-3">
+                <dt className="text-xs text-ink-dim">{translateUi(q.masonryMaterials.type)}</dt>
+                <dd className="mt-1 font-mono text-base font-semibold text-ink">
+                  {translateUi(Math.ceil(q.masonryMaterials.Count).toLocaleString())} {translateUi("units")}
+                </dd>
+              </div>
+              <div className="rounded border border-line bg-bg-inset p-3">
+                <dt className="text-xs text-ink-dim">{translateUi("Water storage")}</dt>
+                <dd className="mt-1 font-mono text-xs font-semibold text-ink">
+                  {translateUi(q.tanks.overheadLitres.toLocaleString())}L overhead · {translateUi(q.tanks.undergroundLitres.toLocaleString())}L tank
+                </dd>
+              </div>
+              {q.concreteMaterials.cementBags !== null && (
+                <>
+                  <div className="rounded border border-line bg-bg-inset p-3">
+                    <dt className="text-xs text-ink-dim">{translateUi("Cement (M20)")}</dt>
+                    <dd className="mt-1 font-mono text-base font-semibold text-ink">
+                      {translateUi(q.concreteMaterials.cementBags.toFixed(1))} {translateUi("bags")}
+                    </dd>
+                  </div>
+                  <div className="rounded border border-line bg-bg-inset p-3">
+                    <dt className="text-xs text-ink-dim">{translateUi("Sand / aggregate")}</dt>
+                    <dd className="mt-1 font-mono text-xs font-semibold text-ink">
+                      {translateUi(q.concreteMaterials.sandM3?.toFixed(2))} / {translateUi(q.concreteMaterials.aggregateM3?.toFixed(2))} {translateUi("m³")}
+                    </dd>
+                  </div>
+                </>
+              )}
+            </dl>
+          )}
+          <p className="mt-4 text-[0.68rem] leading-relaxed text-ink-faint">
+            {translateUi("Approximate member sizes and material ratios. Aggregated rows and room breakdowns describe the same work.")}
+          </p>
+        </div>
+      )}
+    </details>
+  )
+}
+
+function TradeCard({ trade, tradeBoq, share, amount, split }: { trade: string; tradeBoq: BoqLine[]; share: number; amount: number; split: boolean }) {
+  const [open, setOpen] = useState(false)
+  const sharePercent = (share * 100).toFixed(1)
+
+  return (
+    <details
+      className="group/trade rounded-xl border border-line bg-bg transition-all hover:border-line-strong shadow-2xs"
+      onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}
+    >
+      <summary className="flex cursor-pointer select-none items-center justify-between p-4 sm:p-5 hover:bg-bg-inset transition-colors">
+        <div className="flex items-center gap-3 min-w-0">
+          <ChevronRight size={18} className="text-ink-faint transition-transform duration-200 group-open/trade:rotate-90 shrink-0" />
+          <span className="font-medium text-ink text-sm sm:text-base">{translateUi(trade)}</span>
+        </div>
+
+        <div className="flex items-center gap-4 shrink-0">
+          <div className="flex flex-col items-end">
+            <span className="font-mono text-sm sm:text-base font-semibold text-ink">{translateUi(formatINR(amount))}</span>
+            <span className="font-mono text-xs text-ink-dim">{sharePercent}%</span>
+          </div>
+          <div className="w-16 sm:w-28 h-2 rounded-full bg-bg-inset overflow-hidden border border-line">
+            <div className="h-full bg-ink" style={{ width: `${Math.min(100, Math.max(5, share * 100))}%` }} />
+          </div>
+        </div>
+      </summary>
+
+      {open && (
+        <div className="border-t border-line bg-bg px-5 py-3">
+          <ul className="divide-y divide-line">
+            {tradeBoq.map(l => (
+              <li key={l.id} className="py-3 text-sm">
+                <div className="flex flex-wrap items-baseline justify-between gap-3">
+                  <p className="font-medium text-ink text-sm">{translateUi(l.label)}</p>
+                  <p className="shrink-0 font-mono text-sm font-semibold text-ink">{translateUi(formatINR(l.amount))}</p>
+                </div>
+                <div className="mt-1 flex flex-wrap items-center justify-between gap-2 text-xs text-ink-dim">
+                  <p className="text-ink-faint leading-relaxed">{translateUi(l.specification)}</p>
+                  <p className="font-mono shrink-0">
+                    <span className="text-ink font-medium">{translateUi(l.qty.toFixed(2))} {translateUi(l.unit)}</span> × <span>{translateUi(formatINR(l.rate))}</span>
+                  </p>
+                </div>
+                {split && (
+                  <p className="mt-1 font-mono text-xs text-ink-faint">
+                    {translateUi("Material: ")}{translateUi(formatINR(l.materialAmount))} · {translateUi("Labour: ")}{translateUi(formatINR(l.labourAmount))}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </details>
   )
 }
 
@@ -497,58 +562,19 @@ export function EstimateView({ cost, onAllowances }: { cost: CostEstimate; onAll
 
             </div>
 
-            {/* List of Trade Accordion Cards - Spacious Full Width */}
+            {/* List of Trade Accordion Cards - Lazy Rendered on Expand */}
             <div className="space-y-3">
               {cost.tradeTotals.map(t => {
                 const tradeBoq = cost.boq.filter(l => l.group === t.trade)
-                const sharePercent = (t.share * 100).toFixed(1)
-
                 return (
-                  <details
+                  <TradeCard
                     key={t.trade}
-                    className="group/trade rounded-xl border border-line bg-bg transition-all hover:border-line-strong shadow-2xs"
-                  >
-                    <summary className="flex cursor-pointer select-none items-center justify-between p-4 sm:p-5 hover:bg-bg-inset transition-colors">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <ChevronRight size={18} className="text-ink-faint transition-transform duration-200 group-open/trade:rotate-90 shrink-0" />
-                        <span className="font-medium text-ink text-sm sm:text-base">{translateUi(t.trade)}</span>
-                      </div>
-
-                      <div className="flex items-center gap-4 shrink-0">
-                        <div className="flex flex-col items-end">
-                          <span className="font-mono text-sm sm:text-base font-semibold text-ink">{translateUi(formatINR(t.amount))}</span>
-                          <span className="font-mono text-xs text-ink-dim">{sharePercent}%</span>
-                        </div>
-                        <div className="w-16 sm:w-28 h-2 rounded-full bg-bg-inset overflow-hidden border border-line">
-                          <div className="h-full bg-ink" style={{ width: `${Math.min(100, Math.max(5, t.share * 100))}%` }} />
-                        </div>
-                      </div>
-                    </summary>
-
-                    <div className="border-t border-line bg-bg px-5 py-3">
-                      <ul className="divide-y divide-line">
-                        {tradeBoq.map(l => (
-                          <li key={l.id} className="py-3 text-sm">
-                            <div className="flex flex-wrap items-baseline justify-between gap-3">
-                              <p className="font-medium text-ink text-sm">{translateUi(l.label)}</p>
-                              <p className="shrink-0 font-mono text-sm font-semibold text-ink">{translateUi(formatINR(l.amount))}</p>
-                            </div>
-                            <div className="mt-1 flex flex-wrap items-center justify-between gap-2 text-xs text-ink-dim">
-                              <p className="text-ink-faint leading-relaxed">{translateUi(l.specification)}</p>
-                              <p className="font-mono shrink-0">
-                                <span className="text-ink font-medium">{translateUi(l.qty.toFixed(2))} {translateUi(l.unit)}</span> × <span>{translateUi(formatINR(l.rate))}</span>
-                              </p>
-                            </div>
-                            {split && (
-                              <p className="mt-1 font-mono text-xs text-ink-faint">
-                                {translateUi("Material: ")}{translateUi(formatINR(l.materialAmount))} · {translateUi("Labour: ")}{translateUi(formatINR(l.labourAmount))}
-                              </p>
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </details>
+                    trade={t.trade}
+                    tradeBoq={tradeBoq}
+                    share={t.share}
+                    amount={t.amount}
+                    split={split}
+                  />
                 )
               })}
             </div>

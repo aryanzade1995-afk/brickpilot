@@ -7,7 +7,6 @@ import { specificationSchedule } from '@/lib/cost/schedule.ts'
 import { QuantitiesView, EstimateView, LabourEstimateCard } from './finishes/CostViews.tsx'
 import { useBlender } from '@/state/blender.ts'
 import { useSolarArtifacts, solarArtifactKey, isCurrentSolarArtifact } from '@/state/solarArtifacts.ts'
-import { createBuildingModel } from '@/lib/engine/buildingModel.ts'
 import { finishSignature } from '@/lib/cost/finishAssignments.ts'
 import type { Result } from '@/state/studio.ts'
 import type { Brief } from '@/lib/model/brief.ts'
@@ -73,7 +72,7 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
     if (!result) run()
   }, [result, run])
 
-  const planId = useMemo(() => result ? createBuildingModel({ ...result.design, model: { ...result.design.model, brief } }).planId : '', [result, brief])
+  const planId = result?.buildingModel?.planId || result?.design?.id || ''
   const blender = useBlender(s => s.accepted[planId])
   const solarPreview = useSolarArtifacts(s => s.renders[solarArtifactKey(blender, brief.solar, 'preview')])
   const solarFinal = useSolarArtifacts(s => s.renders[solarArtifactKey(blender, brief.solar, 'final')])
