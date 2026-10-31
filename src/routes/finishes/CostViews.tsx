@@ -588,15 +588,17 @@ export function EstimateView({ cost, onAllowances }: { cost: CostEstimate; onAll
 
 
 
-        {/* 4 & 5. Project Add-ons & Top Cost Drivers Cards - 2 Column Split Below Trades */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        {/* 4 & 5. Project Add-ons & Top Cost Drivers Cards - Equal Length / Height Side-by-Side */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
 
           {/* Project Add-ons Card */}
-          <div className="rounded-xl border border-line bg-bg p-5 shadow-sm">
-            <h3 className="font-display text-lg font-medium text-ink">{translateUi("Project Add-ons")}</h3>
-            <p className="mt-0.5 text-xs text-ink-faint">{translateUi("Statutory fees, overheads and site management allowances.")}</p>
+          <div className="rounded-xl border border-line bg-bg p-6 shadow-xs flex flex-col h-full justify-between">
+            <div>
+              <h3 className="font-display text-lg font-medium text-ink">{translateUi("Project Add-ons")}</h3>
+              <p className="mt-1 text-xs text-ink-faint leading-relaxed">{translateUi("Statutory fees, overheads and site management allowances.")}</p>
+            </div>
 
-            <dl className="mt-4 divide-y divide-line">
+            <dl className="mt-5 divide-y divide-line flex-1 flex flex-col justify-around">
               {cost.lines.slice(1).map(l => (
                 <div key={l.label} className="py-3 text-xs">
                   <div className="flex justify-between items-baseline gap-2">
@@ -610,17 +612,19 @@ export function EstimateView({ cost, onAllowances }: { cost: CostEstimate; onAll
           </div>
 
           {/* Top Cost Drivers Card */}
-          <div className="rounded-xl border border-line bg-bg p-5 shadow-sm">
-            <h3 className="font-display text-lg font-medium text-ink">{translateUi("Top Cost Drivers")}</h3>
-            <p className="mt-0.5 text-xs text-ink-faint">
-              {translateUi("Compared against ")}
-              <strong className="text-ink">
-                {{ simple: 'Basic', standard: 'Mid', refined: 'Premium' }[cost.selection.preset] ?? cost.selection.preset}
-              </strong>
-              {translateUi(" baseline configuration.")}
-            </p>
+          <div className="rounded-xl border border-line bg-bg p-6 shadow-xs flex flex-col h-full justify-between">
+            <div>
+              <h3 className="font-display text-lg font-medium text-ink">{translateUi("Top Cost Drivers")}</h3>
+              <p className="mt-1 text-xs text-ink-faint leading-relaxed">
+                {translateUi("Compared against ")}
+                <strong className="text-ink">
+                  {{ simple: 'Basic', standard: 'Mid', refined: 'Premium' }[cost.selection.preset] ?? cost.selection.preset}
+                </strong>
+                {translateUi(" baseline configuration.")}
+              </p>
+            </div>
 
-            <ul className="mt-4 space-y-3">
+            <ul className="mt-5 space-y-3 flex-1 flex flex-col justify-around">
               {cost.topCostDrivers.map(d => (
                 <li key={d.item} className="rounded-lg border border-line bg-bg-inset p-3 text-xs">
                   <div className="flex items-center justify-between gap-2">
