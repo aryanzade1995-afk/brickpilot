@@ -158,47 +158,44 @@ export function SpecificationSchedule({ rows }: { rows: SpecificationRow[] }) {
               </div>
             </summary>
 
-            {/* Room list inside floor */}
-            <div className="border-t border-line bg-bg-inset/40 p-3 sm:p-4 grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
+            {/* Room list inside floor - Spacious, full-width room cards */}
+            <div className="border-t border-line bg-bg-inset/20 p-4 sm:p-6 space-y-4">
               {floor.rooms.map(room => (
-                <details
+                <div
                   key={room.whereKey}
-                  className="group/room rounded border border-line bg-bg overflow-hidden transition-all hover:border-line-strong"
+                  className="rounded-lg border border-line bg-bg overflow-hidden shadow-2xs"
                 >
-                  <summary className="flex cursor-pointer select-none items-center justify-between px-3.5 py-2.5 text-sm hover:bg-bg-inset transition-colors">
-                    <div className="flex items-center gap-2.5">
-                      <ChevronRight size={14} className="text-ink-faint transition-transform duration-200 group-open/room:rotate-90" />
-                      <span className="font-medium text-ink">{translateUi(room.roomName)}</span>
-                    </div>
-                    <span className="font-mono text-[0.7rem] text-ink-faint">
-                      {room.rows.length} {translateUi(room.rows.length === 1 ? "item" : "items")}
+                  <div className="flex items-center justify-between px-4 py-3 bg-bg-inset/50 border-b border-line">
+                    <span className="font-medium text-ink text-sm sm:text-base">{translateUi(room.roomName)}</span>
+                    <span className="rounded bg-bg px-2.5 py-0.5 font-mono text-xs text-ink-dim border border-line">
+                      {room.rows.length} {translateUi(room.rows.length === 1 ? "finish" : "finishes")}
                     </span>
-                  </summary>
+                  </div>
 
                   {/* Finishes list */}
-                  <ul className="divide-y divide-line border-t border-line bg-bg px-4 py-1">
+                  <ul className="divide-y divide-line px-4 sm:px-6 py-1">
                     {room.rows.map(r => (
-                      <li key={r.id} className="flex items-start gap-3.5 py-3">
+                      <li key={r.id} className="flex items-center gap-4 py-3.5">
                         {r.photo ? (
                           <img
                             loading="lazy"
                             src={assetUrl(r.photo)}
                             alt={translateUi(`Real texture close-up: ${r.choice}`)}
-                            className="h-12 w-16 shrink-0 rounded border border-line object-cover"
+                            className="h-14 w-20 shrink-0 rounded border border-line object-cover"
                           />
                         ) : (
-                          <div className="h-12 w-16 shrink-0 rounded border border-line bg-bg-inset flex items-center justify-center text-[0.65rem] text-ink-faint font-mono uppercase">
+                          <div className="h-14 w-20 shrink-0 rounded border border-line bg-bg-inset flex items-center justify-center text-[0.65rem] text-ink-faint font-mono uppercase">
                             {translateUi("No photo")}
                           </div>
                         )}
-                        <div className="min-w-0 flex-1 text-sm">
-                          <div className="flex flex-wrap items-baseline justify-between gap-2">
-                            <p className="font-medium text-ink">{translateUi(r.label)}</p>
-                            <span className="font-mono text-xs text-ink-dim">{translateUi(r.quantity)}</span>
-                          </div>
-                          <p className="mt-0.5 text-xs text-ink-dim">{translateUi(r.choice)}</p>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-ink text-sm">{translateUi(r.label)}</p>
+                          <p className="mt-0.5 text-xs text-ink-dim leading-relaxed">{translateUi(r.choice)}</p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="font-mono text-xs text-ink font-semibold">{translateUi(r.quantity)}</span>
                           {r.rate && (
-                            <p className="mt-1 font-mono text-[0.7rem] text-ink-faint">
+                            <p className="mt-0.5 font-mono text-[0.72rem] text-ink-faint">
                               ₹{r.rate.toLocaleString('en-IN')} / {r.unit}
                             </p>
                           )}
@@ -206,7 +203,7 @@ export function SpecificationSchedule({ rows }: { rows: SpecificationRow[] }) {
                       </li>
                     ))}
                   </ul>
-                </details>
+                </div>
               ))}
             </div>
           </details>

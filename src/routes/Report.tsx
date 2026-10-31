@@ -215,46 +215,46 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
       </div>
 
       {/* Top Cards: Expected Total Investment & Project Report */}
-      <div className="mt-4 flex flex-wrap items-stretch gap-4">
+      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
         {/* Expected Total Investment Box */}
-        <div className="flex-1 min-w-[280px] rounded-xl border border-line bg-bg p-5 sm:p-6 shadow-xs flex flex-col justify-between">
+        <div className="rounded-xl border border-line bg-bg p-6 sm:p-7 shadow-xs flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between gap-2">
-              <span className="font-mono text-[0.7rem] uppercase tracking-wider text-ink-dim">
+            <div className="flex items-center justify-between gap-3">
+              <span className="font-mono text-xs uppercase tracking-wider text-ink-dim">
                 {translateUi("Expected Total Investment")}
               </span>
-              <span className="rounded-full border border-line bg-bg-inset px-2.5 py-0.5 font-mono text-xs text-ink font-medium">
+              <span className="rounded-full border border-line bg-bg-inset px-3 py-1 font-mono text-xs text-ink font-medium">
                 {translateUi("Built area: ")}{design.builtAreaSqm.toFixed(1)} m²
               </span>
             </div>
-            <div className="mt-2 flex flex-wrap items-baseline gap-3">
+            <div className="mt-3 flex flex-wrap items-baseline gap-3">
               <h2 className="font-display text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
                 {translateUi(formatINR(cost.expected))}
               </h2>
-              <span className="rounded-full border border-line bg-bg-inset px-2.5 py-0.5 font-mono text-xs text-ink-dim">
+              <span className="rounded-full border border-line bg-bg-inset px-3 py-1 font-mono text-xs text-ink-dim">
                 {translateUi(formatINR(cost.ratePerSqft))} / sq ft
               </span>
             </div>
           </div>
           <p className="mt-4 font-mono text-xs text-ink-dim">
             {translateUi("Projected range: ")}
-            <span className="text-ink">{translateUi(formatRange(cost.total.low, cost.total.high, formatINR))}</span>
+            <span className="text-ink font-medium">{translateUi(formatRange(cost.total.low, cost.total.high, formatINR))}</span>
           </p>
         </div>
 
         {/* Project Report Box - Matching exact styling */}
-        <div className="flex-1 min-w-[280px] rounded-xl border border-line bg-bg p-5 sm:p-6 shadow-xs flex flex-col justify-between">
+        <div className="rounded-xl border border-line bg-bg p-6 sm:p-7 shadow-xs flex flex-col justify-between">
           <div>
-            <div className="flex items-center gap-2 font-display text-lg font-medium text-ink">
-              <FileText size={18} className="text-accent" />
+            <div className="flex items-center gap-2.5 font-display text-xl font-medium text-ink">
+              <FileText size={20} className="text-accent" />
               <span>{translateUi("Project Report")}</span>
             </div>
-            <p className="mt-1 text-xs text-ink-faint">
+            <p className="mt-1.5 text-xs text-ink-faint">
               {translateUi("Complete project documentation & schedule exports")}
             </p>
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center gap-2.5">
+          <div className="mt-5 flex flex-wrap items-center gap-3">
             <button
               type="button"
               onClick={download}
@@ -272,7 +272,7 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
               type="button"
               disabled={!!busy}
               onClick={()=>void downloadExtra('xlsx')}
-              className="rounded-lg border border-line bg-bg px-3.5 py-2.5 text-xs text-ink hover:bg-bg-inset disabled:opacity-50 transition-colors"
+              className="rounded-lg border border-line bg-bg px-4 py-2.5 text-xs text-ink hover:bg-bg-inset disabled:opacity-50 transition-colors"
             >
               {translateUi("BOQ Excel")}
             </button>
@@ -281,23 +281,21 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
               type="button"
               disabled={!!busy}
               onClick={()=>void downloadExtra('spec')}
-              className="rounded-lg border border-line bg-bg px-3.5 py-2.5 text-xs text-ink hover:bg-bg-inset disabled:opacity-50 transition-colors"
+              className="rounded-lg border border-line bg-bg px-4 py-2.5 text-xs text-ink hover:bg-bg-inset disabled:opacity-50 transition-colors"
             >
               {translateUi("Spec PDF")}
             </button>
           </div>
 
           {error && (
-            <p className="mt-2 text-xs text-bad">{translateUi(error)}</p>
+            <p className="mt-3 text-xs text-bad">{translateUi(error)}</p>
           )}
         </div>
       </div>
 
-
-
-      <div className="mt-6 space-y-10">
+      <div className="mt-10 space-y-12">
           {/* plan preview + floor picker */}
-          <section>
+          <section className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="font-display text-xl">{translateUi(floor.name)} {translateUi(" plan")}</h2>
               <div className="flex gap-1">
@@ -350,12 +348,12 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
             </div>
           </section>
 
-          <section><h2 className="font-display text-xl">{translateUi("3D & renders")}</h2><p className="mt-2 text-xs text-ink-dim">{translateUi('')}</p>
+          <section className="border-t border-line pt-10"><h2 className="font-display text-xl">{translateUi("3D & renders")}</h2><p className="mt-2 text-xs text-ink-dim">{translateUi('')}</p>
             {blenderImages.length ? <div className="mt-4 grid gap-3 sm:grid-cols-2">{blenderImages.map(img => <figure key={img.label} className="border border-line"><img src={img.dataUrl} alt={translateUi(img.label)} className="aspect-[4/3] w-full object-contain"/><figcaption className="p-3 text-xs text-ink-dim">{translateUi(img.label)}</figcaption></figure>)}</div> : <p className="mt-3 text-sm text-ink-dim">{translateUi("Generate views on ")}<Link to="/workspace/massing" className="underline">{translateUi("3D Massing")}</Link>{translateUi(". Your report can also capture the current 3D study.")}</p>}
           </section>
 
           {conceptImages.length > 0 && (
-            <section>
+            <section className="border-t border-line pt-10">
               <h2 className="font-display text-xl">{translateUi("Generated concepts")}</h2><p className="mt-2 text-xs text-ink-dim">{translateUi('')}</p>
               <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {conceptImages.map((img, i) => (
@@ -369,10 +367,22 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
               </div>
             </section>
           )}
-          <SpecificationSchedule rows={specificationSchedule(brief, cost)} />
-          <div className="border-t border-line pt-6"><LabourEstimateCard cost={cost} /></div>
-          <div className="border-t border-line pt-4"><QuantitiesView cost={cost}/></div>
-          <section className="border-t border-line pt-6"><EstimateView cost={cost}/></section>
+
+          <section className="border-t border-line pt-10">
+            <SpecificationSchedule rows={specificationSchedule(brief, cost)} />
+          </section>
+
+          <section className="border-t border-line pt-10">
+            <LabourEstimateCard cost={cost} />
+          </section>
+
+          <section className="border-t border-line pt-10">
+            <QuantitiesView cost={cost}/>
+          </section>
+
+          <section className="border-t border-line pt-10">
+            <EstimateView cost={cost}/>
+          </section>
 
       </div>
 

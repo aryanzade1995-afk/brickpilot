@@ -192,9 +192,9 @@ export function QuantitiesView({ cost }: { cost: CostEstimate }) {
       </div>
 
       {/* 2-Column Split: 4 on Left, 3 on Right */}
-      <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+      <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         {/* Left Column: 4 groups (Earthwork, Structure, Masonry, Finishes) */}
-        <div className="space-y-3">
+        <div className="space-y-4">
           {quantityGroups.slice(0, 4).map(([label, prefixes]) => {
             const matchingItems = Object.entries(current.items).filter(([id]) => prefixes.some(p => id.startsWith(p)))
             if (matchingItems.length === 0) return null
@@ -202,7 +202,7 @@ export function QuantitiesView({ cost }: { cost: CostEstimate }) {
             return (
               <details
                 key={label}
-                className="group/qgroup rounded-lg border border-line bg-bg transition-colors"
+                className="group/qgroup rounded-lg border border-line bg-bg transition-colors shadow-2xs"
               >
                 <summary className="flex cursor-pointer select-none items-center justify-between p-4 font-display text-base hover:bg-bg-inset transition-colors">
                   <div className="flex items-center gap-3">
@@ -214,15 +214,15 @@ export function QuantitiesView({ cost }: { cost: CostEstimate }) {
                   </span>
                 </summary>
 
-                <div className="border-t border-line bg-bg px-4 py-2">
+                <div className="border-t border-line bg-bg px-5 py-2">
                   <dl className="divide-y divide-line">
                     {matchingItems.map(([id, values]) => (
-                      <div key={id} className="flex flex-wrap items-center justify-between gap-3 py-2.5">
+                      <div key={id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                         <dt className="text-xs font-medium capitalize text-ink">
                           {translateUi(id.replaceAll('.', ' · ').replace(/([a-z])([A-Z])/g, '$1 $2'))}
                         </dt>
-                        <dd className="flex flex-wrap items-baseline gap-3 text-xs">
-                          <span className="font-mono text-ink-dim text-[0.72rem]">
+                        <dd className="flex items-center gap-3 text-xs">
+                          <span className="font-mono text-ink-dim text-xs">
                             {translateUi(
                               Object.entries(values)
                                 .filter(([, v]) => v > 0)
@@ -232,7 +232,7 @@ export function QuantitiesView({ cost }: { cost: CostEstimate }) {
                           </span>
                           <Link
                             to={`/workspace/plan?floor=${floor === 'all' ? q.perFloor[0]?.level ?? 0 : current.level}&highlight=${encodeURIComponent(id)}`}
-                            className="font-mono text-[0.65rem] uppercase tracking-wider text-accent underline hover:text-accent-hot"
+                            className="font-mono text-[0.68rem] uppercase tracking-wider text-accent underline hover:text-accent-hot shrink-0"
                           >
                             {translateUi("Show on plan")}
                           </Link>
@@ -247,7 +247,7 @@ export function QuantitiesView({ cost }: { cost: CostEstimate }) {
         </div>
 
         {/* Right Column: 3 groups (Openings, Services, Key Materials Summary) */}
-        <div className="space-y-3">
+        <div className="space-y-4">
           {quantityGroups.slice(4).map(([label, prefixes]) => {
             const matchingItems = Object.entries(current.items).filter(([id]) => prefixes.some(p => id.startsWith(p)))
             if (matchingItems.length === 0) return null
@@ -255,7 +255,7 @@ export function QuantitiesView({ cost }: { cost: CostEstimate }) {
             return (
               <details
                 key={label}
-                className="group/qgroup rounded-lg border border-line bg-bg transition-colors"
+                className="group/qgroup rounded-lg border border-line bg-bg transition-colors shadow-2xs"
               >
                 <summary className="flex cursor-pointer select-none items-center justify-between p-4 font-display text-base hover:bg-bg-inset transition-colors">
                   <div className="flex items-center gap-3">
@@ -267,15 +267,15 @@ export function QuantitiesView({ cost }: { cost: CostEstimate }) {
                   </span>
                 </summary>
 
-                <div className="border-t border-line bg-bg px-4 py-2">
+                <div className="border-t border-line bg-bg px-5 py-2">
                   <dl className="divide-y divide-line">
                     {matchingItems.map(([id, values]) => (
-                      <div key={id} className="flex flex-wrap items-center justify-between gap-3 py-2.5">
+                      <div key={id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                         <dt className="text-xs font-medium capitalize text-ink">
                           {translateUi(id.replaceAll('.', ' · ').replace(/([a-z])([A-Z])/g, '$1 $2'))}
                         </dt>
-                        <dd className="flex flex-wrap items-baseline gap-3 text-xs">
-                          <span className="font-mono text-ink-dim text-[0.72rem]">
+                        <dd className="flex items-center gap-3 text-xs">
+                          <span className="font-mono text-ink-dim text-xs">
                             {translateUi(
                               Object.entries(values)
                                 .filter(([, v]) => v > 0)
@@ -285,7 +285,7 @@ export function QuantitiesView({ cost }: { cost: CostEstimate }) {
                           </span>
                           <Link
                             to={`/workspace/plan?floor=${floor === 'all' ? q.perFloor[0]?.level ?? 0 : current.level}&highlight=${encodeURIComponent(id)}`}
-                            className="font-mono text-[0.65rem] uppercase tracking-wider text-accent underline hover:text-accent-hot"
+                            className="font-mono text-[0.68rem] uppercase tracking-wider text-accent underline hover:text-accent-hot shrink-0"
                           >
                             {translateUi("Show on plan")}
                           </Link>
@@ -497,113 +497,60 @@ export function EstimateView({ cost, onAllowances }: { cost: CostEstimate; onAll
 
             </div>
 
-            {/* List of Trade Accordion Cards - 2 Column Split */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
-              {/* Left Column */}
-              <div className="space-y-3">
-                {cost.tradeTotals.slice(0, Math.ceil(cost.tradeTotals.length / 2)).map(t => {
-                  const tradeBoq = cost.boq.filter(l => l.group === t.trade)
-                  const sharePercent = (t.share * 100).toFixed(1)
+            {/* List of Trade Accordion Cards - Spacious Full Width */}
+            <div className="space-y-3">
+              {cost.tradeTotals.map(t => {
+                const tradeBoq = cost.boq.filter(l => l.group === t.trade)
+                const sharePercent = (t.share * 100).toFixed(1)
 
-                  return (
-                    <details
-                      key={t.trade}
-                      className="group/trade rounded-xl border border-line bg-bg transition-all hover:border-line-strong"
-                    >
-                      <summary className="flex cursor-pointer select-none items-center justify-between p-4 hover:bg-bg-inset transition-colors">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <ChevronRight size={16} className="text-ink-faint transition-transform duration-200 group-open/trade:rotate-90 shrink-0" />
-                          <span className="font-medium text-ink truncate text-xs sm:text-sm">{translateUi(t.trade)}</span>
-                        </div>
-
-                        <div className="flex items-center gap-3 shrink-0">
-                          <div className="flex flex-col items-end">
-                            <span className="font-mono text-xs sm:text-sm font-semibold text-ink">{translateUi(formatINR(t.amount))}</span>
-                            <span className="font-mono text-[0.65rem] text-ink-dim">{sharePercent}%</span>
-                          </div>
-                          <div className="w-12 sm:w-16 h-1.5 rounded-full bg-bg-inset overflow-hidden border border-line">
-                            <div className="h-full bg-ink" style={{ width: `${Math.min(100, Math.max(5, t.share * 100))}%` }} />
-                          </div>
-                        </div>
-                      </summary>
-
-                      <div className="border-t border-line bg-bg px-4 py-2">
-                        <ul className="divide-y divide-line">
-                          {tradeBoq.map(l => (
-                            <li key={l.id} className="py-2.5 text-xs">
-                              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                                <p className="font-medium text-ink text-xs">{translateUi(l.label)}</p>
-                                <p className="shrink-0 font-mono text-xs font-semibold text-ink">{translateUi(formatINR(l.amount))}</p>
-                              </div>
-                              <p className="mt-1 text-ink-dim text-[0.72rem]">
-                                {translateUi(l.specification)} · <span className="font-mono text-ink">{translateUi(l.qty.toFixed(2))} {translateUi(l.unit)}</span> × <span className="font-mono">{translateUi(formatINR(l.rate))}</span>
-                              </p>
-                              {split && (
-                                <p className="mt-1 font-mono text-[0.68rem] text-ink-faint">
-                                  {translateUi("Material: ")}{translateUi(formatINR(l.materialAmount))} · {translateUi("Labour: ")}{translateUi(formatINR(l.labourAmount))}
-                                </p>
-                              )}
-                            </li>
-                          ))}
-                        </ul>
+                return (
+                  <details
+                    key={t.trade}
+                    className="group/trade rounded-xl border border-line bg-bg transition-all hover:border-line-strong shadow-2xs"
+                  >
+                    <summary className="flex cursor-pointer select-none items-center justify-between p-4 sm:p-5 hover:bg-bg-inset transition-colors">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <ChevronRight size={18} className="text-ink-faint transition-transform duration-200 group-open/trade:rotate-90 shrink-0" />
+                        <span className="font-medium text-ink text-sm sm:text-base">{translateUi(t.trade)}</span>
                       </div>
-                    </details>
-                  )
-                })}
-              </div>
 
-              {/* Right Column */}
-              <div className="space-y-3">
-                {cost.tradeTotals.slice(Math.ceil(cost.tradeTotals.length / 2)).map(t => {
-                  const tradeBoq = cost.boq.filter(l => l.group === t.trade)
-                  const sharePercent = (t.share * 100).toFixed(1)
-
-                  return (
-                    <details
-                      key={t.trade}
-                      className="group/trade rounded-xl border border-line bg-bg transition-all hover:border-line-strong"
-                    >
-                      <summary className="flex cursor-pointer select-none items-center justify-between p-4 hover:bg-bg-inset transition-colors">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <ChevronRight size={16} className="text-ink-faint transition-transform duration-200 group-open/trade:rotate-90 shrink-0" />
-                          <span className="font-medium text-ink truncate text-xs sm:text-sm">{translateUi(t.trade)}</span>
+                      <div className="flex items-center gap-4 shrink-0">
+                        <div className="flex flex-col items-end">
+                          <span className="font-mono text-sm sm:text-base font-semibold text-ink">{translateUi(formatINR(t.amount))}</span>
+                          <span className="font-mono text-xs text-ink-dim">{sharePercent}%</span>
                         </div>
-
-                        <div className="flex items-center gap-3 shrink-0">
-                          <div className="flex flex-col items-end">
-                            <span className="font-mono text-xs sm:text-sm font-semibold text-ink">{translateUi(formatINR(t.amount))}</span>
-                            <span className="font-mono text-[0.65rem] text-ink-dim">{sharePercent}%</span>
-                          </div>
-                          <div className="w-12 sm:w-16 h-1.5 rounded-full bg-bg-inset overflow-hidden border border-line">
-                            <div className="h-full bg-ink" style={{ width: `${Math.min(100, Math.max(5, t.share * 100))}%` }} />
-                          </div>
+                        <div className="w-16 sm:w-28 h-2 rounded-full bg-bg-inset overflow-hidden border border-line">
+                          <div className="h-full bg-ink" style={{ width: `${Math.min(100, Math.max(5, t.share * 100))}%` }} />
                         </div>
-                      </summary>
-
-                      <div className="border-t border-line bg-bg px-4 py-2">
-                        <ul className="divide-y divide-line">
-                          {tradeBoq.map(l => (
-                            <li key={l.id} className="py-2.5 text-xs">
-                              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                                <p className="font-medium text-ink text-xs">{translateUi(l.label)}</p>
-                                <p className="shrink-0 font-mono text-xs font-semibold text-ink">{translateUi(formatINR(l.amount))}</p>
-                              </div>
-                              <p className="mt-1 text-ink-dim text-[0.72rem]">
-                                {translateUi(l.specification)} · <span className="font-mono text-ink">{translateUi(l.qty.toFixed(2))} {translateUi(l.unit)}</span> × <span className="font-mono">{translateUi(formatINR(l.rate))}</span>
-                              </p>
-                              {split && (
-                                <p className="mt-1 font-mono text-[0.68rem] text-ink-faint">
-                                  {translateUi("Material: ")}{translateUi(formatINR(l.materialAmount))} · {translateUi("Labour: ")}{translateUi(formatINR(l.labourAmount))}
-                                </p>
-                              )}
-                            </li>
-                          ))}
-                        </ul>
                       </div>
-                    </details>
-                  )
-                })}
-              </div>
+                    </summary>
+
+                    <div className="border-t border-line bg-bg px-5 py-3">
+                      <ul className="divide-y divide-line">
+                        {tradeBoq.map(l => (
+                          <li key={l.id} className="py-3 text-sm">
+                            <div className="flex flex-wrap items-baseline justify-between gap-3">
+                              <p className="font-medium text-ink text-sm">{translateUi(l.label)}</p>
+                              <p className="shrink-0 font-mono text-sm font-semibold text-ink">{translateUi(formatINR(l.amount))}</p>
+                            </div>
+                            <div className="mt-1 flex flex-wrap items-center justify-between gap-2 text-xs text-ink-dim">
+                              <p className="text-ink-faint leading-relaxed">{translateUi(l.specification)}</p>
+                              <p className="font-mono shrink-0">
+                                <span className="text-ink font-medium">{translateUi(l.qty.toFixed(2))} {translateUi(l.unit)}</span> × <span>{translateUi(formatINR(l.rate))}</span>
+                              </p>
+                            </div>
+                            {split && (
+                              <p className="mt-1 font-mono text-xs text-ink-faint">
+                                {translateUi("Material: ")}{translateUi(formatINR(l.materialAmount))} · {translateUi("Labour: ")}{translateUi(formatINR(l.labourAmount))}
+                              </p>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </details>
+                )
+              })}
             </div>
 
             {/* Export Action Buttons */}
