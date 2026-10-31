@@ -68,6 +68,7 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
     scopeMode,
   }), [pricingSnapshot, manualOverrides, interiorSchedule, scopeMode, location])
   const cost = useMemo(() => result ? estimateProjectBoq(result.design, brief, selection, result, pricingContext) : null, [result, selection, brief, pricingContext])
+  const specRows = useMemo(() => (brief && cost) ? specificationSchedule(brief, cost) : [], [brief, cost])
   useEffect(() => {
     if (!result) run()
   }, [result, run])
@@ -175,6 +176,7 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
       const massingImages = blenderImages.length ? await Promise.all(blenderImages.map(imageBytes)) : await captureMassing()
 
       setBusy('Drawing floor plans…')
+      await wait(150)
       const planImages: ReportImage[] = []
       for (let i = 0; i < design.floors.length; i++) {
         const svg = svgRefs.current[i]
@@ -369,7 +371,7 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
           )}
 
           <section className="border-t border-line pt-10">
-            <SpecificationSchedule rows={specificationSchedule(brief, cost)} />
+            <SpecificationSchedule rows={specRows} />
           </section>
 
           <section className="border-t border-line pt-10">
@@ -386,28 +388,30 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
 
       </div>
 
-      {/* offscreen plan sources for the PDF raster */}
-      <div aria-hidden style={{ position: 'fixed', left: -10000, top: 0, width: 1200, height: 800 }}>
-        {design.floors.map((f, i) => (
-          <FloorDrawing
-            key={f.level}
+      {/* offscreen plan sources for the PDF raster — mounted only during export */}
+      {busy && (
+        <div aria-hidden style={{ position: 'fixed', left: -10000, top: 0, width: 1200, height: 800 }}>
+          {design.floors.map((f, i) => (
+            <FloorDrawing
+              key={f.level}
+              svgRef={(el) => {
+                svgRefs.current[i] = el
+              }}
+              floor={f}
+              model={model}
+              theme="presentation"
+              showLabels
+              showDimensions={false}
+            />
+          ))}
+          <TerraceDrawing
+            design={design}
             svgRef={(el) => {
-              svgRefs.current[i] = el
+              svgRefs.current[design.floors.length] = el
             }}
-            floor={f}
-            model={model}
-            theme="presentation"
-            showLabels
-            showDimensions={false}
           />
-        ))}
-        <TerraceDrawing
-          design={design}
-          svgRef={(el) => {
-            svgRefs.current[design.floors.length] = el
-          }}
-        />
-      </div>
+        </div>
+      )}
 
       {/* offscreen 3D massing — mounted only during a PDF capture */}
       {grab3d && (

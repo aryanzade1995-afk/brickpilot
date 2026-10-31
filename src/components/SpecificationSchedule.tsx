@@ -179,6 +179,7 @@ export function SpecificationSchedule({ rows }: { rows: SpecificationRow[] }) {
                         {r.photo ? (
                           <img
                             loading="lazy"
+                            decoding="async"
                             src={assetUrl(r.photo)}
                             alt={translateUi(`Real texture close-up: ${r.choice}`)}
                             className="h-14 w-20 shrink-0 rounded border border-line object-cover"
