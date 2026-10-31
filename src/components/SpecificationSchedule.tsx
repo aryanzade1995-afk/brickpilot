@@ -154,7 +154,7 @@ function FloorCard({ floor }: { floor: GroupedFloor }) {
 
   return (
     <details
-      className="group/floor rounded-lg border border-line bg-bg transition-colors"
+      className="group/floor border border-line bg-bg transition-colors"
       onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}
     >
       <summary className="flex cursor-pointer select-none items-center justify-between p-4 font-display text-base hover:bg-bg-inset transition-colors">
@@ -163,7 +163,7 @@ function FloorCard({ floor }: { floor: GroupedFloor }) {
           <span className="font-medium text-ink">{translateUi(floor.floorName)}</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="rounded bg-bg-inset px-2.5 py-0.5 font-mono text-xs text-ink-dim border border-line">
+          <span className="bg-bg-inset px-2.5 py-0.5 font-mono text-xs text-ink-dim border border-line">
             {floor.rooms.length} {translateUi(floor.rooms.length === 1 ? "space" : "spaces")} · {floor.totalItems} {translateUi("finishes")}
           </span>
         </div>
@@ -175,11 +175,11 @@ function FloorCard({ floor }: { floor: GroupedFloor }) {
           {floor.rooms.map(room => (
             <div
               key={room.whereKey}
-              className="rounded-lg border border-line bg-bg overflow-hidden shadow-2xs"
+              className="border border-line bg-bg overflow-hidden"
             >
               <div className="flex items-center justify-between px-4 py-3 bg-bg-inset/50 border-b border-line">
                 <span className="font-medium text-ink text-sm sm:text-base">{translateUi(room.roomName)}</span>
-                <span className="rounded bg-bg px-2.5 py-0.5 font-mono text-xs text-ink-dim border border-line">
+                <span className="bg-bg px-2.5 py-0.5 font-mono text-xs text-ink-dim border border-line">
                   {room.rows.length} {translateUi(room.rows.length === 1 ? "finish" : "finishes")}
                 </span>
               </div>
@@ -194,10 +194,10 @@ function FloorCard({ floor }: { floor: GroupedFloor }) {
                         decoding="async"
                         src={assetUrl(r.photo)}
                         alt={translateUi(`Real texture close-up: ${r.choice}`)}
-                        className="h-14 w-20 shrink-0 rounded border border-line object-cover"
+                        className="h-14 w-20 shrink-0 border border-line object-cover"
                       />
                     ) : (
-                      <div className="h-14 w-20 shrink-0 rounded border border-line bg-bg-inset flex items-center justify-center text-[0.65rem] text-ink-faint font-mono uppercase">
+                      <div className="h-14 w-20 shrink-0 border border-line bg-bg-inset flex items-center justify-center text-[0.65rem] text-ink-faint font-mono uppercase">
                         {translateUi("No photo")}
                       </div>
                     )}

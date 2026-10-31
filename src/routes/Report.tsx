@@ -218,13 +218,13 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
       {/* Top Cards: Expected Total Investment & Project Report */}
       <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
         {/* Expected Total Investment Box */}
-        <div className="rounded-xl border border-line bg-bg p-6 sm:p-7 shadow-xs flex flex-col justify-between">
+        <div className="border border-line bg-bg p-6 sm:p-7 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between gap-3">
               <span className="font-mono text-xs uppercase tracking-wider text-ink-dim">
                 {translateUi("Expected Total Investment")}
               </span>
-              <span className="rounded-full border border-line bg-bg-inset px-3 py-1 font-mono text-xs text-ink font-medium">
+              <span className="border border-line bg-bg-inset px-3 py-1 font-mono text-xs text-ink font-medium">
                 {translateUi("Built area: ")}{design.builtAreaSqm.toFixed(1)} m²
               </span>
             </div>
@@ -232,7 +232,7 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
               <h2 className="font-display text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
                 {translateUi(formatINR(cost.expected))}
               </h2>
-              <span className="rounded-full border border-line bg-bg-inset px-3 py-1 font-mono text-xs text-ink-dim">
+              <span className="border border-line bg-bg-inset px-3 py-1 font-mono text-xs text-ink-dim">
                 {translateUi(formatINR(cost.ratePerSqft))} / sq ft
               </span>
             </div>
@@ -244,7 +244,7 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
         </div>
 
         {/* Project Report Box - Matching exact styling */}
-        <div className="rounded-xl border border-line bg-bg p-6 sm:p-7 shadow-xs flex flex-col justify-between">
+        <div className="border border-line bg-bg p-6 sm:p-7 flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-2.5 font-display text-xl font-medium text-ink">
               <FileText size={20} className="text-accent" />
@@ -261,8 +261,8 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
               onClick={download}
               disabled={!!busy}
               className={cx(
-                'inline-flex items-center gap-2 rounded-lg px-4 py-2.5 font-mono text-xs uppercase tracking-wider transition-colors',
-                busy ? 'border border-line text-ink-faint' : 'bg-accent text-white hover:bg-accent-hot shadow-xs',
+                'inline-flex items-center gap-2 border px-4 py-2.5 font-mono text-xs uppercase tracking-wider transition-colors',
+                busy ? 'border-line text-ink-faint' : 'border-accent bg-accent text-white hover:bg-accent-hot',
               )}
             >
               {busy ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
@@ -273,7 +273,7 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
               type="button"
               disabled={!!busy}
               onClick={()=>void downloadExtra('xlsx')}
-              className="rounded-lg border border-line bg-bg px-4 py-2.5 text-xs text-ink hover:bg-bg-inset disabled:opacity-50 transition-colors"
+              className="border border-line bg-bg px-4 py-2.5 text-xs text-ink hover:bg-bg-inset disabled:opacity-50 transition-colors"
             >
               {translateUi("BOQ Excel")}
             </button>
@@ -282,7 +282,7 @@ export function Report({ sourceResult, sourceBrief, visualisations = [] }: { sou
               type="button"
               disabled={!!busy}
               onClick={()=>void downloadExtra('spec')}
-              className="rounded-lg border border-line bg-bg px-4 py-2.5 text-xs text-ink hover:bg-bg-inset disabled:opacity-50 transition-colors"
+              className="border border-line bg-bg px-4 py-2.5 text-xs text-ink hover:bg-bg-inset disabled:opacity-50 transition-colors"
             >
               {translateUi("Spec PDF")}
             </button>

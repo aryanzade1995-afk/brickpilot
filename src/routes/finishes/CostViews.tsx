@@ -33,7 +33,7 @@ export function LabourEstimateCard({ cost, onAllowances }: { cost: CostEstimate;
 
       <div className="mt-5">
         <details
-          className="group/labour rounded-lg border border-line bg-bg transition-colors"
+          className="group/labour border border-line bg-bg transition-colors"
           onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}
         >
           <summary className="flex cursor-pointer select-none items-center justify-between p-4 font-display text-base hover:bg-bg-inset transition-colors">
@@ -49,7 +49,7 @@ export function LabourEstimateCard({ cost, onAllowances }: { cost: CostEstimate;
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="rounded bg-bg-inset px-2.5 py-0.5 font-mono text-xs text-ink-dim border border-line font-medium">
+              <span className="bg-bg-inset px-2.5 py-0.5 font-mono text-xs text-ink-dim border border-line font-medium">
                 {formatINR(cost.labour.siteLabourTotal)}
               </span>
             </div>
@@ -62,7 +62,7 @@ export function LabourEstimateCard({ cost, onAllowances }: { cost: CostEstimate;
                 <span className="text-xs font-medium text-ink">{translateUi("Labour Costing Mode:")}</span>
                 <div className="flex flex-wrap items-center gap-2">
                   {/* Wage Source Toggle */}
-                  <div className="flex items-center gap-1 rounded border border-line p-0.5 bg-bg-inset">
+                  <div className="flex items-center gap-1 border border-line p-0.5 bg-bg-inset">
                     {(['auto', 'manual'] as const).map(wMode => (
                       <button
                         type="button"
@@ -73,8 +73,8 @@ export function LabourEstimateCard({ cost, onAllowances }: { cost: CostEstimate;
                           ...(wMode === 'manual' && !cost.selection.customDailyWage ? { customDailyWage: cost.labour?.blendedDailyRate ?? 767 } : {})
                         })}
                         className={cx(
-                          'rounded px-2.5 py-1 font-mono text-[0.68rem] uppercase tracking-wider transition-colors',
-                          (cost.selection.wageMode ?? 'auto') === wMode ? 'bg-bg text-ink font-semibold shadow-xs' : 'text-ink-dim hover:text-ink'
+                          'px-2.5 py-1 font-mono text-[0.68rem] uppercase tracking-wider transition-colors',
+                          (cost.selection.wageMode ?? 'auto') === wMode ? 'bg-bg text-ink font-semibold' : 'text-ink-dim hover:text-ink'
                         )}
                       >
                         {translateUi(wMode === 'auto' ? "Auto (City)" : "Manual")}
@@ -83,7 +83,7 @@ export function LabourEstimateCard({ cost, onAllowances }: { cost: CostEstimate;
                   </div>
 
                   {/* Labour Mode Toggle */}
-                  <div className="flex items-center gap-1 rounded border border-line p-0.5 bg-bg-inset">
+                  <div className="flex items-center gap-1 border border-line p-0.5 bg-bg-inset">
                     {(['additional', 'replace'] as const).map(mode => (
                       <button
                         type="button"
@@ -91,8 +91,8 @@ export function LabourEstimateCard({ cost, onAllowances }: { cost: CostEstimate;
                         aria-pressed={cost.labour?.mode === mode}
                         onClick={() => onAllowances?.({ labourMode: mode })}
                         className={cx(
-                          'rounded px-2.5 py-1 font-mono text-[0.68rem] uppercase tracking-wider transition-colors',
-                          cost.labour?.mode === mode ? 'bg-bg text-ink font-semibold shadow-xs' : 'text-ink-dim hover:text-ink'
+                          'px-2.5 py-1 font-mono text-[0.68rem] uppercase tracking-wider transition-colors',
+                          cost.labour?.mode === mode ? 'bg-bg text-ink font-semibold' : 'text-ink-dim hover:text-ink'
                         )}
                       >
                         {translateUi(mode === 'additional' ? "Additional" : "Replaces embedded")}
@@ -104,7 +104,7 @@ export function LabourEstimateCard({ cost, onAllowances }: { cost: CostEstimate;
 
               {/* 4 Metrics in Clean Cards */}
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="rounded-lg border border-line bg-bg-inset p-3.5">
+                <div className="border border-line bg-bg-inset p-3.5">
                   <span className="text-xs text-ink-dim">{translateUi("Blended Daily Wage")}</span>
                   <p className="mt-1 font-mono text-sm font-semibold text-ink">
                     {formatINR(cost.labour.blendedDailyRate)} <span className="text-[0.68rem] font-normal text-ink-dim">/ day</span>
@@ -114,7 +114,7 @@ export function LabourEstimateCard({ cost, onAllowances }: { cost: CostEstimate;
                   </p>
                 </div>
 
-                <div className="rounded-lg border border-line bg-bg-inset p-3.5">
+                <div className="border border-line bg-bg-inset p-3.5">
                   <span className="text-xs text-ink-dim">{translateUi("Average Crew")}</span>
                   <p className="mt-1 font-mono text-sm font-semibold text-ink">
                     {cost.labour.crewSize} {translateUi("workers")}
@@ -124,7 +124,7 @@ export function LabourEstimateCard({ cost, onAllowances }: { cost: CostEstimate;
                   </p>
                 </div>
 
-                <div className="rounded-lg border border-line bg-bg-inset p-3.5">
+                <div className="border border-line bg-bg-inset p-3.5">
                   <span className="text-xs text-ink-dim">{translateUi("Site Labour Total")}</span>
                   <p className="mt-1 font-mono text-sm font-semibold text-ink">
                     {formatINR(cost.labour.siteLabourTotal)}
@@ -134,7 +134,7 @@ export function LabourEstimateCard({ cost, onAllowances }: { cost: CostEstimate;
                   </p>
                 </div>
 
-                <div className="rounded-lg border border-line bg-bg-inset p-3.5">
+                <div className="border border-line bg-bg-inset p-3.5">
                   <span className="text-xs text-ink-dim">{translateUi("Embedded Labour")}</span>
                   <p className="mt-1 font-mono text-sm font-semibold text-ink">
                     {formatINR(cost.labour.embeddedLabour)}
@@ -187,7 +187,7 @@ export function QuantitiesView({ cost }: { cost: CostEstimate }) {
           {translateUi("Floor filter:")}
           <select
             aria-label={translateUi("Quantity floor filter")}
-            className="mt-1.5 block rounded border border-line bg-bg px-3 py-1.5 text-xs text-ink focus:border-accent focus:outline-none"
+            className="mt-1.5 block border border-line bg-bg px-3 py-1.5 text-xs text-ink focus:border-accent focus:outline-none"
             value={floor}
             onChange={e => setFloor(e.target.value)}
           >
@@ -257,7 +257,7 @@ function QuantityGroupCard({
 
   return (
     <details
-      className="group/qgroup rounded-lg border border-line bg-bg transition-colors shadow-2xs"
+      className="group/qgroup border border-line bg-bg transition-colors"
       onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}
     >
       <summary className="flex cursor-pointer select-none items-center justify-between p-4 font-display text-base hover:bg-bg-inset transition-colors">
@@ -265,7 +265,7 @@ function QuantityGroupCard({
           <ChevronRight size={16} className="text-ink-faint transition-transform duration-200 group-open/qgroup:rotate-90" />
           <span className="font-medium text-ink text-sm sm:text-base">{translateUi(label)}</span>
         </div>
-        <span className="rounded bg-bg-inset px-2.5 py-0.5 font-mono text-xs text-ink-dim border border-line">
+        <span className="bg-bg-inset px-2.5 py-0.5 font-mono text-xs text-ink-dim border border-line">
           {matchingItems.length} {translateUi(matchingItems.length === 1 ? "item" : "items")}
         </span>
       </summary>
@@ -308,7 +308,7 @@ function KeyMaterialsCard({ current, floor, q }: { current: CostEstimate['quanti
 
   return (
     <details
-      className="group/materials rounded-lg border border-line bg-bg transition-colors shadow-2xs"
+      className="group/materials border border-line bg-bg transition-colors"
       onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}
     >
       <summary className="flex cursor-pointer select-none items-center justify-between p-4 font-display text-base hover:bg-bg-inset transition-colors">
@@ -316,7 +316,7 @@ function KeyMaterialsCard({ current, floor, q }: { current: CostEstimate['quanti
           <ChevronRight size={16} className="text-ink-faint transition-transform duration-200 group-open/materials:rotate-90" />
           <span className="font-medium text-ink text-sm sm:text-base">{translateUi("Key Materials Summary")}</span>
         </div>
-        <span className="rounded bg-bg-inset px-2.5 py-0.5 font-mono text-xs text-ink-dim border border-line">
+        <span className="bg-bg-inset px-2.5 py-0.5 font-mono text-xs text-ink-dim border border-line">
           {translateUi("Takeoff")}
         </span>
       </summary>
@@ -324,13 +324,13 @@ function KeyMaterialsCard({ current, floor, q }: { current: CostEstimate['quanti
       {open && (
         <div className="border-t border-line bg-bg p-4 sm:p-5">
           <dl className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded border border-line bg-bg-inset p-3">
+            <div className="border border-line bg-bg-inset p-3">
               <dt className="text-xs text-ink-dim">{translateUi("Steel")}</dt>
               <dd className="mt-1 font-mono text-base font-semibold text-ink">
                 {translateUi(Object.values(current.steelKg).reduce((n, v) => n + v, 0).toFixed(1))} {translateUi("kg")}
               </dd>
             </div>
-            <div className="rounded border border-line bg-bg-inset p-3">
+            <div className="border border-line bg-bg-inset p-3">
               <dt className="text-xs text-ink-dim">{translateUi("Formwork")}</dt>
               <dd className="mt-1 font-mono text-base font-semibold text-ink">
                 {translateUi(Object.values(current.formworkM2).reduce((n, v) => n + v, 0).toFixed(1))} {translateUi("m²")}
@@ -340,13 +340,13 @@ function KeyMaterialsCard({ current, floor, q }: { current: CostEstimate['quanti
 
           {floor === 'all' && (
             <dl className="mt-3 grid gap-3 sm:grid-cols-2">
-              <div className="rounded border border-line bg-bg-inset p-3">
+              <div className="border border-line bg-bg-inset p-3">
                 <dt className="text-xs text-ink-dim">{translateUi(q.masonryMaterials.type)}</dt>
                 <dd className="mt-1 font-mono text-base font-semibold text-ink">
                   {translateUi(Math.ceil(q.masonryMaterials.Count).toLocaleString())} {translateUi("units")}
                 </dd>
               </div>
-              <div className="rounded border border-line bg-bg-inset p-3">
+              <div className="border border-line bg-bg-inset p-3">
                 <dt className="text-xs text-ink-dim">{translateUi("Water storage")}</dt>
                 <dd className="mt-1 font-mono text-xs font-semibold text-ink">
                   {translateUi(q.tanks.overheadLitres.toLocaleString())}L overhead · {translateUi(q.tanks.undergroundLitres.toLocaleString())}L tank
@@ -354,13 +354,13 @@ function KeyMaterialsCard({ current, floor, q }: { current: CostEstimate['quanti
               </div>
               {q.concreteMaterials.cementBags !== null && (
                 <>
-                  <div className="rounded border border-line bg-bg-inset p-3">
+                  <div className="border border-line bg-bg-inset p-3">
                     <dt className="text-xs text-ink-dim">{translateUi("Cement (M20)")}</dt>
                     <dd className="mt-1 font-mono text-base font-semibold text-ink">
                       {translateUi(q.concreteMaterials.cementBags.toFixed(1))} {translateUi("bags")}
                     </dd>
                   </div>
-                  <div className="rounded border border-line bg-bg-inset p-3">
+                  <div className="border border-line bg-bg-inset p-3">
                     <dt className="text-xs text-ink-dim">{translateUi("Sand / aggregate")}</dt>
                     <dd className="mt-1 font-mono text-xs font-semibold text-ink">
                       {translateUi(q.concreteMaterials.sandM3?.toFixed(2))} / {translateUi(q.concreteMaterials.aggregateM3?.toFixed(2))} {translateUi("m³")}
@@ -385,7 +385,7 @@ function TradeCard({ trade, tradeBoq, share, amount, split }: { trade: string; t
 
   return (
     <details
-      className="group/trade rounded-xl border border-line bg-bg transition-all hover:border-line-strong shadow-2xs"
+      className="group/trade border border-line bg-bg transition-all hover:border-line-strong"
       onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}
     >
       <summary className="flex cursor-pointer select-none items-center justify-between p-4 sm:p-5 hover:bg-bg-inset transition-colors">
@@ -399,7 +399,7 @@ function TradeCard({ trade, tradeBoq, share, amount, split }: { trade: string; t
             <span className="font-mono text-sm sm:text-base font-semibold text-ink">{translateUi(formatINR(amount))}</span>
             <span className="font-mono text-xs text-ink-dim">{sharePercent}%</span>
           </div>
-          <div className="w-16 sm:w-28 h-2 rounded-full bg-bg-inset overflow-hidden border border-line">
+          <div className="w-16 sm:w-28 h-2 bg-bg-inset overflow-hidden border border-line">
             <div className="h-full bg-ink" style={{ width: `${Math.min(100, Math.max(5, share * 100))}%` }} />
           </div>
         </div>
@@ -585,7 +585,7 @@ export function EstimateView({ cost, onAllowances }: { cost: CostEstimate; onAll
                 <button
                   type="button"
                   onClick={download}
-                  className="inline-flex items-center gap-2 rounded-lg border border-line bg-bg px-4 py-2.5 text-xs font-medium text-ink hover:bg-bg-inset transition-colors"
+                  className="inline-flex items-center gap-2 border border-line bg-bg px-4 py-2.5 text-xs font-medium text-ink hover:bg-bg-inset transition-colors"
                 >
                   <Download size={13} className="text-ink-dim" />
                   {translateUi("Download BOQ CSV")}
@@ -594,7 +594,7 @@ export function EstimateView({ cost, onAllowances }: { cost: CostEstimate; onAll
                   type="button"
                   disabled={exporting}
                   onClick={() => void excel()}
-                  className="inline-flex items-center gap-2 rounded-lg border border-line bg-bg px-4 py-2.5 text-xs font-medium text-ink hover:bg-bg-inset disabled:opacity-50 transition-colors"
+                  className="inline-flex items-center gap-2 border border-line bg-bg px-4 py-2.5 text-xs font-medium text-ink hover:bg-bg-inset disabled:opacity-50 transition-colors"
                 >
                   <FileSpreadsheet size={13} className="text-accent" />
                   {translateUi(exporting ? 'Preparing Excel…' : 'Download BOQ Excel')}
@@ -618,7 +618,7 @@ export function EstimateView({ cost, onAllowances }: { cost: CostEstimate; onAll
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
 
           {/* Project Add-ons Card */}
-          <div className="rounded-xl border border-line bg-bg p-6 shadow-xs flex flex-col h-full justify-between">
+          <div className="border border-line bg-bg p-6 flex flex-col h-full justify-between">
             <div>
               <h3 className="font-display text-lg font-medium text-ink">{translateUi("Project Add-ons")}</h3>
               <p className="mt-1 text-xs text-ink-faint leading-relaxed">{translateUi("Statutory fees, overheads and site management allowances.")}</p>
@@ -638,7 +638,7 @@ export function EstimateView({ cost, onAllowances }: { cost: CostEstimate; onAll
           </div>
 
           {/* Top Cost Drivers Card */}
-          <div className="rounded-xl border border-line bg-bg p-6 shadow-xs flex flex-col h-full justify-between">
+          <div className="border border-line bg-bg p-6 flex flex-col h-full justify-between">
             <div>
               <h3 className="font-display text-lg font-medium text-ink">{translateUi("Top Cost Drivers")}</h3>
               <p className="mt-1 text-xs text-ink-faint leading-relaxed">
@@ -652,7 +652,7 @@ export function EstimateView({ cost, onAllowances }: { cost: CostEstimate; onAll
 
             <ul className="mt-5 space-y-3 flex-1 flex flex-col justify-around">
               {cost.topCostDrivers.map(d => (
-                <li key={d.item} className="rounded-lg border border-line bg-bg-inset p-3 text-xs">
+                <li key={d.item} className="border border-line bg-bg-inset p-3 text-xs">
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-medium text-ink">{translateUi(d.label)}</span>
                     <span className="font-mono font-semibold text-ink">{translateUi(formatINR(d.amount))}</span>
@@ -660,7 +660,7 @@ export function EstimateView({ cost, onAllowances }: { cost: CostEstimate; onAll
                   <div className="mt-1.5 flex items-center gap-1.5">
                     {d.difference ? (
                       <span className={cx(
-                        'rounded px-1.5 py-0.5 font-mono text-[0.62rem]',
+                        'px-1.5 py-0.5 font-mono text-[0.62rem]',
                         d.difference > 0 ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20' : 'bg-ok/10 text-ok border border-ok/20'
                       )}>
                         {d.difference > 0 ? '+' : '−'}{formatINR(Math.abs(d.difference))} vs default
@@ -802,7 +802,7 @@ export function EstimateView({ cost, onAllowances }: { cost: CostEstimate; onAll
 
       
       {/* --- Section 1: Live Rate Research Command Bar --- */}
-      <div className="mt-8 sm:mt-10 mb-8 rounded-xl border border-line bg-bg-elevated p-4 sm:p-6 shadow-xs">
+      <div className="mt-8 sm:mt-10 mb-8 border border-line bg-bg-elevated p-4 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line pb-4">
           <div>
             <div className="flex items-center gap-2">
