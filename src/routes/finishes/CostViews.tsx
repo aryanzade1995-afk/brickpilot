@@ -802,7 +802,7 @@ export function EstimateView({ cost, onAllowances }: { cost: CostEstimate; onAll
 
       
       {/* --- Section 1: Live Rate Research Command Bar --- */}
-      <div className="mb-8 border border-line bg-bg-elevated p-4 sm:p-6">
+      <div className="mt-8 sm:mt-10 mb-8 rounded-xl border border-line bg-bg-elevated p-4 sm:p-6 shadow-xs">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line pb-4">
           <div>
             <div className="flex items-center gap-2">
