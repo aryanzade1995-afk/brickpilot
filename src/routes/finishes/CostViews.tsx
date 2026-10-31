@@ -562,21 +562,41 @@ export function EstimateView({ cost, onAllowances }: { cost: CostEstimate; onAll
 
             </div>
 
-            {/* List of Trade Accordion Cards - Lazy Rendered on Expand */}
-            <div className="space-y-3">
-              {cost.tradeTotals.map(t => {
-                const tradeBoq = cost.boq.filter(l => l.group === t.trade)
-                return (
-                  <TradeCard
-                    key={t.trade}
-                    trade={t.trade}
-                    tradeBoq={tradeBoq}
-                    share={t.share}
-                    amount={t.amount}
-                    split={split}
-                  />
-                )
-              })}
+            {/* List of Trade Accordion Cards - 2-Column Split: 5 on Left, 4 on Right */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+              {/* Left Column (5 trades) */}
+              <div className="space-y-3">
+                {cost.tradeTotals.slice(0, 5).map(t => {
+                  const tradeBoq = cost.boq.filter(l => l.group === t.trade)
+                  return (
+                    <TradeCard
+                      key={t.trade}
+                      trade={t.trade}
+                      tradeBoq={tradeBoq}
+                      share={t.share}
+                      amount={t.amount}
+                      split={split}
+                    />
+                  )
+                })}
+              </div>
+
+              {/* Right Column (4 trades) */}
+              <div className="space-y-3">
+                {cost.tradeTotals.slice(5).map(t => {
+                  const tradeBoq = cost.boq.filter(l => l.group === t.trade)
+                  return (
+                    <TradeCard
+                      key={t.trade}
+                      trade={t.trade}
+                      tradeBoq={tradeBoq}
+                      share={t.share}
+                      amount={t.amount}
+                      split={split}
+                    />
+                  )
+                })}
+              </div>
             </div>
 
             {/* Export Action Buttons */}
