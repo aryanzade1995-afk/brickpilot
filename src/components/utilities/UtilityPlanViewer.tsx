@@ -156,6 +156,61 @@ function FireContext(props: SheetProps & { id: string }) {
   </g>
 }
 
+function getRoomLabelPosition(
+  roomData: UtilityFloor['floor']['rooms'][0],
+  fixtures: UtilityFloor['fixtures'],
+  font: number
+): { x: number; y: number } {
+  const defaultX = roomData.rect.x + roomData.rect.w / 2
+  const defaultY = roomData.rect.y + roomData.rect.h / 2 - font * 0.35
+
+  const roomFixtures = fixtures.filter(f => f.roomId === roomData.id && f.type !== 'floor_drain')
+  if (roomFixtures.length === 0) {
+    return { x: defaultX, y: defaultY }
+  }
+
+  const textHalfW = Math.min(font * (roomData.name.length || 8) * 0.45, roomData.rect.w * 0.4)
+  const textHalfH = font * 0.9
+
+  const overlaps = roomFixtures.some(f => {
+    const fw = ((f.width || 500) + 120) / 2
+    const fd = ((f.depth || 550) + 120) / 2
+    return (
+      Math.abs(f.position.x - defaultX) < (fw + textHalfW) &&
+      Math.abs(f.position.y - defaultY) < (fd + textHalfH)
+    )
+  })
+
+  if (!overlaps) {
+    return { x: defaultX, y: defaultY }
+  }
+
+  let maxFixtureBottom = -Infinity
+  let minFixtureTop = Infinity
+  for (const f of roomFixtures) {
+    const fd = (f.depth || 550) / 2
+    maxFixtureBottom = Math.max(maxFixtureBottom, f.position.y + fd)
+    minFixtureTop = Math.min(minFixtureTop, f.position.y - fd)
+  }
+
+  const roomTop = roomData.rect.y
+  const roomBottom = roomData.rect.y + roomData.rect.h
+  const spaceBelow = roomBottom - maxFixtureBottom
+  const spaceAbove = minFixtureTop - roomTop
+
+  if (spaceBelow >= spaceAbove && spaceBelow > font * 1.5) {
+    const y = maxFixtureBottom + spaceBelow / 2 - font * 0.35
+    return { x: defaultX, y: Math.max(roomTop + font, Math.min(roomBottom - font * 1.1, y)) }
+  }
+
+  if (spaceAbove > font * 1.5) {
+    const y = roomTop + spaceAbove / 2 - font * 0.35
+    return { x: defaultX, y: Math.max(roomTop + font, Math.min(roomBottom - font * 1.1, y)) }
+  }
+
+  return { x: defaultX, y: Math.min(roomBottom - font * 0.9, defaultY + font * 1.8) }
+}
+
 function UtilitySheet(props: SheetProps) {
   const { model, box, room, selected, exporting, project, scale, svgRef } = props
   const drawing = props.drawingDocument
@@ -171,8 +226,6 @@ function UtilitySheet(props: SheetProps) {
       {model.floor.rooms.map(roomData => <g key={roomData.id} opacity={room === 'all' || room === roomData.id ? 1 : .2}
         {...(props.visible.fire_alarm && props.showEvacuation && !roomData.outdoor && !exporting ? { role: 'button', tabIndex: 0, 'aria-label': `${t('Evacuation route')} · ${t(roomData.name)}`, 'aria-pressed': selected === `exit:${roomData.id}`, 'data-run-id': `exit:${roomData.id}`, onKeyDown: (e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); props.onSelect?.(`exit:${roomData.id}`) } } } : {})}>
         <rect {...{ x: roomData.rect.x, y: roomData.rect.y, width: roomData.rect.w, height: roomData.rect.h }} fill={roomData.outdoor ? 'none' : '#fafaf8'} clipPath={`url(#${glow}-slabs)`} stroke="#e1e1dc" strokeWidth={1} vectorEffect="non-scaling-stroke" />
-        <text x={roomData.rect.x + roomData.rect.w / 2} y={roomData.rect.y + roomData.rect.h / 2 - font * .35} textAnchor="middle" fontSize={Math.min(font, roomData.rect.w / Math.max(4, t(roomData.name).length) * 1.4)} fill="#565651">{t(roomData.name)}</text>
-        {props.drainageTechnical && <text x={roomData.rect.x + roomData.rect.w / 2} y={roomData.rect.y + roomData.rect.h / 2 + font * .9} textAnchor="middle" fontSize={font * .72} fill="#898982">{roomData.area.toFixed(1)} m²</text>}
       </g>)}
       {model.floor.walls.map((w, i) => <line key={i} x1={w.a.x} y1={w.a.y} x2={w.b.x} y2={w.b.y} stroke="#d6d6d0" strokeWidth={w.thickness} />)}
       {model.floor.openings.map((o, i) => <g key={i}>
@@ -184,6 +237,15 @@ function UtilitySheet(props: SheetProps) {
         return (
           <g key={f.id} opacity={room === 'all' || room === f.roomId ? 1 : .2} transform={`translate(${f.position.x} ${f.position.y})`}>
             <PlanFixture fixture={f} room={fixtureRoom} scale={scale} />
+          </g>
+        )
+      })}
+      {model.floor.rooms.map(roomData => {
+        const pos = getRoomLabelPosition(roomData, model.fixtures, font)
+        return (
+          <g key={`label-${roomData.id}`} opacity={room === 'all' || room === roomData.id ? 1 : .2} pointerEvents="none">
+            <text x={pos.x} y={pos.y} textAnchor="middle" fontSize={Math.min(font, roomData.rect.w / Math.max(4, t(roomData.name).length) * 1.4)} fill="#565651">{t(roomData.name)}</text>
+            {props.drainageTechnical && <text x={pos.x} y={pos.y + font * 1.25} textAnchor="middle" fontSize={font * .72} fill="#898982">{roomData.area.toFixed(1)} m²</text>}
           </g>
         )
       })}
