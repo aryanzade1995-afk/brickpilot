@@ -584,10 +584,6 @@ export function UtilityPlanViewer({ model: sourceModel, models, project, reviewS
               <span className="text-[10px] text-ink-faint">({t('Drop to ground sewer')})</span>
             </span>
           </div>
-          <div className="mt-2 flex items-center gap-2 rounded bg-bg-inset px-2.5 py-1.5 text-[11px] text-ink-dim">
-            <span className="font-medium text-accent">💡 {t('How drainage works')}:</span>
-            <span>{t('Toilets flush through brown Soil pipes directly to the vertical sewer stack (↓). Sinks, showers and washing machines drain through floor traps (◎) into teal Waste pipes.')}</span>
-          </div>
         </div>}
         <div ref={host} className="relative h-[480px] overflow-hidden bg-bg-inset sm:h-[580px]" style={{ touchAction: 'none' }}>
           <div className="absolute inset-0 bg-white">
