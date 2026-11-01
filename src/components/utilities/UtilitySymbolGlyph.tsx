@@ -20,9 +20,9 @@ export function UtilitySymbolGlyph({ type, color }: { type: keyof typeof UTILITY
       : type === 'flow_arrow' ? <path d="M-11 0H10M5-5l5 5-5 5" fill="none" />
       : type === 'clearance_warning' ? null
       : type === 'db_panel' ? <><rect x={-9} y={-8} width={18} height={16} fill={color} /><text x={0} y={3} textAnchor="middle" fontSize={8} fontWeight={700} stroke="none" fill="white">DB</text></>
-      : type === 'switch' ? <><circle r={5} /><path d="M4-3l6-6" /><text x={8} y={9} fontSize={8} fill={color} stroke="none">S</text></>
-        : type === 'socket' ? <><circle r={7} /><path d="M-2-3v5m4-5v5" /></>
-          : type === 'light' ? <><circle r={7} /><path d="M-4-4l8 8m-8 0 8-8" /></>
+      : type === 'switch' ? <><circle cx={-3.5} cy={3.5} r={3.6} fill="white" stroke={color} strokeWidth={1.5} /><line x1={-1.5} y1={1.5} x2={6.5} y2={-6.5} stroke={color} strokeWidth={1.8} strokeLinecap="round" /><line x1={6.5} y1={-6.5} x2={10} y2={-3} stroke={color} strokeWidth={1.8} strokeLinecap="round" /></>
+        : type === 'socket' ? <><rect x={-8} y={-8} width={16} height={16} rx={3} fill="white" stroke={color} strokeWidth={1.5} /><circle cx={-3} cy={0.5} r={1.5} fill={color} stroke="none" /><circle cx={3} cy={0.5} r={1.5} fill={color} stroke="none" /><circle cx={0} cy={-3.5} r={1.3} fill={color} stroke="none" /></>
+          : type === 'light' ? <><circle r={8} fill="white" stroke={color} strokeWidth={1.5} /><circle r={4.2} fill="#FFEBEE" stroke={color} strokeWidth={1.1} /><circle cx={0} cy={0} r={1.6} fill={color} stroke="none" /><line x1={0} y1={-8} x2={0} y2={-5.5} stroke={color} strokeWidth={1.4} strokeLinecap="round" /><line x1={0} y1={8} x2={0} y2={5.5} stroke={color} strokeWidth={1.4} strokeLinecap="round" /><line x1={-8} y1={0} x2={-5.5} y2={0} stroke={color} strokeWidth={1.4} strokeLinecap="round" /><line x1={8} y1={0} x2={5.5} y2={0} stroke={color} strokeWidth={1.4} strokeLinecap="round" /></>
             : type === 'exhaust_fan' ? <><circle r={8} />{[0, 90, 180, 270].map(angle => <path key={angle} d="M0-1C-6-7 3-8 3-3L1 0Z" transform={`rotate(${angle})`} fill={color} strokeWidth={.5} />)}<circle r={1.8} fill="white" /></>
               : type === 'vertical_stack' ? <><circle r={10} /><circle r={5} fill={color} /></>
                 : <circle r={5} fill={color} stroke="white" strokeWidth={1} />}
