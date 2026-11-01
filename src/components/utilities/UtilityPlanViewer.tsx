@@ -10,6 +10,7 @@ import { translate as t, useLanguage } from '@/lib/i18n/index.ts'
 import { saveBlob } from '@/lib/export/fileSaver.ts'
 import { wiringPath } from '@/lib/utilities/overlays.ts'
 import { UtilitySymbolGlyph } from './UtilitySymbolGlyph.tsx'
+import { PlanFixture } from './PlanFixture.tsx'
 import { ExportDropdown } from '@/components/export/ExportDropdown.tsx'
 import { useUtilityDrawing } from './useUtilityDrawing.ts'
 import { UtilityDrawingWorkbench, type SheetExportKind } from './UtilityDrawingWorkbench.tsx'
@@ -178,9 +179,14 @@ function UtilitySheet(props: SheetProps) {
         <line x1={o.at.x - (o.orient === 'h' ? o.width / 2 : 0)} y1={o.at.y - (o.orient === 'v' ? o.width / 2 : 0)} x2={o.at.x + (o.orient === 'h' ? o.width / 2 : 0)} y2={o.at.y + (o.orient === 'v' ? o.width / 2 : 0)} stroke={o.kind === 'window' ? '#adb7b5' : '#ffffff'} strokeWidth={Math.max(260, ...model.floor.walls.filter(w => w.rooms?.some(id => o.rooms?.includes(id))).map(w => w.thickness + 10))} />
         {o.kind === 'window' && <line x1={o.at.x - (o.orient === 'h' ? o.width / 2 : 0)} y1={o.at.y - (o.orient === 'v' ? o.width / 2 : 0)} x2={o.at.x + (o.orient === 'h' ? o.width / 2 : 0)} y2={o.at.y + (o.orient === 'v' ? o.width / 2 : 0)} stroke="white" strokeWidth={1} vectorEffect="non-scaling-stroke" />}
       </g>)}
-      {model.fixtures.filter(f => f.type !== 'floor_drain' || props.visible.drainage).map(f => <g key={f.id} opacity={room === 'all' || room === f.roomId ? 1 : .2} transform={`translate(${f.position.x} ${f.position.y})`} fill="white" stroke="#888e87" strokeWidth={1 / scale}>
-        {f.type === 'toilet' ? <><rect x={-f.width / 2} y={-f.depth / 2} width={f.width} height={f.depth * .24} rx={30} /><ellipse cy={f.depth * .1} rx={f.width * .48} ry={f.depth * .37} /><ellipse cy={f.depth * .1} rx={f.width * .28} ry={f.depth * .24} /></> : <><rect x={-f.width / 2} y={-f.depth / 2} width={f.width} height={f.depth} rx={f.type === 'shower' ? 20 : 65} /><path d={f.type === 'shower' ? `M${-f.width / 2} ${-f.depth / 2}l${f.width} ${f.depth}m${-f.width} 0l${f.width} ${-f.depth}` : `M${-f.width * .3} 0h${f.width * .6}`} fill="none" /></>}
-      </g>)}
+      {model.fixtures.filter(f => f.type !== 'floor_drain' || props.visible.drainage).map(f => {
+        const fixtureRoom = model.floor.rooms.find(r => r.id === f.roomId)
+        return (
+          <g key={f.id} opacity={room === 'all' || room === f.roomId ? 1 : .2} transform={`translate(${f.position.x} ${f.position.y})`}>
+            <PlanFixture fixture={f} room={fixtureRoom} scale={scale} />
+          </g>
+        )
+      })}
     </g>
     {drawing?.grid && <g pointerEvents="none" clipPath={`url(#${glow}-slabs)`}><defs><pattern id={`${glow}-grid`} width={1000} height={1000} patternUnits="userSpaceOnUse"><path d="M1000 0H0V1000" fill="none" stroke="#dde5df" strokeWidth={1 / scale} /></pattern></defs><rect x={r.x} y={r.y} width={r.w} height={r.h} fill={`url(#${glow}-grid)`} /></g>}
     <g data-layer="access" pointerEvents="none" fill="none" stroke="#adb5ad" strokeWidth={1 / scale}>{model.floor.stair && <g><rect x={model.floor.stair.rect.x} y={model.floor.stair.rect.y} width={model.floor.stair.rect.w} height={model.floor.stair.rect.h} strokeDasharray={`${80} ${60}`} />{model.floor.stair.treads.map((line, i) => <line key={i} x1={line[0].x} y1={line[0].y} x2={line[1].x} y2={line[1].y} />)}</g>}{model.floor.shafts?.map(s => <rect key={s.id} x={s.rect.x} y={s.rect.y} width={s.rect.w} height={s.rect.h} strokeDasharray="80 60" />)}</g>
