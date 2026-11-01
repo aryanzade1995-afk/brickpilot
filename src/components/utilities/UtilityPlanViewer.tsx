@@ -188,7 +188,6 @@ function RunLayer(props: SheetProps & { layerKey: UtilityLayer; filterId: string
         <rect x={-22} y={-22} width={44} height={44} fill="transparent" />
         {active && <circle r={14} fill={color} fillOpacity={.12} />}
         <DrainageNodeGlyph node={n} color={color} technical={!!props.drainageTechnical} />
-        {count > 1 && <g transform="translate(10 -10)" pointerEvents="none"><circle r={7} fill={color} stroke="white" strokeWidth={1.5} /><text y={2.8} textAnchor="middle" fontSize={8} fill="white">{count}</text></g>}
       </g>
     })}
     {displayedSymbols(model, visible, room, circuit, zone, water).filter(s => s.layer === layerKey && !(s.layer === 'drainage' && model.drainageDesign)).map(s => {
