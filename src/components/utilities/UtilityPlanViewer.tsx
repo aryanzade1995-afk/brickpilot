@@ -18,7 +18,7 @@ import { UtilityLayerPanel } from './UtilityLayerPanel.tsx'
 import { DRAWING_LAYERS, visibleLayers, sourceSignature, parseUtilityDrawing, type DrawingDocument, type UtilityDrawingProject } from '@/lib/utilities/drawingProject.ts'
 import { buildDrawingSheets, drawingOpsSvg, annotationOps, sheetSvg as serializeDrawingSheet } from '@/lib/utilities/drawingSheets.ts'
 import { downloadVectorSheets, downloadSheetPng, downloadSheetSvg, downloadUtilityDxf } from '@/lib/utilities/drawingExports.ts'
-import { drainageBounds } from '@/lib/utilities/drainage.ts'
+import { drainageBounds, type DrainageNode } from '@/lib/utilities/drainage.ts'
 import { waterBounds } from '@/lib/utilities/water.ts'
 import { DRAINAGE_COLORS } from '@/lib/utilities/drainageRules.ts'
 import { DrainageWorkbench } from './DrainageWorkbench.tsx'
@@ -37,13 +37,96 @@ const rectPath = (r: Rect) => `M${r.x} ${r.y}h${r.w}v${r.h}h${-r.w}Z`
 type HoverInfo = UtilityHoverInfo
 type SheetProps = { model: UtilityFloor; box: Box; visible: Record<UtilityLayer, boolean>; room: string; circuit: string; zone: string; water: string; showCoverage: boolean; showEvacuation: boolean; selected: string | null; scale: number; drainageTechnical?: boolean; exporting?: boolean; project: string; drawingDocument?: DrawingDocument; onSelect?: (id: string) => void; onHover?: (info: HoverInfo | null, x?: number, y?: number) => void; svgRef?: React.Ref<SVGSVGElement> }
 const wireLabel = (wire: string) => wire.replace('mm2', ' mm²')
+function DrainageNodeGlyph({ node, color, technical }: { node: DrainageNode; color: string; technical: boolean }) {
+  const isSoil = node.service === 'soil'
+  if (technical) {
+    const code = ({ stack: 'S', stack_base: 'SB', inspection_chamber: 'IC', outlet: 'OUT', trap: 'T', cleanout: 'CO', vent_terminal: 'V' } as Record<string, string>)[node.kind] ?? '?'
+    return (
+      <g className="drainage-node-face" pointerEvents="none">
+        {node.kind === 'inspection_chamber' || node.kind === 'outlet' ? (
+          <rect x={-10} y={-8} width={20} height={16} rx={2} fill="white" stroke={color} strokeWidth={1.5} />
+        ) : (
+          <circle r={9} fill="white" stroke={color} strokeWidth={1.5} />
+        )}
+        <text y={3} textAnchor="middle" fontSize={code.length > 2 ? 6 : 8} fontWeight={600} fill={color}>{code}</text>
+      </g>
+    )
+  }
+
+  if (node.kind === 'stack' || node.kind === 'stack_base') {
+    return (
+      <g className="drainage-node-face" pointerEvents="none">
+        <circle r={9.5} fill="white" stroke={color} strokeWidth={1.8} />
+        <circle r={4.5} fill={color} fillOpacity={0.18} stroke={color} strokeWidth={1} />
+        <path d="M0 -3 L0 2.8 M-2.2 0.6 L0 2.8 L2.2 0.6" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+        <text y={15} textAnchor="middle" fontSize={6.5} fontWeight={600} fill={color} stroke="#ffffff" strokeWidth={2.5} strokeLinejoin="round" paintOrder="stroke fill">Stack ↓</text>
+      </g>
+    )
+  }
+
+  if (node.kind === 'trap') {
+    return (
+      <g className="drainage-node-face" pointerEvents="none">
+        <circle r={9} fill="white" stroke={color} strokeWidth={1.6} />
+        <circle r={4.6} fill="none" stroke={color} strokeWidth={0.9} strokeDasharray="2 1.5" />
+        <circle r={1.5} fill={color} />
+        <line x1={-3} y1={0} x2={3} y2={0} stroke={color} strokeWidth={1} strokeLinecap="round" />
+        <line x1={0} y1={-3} x2={0} y2={3} stroke={color} strokeWidth={1} strokeLinecap="round" />
+        <text y={15} textAnchor="middle" fontSize={6.5} fontWeight={600} fill={color} stroke="#ffffff" strokeWidth={2.5} strokeLinejoin="round" paintOrder="stroke fill">
+          {isSoil ? 'WC Trap' : 'Trap'}
+        </text>
+      </g>
+    )
+  }
+
+  if (node.kind === 'cleanout') {
+    return (
+      <g className="drainage-node-face" pointerEvents="none">
+        <circle r={9} fill="white" stroke={color} strokeWidth={1.6} />
+        <rect x={-3.5} y={-3.5} width={7} height={7} rx={1} fill={color} fillOpacity={0.2} stroke={color} strokeWidth={1.1} />
+        <line x1={-2} y1={-2} x2={2} y2={2} stroke={color} strokeWidth={1} strokeLinecap="round" />
+        <line x1={-2} y1={2} x2={2} y2={-2} stroke={color} strokeWidth={1} strokeLinecap="round" />
+        <text y={15} textAnchor="middle" fontSize={6.5} fontWeight={600} fill={color} stroke="#ffffff" strokeWidth={2.5} strokeLinejoin="round" paintOrder="stroke fill">Cleanout</text>
+      </g>
+    )
+  }
+
+  if (node.kind === 'inspection_chamber' || node.kind === 'outlet') {
+    return (
+      <g className="drainage-node-face" pointerEvents="none">
+        <rect x={-11} y={-8.5} width={22} height={17} rx={2.5} fill="white" stroke={color} strokeWidth={1.6} />
+        <rect x={-7.5} y={-5} width={15} height={10} rx={1} fill={color} fillOpacity={0.12} stroke={color} strokeWidth={0.9} strokeDasharray="2 1.5" />
+        <text y={2.5} textAnchor="middle" fontSize={7} fontWeight={700} fill={color}>{node.kind === 'outlet' ? 'OUT' : 'IC'}</text>
+        <text y={15} textAnchor="middle" fontSize={6.5} fontWeight={600} fill={color} stroke="#ffffff" strokeWidth={2.5} strokeLinejoin="round" paintOrder="stroke fill">
+          {node.kind === 'outlet' ? 'Outlet' : 'Chamber'}
+        </text>
+      </g>
+    )
+  }
+
+  return (
+    <g className="drainage-node-face" pointerEvents="none">
+      <circle r={8} fill="white" stroke={color} strokeWidth={1.5} />
+      <circle r={2.5} fill={color} />
+    </g>
+  )
+}
+
 function runInfo(model: UtilityFloor, run: UtilityRun): HoverInfo {
   const room = t(model.floor.rooms.find(r => r.id === run.roomId)?.name) ?? ''
   if (run.layer === 'drainage') {
     const p = run.drainagePipe, review = model.drainageDesign?.checks.filter(c => c.itemId === run.id && c.status !== 'Pass') ?? []
-    return { title: p ? DRAINAGE_DISPLAY[p.service].label : 'Drainage pipe', category: room || 'Drainage', color: p ? DRAINAGE_COLORS[p.service] : UTILITY_LAYERS.drainage.color, status: p?.state === 'blocked' ? 'Needs review' : 'Proposed', reference: run.id,
+    const isSoil = p?.service === 'soil'
+    const isWaste = p?.service === 'waste'
+    const serviceTitle = isSoil ? `${t('Soil pipe')} (${t('Toilet blackwater')})` : isWaste ? `${t('Waste pipe')} (${t('Sink & shower greywater')})` : p ? t(DRAINAGE_DISPLAY[p.service].label) : t('Drainage pipe')
+    const serviceExplanation = isSoil
+      ? t('Carries toilet waste directly to vertical sewer stack.')
+      : isWaste
+      ? t('Carries greywater from sinks and showers through a floor trap to the stack.')
+      : p?.sizingBasis ?? t('Proposed drainage connection')
+    return { title: serviceTitle, category: room || t('Drainage'), color: p ? DRAINAGE_COLORS[p.service] : UTILITY_LAYERS.drainage.color, status: p?.state === 'blocked' ? t('Needs review') : t('Proposed'), reference: run.id,
       properties: [{ label: 'Diameter', value: p ? p.diameterMm === null ? 'Not specified' : `${p.diameterMm} mm` : `${run.diameter} mm` }, { label: 'Gradient', value: p?.gradientRatio ? `1:${p.gradientRatio}` : 'Not verified' }, { label: 'Route length', value: p?.vertical ? 'Vertical connection' : `${((p?.lengthMm ?? pathLength(run.path)) / 1000).toFixed(2)} m` }, { label: 'Loading', value: p?.dfu == null ? 'Not verified' : `${p.dfu} DFU` }],
-      lines: [room, review[0]?.reason ?? p?.sizingBasis ?? 'Proposed drainage connection', 'Select to inspect the connected route and review details.'].filter(Boolean) }
+      lines: [room, review[0]?.reason ?? serviceExplanation, t('Select to inspect connected route and review details.')].filter(Boolean) }
   }
   if (run.layer === 'fire_alarm') { const z = model.zones.find(z => z.id === run.zoneId)!, to = model.symbols.find(s => s.id === run.toSymbolId); return { title: `${z.tag} · ${t(z.name)}`, lines: [room, to?.layer === 'fire_alarm' ? t(to.label) : t('Alarm loop'), run.cableType] } }
   if (run.layer === 'water_supply') { const n = model.waterNetworks.find(n => n.id === run.networkId)!; return { title: `${n.tag} · ${t(n.name)}`, lines: [room, `Ø${run.diameter} mm · ${t(run.material)}`, t('Proposed supply route')] } }
@@ -79,7 +162,7 @@ function RunLayer(props: SheetProps & { layerKey: UtilityLayer; filterId: string
         {geometry.jumps.map((j, i) => <path key={i} d={j.d} fill="none" stroke="white" strokeWidth={7} vectorEffect="non-scaling-stroke" />)}
         {u.layer === 'drainage' && <path d={geometry.d} fill="none" stroke="white" strokeWidth={strokeWidth + 3} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" pointerEvents="none" />}
         <path d={geometry.d} fill="none" stroke={color} strokeWidth={strokeWidth + (active ? 1 : 0)} strokeDasharray={drainStyle ? drainStyle.dash : layer.dash ?? undefined} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" pointerEvents="none" />
-        {markers.map((p, i) => <path key={i} d={`M${-4 / scale} ${-4 / scale}L0 0L${-4 / scale} ${4 / scale}`} transform={`translate(${p.x} ${p.y}) rotate(${p.angle + (u.layer === 'drainage' && u.flowDirection === 'reverse' ? 180 : 0)})`} fill="none" stroke={color} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />)}
+        {markers.map((p, i) => <path key={i} d={`M${-4.5 / scale} ${-3.5 / scale}L${0.5 / scale} 0L${-4.5 / scale} ${3.5 / scale}`} transform={`translate(${p.x} ${p.y}) rotate(${p.angle + (u.layer === 'drainage' && u.flowDirection === 'reverse' ? 180 : 0)})`} fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />)}
         {u.layer === 'drainage' && !u.drainagePipe?.vertical && <circle cx={u.path[0].x} cy={u.path[0].y} r={3 / scale} fill={color} stroke="white" strokeWidth={1.5} vectorEffect="non-scaling-stroke" pointerEvents="none" />}
         {(props.drainageTechnical || active) && tag && <g transform={`translate(${tag.x} ${tag.y}) scale(${1 / scale})`} pointerEvents="none"><rect x={-10} y={-18} width={21} height={13} rx={2} fill="white" stroke={color} strokeWidth={.5} /><text x={.5} y={-8} textAnchor="middle" fontSize={9} fill={color}>{circuitData!.tag}</text></g>}
         {props.drainageTechnical && ticks && u.layer === 'electrical' && <g transform={`translate(${ticks.x} ${ticks.y}) rotate(${ticks.angle}) scale(${1 / scale})`} stroke={color} strokeWidth={1.2}>{Array.from({ length: u.conductors }, (_, i) => <path key={i} d={`M${i * 4 - 4}-4l-3 8`} />)}</g>}
@@ -95,15 +178,25 @@ function RunLayer(props: SheetProps & { layerKey: UtilityLayer; filterId: string
     </g> })}
     {layerKey === 'drainage' && clusters.map(group => {
       const n = group.anchor, color = DRAINAGE_COLORS[n.service], count = group.nodes.length, active = group.nodes.some(n => trace?.nodes.has(n.id))
-      const code = ({ stack: 'S', stack_base: 'SB', inspection_chamber: 'IC', outlet: 'OUT', trap: 'T', cleanout: 'CO', vent_terminal: 'V' } as Record<string, string>)[n.kind]
       const info: HoverInfo = { title: count > 1 ? `${t(DRAINAGE_NODE_NAMES[n.kind])} + ${count - 1}` : DRAINAGE_NODE_NAMES[n.kind], category: 'Drainage components', color, status: 'Proposed', reference: n.id,
-        properties: [{ label: 'Components', value: String(count) }, { label: 'Elevation', value: n.elevationMm === null ? 'Not verified' : `${n.elevationMm} mm` }], lines: [...new Set(group.nodes.map(n => t(DRAINAGE_NODE_NAMES[n.kind])))].concat(count > 1 ? ['Select to inspect each component. Grouped for readability at this zoom.'] : []) }
+        properties: [{ label: 'Components', value: String(count) }, { label: 'Elevation', value: n.elevationMm === null ? 'Not verified' : `${n.elevationMm} mm` }],
+        lines: [
+          n.kind === 'stack' || n.kind === 'stack_base'
+            ? t('Vertical pipe dropping waste down through floor slabs to external sewer.')
+            : n.kind === 'trap'
+            ? t('Water-seal trap (P-trap / floor drain): holds water seal to prevent foul sewer odors.')
+            : n.kind === 'cleanout'
+            ? t('Removable access cap for rodding and unclogging pipes.')
+            : n.kind === 'inspection_chamber'
+            ? t('Exterior inspection chamber for cleaning and maintenance.')
+            : t(DRAINAGE_NODE_NAMES[n.kind]),
+          ...new Set(group.nodes.map(n => t(DRAINAGE_NODE_NAMES[n.kind])))
+        ].concat(count > 1 ? [t('Select to inspect each component. Grouped for readability at this zoom.')] : []) }
       return <g key={group.id} data-drainage-cluster={count} transform={`translate(${n.position.x} ${n.position.y}) scale(${1 / scale})`} role={exporting || locked ? undefined : 'button'} tabIndex={exporting || locked ? undefined : 0} aria-label={[info.title, ...info.lines].join(' · ')} aria-pressed={active} data-run-id={n.id} pointerEvents={locked ? 'none' : undefined}
         onPointerMove={e => onHover?.(info, e.clientX, e.clientY)} onPointerLeave={() => onHover?.(null)} onFocus={e => { const r = e.currentTarget.getBoundingClientRect(); onHover?.(info, r.left + r.width / 2, r.top + r.height / 2) }} onBlur={() => onHover?.(null)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect?.(n.id) } }} opacity={selected && !active ? .4 : 1} className="cursor-pointer outline-none focus:[&_.drainage-node-face]:stroke-[3px]">
         <rect x={-22} y={-22} width={44} height={44} fill="transparent" />
         {active && <circle r={14} fill={color} fillOpacity={.12} />}
-        {n.kind === 'inspection_chamber' || n.kind === 'outlet' ? <rect className="drainage-node-face" x={-10} y={-8} width={20} height={16} rx={2} fill="white" stroke={color} strokeWidth={1.5} /> : <circle className="drainage-node-face" r={9} fill="white" stroke={color} strokeWidth={1.5} />}
-        <text y={3} textAnchor="middle" fontSize={code.length > 2 ? 6 : 8} fontWeight={600} fill={color} pointerEvents="none">{code}</text>
+        <DrainageNodeGlyph node={n} color={color} technical={!!props.drainageTechnical} />
         {count > 1 && <g transform="translate(10 -10)" pointerEvents="none"><circle r={7} fill={color} stroke="white" strokeWidth={1.5} /><text y={2.8} textAnchor="middle" fontSize={8} fill="white">{count}</text></g>}
       </g>
     })}
@@ -185,38 +278,44 @@ function UtilitySheet(props: SheetProps) {
           </g>
         )
       })}
-      {model.floor.rooms.map(roomData => (
-        <g key={`label-${roomData.id}`} opacity={room === 'all' || room === roomData.id ? 1 : .2} pointerEvents="none">
-          <text
-            x={roomData.rect.x + roomData.rect.w / 2}
-            y={roomData.rect.y + roomData.rect.h / 2 - font * 0.35}
-            textAnchor="middle"
-            fontSize={Math.min(font, roomData.rect.w / Math.max(4, t(roomData.name).length) * 1.4)}
-            fill="#565651"
-            stroke="#ffffff"
-            strokeWidth={Math.max(6, 4 / scale)}
-            strokeLinejoin="round"
-            paintOrder="stroke fill"
-          >
-            {t(roomData.name)}
-          </text>
-          {props.drainageTechnical && (
+      {model.floor.rooms.map(roomData => {
+        const isBath = /bath|toilet|wash/i.test(roomData.name) || /bath|toilet/i.test(roomData.id)
+        const labelY = isBath
+          ? roomData.rect.y + roomData.rect.h * 0.74
+          : roomData.rect.y + roomData.rect.h / 2 - font * 0.35
+        return (
+          <g key={`label-${roomData.id}`} opacity={room === 'all' || room === roomData.id ? 1 : .2} pointerEvents="none">
             <text
               x={roomData.rect.x + roomData.rect.w / 2}
-              y={roomData.rect.y + roomData.rect.h / 2 + font * 0.9}
+              y={labelY}
               textAnchor="middle"
-              fontSize={font * 0.72}
-              fill="#898982"
+              fontSize={Math.min(font, roomData.rect.w / Math.max(4, t(roomData.name).length) * 1.4)}
+              fill="#565651"
               stroke="#ffffff"
-              strokeWidth={Math.max(4, 3 / scale)}
+              strokeWidth={Math.max(6, 4 / scale)}
               strokeLinejoin="round"
               paintOrder="stroke fill"
             >
-              {roomData.area.toFixed(1)} m²
+              {t(roomData.name)}
             </text>
-          )}
-        </g>
-      ))}
+            {props.drainageTechnical && (
+              <text
+                x={roomData.rect.x + roomData.rect.w / 2}
+                y={labelY + font * 1.25}
+                textAnchor="middle"
+                fontSize={font * 0.72}
+                fill="#898982"
+                stroke="#ffffff"
+                strokeWidth={Math.max(4, 3 / scale)}
+                strokeLinejoin="round"
+                paintOrder="stroke fill"
+              >
+                {roomData.area.toFixed(1)} m²
+              </text>
+            )}
+          </g>
+        )
+      })}
     </g>
     {drawing?.grid && <g pointerEvents="none" clipPath={`url(#${glow}-slabs)`}><defs><pattern id={`${glow}-grid`} width={1000} height={1000} patternUnits="userSpaceOnUse"><path d="M1000 0H0V1000" fill="none" stroke="#dde5df" strokeWidth={1 / scale} /></pattern></defs><rect x={r.x} y={r.y} width={r.w} height={r.h} fill={`url(#${glow}-grid)`} /></g>}
     <g data-layer="access" pointerEvents="none" fill="none" stroke="#adb5ad" strokeWidth={1 / scale}>{model.floor.stair && <g><rect x={model.floor.stair.rect.x} y={model.floor.stair.rect.y} width={model.floor.stair.rect.w} height={model.floor.stair.rect.h} strokeDasharray={`${80} ${60}`} />{model.floor.stair.treads.map((line, i) => <line key={i} x1={line[0].x} y1={line[0].y} x2={line[1].x} y2={line[1].y} />)}</g>}{model.floor.shafts?.map(s => <rect key={s.id} x={s.rect.x} y={s.rect.y} width={s.rect.w} height={s.rect.h} strokeDasharray="80 60" />)}</g>
@@ -453,8 +552,42 @@ export function UtilityPlanViewer({ model: sourceModel, models, project, reviewS
       <div className="min-w-0 self-start border border-line">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-bg px-4 py-3 text-xs"><span>{t(model.floor.name)} · {t('Utility plan')}</span><span className="text-ink-dim">{shown.length} {t('connections')}</span><label className="flex min-h-11 items-center gap-2"><input type="checkbox" className="accent-accent" checked={drainageTechnical} onChange={e => setDrainageTechnical(e.target.checked)} />{t('Technical view')}</label></div>
         {visible.drainage && model.drainageDesign && <div className="border-b border-line bg-bg-raised p-3 sm:px-4">
-          <div className="flex flex-wrap items-center gap-2"><span className="mr-1 font-mono text-[9px] uppercase tracking-widest text-ink-faint">{t('Focus drains')}</span><button className={`${button} ${room === 'all' ? 'border-line-strong bg-bg-inset' : ''}`} aria-pressed={room === 'all'} onClick={() => focusRoom('all')}>{t('Whole floor')}</button>{drainageRooms.map(r => <button key={r.id} className={`${button} ${room === r.id ? 'border-line-strong bg-bg-inset' : ''}`} aria-pressed={room === r.id} onClick={() => focusRoom(r.id)}>{t(r.name)}</button>)}</div>
-          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line pt-3 text-[10px] text-ink-dim">{Object.entries(DRAINAGE_DISPLAY).filter(([key]) => model.drainageDesign!.input.visible[key as keyof typeof DRAINAGE_DISPLAY] && model.drainageDesign!.pipes.some(p => p.service === key)).map(([key, style]) => <span key={key} className="flex items-center gap-2"><svg width="24" height="8" aria-hidden="true"><path d="M0 4H24" stroke={DRAINAGE_COLORS[key as keyof typeof DRAINAGE_COLORS]} strokeWidth={style.width} strokeDasharray={style.dash} /></svg>{t(style.label)}</span>)}</div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="mr-1 font-mono text-[9px] uppercase tracking-widest text-ink-faint">{t('Focus drains')}</span>
+            <button className={`${button} ${room === 'all' ? 'border-line-strong bg-bg-inset' : ''}`} aria-pressed={room === 'all'} onClick={() => focusRoom('all')}>{t('Whole floor')}</button>
+            {drainageRooms.map(r => <button key={r.id} className={`${button} ${room === r.id ? 'border-line-strong bg-bg-inset' : ''}`} aria-pressed={room === r.id} onClick={() => focusRoom(r.id)}>{t(r.name)}</button>)}
+          </div>
+          <div className="mt-2.5 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-line pt-2.5 text-[11px] text-ink-dim">
+            {Object.entries(DRAINAGE_DISPLAY).filter(([key]) => model.drainageDesign!.input.visible[key as keyof typeof DRAINAGE_DISPLAY] && model.drainageDesign!.pipes.some(p => p.service === key)).map(([key, style]) => (
+              <span key={key} className="flex items-center gap-1.5">
+                <svg width="22" height="6" aria-hidden="true"><path d="M0 3H22" stroke={DRAINAGE_COLORS[key as keyof typeof DRAINAGE_COLORS]} strokeWidth={style.width} strokeDasharray={style.dash} /></svg>
+                <strong className="font-medium text-ink">{t(style.label)}</strong>
+                <span className="text-[10px] text-ink-faint">({t(style.description)})</span>
+              </span>
+            ))}
+            <span className="flex items-center gap-1.5">
+              <svg width="16" height="16" viewBox="-8 -8 16 16" aria-hidden="true">
+                <circle r="7" fill="white" stroke={DRAINAGE_COLORS.waste} strokeWidth="1.4" />
+                <circle r="3.5" fill="none" stroke={DRAINAGE_COLORS.waste} strokeWidth="0.8" strokeDasharray="1.5 1.5" />
+                <path d="M-2.5 0h5M0 -2.5v5" stroke={DRAINAGE_COLORS.waste} strokeWidth="0.8" strokeLinecap="round" />
+              </svg>
+              <strong className="font-medium text-ink">{t('Trap / Floor Drain')}</strong>
+              <span className="text-[10px] text-ink-faint">({t('Water seal blocks odor')})</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <svg width="16" height="16" viewBox="-8 -8 16 16" aria-hidden="true">
+                <circle r="7" fill="white" stroke={DRAINAGE_COLORS.soil} strokeWidth="1.5" />
+                <circle r="3.5" fill={DRAINAGE_COLORS.soil} fillOpacity="0.18" stroke={DRAINAGE_COLORS.soil} strokeWidth="0.8" />
+                <path d="M0 -2.2v4.2m-1.6 -1.4l1.6 1.4l1.6 -1.4" fill="none" stroke={DRAINAGE_COLORS.soil} strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <strong className="font-medium text-ink">{t('Vertical Stack (↓)')}</strong>
+              <span className="text-[10px] text-ink-faint">({t('Drop to ground sewer')})</span>
+            </span>
+          </div>
+          <div className="mt-2 flex items-center gap-2 rounded bg-bg-inset px-2.5 py-1.5 text-[11px] text-ink-dim">
+            <span className="font-medium text-accent">💡 {t('How drainage works')}:</span>
+            <span>{t('Toilets flush through brown Soil pipes directly to the vertical sewer stack (↓). Sinks, showers and washing machines drain through floor traps (◎) into teal Waste pipes.')}</span>
+          </div>
         </div>}
         <div ref={host} className="relative h-[480px] overflow-hidden bg-bg-inset sm:h-[580px]" style={{ touchAction: 'none' }}>
           <div className="absolute inset-0 bg-white">
