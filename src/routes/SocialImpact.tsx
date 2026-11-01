@@ -1,160 +1,972 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ArrowUpRight, Leaf, Download, Check, ChevronRight } from 'lucide-react'
+import {
+  ArrowUpRight,
+  Download,
+  MessageSquareText,
+  Upload,
+  Sparkles,
+  Building2,
+  LayoutDashboard,
+  Banknote,
+  Droplets,
+  Sun,
+  Accessibility,
+  Users,
+  FileText,
+  Layers,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react'
 import { WorkspaceTabs } from '@/components/WorkspaceTabs.tsx'
 import { useStudio } from '@/state/studio.ts'
 import { useProjects, noteChange } from '@/state/projects.ts'
 import { useFinishes } from '@/state/finishes.ts'
 import { useSocialImpact } from '@/state/socialImpact.ts'
+import { useCostResearch } from '@/state/costResearch.ts'
 import { estimateProjectBoq, type CostEstimate } from '@/lib/cost/index.ts'
 import { geometryCostKey } from '@/lib/cost/quantities.ts'
 import { emptyImpact, type ImpactDocument } from '@/lib/impact/schema.ts'
-import { analyzeImpact, housingTopic, IMPACT_SOURCES, type ImpactCheck } from '@/lib/impact/analysis.ts'
+import { analyzeImpact, housingTopic, IMPACT_SOURCES } from '@/lib/impact/analysis.ts'
+import { buildImpactSummary } from '@/lib/impact/summary.ts'
 import { translate as t, useLanguage } from '@/lib/i18n/index.ts'
 import type { Brief } from '@/lib/model/brief.ts'
+import { getSampleProjectData } from '@/lib/impact/sampleProject.ts'
+import { ImpactHeroBanner } from '@/components/impact/ImpactHeroBanner.tsx'
+import { AffordabilityPillar } from '@/components/impact/AffordabilityPillar.tsx'
+import { WaterSecurityPillar } from '@/components/impact/WaterSecurityPillar.tsx'
+import { ClimateSolarPillar } from '@/components/impact/ClimateSolarPillar.tsx'
+import { AccessibilityPillar } from '@/components/impact/AccessibilityPillar.tsx'
+import { CommunityPillar } from '@/components/impact/CommunityPillar.tsx'
+import { DataSourcesAssumptionsPanel } from '@/components/impact/DataSourcesAssumptionsPanel.tsx'
+import { PillarErrorBoundary } from '@/components/impact/PillarErrorBoundary.tsx'
 
-const SECTIONS=[
-  ['dashboard','Impact dashboard'],['affordability','Affordable housing'],['climate','Climate-smart homes'],['water','Water conservation'],
-  ['sustainability','Sustainable construction'],['safety','Home safety'],['access','Inclusive housing'],['community','Community housing'],
-  ['assistant','Housing assistant'],['essentials','Essential tools'],['intelligence','Building intelligence'],['pilots','Pilot outcomes'],
+export const IMPACT_TABS = [
+  { id: 'overview', n: '01', label: 'Overview & KPIs', sub: 'Cross-Section & Score', icon: LayoutDashboard },
+  { id: 'affordability', n: '02', label: 'Affordability & Carbon', sub: 'BOQ Waterfall & Eco-Swaps', icon: Banknote },
+  { id: 'water', n: '03', label: 'Water Security', sub: 'Jal Shakti & Cistern Autonomy', icon: Droplets },
+  { id: 'climate', n: '04', label: 'Climate & Solar', sub: 'Cool Roof & PM Surya Ghar', icon: Sun },
+  { id: 'accessibility', n: '05', label: 'Accessibility & Safety', sub: 'DEPwD 2021 & Life Safety', icon: Accessibility },
+  { id: 'community', n: '06', label: 'Community & Scaling', sub: 'PMAY-U 2.0 & Cluster Pilots', icon: Users },
+  { id: 'guidance', n: '07', label: 'Housing Guidance', sub: 'Multilingual Q&A Assistant', icon: MessageSquareText },
+  { id: 'standards', n: '08', label: 'Statutory Standards', sub: 'By-Laws, Mandates & Sources', icon: FileText },
+  { id: 'all', n: '09', label: 'Complete Report', sub: 'Continuous Full-Spectrum Feed', icon: Layers },
 ] as const
-type Section=typeof SECTIONS[number][0]
-const button='inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-line bg-bg px-4 text-xs transition-colors hover:bg-bg-inset focus-visible:outline-2 focus-visible:outline-accent'
-const field='min-h-11 w-full rounded-lg border border-line bg-bg px-3 text-sm focus-visible:outline-2 focus-visible:outline-accent'
-const money=(n:number)=>new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:0}).format(n)
-const number=(n:number)=>new Intl.NumberFormat('en-IN',{maximumFractionDigits:1}).format(n)
-const unknown=()=>t('Not recorded')
 
-export function SocialImpact(){
-  useLanguage(s=>s.language)
-  const result=useStudio(s=>s.result),brief=useStudio(s=>s.brief),run=useStudio(s=>s.run)
-  const projectId=useProjects(s=>s.currentId),saved=useFinishes(s=>s.entries[result?geometryCostKey(result.design):''])
-  useEffect(()=>{if(!result)run()},[result,run])
-  const prepared=useMemo(()=>{
-    if(!result||!result.report.hardChecksPass)return null
-    try{return {cost:estimateProjectBoq(result.design,brief,saved,result),error:null}}catch{return {cost:null,error:'The current estimate needs review. Open Finishes & Cost before comparing impact.'}}
-  },[result,brief,saved])
-  return <div className="mx-auto max-w-[1400px] px-5 py-8 md:px-10">
-    <WorkspaceTabs/>
-    <header className="my-7 flex flex-wrap items-end justify-between gap-4"><div><p className="font-mono text-[10px] uppercase tracking-[.2em] text-ink-faint">{t('Better homes. Measurable impact.')}</p><h1 className="mt-2 font-display text-4xl">{t('Social Impact')}</h1><p className="mt-2 max-w-xl text-sm text-ink-dim">{t('Practical improvements for your home, your budget and your community.')}</p></div><span className="rounded-full border border-line px-4 py-2 text-xs text-ink-dim">{brief.project.name}</span></header>
-    {!result?<p role="status" className="p-8">{t('Preparing your project…')}</p>:!result.report.hardChecksPass?<Card title="Review your plan first"><p>{t('Resolve the plan issues before calculating building impact.')}</p><Action to="/workspace/plan">Review 2D plan</Action></Card>:!prepared?.cost?<p role="status">{t(prepared?.error??'Preparing your project…')}</p>:<ImpactWorkspace key={projectId??'draft'} result={result} brief={brief} cost={prepared.cost}/>}
-  </div>
-}
+export type ImpactTabId = (typeof IMPACT_TABS)[number]['id']
 
-function ImpactWorkspace({result,brief,cost}:{result:NonNullable<ReturnType<typeof useStudio.getState>['result']>;brief:Brief;cost:CostEstimate}){
-  const document=useSocialImpact(s=>s.document),error=useSocialImpact(s=>s.error),update=useSocialImpact(s=>s.update)
-  const doc=useMemo(()=>document??emptyImpact(),[document])
-  const [params,setParams]=useSearchParams(),requested=params.get('section')
-  const section:Section=SECTIONS.some(([id])=>id===requested)?requested as Section:'dashboard'
-  const analyzed=useMemo(()=>{try{return {value:analyzeImpact(result.design,brief,cost,result.report,doc),error:null}}catch{return {value:null,error:'Some source geometry needs review. Your home and saved inputs are unchanged.'}}},[result,brief,cost,doc])
-  const save=(next:ImpactDocument)=>{if(update(next))noteChange('Social Impact inputs')}
-  const setSection=(id:Section)=>setParams(p=>{p.set('section',id);return p})
-  if(!analyzed.value)return <p role="status">{t(analyzed.error!)}</p>
-  const data=analyzed.value
-  const tabTitle=SECTIONS.find(([id])=>id===section)![1]
-  const waterEdit=(patch:Partial<ImpactDocument['water']>)=>save({...doc,water:{...doc.water,...patch,geometryKey:patch.areaM2!==undefined?cost.quantities.geometryKey:doc.water.geometryKey}})
-  return <>
-    {error&&<p role="alert" className="mb-4 rounded-lg border border-line p-4 text-sm">{t(error)}</p>}
-    <div className="grid min-w-0 gap-6 lg:grid-cols-[230px_minmax(0,1fr)]">
-      <nav aria-label={t('Social Impact views')} className="grid content-start grid-cols-2 gap-1 rounded-xl border border-line bg-bg-inset p-2 sm:grid-cols-3 lg:sticky lg:top-4 lg:grid-cols-1 lg:self-start">
-        {SECTIONS.map(([id,label],i)=><button key={id} aria-pressed={section===id} aria-controls="impact-view" onClick={()=>setSection(id)} className={`flex min-h-11 items-center gap-3 rounded-lg px-3 py-3 text-left text-xs focus-visible:outline-2 focus-visible:outline-accent ${section===id?'bg-ink text-bg':'text-ink-dim hover:bg-bg'}`}><span className="font-mono text-[10px] opacity-60">{String(i+1).padStart(2,'0')}</span><span className="flex-1">{t(label)}</span>{section===id&&<ChevronRight size={13} aria-hidden/>}</button>)}
-      </nav>
-      <section id="impact-view" aria-label={t(tabTitle)} className="min-w-0">
-        <div className="mb-5 flex items-center justify-between gap-3"><h2 className="font-display text-2xl">{t(tabTitle)}</h2><span className="text-[10px] uppercase tracking-wider text-ink-faint">{t('Current project')}</span></div>
-        {section==='dashboard'&&<>
-          <div className="grid gap-3 sm:grid-cols-2"><Metric label="Current concept estimate" value={money(cost.expected)} note="From Finishes & Cost"/><Metric label="Rainwater collection potential" value={data.water.litres===null?unknown():`${number(data.water.litres)} L`} note="Entered rainfall scenario · not measured savings"/><Metric label="Reported households supported" value={String(data.pilots.households)} note="Anonymous household codes · user-reported"/><Metric label="Recorded construction cost difference" value={data.pilots.costRecords?money(data.pilots.costDifference):unknown()} note="Comparable pilot records only · may be negative"/></div>
-          <Card title="Your next steps"><div className="grid gap-3 sm:grid-cols-2">{[['affordability','Compare material costs'],['water','Plan your water storage'],['intelligence','Review the whole building'],['pilots','Record a community outcome']].map(([id,label])=><button className={`${button} justify-between`} key={id} onClick={()=>setSection(id as Section)}>{t(label)}<ArrowUpRight size={14}/></button>)}</div></Card>
-          <Card title="Progress needs evidence"><p>{t('Predictions and recorded outcomes are separate. No households, cost savings or climate improvements are counted automatically.')}</p><p className="mt-3">{t('Resilience observations')}: {data.pilots.resilienceRecords} · {t('Measured water records')}: {data.pilots.waterRecords}</p></Card>
-        </>}
-        {section==='affordability'&&<>
-          <div className="grid gap-3 sm:grid-cols-2"><Metric label="Current concept estimate" value={money(cost.expected)} note={`${money(cost.total.low)} – ${money(cost.total.high)}`}/><Metric label="Budget balance" value={data.budgetDifference===null?unknown():money(data.budgetDifference)} note="Budget minus concept estimate"/></div>
-          <Card title="Your budget"><Numeric label="Target budget (INR)" value={doc.budgetInr??brief.budget?.amount??null} change={v=>save({...doc,budgetInr:v})}/><p className="mt-3">{t('This comparison keeps your house unchanged. Lower prices do not establish equivalent product performance.')}</p></Card>
-          <Card title="Lower-cost alternatives">{data.alternatives.length?<div className="space-y-4">{data.alternatives.map(a=><article key={a.lineId} className="border-b border-line pb-4 last:border-0"><p className="font-medium text-ink">{a.label}</p><p className="mt-1 text-xs">{a.current} → {a.alternative}</p><div className="mt-2 flex flex-wrap items-center justify-between gap-2"><span>{t('Line estimate difference')}: {money(a.difference)} · {number(a.quantity)} {a.unit}</span><Action to={a.href}>Review alternative</Action></div></article>)}</div>:<p>{t('No lower installed-rate alternatives were found for the supported finish lines.')}</p>}<p className="mt-4 text-xs text-ink-faint">{t('Alternatives are individual comparisons, not a combined saving. Verify durability, installation and local quotations. Structure and safety systems are not reduced.')}</p></Card>
-        </>}
-        {section==='climate'&&<>
-          <Card title="Natural ventilation"><div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{data.air.map(a=><Metric key={a.from} label={a.from} value={String(a.paths.length)} note="Illustrative connected paths"/>)}</div><p className="mt-4">{t('Plan directions are not surveyed compass directions. Openings are assumed operable; these paths do not predict temperature or air changes.')}</p><Action to="/workspace/utilities?view=air">Explore airflow</Action></Card>
-          <Card title="Passive cooling priorities"><Checklist lines={['Review external shading and solar exposure at each window.','Compare roof insulation and reflective finishes using verified thermal properties.','Keep cross-ventilation routes open while coordinating insect screens and privacy.','Confirm the climate zone, true north, weather and envelope properties before heat analysis.']}/><Action to="/workspace/finishes?tab=specifications&section=roof-exterior">Review roof finishes</Action></Card>
-          <Card title="Roof insulation comparison"><div className="grid gap-4 sm:grid-cols-2">{([['areaM2','Roof area for comparison (m²)'],['currentRoofU','Current roof U-value (W/m²K)'],['proposedRoofU','Proposed roof U-value (W/m²K)'],['temperatureDifferenceK','Temperature difference (K)']] as const).map(([key,label])=><Numeric key={key} label={label} value={doc.climate[key]} change={v=>save({...doc,climate:{...doc.climate,[key]:v}})}/>)}</div><TextField label="Thermal data source / assumptions" value={doc.climate.source} change={v=>save({...doc,climate:{...doc.climate,source:v}})}/>{data.heat&&<p className="mt-4 text-lg text-ink">{number(data.heat.currentW)} W → {number(data.heat.proposedW)} W</p>}<p className="mt-3 text-xs">{t('Steady-state roof conduction only: U × area × temperature difference. Solar radiation, thermal mass, air leakage and cooling equipment are excluded. This is not an indoor-temperature prediction.')}</p></Card>
-          <Card title="Whole-home thermal analysis"><Badge status="Not checked"/><p className="mt-3">{t('A thermal simulation is not available here. No indoor temperature, cooling saving or resilience score is invented.')}</p><Sources indices={[0]}/></Card>
-        </>}
-        {section==='water'&&<>
-          <div className="grid gap-3 sm:grid-cols-2"><Metric label="Rainwater collection potential" value={data.water.litres===null?unknown():`${number(data.water.litres)} L`} note={data.water.state}/><Metric label="Roof area in quantity model" value={`${number(cost.quantities.roofArea)} m²`} note="Projected plan measurement · verify drainable area"/></div>
-          <Card title="One rainfall event"><div className="grid gap-4 sm:grid-cols-2"><Numeric label="Rainfall (mm)" value={doc.water.rainfallMm} change={v=>waterEdit({rainfallMm:v})}/><Numeric label="Confirmed catchment area (m²)" value={doc.water.areaM2} change={v=>waterEdit({areaM2:v})}/><Numeric label="Runoff coefficient (0–1)" value={doc.water.runoff} max={1} change={v=>waterEdit({runoff:v})}/><Numeric label="Collection efficiency (0–1)" value={doc.water.efficiency} max={1} change={v=>waterEdit({efficiency:v})}/><Numeric label="Tank capacity (L)" value={doc.water.capacityL} change={v=>waterEdit({capacityL:v})}/><Numeric label="Daily demand (L)" value={doc.water.dailyDemandL} change={v=>waterEdit({dailyDemandL:v})}/></div><TextField label="Rainfall and coefficient source / assumptions" value={doc.water.source} change={v=>waterEdit({source:v})}/><p className="mt-3 font-mono text-xs">L = mm × m² × {t('runoff')} × {t('efficiency')}</p><p className="mt-2 text-xs">{t('Losses are applied once. An empty tank receives one event, overflows, then serves one day of entered demand. This does not predict annual reliability or drinking-water safety.')}</p></Card>
-          {data.water.storage&&<Card title="Storage scenario"><div className="grid gap-3 sm:grid-cols-3"><Metric label="Water remaining" value={`${number(data.water.storage.storageLitres)} L`}/><Metric label="Overflow" value={`${number(data.water.storage.overflowLitres)} L`}/><Metric label="Unmet demand" value={`${number(data.water.storage.unmetLitres)} L`}/></div></Card>}
-          <Card title="Water-efficient design"><Checklist lines={['Check product-rated tap and shower flow before estimating savings.','Provide roof cleaning, first-flush diversion, filtration and a safe overflow route.','Keep sanitary drainage separate from rainwater; verify recharge suitability locally.']}/><Action to="/workspace/utilities?view=water">Open Water Intelligence</Action><Sources indices={[2]}/></Card>
-        </>}
-        {section==='sustainability'&&<>
-          <div className="grid gap-3 sm:grid-cols-2"><Metric label="Partial embodied-carbon estimate" value={data.carbon.covered&&data.carbon.low!==null&&data.carbon.high!==null?`${number(data.carbon.low)}–${number(data.carbon.high)} kgCO₂e`:data.carbon.mixedBoundaries?t('Different boundaries · review separately'):unknown()} note={`${data.carbon.covered} / ${data.carbon.totalLines} ${t('estimate lines covered')}`}/><Metric label="Annual energy scenario difference" value={data.annualEnergyDifference===null?unknown():`${number(data.annualEnergyDifference)} kWh`} note="User-entered comparison · not a building energy model"/></div>
-          <CarbonEditor doc={doc} cost={cost} save={save}/>
-          <Card title="Energy consumption"><div className="grid gap-4 sm:grid-cols-2"><Numeric label="Current monthly electricity (kWh)" value={doc.energy.currentMonthlyKwh} change={v=>save({...doc,energy:{...doc.energy,currentMonthlyKwh:v}})}/><Numeric label="Proposed monthly electricity (kWh)" value={doc.energy.proposedMonthlyKwh} change={v=>save({...doc,energy:{...doc.energy,proposedMonthlyKwh:v}})}/></div><TextField label="Energy input source / assumptions" value={doc.energy.source} change={v=>save({...doc,energy:{...doc.energy,source:v}})}/><p className="mt-3">{t('Enter energy units from a bill or a documented model. A bill amount in rupees is not electricity consumption.')}</p><Action to="/workspace/finishes?tab=specifications&section=solar">Review rooftop solar</Action></Card>
-          <Card title="Material choices"><Checklist lines={['Request product-specific environmental declarations with matching units and life-cycle boundaries.','Compare durability, repairability, transport and local availability before selecting an alternative.','Keep separate life-cycle boundaries separate; this partial ledger is not a whole-building footprint.']}/></Card>
-        </>}
-        {section==='safety'&&<><p className="mb-4 text-sm text-ink-dim">{t('A planning review, not a safety certificate. Recorded issues stay visible for professional verification.')}</p><Checks checks={data.checks}/></>}
-        {section==='access'&&<>
-          <div className="grid gap-3 sm:grid-cols-2"><Metric label="Narrowest recorded doorway" value={data.narrowestDoorMm===null?unknown():`${number(data.narrowestDoorMm)} mm`} note="Nominal plan width · clear opening needs review"/><Metric label="Entrance ramp" value={data.ramp?t('Proposed'):t('Not configured')} note="Site verification required"/></div>
-          <Card title="Age-friendly priorities"><Checklist lines={['Review a continuous step-free route from the site entrance to essential ground-floor rooms.','Verify doorway clear openings, turning space, thresholds and bathroom support locations.','Use slip-resistant finishes, reachable controls and glare-controlled lighting.','Check ramp gradients, landings and handrails against applicable guidance and surveyed levels.']}/><Action to="/workspace">Review entry brief</Action><Action to="/workspace/plan">Review 2D plan</Action><Sources indices={[1]}/></Card>
-          {data.ramp?.issues.length?<Card title="Ramp items to review"><ul className="list-inside list-disc space-y-2">{data.ramp.issues.map(s=><li key={s}>{s}</li>)}</ul></Card>:null}
-        </>}
-        {section==='community'&&<>
-          <Card title="Plan for a community"><TextField label="Community / organisation label" value={doc.community.label} change={v=>save({...doc,community:{...doc.community,label:v}})}/><div className="mt-4 grid gap-4 sm:grid-cols-2"><Numeric label="Number of households" value={doc.community.households} min={1} max={10000} integer change={v=>{if(v!==null)save({...doc,community:{...doc.community,households:v}})}}/><Numeric label="Shared infrastructure allowance (INR)" value={doc.community.sharedAllowanceInr} change={v=>save({...doc,community:{...doc.community,sharedAllowanceInr:v}})}/></div><p className="mt-4 text-2xl font-display text-ink">{money(data.communityCost)}</p><p className="mt-2">{t('Current home estimate × households, plus your shared allowance. Land, utilities, site differences, approvals and bulk procurement need separate review. A repeated prototype is not a site layout.')}</p><p className="mt-2">{doc.community.sharedAllowanceInr===null?t('Shared infrastructure is not yet costed.'):t('Shared allowance is user-provided.')}</p></Card>
-          <Card title="From prototype to delivery"><Checklist lines={['Discuss household needs, tenure, accessibility and local services before selecting a prototype.','Create a separate saved design for each site or household variation.','Use anonymous household codes and evidence notes to record pilot outcomes.']}/><button className={`${button} mt-4`} onClick={()=>setSection('pilots')}>{t('Record pilot outcomes')}<ArrowUpRight size={14}/></button></Card>
-        </>}
-        {section==='assistant'&&<HousingAssistant data={data} setSection={setSection}/>}
-        {section==='essentials'&&<><Card title="Essential planning tools"><p>{t('Open the existing planning tools directly. No extra subscription or payment is introduced by this section.')}</p><div className="mt-4 grid gap-3 sm:grid-cols-2">{[['/workspace/plan','2D house plan'],['/workspace/massing','3D house visualization'],['/workspace/finishes','Budget estimation'],['/workspace/utilities?view=water','Water planning']].map(([to,label])=><Action key={to} to={to}>{label}</Action>)}</div></Card><Card title="Planning for everyone"><p>{t('Use the language menu for English, Hindi or Marathi. Keep local copies of your project and review it with your community. Device, internet and optional service availability still apply.')}</p></Card></>}
-        {section==='intelligence'&&<>
-          <Card title="One building, one review"><p>{t('This review combines your existing plan, cost estimate, ventilation paths and saved impact inputs. It is a deterministic analysis; it does not claim an independent AI engineering assessment.')}</p><div className="mt-4 flex flex-wrap gap-2"><button className={button} onClick={()=>setSection('affordability')}>{t('Compare material costs')}</button><button className={button} onClick={()=>setSection('water')}>{t('Complete missing water inputs')}</button><button className={button} onClick={()=>setSection('sustainability')}>{t('Add carbon evidence')}</button></div></Card><Checks checks={data.checks}/>
-        </>}
-        {section==='pilots'&&<PilotEditor doc={doc} save={save}/>}
-        <footer className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4 text-xs text-ink-faint"><span>{t('Saved with this project on this device.')}</span><button className={button} onClick={()=>downloadImpact(doc,data,cost,brief.project.name)}><Download size={13}/>{t('Download impact record')}</button></footer>
-      </section>
+const button =
+  'inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-line bg-bg-raised px-4 text-xs font-mono font-medium text-ink transition-colors hover:bg-bg-inset focus-visible:outline-2 focus-visible:outline-accent cursor-pointer'
+
+const buttonPrimary =
+  'inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-transparent bg-ink px-4 text-xs font-mono font-semibold text-white shadow-xs transition-colors hover:bg-ink/90 focus-visible:outline-2 focus-visible:outline-accent cursor-pointer'
+
+export function SocialImpact() {
+  useLanguage(s => s.language)
+  const [params] = useSearchParams()
+  const forceEmpty = params.get('empty') === 'true'
+  const isSampleParam = params.get('sample') === 'true'
+  const studioResult = useStudio(s => s.result)
+  const studioBrief = useStudio(s => s.brief)
+  const run = useStudio(s => s.run)
+  const projectId = useProjects(s => s.currentId)
+
+  const sampleData = useMemo(() => getSampleProjectData(), [])
+
+  // Auto-seed sample if user requested ?sample=true OR if there is no valid studio result and not forcing empty
+  const shouldUseSample = isSampleParam || ((!studioResult || !studioResult.report.hardChecksPass) && !forceEmpty)
+
+  const activeResult = shouldUseSample ? sampleData.result : studioResult
+  const activeBrief = shouldUseSample ? sampleData.brief : studioBrief
+
+  const saved = useFinishes(s => s.entries[activeResult ? geometryCostKey(activeResult.design) : ''])
+
+  useEffect(() => {
+    // If not using sample and no result, generate
+    if (!studioResult && !forceEmpty && !isSampleParam) {
+      run()
+    }
+  }, [studioResult, run, forceEmpty, isSampleParam])
+
+  const prepared = useMemo(() => {
+    if (!activeResult) return null
+    if (shouldUseSample) {
+      return { cost: sampleData.cost, error: null }
+    }
+    if (!activeResult.report.hardChecksPass) return null
+    try {
+      return { cost: estimateProjectBoq(activeResult.design, activeBrief, saved, activeResult), error: null }
+    } catch {
+      return {
+        cost: null,
+        error: 'The current estimate needs review. Open Finishes & Cost before comparing impact.',
+      }
+    }
+  }, [activeResult, activeBrief, saved, shouldUseSample, sampleData])
+
+  return (
+    <div className="mx-auto max-w-[1400px] px-5 py-8 md:px-10">
+      <WorkspaceTabs />
+      <header className="my-7 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="font-mono text-xs uppercase tracking-[.2em] text-ink-dim">
+            {t('Better homes. Measurable impact.')}
+          </p>
+          <h1 className="mt-2 font-display text-3xl sm:text-4xl font-normal tracking-tight text-ink">{t('Social Impact')}</h1>
+          <p className="mt-2 max-w-2xl font-sans text-sm sm:text-base text-ink-dim leading-relaxed">
+            {t(
+              'High-impact visual engineering for your home: 1-click eco-swaps, Jal Shakti monsoon harvesting, Eco-Niwas cool roofs, PM Surya Ghar solar, and DEPwD barrier-free access.'
+            )}
+          </p>
+        </div>
+        <span className="rounded-full border border-line bg-bg-raised px-4 py-1.5 text-xs font-mono text-ink-dim shadow-2xs">
+          {activeBrief.project.name}
+        </span>
+      </header>
+
+      {forceEmpty ? (
+        <div id="impact-empty-state" className="rounded-2xl border border-line bg-bg-raised p-12 text-center shadow-xs">
+          <Building2 className="mx-auto h-12 w-12 text-ink-faint animate-pulse" />
+          <h2 className="mt-4 font-display text-2xl font-normal text-ink">{t('Preparing your architectural model…')}</h2>
+          <p className="mt-2 font-sans text-sm text-ink-dim max-w-md mx-auto leading-relaxed">
+            {t('Generating layout, structural plinth, and bill of quantities for impact calculation.')}
+          </p>
+          <button
+            type="button"
+            onClick={() => run()}
+            className={`${buttonPrimary} mt-6 mx-auto`}
+          >
+            <Sparkles size={14} className="text-white" />
+            <span className="text-white">{t('Generate House Model')}</span>
+          </button>
+        </div>
+      ) : !activeResult ? (
+        <div id="impact-empty-state" className="rounded-2xl border border-line bg-bg-raised p-12 text-center shadow-xs">
+          <Building2 className="mx-auto h-12 w-12 text-ink-faint animate-pulse" />
+          <h2 className="mt-4 font-display text-2xl font-normal text-ink">{t('Preparing your architectural model…')}</h2>
+          <p className="mt-2 font-sans text-sm text-ink-dim max-w-md mx-auto leading-relaxed">
+            {t('Generating layout, structural plinth, and bill of quantities for impact calculation.')}
+          </p>
+          <button
+            type="button"
+            onClick={() => run()}
+            className={`${buttonPrimary} mt-6 mx-auto`}
+          >
+            <Sparkles size={14} className="text-white" />
+            <span className="text-white">{t('Generate House Model')}</span>
+          </button>
+        </div>
+      ) : !activeResult.report.hardChecksPass ? (
+        <div className="rounded-2xl border border-line bg-bg-raised p-8 shadow-xs">
+          <h2 className="font-display text-2xl font-normal text-ink">{t('Review your plan first')}</h2>
+          <p className="mt-2 font-sans text-sm text-ink-dim max-w-xl leading-relaxed">
+            {t('Resolve architectural and clearance warnings before calculating statutory impact benchmarks.')}
+          </p>
+          <Link to="/workspace/plan" className={`${button} mt-4`}>
+            {t('Review 2D plan')}
+          </Link>
+        </div>
+      ) : !prepared?.cost ? (
+        <div className="rounded-2xl border border-line bg-bg-raised p-8 shadow-xs">
+          <p role="status" className="font-sans text-sm text-ink-dim">
+            {t(prepared?.error ?? 'Preparing cost estimation…')}
+          </p>
+        </div>
+      ) : (
+        <>
+          {shouldUseSample && (
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-600/20 bg-emerald-500/5 px-4 py-3 text-xs shadow-2xs">
+              <div className="flex items-center gap-2.5">
+                <Sparkles className="h-4 w-4 text-emerald-700 dark:text-emerald-400 shrink-0" />
+                <span className="font-sans font-semibold text-emerald-950 dark:text-emerald-100">
+                  {t('Pre-Loaded Sample Project')}:
+                </span>
+                <span className="font-mono text-xs text-ink-dim">
+                  {t('Pune Eco-Villa · 4 Occupants · 10,000 L RWH · 5 kW Solar · 1:12 Barrier-Free Ramp')}
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <Link
+                  to="/workspace/brief"
+                  className="font-mono text-xs font-medium text-emerald-700 hover:text-emerald-900 underline underline-offset-4 dark:text-emerald-300 dark:hover:text-emerald-200"
+                >
+                  {t('Customize Brief')} &rarr;
+                </Link>
+              </div>
+            </div>
+          )}
+          <ImpactWorkspace
+            key={projectId ?? (shouldUseSample ? 'sample' : 'draft')}
+            result={activeResult}
+            brief={activeBrief}
+            cost={prepared.cost}
+            isSampleMode={shouldUseSample}
+            sampleDocument={sampleData.document}
+          />
+        </>
+      )}
     </div>
-  </>
+  )
 }
 
-function Card({title,children}:{title:string;children:ReactNode}){return <article className="mb-4 rounded-xl border border-line bg-bg p-5 text-sm leading-relaxed text-ink-dim md:p-6"><h3 className="mb-3 font-display text-xl text-ink">{t(title)}</h3>{children}</article>}
-function Metric({label,value,note}:{label:string;value:string;note?:string}){return <div className="rounded-xl border border-line bg-bg-inset p-4"><p className="text-xs text-ink-dim">{t(label)}</p><p className="mt-2 break-words font-display text-2xl text-ink">{value}</p>{note&&<p className="mt-2 text-[11px] text-ink-faint">{t(note)}</p>}</div>}
-function Action({to,children}:{to:string;children:string}){return <Link className={`${button} mt-3 mr-2`} to={to}>{t(children)}<ArrowUpRight size={13}/></Link>}
-function Numeric({label,value,change,min=0,max=1e12,integer=false}:{label:string;value:number|null;change:(v:number|null)=>void;min?:number;max?:number;integer?:boolean}){return <label className="block text-xs text-ink-dim">{t(label)}<input key={`${label}:${value}`} className={`${field} mt-2`} type="number" min={min} max={max} step={integer?1:'any'} placeholder={t('Unknown')} defaultValue={value??''} onBlur={e=>{if(e.currentTarget.validity.valid)change(e.currentTarget.value===''?null:Number(e.currentTarget.value));else e.currentTarget.reportValidity()}}/></label>}
-function TextField({label,value,change}:{label:string;value:string;change:(v:string)=>void}){return <label className="mt-4 block text-xs text-ink-dim">{t(label)}<input key={`${label}:${value}`} className={`${field} mt-2`} maxLength={1000} defaultValue={value} onBlur={e=>change(e.currentTarget.value)}/></label>}
-function Checklist({lines}:{lines:string[]}){return <ul className="space-y-3">{lines.map(line=><li key={line} className="flex gap-3"><Leaf size={15} className="mt-1 shrink-0 text-accent" aria-hidden/><span>{t(line)}</span></li>)}</ul>}
-function Badge({status}:{status:string}){return <span className="inline-flex rounded-full border border-line bg-bg-inset px-3 py-1 text-[10px] uppercase tracking-wide">{t(status)}</span>}
-function Checks({checks}:{checks:ImpactCheck[]}){return <div className="space-y-3">{checks.map(check=><Card key={check.id} title={check.title}><Badge status={check.status}/><p className="mt-3">{t(check.detail)}</p><Action to={check.href}>Open related tool</Action></Card>)}</div>}
-function Sources({indices}:{indices:number[]}){return <details className="mt-4 border-t border-line pt-2 text-xs"><summary className="min-h-11 cursor-pointer py-3">{t('Official guidance')}</summary>{indices.map(i=><a key={i} href={IMPACT_SOURCES[i].url} target="_blank" rel="noreferrer" className="mb-2 flex min-h-11 items-center gap-2 underline">{t(IMPACT_SOURCES[i].label)}<ArrowUpRight size={12}/></a>)}<p>{t('Sources checked')}: 28 Oct 2026 · {t('Guidance links do not establish project compliance.')}</p></details>}
+function ImpactWorkspace({
+  result,
+  brief,
+  cost,
+  isSampleMode = false,
+  sampleDocument,
+}: {
+  result: NonNullable<ReturnType<typeof useStudio.getState>['result']>
+  brief: Brief
+  cost: CostEstimate
+  isSampleMode?: boolean
+  sampleDocument?: ImpactDocument
+}) {
+  const savedDoc = useSocialImpact(s => s.document)
+  const error = useSocialImpact(s => s.error)
+  const update = useSocialImpact(s => s.update)
+  const restore = useSocialImpact(s => s.restore)
+  const doc = useMemo(() => {
+    if (isSampleMode && sampleDocument && (!savedDoc || (savedDoc.water.capacityL === null && savedDoc.budgetInr === null))) {
+      return sampleDocument
+    }
+    return savedDoc ?? sampleDocument ?? emptyImpact()
+  }, [savedDoc, isSampleMode, sampleDocument])
+  const city = useCostResearch(s => s.location.city) ?? 'Pune'
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-function CarbonEditor({doc,cost,save}:{doc:ImpactDocument;cost:CostEstimate;save:(v:ImpactDocument)=>void}){
-  const [lineId,setLine]=useState(cost.boq[0]?.id??''),[low,setLow]=useState(''),[high,setHigh]=useState(''),[source,setSource]=useState(''),[boundary,setBoundary]=useState(''),[error,setError]=useState('')
-  const line=cost.boq.find(l=>l.id===lineId)
-  return <Card title="Evidence-based carbon ledger"><p>{t('Add a documented kgCO₂e factor per estimate unit. No generic factors are assumed. Totals cover only matching, current entries; do not combine overlapping life-cycle boundaries.')}</p><form className="mt-4 space-y-4" onSubmit={e=>{e.preventDefault();if(!line||low===''||high===''||Number(high)<Number(low)){setError('Enter a valid factor range.');return}save({...doc,carbon:[...doc.carbon.filter(r=>r.lineId!==lineId),{lineId,specId:line.specId,unit:line.unit,low:Number(low),high:Number(high),source,boundary,geometryKey:cost.quantities.geometryKey}]});setError('')}}>
-    <label className="block text-xs">{t('Estimate line')}<select value={lineId} onChange={e=>setLine(e.target.value)} className={`${field} mt-2`}>{cost.boq.map(l=><option key={l.id} value={l.id}>{l.label} · {number(l.quantity)} {l.unit}</option>)}</select></label>
-    <div className="grid gap-4 sm:grid-cols-2"><label className="text-xs">{t('Low factor')} (kgCO₂e/{line?.unit})<input className={`${field} mt-2`} type="number" min="0" max="1000000000" step="any" required value={low} onChange={e=>setLow(e.target.value)}/></label><label className="text-xs">{t('High factor')} (kgCO₂e/{line?.unit})<input className={`${field} mt-2`} type="number" min="0" max="1000000000" step="any" required value={high} onChange={e=>setHigh(e.target.value)}/></label></div>
-    <label className="block text-xs">{t('EPD or factor source')}<input className={`${field} mt-2`} required maxLength={1000} value={source} onChange={e=>setSource(e.target.value)}/></label><label className="block text-xs">{t('Life-cycle boundary and inclusions')}<input className={`${field} mt-2`} required maxLength={1000} placeholder="e.g. A1–A3, product only" value={boundary} onChange={e=>setBoundary(e.target.value)}/></label>
-    {error&&<p role="alert">{t(error)}</p>}<button className={button} type="submit"><Check size={13}/>{t('Save factor')}</button>
-  </form><ul className="mt-4 space-y-3">{doc.carbon.map(r=><li key={r.lineId} className="border-t border-line pt-3"><p>{cost.boq.find(l=>l.id===r.lineId)?.label??r.lineId}</p><p className="text-xs">{r.low}–{r.high} kgCO₂e/{r.unit} · {r.boundary} · {r.source}</p>{(r.geometryKey!==cost.quantities.geometryKey||!cost.boq.some(l=>l.id===r.lineId&&l.specId===r.specId&&l.unit===r.unit))&&<p>{t('Plan or product changed: review this factor.')}</p>}<button className={`${button} mt-2`} onClick={()=>save({...doc,carbon:doc.carbon.filter(x=>x.lineId!==r.lineId)})}>{t('Remove factor')}</button></li>)}</ul></Card>
+  const [searchParams, setSearchParams] = useSearchParams()
+  const rawTab = searchParams.get('tab')
+  const initialTab: ImpactTabId = IMPACT_TABS.some(t => t.id === rawTab)
+    ? (rawTab as ImpactTabId)
+    : 'overview'
+  const [activeTab, setActiveTab] = useState<ImpactTabId>(initialTab)
+  const tabListRef = useRef<HTMLDivElement>(null)
+
+  // Synchronize tab state with URL parameters (for browser back/forward and direct links)
+  useEffect(() => {
+    if (rawTab && IMPACT_TABS.some(t => t.id === rawTab)) {
+      setActiveTab(rawTab as ImpactTabId)
+    } else if (!rawTab) {
+      setActiveTab('overview')
+    }
+  }, [rawTab])
+
+  // Automatically scroll the tab strip so the active tab is visible
+  useEffect(() => {
+    if (!tabListRef.current) return
+    const activeEl = tabListRef.current.querySelector(`[data-tab-id="${activeTab}"]`) as HTMLElement | null
+    if (activeEl) {
+      activeEl.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' })
+    }
+  }, [activeTab])
+
+  const scrollTabs = (delta: number) => {
+    tabListRef.current?.scrollBy({ left: delta, behavior: 'smooth' })
+  }
+
+  const setTab = (id: ImpactTabId | string, options?: { scrollIntoView?: boolean }) => {
+    const validId = IMPACT_TABS.some(t => t.id === id) ? (id as ImpactTabId) : 'overview'
+    setActiveTab(validId)
+    setSearchParams(
+      prev => {
+        const next = new URLSearchParams(prev)
+        next.set('tab', validId)
+        return next
+      },
+      { replace: true }
+    )
+
+    // Smooth scroll the viewport ONLY when navigating from in-page elements (hero cards, directory, bottom pagination)
+    if (options?.scrollIntoView) {
+      const navEl = document.getElementById('impact-function-nav')
+      if (navEl) {
+        navEl.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+    }
+  }
+
+  // Single Source of Truth for every derived number on the page
+  const summary = useMemo(() => {
+    try {
+      const t0 = typeof performance !== 'undefined' ? performance.now() : 0
+      const s = buildImpactSummary({
+        design: result.design,
+        brief,
+        cost,
+        report: result.report,
+        document: doc,
+        cityOverride: city,
+      })
+      if (typeof performance !== 'undefined') {
+        const elapsed = performance.now() - t0
+        if (import.meta.env?.DEV && elapsed > 16) {
+          console.warn(`[Impact] buildImpactSummary took ${elapsed.toFixed(2)} ms (> 16 ms budget)`)
+        }
+      }
+      return s
+    } catch (err) {
+      console.error('Failed to build impact summary:', err)
+      return null
+    }
+  }, [result.design, result.report, brief, cost, doc, city])
+
+  const analyzed = useMemo(() => {
+    try {
+      return {
+        value: analyzeImpact(result.design, brief, cost, result.report, doc),
+        error: null,
+      }
+    } catch {
+      return {
+        value: null,
+        error: 'Some source geometry needs review. Your home and saved inputs are unchanged.',
+      }
+    }
+  }, [result, brief, cost, doc])
+
+  const save = (next: ImpactDocument) => {
+    if (update(next)) noteChange('Social Impact inputs')
+  }
+
+  const handleImportJson = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = evt => {
+      try {
+        const json = JSON.parse(evt.target?.result as string)
+        if (json.format === 'brickpilot-social-impact' || json.format === 'formstead-social-impact') {
+          restore(json.inputs ?? json.document)
+          noteChange('Imported Social Impact document')
+        }
+      } catch {
+        alert('Invalid impact document format.')
+      }
+    }
+    reader.readAsText(file)
+  }
+
+  if (!summary || !analyzed.value) {
+    return <p role="status">{t(analyzed.error ?? 'Error building impact metrics.')}</p>
+  }
+  const data = analyzed.value
+
+  const isolate = searchParams.get('isolate')
+  if (isolate) {
+    return (
+      <div id="isolated-element" className="p-4 bg-bg max-w-5xl mx-auto space-y-4">
+        {isolate === 'hero' && (
+          <ImpactHeroBanner summary={summary} onSelectPillar={setTab} />
+        )}
+        {isolate === 'waterfall' && (
+          <AffordabilityPillar
+            summary={summary.affordability}
+            cost={cost}
+            brief={brief}
+            design={result.design}
+            doc={doc}
+            onSaveDoc={save}
+          />
+        )}
+        {isolate === 'thermal' && (
+          <ClimateSolarPillar
+            summary={summary.climate}
+            doc={doc}
+            onSaveDoc={save}
+          />
+        )}
+        {isolate === 'floordrawing' && (
+          <AccessibilityPillar
+            summary={summary.accessibility}
+            design={result.design}
+            model={result.design.model}
+            checks={data.checks}
+            doc={doc}
+            onSaveDoc={save}
+          />
+        )}
+        {isolate === 'watercombo' && (
+          <WaterSecurityPillar
+            summary={summary.water}
+            doc={doc}
+            onSaveDoc={save}
+          />
+        )}
+        {isolate === 'communityscale' && (
+          <CommunityPillar
+            summary={summary.community}
+            doc={doc}
+            onSaveDoc={save}
+          />
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      {error && (
+        <p role="alert" className="rounded-lg border border-line bg-amber-500/10 p-4 text-sm text-amber-900 dark:text-amber-200">
+          {t(error)}
+        </p>
+      )}
+
+      {/* Sticky Functionality Navigation Bar (Glitch-free, dedicated button per function) */}
+      <nav
+        id="impact-function-nav"
+        aria-label="Social Impact Functionalities"
+        className="sticky top-0 z-30 rounded-xl border border-line bg-bg/95 backdrop-blur-md p-2 shadow-xs transition-shadow"
+      >
+        <div className="flex items-center gap-1.5">
+          {/* Scroll Left Button */}
+          <button
+            type="button"
+            onClick={() => scrollTabs(-240)}
+            aria-label="Scroll tabs left"
+            className="hidden sm:flex h-9 w-8 items-center justify-center rounded-lg border border-line bg-bg-raised text-ink-dim hover:text-ink hover:bg-bg-inset transition-colors shrink-0 cursor-pointer"
+          >
+            <ChevronLeft size={16} />
+          </button>
+
+          {/* Horizontal Scrollable Tabs Container */}
+          <div
+            ref={tabListRef}
+            className="flex items-center gap-1.5 overflow-x-auto scroll-smooth py-0.5 px-0.5 flex-1"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            {IMPACT_TABS.map(tab => {
+              const isActive = activeTab === tab.id
+              const Icon = tab.icon
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  data-tab-id={tab.id}
+                  onClick={() => setTab(tab.id)}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`group relative flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs transition-all cursor-pointer whitespace-nowrap shrink-0 min-h-[40px] select-none focus-visible:outline-2 focus-visible:outline-accent ${
+                    isActive
+                      ? 'bg-ink text-white font-semibold shadow-xs ring-1 ring-ink'
+                      : 'bg-bg-raised text-ink-dim hover:bg-bg-inset hover:text-ink border border-line'
+                  }`}
+                >
+                  <Icon
+                    size={14}
+                    className={`shrink-0 transition-colors ${
+                      isActive ? 'text-white' : 'text-ink-faint group-hover:text-ink'
+                    }`}
+                    aria-hidden
+                  />
+                  <span
+                    className={`inline-flex items-center justify-center rounded px-1.5 py-0.5 font-mono text-[10px] font-bold ${
+                      isActive ? 'bg-white/20 text-white' : 'bg-bg text-ink-dim border border-line/60'
+                    }`}
+                  >
+                    {tab.n}
+                  </span>
+                  <span className={`font-sans font-medium text-xs tracking-tight ${isActive ? 'text-white' : ''}`}>
+                    {tab.label}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Scroll Right Button */}
+          <button
+            type="button"
+            onClick={() => scrollTabs(240)}
+            aria-label="Scroll tabs right"
+            className="hidden sm:flex h-9 w-8 items-center justify-center rounded-lg border border-line bg-bg-raised text-ink-dim hover:text-ink hover:bg-bg-inset transition-colors shrink-0 cursor-pointer"
+          >
+            <ChevronRight size={16} />
+          </button>
+        </div>
+
+        {/* Active Module Context Breadcrumb */}
+        {(() => {
+          const currentTabObj = IMPACT_TABS.find(t => t.id === activeTab) ?? IMPACT_TABS[0]
+          const currentIdx = IMPACT_TABS.findIndex(t => t.id === activeTab)
+          return (
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-line/60 px-2 pt-2 text-xs font-sans text-ink-dim">
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-xs font-semibold text-accent">Module {currentTabObj.n}</span>
+                <span className="text-ink-faint">/</span>
+                <span className="font-semibold text-ink">{currentTabObj.label}</span>
+                <span className="hidden md:inline text-ink-dim">— {currentTabObj.sub}</span>
+              </div>
+              <div className="flex items-center gap-2 font-mono text-[11px] text-ink-faint">
+                <span>View {currentIdx + 1} of {IMPACT_TABS.length}</span>
+                {activeTab !== 'overview' && (
+                  <button
+                    type="button"
+                    onClick={() => setTab('overview')}
+                    className="hover:text-ink underline underline-offset-2 ml-2 transition-colors cursor-pointer"
+                  >
+                    &larr; Overview
+                  </button>
+                )}
+              </div>
+            </div>
+          )
+        })()}
+      </nav>
+
+      {/* VIEW 01: Overview & Live KPIs */}
+      {activeTab === 'overview' && (
+        <div className="space-y-8">
+          <section id="hero" aria-label="Social Impact Overview Hero">
+            <ImpactHeroBanner summary={summary} onSelectPillar={id => setTab(id, { scrollIntoView: true })} />
+          </section>
+
+          {/* Directory Cards for All Functional Pillars */}
+          <div className="rounded-2xl border border-line bg-bg-raised p-6 shadow-xs">
+            <div className="border-b border-line pb-4">
+              <span className="font-mono text-xs uppercase tracking-wider text-ink-dim">Specialized Tools</span>
+              <h3 className="font-display text-2xl font-normal text-ink mt-1">Impact Engineering Modules</h3>
+              <p className="font-sans text-sm text-ink-dim mt-1">
+                Navigate to individual modules to inspect BOQ eco-swaps, Jal Shakti monsoon harvesting, cool roof conduction, DEPwD accessibility, or PMAY-U 2.0 scaling.
+              </p>
+            </div>
+
+            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {IMPACT_TABS.filter(t => t.id !== 'overview' && t.id !== 'all').map(t => {
+                const Icon = t.icon
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => setTab(t.id, { scrollIntoView: true })}
+                    className="flex flex-col items-start rounded-xl border border-line bg-bg p-5 text-left transition-all hover:border-accent hover:bg-bg-inset hover:shadow-xs cursor-pointer group"
+                  >
+                    <div className="flex w-full items-center justify-between">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-bg-raised text-ink group-hover:border-accent group-hover:text-accent transition-colors">
+                        <Icon size={18} />
+                      </span>
+                      <span className="font-mono text-xs text-ink-faint">{t.n}</span>
+                    </div>
+                    <h4 className="font-display text-lg font-medium text-ink mt-3 group-hover:text-accent transition-colors">
+                      {t.label}
+                    </h4>
+                    <p className="font-sans text-xs text-ink-dim mt-1">
+                      {t.sub}
+                    </p>
+                    <span className="mt-4 inline-flex items-center gap-1 font-mono text-xs text-ink-faint group-hover:text-ink transition-colors">
+                      Open Module &rarr;
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          <TabPagination currentId={activeTab} onNavigate={id => setTab(id, { scrollIntoView: true })} />
+        </div>
+      )}
+
+      {/* VIEW 02: Affordability & Carbon */}
+      {activeTab === 'affordability' && (
+        <section id="pillar-affordability" className="min-w-0" aria-label="Affordability Pillar">
+          <PillarErrorBoundary pillarName="Affordability">
+            <AffordabilityPillar
+              summary={summary.affordability}
+              cost={cost}
+              brief={brief}
+              design={result.design}
+              doc={doc}
+              onSaveDoc={save}
+            />
+          </PillarErrorBoundary>
+          <TabPagination currentId={activeTab} onNavigate={setTab} />
+        </section>
+      )}
+
+      {/* VIEW 03: Water Security */}
+      {activeTab === 'water' && (
+        <section id="pillar-water" className="min-w-0" aria-label="Water Security Pillar">
+          <PillarErrorBoundary pillarName="Water Security">
+            <WaterSecurityPillar
+              summary={summary.water}
+              doc={doc}
+              onSaveDoc={save}
+            />
+          </PillarErrorBoundary>
+          <TabPagination currentId={activeTab} onNavigate={setTab} />
+        </section>
+      )}
+
+      {/* VIEW 04: Climate & Solar */}
+      {activeTab === 'climate' && (
+        <section id="pillar-climate" className="min-w-0" aria-label="Climate & Solar Pillar">
+          <PillarErrorBoundary pillarName="Climate & Solar">
+            <ClimateSolarPillar
+              summary={summary.climate}
+              doc={doc}
+              onSaveDoc={save}
+            />
+          </PillarErrorBoundary>
+          <TabPagination currentId={activeTab} onNavigate={setTab} />
+        </section>
+      )}
+
+      {/* VIEW 05: Accessibility & Safety */}
+      {activeTab === 'accessibility' && (
+        <section id="pillar-accessibility" className="min-w-0" aria-label="Accessibility Pillar">
+          <PillarErrorBoundary pillarName="Accessibility">
+            <AccessibilityPillar
+              summary={summary.accessibility}
+              design={result.design}
+              model={result.design.model}
+              checks={data.checks}
+              doc={doc}
+              onSaveDoc={save}
+            />
+          </PillarErrorBoundary>
+          <TabPagination currentId={activeTab} onNavigate={setTab} />
+        </section>
+      )}
+
+      {/* VIEW 06: Community & Scaling */}
+      {activeTab === 'community' && (
+        <section id="pillar-community" className="min-w-0" aria-label="Community & Pilots Pillar">
+          <PillarErrorBoundary pillarName="Community">
+            <CommunityPillar
+              summary={summary.community}
+              doc={doc}
+              onSaveDoc={save}
+            />
+          </PillarErrorBoundary>
+          <TabPagination currentId={activeTab} onNavigate={setTab} />
+        </section>
+      )}
+
+      {/* VIEW 07: Housing Guidance Assistant */}
+      {activeTab === 'guidance' && (
+        <section id="guidance-assistant" className="min-w-0" aria-label="Housing Guidance Assistant">
+          <HousingAssistant onNavigatePillar={setTab} />
+          <TabPagination currentId={activeTab} onNavigate={setTab} />
+        </section>
+      )}
+
+      {/* VIEW 08: Statutory Standards & Assumptions */}
+      {activeTab === 'standards' && (
+        <section id="statutory-standards" className="min-w-0" aria-label="Statutory Standards and Methodology">
+          <DataSourcesAssumptionsPanel />
+          <TabPagination currentId={activeTab} onNavigate={setTab} />
+        </section>
+      )}
+
+      {/* VIEW 09: Complete Continuous Report */}
+      {activeTab === 'all' && (
+        <div className="space-y-12">
+          <section id="hero" aria-label="Social Impact Overview Hero">
+            <ImpactHeroBanner summary={summary} onSelectPillar={setTab} />
+          </section>
+
+          <section id="pillar-affordability" className="scroll-mt-28 min-w-0" aria-label="Affordability Pillar">
+            <PillarErrorBoundary pillarName="Affordability">
+              <AffordabilityPillar
+                summary={summary.affordability}
+                cost={cost}
+                brief={brief}
+                design={result.design}
+                doc={doc}
+                onSaveDoc={save}
+              />
+            </PillarErrorBoundary>
+          </section>
+
+          <section id="pillar-water" className="scroll-mt-28 min-w-0" aria-label="Water Security Pillar">
+            <PillarErrorBoundary pillarName="Water Security">
+              <WaterSecurityPillar
+                summary={summary.water}
+                doc={doc}
+                onSaveDoc={save}
+              />
+            </PillarErrorBoundary>
+          </section>
+
+          <section id="pillar-climate" className="scroll-mt-28 min-w-0" aria-label="Climate & Solar Pillar">
+            <PillarErrorBoundary pillarName="Climate & Solar">
+              <ClimateSolarPillar
+                summary={summary.climate}
+                doc={doc}
+                onSaveDoc={save}
+              />
+            </PillarErrorBoundary>
+          </section>
+
+          <section id="pillar-accessibility" className="scroll-mt-28 min-w-0" aria-label="Accessibility Pillar">
+            <PillarErrorBoundary pillarName="Accessibility">
+              <AccessibilityPillar
+                summary={summary.accessibility}
+                design={result.design}
+                model={result.design.model}
+                checks={data.checks}
+                doc={doc}
+                onSaveDoc={save}
+              />
+            </PillarErrorBoundary>
+          </section>
+
+          <section id="pillar-community" className="scroll-mt-28 min-w-0" aria-label="Community & Pilots Pillar">
+            <PillarErrorBoundary pillarName="Community">
+              <CommunityPillar
+                summary={summary.community}
+                doc={doc}
+                onSaveDoc={save}
+              />
+            </PillarErrorBoundary>
+          </section>
+
+          <DataSourcesAssumptionsPanel />
+        </div>
+      )}
+
+      {/* Footer & Global JSON Export/Import */}
+      <footer className="mt-12 flex flex-wrap items-center justify-between gap-4 border-t border-line pt-6 text-xs text-ink-dim">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="font-mono text-xs text-ink uppercase tracking-wider">Official Benchmarks:</span>
+          {IMPACT_SOURCES.map(source => (
+            <a
+              key={source.label}
+              href={source.url}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 font-sans text-xs underline underline-offset-2 hover:text-ink text-ink-dim transition-colors"
+            >
+              {source.label}
+              <ArrowUpRight size={11} aria-hidden />
+            </a>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleImportJson}
+            accept=".json"
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className={button}
+            title="Import an existing impact document or legacy Formstead backup"
+          >
+            <Upload size={13} aria-hidden />
+            <span>Import JSON</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => downloadImpact(doc, data, cost, brief.project.name)}
+            className={buttonPrimary}
+          >
+            <Download size={14} className="text-white shrink-0" aria-hidden />
+            <span className="text-white font-semibold">Download Impact Record (.json)</span>
+          </button>
+        </div>
+      </footer>
+    </div>
+  )
 }
 
-function PilotEditor({doc,save}:{doc:ImpactDocument;save:(v:ImpactDocument)=>void}){
-  const [error,setError]=useState('')
-  return <><Card title="Measure real outcomes"><p>{t('Use an anonymous household code, never a name or contact detail. Repeat codes are counted once using the latest dated record. Evidence notes are user-reported, not independently verified.')}</p><form className="mt-4 grid gap-4 sm:grid-cols-2" onSubmit={e=>{
-    e.preventDefault();const form=e.currentTarget,f=new FormData(form),num=(key:string)=>{const v=String(f.get(key)??'');return v===''?null:Number(v)},stage=f.get('stage') as 'planned'|'supported',evidence=String(f.get('evidence')??'').trim()
-    if(stage==='supported'&&!evidence){setError('Add an evidence note for supported households.');return}
-    save({...doc,pilots:[...doc.pilots,{id:crypto.randomUUID(),householdCode:String(f.get('code')).trim(),date:String(f.get('date')),stage,evidence,baselineCostInr:num('baseline'),actualCostInr:num('actual'),sameScope:f.get('scope')==='on',measuredWaterL:num('water'),resilienceNote:String(f.get('resilience')??'')}]});form.reset();setError('')
-  }}>
-    <label className="text-xs">{t('Anonymous household code')}<input className={`${field} mt-2`} name="code" required maxLength={80}/></label><label className="text-xs">{t('Observation date')}<input className={`${field} mt-2`} name="date" required type="date"/></label><label className="text-xs">{t('Outcome status')}<select className={`${field} mt-2`} name="stage"><option value="planned">{t('Planned')}</option><option value="supported">{t('Supported')}</option></select></label><label className="text-xs">{t('Evidence / source note')}<input className={`${field} mt-2`} name="evidence" maxLength={1000}/></label>
-    {([['baseline','Comparable baseline cost (INR)'],['actual','Actual construction cost (INR)'],['water','Measured harvested water (L)']] as const).map(([name,label])=><label key={name} className="text-xs">{t(label)}<input className={`${field} mt-2`} name={name} type="number" min="0" max="1000000000000" step="any"/></label>)}
-    <label className="text-xs">{t('Measured resilience observations')}<input className={`${field} mt-2`} name="resilience" maxLength={1000}/></label><label className="flex min-h-11 items-center gap-3 text-xs sm:col-span-2"><input name="scope" type="checkbox"/>{t('Baseline and actual costs have the same scope and price basis.')}</label>
-    {error&&<p role="alert">{t(error)}</p>}<button className={`${button} justify-self-start`} type="submit">{t('Add outcome')}</button>
-  </form></Card><Card title="Pilot records">{!doc.pilots.length?<p>{t('No pilot outcomes recorded yet.')}</p>:<ul className="space-y-4">{doc.pilots.map(r=><li key={r.id} className="border-b border-line pb-3"><p className="text-ink">{r.householdCode} · {r.date} · {t(r.stage==='supported'?'Supported':'Planned')}</p><p className="mt-1 text-xs">{r.evidence||t('No evidence recorded')}</p><button className={`${button} mt-2`} onClick={()=>save({...doc,pilots:doc.pilots.filter(x=>x.id!==r.id)})}>{t('Remove record')}</button></li>)}</ul>}</Card></>
+function TabPagination({
+  currentId,
+  onNavigate,
+}: {
+  currentId: ImpactTabId
+  onNavigate: (id: ImpactTabId, options?: { scrollIntoView?: boolean }) => void
+}) {
+  const currentIndex = IMPACT_TABS.findIndex(t => t.id === currentId)
+  if (currentIndex === -1 || currentId === 'all') return null
+
+  const prev = currentIndex > 0 ? IMPACT_TABS[currentIndex - 1] : null
+  const next = currentIndex < IMPACT_TABS.length - 1 ? IMPACT_TABS[currentIndex + 1] : null
+
+  return (
+    <nav aria-label="Functionality pagination" className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-6">
+      {prev ? (
+        <button
+          type="button"
+          onClick={() => onNavigate(prev.id, { scrollIntoView: true })}
+          className={button}
+        >
+          <ChevronLeft size={14} aria-hidden />
+          <span>{prev.n}. {prev.label}</span>
+        </button>
+      ) : <div />}
+
+      {next ? (
+        <button
+          type="button"
+          onClick={() => onNavigate(next.id, { scrollIntoView: true })}
+          className={buttonPrimary}
+        >
+          <span className="text-white font-semibold">{next.n}. {next.label}</span>
+          <ChevronRight size={14} className="text-white shrink-0" aria-hidden />
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => onNavigate('overview', { scrollIntoView: true })}
+          className={buttonPrimary}
+        >
+          <span className="text-white font-semibold">Return to 01. Overview</span>
+        </button>
+      )}
+    </nav>
+  )
 }
 
-function HousingAssistant({data,setSection}:{data:ReturnType<typeof analyzeImpact>;setSection:(id:Section)=>void}){
-  const [question,setQuestion]=useState(''),[topic,setTopic]=useState<Section|null>(null)
-  const responses:Partial<Record<Section,string>>={affordability:'Compare measured finish lines first. Review product performance and local quotations before choosing a lower-cost option.',climate:'Review your real window paths, shading and roof specification. Temperature reductions need a weather-based thermal model.',water:'Enter rainfall, catchment area, runoff and collection efficiency to calculate collection potential. Confirm storage demand and safe overflow.',access:'Review the continuous entrance route, door clear widths, turning space and ground-floor bathroom access.',safety:'The building review shows recorded planning issues and checks that still need a qualified professional.',sustainability:'Use documented product factors and energy inputs. A partial estimate is not a whole-house carbon or energy assessment.',community:'Compare a household prototype, budget shared services separately and record anonymous pilot outcomes.'}
-  return <Card title="Housing guidance"><p>{t('Ask in English, Hindi or Marathi. This guide uses your current project and transparent rules; it is not a live AI engineering service.')}</p><form className="mt-4 flex flex-wrap gap-2" onSubmit={e=>{e.preventDefault();setTopic(housingTopic(question))}}><input className={`${field} min-w-0 flex-1`} aria-label={t('Your housing question')} placeholder={t('How can I lower costs?')} value={question} maxLength={500} onChange={e=>setQuestion(e.target.value)} required/><button className={button} type="submit">{t('Show guidance')}</button></form>
-    {!topic&&question&&<p className="mt-3 text-xs" role="status">{t('Choose a topic below for project-based guidance.')}</p>}{topic&&<div className="mt-4 rounded-xl border border-line bg-bg-inset p-4" role="status"><p>{t(responses[topic]!)}</p><p className="mt-3 text-xs">{topic==='affordability'?`${t('Current concept estimate')}: ${money(data.conceptEstimate)}`:topic==='water'?`${t('Collection input status')}: ${t(data.water.state)}`:topic==='safety'?`${data.checks.length} ${t('review items')}`:t('Open the related view for this project’s inputs and next steps.')}</p><button className={`${button} mt-3`} onClick={()=>setSection(topic)}>{t('Open related view')}<ArrowUpRight size={13}/></button></div>}
-    <Action to="/workspace/interior#whole-house-walkthrough">Listen to the room guide</Action><div className="mt-4 flex flex-wrap gap-2">{(['affordability','water','access','climate'] as const).map(id=><button key={id} className={button} onClick={()=>setTopic(id)}>{t(SECTIONS.find(([key])=>key===id)![1])}</button>)}</div>
-  </Card>
+function HousingAssistant({
+  onNavigatePillar,
+}: {
+  onNavigatePillar: (pillar: string, options?: { scrollIntoView?: boolean }) => void
+}) {
+  const [question, setQuestion] = useState('')
+  const [topic, setTopic] = useState<string | null>(null)
+
+  const responses: Record<string, string> = {
+    affordability:
+      'Compare measured finish lines first. Review product performance and local quotations before choosing a lower-cost option.',
+    climate:
+      'Review your real window paths, shading and roof specification. Temperature reductions need a weather-based thermal model.',
+    water:
+      'Enter rainfall, catchment area, runoff and collection efficiency to calculate collection potential. Confirm storage demand and safe overflow.',
+    access:
+      'Review the continuous entrance route, door clear widths, turning space and ground-floor bathroom access.',
+    safety:
+      'The building review shows recorded planning issues and checks that still need a qualified professional.',
+    sustainability:
+      'Use documented product factors and energy inputs. A partial estimate is not a whole-house carbon or energy assessment.',
+    community:
+      'Compare a household prototype, budget shared services separately and record anonymous pilot outcomes.',
+  }
+
+  const detected = topic ?? (question.trim() ? housingTopic(question) : null)
+
+  return (
+    <article className="rounded-xl border border-line bg-bg-raised p-6 shadow-xs mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-4">
+        <div>
+          <h3 className="font-display text-xl text-ink font-normal">Housing Guidance Assistant</h3>
+          <p className="font-sans text-xs sm:text-sm text-ink-dim mt-0.5">
+            Ask self-build and statutory compliance questions in English, Hindi, or Marathi.
+          </p>
+        </div>
+        <span className="rounded-full border border-line bg-bg px-3 py-1 font-mono text-xs uppercase tracking-wider text-ink-faint">
+          Bilingual NLP Router
+        </span>
+      </div>
+
+      <div className="mt-5 flex flex-wrap sm:flex-nowrap gap-2.5">
+        <input
+          type="text"
+          value={question}
+          onChange={e => {
+            setQuestion(e.target.value)
+            setTopic(null)
+          }}
+          placeholder="e.g. How much rainfall can I harvest? / किती पाणी साठवता येईल? / क्या रैंप जरूरी है?"
+          className="min-h-11 flex-1 rounded-lg border border-line bg-bg px-4 font-sans text-sm text-ink placeholder:text-ink-faint focus-visible:outline-2 focus-visible:outline-accent"
+        />
+        {detected && (
+          <button
+            type="button"
+            onClick={() => {
+              if (
+                detected === 'water' ||
+                detected === 'affordability' ||
+                detected === 'climate' ||
+                detected === 'access' ||
+                detected === 'community'
+              ) {
+                onNavigatePillar(detected === 'access' ? 'accessibility' : detected, { scrollIntoView: true })
+              }
+            }}
+            className={button}
+          >
+            <span>Open {detected} Module</span>
+          </button>
+        )}
+      </div>
+
+      {detected && responses[detected] && (
+        <div className="mt-4 rounded-xl bg-bg p-4.5 text-xs font-sans text-ink border border-line shadow-2xs">
+          <p className="font-mono text-xs font-semibold uppercase tracking-wider text-emerald-800 dark:text-emerald-400 capitalize mb-1.5">
+            Recognized Topic: {detected}
+          </p>
+          <p className="font-sans text-sm leading-relaxed text-ink-dim">{responses[detected]}</p>
+        </div>
+      )}
+
+      <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-line/60 pt-4">
+        <span className="font-mono text-xs text-ink-faint mr-1">Quick Topics:</span>
+        {(['affordability', 'water', 'climate', 'access', 'community'] as const).map(id => (
+          <button
+            key={id}
+            type="button"
+            className="rounded-full border border-line bg-bg px-3.5 py-1 font-mono text-xs capitalize text-ink-dim hover:bg-bg-inset hover:text-ink transition-colors cursor-pointer"
+            onClick={() => setTopic(id)}
+          >
+            {id}
+          </button>
+        ))}
+      </div>
+    </article>
+  )
 }
-function downloadImpact(doc:ImpactDocument,data:ReturnType<typeof analyzeImpact>,cost:CostEstimate,name:string){
-  const record={format:'formstead-social-impact',version:1,project:name,exportedAt:new Date().toISOString(),geometryKey:cost.quantities.geometryKey,inputs:doc,calculated:{conceptEstimate:cost.expected,costRange:cost.total,water:data.water,partialCarbon:data.carbon,roofConduction:data.heat,annualEnergyScenarioDifference:data.annualEnergyDifference},userReportedOutcomes:data.pilots,review:data.checks,qualifications:['Concept calculations are not certified engineering results.','User-reported outcomes are not independently verified.','No unverified subsidy, carbon factor, household outcome or temperature improvement is assumed.'],sources:IMPACT_SOURCES}
-  const url=URL.createObjectURL(new Blob([JSON.stringify(record,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='formstead-social-impact.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)
+
+function downloadImpact(
+  doc: ImpactDocument,
+  data: ReturnType<typeof analyzeImpact>,
+  cost: CostEstimate,
+  name: string
+) {
+  const record = {
+    format: 'brickpilot-social-impact',
+    version: 2,
+    project: name,
+    exportedAt: new Date().toISOString(),
+    geometryKey: cost.quantities.geometryKey,
+    inputs: doc,
+    scores: data.scores,
+    calculated: {
+      conceptEstimate: cost.expected,
+      costRange: cost.total,
+      water: data.water,
+      waterBalance: data.waterBalance,
+      partialCarbon: data.carbon,
+      carbonBreakdown: data.carbonBreakdown,
+      roofConduction: data.heat,
+      ecoSavingsRupees: data.totalEcoRupeeSavings,
+      ecoSavingsCarbonKg: data.totalEcoCarbonSavingsKg,
+      accessibility: data.access.verdict,
+      pmay: data.pmay,
+      solar: data.solar,
+    },
+    userReportedOutcomes: data.pilots,
+    review: data.checks,
+    qualifications: [
+      'Concept calculations are not certified engineering results.',
+      'User-reported outcomes are not independently verified.',
+      'No unverified subsidy, carbon factor, household outcome or temperature improvement is assumed.',
+    ],
+    sources: IMPACT_SOURCES,
+  }
+
+  const url = URL.createObjectURL(
+    new Blob([JSON.stringify(record, null, 2)], { type: 'application/json' })
+  )
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'brickpilot-social-impact.json'
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
+
+
