@@ -131,7 +131,8 @@ export function electricalPlan(floor: FloorPlan, cuts: Rect[], fixtures: Fixture
   symbols.push({ id: panelId, type: 'db_panel', label: 'DB panel', layer: 'electrical', ...panelMount, roomId: panelRooms[0].id, roomIds: panelRooms.map(r => r.id), circuitIds: [lightingId, powerId], basis: 'proposed' })
   if (!panelMount.mount) notes.push('Distribution board wall mounting needs review.')
   const panel = symbols[0]
-  for (const room of rooms) {
+  for (let roomIndex = 0; roomIndex < rooms.length; roomIndex++) {
+    const room = rooms[roomIndex]
     const r = room.rect, bath = isBathroom(room), positions: Point[] = []
     const place = (type: ElectricalSymbolType, label: string, nx: number, ny: number, circuit: UtilityCircuit) => {
       const desired = { x: r.x + Math.max(180, Math.min(r.w - 180, r.w * nx)), y: r.y + Math.max(180, Math.min(r.h - 180, r.h * ny)) }
@@ -149,7 +150,8 @@ export function electricalPlan(floor: FloorPlan, cuts: Rect[], fixtures: Fixture
     if (bath && sw && door) {
       const outside = rooms.find(r => !isBathroom(r) && door.rooms?.includes(r.id) && r.id !== room.id)
       if (outside) {
-        const candidates = [door.at, ...[-300, 300, -600, 600, -1000, 1000].map(offset => ({ x: door.at.x + (door.orient === 'h' ? offset : 0), y: door.at.y + (door.orient === 'v' ? offset : 0) }))]
+        const doorSpan = door.width / 2 + 180
+        const candidates = [doorSpan, -doorSpan, doorSpan + 180, -doorSpan - 180].map(offset => ({ x: door.at.x + (door.orient === 'h' ? offset : 0), y: door.at.y + (door.orient === 'v' ? offset : 0) }))
         const mounted = candidates.map(p => mountSymbol(floor, outside, 'switch', sw.label, p, heightMm)).find(p => p.mount && !cuts.some(c => inRect(c, p.position)) && symbols.every(s => s.id === sw.id || Math.hypot(s.position.x - p.position.x, s.position.y - p.position.y) > 200))
         if (mounted) { sw.position = mounted.position; sw.mount = mounted.mount; sw.roomId = outside.id; sw.roomIds = [outside.id]; sw.label = 'Bathroom switch outside door' }
       }
@@ -158,14 +160,27 @@ export function electricalPlan(floor: FloorPlan, cuts: Rect[], fixtures: Fixture
     const isKitchen = /kitchen/i.test(`${room.id} ${room.name}`), passage = /stair|corridor|hall|foyer|lobby|gallery/i.test(`${room.id} ${room.name}`)
     const lights = bath ? [place('light', 'Ceiling light', .5, .48, lightCircuit), place('exhaust_fan', 'Exhaust fan', .82, .12, lightCircuit)] : isKitchen ? [place('light', 'Ceiling light 1', .35, .48, lightCircuit), place('light', 'Ceiling light 2', .7, .48, lightCircuit)] : [place('light', 'Ceiling light', .5, .5, lightCircuit)]
     const sockets = bath ? [place('socket', 'Geyser socket · 16A', .85, .65, powerCircuit)] : isKitchen ? [place('socket', 'Fridge socket', .12, .15, powerCircuit), place('socket', 'Chimney socket', .7, .15, powerCircuit), place('socket', 'General socket', .85, .8, powerCircuit)] : passage ? [] : [place('socket', 'General socket', .15, .7, powerCircuit), ...(/bed|living|study|office|lounge/i.test(`${room.id} ${room.name}`) ? [place('socket', 'General socket 2', .85, .7, powerCircuit)] : [])]
-    // Topology denotes parallel branches, not one appliance feeding another.
-    // Lighting receives a DB feed to its switch and independent switched loads.
+    // Clean trunk & branch arrangement:
+    // Lighting: DB panel feeds room switch via corridor trunk; switch feeds in-room lights.
+    // Power: DB panel feeds primary room socket via corridor trunk; subsequent room sockets connect locally.
     const links: [UtilityCircuit, ElectricalSymbol | null, ElectricalSymbol][] = []
     if (sw) links.push([lightCircuit, panel, sw])
     for (const light of lights) if (light) links.push([lightCircuit, sw, light])
-    for (const socket of sockets) if (socket) links.push([powerCircuit, panel, socket])
+    const placedSockets = sockets.filter((s): s is ElectricalSymbol => s !== null)
+    if (placedSockets.length > 0) {
+      links.push([powerCircuit, panel, placedSockets[0]])
+      for (let s = 1; s < placedSockets.length; s++) {
+        links.push([powerCircuit, placedSockets[s - 1], placedSockets[s]])
+      }
+    }
     for (const [circuit, from, load] of links) {
-      const path = from ? routeThroughDoors(from.position, from.roomIds, load.position, load.roomId, floor, cuts, true, true, circuit.tag === 'L1' ? 20 : 180) : null
+      const isInternal = from && from.roomId === load.roomId
+      const laneOffset = isInternal
+        ? 20
+        : circuit.tag === 'L1'
+          ? 25 + (roomIndex % 4) * 20
+          : 140 + (roomIndex % 4) * 20
+      const path = from ? routeThroughDoors(from.position, from.roomIds, load.position, load.roomId, floor, cuts, true, true, laneOffset) : null
       if (!from || !path || path.length < 2) { if (load.type !== 'switch') circuit.unroutedLoads.push(load.id); circuit.status = 'needs-review'; continue }
       utilities.push({ id: `${circuit.id}:${load.id}`, layer: 'electrical', circuitId: circuit.id, fromSymbolId: from.id, toSymbolId: load.id, path, wireSize: circuit.wireSize, roomId: load.roomId, conductors: 3 })
     }
