@@ -368,7 +368,7 @@ export function buildMassing(design: Design): Massing {
           baseY,
           L,
           T.massing.balconyDepthMm / 1000,
-          design.dna.balconyDesign === 'glass-floating' ? 'glass' :
+          T.id==='coastal-bungalow' ? 'baluster' : design.dna.balconyDesign === 'glass-floating' ? 'glass' :
             design.dna.balconyDesign === 'metal-rail' || design.dna.balconyDesign === 'planter-balcony' ? 'bar' :
               design.dna.balconyDesign === 'timber-screened' ? 'baluster' : T.accents.railStyle,
           design.dna.balconyDesign,
@@ -809,7 +809,7 @@ function buildRoof(o: Rect, wallTop: number, L: number, T: ThemeDef,
   const czw = wz(o.y + o.h / 2)
   const roofT = T.roof.thickMm / 1000
   const profile = geometry?.profile ?? 'slim'
-  const eave = Math.min(Math.max(T.roof.eaveMm / 1000, 0.15) *
+  const eave = T.id==='tropical-beach-villa' ? T.roof.eaveMm/1000 : Math.min(Math.max(T.roof.eaveMm / 1000, 0.15) *
     (profile === 'deep-eave' ? 1.35 : profile === 'raised-edge' ? 1.05 : 0.8), 0.95)
   const wallW = m(o.w) + EXT_T
   const wallD = m(o.h) + EXT_T
@@ -888,7 +888,7 @@ function buildPitchedRoof(
   m: XF,
 ) {
   const profile = geometry?.profile ?? 'slim'
-  const eave = Math.max(T.roof.eaveMm, 500) / 1000 * (profile === 'deep-eave' ? 1.3 : profile === 'raised-edge' ? 1.1 : 0.9)
+  const eave = T.id==='coastal-bungalow' ? T.roof.eaveMm/1000 : Math.max(T.roof.eaveMm, 500) / 1000 * (profile === 'deep-eave' ? 1.3 : profile === 'raised-edge' ? 1.1 : 0.9)
   const wallW = m(o.w) + EXT_T
   const wallD = m(o.h) + EXT_T
   const rw = wallW + 2 * eave
@@ -901,7 +901,7 @@ function buildPitchedRoof(
   const ridge: 'x' | 'z' = geometry?.ridge === 'cross' && Math.max(o.w, o.h) / Math.min(o.w, o.h) <= 1.35
     ? longRidge === 'x' ? 'z' : 'x' : longRidge
   const span = (ridge === 'x' ? rd : rw) / 2
-  const actualPitch = clamp(pitchDeg + (geometry?.pitchBiasDeg ?? 0), 14, 32)
+  const actualPitch = T.id==='coastal-bungalow' ? T.roof.pitchDeg : clamp(pitchDeg + (geometry?.pitchBiasDeg ?? 0), 14, 32)
   const rise = Math.min(span * Math.tan((actualPitch * Math.PI) / 180), 3.4)
   const fasciaT = T.roof.thickMm / 1000
 

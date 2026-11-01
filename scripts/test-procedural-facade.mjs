@@ -121,15 +121,17 @@ test('thirty architectural families create distinct validated solids on one sour
   assert.equal(JSON.stringify(court.building), before)
 })
 
-test('courtyard composition requires a plan courtyard; the three UI styles select compatible families', () => {
+test('courtyard composition requires a plan courtyard; the five UI styles select compatible families', () => {
   const rectangle = fixture(25, 25, 'rectangular', 41)
   assert.equal(architecturalFamilyFitsPlan(rectangle.building, 'COURTYARD_MODERN'), false)
   const rejected = ArchitecturalFeatureGenerator.generate(rectangle.building, rectangle.dna,
     rectangle.masses, { architecturalFamily: 'COURTYARD_MODERN' })
   assert.equal(rejected.status, 'rejected')
   assert.equal(rejected.issues[0].code, 'FAMILY_INCOMPATIBLE')
-  assert.deepEqual(SELECTABLE_CHARACTERS, ['modern-box', 'contemporary-indian', 'courtyard-indian'])
+  assert.deepEqual(SELECTABLE_CHARACTERS, ['modern-box', 'contemporary-indian', 'courtyard-indian', 'coastal-bungalow', 'tropical-beach-villa'])
   const styleFamilies = {
+    'coastal-bungalow':['STONE_COLONNADE','TIMBER_PORTICO','WARM_CONTEMPORARY'],
+    'tropical-beach-villa':['TROPICAL_MODERN','TIMBER_PORTICO','FINNED_PAVILION','POOL_RETREAT'],
     'modern-box': ['FRAMED_MODERN', 'FLOATING_BOX', 'INTERLOCKING_MODERN', 'MINIMAL_LUXURY', 'VERTICAL_MONOLITH', 'HORIZONTAL_LAYERED', 'DEEP_REVEAL', 'SCULPTED_CORNER',
       'GLASS_PAVILION', 'STEEL_FRAME_GRID', 'RAISED_BAR', 'FOLDED_PAVILION', 'GLAZED_BAY', 'SOLAR_TERRACE'],
     'contemporary-indian': ['WARM_CONTEMPORARY', 'TROPICAL_MODERN', 'SCREEN_HOUSE', 'INDIAN_CONTEMPORARY', 'VERTICAL_MONOLITH', 'LAYERED_PORTICO', 'FINNED_PAVILION',

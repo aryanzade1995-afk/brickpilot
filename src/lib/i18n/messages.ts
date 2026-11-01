@@ -1,5 +1,17 @@
 /** English presentation copy → [Hindi, Marathi]. Stored project data and product names stay unchanged. */
 export const messages: Record<string, readonly [string, string]> = {
+  ". Choose a current style to update it.":[". बदलने के लिए कोई मौजूदा शैली चुनें।", ". बदलण्यासाठी सध्याची शैली निवडा."],
+  "Coastal Bungalow":["तटीय बंगला", "किनारी बंगला"],
+  "Tropical Beach Villa":["उष्णकटिबंधीय समुद्रतटीय विला", "उष्णकटिबंधीय समुद्रकिनारी व्हिला"],
+  "Terracotta hip roofs, lime-plaster walls, timber shutters and a shaded verandah.":["खपरैल की ढलवाँ छतें, चूने का पलस्तर, लकड़ी के शटर और छायादार बरामदा।", "कौलारू उतरती छते, चुन्याचा गिलावा, लाकडी झडपा आणि सावलीची पडवी."],
+  "Low white volumes, wide eaves, warm timber screens and shaded decks.":["नीचे सफेद खंड, चौड़े छज्जे, लकड़ी की जालियाँ और छायादार डेक।", "कमी उंचीचे पांढरे भाग, रुंद छज्जे, लाकडी पडदे आणि सावलीतील डेक."],
+  "Reference photo · inspiration only":["संदर्भ फोटो · केवल प्रेरणा के लिए", "संदर्भ छायाचित्र · केवळ प्रेरणेसाठी"],
+  "Source and licence to be confirmed":["स्रोत और लाइसेंस की पुष्टि बाकी है", "स्रोत आणि परवान्याची पुष्टी बाकी आहे"],
+  "Reference photo coming soon":["संदर्भ फोटो जल्द उपलब्ध होगा", "संदर्भ छायाचित्र लवकरच येईल"],
+  "Add the supplied reference photo to this slot.":["दिया गया संदर्भ फोटो यहाँ जोड़ें।", "दिलेले संदर्भ छायाचित्र येथे जोडा."],
+  "Coastal Bungalow with terracotta roofs, lime-plaster walls and a shaded verandah":["खपरैल की छतों, चूने की दीवारों और छायादार बरामदे वाला तटीय बंगला", "कौलारू छते, चुन्याच्या भिंती आणि सावलीची पडवी असलेला किनारी बंगला"],
+  "Tropical Beach Villa with wide shaded eaves, timber screens and decks":["चौड़े छज्जों, लकड़ी की जालियों और डेक वाला समुद्रतटीय विला", "रुंद छज्जे, लाकडी पडदे आणि डेक असलेला समुद्रकिनारी व्हिला"],
+
   'Villa composition':['विला की रचना','व्हिलाची रचना'],
   'Automatic':['स्वचालित','आपोआप'],
   'Glazed central bay':['काँच वाला मध्य भाग','काचेचा मध्यवर्ती भाग'],

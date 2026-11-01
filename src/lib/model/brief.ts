@@ -26,6 +26,8 @@ export const BUILDING_TYPE_LABEL: Record<BuildingType, string> = {
  * on load (see `MIGRATE_CHARACTER` + `studio.ts`).
  */
 export const characterSchema = z.enum([
+  'coastal-bungalow',
+  'tropical-beach-villa',
   'modern-indian',
   'contemporary-indian',
   'modern-kerala',
@@ -44,7 +46,7 @@ export type Character = z.infer<typeof characterSchema>
 
 /** Current choices for new designs. Keep the full schema for saved projects. */
 export const SELECTABLE_CHARACTERS = [
-  'modern-box', 'contemporary-indian', 'courtyard-indian',
+  'modern-box', 'contemporary-indian', 'courtyard-indian', 'coastal-bungalow', 'tropical-beach-villa',
 ] as const satisfies readonly Character[]
 
 /** legacy character ids → the current catalogue */
@@ -55,6 +57,8 @@ export const MIGRATE_CHARACTER: Record<string, Character> = {
 }
 
 export const CHARACTER_LABEL: Record<Character, string> = {
+  'coastal-bungalow': 'Coastal Bungalow',
+  'tropical-beach-villa': 'Tropical Beach Villa',
   'modern-indian': 'Modern Indian',
   'contemporary-indian': 'Contemporary Indian',
   'modern-kerala': 'Modern Kerala',

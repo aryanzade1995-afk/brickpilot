@@ -99,6 +99,8 @@ const largeWings = (model:CanonicalModel) => model.brief.project.buildingType===
  *  house prefers enclosed courtyard wings, a contemporary house steps or wings. Modern box is
  *  absent on purpose — it keeps its free choice of bar and stepped plates. */
 export const STYLE_PLAN_FAMILIES: Partial<Record<CanonicalModel['brief']['style']['character'], PlateFamily[]>> = {
+  'coastal-bungalow':['rectangular','l-shape','twin-wing'],
+  'tropical-beach-villa':['rectangular','stepped'],
   'courtyard-indian': ['courtyard-ring', 'courtyard'],
   'contemporary-indian': ['stepped', 'l-shape', 'courtyard'],
 }
@@ -317,7 +319,7 @@ export function generateOne(model: CanonicalModel, family: PlateFamily, seed: nu
   const pick = rng.int(0, proposal && !WING_FAMILIES.includes(family) ? 7 : 3)
   const mirror = rng.chance(0.5)
   const roofRng = makeRng(seed, `${briefKey}|roof`)
-  const roof = topRoof(theme.roofBias, roofRng)
+  const roof:RoofSpec = model.brief.style.character==='coastal-bungalow' ? {kind:'hip',pitchDeg:28} : topRoof(theme.roofBias, roofRng)
   // layout traits are keyed independently of the resolved family so a pinned
   // direction regenerates identically from (resolved family, seed)
   const provisional = deriveDesignDNA(briefKey, seed, model.brief.style.character, 'rectangular', 'balanced', model.brief.style.personality)
@@ -353,7 +355,7 @@ export function generateOne(model: CanonicalModel, family: PlateFamily, seed: nu
   }
   for (const floor of floors) for (const door of floor.openings.filter(o => o.kind === 'entry')) {
     const requested = model.brief.entry.design
-    door.entranceDesign = requested && requested !== 'auto' ? requested : model.brief.style.character === 'modern-box' ? 'wide-pivot' : model.brief.style.character === 'contemporary-indian' ? 'framed-portico' : model.brief.style.character === 'courtyard-indian' ? 'indian-carved' : 'stone-surround'
+    door.entranceDesign = requested && requested !== 'auto' ? requested : model.brief.style.character === 'coastal-bungalow' ? 'indian-carved' : model.brief.style.character === 'tropical-beach-villa' ? 'wide-pivot' : model.brief.style.character === 'modern-box' ? 'wide-pivot' : model.brief.style.character === 'contemporary-indian' ? 'framed-portico' : model.brief.style.character === 'courtyard-indian' ? 'indian-carved' : 'stone-surround'
     door.head = Math.min(2600, Math.round(model.brief.levels.floorToFloor * 1000) - 300)
   }
 

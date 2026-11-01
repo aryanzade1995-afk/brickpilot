@@ -210,6 +210,23 @@ const STONE_WARM: Partial<Mat> = { color: '#8a7355', roughness: 0.82, env: 0.4 }
 /* ----------------------------- catalogue --------------------------- */
 
 export const THEMES: Record<Character, ThemeDef> = {
+  'coastal-bungalow': theme('coastal-bungalow','Coastal Bungalow',
+    'Lime-plaster walls, terracotta hip roofs and a deep timber-shaded verandah.',
+    'Photorealistic architectural concept of a Konkan Goan coastal bungalow. Off-white lime-plaster walls over a modest laterite plinth, low terracotta Mangalore-tile hip roofs with deep eaves, a shaded verandah on tapered plaster columns, baluster railings, timber shuttered windows and a central teak entrance. Soft coastal daylight, tropical planting and a low compound wall.',
+    {roofBias:'pitched',roof:{style:'pitched',pitchDeg:28,eaveMm:1000,parapetMm:0,thickMm:180},
+     windows:{widthMm:1800,sillMm:750,headMm:2300,mullionMm:2500,groupMm:900},
+     massing:{plinthProjMm:180,chajjaMm:650,stringCourseMm:70},accents:{railStyle:'baluster',cladWidthMm:1500},
+     verandah:{depthMm:2000,wrapCourt:false},columns:{style:'tapered',sizeMm:280},
+     landscape:{tropical:true,shrubs:7,boundaryMm:1000},materials:{shell:{color:'#f4efe3',roughness:.94},roof:{color:'#a85a3c',roughness:.86},clad:TEAK,feature:{color:'#865b43',roughness:.9},paving:{color:'#b5a58a',roughness:.9}}}),
+  'tropical-beach-villa': theme('tropical-beach-villa','Tropical Beach Villa',
+    'Low white volumes, wide shaded eaves, timber screens and sandy stone decks.',
+    'Photorealistic architectural concept of a tropical modern beach villa in coastal India. Low-slung white plaster volumes, wide overhanging flat roofs, warm timber cladding and slatted screens, large sliding glass, deep shaded verandahs and decks over a laterite stone base, slim glass balcony rails. Sandy paving and dense tropical planting in warm sea-side daylight; show a pool only where the supplied plan includes one.',
+    {roofBias:'flat',roof:{style:'flat-eave',eaveMm:1250,parapetMm:0,thickMm:180},
+     windows:{widthMm:2800,sillMm:450,headMm:2600,mullionMm:3600,groupMm:1400},
+     massing:{plinthProjMm:220,chajjaMm:900,balconyDepthMm:1800,stringCourseMm:40},
+     accents:{railStyle:'glass',jaali:true,cladWidthMm:2100},verandah:{depthMm:2200,wrapCourt:false},columns:{style:'square',sizeMm:220},
+     modern:{cantileverMm:900,featureTower:false,baffleScreen:false,roofPergola:true},
+     landscape:{tropical:true,shrubs:9,boundaryMm:900},materials:{shell:{color:'#f7f3e8',roughness:.88},roof:{color:'#e7dfcd',roughness:.8},clad:{color:'#93633f',roughness:.65},feature:{color:'#975b43',roughness:.92},paving:{color:'#d8c6a1',roughness:.9}}}),
   'modern-indian': theme(
     'modern-indian',
     'Modern Indian',

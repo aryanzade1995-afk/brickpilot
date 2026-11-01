@@ -202,7 +202,7 @@ def _pitched_mesh(scene, mass, roof_type):
     edit.to_mesh(mesh)
     edit.free()
     mesh.update()
-    mesh.materials.append(scene.materials["stone"])
+    mesh.materials.append(scene.materials.get("roof", scene.materials["stone"]))
     obj = bpy.data.objects.new(f"RoofMass_{mass['id']}", mesh)
     scene.collections["MASSING"].objects.link(obj)
     obj["source_id"] = mass["id"]

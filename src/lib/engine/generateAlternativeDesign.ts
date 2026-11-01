@@ -47,7 +47,8 @@ export function generateAlternativeDesign(plan: Design, seed: number) {
   // The source plan determines the occupied composition. Seeded draws vary
   // permitted canopies and facade geometry without inventing another footprint.
   const family = productionMassingFamily(buildingModel)
-  const occupied = base.masses.filter((m) => m.usage !== 'roof')
+  const coastal=plan.model.brief.style.character==='coastal-bungalow'
+  const occupied = base.masses.filter((m) => m.usage !== 'roof'||coastal&&Math.min(m.width,m.depth)>=(ENVELOPE_LIMITS.minRoofWidthMm??500))
   const ground = [...buildingModel.floors].sort((a, b) => a.level - b.level)[0]
   const frontY = ground.outline.y + ground.outline.h
   const protectedOutdoor = [...buildingModel.rooms.filter((r) => r.floorId === ground.id && r.outdoor).map((r) => r.rect), ...(buildingModel.siteFeatures ?? []).filter(f => f.kind !== 'lawn').map(f => f.rect)]
@@ -84,7 +85,7 @@ export function generateAlternativeDesign(plan: Design, seed: number) {
     architectureLimits: { ...ENVELOPE_LIMITS }, masses: attempt.masses, architectureReport: attempt.report,
     attemptsTried: attempt.attemptsTried, issues: [], silhouetteSignature: massingSilhouetteSignature(attempt.masses) }
   villaDesignDNA.massingFamily = family
-  villaDesignDNA.roofType = 'flat-terrace'
+  villaDesignDNA.roofType = coastal?'hip':'flat-terrace'
   const actualBlocks = massingModel.masses.filter((m) => m.usage === 'enclosed' || m.usage === 'canopy')
   const area = actualBlocks.reduce((sum, m) => sum + m.width * m.depth, 0)
   villaDesignDNA.blockCount = actualBlocks.length
@@ -92,7 +93,7 @@ export function generateAlternativeDesign(plan: Design, seed: number) {
   villaDesignDNA.blockOffsets = actualBlocks.map((m) => ({ xMm: Math.round(m.x + m.width / 2 - top.outline.x - top.outline.w / 2),
     yMm: Math.round(m.y + m.depth / 2 - top.outline.y - top.outline.h / 2) }))
   villaDesignDNA.blockRotations = actualBlocks.map((m) => m.rotation)
-  const facadeGrammar = ArchitecturalFeatureGenerator.generate(buildingModel, villaDesignDNA, massingModel, { usableTerrace: true })
+  const facadeGrammar = ArchitecturalFeatureGenerator.generate(buildingModel, villaDesignDNA, massingModel, { usableTerrace: !coastal })
   if (facadeGrammar.status !== 'valid') throw new Error(`Facade rejected: ${JSON.stringify(facadeGrammar.issues)}`)
   return { schemaVersion: 1 as const, buildingModel, villaDesignDNA, massingModel, facadeGrammar, stairGuards: createStairGuards(buildingModel), balconySliders: balconySliders(buildingModel), roofAccess: roofAccess(buildingModel), plumbing: createVillaPlumbing(buildingModel, selectedPipeSizes(plan.model.brief)),
     shapeFingerprint: createVillaShapeFingerprint(buildingModel, villaDesignDNA, massingModel, facadeGrammar) }

@@ -22,6 +22,9 @@ def palette(primary, secondary, accent, stone, wood, metal="#34383A", door=None)
 
 
 PALETTES = {
+    "COASTAL_BUNGALOW": {**palette("#F4EFE3", "#E9DECC", "#865B43", "#B99A7C", "#795439"),
+                         "roof": finish("#A85A3C", "stone", .86)},
+    "TROPICAL_BEACH_VILLA": palette("#F7F3E8", "#E7DFCD", "#975B43", "#D8C6A1", "#93633F"),
     "WHITE_STONE_WOOD": palette("#EBE9E2", "#CDC9BD", "#A99D86", "#C7BCA5", "#795439"),
     "WARM_BEIGE_TIMBER": palette("#DED3C1", "#C5B9A6", "#99856B", "#C3B397", "#755039"),
     "GREY_CONCRETE_GLASS": palette("#C9CBC8", "#959B99", "#656F72", "#A3A6A0", "#806752"),

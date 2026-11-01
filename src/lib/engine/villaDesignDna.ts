@@ -143,6 +143,12 @@ export function createVillaDesignDNA(building: BuildingModel, seed: number, char
   // Finishes use their own seed stream, so adding colours cannot move rooms,
   // windows, canopies or any of the building's exterior geometry.
   if(character==='modern-box')result.materialPalette=makeRng(seed,'modern-exterior-colours-v1').pick(MODERN_EXTERIOR_PALETTES)
+  if(character==='coastal-bungalow'){
+    result.roofType='hip';result.materialPalette='kerala-laterite';result.entranceType='column-portico';result.landscapeStyle='lush-tropical';result.balconyType=hasBalcony?'metal-rail':'none'
+  }
+  if(character==='tropical-beach-villa'){
+    result.roofType='flat-terrace';result.materialPalette='tropical-cream';result.entranceType='timber-screen';result.landscapeStyle='lush-tropical';result.balconyType=hasBalcony?'timber-screened':'none'
+  }
   return result
 }
 

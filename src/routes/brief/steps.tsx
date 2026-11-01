@@ -538,7 +538,7 @@ export function StyleStep() {
         </div>}
         {!SELECTABLE_CHARACTERS.some((value) => value === brief.style.character) && (
           <p className="text-sm text-ink-dim" role="status">
-            {translateUi("This saved brief uses ")}{translateUi(CHARACTER_LABEL[brief.style.character])}{translateUi(". Choose one of the three current styles to update it.")}</p>
+            {translateUi("This saved brief uses ")}{translateUi(CHARACTER_LABEL[brief.style.character])}{translateUi(". Choose a current style to update it.")}</p>
         )}
       </div>
 
@@ -589,6 +589,8 @@ export function StyleStep() {
 }
 
 const CHARACTER_DETAILS: Record<typeof SELECTABLE_CHARACTERS[number], { title: string; body: string }> = {
+  'coastal-bungalow':{title:'Coastal Bungalow',body:'Terracotta hip roofs, lime-plaster walls, timber shutters and a shaded verandah.'},
+  'tropical-beach-villa':{title:'Tropical Beach Villa',body:'Low white volumes, wide eaves, warm timber screens and shaded decks.'},
   'modern-box': { title: 'Modern Box', body: 'Crisp white boxes, the upper floor oversailing full-height glass, glass rails and a roof terrace.' },
   'contemporary-indian': { title: 'Contemporary', body: 'Plaster planes over a stone-clad ground floor, wide sliding glass, deep flat hoods and a double-height entry.' },
   'courtyard-indian': { title: 'Courtyard', body: 'An open-to-sky garden enclosed by room wings and inward-facing galleries, with warm stone and shaded screens.' },

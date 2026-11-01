@@ -220,10 +220,10 @@ test('reference cues guide details without changing the chosen style or plan', (
   assert.equal(parseInspirationPreferences({ styleFamily: 'invented-style' }), null)
 })
 
-test('new 3D designs stay in the three chosen styles, even with bold variation and a reference', () => {
-  assert.deepEqual([...SELECTABLE_CHARACTERS], ['modern-box', 'contemporary-indian', 'courtyard-indian'])
+test('new 3D designs stay in the five chosen styles, even with bold variation and a reference', () => {
+  assert.deepEqual([...SELECTABLE_CHARACTERS], ['modern-box', 'contemporary-indian', 'courtyard-indian', 'coastal-bungalow', 'tropical-beach-villa'])
   const families = { 'modern-box': 'modern-box', 'contemporary-indian': 'contemporary-indian',
-    'courtyard-indian': 'courtyard-modern' }
+    'courtyard-indian': 'courtyard-modern', 'coastal-bungalow':'coastal-bungalow', 'tropical-beach-villa':'tropical-beach-villa' }
   const reference = parseInspirationPreferences({ styleFamily: 'tropical-modern', materialPalette: 'tropical-cream' })
   for (const character of SELECTABLE_CHARACTERS) {
     const brief = defaultBrief()

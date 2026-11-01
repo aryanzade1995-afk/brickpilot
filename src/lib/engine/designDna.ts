@@ -9,7 +9,7 @@ export type Composition = 'vertical-frame' | 'horizontal-stack' | 'floating-box'
   'stepped-composition' | 'interlocking-volumes' | 'frame-within-frame'
 export type FeatureType = 'stone-tower' | 'timber-fins' | 'metal-fins' | 'deep-chajja' |
   'floating-slab' | 'jaali-panel' | 'planter-band' | 'roof-pergola'
-export type StyleFamily = 'modern-indian' | 'contemporary-indian' | 'luxury-modern' | 'minimal-modern' |
+export type StyleFamily = 'coastal-bungalow' | 'tropical-beach-villa' | 'modern-indian' | 'contemporary-indian' | 'luxury-modern' | 'minimal-modern' |
   'tropical-modern' | 'modern-kerala' | 'kerala-contemporary' | 'courtyard-modern' |
   'resort-luxury' | 'neo-classical' | 'contemporary-classical' | 'urban-premium' | 'modern-box'
 export type InspirationPreferences = Partial<Pick<DesignDNA,
@@ -132,7 +132,10 @@ const CLASSICAL: Preset = {
   palettes: [['classical-stone', 4], ['travertine-bronze', 1]],
 }
 
+const COASTAL:Preset={...KERALA,compositions:[['central-entry',4],['layered-facade',3]],entrances:[['column-portico',4],['deep-shadow-entry',2]],features:[['deep-chajja',4],['timber-fins',2],['planter-band',1]],roofs:[['hip',5],['gable',1],['kerala-pitched',2]],palettes:[['kerala-laterite',4],['lime-plaster',2]]}
+const BEACH:Preset={...TROPICAL,compositions:[['horizontal-stack',4],['stepped-composition',3]],entrances:[['timber-screen',4],['deep-shadow-entry',3]],roofs:[['floating-flat',4],['pergola-terrace',2]],palettes:[['tropical-cream',4],['earth',1]]}
 export const STYLE_PRESETS: Record<StyleFamily, Preset> = {
+  'coastal-bungalow':COASTAL,'tropical-beach-villa':BEACH,
   'modern-indian': MODERN, 'contemporary-indian': MODERN, 'luxury-modern': MODERN,
   'minimal-modern': MINIMAL, 'tropical-modern': TROPICAL, 'modern-kerala': KERALA,
   'kerala-contemporary': KERALA, 'courtyard-modern': TROPICAL, 'resort-luxury': TROPICAL,
@@ -161,6 +164,7 @@ export function parseInspirationPreferences(value: unknown): InspirationPreferen
   return Object.keys(parsed).length ? parsed as InspirationPreferences : null
 }
 const FAMILY: Record<Character, StyleFamily> = {
+  'coastal-bungalow':'coastal-bungalow','tropical-beach-villa':'tropical-beach-villa',
   'modern-indian': 'modern-indian', 'contemporary-indian': 'contemporary-indian',
   'modern-kerala': 'modern-kerala', 'kerala-contemporary': 'kerala-contemporary',
   'luxury-indian': 'luxury-modern', 'tropical-indian': 'tropical-modern',
