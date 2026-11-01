@@ -38,7 +38,6 @@ type HoverInfo = UtilityHoverInfo
 type SheetProps = { model: UtilityFloor; box: Box; visible: Record<UtilityLayer, boolean>; room: string; circuit: string; zone: string; water: string; showCoverage: boolean; showEvacuation: boolean; selected: string | null; scale: number; drainageTechnical?: boolean; exporting?: boolean; project: string; drawingDocument?: DrawingDocument; onSelect?: (id: string) => void; onHover?: (info: HoverInfo | null, x?: number, y?: number) => void; svgRef?: React.Ref<SVGSVGElement> }
 const wireLabel = (wire: string) => wire.replace('mm2', ' mm²')
 function DrainageNodeGlyph({ node, color, technical }: { node: DrainageNode; color: string; technical: boolean }) {
-  const isSoil = node.service === 'soil'
   if (technical) {
     const code = ({ stack: 'S', stack_base: 'SB', inspection_chamber: 'IC', outlet: 'OUT', trap: 'T', cleanout: 'CO', vent_terminal: 'V' } as Record<string, string>)[node.kind] ?? '?'
     return (
@@ -59,7 +58,6 @@ function DrainageNodeGlyph({ node, color, technical }: { node: DrainageNode; col
         <circle r={9.5} fill="white" stroke={color} strokeWidth={1.8} />
         <circle r={4.5} fill={color} fillOpacity={0.18} stroke={color} strokeWidth={1} />
         <path d="M0 -3 L0 2.8 M-2.2 0.6 L0 2.8 L2.2 0.6" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
-        <text y={15} textAnchor="middle" fontSize={6.5} fontWeight={600} fill={color} stroke="#ffffff" strokeWidth={2.5} strokeLinejoin="round" paintOrder="stroke fill">Stack ↓</text>
       </g>
     )
   }
@@ -72,9 +70,6 @@ function DrainageNodeGlyph({ node, color, technical }: { node: DrainageNode; col
         <circle r={1.5} fill={color} />
         <line x1={-3} y1={0} x2={3} y2={0} stroke={color} strokeWidth={1} strokeLinecap="round" />
         <line x1={0} y1={-3} x2={0} y2={3} stroke={color} strokeWidth={1} strokeLinecap="round" />
-        <text y={15} textAnchor="middle" fontSize={6.5} fontWeight={600} fill={color} stroke="#ffffff" strokeWidth={2.5} strokeLinejoin="round" paintOrder="stroke fill">
-          {isSoil ? 'WC Trap' : 'Trap'}
-        </text>
       </g>
     )
   }
@@ -86,7 +81,6 @@ function DrainageNodeGlyph({ node, color, technical }: { node: DrainageNode; col
         <rect x={-3.5} y={-3.5} width={7} height={7} rx={1} fill={color} fillOpacity={0.2} stroke={color} strokeWidth={1.1} />
         <line x1={-2} y1={-2} x2={2} y2={2} stroke={color} strokeWidth={1} strokeLinecap="round" />
         <line x1={-2} y1={2} x2={2} y2={-2} stroke={color} strokeWidth={1} strokeLinecap="round" />
-        <text y={15} textAnchor="middle" fontSize={6.5} fontWeight={600} fill={color} stroke="#ffffff" strokeWidth={2.5} strokeLinejoin="round" paintOrder="stroke fill">Cleanout</text>
       </g>
     )
   }
@@ -97,9 +91,6 @@ function DrainageNodeGlyph({ node, color, technical }: { node: DrainageNode; col
         <rect x={-11} y={-8.5} width={22} height={17} rx={2.5} fill="white" stroke={color} strokeWidth={1.6} />
         <rect x={-7.5} y={-5} width={15} height={10} rx={1} fill={color} fillOpacity={0.12} stroke={color} strokeWidth={0.9} strokeDasharray="2 1.5" />
         <text y={2.5} textAnchor="middle" fontSize={7} fontWeight={700} fill={color}>{node.kind === 'outlet' ? 'OUT' : 'IC'}</text>
-        <text y={15} textAnchor="middle" fontSize={6.5} fontWeight={600} fill={color} stroke="#ffffff" strokeWidth={2.5} strokeLinejoin="round" paintOrder="stroke fill">
-          {node.kind === 'outlet' ? 'Outlet' : 'Chamber'}
-        </text>
       </g>
     )
   }
@@ -211,7 +202,6 @@ function RunLayer(props: SheetProps & { layerKey: UtilityLayer; filterId: string
         onPointerMove={e => onHover?.(info, e.clientX, e.clientY)} onPointerLeave={() => onHover?.(null)} onFocus={() => onHover?.(info)} onBlur={() => onHover?.(null)}>
         {!exporting && <rect x={-22} y={-22} width={44} height={44} fill="transparent" />}
         <UtilitySymbolGlyph type={s.type} color={color} />
-        {s.type === 'vertical_stack' && <text x={13} y={-13} fontSize={10} fill={color} stroke="white" strokeWidth={3} paintOrder="stroke">{t('Stack')} *</text>}
       </g>
     })}
   </g>
