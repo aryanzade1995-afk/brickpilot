@@ -1,3 +1,5 @@
+import {styleReference} from '@/lib/gallery/referenceImages.ts'
+import {StyleReferencePhoto} from './StyleReferencePhoto.tsx'
 import { useEffect, useState } from 'react'
 import { Download } from 'lucide-react'
 import { translate as t, useLanguage } from '@/lib/i18n/index.ts'
@@ -5,7 +7,7 @@ import { useStudio } from '@/state/studio.ts'
 import { houseIdeaKey, houseIdeaSelection, type HouseIdeaManifest } from '@/lib/gallery/houseIdeas.ts'
 import { modernCompositionTitle, type ModernComposition } from '@/lib/model/modernCompositions.ts'
 
-const STYLE_LABELS: Record<string, string> = { 'modern-box': 'Modern Box', 'contemporary-indian': 'Contemporary', 'courtyard-indian': 'Courtyard' }
+const STYLE_LABELS: Record<string, string> = { 'coastal-bungalow':'Coastal Bungalow','tropical-beach-villa':'Tropical Beach Villa', 'modern-box': 'Modern Box', 'contemporary-indian': 'Contemporary', 'courtyard-indian': 'Courtyard' }
 const LAYOUT_LABELS: Record<string, string> = { auto: 'Auto', 'twin-wing': 'Twin wings', 'u-wing': 'U wings', 'courtyard-ring': 'Courtyard wings', pavilion: 'Pavilion' }
 
 export function HouseIdeaPreview() {
@@ -29,6 +31,7 @@ export function HouseIdeaPreview() {
     return () => abort.abort()
   }, [])
   const selection = houseIdeaSelection(brief), key = houseIdeaKey(selection)
+  const reference=styleReference(selection.style)
   const entry = gallery?.entries.find(item => item.id === key)
   const image = entry?.status === 'ready' && entry.image && failedImage !== key ? `${entry.image}?v=${entry.renderDigest?.slice(0, 12) ?? '1'}` : undefined
   const level = selection.storeys === 0 ? 'Ground only' : `G+${selection.storeys}`
@@ -41,10 +44,13 @@ export function HouseIdeaPreview() {
     </div>
     {!collapsed && <div className="mt-3 space-y-3">
       <p className="text-sm text-ink-dim">{t(STYLE_LABELS[selection.style] ?? selection.style)} · {t(LAYOUT_LABELS[selection.layout] ?? selection.layout)}{selection.composition !== 'auto' && ` · ${t(modernCompositionTitle(selection.composition as ModernComposition))}`}</p>
+      {reference&&!image?<StyleReferencePhoto key={reference.src} reference={reference}/>:<>
       <div className="aspect-[4/3] overflow-hidden border border-line bg-bg-inset" data-house-idea={key}>
         {image ? <img key={key} src={image} alt={t('Blender design example')+` · ${t(STYLE_LABELS[selection.style] ?? selection.style)} · ${t(LAYOUT_LABELS[selection.layout] ?? selection.layout)} · ${t(level)}`} width={768} height={576} decoding="async" onError={() => setFailedImage(key)} className="h-full w-full object-contain" /> : <div role="status" className="flex h-full items-center justify-center p-6 text-center text-sm text-ink-dim">{t(!gallery && !error ? 'Loading design images…' : selection.composition === 'terraced-villa' && selection.storeys === 0 ? 'Terraced villas need an upper floor. Choose G+1 or above for this example.' : 'No Blender image is available for this combination.')}</div>}
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-ink-dim"><span>{t('Blender design example')}</span>{image && <a href={image} download className="inline-flex min-h-11 items-center gap-2 text-ink underline underline-offset-4"><Download size={14} aria-hidden="true" />{t('Download image')}</a>}</div>
+      </>}
+      {reference&&image&&<StyleReferencePhoto key={reference.src} reference={reference} small/>}
     </div>}
   </aside>
 }

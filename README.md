@@ -168,7 +168,9 @@ Brief (user inputs, Zod schema)
 The Style step separates **typology** (villa or larger villa), **massing**
 (structural plate choice) and **character** (materials, roof and façade language).
 Character themes live in [`src/lib/model/themes.ts`](src/lib/model/themes.ts).
-New briefs offer Modern Box, Contemporary and Courtyard. Older saved briefs
+New briefs offer Modern Box, Contemporary, Courtyard, **Coastal Bungalow** and
+**Tropical Beach Villa**. Coastal uses terracotta hip roofs, lime plaster and
+shaded timber details; Beach Villa uses wide flat eaves, white plaster and timber screens. Older saved briefs
 retain their original character so they can still be opened and rendered.
 Each style has its own plan shapes and façade families: **Courtyard** gets a real
 courtyard (or L-shaped) plan whenever the plot takes one, **Contemporary** prefers
@@ -889,3 +891,27 @@ The backend abstraction `generateVillaVisualizations(villa3DReference)` tries a 
 Default primary is the configured local Gemini Web bridge. `BUILDING_PROVIDER=gemini` selects the existing official-key adapter instead. The [bridge's documented multimodal chat](https://github.com/ntthanh2603/gemini-web-to-api/blob/main/docs/image-generation.md) may return session-bound Google URLs; unreadable/private URLs trigger local fallback. We do not substitute text-to-image descriptions, expose cookies or forward session credentials. ComfyUI requires the existing SDXL checkpoint and Canny ControlNet named by `SDXL_CKPT` / `CN_CANNY_MODEL`. Paired deadlines and sampling settings are centralized in `server/villa-visualizations.mjs`; cancel removes only the request's pending local job.
 
 If both real providers are unavailable, the completed 3D model remains usable and the page shows a plain unavailable message. Provider names, cookie/API errors and model selectors are absent from this flow; existing interior and legacy `/api/render` consumers retain their APIs.
+
+### Style reference photographs
+
+The new coastal styles have separate inspiration-photo slots in
+`public/house-ideas/reference/`: `coastal-bungalow.jpg` and
+`tropical-beach-villa.jpg`. Neither photo was supplied with the implementation
+request, so both currently show a clean placeholder. Drop in an approximately
+1200-pixel-wide photograph and restart Vite (or rebuild production). Update credit,
+licence and optional source URL in `src/lib/gallery/referenceImages.ts`. Do not put
+photographs into the Blender manifest. When a matching Blender render is available,
+it remains the main image and the photo appears below it with its own caption.
+
+The existing 240-image Blender library is unchanged. New Blender examples are
+optional and were not rendered. Rectangular structural openings are retained; true
+arches require coordinated curved wall cut-outs, frame geometry, collision and CAD
+export support. Shutters, verandahs and decks decorate actual supported openings and
+outdoor spaces; a style does not authorize new rooms, pools or structural penetrations.
+
+The Three.js Coastal roof uses the 28° theme pitch and 1 m eaves; Beach Villa
+uses 1.25 m flat eaves. Blender retains validated source roof mass extents
+(including their height/support limits), with the new terracotta roof and
+white/timber material defaults. Its roof profile is an approximation of the
+theme rather than a tile-by-tile reconstruction of the reference photograph.
+Explicit Blender visualization palettes continue to override style defaults.

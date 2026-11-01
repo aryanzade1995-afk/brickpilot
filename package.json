@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "test:coastal-styles": "node --experimental-strip-types --test scripts/test-coastal-styles.mjs",
     "test:social-impact": "node --experimental-strip-types --test scripts/test-social-impact.mjs",
     "test:ventilation": "node --experimental-strip-types --test scripts/test-ventilation.mjs",
     "test:entry-ramp": "node --experimental-strip-types --test scripts/test-entry-ramp.mjs scripts/test-site-access-state.mjs",

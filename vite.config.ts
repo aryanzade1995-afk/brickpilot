@@ -1,4 +1,4 @@
-import { writeFileSync } from 'node:fs'
+import { writeFileSync, existsSync, readdirSync } from 'node:fs'
 import { fileURLToPath, URL } from 'node:url'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
@@ -35,6 +35,7 @@ function shotSink(): PluginOption {
 
 // https://vite.dev/config/
 export default defineConfig({
+  define:{__STYLE_REFERENCE_FILES__:JSON.stringify(existsSync('public/house-ideas/reference')?readdirSync('public/house-ideas/reference').filter(name=>/\.(jpe?g|webp|png)$/i.test(name)).map(name=>'/house-ideas/reference/'+name):[])},
   plugins: [react(), tailwindcss(), shotSink()],
   resolve: {
     alias: {
