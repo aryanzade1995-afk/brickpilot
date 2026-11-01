@@ -156,61 +156,6 @@ function FireContext(props: SheetProps & { id: string }) {
   </g>
 }
 
-function getRoomLabelPosition(
-  roomData: UtilityFloor['floor']['rooms'][0],
-  fixtures: UtilityFloor['fixtures'],
-  font: number
-): { x: number; y: number } {
-  const defaultX = roomData.rect.x + roomData.rect.w / 2
-  const defaultY = roomData.rect.y + roomData.rect.h / 2 - font * 0.35
-
-  const roomFixtures = fixtures.filter(f => f.roomId === roomData.id && f.type !== 'floor_drain')
-  if (roomFixtures.length === 0) {
-    return { x: defaultX, y: defaultY }
-  }
-
-  const textHalfW = Math.min(font * (roomData.name.length || 8) * 0.45, roomData.rect.w * 0.4)
-  const textHalfH = font * 0.9
-
-  const overlaps = roomFixtures.some(f => {
-    const fw = ((f.width || 500) + 120) / 2
-    const fd = ((f.depth || 550) + 120) / 2
-    return (
-      Math.abs(f.position.x - defaultX) < (fw + textHalfW) &&
-      Math.abs(f.position.y - defaultY) < (fd + textHalfH)
-    )
-  })
-
-  if (!overlaps) {
-    return { x: defaultX, y: defaultY }
-  }
-
-  let maxFixtureBottom = -Infinity
-  let minFixtureTop = Infinity
-  for (const f of roomFixtures) {
-    const fd = (f.depth || 550) / 2
-    maxFixtureBottom = Math.max(maxFixtureBottom, f.position.y + fd)
-    minFixtureTop = Math.min(minFixtureTop, f.position.y - fd)
-  }
-
-  const roomTop = roomData.rect.y
-  const roomBottom = roomData.rect.y + roomData.rect.h
-  const spaceBelow = roomBottom - maxFixtureBottom
-  const spaceAbove = minFixtureTop - roomTop
-
-  if (spaceBelow >= spaceAbove && spaceBelow > font * 1.5) {
-    const y = maxFixtureBottom + spaceBelow / 2 - font * 0.35
-    return { x: defaultX, y: Math.max(roomTop + font, Math.min(roomBottom - font * 1.1, y)) }
-  }
-
-  if (spaceAbove > font * 1.5) {
-    const y = roomTop + spaceAbove / 2 - font * 0.35
-    return { x: defaultX, y: Math.max(roomTop + font, Math.min(roomBottom - font * 1.1, y)) }
-  }
-
-  return { x: defaultX, y: Math.min(roomBottom - font * 0.9, defaultY + font * 1.8) }
-}
-
 function UtilitySheet(props: SheetProps) {
   const { model, box, room, selected, exporting, project, scale, svgRef } = props
   const drawing = props.drawingDocument
@@ -240,15 +185,38 @@ function UtilitySheet(props: SheetProps) {
           </g>
         )
       })}
-      {model.floor.rooms.map(roomData => {
-        const pos = getRoomLabelPosition(roomData, model.fixtures, font)
-        return (
-          <g key={`label-${roomData.id}`} opacity={room === 'all' || room === roomData.id ? 1 : .2} pointerEvents="none">
-            <text x={pos.x} y={pos.y} textAnchor="middle" fontSize={Math.min(font, roomData.rect.w / Math.max(4, t(roomData.name).length) * 1.4)} fill="#565651">{t(roomData.name)}</text>
-            {props.drainageTechnical && <text x={pos.x} y={pos.y + font * 1.25} textAnchor="middle" fontSize={font * .72} fill="#898982">{roomData.area.toFixed(1)} m²</text>}
-          </g>
-        )
-      })}
+      {model.floor.rooms.map(roomData => (
+        <g key={`label-${roomData.id}`} opacity={room === 'all' || room === roomData.id ? 1 : .2} pointerEvents="none">
+          <text
+            x={roomData.rect.x + roomData.rect.w / 2}
+            y={roomData.rect.y + roomData.rect.h / 2 - font * 0.35}
+            textAnchor="middle"
+            fontSize={Math.min(font, roomData.rect.w / Math.max(4, t(roomData.name).length) * 1.4)}
+            fill="#565651"
+            stroke="#ffffff"
+            strokeWidth={Math.max(6, 4 / scale)}
+            strokeLinejoin="round"
+            paintOrder="stroke fill"
+          >
+            {t(roomData.name)}
+          </text>
+          {props.drainageTechnical && (
+            <text
+              x={roomData.rect.x + roomData.rect.w / 2}
+              y={roomData.rect.y + roomData.rect.h / 2 + font * 0.9}
+              textAnchor="middle"
+              fontSize={font * 0.72}
+              fill="#898982"
+              stroke="#ffffff"
+              strokeWidth={Math.max(4, 3 / scale)}
+              strokeLinejoin="round"
+              paintOrder="stroke fill"
+            >
+              {roomData.area.toFixed(1)} m²
+            </text>
+          )}
+        </g>
+      ))}
     </g>
     {drawing?.grid && <g pointerEvents="none" clipPath={`url(#${glow}-slabs)`}><defs><pattern id={`${glow}-grid`} width={1000} height={1000} patternUnits="userSpaceOnUse"><path d="M1000 0H0V1000" fill="none" stroke="#dde5df" strokeWidth={1 / scale} /></pattern></defs><rect x={r.x} y={r.y} width={r.w} height={r.h} fill={`url(#${glow}-grid)`} /></g>}
     <g data-layer="access" pointerEvents="none" fill="none" stroke="#adb5ad" strokeWidth={1 / scale}>{model.floor.stair && <g><rect x={model.floor.stair.rect.x} y={model.floor.stair.rect.y} width={model.floor.stair.rect.w} height={model.floor.stair.rect.h} strokeDasharray={`${80} ${60}`} />{model.floor.stair.treads.map((line, i) => <line key={i} x1={line[0].x} y1={line[0].y} x2={line[1].x} y2={line[1].y} />)}</g>}{model.floor.shafts?.map(s => <rect key={s.id} x={s.rect.x} y={s.rect.y} width={s.rect.w} height={s.rect.h} strokeDasharray="80 60" />)}</g>
