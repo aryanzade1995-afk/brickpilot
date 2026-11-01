@@ -11,17 +11,27 @@ export function wiringPath(run: UtilityRun, visibleRuns: UtilityRun[], scale: nu
   for (let i = 1; i < run.path.length; i++) {
     const a = run.path[i - 1], b = run.path[i], length = Math.hypot(b.x - a.x, b.y - a.y), dx = (b.x - a.x) / length, dy = (b.y - a.y) / length
     const positions: Point[] = []
-    if (run.layer === 'electrical') for (const other of visibleRuns) {
-      if (other.layer !== 'electrical' || other.circuitId === run.circuitId || other.id >= run.id) continue
+    const isElectrical = run.layer === 'electrical'
+    const isWaterHot = run.layer === 'water_supply' && 'service' in run && run.service === 'hot'
+    if (isElectrical || isWaterHot) for (const other of visibleRuns) {
+      if (isElectrical && (other.layer !== 'electrical' || other.circuitId === run.circuitId || other.id >= run.id)) continue
+      if (isWaterHot && (other.layer !== 'water_supply' || !('service' in other) || other.service !== 'cold')) continue
       for (let j = 1; j < other.path.length; j++) {
         const c = other.path[j - 1], e = other.path[j], p = segmentIntersection(a, b, c, e)
-        if (p && Math.hypot(p.x - a.x, p.y - a.y) > radius * 1.7 && Math.hypot(p.x - b.x, p.y - b.y) > radius * 1.7 && Math.hypot(p.x - c.x, p.y - c.y) > radius && Math.hypot(p.x - e.x, p.y - e.y) > radius && !positions.some(q => Math.hypot(p.x - q.x, p.y - q.y) < radius * 2.2)) positions.push(p)
+        if (!p) continue
+        const dA = Math.hypot(p.x - a.x, p.y - a.y), dB = Math.hypot(p.x - b.x, p.y - b.y)
+        const dC = Math.hypot(p.x - c.x, p.y - c.y), dE = Math.hypot(p.x - e.x, p.y - e.y)
+        const clearRun = isWaterHot ? 15 : radius * 1.7
+        const clearOther = isWaterHot ? 15 : radius
+        if (dA > clearRun && dB > clearRun && dC > clearOther && dE > clearOther && !positions.some(q => Math.hypot(p.x - q.x, p.y - q.y) < radius * 1.5)) positions.push(p)
       }
     }
     positions.sort((p, q) => Math.hypot(p.x - a.x, p.y - a.y) - Math.hypot(q.x - a.x, q.y - a.y))
     for (const p of positions) {
-      const before = { x: p.x - dx * radius, y: p.y - dy * radius }, after = { x: p.x + dx * radius, y: p.y + dy * radius }
-      const control = { x: p.x + (dy ? radius * 1.5 : 0), y: p.y - (dx ? radius * 1.5 : 0) }
+      const dA = Math.hypot(p.x - a.x, p.y - a.y), dB = Math.hypot(p.x - b.x, p.y - b.y)
+      const r = Math.min(radius, dA * 0.5, dB * 0.5)
+      const before = { x: p.x - dx * r, y: p.y - dy * r }, after = { x: p.x + dx * r, y: p.y + dy * r }
+      const control = { x: p.x + (dy ? r * 1.5 : 0), y: p.y - (dx ? r * 1.5 : 0) }
       const arc = `M${before.x} ${before.y}Q${control.x} ${control.y} ${after.x} ${after.y}`
       d += `L${before.x} ${before.y}Q${control.x} ${control.y} ${after.x} ${after.y}`; jumps.push({ d: arc, position: p })
     }

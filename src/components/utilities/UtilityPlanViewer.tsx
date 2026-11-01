@@ -18,6 +18,7 @@ import { DRAWING_LAYERS, visibleLayers, sourceSignature, parseUtilityDrawing, ty
 import { buildDrawingSheets, drawingOpsSvg, annotationOps, sheetSvg as serializeDrawingSheet } from '@/lib/utilities/drawingSheets.ts'
 import { downloadVectorSheets, downloadSheetPng, downloadSheetSvg, downloadUtilityDxf } from '@/lib/utilities/drawingExports.ts'
 import { drainageBounds } from '@/lib/utilities/drainage.ts'
+import { waterBounds } from '@/lib/utilities/water.ts'
 import { DRAINAGE_COLORS } from '@/lib/utilities/drainageRules.ts'
 import { DrainageWorkbench } from './DrainageWorkbench.tsx'
 import { ElectricalWorkbench } from './ElectricalWorkbench.tsx'
@@ -231,8 +232,20 @@ export function UtilityPlanViewer({ model: sourceModel, models, project, reviewS
   const [tooltip, setTooltip] = useState<{ info: HoverInfo; x: number; y: number } | null>(null)
   const host = useRef<HTMLDivElement>(null)
   const pointers = useRef(new Map<number, Point>()), gesture = useRef<{ x: number; y: number; distance: number; travel: number; moved: boolean; run: string | null } | null>(null)
-  const r = useMemo(() => visible.drainage ? drainageBounds(model) : model.floor.outline, [model, visible.drainage]), baseBox = { x: r.x - 1800, y: r.y - 1800, w: r.w + 3600, h: r.h + 3600 }
+  const isWaterOnly = visible.water_supply && !visible.drainage && !visible.electrical && !visible.fire_alarm
+  const r = useMemo(() => isWaterOnly ? waterBounds(model) : visible.drainage ? drainageBounds(model) : model.floor.outline, [model, visible.drainage, isWaterOnly])
+  const baseBox = useMemo(() => {
+    const pad = isWaterOnly ? 800 : 1800
+    return { x: r.x - pad, y: r.y - pad, w: r.w + pad * 2, h: r.h + pad * 2 }
+  }, [r, isWaterOnly])
   const [height, setHeight] = useState(520)
+  const prevWaterOnly = useRef(false)
+  useEffect(() => {
+    if (isWaterOnly && !prevWaterOnly.current) {
+      setBox(null)
+    }
+    prevWaterOnly.current = isWaterOnly
+  }, [isWaterOnly])
   const fit = useMemo(() => {
     const aspect = width / height, center = rectCenter(r), w = Math.max(baseBox.w, baseBox.h * aspect), h = w / aspect
     return { x: center.x - w / 2, y: center.y - h / 2, w, h }
