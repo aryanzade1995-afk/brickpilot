@@ -6,7 +6,7 @@ export function UtilitySymbolGlyph({ type, color }: { type: keyof typeof UTILITY
   return <g fill="white" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" pointerEvents="none">
     {type === 'supply_inlet' || type === 'hot_supply_inlet' ? <><rect x={-11} y={-8} width={22} height={16} fill={type === 'hot_supply_inlet' ? '#BE5076' : color} /><text x={0} y={3} textAnchor="middle" fontSize={7} fill="white" stroke="none">{type === 'hot_supply_inlet' ? 'HW' : 'CW'}</text></>
       : type === 'isolation_valve' ? <><path d="M-9-6L9 6V-6L-9 6Z" /><path d="M0 0V-10m-4 0h8" /></>
-      : type === 'water_outlet' ? <><circle r={6} /><path d="M-3 1V-5H5m-2 0v4m-6 2h6" /></>
+      : type === 'water_outlet' ? <><circle r={5.5} /><path d="M0 5.5v4m-3 0h6" fill="none" /><circle r={2} fill={color} stroke="none" /></>
       : type === 'detector_coverage' ? <circle r={10} fill={color} fillOpacity={.1} strokeDasharray="3 3" />
       : type === 'uncovered_area' ? <><rect x={-10} y={-10} width={20} height={20} fill="#ffebeb" strokeWidth={.6} /><path d="M-10 0L0-10M-10 8L8-10M-4 10L10-4M4 10L10 4" strokeOpacity={.6} strokeWidth={1} /></>
       : type === 'smoke_detector' || type === 'heat_detector' ? <><circle r={9} /><text x={0} y={3.5} fontSize={10} fontWeight={600} fill={color} stroke="none" textAnchor="middle">{type === 'smoke_detector' ? 'S' : 'H'}</text></>

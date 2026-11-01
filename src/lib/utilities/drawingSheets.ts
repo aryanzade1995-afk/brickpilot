@@ -46,7 +46,7 @@ export function symbolOps(type: string, at: Point, color: string, r = 1.4): Draw
     else if (type === 'light' || type === 'exhaust_fan') { line(-.6, -.6, .6, .6); line(.6, -.6, -.6, .6) }
     else if (type === 'sprinkler') { line(-.7, 0, .7, 0); line(0, -.7, 0, .7) }
     else if (type === 'switch') { line(.7, -.7, 1.5, -1.5); label('S') }
-    else if (type === 'water_outlet') { line(0, .6, 0, -.6); line(0, -.6, 1, -.6) }
+    else if (type === 'water_outlet') { line(0, 1, 0, 1.6); line(-.4, 1.6, .4, 1.6); circle(.35, color) }
     else if (type === 'sounder') { line(1.3, -.6, 1.7, 0); line(1.7, 0, 1.3, .6) }
   }
   return ops
