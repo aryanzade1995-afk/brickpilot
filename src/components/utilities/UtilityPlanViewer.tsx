@@ -4,6 +4,7 @@ import { UtilityPointEditor } from './UtilityPointEditor.tsx'
 import { UtilityRiserDiagram } from './UtilityRiserDiagram.tsx'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { Point, Rect } from '@/lib/geometry.ts'
+import type { Opening } from '@/lib/engine/types.ts'
 import { rectCenter } from '@/lib/geometry.ts'
 import { alongPath, UTILITY_LAYERS, displayedRuns, displayedSymbols, selectionForRun, connectedLoads, utilityLegend, type UtilityFloor, type UtilityLayer, type UtilityRun } from '@/lib/utilities/plan.ts'
 import { translate as t, useLanguage } from '@/lib/i18n/index.ts'
@@ -156,6 +157,124 @@ function FireContext(props: SheetProps & { id: string }) {
   </g>
 }
 
+function PlanOpening({ o, scale, maxWallThick }: { o: Opening; scale: number; maxWallThick: number }) {
+  const isHoriz = o.orient === 'h'
+  const halfW = o.width / 2
+  const cutThick = Math.min(maxWallThick, 130) + 16
+
+  if (o.kind === 'window') {
+    return (
+      <g>
+        <line
+          x1={o.at.x - (isHoriz ? halfW : 0)}
+          y1={o.at.y - (!isHoriz ? halfW : 0)}
+          x2={o.at.x + (isHoriz ? halfW : 0)}
+          y2={o.at.y + (!isHoriz ? halfW : 0)}
+          stroke="#ffffff"
+          strokeWidth={cutThick}
+          strokeLinecap="square"
+        />
+        <line
+          x1={o.at.x - (isHoriz ? halfW : cutThick / 2)}
+          y1={o.at.y - (isHoriz ? cutThick / 2 : halfW)}
+          x2={o.at.x + (isHoriz ? halfW : -cutThick / 2)}
+          y2={o.at.y + (isHoriz ? -cutThick / 2 : halfW)}
+          stroke="#171717"
+          strokeWidth={Math.max(12, 1.2 / scale)}
+        />
+        <line
+          x1={o.at.x - (isHoriz ? halfW : -cutThick / 2)}
+          y1={o.at.y - (isHoriz ? -cutThick / 2 : halfW)}
+          x2={o.at.x + (isHoriz ? halfW : cutThick / 2)}
+          y2={o.at.y + (isHoriz ? cutThick / 2 : halfW)}
+          stroke="#171717"
+          strokeWidth={Math.max(12, 1.2 / scale)}
+        />
+        <line
+          x1={o.at.x - (isHoriz ? halfW - 10 : 0)}
+          y1={o.at.y - (!isHoriz ? halfW - 10 : 0)}
+          x2={o.at.x + (isHoriz ? halfW - 10 : 0)}
+          y2={o.at.y + (!isHoriz ? halfW - 10 : 0)}
+          stroke="#287FAD"
+          strokeWidth={Math.max(16, 1.6 / scale)}
+        />
+        {isHoriz ? (
+          <>
+            <line x1={o.at.x - halfW} y1={o.at.y - cutThick / 2} x2={o.at.x - halfW} y2={o.at.y + cutThick / 2} stroke="#171717" strokeWidth={Math.max(12, 1.2 / scale)} />
+            <line x1={o.at.x + halfW} y1={o.at.y - cutThick / 2} x2={o.at.x + halfW} y2={o.at.y + cutThick / 2} stroke="#171717" strokeWidth={Math.max(12, 1.2 / scale)} />
+          </>
+        ) : (
+          <>
+            <line x1={o.at.x - cutThick / 2} y1={o.at.y - halfW} x2={o.at.x + cutThick / 2} y2={o.at.y - halfW} stroke="#171717" strokeWidth={Math.max(12, 1.2 / scale)} />
+            <line x1={o.at.x - cutThick / 2} y1={o.at.y + halfW} x2={o.at.x + cutThick / 2} y2={o.at.y + halfW} stroke="#171717" strokeWidth={Math.max(12, 1.2 / scale)} />
+          </>
+        )}
+      </g>
+    )
+  }
+
+  const swing = o.swing ?? 1
+  const isDouble = o.kind === 'entry' || o.width >= 1400
+  const leafW = isDouble ? o.width / 2 : o.width
+
+  return (
+    <g>
+      <line
+        x1={o.at.x - (isHoriz ? halfW : 0)}
+        y1={o.at.y - (!isHoriz ? halfW : 0)}
+        x2={o.at.x + (isHoriz ? halfW : 0)}
+        y2={o.at.y + (!isHoriz ? halfW : 0)}
+        stroke="#ffffff"
+        strokeWidth={cutThick}
+        strokeLinecap="square"
+      />
+      {isHoriz ? (
+        <>
+          <line x1={o.at.x - halfW} y1={o.at.y - cutThick / 2} x2={o.at.x - halfW} y2={o.at.y + cutThick / 2} stroke="#171717" strokeWidth={Math.max(14, 1.4 / scale)} />
+          <line x1={o.at.x + halfW} y1={o.at.y - cutThick / 2} x2={o.at.x + halfW} y2={o.at.y + cutThick / 2} stroke="#171717" strokeWidth={Math.max(14, 1.4 / scale)} />
+        </>
+      ) : (
+        <>
+          <line x1={o.at.x - cutThick / 2} y1={o.at.y - halfW} x2={o.at.x + cutThick / 2} y2={o.at.y - halfW} stroke="#171717" strokeWidth={Math.max(14, 1.4 / scale)} />
+          <line x1={o.at.x - cutThick / 2} y1={o.at.y + halfW} x2={o.at.x + cutThick / 2} y2={o.at.y + halfW} stroke="#171717" strokeWidth={Math.max(14, 1.4 / scale)} />
+        </>
+      )}
+
+      {o.treatment !== 'open' && o.leaf !== false && (
+        isDouble ? (
+          isHoriz ? (
+            <g stroke="#171717">
+              <line x1={o.at.x - halfW} y1={o.at.y} x2={o.at.x - halfW} y2={o.at.y - swing * leafW} strokeWidth={Math.max(18, 1.8 / scale)} strokeLinecap="square" />
+              <path d={`M ${o.at.x} ${o.at.y} A ${leafW} ${leafW} 0 0 ${swing > 0 ? 0 : 1} ${o.at.x - halfW} ${o.at.y - swing * leafW}`} fill="none" stroke="rgba(23, 23, 23, 0.35)" strokeWidth={Math.max(10, 1.0 / scale)} strokeDasharray="16 12" />
+              <line x1={o.at.x + halfW} y1={o.at.y} x2={o.at.x + halfW} y2={o.at.y - swing * leafW} strokeWidth={Math.max(18, 1.8 / scale)} strokeLinecap="square" />
+              <path d={`M ${o.at.x} ${o.at.y} A ${leafW} ${leafW} 0 0 ${swing > 0 ? 1 : 0} ${o.at.x + halfW} ${o.at.y - swing * leafW}`} fill="none" stroke="rgba(23, 23, 23, 0.35)" strokeWidth={Math.max(10, 1.0 / scale)} strokeDasharray="16 12" />
+            </g>
+          ) : (
+            <g stroke="#171717">
+              <line x1={o.at.x} y1={o.at.y - halfW} x2={o.at.x - swing * leafW} y2={o.at.y - halfW} strokeWidth={Math.max(18, 1.8 / scale)} strokeLinecap="square" />
+              <path d={`M ${o.at.x} ${o.at.y} A ${leafW} ${leafW} 0 0 ${swing > 0 ? 1 : 0} ${o.at.x - swing * leafW} ${o.at.y - halfW}`} fill="none" stroke="rgba(23, 23, 23, 0.35)" strokeWidth={Math.max(10, 1.0 / scale)} strokeDasharray="16 12" />
+              <line x1={o.at.x} y1={o.at.y + halfW} x2={o.at.x - swing * leafW} y2={o.at.y + halfW} strokeWidth={Math.max(18, 1.8 / scale)} strokeLinecap="square" />
+              <path d={`M ${o.at.x} ${o.at.y} A ${leafW} ${leafW} 0 0 ${swing > 0 ? 0 : 1} ${o.at.x - swing * leafW} ${o.at.y + halfW}`} fill="none" stroke="rgba(23, 23, 23, 0.35)" strokeWidth={Math.max(10, 1.0 / scale)} strokeDasharray="16 12" />
+            </g>
+          )
+        ) : (
+          isHoriz ? (
+            <g stroke="#171717">
+              <line x1={o.at.x - halfW} y1={o.at.y} x2={o.at.x - halfW} y2={o.at.y - swing * o.width} strokeWidth={Math.max(18, 1.8 / scale)} strokeLinecap="square" />
+              <path d={`M ${o.at.x + halfW} ${o.at.y} A ${o.width} ${o.width} 0 0 ${swing > 0 ? 0 : 1} ${o.at.x - halfW} ${o.at.y - swing * o.width}`} fill="none" stroke="rgba(23, 23, 23, 0.35)" strokeWidth={Math.max(10, 1.0 / scale)} strokeDasharray="16 12" />
+            </g>
+          ) : (
+            <g stroke="#171717">
+              <line x1={o.at.x} y1={o.at.y - halfW} x2={o.at.x - swing * o.width} y2={o.at.y - halfW} strokeWidth={Math.max(18, 1.8 / scale)} strokeLinecap="square" />
+              <path d={`M ${o.at.x} ${o.at.y + halfW} A ${o.width} ${o.width} 0 0 ${swing > 0 ? 1 : 0} ${o.at.x - swing * o.width} ${o.at.y - halfW}`} fill="none" stroke="rgba(23, 23, 23, 0.35)" strokeWidth={Math.max(10, 1.0 / scale)} strokeDasharray="16 12" />
+            </g>
+          )
+        )
+      )}
+    </g>
+  )
+}
+
 function UtilitySheet(props: SheetProps) {
   const { model, box, room, selected, exporting, project, scale, svgRef } = props
   const drawing = props.drawingDocument
@@ -164,21 +283,45 @@ function UtilitySheet(props: SheetProps) {
   const sheetY = r.y + r.h + 1600, legend = utilityLegend(model, props.visible, props.circuit, false, props.zone, props.showEvacuation, props.showCoverage, props.water), rowHeight = Math.max(320, font * 1.6), footerHeight = 3700 + Math.ceil(legend.length / 2) * rowHeight
   return <svg ref={svgRef} xmlns="http://www.w3.org/2000/svg" viewBox={`${box.x} ${box.y} ${box.w} ${box.h}`} className="h-full w-full" role="group" aria-label={t('Utility plan')} fontFamily="Arial, sans-serif" onPointerLeave={() => props.onHover?.(null)}>
     <desc>{project} · {t(model.floor.name)} · {t('Utilities')}</desc>
-    <defs><filter id={glow} x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation={2 / scale} /></filter><clipPath id={`${glow}-slabs`}>{model.slabs.map((s, i) => <rect key={i} x={s.x} y={s.y} width={s.w} height={s.h} />)}</clipPath></defs>
+    <defs>
+      <filter id={glow} x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation={2 / scale} /></filter>
+      <clipPath id={`${glow}-slabs`}>{model.slabs.map((s, i) => <rect key={i} x={s.x} y={s.y} width={s.w} height={s.h} />)}</clipPath>
+      <pattern id={`${glow}-column-hatch`} width={60} height={60} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+        <line x1={0} y1={0} x2={0} y2={60} stroke="#ffffff" strokeWidth={14} />
+      </pattern>
+    </defs>
     <rect x={box.x} y={box.y} width={box.w} height={box.h} fill="#ffffff" />
     <g opacity={selected ? .4 : 1}>
       <path d={model.slabs.map(rectPath).join(' ')} fill="#ffffff" stroke="#c8c8c3" strokeWidth={1} vectorEffect="non-scaling-stroke" />
       {model.floor.rooms.map(roomData => <g key={roomData.id} opacity={room === 'all' || room === roomData.id ? 1 : .2}
         {...(props.visible.fire_alarm && props.showEvacuation && !roomData.outdoor && !exporting ? { role: 'button', tabIndex: 0, 'aria-label': `${t('Evacuation route')} · ${t(roomData.name)}`, 'aria-pressed': selected === `exit:${roomData.id}`, 'data-run-id': `exit:${roomData.id}`, onKeyDown: (e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); props.onSelect?.(`exit:${roomData.id}`) } } } : {})}>
         <rect {...{ x: roomData.rect.x, y: roomData.rect.y, width: roomData.rect.w, height: roomData.rect.h }} fill={roomData.outdoor ? 'none' : '#fafaf8'} clipPath={`url(#${glow}-slabs)`} stroke="#e1e1dc" strokeWidth={1} vectorEffect="non-scaling-stroke" />
-        <text x={roomData.rect.x + roomData.rect.w / 2} y={roomData.rect.y + roomData.rect.h / 2 - font * .35} textAnchor="middle" fontSize={Math.min(font, roomData.rect.w / Math.max(4, t(roomData.name).length) * 1.4)} fill="#565651">{t(roomData.name)}</text>
-        {props.drainageTechnical && <text x={roomData.rect.x + roomData.rect.w / 2} y={roomData.rect.y + roomData.rect.h / 2 + font * .9} textAnchor="middle" fontSize={font * .72} fill="#898982">{roomData.area.toFixed(1)} m²</text>}
+        <text x={roomData.rect.x + roomData.rect.w / 2} y={roomData.rect.y + roomData.rect.h / 2 - font * .35} textAnchor="middle" fontSize={Math.min(font, roomData.rect.w / Math.max(4, t(roomData.name).length) * 1.4)} fill="#171717" fontFamily="var(--font-display), 'Fraunces', Georgia, serif" fontWeight="500">{t(roomData.name)}</text>
+        {props.drainageTechnical && <text x={roomData.rect.x + roomData.rect.w / 2} y={roomData.rect.y + roomData.rect.h / 2 + font * .9} textAnchor="middle" fontSize={font * .72} fill="#707070" fontFamily="var(--font-mono), 'IBM Plex Mono', monospace">{roomData.area.toFixed(1)} m²</text>}
       </g>)}
-      {model.floor.walls.map((w, i) => <line key={i} x1={w.a.x} y1={w.a.y} x2={w.b.x} y2={w.b.y} stroke="#d6d6d0" strokeWidth={w.thickness} />)}
-      {model.floor.openings.map((o, i) => <g key={i}>
-        <line x1={o.at.x - (o.orient === 'h' ? o.width / 2 : 0)} y1={o.at.y - (o.orient === 'v' ? o.width / 2 : 0)} x2={o.at.x + (o.orient === 'h' ? o.width / 2 : 0)} y2={o.at.y + (o.orient === 'v' ? o.width / 2 : 0)} stroke={o.kind === 'window' ? '#adb7b5' : '#ffffff'} strokeWidth={Math.max(260, ...model.floor.walls.filter(w => w.rooms?.some(id => o.rooms?.includes(id))).map(w => w.thickness + 10))} />
-        {o.kind === 'window' && <line x1={o.at.x - (o.orient === 'h' ? o.width / 2 : 0)} y1={o.at.y - (o.orient === 'v' ? o.width / 2 : 0)} x2={o.at.x + (o.orient === 'h' ? o.width / 2 : 0)} y2={o.at.y + (o.orient === 'v' ? o.width / 2 : 0)} stroke="white" strokeWidth={1} vectorEffect="non-scaling-stroke" />}
-      </g>)}
+      {model.floor.walls.map((w, i) => {
+        const wallThick = Math.min(w.thickness, 125)
+        const dx = w.b.x - w.a.x, dy = w.b.y - w.a.y
+        const len = Math.hypot(dx, dy)
+        if (len < 1) return null
+        const nx = -dy / len, ny = dx / len
+        const half = wallThick / 2
+        return (
+          <g key={i}>
+            <line x1={w.a.x} y1={w.a.y} x2={w.b.x} y2={w.b.y} stroke="#ebebea" strokeWidth={wallThick} strokeLinecap="square" />
+            <line x1={w.a.x + nx * half} y1={w.a.y + ny * half} x2={w.b.x + nx * half} y2={w.b.y + ny * half} stroke="#171717" strokeWidth={Math.max(14, 1.4 / scale)} strokeLinecap="square" />
+            <line x1={w.a.x - nx * half} y1={w.a.y - ny * half} x2={w.b.x - nx * half} y2={w.b.y - ny * half} stroke="#171717" strokeWidth={Math.max(14, 1.4 / scale)} strokeLinecap="square" />
+          </g>
+        )
+      })}
+      {model.floor.openings.map((o, i) => (
+        <PlanOpening
+          key={i}
+          o={o}
+          scale={scale}
+          maxWallThick={Math.max(120, ...model.floor.walls.filter(w => w.rooms?.some(id => o.rooms?.includes(id))).map(w => w.thickness))}
+        />
+      ))}
       {model.fixtures.filter(f => f.type !== 'floor_drain' || props.visible.drainage).map(f => {
         const fixtureRoom = model.floor.rooms.find(r => r.id === f.roomId)
         return (
@@ -192,7 +335,29 @@ function UtilitySheet(props: SheetProps) {
     <g data-layer="access" pointerEvents="none" fill="none" stroke="#adb5ad" strokeWidth={1 / scale}>{model.floor.stair && <g><rect x={model.floor.stair.rect.x} y={model.floor.stair.rect.y} width={model.floor.stair.rect.w} height={model.floor.stair.rect.h} strokeDasharray={`${80} ${60}`} />{model.floor.stair.treads.map((line, i) => <line key={i} x1={line[0].x} y1={line[0].y} x2={line[1].x} y2={line[1].y} />)}</g>}{model.floor.shafts?.map(s => <rect key={s.id} x={s.rect.x} y={s.rect.y} width={s.rect.w} height={s.rect.h} strokeDasharray="80 60" />)}</g>
     <FireContext {...props} id={glow} />
     {Object.keys(UTILITY_LAYERS).map(key => <RunLayer key={key} {...props} layerKey={key as UtilityLayer} filterId={glow} />)}
-    <g data-layer="structure" fill="#b8b9b3" stroke="#8f968e" strokeWidth={1 / scale}>{(model.floor.columns ?? []).map(c => <rect key={c.id} x={c.at.x - c.size / 2} y={c.at.y - c.size / 2} width={c.size} height={c.size} />)}</g>
+    <g data-layer="structure">
+      {(model.floor.columns ?? []).map(c => (
+        <g key={c.id}>
+          <rect
+            x={c.at.x - c.size / 2}
+            y={c.at.y - c.size / 2}
+            width={c.size}
+            height={c.size}
+            fill="#171717"
+            stroke="#171717"
+            strokeWidth={Math.max(14, 1.4 / scale)}
+          />
+          <rect
+            x={c.at.x - c.size / 2 + 25}
+            y={c.at.y - c.size / 2 + 25}
+            width={Math.max(10, c.size - 50)}
+            height={Math.max(10, c.size - 50)}
+            fill={`url(#${glow}-column-hatch)`}
+            opacity={0.35}
+          />
+        </g>
+      ))}
+    </g>
     {drawing && <g data-layer="annotations" pointerEvents="none" transform={`scale(${drawing.settings.scale})`} dangerouslySetInnerHTML={{ __html: annotations }} />}
     <g fill="#66665f" fontSize={font * .8}>
       <path d={`M${r.x - 750} ${r.y + 700}v-1000m-180 250l180-250 180 250`} fill="none" stroke="#77776f" strokeWidth={1} vectorEffect="non-scaling-stroke" /><text x={r.x - 750} y={r.y - 500} textAnchor="middle">↑</text>
