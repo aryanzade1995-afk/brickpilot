@@ -5,8 +5,8 @@ import type { UTILITY_SYMBOLS } from '@/lib/utilities/plan.ts'
 export function UtilitySymbolGlyph({ type, color }: { type: keyof typeof UTILITY_SYMBOLS; color: string }) {
   return <g fill="white" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" pointerEvents="none">
     {type === 'supply_inlet' || type === 'hot_supply_inlet' ? <><rect x={-11} y={-8} width={22} height={16} fill={type === 'hot_supply_inlet' ? '#BE5076' : color} /><text x={0} y={3} textAnchor="middle" fontSize={7} fill="white" stroke="none">{type === 'hot_supply_inlet' ? 'HW' : 'CW'}</text></>
-      : type === 'isolation_valve' ? <><path d="M-9-6L9 6V-6L-9 6Z" /><path d="M0 0V-10m-4 0h8" /></>
-      : type === 'water_outlet' ? <><circle r={5.5} /><path d="M0 5.5v4m-3 0h6" fill="none" /><circle r={2} fill={color} stroke="none" /></>
+      : type === 'isolation_valve' ? <><path d="M-8-5.5L8 5.5V-5.5L-8 5.5Z" fill={color} stroke={color} strokeWidth={1.2} strokeLinejoin="round" /><line x1={-8} y1={-6.5} x2={-8} y2={6.5} stroke={color} strokeWidth={1.6} strokeLinecap="round" /><line x1={8} y1={-6.5} x2={8} y2={6.5} stroke={color} strokeWidth={1.6} strokeLinecap="round" /></>
+      : type === 'water_outlet' ? <><path d="M0-7C2.8-3.5 5.5 0 5.5 3.2A5.5 5.5 0 0 1-5.5 3.2C-5.5 0-2.8-3.5 0-7Z" fill="white" stroke={color} strokeWidth={1.5} strokeLinejoin="round" /><circle cx={0} cy={3} r={1.8} fill={color} stroke="none" /></>
       : type === 'detector_coverage' ? <circle r={10} fill={color} fillOpacity={.1} strokeDasharray="3 3" />
       : type === 'uncovered_area' ? <><rect x={-10} y={-10} width={20} height={20} fill="#ffebeb" strokeWidth={.6} /><path d="M-10 0L0-10M-10 8L8-10M-4 10L10-4M4 10L10 4" strokeOpacity={.6} strokeWidth={1} /></>
       : type === 'smoke_detector' || type === 'heat_detector' ? <><circle r={9} /><text x={0} y={3.5} fontSize={10} fontWeight={600} fill={color} stroke="none" textAnchor="middle">{type === 'smoke_detector' ? 'S' : 'H'}</text></>
