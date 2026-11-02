@@ -1,0 +1,77 @@
+{
+  "version": "city-rainfall-2026-10-31",
+  "source": "India Meteorological Department (IMD) 1981-2010 Normal Rainfall & Ministry of Jal Shakti",
+  "cities": {
+    "pune": {
+      "city": "Pune",
+      "annualRainfallMm": 750,
+      "monsoonMonths": "June - September",
+      "verified": true,
+      "source": "IMD Pune Normal (722mm monsoon / 750mm annual)"
+    },
+    "mumbai": {
+      "city": "Mumbai",
+      "annualRainfallMm": 2200,
+      "monsoonMonths": "June - September",
+      "verified": true,
+      "source": "IMD Santacruz Station Normal (~2,200mm)"
+    },
+    "delhi": {
+      "city": "Delhi NCR",
+      "annualRainfallMm": 650,
+      "monsoonMonths": "July - September",
+      "verified": true,
+      "source": "IMD Safdarjung Station Normal (611 - 650mm)"
+    },
+    "bengaluru": {
+      "city": "Bengaluru",
+      "annualRainfallMm": 900,
+      "monsoonMonths": "May - November",
+      "verified": true,
+      "source": "IMD Bengaluru City Normal (~900mm bimodal)"
+    },
+    "hyderabad": {
+      "city": "Hyderabad",
+      "annualRainfallMm": 820,
+      "monsoonMonths": "June - October",
+      "verified": true,
+      "source": "IMD Begumpet Station Normal (~820mm)"
+    },
+    "chennai": {
+      "city": "Chennai",
+      "annualRainfallMm": 1400,
+      "monsoonMonths": "October - December",
+      "verified": true,
+      "source": "IMD Meenambakkam Station Normal (~1,400mm Northeast monsoon dominant)"
+    },
+    "ahmedabad": {
+      "city": "Ahmedabad",
+      "annualRainfallMm": 780,
+      "monsoonMonths": "June - September",
+      "verified": true,
+      "source": "IMD Ahmedabad Airport Normal (~780mm)"
+    },
+    "nashik": {
+      "city": "Nashik",
+      "annualRainfallMm": 800,
+      "monsoonMonths": "June - September",
+      "verified": true,
+      "source": "IMD Nashik District Normal (~800mm)"
+    },
+    "kolhapur": {
+      "city": "Kolhapur",
+      "annualRainfallMm": 1050,
+      "monsoonMonths": "June - September",
+      "verified": true,
+      "source": "IMD Kolhapur Station Normal (~1,050mm)"
+    },
+    "rural": {
+      "city": "Rural / Tier 4",
+      "annualRainfallMm": 800,
+      "monsoonMonths": "June - September",
+      "verified": false,
+      "source": "National composite monsoon planning average"
+    }
+  }
+}
+

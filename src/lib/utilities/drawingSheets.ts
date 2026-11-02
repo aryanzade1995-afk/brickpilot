@@ -37,7 +37,11 @@ export function symbolOps(type: string, at: Point, color: string, r = 1.4): Draw
     ops.push({ kind: 'rect', rect: { x: at.x - r * 1.3, y: at.y - r, w: r * 2.6, h: r * 2 }, color, fill: filled ? color : 'white', width: .22 })
     label(({ db_panel: 'DB', fire_panel: 'FP', manual_call_point: 'M', supply_inlet: 'CW', hot_supply_inlet: 'HW', exit_sign: 'EXIT >' } as Record<string, string>)[type], filled ? 'white' : color)
   } else if (type === 'extinguisher') ops.push({ kind: 'poly', points: [{ x: at.x, y: at.y - r }, { x: at.x + r, y: at.y + r }, { x: at.x - r, y: at.y + r }], closed: true, fill: color, color, width: .2 })
-  else if (type === 'isolation_valve') ops.push({ kind: 'poly', points: [{ x: at.x - r, y: at.y - r }, { x: at.x + r, y: at.y + r }, { x: at.x + r, y: at.y - r }, { x: at.x - r, y: at.y + r }], closed: true, color, width: .2 })
+  else if (type === 'isolation_valve') {
+    ops.push({ kind: 'poly', points: [{ x: at.x - r, y: at.y - r * .7 }, { x: at.x + r, y: at.y + r * .7 }, { x: at.x + r, y: at.y - r * .7 }, { x: at.x - r, y: at.y + r * .7 }], closed: true, fill: color, color, width: .2 })
+    ops.push({ kind: 'line', a: { x: at.x - r, y: at.y - r * .8 }, b: { x: at.x - r, y: at.y + r * .8 }, color, width: .3 })
+    ops.push({ kind: 'line', a: { x: at.x + r, y: at.y - r * .8 }, b: { x: at.x + r, y: at.y + r * .8 }, color, width: .3 })
+  }
   else {
     circle(1, type === 'floor_drain' ? color : 'white')
     if (type === 'vertical_stack') circle(.5, color)
@@ -46,7 +50,9 @@ export function symbolOps(type: string, at: Point, color: string, r = 1.4): Draw
     else if (type === 'light' || type === 'exhaust_fan') { line(-.6, -.6, .6, .6); line(.6, -.6, -.6, .6) }
     else if (type === 'sprinkler') { line(-.7, 0, .7, 0); line(0, -.7, 0, .7) }
     else if (type === 'switch') { line(.7, -.7, 1.5, -1.5); label('S') }
-    else if (type === 'water_outlet') { line(0, .6, 0, -.6); line(0, -.6, 1, -.6) }
+    else if (type === 'water_outlet') {
+      line(0, -1.2, -.6, 0); line(-.6, 0, 0, .8); line(0, .8, .6, 0); line(.6, 0, 0, -1.2); circle(.3, color)
+    }
     else if (type === 'sounder') { line(1.3, -.6, 1.7, 0); line(1.7, 0, 1.3, .6) }
   }
   return ops

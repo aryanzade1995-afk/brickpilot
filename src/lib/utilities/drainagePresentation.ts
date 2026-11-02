@@ -4,16 +4,17 @@ import type { DrainageService } from './drainageRules.ts'
 import { alongPath } from './routing.ts'
 
 /** Presentation only. Never adjusts a canonical node, route, size or validation. */
-export const DRAINAGE_DISPLAY: Record<DrainageService, { label: string; width: number; dash?: string }> = {
-  soil: { label: 'Soil pipe', width: 3 }, waste: { label: 'Waste pipe', width: 2.5 },
-  vent: { label: 'Vent pipe', width: 1.8, dash: '3 5' },
-  stormwater: { label: 'Stormwater', width: 2.5, dash: '9 5' },
-  building_drain: { label: 'Main building drain', width: 3.8 },
+export const DRAINAGE_DISPLAY: Record<DrainageService, { label: string; description: string; width: number; dash?: string }> = {
+  soil: { label: 'Soil pipe', description: 'Toilet blackwater → to vertical sewer stack', width: 3 },
+  waste: { label: 'Waste pipe', description: 'Sink & shower greywater → to floor drain & stack', width: 2.5 },
+  vent: { label: 'Vent pipe', description: 'Air vent & odor relief', width: 1.8, dash: '3 5' },
+  stormwater: { label: 'Stormwater', description: 'Rainwater runoff', width: 2.5, dash: '9 5' },
+  building_drain: { label: 'Main building drain', description: 'Underground discharge to municipal sewer', width: 3.8 },
 }
 export const DRAINAGE_NODE_NAMES: Record<DrainageNode['kind'], string> = {
-  fixture: 'Fixture connection', stack: 'Vertical stack', stack_base: 'Stack base',
-  inspection_chamber: 'Inspection chamber', outlet: 'Discharge outlet', trap: 'Trap',
-  cleanout: 'Cleanout', vent_terminal: 'Vent terminal',
+  fixture: 'Fixture connection', stack: 'Vertical drain stack (Main drop ↓)', stack_base: 'Stack base',
+  inspection_chamber: 'Inspection chamber (Manhole)', outlet: 'Discharge outlet', trap: 'Floor trap / drain (Water seal)',
+  cleanout: 'Cleanout access plug', vent_terminal: 'Roof vent terminal',
 }
 const priority: Record<DrainageNode['kind'], number> = { stack: 0, outlet: 1, inspection_chamber: 2, stack_base: 3, vent_terminal: 4, cleanout: 5, trap: 6, fixture: 7 }
 export type DrainageCluster = { id: string; anchor: DrainageNode; nodes: DrainageNode[] }
@@ -46,8 +47,8 @@ export function drainageTrace(design: DrainageDesign | undefined, selected: stri
 }
 export function drainageFlowMarkers(path: Point[], scale: number) {
   const length = path.slice(1).reduce((n, p, i) => n + Math.hypot(p.x - path[i].x, p.y - path[i].y), 0), pixels = length * scale
-  if (pixels < 34) return []
-  const count = Math.max(1, Math.floor(pixels / 110)), result = []
+  if (pixels < 65) return []
+  const count = Math.max(1, Math.floor(pixels / 160)), result = []
   for (let i = 0; i < count; i++) { const p = alongPath(path, length * (i + .5) / count); if (p) result.push(p) }
   return result
 }
