@@ -16,7 +16,7 @@ export const SvgRadialGauge: FC<SvgRadialGaugeProps> = ({
   label,
   unit = 'Days',
   sublabel,
-  color = '#059669',
+  color = '#405b52',
   className = '',
 }) => {
   const radius = 68
@@ -34,9 +34,9 @@ export const SvgRadialGauge: FC<SvgRadialGaugeProps> = ({
   const ariaSummary = `${label}: ${value} ${unit} (of ${max} max scale). ${sublabel ?? ''}`
 
   return (
-    <div className={`rounded-xl border border-line bg-bg-raised p-5 text-center ${className}`}>
+    <div className={`rounded border border-line bg-bg-raised p-5 text-center ${className}`}>
       <span className="font-mono text-xs uppercase tracking-wider text-ink-dim">Autonomy Index</span>
-      <h4 className="font-display text-lg font-medium text-ink">{label}</h4>
+      <h4 className="font-display text-xl font-medium text-ink">{label}</h4>
 
       <div className="relative mx-auto mt-2 flex justify-center">
         <svg
@@ -91,7 +91,7 @@ export const SvgRadialGauge: FC<SvgRadialGaugeProps> = ({
       </div>
 
       {sublabel && (
-        <p className="mt-1 font-mono text-xs text-emerald-800 font-semibold">
+        <p className="mt-1 font-mono text-xs text-ink-dim font-semibold">
           {sublabel}
         </p>
       )}

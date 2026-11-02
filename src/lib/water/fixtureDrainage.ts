@@ -12,7 +12,7 @@ import {segmentHitsRect} from '../utilities/drainage.ts'
 export const FIXTURE_NAMES:Record<DrainageFixtureKind,string>={toilet:'Toilet',washbasin:'Washbasin',shower:'Shower',bathtub:'Bath',kitchen_sink:'Kitchen sink',washing_machine:'Washing machine',floor_drain:'Floor drain',unknown_sink:'Sink'}
 const categories:Partial<Record<DrainageFixtureKind,ModelCategory>>={toilet:'toilet',washbasin:'basin',bathtub:'bathtub',kitchen_sink:'kitchen-sink',washing_machine:'washing-machine',unknown_sink:'basin'}
 const heights:Record<DrainageFixtureKind,number>={toilet:800,washbasin:850,shower:70,bathtub:550,kitchen_sink:380,washing_machine:850,floor_drain:20,unknown_sink:850}
-export type DrainFixture3D={wasteConnection?:ServicePoint[];key:string;id:string;roomId:string;roomName:string;floorId:string;floorName:string;level:number;kind:DrainageFixtureKind;point:ServicePoint;widthMm:number;depthMm:number;rotation:number;basis:string;model:InteriorModelInstance|null;branch:DrainBranch3D|null;issues:string[]}
+export type DrainFixture3D={roomRect?:{x:number;y:number;w:number;h:number};wasteConnection?:ServicePoint[];key:string;id:string;roomId:string;roomName:string;floorId:string;floorName:string;level:number;kind:DrainageFixtureKind;point:ServicePoint;widthMm:number;depthMm:number;rotation:number;basis:string;model:InteriorModelInstance|null;branch:DrainBranch3D|null;issues:string[]}
 export type DrainBranch3D={proposalReview?:boolean;stackAligned?:boolean;id:string;fixtureId:string;points:ServicePoint[];diameterMm:number;sizeKnown:boolean;levelsKnown:boolean;blocked:boolean;shaftId:string|null;connected:boolean;reason:string}
 export type DrainCollector3D={id:string;points:ServicePoint[];diameterMm:number;blocked:boolean;levelsKnown:boolean}
 
@@ -40,7 +40,9 @@ export function fixtureDrainageScene(floors:UtilityFloor[],building:BuildingMode
         const turn=Math.abs(Math.sin(nearest.rotation))>.5
         const s=Math.min((turn?depthMm:widthMm)/1000/asset.sizeM[0],(turn?widthMm:depthMm)/1000/asset.sizeM[2],heights[kind]/1000/asset.sizeM[1])
         const world=planToThreeGlb(point)
-        model={id:`drain-fixture:${fixture.id}`,assetId:asset.id,assetRevision:asset.sha256,roomId:room.id,floorId:floor.id,position:[world.x,world.y+(kind==='kitchen_sink'?.70:kind==='washbasin'||kind==='unknown_sink'?.65:0),world.z],rotation:nearest.rotation,size:asset.sizeM.map(n=>n*s) as [number,number,number],scale:[s,s,s],replaces:[],color:'#EEEAE1',hardwareColor:'#A6AAA7'}
+        const scale:[number,number,number]=[s,kind==='washbasin'||kind==='unknown_sink'?.85/asset.sizeM[1]:s,s]
+        const size=asset.sizeM.map((n,i)=>n*scale[i]) as [number,number,number]
+        model={id:`drain-fixture:${fixture.id}`,assetId:asset.id,assetRevision:asset.sha256,roomId:room.id,floorId:floor.id,position:[world.x,world.y+(kind==='kitchen_sink'?Math.max(0,.9-size[1]):0),world.z],rotation:nearest.rotation,size,scale,replaces:[],color:'#EEEAE1',hardwareColor:'#A6AAA7'}
       }
       const pipe=design.pipes.find(p=>p.from===fixture.id&&!p.vertical&&p.service!=='vent')
       const issues:string[]=[]
@@ -69,7 +71,7 @@ export function fixtureDrainageScene(floors:UtilityFloor[],building:BuildingMode
         if(!levelsKnown)issues.push('Branch height is illustrative; surveyed invert levels are missing.')
         if(pipe.diameterMm===null)issues.push('Pipe diameter is an illustrative envelope, not a verified size.')
       }else issues.push('No routed branch in the 2D design. Provide a reviewed service route in the 2D plan.')
-      fixtures.push({key:`${floor.id}:${fixture.id}`,id:fixture.id,kind,roomId:room.id,roomName:room.name,floorId:floor.id,floorName:floor.name,level:floor.level,point,widthMm,depthMm,rotation:nearest.rotation,basis:source?.basis==='furnishing'?'Existing furnishing position':'Proposed fixture position',model,branch,issues})
+      fixtures.push({roomRect:{...room.rect},key:`${floor.id}:${fixture.id}`,id:fixture.id,kind,roomId:room.id,roomName:room.name,floorId:floor.id,floorName:floor.name,level:floor.level,point,widthMm,depthMm,rotation:nearest.rotation,basis:source?.basis==='furnishing'?'Existing furnishing position':'Proposed fixture position',model,branch,issues})
     }
     for(const pipe of design.pipes.filter(p=>p.service==='building_drain'&&!p.vertical)){
       const known=!!design.input.datum&&design.input.floorElevationMm!==null&&pipe.inletInvertMm!==null&&pipe.outletInvertMm!==null
@@ -108,8 +110,11 @@ export function fixtureTankTrace(fixture:DrainFixture3D|undefined,network:Connec
 export function fixtureWasteConnection(f:DrainFixture3D):ServicePoint[]{
   if(f.wasteConnection)return f.wasteConnection
   const start=f.branch?.points[0];if(!start)return []
-  const outlet=f.kind==='kitchen_sink'?720:f.kind==='washbasin'||f.kind==='unknown_sink'?650:f.kind==='washing_machine'?350:f.kind==='toilet'?180:20
-  return ['washbasin','unknown_sink','kitchen_sink'].includes(f.kind)?[{...f.point,z:f.point.z+outlet},{...f.point,z:f.point.z+outlet-130},{...f.point,x:f.point.x+70,z:f.point.z+outlet-130},{...f.point,x:f.point.x+70,z:f.point.z+outlet-60},{...f.point,x:f.point.x+140,z:f.point.z+outlet-60},{...f.point,x:f.point.x+140,z:start.z},{...start,y:f.point.y},start]:[{...f.point,z:f.point.z+outlet},{...f.point,z:start.z},{...start,y:f.point.y},start].filter((p,i,all)=>!i||Math.hypot(p.x-all[i-1].x,p.y-all[i-1].y,p.z-all[i-1].z)>.01)
+  const outlet=fixtureServicePorts(f).waste
+  const back={x:-Math.sin(f.rotation),y:Math.cos(f.rotation)}
+  const at=(distance:number,z:number)=>({...outlet,x:outlet.x+back.x*distance,y:outlet.y+back.y*distance,z})
+  const points=['washbasin','unknown_sink','kitchen_sink'].includes(f.kind)?[outlet,at(0,outlet.z-130),at(70,outlet.z-130),at(70,outlet.z-60),at(140,outlet.z-60),at(140,start.z),{...start,y:at(140,start.z).y},start]:[outlet,{...outlet,z:start.z},{...start,y:outlet.y},start]
+  return points.filter((p,i,all)=>!i||Math.hypot(p.x-all[i-1].x,p.y-all[i-1].y,p.z-all[i-1].z)>.01)
 }
 
 /** Keep the trap accessible, embed only its drop in a sufficiently thick
@@ -135,4 +140,17 @@ export function concealedFixtureWaste(f:DrainFixture3D,building:BuildingModel):S
   const at=(distance:number,z:number)=>({...outlet,x:outlet.x+(wall.point.x-outlet.x)*distance/wall.distance,y:outlet.y+(wall.point.y-outlet.y)*distance/wall.distance,z})
   const leg=Math.min(70,wall.distance/3)
   return [outlet,{...outlet,z:drop},at(leg,drop),at(leg,exit),at(wall.distance,exit),{...wall.point,z:start.z},start]
+}
+
+/** Physical connection points use the displayed instance and its floor datum.
+ * Floor-standing assets stay grounded; sink bowls mount by their rim height. */
+export function fixtureServicePorts(f:DrainFixture3D){
+ const base=f.model?f.model.position[1]*1000:f.point.z+(f.kind==='kitchen_sink'?660:0)
+ const height=f.model?f.model.size[1]*1000:f.kind==='washbasin'||f.kind==='unknown_sink'?850:f.kind==='kitchen_sink'?240:f.kind==='toilet'?650:850
+ const back={x:-Math.sin(f.rotation),y:Math.cos(f.rotation)}
+ const depth=f.model?f.model.size[2]*1000:f.depthMm
+ const at=(rear:number,z:number)=>({x:f.point.x+back.x*rear,y:f.point.y+back.y*rear,z})
+ const waste=f.kind==='kitchen_sink'?at(0,base+height*.12):f.kind==='washbasin'||f.kind==='unknown_sink'?at(0,base+height*.78):f.kind==='washing_machine'?at(depth*.4,base+350):at(0,f.point.z+20)
+ const supply=f.kind==='shower'?at(depth/2-30,f.point.z+1100):f.kind==='toilet'?at(depth*.36,base+height*.72):f.kind==='kitchen_sink'?at(depth*.35,base+height*.9):f.kind==='washbasin'||f.kind==='unknown_sink'?at(depth*.32,base+height*.9):f.kind==='washing_machine'?at(depth*.4,base+height*.72):at(depth*.35,f.point.z+550)
+ return {waste,supply}
 }

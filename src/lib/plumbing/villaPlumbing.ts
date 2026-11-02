@@ -24,7 +24,7 @@ export function selectedPipeSizes(brief: Brief): PipeSizes {
 export function plumbingSegments(layout: Pick<VillaPlumbing, 'pipes'>) {
   const groups=new Map<string,{axis:'x'|'y'|'z';system:VillaPipe['system'];diameterMm:number;point:ServicePoint;spans:[number,number][]}>()
   for(const pipe of layout.pipes)for(let i=1;i<pipe.points.length;i++){
-    const a=pipe.points[i-1],b=pipe.points[i],axis=(['x','y','z'] as const).find(k=>a[k]!==b[k]);if(!axis)continue
+    const a=pipe.points[i-1],b=pipe.points[i],axis=(['x','y','z'] as const).find(k=>Math.abs(a[k]-b[k])>.01);if(!axis)continue
     const fixed=(['x','y','z'] as const).filter(k=>k!==axis).map(k=>a[k]),key=JSON.stringify([pipe.system,pipe.diameterMm,axis,fixed])
     const g=groups.get(key)??{axis,system:pipe.system,diameterMm:pipe.diameterMm,point:a,spans:[]};g.spans.push([Math.min(a[axis],b[axis]),Math.max(a[axis],b[axis])]);groups.set(key,g)
   }

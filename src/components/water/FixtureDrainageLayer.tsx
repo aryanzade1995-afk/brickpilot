@@ -29,8 +29,8 @@ function FixtureModel({fixture}:{fixture:DrainFixture3D}){
       {Array.from({length:7},(_,i)=><mesh key={i} position={[(i-3)*.014,.027,0]}><boxGeometry args={[.006,.004,.11]}/><meshStandardMaterial color="#242F2B" roughness={.5}/></mesh>)}
       {fixture.kind==='shower'&&<><mesh position={[0,1.1,-d/2+.03]}><cylinderGeometry args={[.012,.012,1.9,10]}/><meshStandardMaterial color="#A7B1AC" metalness={.85} roughness={.2}/></mesh><mesh position={[0,2.02,-d/2+.16]}><cylinderGeometry args={[.1,.1,.018,20]}/><meshStandardMaterial color="#B4BDB8" metalness={.85} roughness={.2}/></mesh></>}
     </>:<>
-      <mesh position={[0,fixture.kind==='toilet'?.25:.72,0]} scale={[w/2,fixture.kind==='toilet'?.28:.12,d/2]}><sphereGeometry args={[1,20,12]}/><meshStandardMaterial color="#E8E4D9" roughness={.24}/></mesh>
-      <mesh position={[0,.3,0]}><cylinderGeometry args={[.09,.13,.5,16]}/><meshStandardMaterial color="#DDD8CE" roughness={.28}/></mesh>
+      <mesh position={[0,fixture.kind==='toilet'?.3:fixture.kind==='kitchen_sink'?.78:.73,0]} scale={[w/2,fixture.kind==='toilet'?.28:.12,d/2]}><sphereGeometry args={[1,20,12]}/><meshStandardMaterial color="#E8E4D9" roughness={.24}/></mesh>
+      <mesh position={[0,fixture.kind==='toilet'?.25:fixture.kind==='kitchen_sink'?.33:.305,0]}><cylinderGeometry args={[.09,.13,fixture.kind==='toilet'?.5:fixture.kind==='kitchen_sink'?.66:.61,16]}/><meshStandardMaterial color="#DDD8CE" roughness={.28}/></mesh>
     </>}
   </group>
 }
@@ -44,7 +44,14 @@ function BranchPipe({points,diameter,selected,animate}:{points:ServicePoint[];di
  * architectural holes or hydraulic assumptions are created in this renderer. */
 export function FixtureDrainageLayer({scene,room,selected,onSelect,labels,animate,trace,openings=[],system='drain',xray=false,showFixtures=true}:{showFixtures?:boolean;xray?:boolean;system?:'drain'|'water';openings?:DrainageOpening[];scene:FixtureDrainageScene;room:string;selected:string;onSelect:(id:string)=>void;labels:boolean;animate:boolean;trace:ServicePoint[][]}){
   const fixtures=scene.fixtures.filter(f=>(system==='drain'||f.kind!=='floor_drain')&&(room==='all'||`${f.floorId}:${f.roomId}`===room))
+  const rooms=[...new Map(fixtures.filter(f=>f.roomRect).map(f=>[`${f.floorId}:${f.roomId}`,f])).values()]
   return <group name="Shared_2D_Drainage_Fixtures">
+    {rooms.map(f=>{const r=f.roomRect!;return <group key={`floor:${f.floorId}:${f.roomId}`}>
+      <mesh position={world({x:r.x+r.w/2,y:r.y+r.h/2,z:f.point.z-8})} rotation={[-Math.PI/2,0,0]}>
+        <planeGeometry args={[r.w/1000,r.h/1000]}/><meshBasicMaterial color="#c6c5b8" transparent opacity={.24} depthWrite={false} polygonOffset polygonOffsetFactor={-1}/>
+      </mesh>
+      <Line points={[{x:r.x,y:r.y,z:f.point.z},{x:r.x+r.w,y:r.y,z:f.point.z},{x:r.x+r.w,y:r.y+r.h,z:f.point.z},{x:r.x,y:r.y+r.h,z:f.point.z},{x:r.x,y:r.y,z:f.point.z}].map(world)} color="#8c9589" lineWidth={1} transparent opacity={.55}/>
+    </group>})}
     {fixtures.map(f=>{
       const active=selected===`fixture:${f.key}`,branch=f.branch
       // Traps are illustrative symbols. WCs retain their integrated trap;

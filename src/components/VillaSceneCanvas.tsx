@@ -2,7 +2,7 @@ import { Component, Suspense, memo, useEffect, useLayoutEffect, useMemo, type Re
 import { ghostWaterArchitecture } from '@/lib/water/ghostScene.ts';
 import { Canvas, useThree, type RootState } from '@react-three/fiber';
 import { OrbitControls, useGLTF } from '@react-three/drei';
-import { Mesh, MeshStandardMaterial, ACESFilmicToneMapping, PCFSoftShadowMap, SRGBColorSpace, type Material } from 'three';
+import { Mesh, MeshStandardMaterial, ACESFilmicToneMapping, PCFSoftShadowMap, SRGBColorSpace, DataTexture, LinearFilter, type Material } from 'three';
 import { prepareVillaScene } from '@/lib/three/prepareVillaScene.ts';
 import { FitAcceptedVilla } from '@/lib/three/SolarCamera.tsx';
 import { StudioReflections } from './StudioReflections.tsx';
@@ -15,13 +15,14 @@ const CAMERA = { position: [20, 14, -25] as [
     number,
     number
 ] = [1, 2];
-export const AcceptedVillaModel = memo(function AcceptedVillaModel({ url, fit = true, style, technicalXray = false, separateRoofTanks = false, gardenShade=false }: {
+export const AcceptedVillaModel = memo(function AcceptedVillaModel({ url, fit = true, style, technicalXray = false, separateRoofTanks = false, gardenShade=false, replaceParkedCars=false }: {
     url: string;
     fit?: boolean;
     style?: ReferenceGeometry['style'];
     technicalXray?: boolean;
     separateRoofTanks?: boolean;
     gardenShade?: boolean;
+    replaceParkedCars?: boolean;
 }) {
     const gltf = useGLTF(url), anisotropy = useThree(s => s.gl.capabilities.getMaxAnisotropy());
     const { scene, owned } = useMemo(() => {
@@ -30,7 +31,7 @@ export const AcceptedVillaModel = memo(function AcceptedVillaModel({ url, fit = 
             for (const m of Array.isArray(o.material) ? o.material : [o.material])
                 if (o.userData.material_role)
                     roles.set(m, o.userData.material_role); });
-        const scene = prepareVillaScene(gltf.scene, anisotropy, separateRoofTanks, gardenShade), owned: Material[] = [], cache = new Map<Material, Material>();
+        const scene = prepareVillaScene(gltf.scene, anisotropy, separateRoofTanks, gardenShade,replaceParkedCars), owned: Material[] = [], cache = new Map<Material, Material>();
         if (style)
             scene.traverse(o => { if (!(o instanceof Mesh))
                 return; const convert = (m: Material) => { const look = style[roles.get(m) ?? '']; if (!look || !(m instanceof MeshStandardMaterial))
@@ -47,7 +48,7 @@ export const AcceptedVillaModel = memo(function AcceptedVillaModel({ url, fit = 
                 owned.push(v);
             } return v; }; o.material = Array.isArray(o.material) ? o.material.map(convert) : convert(o.material); });
         return { scene, owned };
-    }, [gltf.scene, anisotropy, style, separateRoofTanks, gardenShade]);
+    }, [gltf.scene, anisotropy, style, separateRoofTanks, gardenShade,replaceParkedCars]);
     useEffect(() => () => owned.forEach(m => m.dispose()), [owned]);
     const invalidate = useThree(s=>s.invalidate)
     useLayoutEffect(()=>{if(!technicalXray){invalidate();return}const restore=ghostWaterArchitecture(scene);invalidate();return()=>{restore();invalidate()}},[scene,technicalXray,invalidate]);
@@ -63,13 +64,21 @@ class ModelBoundary extends Component<{
     render() { return this.state.failed ? <p role="alert" className="p-6 text-sm text-ink-dim">The 3D model could not load. Your original design and downloads are retained.</p> : this.props.children; }
 }
 /** Shared villa canvas for existing Massing and Reference Reconstruction. */
-export function VillaSceneCanvas({ children, onCreated }: {
+function StudioBackground(){
+    const texture=useMemo(()=>{const size=256,data=new Uint8Array(size*size*4);for(let y=0;y<size;y++)for(let x=0;x<size;x++){const r=Math.min(1,Math.hypot((x-size*.45)/size,(y-size*.55)/size)*1.5),v=Math.round(66-43*r);const i=(y*size+x)*4;data[i]=v;data[i+1]=v+2;data[i+2]=v+3;data[i+3]=255}const t=new DataTexture(data,size,size);t.colorSpace=SRGBColorSpace;t.magFilter=LinearFilter;t.needsUpdate=true;return t},[])
+    useEffect(()=>()=>texture.dispose(),[texture])
+    return <primitive object={texture} attach="background"/>
+}
+export function VillaSceneCanvas({ children, onCreated, realistic=false,golden=false, background='studio' }: {
     children: ReactNode;
     onCreated?: (state: RootState) => void;
+    realistic?: boolean;
+    golden?: boolean;
+    background?: 'studio' | 'white';
 }) {
     return <ModelBoundary><Canvas frameloop="demand" shadows dpr={DPR} gl={GL} camera={CAMERA} onCreated={state=>{state.gl.toneMapping=ACESFilmicToneMapping;state.gl.toneMappingExposure=1;state.gl.outputColorSpace=SRGBColorSpace;state.gl.shadowMap.type=PCFSoftShadowMap;onCreated?.(state)}}>
- <color attach="background" args={['#e8e7e3']}/><hemisphereLight args={['#e5efff','#b4a18b',1.1]}/>
- <directionalLight color="#fff2df" position={[14, 24, -16]} intensity={2.5} castShadow shadow-mapSize={[2048, 2048]} shadow-camera-left={-35} shadow-camera-right={35} shadow-camera-top={35} shadow-camera-bottom={-35} shadow-camera-far={100} shadow-bias={-.0002} shadow-normalBias={.025}/>
+ {!realistic&&(background==='white'?<color attach="background" args={['#ffffff']}/>:<StudioBackground/>)}<hemisphereLight args={['#e5efff','#b4a18b',realistic?.8:1.1]}/>
+ <directionalLight color={golden?'#ffd19c':'#fff2df'} position={golden?[35,12,-25]:[14, 24, -16]} intensity={golden?2:2.5} castShadow shadow-mapSize={[2048, 2048]} shadow-camera-left={-45} shadow-camera-right={45} shadow-camera-top={45} shadow-camera-bottom={-45} shadow-camera-far={150} shadow-bias={-.0002} shadow-normalBias={.025}/>
  <directionalLight color="#dce8ff" position={[-18,10,12]} intensity={.65}/>
  <Suspense fallback={null}><StudioReflections />{children}</Suspense><OrbitControls makeDefault minPolarAngle={0} maxPolarAngle={Math.PI / 2}/>
  </Canvas></ModelBoundary>;

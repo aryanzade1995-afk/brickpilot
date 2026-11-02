@@ -1,3 +1,4 @@
+import {handleDirectionAdvice} from './direction-advice.mjs'
 import { handleCostShareRequest } from './cost-shares.mjs'
 import { handleCostResearchRequest } from './cost-research.mjs'
 import { handleInteriorPreview } from './interior-preview.mjs'
@@ -158,6 +159,7 @@ const server = createServer(async (req, res) => {
   if (await handleInteriorPreview(req, res, readJson)) return
   if (await handleWalkthroughAssets(req, res, readJson)) return
   if (await handleWalkthroughGuide(req, res, readJson)) return
+  if (await handleDirectionAdvice(req, res, readJson)) return
   if (await handleRoomExperience(req, res, readJson)) return
   if (await handleWalkthroughLighting(req, res, readJson)) return
   if (await handleReferenceFacades(req, res, readJson)) return

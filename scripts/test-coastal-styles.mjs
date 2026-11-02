@@ -20,6 +20,15 @@ test('both coastal styles generate valid 18x24 plans and exportable distinct roo
   const a=generateAlternativeDesign(d,41)
   assert.equal(a.facadeGrammar.status,'valid')
   assert.equal(a.villaDesignDNA.roofType,character==='coastal-bungalow'?'hip':'flat-terrace')
+  if(character==='coastal-bungalow'){
+   assert.equal(a.coastalRoof.revision,'coastal-roof-union-v1')
+   assert.equal(new Set(a.massingModel.masses.filter(m=>m.usage==='roof').map(m=>m.height)).size,1)
+   for(const r of a.coastalRoof.regions)for(const hole of a.coastalRoof.holes)
+    assert.ok(Math.min(r.x+r.w,hole.x+hole.w)<=Math.max(r.x,hole.x)||Math.min(r.y+r.h,hole.y+hole.h)<=Math.max(r.y,hole.y))
+   const roofZones=new Set(a.facadeGrammar.zones.filter(z=>z.kind==='ROOFLINE').map(z=>z.id))
+   assert.ok(a.facadeGrammar.features.every(f=>f.parts.every(p=>!roofZones.has(p.zoneId))))
+  }else assert.equal(a.coastalRoof,undefined)
+
   const massing=buildMassing(d)
   assert.ok(massing.boxes.length)
   if(character==='coastal-bungalow')assert.ok(massing.boxes.some(b=>b.prism?.form==='hip'))

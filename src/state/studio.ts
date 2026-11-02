@@ -345,15 +345,18 @@ function runPlanOp(get: () => StudioState, set: Setter, run: (layout: LayoutDoc,
 
 export type DirectionsInput = Pick<StudioState, 'brief' | 'pinned' | 'referencePreferences' | 'recentVillaFingerprints' | 'diversityLimits'>
 /** The four design directions for a brief. Pure: it runs on the main thread or in the directions worker. */
-export function computeDirections(cur: DirectionsInput) {
+export function computeDirections(cur: DirectionsInput, progress?: (value:number,label:string)=>void) {
+    progress?.(0,"Preparing your brief")
     const model = compile(cur.brief)
-    const plan = generate(model,{formVersion:SITE_FORM_VERSION}), dirs: DirectionOption[] = [], debug: FingerprintDebug[] = []
+    const dirs: DirectionOption[] = [], debug: FingerprintDebug[] = []
     let history = cur.recentVillaFingerprints, notice: string | null = null
     // every direction stands on its own plan shape, so the four houses differ
     // in form, not only in trim; a shape the plot cannot take falls back to
     // the brief's own plan
     const plans: { plan: Design; massing: MassingType; planSeed?: number }[] = distinctDirectionPlans(model,4,SITE_FORM_VERSION)
-    while (plans.length < 4) plans.push({ plan, massing: plan.massingType,planSeed:plan.planSeed })
+    const plan=plans[0]?.plan??generate(model,{formVersion:SITE_FORM_VERSION})
+    progress?.(20,"Floor plan options prepared")
+    if (!plans.length && validate(plan).hardChecksPass) plans.push({ plan, massing: plan.massingType,planSeed:plan.planSeed })
     const option = (r: Result, index: number, novelty: number, source?: (typeof plans)[number]): DirectionOption => ({
       planFingerprint:planFingerprint(r.design),
       massing: source?.massing ?? r.design.massingType, seed: r.design.dna.seed,
@@ -371,12 +374,14 @@ export function computeDirections(cur: DirectionsInput) {
           dirs.push(option(replay.result, 0, 0, pinnedSource))
           // the pinned plan takes the first slot; drop the same plan from the rest
           const same = plans.findIndex((p) => p.massing === pinnedSource.massing && p.planSeed === pinnedSource.planSeed)
-          plans.splice(same >= 0 ? same : plans.length - 1, 1)
+          if(same>=0)plans.splice(same,1)
+          for(let j=plans.length-1;j>=0;j--)if(planFingerprint(plans[j].plan).key===planFingerprint(pinnedSource.plan).key)plans.splice(j,1)
         } else debug.push(...replay.debug)
       }
     }
-    if (validate(plan).hardChecksPass || plans.some((p) => p.planSeed !== undefined)) for (let i = dirs.length; i < 4; i++) {
-      const source = plans[i - (4 - plans.length)] ?? plans.at(-1)!
+    if (validate(plan).hardChecksPass || plans.some((p) => p.planSeed !== undefined)) for (let i = dirs.length; i < 4 && plans.length; i++) {
+      progress?.(20+i*20,`Checking direction ${i+1} of 4`)
+      const source = plans.shift()!
       const usedFamilies = new Set(dirs.map((d) => d.facadeModel.architecturalFamily))
       const selection = generateDistinct(source.plan, cur.brief.variation + 1 + i * 977, cur.referencePreferences, history, cur.diversityLimits,
         dirs.map((d) => fingerprintRecord(d.shapeFingerprint)))
@@ -404,6 +409,7 @@ export function computeDirections(cur: DirectionsInput) {
       if (selection.debug.at(-1)?.reason.startsWith('Adaptive')) notice = null
       dirs.push(option(r, i, 100 - selection.debug.at(-1)!.similarityPercent, source))
     }
+  progress?.(100,"Concept checks complete")
   return { dirs, history, debug, notice }
 }
 
@@ -731,10 +737,10 @@ export const useStudio = create<StudioState>()(
         if (cur.directions !== null) return
         const input: DirectionsInput = { brief: cur.brief, pinned: cur.pinned, referencePreferences: cur.referencePreferences,
           recentVillaFingerprints: cur.recentVillaFingerprints, diversityLimits: cur.diversityLimits }
-        // the four houses are generated in a worker so the page stays responsive; without one, on the main thread
-        const out = await import('./directionsWorkerClient.ts').then((m) => m.runDirections(input)).catch(() => computeDirections(input))
+        // the four houses are generated in a worker; failures offer a retry without blocking navigation
+        const out = await import('./directionsWorkerClient.ts').then((m) => m.runDirections(input)).catch(error => { void import('./directionsWorkerClient.ts').then(m=>m.useConceptProgress.setState({error:error instanceof Error?error.message:'Directions could not be generated.'})); return null })
         const now = get()
-        if (now.directions !== null || now.brief !== cur.brief || now.pinned !== cur.pinned) return
+        if (!out || now.directions !== null || now.brief !== cur.brief || now.pinned !== cur.pinned) return
         set((s) => {
           s.directions = out.dirs
           s.recentVillaFingerprints = out.history

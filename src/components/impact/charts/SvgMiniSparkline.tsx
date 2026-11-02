@@ -3,7 +3,7 @@ interface SvgMiniSparklineProps {
   color?: string
 }
 
-export function SvgMiniSparkline({ data, color = '#059669' }: SvgMiniSparklineProps) {
+export function SvgMiniSparkline({ data, color = '#405b52' }: SvgMiniSparklineProps) {
   if (!data || data.length < 2) return null
 
   const min = Math.min(...data)

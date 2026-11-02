@@ -1,3 +1,4 @@
+import {fixtureServicePorts,type DrainFixture3D} from './fixtureDrainage.ts'
 import type {BuildingModel} from '../engine/buildingModel.ts'
 import type {UtilityFloor} from '../utilities/plan.ts'
 import {waterScene} from '../utilities/water3D.ts'
@@ -38,7 +39,7 @@ export function concealedWaterPath(points:ServicePoint[],model:UtilityFloor,diam
 
 /** Same cold-water drawing, one accepted-house transform, and one root-fed
  * network. Hot supply needs an actual heater and is deliberately separate. */
-export function coordinateSupply(building:BuildingModel,source:VillaPlumbing,floors:UtilityFloor[]){
+export function coordinateSupply(building:BuildingModel,source:VillaPlumbing,floors:UtilityFloor[],displayFixtures:DrainFixture3D[]=[]){
   const pipes=source.pipes.filter(p=>p.system==='water').map(p=>({...p,points:p.points.map(p=>({...p}))})),issues:string[]=[],fixtures:SupplyFixture[]=[],valves:ServicePoint[]=[]
   const top=building.floors.toSorted((a,b)=>a.elevationMm-b.elevationMm).at(-1)
   const roof=top?top.elevationMm+top.heightMm:0
@@ -72,8 +73,10 @@ export function coordinateSupply(building:BuildingModel,source:VillaPlumbing,flo
     const scene=waterScene(model,'all','all',false),network=model.waterNetworks.find(n=>n.service==='cold')
     if(!network)continue
     const convert=(p:[number,number,number])=>({x:p[0]*1000,y:p[2]*1000,z:floor.elevationMm+p[1]*1000})
+    const drawn=new Map<string,ServicePoint[]>()
     for(const run of scene.pipes){
       const points=concealedWaterPath(run.points.map(convert),model,run.diameter)
+      drawn.set(run.id,points)
       pipes.push(pipe(`water:drawing:${floor.id}:${run.id}`,floor.id,null,run.diameter,points))
     }
     for(const inlet of scene.nodes.filter(n=>n.type==='supply_inlet'&&n.world)){
@@ -97,9 +100,29 @@ export function coordinateSupply(building:BuildingModel,source:VillaPlumbing,flo
     for(const f of scene.fixtures){
       const last=scene.pipes.find(p=>p.id.endsWith(`${scene.nodes.find(n=>n.fixtureId===f.id)?.id}:fixture`))??scene.pipes.find(p=>p.id===`${scene.nodes.find(n=>n.fixtureId===f.id)?.id}:shower`)
       const node=scene.nodes.find(n=>n.fixtureId===f.id&&n.world),height=f.type==='toilet'?550:f.type==='washing_machine'?600:f.type==='shower'?2100:f.type==='bathtub'?550:700
-      const point={...f.position,z:floor.elevationMm+height}
-      if(last){const end=concealedWaterPath(last.points.map(convert),model).at(-1)!;pipes.push(pipe(`water:fixture-tail:${floor.id}:${f.id}`,floor.id,null,network.branchDiameterMm,bridge(end,point)))}
-      else if(node?.world){const end=concealedWaterPath([convert(node.world)],model)[0];pipes.push(pipe(`water:fixture-tail:${floor.id}:${f.id}`,floor.id,null,network.branchDiameterMm,bridge(end,point)))}
+      const displayed=displayFixtures.find(item=>item.floorId===floor.id&&item.id===f.id)
+      const point=displayed?fixtureServicePorts(displayed).supply:{...f.position,z:floor.elevationMm+height}
+      if(network.unroutedFixtures.includes(f.id)){fixtures.push({id:f.id,key:`${floor.id}:${f.id}`,floorId:floor.id,roomId:f.roomId,point,connected:false});continue}
+      if(last){const end=drawn.get(last.id)!.at(-1)!;pipes.push(pipe(`water:fixture-tail:${floor.id}:${f.id}`,floor.id,null,network.branchDiameterMm,bridge(end,point)))}
+      else if(node?.world){
+        // A symbol's mount is not itself a supply pipe. Start at a represented
+        // local riser, including its actual vertical interval, not a floating node.
+        const candidates=pipes.filter(p=>p.floorId===floor.id&&(p.id.startsWith('supply:')||p.id.startsWith('water-stub:'))).sort((a,b)=>{
+          const roomA=building.shafts.find(s=>s.id===a.shaftId)?.roomId,roomB=building.shafts.find(s=>s.id===b.shaftId)?.roomId
+          return Number(roomB===f.roomId)-Number(roomA===f.roomId)
+        })
+        const room=model.floor.rooms.find(r=>r.id===f.roomId)
+        for(const riser of candidates){
+          const zs=riser.points.map(p=>p.z),z=Math.max(Math.min(...zs),Math.min(Math.max(...zs),point.z)),start={...riser.points.at(-1)!,z}
+          const obstacles=(model.floor.columns??[]).map(c=>expandRect({x:c.at.x-c.size/2,y:c.at.y-c.size/2,w:c.size,h:c.size},network.branchDiameterMm/2+20))
+          const routes=room?perimeterRoutes(start,point,room.rect).filter(ps=>!ps.some((p,i)=>i&&obstacles.some(r=>segmentHitsRect(ps[i-1],p,r)))):[]
+          const route=routes.sort((a,b)=>drainLength(a)-drainLength(b))[0]??routeDrain(start,point,obstacles,bounds)
+          if(!route)continue
+          const path=clean([...route.map(p=>({...p,z})),{...point,z},point])
+          if(!clear(path,network.branchDiameterMm/2))continue
+          pipes.push(pipe(`water:fixture-tail:${floor.id}:${f.id}`,floor.id,riser.shaftId,network.branchDiameterMm,path));break
+        }
+      }
       fixtures.push({id:f.id,key:`${floor.id}:${f.id}`,floorId:floor.id,roomId:f.roomId,point,connected:false})
     }
     issues.push(...network.unroutedFixtures.map(id=>`${floor.name}: ${id} has no connected cold-water route in the 2D drawing; manual design review is needed.`))

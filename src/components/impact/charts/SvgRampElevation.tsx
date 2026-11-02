@@ -9,12 +9,12 @@ export interface SvgRampElevationProps {
 export const SvgRampElevation: FC<SvgRampElevationProps> = ({ ramp, className = '' }) => {
   if (!ramp) {
     return (
-      <div className={`rounded-xl border border-dashed border-line bg-bg-inset p-6 text-center ${className}`}>
-        <p className="font-display text-lg text-ink font-medium">No Entrance Ramp Configured</p>
+      <div className={`rounded border border-dashed border-line bg-bg-inset p-6 text-center ${className}`}>
+        <p className="font-display text-xl text-ink font-medium">No Entrance Ramp Configured</p>
         <p className="mt-1 font-sans text-xs text-ink-dim max-w-md mx-auto">
           The brief does not currently include a step-free entrance ramp. Wheelchair users and elderly residents may face stepped barriers at the main entry.
         </p>
-        <span className="mt-3 inline-block rounded-full bg-amber-50 border border-amber-300 px-3 py-1 font-mono text-xs font-semibold text-amber-900">
+        <span className="mt-3 inline-block rounded-full bg-bg-inset border border-line px-3 py-1 font-mono text-xs font-semibold text-ink-dim">
           ● Review Site & Plinth Accessibility
         </span>
       </div>
@@ -42,7 +42,7 @@ export const SvgRampElevation: FC<SvgRampElevationProps> = ({ ramp, className = 
   const ariaSummary = `Entry ramp elevation: Rise ${riseMm}mm, Slope 1:${gradientRatio}, Clear width ${clearWidthMm}mm. ${passes1to12 ? 'Passes' : 'Fails'} DEPwD 1:12 maximum gradient.`
 
   return (
-    <div className={`rounded-xl border border-line bg-bg-raised p-5 ${className}`}>
+    <div className={`rounded border border-line bg-bg-raised p-5 ${className}`}>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div>
           <span className="font-mono text-xs uppercase tracking-wider text-ink-dim">DEPwD 2021 & NBC 2016</span>
@@ -51,8 +51,8 @@ export const SvgRampElevation: FC<SvgRampElevationProps> = ({ ramp, className = 
         <span
           className={`rounded-full px-3 py-1 font-mono text-xs font-semibold ${
             passes1to12
-              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-              : 'bg-rose-50 text-rose-800 border border-rose-200'
+              ? 'bg-bg-inset text-ink-dim border border-line'
+              : 'bg-bg-inset text-ink-dim border border-line'
           }`}
         >
           {passes1to12 ? `● Pass (1:${gradientRatio} <= 1:12)` : `▲ Fail (1:${gradientRatio} > 1:12)`}
@@ -85,8 +85,8 @@ export const SvgRampElevation: FC<SvgRampElevationProps> = ({ ramp, className = 
           {/* Ramp triangle wedge */}
           <polygon
             points={`${x0},${y0} ${x1},${y1} ${x1},${y0}`}
-            fill={passes1to12 ? '#d1fae5' : '#fee2e2'}
-            stroke={passes1to12 ? '#059669' : '#e11d48'}
+            fill={passes1to12 ? '#e1eae5' : '#f3eded'}
+            stroke={passes1to12 ? '#405b52' : '#956973'}
             strokeWidth={2}
           />
 
@@ -96,7 +96,7 @@ export const SvgRampElevation: FC<SvgRampElevationProps> = ({ ramp, className = 
             y1={y0 - 24}
             x2={x1}
             y2={y1 - 24}
-            stroke={passes1to12 ? '#059669' : '#e11d48'}
+            stroke={passes1to12 ? '#405b52' : '#956973'}
             strokeWidth={1.5}
             strokeDasharray="4 4"
           />
@@ -118,7 +118,7 @@ export const SvgRampElevation: FC<SvgRampElevationProps> = ({ ramp, className = 
 
           {/* Slope Badge Callout */}
           <g transform={`translate(${(x0 + x1) / 2 - 46}, ${(y0 + y1) / 2 - 10})`}>
-            <rect width={92} height={24} rx={5} fill={passes1to12 ? '#059669' : '#e11d48'} />
+            <rect width={92} height={24} rx={5} fill={passes1to12 ? '#405b52' : '#956973'} />
             <text x={46} y={16} textAnchor="middle" className="fill-white font-mono text-xs font-bold">
               Slope 1:{gradientRatio}
             </text>

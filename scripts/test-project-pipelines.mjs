@@ -26,11 +26,12 @@ test('all viewers replay the existing supply/continuous drain engines without ch
   const replay=projectPipelines(design,building,brief,'project-A',undefined,emptyStorage)
   assert.equal(JSON.stringify({design,building,brief}),before)
   assert.deepEqual(replay,network)
-  assert.deepEqual(network.supply,coordinateSupply(building,network.home,network.floors))
+  assert.deepEqual(network.supply,coordinateSupply(building,network.home,network.floors,network.fixtureScene.fixtures))
   assert.deepEqual(network.continuity,coordinateDrainageContinuity(building,network.home,network.drainage,network.rawFixtureScene))
   assert.equal(network.planId,building.planId)
   assert.equal(network.floors.length,design.floors.length)
-  assert.ok(network.supply.fixtures.every(f=>f.connected))
+  const unresolved=new Set(network.floors.flatMap(f=>f.waterNetworks.filter(n=>n.service==='cold').flatMap(n=>n.unroutedFixtures)))
+  assert.ok(network.supply.fixtures.every(f=>f.connected===!unresolved.has(f.id)))
   assert.ok(network.fixtureScene.fixtures.every(f=>f.branch?.connected))
 })
 
@@ -89,4 +90,35 @@ test('inspection/cutaway only style live materials; GLB replay strips the live o
   exported.dispose()
   stylePipelineOverlay(layer,false)
   assert.equal(pipe.material.depthTest,true);assert.deepEqual(pipe.material.clippingPlanes,[])
+})
+
+test('displayed fixtures share floor datums and their water/waste pipes end at the visible instance ports',async()=>{
+ const {fixtureServicePorts,fixtureWasteConnection}=await import('../src/lib/water/fixtureDrainage.ts')
+ for(const f of network.fixtureScene.fixtures){
+  const floor=building.floors.find(item=>item.id===f.floorId)
+  assert.equal(f.point.z,floor.elevationMm)
+  if(f.model){
+   if(f.kind==='washbasin'||f.kind==='unknown_sink'){
+    assert.ok(Math.abs(f.model.position[1]*1000-floor.elevationMm)<.01,'pedestal base must meet the floor')
+    assert.ok(Math.abs(f.model.size[1]*1000-850)<.01,'basin rim must have a consistent installation height')
+   }
+   if(f.kind==='kitchen_sink')assert.ok(Math.abs((f.model.position[1]+f.model.size[1])*1000-floor.elevationMm-900)<.01)
+  }
+  const ports=fixtureServicePorts(f),water=network.supply.fixtures.find(item=>item.key===f.key)
+  if(water)assert.deepEqual(water.point,ports.supply)
+  if(f.branch){
+   const waste=fixtureWasteConnection(f)
+   assert.deepEqual(waste[0],ports.waste)
+   assert.deepEqual(waste.at(-1),f.branch.points[0])
+   assert.ok(waste.every(p=>[p.x,p.y,p.z].every(Number.isFinite)))
+  }
+ }
+})
+
+test('sub-millimetre coordinate noise cannot erase a vertical service pipe',async()=>{
+ const {plumbingSegments}=await import('../src/lib/plumbing/villaPlumbing.ts')
+ const pipes=[{system:'water',diameterMm:20,points:[{x:100,y:200.00000000001,z:900},{x:100,y:200,z:550}]}]
+ const segments=plumbingSegments({pipes})
+ assert.equal(segments.length,1)
+ assert.equal(Math.abs(segments[0].from.z-segments[0].to.z),350)
 })

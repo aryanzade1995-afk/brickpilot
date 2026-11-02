@@ -44,7 +44,7 @@ export function projectPipelines(design: Design, building: BuildingModel, brief:
   const fixtureScene = {...continuity.scene,fixtures:continuity.scene.fixtures.map(f=>({...f,wasteConnection:concealedFixtureWaste(f,building)}))}
   const drainNetwork = fixtureScene.configuredDischarge ? connectedDrainageNetwork(building, home,
     { ...drainage, tank: null, layout: { ...drainage.layout, pipes: [], segments: [] } }) : continuity.network
-  const supply = coordinateSupply(building, home, floors)
+  const supply = coordinateSupply(building, home, floors,fixtureScene.fixtures)
   const drainFixtureRuns = fixtureScene.fixtures.flatMap(f => f.branch ? [
     { system: 'drain' as const, diameterMm: f.branch.diameterMm, points: f.branch.points },
     { system: 'drain' as const, diameterMm: f.kind === 'toilet' ? f.branch.diameterMm : Math.min(f.branch.diameterMm, 50), points: fixtureWasteConnection(f) },

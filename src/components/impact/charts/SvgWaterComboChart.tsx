@@ -56,25 +56,25 @@ export function SvgWaterComboChart({
     n >= 1000 ? `${(n / 1000).toFixed(0)}k L` : `${n} L`
 
   return (
-    <div className="flex flex-col rounded-xl border border-line bg-bg-raised p-5">
+    <div className="flex flex-col rounded border border-line bg-bg-raised p-5">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h4 className="font-display text-lg font-medium text-ink">12-Month Water Balance Simulation</h4>
+          <h4 className="font-display text-xl font-medium text-ink">Seasonal water balance</h4>
           <p className="font-sans text-xs text-ink-dim">
             Monthly rainwater harvested vs household domestic demand and cistern storage level.
           </p>
         </div>
         <div className="flex items-center gap-4 text-xs font-mono">
           <div className="flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded-xs bg-sky-600" />
+            <span className="h-3 w-3 rounded-xs bg-[#7c8e9d]" />
             <span className="text-ink-dim">Rain Harvest</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="h-1 w-3.5 bg-amber-600 rounded-xs" />
+            <span className="h-1 w-3.5 bg-[#a28d76] rounded-xs" />
             <span className="text-ink-dim">Demand</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="h-1 w-3.5 bg-emerald-700 rounded-xs" />
+            <span className="h-1 w-3.5 bg-[#677e74] rounded-xs" />
             <span className="text-ink font-medium">Tank Storage</span>
           </div>
         </div>
@@ -94,8 +94,8 @@ export function SvgWaterComboChart({
 
         <defs>
           <linearGradient id="harvestBarGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#0284c7" />
-            <stop offset="100%" stopColor="#38bdf8" />
+            <stop offset="0%" stopColor="#536a76" />
+            <stop offset="100%" stopColor="#869faa" />
           </linearGradient>
         </defs>
 
@@ -150,7 +150,7 @@ export function SvgWaterComboChart({
         <path
           d={tankLinePath}
           fill="none"
-          stroke="#059669"
+          stroke="#405b52"
           strokeWidth="3"
           strokeLinecap="round"
         />
@@ -159,7 +159,7 @@ export function SvgWaterComboChart({
         <path
           d={demandLinePath}
           fill="none"
-          stroke="#d97706"
+          stroke="#82715d"
           strokeWidth="2.5"
           strokeDasharray="5,4"
         />
@@ -175,7 +175,7 @@ export function SvgWaterComboChart({
               y={H - 12}
               textAnchor="middle"
               fontSize="12"
-              fill={isMonsoon ? '#0369a1' : '#171717'}
+              fill={isMonsoon ? '#445660' : '#171717'}
               fontWeight={isMonsoon ? 'bold' : 'normal'}
             >
               {m.month}

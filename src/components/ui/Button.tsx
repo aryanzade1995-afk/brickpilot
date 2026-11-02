@@ -7,7 +7,7 @@ type Variant = 'primary' | 'ghost' | 'quiet'
 type Size = 'sm' | 'md'
 
 const base =
-  'inline-flex items-center justify-center gap-2 font-mono text-xs font-medium uppercase tracking-[0.12em] ' +
+  'motion-button inline-flex items-center justify-center gap-2 font-mono text-xs font-medium uppercase tracking-[0.12em] ' +
   'transition-colors duration-150 select-none disabled:opacity-40 disabled:pointer-events-none'
 
 const sizes: Record<Size, string> = {

@@ -3,24 +3,28 @@ import { mkdir, readFile, writeFile, rename } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import { join } from 'node:path'
 import { ROOM_AUDIO_ROOT, MARATHI_VOICE, ROOM_ANALYSIS_MODEL } from './room-ai-models.mjs'
-import { describeRoom, suggestionCandidates, ROOM_EXPERIENCE_VERSION } from '../src/lib/walkthrough/roomExperience.ts'
+import { describeRoom, narrationParts, suggestionCandidates, ROOM_EXPERIENCE_VERSION } from '../src/lib/walkthrough/roomExperience.ts'
 
-let worker, serial = 0
+let serial = 0
+const workers=new Map()
 const pending = new Map(), audioJobs = new Map(), insightCache = new Map()
 function run(kind, payload) {
   if (pending.size >= 6) return Promise.reject(new Error('Room narration is busy'))
-  if (!worker) {
-    worker = new Worker(new URL('./room-ai-worker.mjs', import.meta.url)); worker.unref()
-    worker.on('message', ({ id, result, error }) => { const task = pending.get(id); if (!task) return; pending.delete(id); clearTimeout(task.timer); if (error) task.reject(new Error(error)); else task.resolve(result) })
-    const fail = error => { worker = null; for (const task of pending.values()) { clearTimeout(task.timer); task.reject(error) } pending.clear() }
-    worker.on('error', fail); worker.on('exit', code => { if (code) fail(new Error('Room voice worker exited')) })
+  const lane=kind==='voice'?'voice':'analysis'
+  let worker=workers.get(lane)
+  if(!worker){
+    worker=new Worker(new URL('./room-ai-worker.mjs',import.meta.url));worker.unref();workers.set(lane,worker)
+    worker.on('message',({id,result,error})=>{const task=pending.get(id);if(!task)return;pending.delete(id);clearTimeout(task.timer);if(error)task.reject(new Error(error));else task.resolve(result)})
+    const fail=error=>{if(workers.get(lane)===worker)workers.delete(lane);for(const [id,task]of pending){if(task.lane!==lane)continue;clearTimeout(task.timer);task.reject(error);pending.delete(id)}}
+    worker.on('error',fail);worker.on('exit',code=>{if(code)fail(new Error('Room worker exited'))})
   }
   const id = ++serial
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => { pending.delete(id); reject(new Error('Room narration timed out')) }, 150000)
-    pending.set(id, { resolve, reject, timer }); worker.postMessage({ id, kind, payload })
+    pending.set(id, { resolve, reject, timer, lane }); worker.postMessage({ id, kind, payload })
   })
 }
+export const rankLocalCandidates = payload => run('rank',payload)
 const digest = value => createHash('sha256').update(JSON.stringify(value)).digest('hex')
 export async function roomInsight(context, language, analyse = payload => run('rank', payload)) {
   const room = context.rooms.find(r => r.id === context.currentRoomId), candidates = suggestionCandidates(context, language)
@@ -41,9 +45,11 @@ export async function roomInsight(context, language, analyse = payload => run('r
   if (mode === 'local-ai') { if (insightCache.size >= 128) insightCache.delete(insightCache.keys().next().value); insightCache.set(key, result) }
   return result
 }
-export async function roomAudio(context, language, synthesize = text => run('voice', { text })) {
+export async function roomAudio(context, language, synthesize = text => run('voice', { text }), part = null) {
   if (language !== 'mr') throw new Error('This neural voice supports Marathi')
-  const text = describeRoom(context, 'mr')
+  const fullText=describeRoom(context,'mr'),parts=fullText?narrationParts(fullText):[]
+  if(part!==null&&(!Number.isInteger(part)||part<0||part>=parts.length))throw new Error('Unknown narration part')
+  const text=part===null?fullText:parts[part]
   if (!text) throw new Error('No recorded room for narration')
   const id = digest([ROOM_EXPERIENCE_VERSION, MARATHI_VOICE.revision, MARATHI_VOICE.voice, context.planId, context.currentRoomId, text])
   const path = join(ROOM_AUDIO_ROOT, `${id}.wav`)
@@ -57,7 +63,7 @@ export async function roomAudio(context, language, synthesize = text => run('voi
     }
     await audioJobs.get(id)
   }
-  return { id, url: `/api/walkthrough-room/audio/${id}.wav`, planId: context.planId, roomId: context.currentRoomId, language, voice: MARATHI_VOICE.voice, model: MARATHI_VOICE.model }
+  return { part, parts:parts.length, id, url: `/api/walkthrough-room/audio/${id}.wav`, planId: context.planId, roomId: context.currentRoomId, language, voice: MARATHI_VOICE.voice, model: MARATHI_VOICE.model }
 }
 export async function handleRoomExperience(req, res, readJson) {
   const pathname = new URL(req.url, 'http://local').pathname
@@ -78,7 +84,7 @@ export async function handleRoomExperience(req, res, readJson) {
     const parsed = roomExperienceRequest.safeParse(await readJson(req, 512000))
     if (!parsed.success || !parsed.data.context.currentRoomId) { send(422, { error: 'Choose a recorded room first' }); return true }
     const { context, language } = parsed.data
-    const result = pathname.endsWith('/audio') ? await roomAudio(context, language) : await roomInsight(context, language)
+    const result = pathname.endsWith('/audio') ? await roomAudio(context, language,undefined,new URL(req.url,'http://local').searchParams.has('part')?Number(new URL(req.url,'http://local').searchParams.get('part')):null) : await roomInsight(context, language)
     if (!res.destroyed) send(200, result)
   } catch { if (!res.destroyed) send(503, { error: 'Room narration is not ready. Replay in a moment.' }) }
   return true

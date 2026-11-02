@@ -73,5 +73,5 @@ test('bathroom shafts receive level removable covers and walking colliders witho
  }
  assert.deepEqual(createBuildingModel(plan).shafts,building.shafts)
  const kitchen=building.rooms.find(r=>r.id==='kitchen')
- assert.deepEqual(bathroomServiceCovers(building,kitchen,'kitchen','floor'),[])
+ assert.ok(bathroomServiceCovers(building,kitchen,'kitchen','floor').length>0,'kitchen service openings also receive floor finishes')
 })

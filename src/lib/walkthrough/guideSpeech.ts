@@ -73,7 +73,8 @@ export class GuideSpeechSession {
     const synth = this.env.speechSynthesis, Utterance = this.env.SpeechSynthesisUtterance
     if (!synth || !Utterance) { this.events.error('Spoken audio is unavailable here. The answer is shown as text.'); return }
     const voices = synth.getVoices(), locale = voiceLocale(language)
-    const voice = voices.find(v => v.lang.toLowerCase() === locale.toLowerCase()) ?? voices.find(v => v.lang.toLowerCase().startsWith(language))
+    const localMarathi=language==='mr'?voices.find(v=>v.localService&&v.lang.toLowerCase().startsWith('mr')):undefined
+    const voice = localMarathi ?? voices.find(v => v.lang.toLowerCase() === locale.toLowerCase()) ?? voices.find(v => v.lang.toLowerCase().startsWith(language))
     if (voices.length && !voice && language !== 'en') { this.events.error('No spoken voice is installed for this language. The answer is shown as text.'); return }
     const utterance = new Utterance(text.slice(0, 3500)); this.utterance = utterance
     utterance.lang = locale; if (voice) utterance.voice = voice

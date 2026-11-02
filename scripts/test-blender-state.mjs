@@ -283,3 +283,58 @@ test('changing finishes re-renders the same accepted seed and exact rooms instea
   await useBlender.getState().ensureForPlan(changed,result.seed);assert.equal(posted.length,1)
  }finally{globalThis.fetch=original}
 })
+
+test('reload recovers a repaired failed job without submitting another render',async()=>{
+ reset()
+ const key=directionRenderKey(id,result.seed),original=globalThis.fetch,calls=[]
+ useBlender.setState({sourcePlanId:id,selectionKey:`${key}:${result.finishSignature}`,error:'Blender failed (1)',job:{id:'repaired-job',status:'failed',phase:'Stopped',expectedSeed:result.seed,debug:[]},previews:{[key]:{planId:id,seed:result.seed,jobId:'repaired-job',status:'failed',phase:'Stopped',error:'Blender failed (1)'}}})
+ globalThis.fetch=async(url,options)=>{calls.push([url,options?.method]);assert.notEqual(options?.method,'POST');return respond({id:'repaired-job',status:'complete',phase:'Ready',result,debug:[]})}
+ try{
+  await useBlender.getState().resume()
+  assert.equal(useBlender.getState().accepted[id].files.glb,result.files.glb)
+  assert.equal(useBlender.getState().previews[key].status,'complete')
+  assert.equal(useBlender.getState().error,null)
+  const count=calls.length
+  await useBlender.getState().resume()
+  assert.equal(calls.length,count)
+ }finally{globalThis.fetch=original}
+})
+
+test('explicit retry replaces the failed direction preview with the new successful job',async()=>{
+ reset();const original=globalThis.fetch,key=directionRenderKey(id,result.seed)
+ useBlender.setState({sourcePlanId:id,job:{id:'old-job',status:'failed',phase:'Stopped',debug:[]},previews:{[key]:{planId:id,seed:result.seed,status:'failed',phase:'Stopped',jobId:'old-job',error:'Old failure'}}})
+ globalThis.fetch=async(url,options)=>respond(options?.method==='POST'?{id:'retry-job',status:'queued',phase:'Queued',debug:[]}:{id:'retry-job',status:'complete',phase:'Ready',result,debug:[]})
+ try{
+  await useBlender.getState().generate(plan,result.seed,'preview',true)
+  assert.equal(useBlender.getState().previews[key].status,'complete')
+  assert.equal(useBlender.getState().previews[key].jobId,'retry-job')
+  assert.equal(useBlender.getState().previews[key].error,undefined)
+  await useBlender.getState().ensureForPlan(plan,result.seed)
+  assert.equal(useBlender.getState().error,null)
+ }finally{globalThis.fetch=original}
+})
+
+test('Directions discovers a recovered preview without queuing a new render',async()=>{
+ reset();const key=directionRenderKey(id,result.seed),original=globalThis.fetch
+ useBlender.setState({previews:{[key]:{planId:id,seed:result.seed,jobId:'recovered-preview',status:'failed',phase:'Stopped'}}})
+ globalThis.fetch=async(url,options)=>{assert.notEqual(options?.method,'POST');return respond({id:'recovered-preview',status:'complete',phase:'Ready',result,debug:[]})}
+ try{
+  await useBlender.getState().previewDirections([{plan,seed:result.seed}])
+  assert.equal(useBlender.getState().previews[key].status,'complete')
+  assert.equal(useBlender.getState().directionRenders[key].seed,result.seed)
+ }finally{globalThis.fetch=original}
+})
+
+test('Directions explicit retry submits the same plan and seed once',async()=>{
+ reset();const key=directionRenderKey(id,result.seed),original=globalThis.fetch,posts=[]
+ useBlender.setState({previews:{[key]:{planId:id,seed:result.seed,jobId:'failed-preview',status:'failed',phase:'Stopped'}}})
+ globalThis.fetch=async(url,options)=>{
+  if(options?.method==='POST'){posts.push(JSON.parse(options.body));return respond({id:'new-preview',status:'queued',phase:'Queued',debug:[]})}
+  return respond(url.endsWith('/health')?{available:true}:url.endsWith('/failed-preview')?{status:'failed',error:'Old failure'}:{id:'new-preview',status:'complete',phase:'Ready',result,debug:[]})
+ }
+ try{
+  await useBlender.getState().previewDirections([{plan,seed:result.seed}],true)
+  assert.equal(posts.length,1);assert.equal(posts[0].seed,result.seed);assert.equal(posts[0].exact,true);assert.deepEqual(posts[0].plan,plan)
+  assert.equal(useBlender.getState().previews[key].status,'complete')
+ }finally{globalThis.fetch=original}
+})

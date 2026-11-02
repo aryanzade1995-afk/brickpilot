@@ -5,7 +5,7 @@ import { computeDirections, type DirectionsInput } from './studio.ts'
 
 self.onmessage = (event: MessageEvent<DirectionsInput>) => {
   try {
-    self.postMessage({ ok: true, result: computeDirections(event.data) })
+    self.postMessage({ ok: true, result: computeDirections(event.data,(progress,label)=>self.postMessage({progress,label})) })
   } catch (error) {
     self.postMessage({ ok: false, error: error instanceof Error ? error.message : String(error) })
   }

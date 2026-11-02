@@ -1,274 +1,60 @@
-import type { FC } from 'react'
+import {useId,useState} from 'react'
+import {ArrowDownRight,ArrowUpRight,Minus,SlidersHorizontal} from 'lucide-react'
+import {budgetComparison} from '@/lib/impact/budgetComparison.ts'
+import {translate as t} from '@/lib/i18n/index.ts'
 
 export interface SvgWaterfallBarProps {
-  budget: number | null
-  currentCost: number
-  swappedCost: number
-  totalSavings: number
-  className?: string
+ budget:number|null
+ currentCost:number
+ swappedCost:number
+ /** Kept for existing callers; the displayed difference uses the two costs. */
+ totalSavings?:number
+ onEditBudget?:()=>void
+ className?:string
 }
+const fmt=(n:number)=>new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:0}).format(n)
+const pct=(n:number)=>new Intl.NumberFormat('en-IN',{maximumFractionDigits:2}).format(Math.abs(n))
 
-const fmt = (n: number) =>
-  new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n)
-
-export const SvgWaterfallBar: FC<SvgWaterfallBarProps> = ({
-  budget,
-  currentCost,
-  swappedCost,
-  totalSavings,
-  className = '',
-}) => {
-  const effectiveBudget = budget ?? currentCost
-  const maxVal = Math.max(effectiveBudget, currentCost, swappedCost, 1) * 1.25
-
-  // Sizing
-  const width = 640
-  const height = 248
-  const padX = 40
-  const padTop = 46
-  const padBottom = 54
-  const chartH = height - padTop - padBottom
-  const barW = 96
-  const colGap = (width - padX * 2 - barW * 3) / 2
-
-  const x0 = padX
-  const x1 = padX + barW + colGap
-  const x2 = padX + (barW + colGap) * 2
-
-  const scaleY = (v: number) => chartH * (v / maxVal)
-  const yBase = height - padBottom
-
-  const hBudget = scaleY(effectiveBudget)
-  const hCurrent = scaleY(currentCost)
-  const hSwapped = scaleY(swappedCost)
-
-  const isWithinBudget = swappedCost <= effectiveBudget
-  const diffFromBudget = currentCost - effectiveBudget
-
-  const ariaText = `Waterfall cost comparison: ${budget ? `Target budget ${fmt(effectiveBudget)}, ` : ''}Current BOQ estimate ${fmt(currentCost)}, After eco-swaps ${fmt(swappedCost)} with savings of ${fmt(totalSavings)}. ${isWithinBudget ? 'Within target budget.' : 'Over budget.'}`
-
-  return (
-    <div className={`rounded-xl border border-line bg-bg-raised p-5 ${className}`}>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <span className="font-mono text-xs uppercase tracking-wider text-ink-dim">Cost Analysis</span>
-          <h3 className="font-display text-xl font-medium text-ink">Budget & BOQ Waterfall</h3>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {budget !== null ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-bg-inset px-3 py-1 font-mono text-xs text-ink-dim">
-              <span className="inline-block w-3.5 border-b-2 border-dashed border-ink-dim" />
-              Target Cap: <strong className="text-ink font-semibold">{fmt(effectiveBudget)}</strong>
-            </span>
-          ) : (
-            <span className="rounded-full border border-line bg-bg-inset px-3 py-1 font-mono text-xs text-ink-dim">
-              No budget set (using BOQ baseline)
-            </span>
-          )}
-          <span
-            className={`rounded-full px-3 py-1 font-mono text-xs font-semibold ${
-              isWithinBudget
-                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                : 'bg-amber-50 text-amber-900 border border-amber-200'
-            }`}
-          >
-            {isWithinBudget ? '● Within Budget After Swaps' : `▲ Over Budget by ${fmt(swappedCost - effectiveBudget)}`}
-          </span>
-        </div>
-      </div>
-
-      <div className="relative w-full overflow-x-auto">
-        <svg
-          viewBox={`0 0 ${width} ${height}`}
-          role="img"
-          aria-label={ariaText}
-          className="h-auto w-full min-w-[520px]"
-          style={{ fontFamily: 'var(--font-sans), Inter, sans-serif' }}
-        >
-          <desc>{ariaText}</desc>
-
-          {/* Grid baseline */}
-          <line x1={padX} y1={yBase} x2={width - padX} y2={yBase} stroke="currentColor" strokeOpacity={0.25} strokeWidth={1.5} />
-          
-          {/* Target budget reference dashed line across the chart behind bars */}
-          {budget !== null && (
-            <line
-              x1={padX}
-              y1={yBase - hBudget}
-              x2={width - padX}
-              y2={yBase - hBudget}
-              stroke="#64748b"
-              strokeDasharray="4 4"
-              strokeWidth={1.5}
-            />
-          )}
-
-          {/* Bar 1: Budget Target */}
-          <g>
-            <rect
-              x={x0}
-              y={yBase - hBudget}
-              width={barW}
-              height={hBudget}
-              rx={6}
-              fill="#e5e7eb"
-              stroke="#9ca3af"
-              strokeWidth={1.5}
-            />
-            <text
-              x={x0 + barW / 2}
-              y={yBase - hBudget - 12}
-              textAnchor="middle"
-              className="fill-ink font-mono text-xs font-bold"
-              style={{ fontFamily: 'var(--font-mono), monospace' }}
-            >
-              {fmt(effectiveBudget)}
-            </text>
-            <text x={x0 + barW / 2} y={yBase + 20} textAnchor="middle" className="fill-ink font-sans text-xs font-semibold">
-              Target Budget
-            </text>
-            <text
-              x={x0 + barW / 2}
-              y={yBase + 36}
-              textAnchor="middle"
-              className="fill-ink-faint font-mono text-xs"
-              style={{ fontFamily: 'var(--font-mono), monospace' }}
-            >
-              {budget ? 'User specified' : 'Baseline'}
-            </text>
-          </g>
-
-          {/* Delta connector: Budget -> Current BOQ */}
-          {budget !== null && (
-            <g>
-              <path
-                d={`M ${x0 + barW + 4} ${yBase - hBudget} Q ${x0 + barW + colGap / 2} ${yBase - hBudget} ${x0 + barW + colGap / 2} ${(yBase - hBudget + (yBase - hCurrent)) / 2} T ${x1 - 4} ${yBase - hCurrent}`}
-                fill="none"
-                stroke={diffFromBudget > 0 ? '#d97706' : '#059669'}
-                strokeWidth={2}
-                strokeDasharray="3 3"
-              />
-              <rect
-                x={x0 + barW + colGap / 2 - 38}
-                y={(yBase - hBudget + (yBase - hCurrent)) / 2 - 12}
-                width={76}
-                height={24}
-                rx={12}
-                fill="#ffffff"
-                stroke={diffFromBudget > 0 ? '#f59e0b' : '#10b981'}
-                strokeWidth={1.5}
-              />
-              <text
-                x={x0 + barW + colGap / 2}
-                y={(yBase - hBudget + (yBase - hCurrent)) / 2 + 4}
-                textAnchor="middle"
-                className={`font-mono text-xs font-bold ${diffFromBudget > 0 ? 'fill-amber-800' : 'fill-emerald-800'}`}
-                style={{ fontFamily: 'var(--font-mono), monospace' }}
-              >
-                {diffFromBudget > 0 ? `+${fmt(diffFromBudget)}` : fmt(diffFromBudget)}
-              </text>
-            </g>
-          )}
-
-          {/* Bar 2: Current BOQ Concept */}
-          <g>
-            <rect
-              x={x1}
-              y={yBase - hCurrent}
-              width={barW}
-              height={hCurrent}
-              rx={6}
-              fill="#222222"
-            />
-            <text
-              x={x1 + barW / 2}
-              y={yBase - hCurrent - 12}
-              textAnchor="middle"
-              className="fill-ink font-mono text-xs font-bold"
-              style={{ fontFamily: 'var(--font-mono), monospace' }}
-            >
-              {fmt(currentCost)}
-            </text>
-            <text x={x1 + barW / 2} y={yBase + 20} textAnchor="middle" className="fill-ink font-sans text-xs font-semibold">
-              Current BOQ
-            </text>
-            <text
-              x={x1 + barW / 2}
-              y={yBase + 36}
-              textAnchor="middle"
-              className="fill-ink-faint font-mono text-xs"
-              style={{ fontFamily: 'var(--font-mono), monospace' }}
-            >
-              Catalog Estimate
-            </text>
-          </g>
-
-          {/* Delta connector: Current BOQ -> Swapped BOQ */}
-          {totalSavings > 0 && (
-            <g>
-              <path
-                d={`M ${x1 + barW + 4} ${yBase - hCurrent} Q ${x1 + barW + colGap / 2} ${yBase - hCurrent} ${x1 + barW + colGap / 2} ${(yBase - hCurrent + (yBase - hSwapped)) / 2} T ${x2 - 4} ${yBase - hSwapped}`}
-                fill="none"
-                stroke="#059669"
-                strokeWidth={2}
-                strokeDasharray="3 3"
-              />
-              <rect
-                x={x1 + barW + colGap / 2 - 44}
-                y={(yBase - hCurrent + (yBase - hSwapped)) / 2 - 12}
-                width={88}
-                height={24}
-                rx={12}
-                fill="#ecfdf5"
-                stroke="#059669"
-                strokeWidth={1.5}
-              />
-              <text
-                x={x1 + barW + colGap / 2}
-                y={(yBase - hCurrent + (yBase - hSwapped)) / 2 + 4}
-                textAnchor="middle"
-                className="fill-emerald-800 font-mono text-xs font-bold"
-                style={{ fontFamily: 'var(--font-mono), monospace' }}
-              >
-                -{fmt(totalSavings)}
-              </text>
-            </g>
-          )}
-
-          {/* Bar 3: Swapped BOQ */}
-          <g>
-            <rect
-              x={x2}
-              y={yBase - hSwapped}
-              width={barW}
-              height={hSwapped}
-              rx={6}
-              fill="#059669"
-            />
-            <text
-              x={x2 + barW / 2}
-              y={yBase - hSwapped - 12}
-              textAnchor="middle"
-              className="fill-emerald-800 font-mono text-xs font-bold"
-              style={{ fontFamily: 'var(--font-mono), monospace' }}
-            >
-              {fmt(swappedCost)}
-            </text>
-            <text x={x2 + barW / 2} y={yBase + 20} textAnchor="middle" className="fill-ink font-sans text-xs font-semibold">
-              After Swaps
-            </text>
-            <text
-              x={x2 + barW / 2}
-              y={yBase + 36}
-              textAnchor="middle"
-              className="fill-emerald-800 font-mono text-xs font-medium"
-              style={{ fontFamily: 'var(--font-mono), monospace' }}
-            >
-              Saved {fmt(totalSavings)}
-            </text>
-          </g>
-        </svg>
-      </div>
+export function SvgWaterfallBar({budget,currentCost,swappedCost,onEditBudget,className=''}:SvgWaterfallBarProps){
+ const data=budgetComparison({budget,currentCost,swappedCost})
+ const [selected,setSelected]=useState<'current'|'proposed'>('proposed')
+ const detailId=useId(),headingId=useId()
+ const scale=(data.maximum||1)*1.16
+ const height=(amount:number)=>Math.max(0,Math.min(100,amount/scale*100))
+ const reduction=data.difference!==null&&data.difference>0
+ const increase=data.difference!==null&&data.difference<0
+ const differenceLabel=reduction?'Potential reduction':increase?'Estimated increase':data.difference===null?'Difference unavailable':'No cost change'
+ const status=!data.ready?'Estimate needs review':data.status==='missing'?'No target budget':data.status==='invalid'?'Review target budget':data.status==='within'?'Alternatives within target':data.status==='over'?'Alternatives exceed target':data.status==='on-target'?'Alternatives on target':'More information needed'
+ const selectedValue=selected==='current'?data.current:data.proposed
+ const balance=data.target!==null&&selectedValue!==null?data.target-selectedValue:null
+ return <article className={`impact-budget min-w-0 overflow-hidden rounded border border-line bg-bg-raised ${className}`} aria-labelledby={headingId}>
+  <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3">
+   <div><p className="font-mono text-[10px] uppercase tracking-widest text-ink-faint">{t('Cost analysis')}</p><h3 id={headingId} className="mt-1 font-display text-base text-ink">{t('Budget comparison')}</h3></div>
+   <div className="flex flex-wrap items-center gap-2"><span className="rounded border border-line bg-bg px-2 py-1 text-[10px] text-ink-dim">{t(status)}</span>{onEditBudget&&<button type="button" onClick={onEditBudget} className="inline-flex min-h-11 items-center gap-1.5 rounded px-2 text-xs text-ink underline decoration-line-strong underline-offset-4 focus-visible:outline-2 focus-visible:outline-accent"><SlidersHorizontal size={12} aria-hidden/>{t(data.target===null?'Set budget':'Edit target')}</button>}</div>
+  </header>
+  <dl className="grid grid-cols-1 divide-y divide-line sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+   <div className="min-w-0 px-4 py-3"><dt className="text-[11px] text-ink-faint">{t('Current estimate')}</dt><dd className="mt-1 break-words font-display text-xl tabular-nums text-ink">{data.current===null?'—':fmt(data.current)}</dd></div>
+   <div className="min-w-0 px-4 py-3"><dt className="text-[11px] text-ink-faint">{t('With alternatives')}</dt><dd className="mt-1 break-words font-display text-xl tabular-nums text-ink">{data.proposed===null?'—':fmt(data.proposed)}</dd></div>
+   <div className="min-w-0 bg-bg/70 px-4 py-3"><dt className="text-[11px] text-ink-faint">{t(differenceLabel)}</dt><dd className={`mt-1 inline-flex max-w-full flex-wrap items-center gap-1 font-display text-xl tabular-nums ${increase?'text-[#82715d]':'text-[#52685b]'}`}>{reduction?<ArrowDownRight size={17} aria-hidden/>:increase?<ArrowUpRight size={17} aria-hidden/>:<Minus size={15} aria-hidden/>}<span className="break-words">{data.difference===null?'—':fmt(Math.abs(data.difference))}</span></dd><p className="mt-1 text-[10px] text-ink-faint">{data.percent===null?t('Percentage unavailable'):data.difference===0?t('Same estimated cost'):`${pct(data.percent)}% ${t(reduction?'lower than current':'higher than current')}`}</p></div>
+  </dl>
+  <div className="border-t border-line px-4 pb-3 pt-4">
+   <div className="mb-4 flex flex-wrap justify-between gap-2 text-[10px] text-ink-faint"><span>{t('Same scale · bars start at ₹0')}</span><span className="font-mono">{data.target===null?t('Target not recorded'):`${t('Target')} ${fmt(data.target)}`}</span></div>
+   <div className="impact-budget-plot relative mx-auto max-w-xl border-b border-line-strong">
+    <div className="pointer-events-none absolute inset-0" aria-hidden="true">{[0,25,50,75].map(tick=><div key={tick} className="absolute inset-x-0 border-t border-dashed border-line" style={{bottom:`${tick}%`}}/>)}</div>
+    <div className="absolute inset-0 grid grid-cols-2 gap-6 px-6 sm:px-12">
+     {([{id:'current',label:'Current estimate',amount:data.current},{id:'proposed',label:'With alternatives',amount:data.proposed}] as const).map(item=><button key={item.id} type="button" data-motion="none" aria-pressed={selected===item.id} aria-controls={detailId} aria-label={`${t(item.label)}: ${item.amount===null?t('Data unavailable'):fmt(item.amount)}. ${t('Select to compare with target')}`} onClick={()=>setSelected(item.id)} onFocus={()=>setSelected(item.id)} className="group relative mx-auto h-full w-full max-w-28 rounded-t focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">
+      <span className={`impact-budget-bar absolute inset-x-0 bottom-0 rounded-t border transition-[height,opacity,background-color] duration-500 motion-reduce:transition-none ${item.id==='current'?'border-ink/10 bg-ink/90':'border-[#52685b]/10 bg-[#677e74]'} ${selected===item.id?'opacity-100':'opacity-65 group-hover:opacity-90'}`} style={{height:`${item.amount===null?0:height(item.amount)}%`}}/>
+      {item.amount===0&&<span className="absolute inset-x-0 bottom-2 text-xs text-ink-faint">₹0</span>}
+      {item.amount===null&&<span className="absolute inset-x-0 bottom-2 text-xs text-ink-faint">{t('No estimate')}</span>}
+     </button>)}
     </div>
-  )
+    {data.target!==null&&<div className="pointer-events-none absolute inset-x-0 z-10 border-t border-dashed border-ink/60" style={{bottom:`${height(data.target)}%`}}><span className="absolute right-0 bottom-1 rounded border border-line bg-bg-raised px-2 py-0.5 font-mono text-[9px] text-ink-dim">{t('Target')} · {fmt(data.target)}</span></div>}
+   </div>
+   <div className="mx-auto mt-2 grid max-w-xl grid-cols-2 gap-6 px-6 text-center text-[11px] text-ink-dim sm:px-12"><span>{t('Current estimate')}</span><span>{t('With alternatives')}</span></div>
+   <div id={detailId} aria-live="polite" className="mt-4 flex min-h-12 flex-wrap items-center justify-between gap-2 rounded border border-line bg-bg/70 px-3 py-2 text-[11px]">
+    <span className="text-ink-dim">{t(selected==='current'?'Current estimate':'With alternatives')} <span className="ml-1 font-mono text-ink">{selectedValue===null?'—':fmt(selectedValue)}</span></span>
+    <span className={balance!==null&&balance<0?'text-[#82715d]':'text-ink-faint'}>{balance===null?t(data.target===null?'Set a target to check budget fit':'Estimate needs review'):balance===0?t('Exactly on target'):`${fmt(Math.abs(balance))} ${t(balance<0?'over target':'remaining in budget')}`}</span>
+   </div>
+  </div>
+ </article>
 }

@@ -9,14 +9,14 @@ import { validate } from '@/lib/rules/index.ts'
 export type BlenderResult = {
   seed: number; requestedSeed: number; planId: string; family: string; hero: string; roofline: string
   finishSignature?: string; quality: 'preview' | 'final'; warnings: string[]
-  geometryRevision?: string
+  roofRevision?:string; geometryRevision?: string
   files: { blend: string; glb: string; hero: string; front: string; aerial: string }
 }
-type Job = { id: string; status: string; phase: string; progress?: number; seed?: number; expectedSeed?: number; attempt?: number; error?: string;
+type Job = { heroPreview?:string; id: string; status: string; phase: string; progress?: number; seed?: number; expectedSeed?: number; attempt?: number; error?: string;
   result?: BlenderResult; debug: { seed: number; family: string; similarityPercent?: number; nearestPreviousSeed?: number | null; accepted: boolean; reason: string }[] }
 /** A direction is a plan AND an exterior seed. Sharing rooms does not mean sharing a render. */
 export const directionRenderKey = (planId: string, seed: number) => `${planId}:${seed}`
-export type Preview = { status: 'queued' | 'generating' | 'rendering' | 'complete' | 'failed' | 'unavailable'; phase: string; progress?: number; jobId?: string; error?: string; planId: string; seed: number }
+export type Preview = { heroPreview?:string; status: 'queued' | 'generating' | 'rendering' | 'complete' | 'failed' | 'unavailable'; phase: string; progress?: number; jobId?: string; error?: string; planId: string; seed: number }
 type State = {
   accepted: Record<string, BlenderResult>; job: Job | null; sourcePlanId: string | null; error: string | null
   directionRenders: Record<string, BlenderResult>
@@ -27,10 +27,11 @@ type State = {
   generate: (plan: Design, seed: number, quality?: 'preview' | 'final', exact?: boolean) => Promise<void>
   ensureForPlan: (plan: Design, preferredSeed?: number) => Promise<void>
   /** render each direction exactly as shown (its own seed, no look-alike retries) */
-  previewDirections: (items: { plan: Design; seed: number }[]) => Promise<void>
+  previewDirections: (items: { plan: Design; seed: number }[], retryFailed?: boolean) => Promise<void>
   resume: () => Promise<void>
 }
 let previewPolling = false
+const checkedCompleted=new Set<string>()
 let polling = false
 const starting = new Set<string>()
 const active = (job: Job | null) => Boolean(job && !['complete', 'failed'].includes(job.status))
@@ -54,9 +55,12 @@ export const useBlender = create<State>()(persist((set, get) => {
           if (!job.result || job.result.planId !== get().sourcePlanId) throw new Error('Generated model belongs to a different source plan')
           if (expectedSeed !== undefined && job.result.seed !== expectedSeed)
             throw new Error('The backend returned another seed instead of your selected direction. Restart the backend with the current project code.')
+          checkedCompleted.add(id)
           const result = job.result
+          const previewKey=directionRenderKey(result.planId,result.seed)
+          if(get().previews[previewKey])setPreview(previewKey,{...get().previews[previewKey],status:'complete',phase:'Ready',jobId:id,error:undefined})
           set({ accepted: { ...get().accepted, [result.planId]: result }, error: null,
-            ...(expectedSeed !== undefined ? { directionRenders: { ...get().directionRenders,
+            ...(expectedSeed !== undefined || get().previews[previewKey] ? { directionRenders: { ...get().directionRenders,
               [directionRenderKey(result.planId, result.seed)]: result } } : {}) })
           break
         }
@@ -66,17 +70,24 @@ export const useBlender = create<State>()(persist((set, get) => {
       job: get().job ? { ...get().job!, status: 'failed' } : null }) }
     finally { polling = false }
   }
-  const setPreview = (id: string, preview: Preview) => set({ previews: { ...get().previews, [id]: preview } })
+  const setPreview = (id:string,preview:Preview) => {
+    const previous=get().previews[id]
+    if(previous&&JSON.stringify(previous)===JSON.stringify(preview))return
+    set({previews:{...get().previews,[id]:preview}})
+  }
   const pollPreviews = async () => {
     if (previewPolling) return
     previewPolling = true
+    const failures=new Map<string,number>()
     try {
       for (;;) {
         const pending = Object.entries(get().previews).filter(([, p]) => p.jobId && !['complete', 'failed'].includes(p.status))
         if (!pending.length) break
-        for (const [key, preview] of pending) {
+        await Promise.all(pending.map(async ([key,preview]) => {
           try {
-            const job = await readResponse(await fetch(`/api/villas/${preview.jobId}`))
+            const job = await readResponse(await fetch(`/api/villas/${preview.jobId}`,{signal:AbortSignal.timeout(10000)}))
+            if(get().previews[key]?.jobId!==preview.jobId)return
+            failures.delete(key)
             if (job.status === 'complete' && job.result) {
               if (job.result.planId !== preview.planId || job.result.seed !== preview.seed)
                 throw new Error('The render does not match this direction’s plan and seed')
@@ -85,11 +96,14 @@ export const useBlender = create<State>()(persist((set, get) => {
                 ...(selected ? {accepted:{...get().accepted,[preview.planId]:job.result},error:null} : {}) })
               setPreview(key, { ...preview, status: 'complete', phase: 'Ready' })
             } else if (job.status === 'failed') setPreview(key, { ...preview, status: 'failed', phase: 'Stopped', error: job.error || 'Generation failed' })
-            else setPreview(key, { ...preview, status: job.status === 'rendering' ? 'rendering' : job.status === 'queued' ? 'queued' : 'generating', phase: job.phase, progress: job.progress })
+            else setPreview(key, { ...preview, status: job.status === 'rendering' ? 'rendering' : job.status === 'queued' ? 'queued' : 'generating', phase: job.phase, progress: job.progress, heroPreview:job.heroPreview })
           } catch (error) {
-            setPreview(key, { ...preview, status: 'failed', phase: 'Stopped', error: error instanceof Error ? error.message : 'Could not load the render' })
+            const attempts=(failures.get(key)??0)+1;failures.set(key,attempts)
+            const message=error instanceof Error?error.message:'Could not load the render'
+            if(attempts>=3||message.includes('does not match'))setPreview(key,{...preview,status:'failed',phase:'Stopped',error:message})
+            else setPreview(key,{...preview,phase:'Reconnecting to the render service…'})
           }
-        }
+        }))
         if (Object.values(get().previews).some(p => p.jobId && !['complete', 'failed'].includes(p.status)))
           await new Promise((resolve) => setTimeout(resolve, 3000))
       }
@@ -105,12 +119,52 @@ export const useBlender = create<State>()(persist((set, get) => {
       set({selectionKey:`${key}:${signature}`,error:null,...(!active(get().job)?{sourcePlanId:id}:{}),
         ...(ready?{accepted:{...get().accepted,[id]:ready}}:{})})
     },
-    resume: async () => { await Promise.all([poll(), pollPreviews()]) },
-    previewDirections: async (items) => {
+    resume: async () => {
+      const savedJob=get().job
+      if(savedJob?.id&&savedJob.status==='complete'&&!checkedCompleted.has(savedJob.id)){
+        checkedCompleted.add(savedJob.id)
+        try{
+          const fresh=await readResponse(await fetch(`/api/villas/${savedJob.id}`))
+          if(fresh.status==='complete'&&get().job?.id===savedJob.id)
+            set({job:{...fresh,status:'queued',expectedSeed:savedJob.expectedSeed}})
+        }catch{/* Keep the accepted model usable offline. */}
+      }
+      // A repaired/replayed job may finish after this browser saved its failure.
+      // Refresh status only: navigation must never submit another render.
+      const stopped=get().job
+      if(stopped?.id&&stopped.status==='failed'){
+        try{
+          const fresh=await readResponse(await fetch(`/api/villas/${stopped.id}`))
+          if(fresh.status!=='failed'&&get().job?.id===stopped.id)
+            set({job:{...fresh,status:fresh.status==='complete'?'queued':fresh.status,expectedSeed:stopped.expectedSeed},error:null})
+        }catch{/* Preserve the previous failure when the service is unavailable. */}
+      }
+      for(const [key,preview] of Object.entries(get().previews)){
+        if(preview.status!=='failed'||!preview.jobId||preview.planId!==get().sourcePlanId)continue
+        try{
+          const fresh=await readResponse(await fetch(`/api/villas/${preview.jobId}`))
+          if(fresh.status!=='failed'&&get().previews[key]?.jobId===preview.jobId)
+            setPreview(key,{...preview,status:'queued',phase:fresh.phase,error:undefined})
+        }catch{/* A later explicit retry remains available. */}
+      }
+      await Promise.all([poll(),pollPreviews()])
+    },
+    previewDirections: async (items,retryFailed=false) => {
       const keyed = items.map(item => { const id = createBuildingModel(item.plan).planId
         return { ...item, id, key: directionRenderKey(id, item.seed) } })
+      // Reconcile saved failures with completed server-side recovery, without
+      // creating jobs on navigation. Only an explicit retry may resubmit.
+      for(const {key} of keyed){
+        const preview=get().previews[key]
+        if(preview?.status!=='failed'||!preview.jobId)continue
+        try{
+          const fresh=await readResponse(await fetch(`/api/villas/${preview.jobId}`))
+          if(fresh.status!=='failed'&&get().previews[key]?.jobId===preview.jobId)
+            setPreview(key,{...preview,status:'queued',phase:fresh.phase,error:undefined})
+        }catch{/* Retain the failure and its explicit retry control. */}
+      }
       const wanted = [...new Map(keyed.map(item => [item.key, item])).values()]
-        .filter(({ key }) => !get().directionRenders[key] && !get().previews[key])
+        .filter(({ key }) => !get().directionRenders[key] && (!get().previews[key] || retryFailed && ['failed','unavailable'].includes(get().previews[key].status)))
       if (!wanted.length) { await pollPreviews(); return }
       for (const { id, key, seed } of wanted) setPreview(key, { planId: id, seed, status: 'queued', phase: 'Waiting for Blender' })
       let note = ''
@@ -123,7 +177,7 @@ export const useBlender = create<State>()(persist((set, get) => {
         if (note) { setPreview(key, { planId: id, seed, status: 'unavailable', phase: note }); continue }
         try {
           const job = await readResponse(await fetch('/api/villas', { method: 'POST', headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ plan, seed, quality: 'preview', exact: true }) }))
+            body: JSON.stringify({ plan, seed, quality: 'preview', exact: true, directionPreview:true }) }))
           setPreview(key, { planId: id, seed, status: 'queued', phase: job.phase, jobId: job.id })
         } catch (error) {
           setPreview(key, { planId: id, seed, status: 'failed', phase: 'Stopped', error: error instanceof Error ? error.message : 'Could not start generation' })

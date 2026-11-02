@@ -17,10 +17,8 @@ export function SvgCarbonDonut({ items, totalKg }: SvgCarbonDonutProps) {
   const circ = 2 * Math.PI * r
 
   const segments = useMemo(() => {
-    let acc = 0
-    return items.map(item => {
-      const offset = acc
-      acc += item.percentage
+    return items.map((item,index) => {
+      const offset = items.slice(0,index).reduce((total,previous)=>total+previous.percentage,0)
       return {
         ...item,
         dashArray: `${(item.percentage / 100) * circ} ${circ}`,
@@ -30,9 +28,9 @@ export function SvgCarbonDonut({ items, totalKg }: SvgCarbonDonutProps) {
   }, [items, circ])
 
   return (
-    <div className="flex flex-col rounded-xl border border-line bg-bg-raised p-5">
+    <div className="flex flex-col rounded border border-line bg-bg-raised p-5">
       <div className="mb-3">
-        <h4 className="font-display text-lg font-medium text-ink">Embodied Carbon by Material Group</h4>
+        <h4 className="font-display text-xl font-medium text-ink">Embodied Carbon by Material Group</h4>
         <p className="font-sans text-xs text-ink-dim">
           Initial cradle-to-gate carbon footprint across architectural building components.
         </p>

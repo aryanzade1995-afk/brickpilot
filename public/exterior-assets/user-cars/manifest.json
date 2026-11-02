@@ -1,0 +1,26 @@
+[
+  {
+    "id": "mclaren-senna",
+    "source": "uploads_files_2815692_Mclaren+Senna.blend",
+    "sourceSha256": "e979f2ff8d8ed38d60fd44c9d3616ff5e1d893d407338001db2a02cf626ace55",
+    "file": "mclaren-senna.glb",
+    "front": "+Z",
+    "lengthM": 4.65,
+    "triangles": 44995,
+    "missingTextureMaps": [
+      "bkemit.png"
+    ],
+    "provenance": "user-supplied; no licence supplied with archive"
+  },
+  {
+    "id": "compact-hatch",
+    "source": "202009122216-2.blend",
+    "sourceSha256": "e66c4ef1268eca01bf7ecf49d28ea71fafe69124a36292803ee769d43d6f091e",
+    "file": "compact-hatch.glb",
+    "front": "+Z",
+    "lengthM": 4.3,
+    "triangles": 45008,
+    "missingTextureMaps": [],
+    "provenance": "user-supplied; no licence supplied with archive"
+  }
+]

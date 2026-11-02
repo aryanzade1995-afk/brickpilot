@@ -1,0 +1,1 @@
+User supplied cars from 25-mclaren-senna.zip and 43-202009122216-2.zip. No author/licence included. Car-only extraction, decimation, metre normalization, nose +Z. Missing source textures use visual material approximations. See manifest.json.

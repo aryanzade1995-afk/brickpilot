@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import {requestNarrationClip,playNarrationClips} from '@/lib/walkthrough/narrationClips.ts'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowUpRight, ChevronDown, RotateCcw, Sparkles, Volume2, VolumeX, X } from 'lucide-react'
 import { translate as t, useLanguage } from '@/lib/i18n/index.ts'
@@ -17,6 +18,7 @@ export function RoomNarration({ metadata, appearance, walking, roomId, onReview 
   const [analysis, setAnalysis] = useState<{ key: string; suggestion: DesignSuggestion; ai: boolean } | null>(null)
   const [dismissed, setDismissed] = useState('')
   const [expandedFor, setExpandedFor] = useState('')
+  const playedReplay=useRef(0)
   const player = useMemo(() => new RoomAudioPlayer(), [])
   const [speech] = useState(() => new GuideSpeechSession(window as unknown as GuideSpeechEnvironment, {
     listening: () => {}, speaking: speaking => setStatus(speaking ? 'speaking' : 'idle'), error: () => setStatus('unavailable'),
@@ -38,10 +40,7 @@ export function RoomNarration({ metadata, appearance, walking, roomId, onReview 
     if (!entry) return
     const initial = createGuideContext(metadata, appearance, entry.roomId)
     if (!initial?.currentRoomId) return
-    const controller = new AbortController()
-    void fetch('/api/walkthrough-room/audio', { method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ context: initial, language: 'mr' }), signal: controller.signal }).catch(() => {})
-    return () => controller.abort()
+    void requestNarrationClip(initial).catch(()=>{})
   }, [walking, enabled, voiceLanguage, metadata, appearance])
   useEffect(() => {
     if (!walking) return
@@ -59,22 +58,15 @@ export function RoomNarration({ metadata, appearance, walking, roomId, onReview 
     stop()
     if (!walking || !enabled || !context || !description || !key) return
     const controller = new AbortController(); let active = true
+    const immediate=playedReplay.current!==replay;playedReplay.current=replay
     const timer = setTimeout(() => {
       setStatus('preparing')
       if (voiceLanguage !== 'mr') { speech.speak(description, voiceLanguage); return }
-      void (async () => {
-        const response = await fetch('/api/walkthrough-room/audio', { method: 'POST', headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ context, language: 'mr' }), signal: controller.signal })
-        const audio = await response.json()
-        if (!response.ok || audio.planId !== context.planId || audio.roomId !== context.currentRoomId || !/^\/api\/walkthrough-room\/audio\/[a-f0-9]{64}\.wav$/.test(audio.url)) throw new Error('Room audio is unavailable')
-        const wave = await fetch(audio.url, { signal: controller.signal })
-        if (!wave.ok) throw new Error('Room audio is unavailable')
-        const bytes = await wave.arrayBuffer()
-        if (!active) return
-        const started = await player.play(bytes, () => { if (active) setStatus('idle') })
-        if (active && started) setStatus('speaking')
-      })().catch(() => { if (active && !controller.signal.aborted) setStatus('unavailable') })
-    }, 850)
+      const localVoice=window.speechSynthesis?.getVoices().some(voice=>voice.localService&&/^mr(?:-|$)/i.test(voice.lang))
+      if(localVoice){speech.speak(description,'mr');return}
+      void playNarrationClips(context,player,controller.signal,value=>{if(active)setStatus(value)})
+        .catch(()=>{if(active&&!controller.signal.aborted)setStatus('unavailable')})
+    }, immediate?0:250)
     return () => { active = false; clearTimeout(timer); controller.abort(); stop() }
   }, [walking, enabled, key, replay, voiceLanguage, context, description, player, speech, stop])
   useEffect(() => {

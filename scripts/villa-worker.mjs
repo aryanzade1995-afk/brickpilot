@@ -1,3 +1,4 @@
+import {directionRenderOptions} from '../server/direction-render-profile.mjs'
 import { createFinishAssignments } from '../src/lib/cost/finishAssignments.ts'
 import { WALKTHROUGH_ACCESS_REVISION } from '../src/lib/walkthrough/access.ts'
 import { readFile, writeFile, mkdir, open, unlink, stat } from 'node:fs/promises'
@@ -85,7 +86,7 @@ try {
       }
       history = [...history, { fingerprint: fingerprintRecord(payload.shapeFingerprint), geometry: final.realizedGeometry }].slice(-50)
       await writeAtomicJson(historyPath, history)
-      accepted = { geometryRevision: WALKTHROUGH_ACCESS_REVISION, finishSignature: payload.specifications?.signature, seed, requestedSeed: request.seed, planId: payload.buildingModel.planId, family: payload.massingModel.family,
+      accepted = { roofRevision:payload.coastalRoof?.revision, geometryRevision: WALKTHROUGH_ACCESS_REVISION, finishSignature: payload.specifications?.signature, seed, requestedSeed: request.seed, planId: payload.buildingModel.planId, family: payload.massingModel.family,
         hero: payload.shapeFingerprint.heroFeature, facadeFamily: payload.shapeFingerprint.facadeFamily,
         roofline: payload.shapeFingerprint.rooflineType, files, directory: stage, quality: request.quality,
         shapeFingerprint: payload.shapeFingerprint, realizedGeometry: final.realizedGeometry, warnings: [...(final.warnings ?? []), ...(decision.relaxed ? [decision.reason] : [])] }
@@ -123,7 +124,7 @@ try {
     const p = payloadAt(i)
     const stage = resolve(directory, 'candidates', String(seeds[i]))
     const input = resolve(stage, 'input.json'), name = `villa_${seeds[i]}`
-    const options = ['--input', input, '--out-dir', stage, '--name', name, '--production-names', '--quality', request.quality]
+    const options = ['--input', input, '--out-dir', stage, '--name', name, '--production-names', '--quality', request.quality,...directionRenderOptions(request)]
     const work = p.error ? Promise.resolve({ error: p.error }) : (async () => {
       await mkdir(stage, { recursive: true })
       await writeFile(input, JSON.stringify(p.payload))

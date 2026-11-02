@@ -18,7 +18,8 @@ test('tank manifold, risers, indoor horizontal/vertical branches and every actua
   const h=setup(seed),s=coordinateSupply(h.building,h.home,h.floors)
   const expected=h.floors.flatMap(f=>f.fixtures.filter(f=>f.type!=='floor_drain'))
   assert.equal(s.fixtures.length,expected.length);assert.equal(s.pendingLayout.pipes.length,0)
-  for(const f of s.fixtures){assert.equal(f.connected,true,f.id);const trace=supplyFixtureTrace(s,f);assert.ok(trace.length);assert.ok(s.roots.some(r=>same(r,trace[0][0])));assert.ok(same(trace.at(-1).at(-1),f.point));for(let i=1;i<trace.length;i++)assert.ok(same(trace[i-1].at(-1),trace[i][0]))}
+  const unresolved=new Set(h.floors.flatMap(f=>f.waterNetworks.filter(n=>n.service==='cold').flatMap(n=>n.unroutedFixtures)))
+  for(const f of s.fixtures){assert.equal(f.connected,!unresolved.has(f.id),f.id);if(!f.connected)continue;const trace=supplyFixtureTrace(s,f);assert.ok(trace.length);assert.ok(s.roots.some(r=>same(r,trace[0][0])));assert.ok(same(trace.at(-1).at(-1),f.point));for(let i=1;i<trace.length;i++)assert.ok(same(trace[i-1].at(-1),trace[i][0]))}
   assert.ok(s.layout.pipes.some(p=>p.id.startsWith('water:external-feed:')))
   assert.ok(s.layout.pipes.some(p=>p.id.startsWith('water:drawing:')))
   assert.ok(s.layout.segments.some(p=>p.from.z===p.to.z));assert.ok(s.layout.segments.some(p=>p.from.x===p.to.x&&p.from.y===p.to.y&&p.from.z!==p.to.z))

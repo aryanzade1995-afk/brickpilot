@@ -123,7 +123,13 @@ def create_scene(payload, visualization=None):
         floor = by_floor[stair["floorId"]]
         if floor["level"] < floors[-1]["level"] or flat_roof:
             create_staircase(scene, stair, floor, building.get("quantityRules", {}).get("stairs"))
+    continuous_roof=payload.get("coastalRoof")
+    if continuous_roof:
+        from geometry.coastal_roof import create_coastal_roof
+        create_coastal_roof(scene,continuous_roof)
     for mass in massing["masses"]:
+        if continuous_roof and mass["id"] in continuous_roof["massIds"]:
+            continue
         # Roof caps must not seal the stair exit or service shafts.
         voids = [stair["rect"] for stair in building["stairs"] if flat_roof and stair["floorId"] == mass["sourceFloorId"]]
         voids += [shaft["rect"] for shaft in building["shafts"] if shaft["floorId"] == mass["sourceFloorId"]]
@@ -139,6 +145,20 @@ def create_scene(payload, visualization=None):
             customized = any(unit["category"] == "BALCONY" and room["semanticId"] in unit["sourceRoomIds"] for unit in assemblies)
             create_balcony(scene, room, by_floor[room["floorId"]], terrace_mass, building["doors"], with_railing=not customized)
     create_roof_services(scene, building, payload.get("roofAccess"))
+    # Replay canonical shaft-edge casings; retain the service void behind them.
+    from mathutils import Vector
+    bpy.context.view_layer.update()
+    for closure in payload.get('serviceClosures', []):
+        b=closure['boundsMm']
+        center=Vector(((b['x']+b['w']/2)*MM,(b['y']+b['d']/2)*MM,(b['z']+b['h']/2)*MM))
+        covered=False
+        for obj in scene.collections['ROOF'].objects:
+            if obj.type!='MESH' or obj.get('material_role')!='wall': continue
+            points=[obj.matrix_world@Vector(v) for v in obj.bound_box]
+            if all(min(v[i] for v in points)<=center[i]<=max(v[i] for v in points) for i in range(3)):
+                covered=True;break
+        if not covered:
+            scene.box(closure['id'],'ROOF',b['x']+b['w']/2,b['y']+b['d']/2,b['z'],b['w'],b['d'],b['h'],'wall',closure['sourceId'],bevel=0)
     create_stair_guards(scene, payload)
     create_plumbing(scene, payload)
     create_terrace_objects(scene, building, payload.get("roofAccess"))

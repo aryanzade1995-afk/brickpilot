@@ -14,6 +14,7 @@ import { type ArchitecturalFeature, type ArchitecturalFeatureType,
   type FacadeZone, type FeaturePart, type FrameParameters, type ProceduralFacadeModel } from './proceduralTypes.ts'
 
 export type FeatureGenerationOptions = {
+  continuousRoof?: boolean
   usableTerrace?: boolean
   architecturalFamily?: ArchitecturalFamily
   heroFeature?: ArchitecturalFeatureType
@@ -377,7 +378,7 @@ export class ArchitecturalFeatureGenerator {
       // the first design of this family whose only problem is a porch that cannot take safe pillars
       let partlyOpen: ProceduralFacadeModel | null = null
       for (const type of options.heroFeature ? [options.heroFeature] : recipe.heroes) {
-        const candidates = zones.filter((zone) => eligible(type, zone) && (!options.usableTerrace || zone.kind !== 'ROOFLINE' || zone.anchorKind === 'roof-interior'))
+        const candidates = zones.filter((zone) => eligible(type, zone) && (!options.continuousRoof || zone.kind!=='ROOFLINE') && (!options.usableTerrace || zone.kind !== 'ROOFLINE' || zone.anchorKind === 'roof-interior'))
           .map((zone) => ({ zone, key: makeRng(dna.seed, `facade-zone|${family}|${type}|${zone.id}`).next() }))
           .sort((a, b) => b.zone.endMm - b.zone.startMm - (a.zone.endMm - a.zone.startMm) || a.key - b.key)
         for (const { zone } of candidates) {
@@ -391,7 +392,7 @@ export class ArchitecturalFeatureGenerator {
             .filter(() => supportRng.range(0, 1) < 0.85)
           for (const supportType of wanted.slice(0, 2)) {
             if (supportType === type || features.some((f) => f.type === supportType)) continue
-            for (const host of zones.filter((z) => eligible(supportType, z) && (!options.usableTerrace || z.kind !== 'ROOFLINE' || z.anchorKind === 'roof-interior') && !features.some((f) => f.zoneIds.includes(z.id)))
+            for (const host of zones.filter((z) => eligible(supportType, z) && (!options.continuousRoof || z.kind!=='ROOFLINE') && (!options.usableTerrace || z.kind !== 'ROOFLINE' || z.anchorKind === 'roof-interior') && !features.some((f) => f.zoneIds.includes(z.id)))
               .sort((a, b) => area(b) - area(a))) {
               const candidate = makeFeature(supportType, 'support', host, zones, building, dna,
                 makeRng(dna.seed, `${building.compositionId ?? building.planId}|${family}|support|${supportType}|${host.id}`), features.length, recipe)

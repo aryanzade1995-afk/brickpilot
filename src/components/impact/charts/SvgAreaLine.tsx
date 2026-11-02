@@ -24,7 +24,7 @@ export const SvgAreaLine: FC<SvgAreaLineProps> = ({
   subtitle,
   data,
   unit = 'kWh',
-  color = '#2563eb',
+  color = '#74809c',
   secondaryColor = '#6b7280',
   primaryLabel = 'With PM Surya Ghar Subsidy',
   secondaryLabel = 'Without Subsidy',
@@ -70,7 +70,7 @@ export const SvgAreaLine: FC<SvgAreaLineProps> = ({
   const ariaSummary = `${title}: Chart showing ${data.length} points from ${data[0].label} to ${data[data.length - 1].label}. Range ${minVal} to ${maxVal} ${unit}.`
 
   return (
-    <div className={`rounded-xl border border-line bg-bg-raised p-5 ${className}`}>
+    <div className={`rounded border border-line bg-bg-raised p-5 ${className}`}>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <span className="font-mono text-xs uppercase tracking-wider text-ink-dim">Solar Projection</span>
@@ -154,9 +154,9 @@ export const SvgAreaLine: FC<SvgAreaLineProps> = ({
           {/* Payback marker if requested */}
           {showPaybackCross && paybackPoint && (
             <g transform={`translate(${scaleX(paybackIndex)}, ${scaleY(paybackPoint.value)})`}>
-              <circle r={6} fill="#059669" fillOpacity={0.25} />
-              <circle r={3} fill="#059669" />
-              <rect x={-52} y={-26} width={104} height={20} rx={4} fill="#059669" />
+              <circle r={6} fill="#405b52" fillOpacity={0.25} />
+              <circle r={3} fill="#405b52" />
+              <rect x={-52} y={-26} width={104} height={20} rx={4} fill="#405b52" />
               <text x={0} y={-12} textAnchor="middle" className="fill-white font-mono text-[11px] font-bold">
                 Payback: {paybackPoint.label}
               </text>

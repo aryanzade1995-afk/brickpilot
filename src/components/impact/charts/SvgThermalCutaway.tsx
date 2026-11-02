@@ -1,193 +1,65 @@
-import { useState, type FC } from 'react'
+import {useId,useState} from 'react'
+import {ArrowDownRight,ArrowUpRight,Settings2,Sun} from 'lucide-react'
+import {roofComparison} from '@/lib/impact/roofComparison.ts'
+import {translate as t} from '@/lib/i18n/index.ts'
 
 export interface SvgThermalCutawayProps {
-  roofAreaM2: number
-  standardU?: number
-  coolRoofU?: number
-  deltaT?: number
-  standardWatts?: number
-  coolWatts?: number
-  reductionWatts?: number
-  reductionPercent?: number
-  className?: string
+ roofAreaM2:number|null
+ standardU?:number|null
+ coolRoofU?:number|null
+ deltaT?:number|null
+ source?:string
+ areaBasis?:string
+ onEditInputs?:()=>void
+ // Legacy callers may pass totals; inputs remain the calculation authority.
+ standardWatts?:number;coolWatts?:number;reductionWatts?:number;reductionPercent?:number
+ className?:string
 }
-
-export const SvgThermalCutaway: FC<SvgThermalCutawayProps> = ({
-  roofAreaM2,
-  standardU = 2.0,
-  coolRoofU = 0.5,
-  deltaT = 15,
-  standardWatts: propStdWatts,
-  coolWatts: propCoolWatts,
-  reductionWatts: propReductionWatts,
-  reductionPercent: propReductionPct,
-  className = '',
-}) => {
-  const [mode, setMode] = useState<'standard' | 'cool'>('cool')
-
-  const effectiveArea = Math.max(0, roofAreaM2)
-  const standardWatts = propStdWatts ?? Math.round(effectiveArea * standardU * deltaT)
-  const coolWatts = propCoolWatts ?? Math.round(effectiveArea * coolRoofU * deltaT)
-  const reductionWatts = propReductionWatts ?? Math.max(0, standardWatts - coolWatts)
-  const reductionPercent = propReductionPct ?? (standardWatts > 0 ? Math.round((reductionWatts / standardWatts) * 100) : 0)
-  const activeWatts = mode === 'standard' ? standardWatts : coolWatts
-
-  const isCool = mode === 'cool'
-  const arrowColor = isCool ? '#059669' : '#d97706'
-
-  const ariaSummary = `Roof thermal cutaway diagram: ${isCool ? 'Cool roof with high-SRI coating' : 'Standard uninsulated RCC slab'}. Conduction heat flow is ${activeWatts.toLocaleString('en-IN')} Watts at delta-T of ${deltaT}K across ${effectiveArea.toFixed(1)} m² roof. Cool roof reduces heat conduction by ${reductionWatts.toLocaleString('en-IN')} Watts (${reductionPercent}%).`
-
-  return (
-    <div className={`rounded-xl border border-line bg-bg-raised p-5 ${className}`}>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <span className="font-mono text-xs uppercase tracking-wider text-ink-dim">BEE Eco-Niwas Samhita (ENS 2021) Table 3.1</span>
-          <h3 className="font-display text-xl font-medium text-ink">Roof Thermal Cutaway (Watts Heat Ingress)</h3>
-          <p className="font-sans text-xs text-ink-dim">Steady-state conduction: W = U × Area ({effectiveArea.toFixed(0)} m²) × ΔT ({deltaT} K)</p>
-        </div>
-        <div className="flex rounded-lg border border-line bg-bg-inset p-1 text-xs">
-          <button
-            type="button"
-            onClick={() => setMode('standard')}
-            className={`rounded-md px-3 py-1 font-mono font-medium transition-colors cursor-pointer ${
-              !isCool ? 'bg-bg-raised text-ink shadow-xs' : 'text-ink-dim hover:text-ink'
-            }`}
-          >
-            Standard RCC Slab (U={standardU.toFixed(1)})
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode('cool')}
-            className={`rounded-md px-3 py-1 font-mono font-medium transition-colors cursor-pointer ${
-              isCool ? 'bg-emerald-700 text-white shadow-xs' : 'text-ink-dim hover:text-ink'
-            }`}
-          >
-            Cool Roof (U={coolRoofU.toFixed(1)})
-          </button>
-        </div>
-      </div>
-
-      <div className="relative w-full overflow-hidden">
-        <svg
-          viewBox="0 0 540 270"
-          role="img"
-          aria-label={ariaSummary}
-          className="h-auto w-full"
-          style={{ fontFamily: 'var(--font-sans), Inter, sans-serif' }}
-        >
-          <desc>{ariaSummary}</desc>
-
-          {/* Sky / Solar exposure background */}
-          <rect x={0} y={0} width={540} height={70} fill={isCool ? '#eff6ff' : '#fffbeb'} />
-          
-          {/* Sun icon */}
-          <circle cx={60} cy={35} r={18} fill="#f59e0b" />
-          <path d="M60 10v6 M60 54v6 M35 35h6 M79 35h6 M42 17l4 4 M74 49l4 4 M42 53l4-4 M74 21l4-4" stroke="#f59e0b" strokeWidth={2} strokeLinecap="round" />
-          <text x={95} y={40} className="fill-ink font-sans text-xs font-bold">
-            Solar Thermal Ingress · ΔT = {deltaT} K Differential
-          </text>
-
-          {/* Roof Layers */}
-          {/* Layer 1: Reflective coating (cool roof) or bare screed (standard) */}
-          <rect
-            x={20}
-            y={70}
-            width={500}
-            height={20}
-            fill={isCool ? '#059669' : '#9ca3af'}
-          />
-          <text
-            x={30}
-            y={84}
-            className="fill-white font-mono text-[11px] font-bold"
-            style={{ fontFamily: 'var(--font-mono), monospace' }}
-          >
-            {isCool ? `HIGH-SRI REFLECTIVE COATING (U = ${coolRoofU.toFixed(2)} W/m²K)` : `STANDARD CEMENT SCREED (U = ${standardU.toFixed(2)} W/m²K)`}
-          </text>
-
-          {/* Layer 2: Insulation (only on cool roof) */}
-          {isCool && (
-            <>
-              <rect x={20} y={90} width={500} height={20} fill="#fde68a" stroke="#d97706" strokeWidth={0.5} strokeDasharray="3 3" />
-              <text
-                x={30}
-                y={104}
-                className="fill-amber-950 font-mono text-xs font-bold"
-                style={{ fontFamily: 'var(--font-mono), monospace' }}
-              >
-                50mm XPS / MINERAL WOOL INSULATION
-              </text>
-            </>
-          )}
-
-          {/* Layer 3: RCC Structural Slab */}
-          <rect
-            x={20}
-            y={isCool ? 110 : 90}
-            width={500}
-            height={isCool ? 40 : 58}
-            fill="#4b5563"
-          />
-          <text
-            x={30}
-            y={isCool ? 134 : 124}
-            className="fill-white font-mono text-[11px] font-bold tracking-wider"
-            style={{ fontFamily: 'var(--font-mono), monospace' }}
-          >
-            150mm CAST-IN-PLACE RCC STRUCTURAL SLAB
-          </text>
-
-          {/* Interior Ceiling Space */}
-          <rect x={20} y={150} width={500} height={100} fill={isCool ? '#f0fdf4' : '#fef2f2'} />
-
-          {/* Heat Flow Transmission Arrows (Sized from W = U * A * DeltaT) */}
-          <g transform="translate(180, 160)">
-            <path
-              d={isCool ? "M0,0 L0,35 M-5,28 L0,35 L5,28" : "M0,0 L0,45 M-10,35 L0,45 L10,35"}
-              stroke={arrowColor}
-              strokeWidth={isCool ? 2.5 : 5}
-              fill="none"
-              strokeLinecap="round"
-            />
-            <text
-              x={isCool ? 14 : 20}
-              y={24}
-              className="font-mono text-xs font-bold"
-              fill={arrowColor}
-              style={{ fontFamily: 'var(--font-mono), monospace' }}
-            >
-              {activeWatts.toLocaleString('en-IN')} W Conduction
-            </text>
-          </g>
-
-          <g transform="translate(360, 160)">
-            <path
-              d={isCool ? "M0,0 L0,35 M-5,28 L0,35 L5,28" : "M0,0 L0,45 M-10,35 L0,45 L10,35"}
-              stroke={arrowColor}
-              strokeWidth={isCool ? 2.5 : 5}
-              fill="none"
-              strokeLinecap="round"
-            />
-            <text
-              x={isCool ? 14 : 20}
-              y={24}
-              className="font-mono text-xs font-bold"
-              fill={arrowColor}
-              style={{ fontFamily: 'var(--font-mono), monospace' }}
-            >
-              W = {isCool ? coolRoofU.toFixed(1) : standardU.toFixed(1)} × {effectiveArea.toFixed(0)}m² × {deltaT}K
-            </text>
-          </g>
-
-          {/* Reduction Callout Badge */}
-          <rect x={20} y={212} width={500} height={36} rx={6} fill={isCool ? '#dcfce7' : '#fee2e2'} stroke={isCool ? '#86efac' : '#fca5a5'} />
-          <text x={35} y={235} className={`font-sans text-xs font-bold ${isCool ? 'fill-emerald-900' : 'fill-rose-900'}`}>
-            {isCool
-              ? `✓ Thermal Benefit: Reduces peak heat ingress by ${reductionWatts.toLocaleString('en-IN')} W (${reductionPercent}% cut vs uninsulated slab)`
-              : `⚠ Baseline Ingress: ${standardWatts.toLocaleString('en-IN')} W transferred into habitable space through uninsulated slab`}
-          </text>
-        </svg>
-      </div>
+const fmt=(value:number,digits=1)=>new Intl.NumberFormat('en-IN',{maximumFractionDigits:digits}).format(value)
+export function SvgThermalCutaway({roofAreaM2,standardU=null,coolRoofU=null,deltaT=null,source='',areaBasis='Entered roof area',onEditInputs,className=''}:SvgThermalCutawayProps){
+ const [mode,setMode]=useState<'current'|'proposed'>('proposed')
+ const id=useId().replace(/:/g,'')
+ const data=roofComparison({areaM2:roofAreaM2,currentRoofU:standardU,proposedRoofU:coolRoofU,temperatureDifferenceK:deltaT,source},0)
+ const proposed=mode==='proposed',activeW=proposed?data.proposedW:data.currentW,activeU=proposed?coolRoofU:standardU
+ const maxW=Math.max(data.currentW??0,data.proposedW??0,1),ratio=(activeW??0)/maxW
+ const color=proposed?'#677e74':'#9a8770',hasFlow=data.ready&&(activeW??0)>0
+ const description=data.ready?`${t(proposed?'Proposed roof':'Current roof')}: ${fmt(activeW!)} W. U ${fmt(activeU!,3)} W/m²K × ${fmt(data.areaM2,3)} m² × ${fmt(deltaT!,3)} K.`:t('Enter roof U-values and temperature difference to calculate heat flow.')
+ return <article className={`min-w-0 overflow-hidden rounded border border-line bg-bg-raised ${className}`} aria-label={t('Roof heat-flow comparison')}>
+  <header className="flex flex-wrap items-start justify-between gap-4 border-b border-line p-5">
+   <div><p className="font-mono text-[10px] uppercase tracking-widest text-ink-faint">{t('Roof performance')}</p><h3 className="mt-1 font-display text-xl">{t('Roof heat-flow comparison')}</h3><p className="mt-1 text-xs text-ink-dim">{fmt(data.areaM2>0?data.areaM2:0,2)} m² · {t(areaBasis)}</p></div>
+   <div className="flex max-w-full rounded border border-line bg-bg p-1" role="group" aria-label={t('Roof assembly shown')}>
+    {(['current','proposed'] as const).map(value=><button key={value} type="button" aria-pressed={mode===value} onClick={()=>setMode(value)} className={`min-h-11 rounded px-4 text-sm focus-visible:outline-2 focus-visible:outline-accent ${mode===value?'bg-ink text-bg':'text-ink-dim hover:bg-bg-inset'}`}>{t(value==='current'?'Current roof':'Proposed roof')}</button>)}
+   </div>
+  </header>
+  <div className="grid min-w-0 lg:grid-cols-[minmax(0,1.5fr)_minmax(260px,1fr)]">
+   <div className="min-w-0 p-5 sm:p-6">
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-xs text-ink-dim"><span className="inline-flex items-center gap-2"><Sun size={16} className="text-[#9a8770]" aria-hidden/>{t('Outside')}</span><span>ΔT {deltaT===null?'—':fmt(deltaT)} K</span></div>
+    <div className="relative overflow-hidden rounded border border-line bg-[#f5f6f3]">
+     <svg viewBox="0 0 640 270" role="img" aria-label={description} className="block h-auto w-full" style={{fontFamily:'var(--font-sans)'}}>
+      <title>{t('Roof assembly and heat flow')}</title><desc>{description}</desc>
+      <defs><pattern id={`${id}-slab`} width="24" height="16" patternUnits="userSpaceOnUse"><circle cx="5" cy="5" r="1.2" fill="#bac0bc"/><path d="m16 9 3 2 -4 2" fill="none" stroke="#bec4c0" strokeWidth="1"/></pattern><linearGradient id={`${id}-air`} x1="0" x2="0" y1="0" y2="1"><stop stopColor={color} stopOpacity=".07"/><stop offset="1" stopColor={color} stopOpacity="0"/></linearGradient></defs>
+      <rect x="0" y="0" width="640" height="270" fill={`url(#${id}-air)`}/>
+      <path d="M50 90 490 70 588 104 148 126Z" fill={proposed?'#dce4de':'#e8e0d5'} stroke="#aeb8af"/>
+      <path d="M50 90 148 126 148 164 50 130Z" fill="#aeb8b0"/>
+      <path d="M148 126 588 104 588 142 148 164Z" fill="#d4d9d4" stroke="#aeb8af"/>
+      <path d="M148 126 588 104 588 142 148 164Z" fill={`url(#${id}-slab)`}/>
+      <path d="M50 130 148 164 588 142 588 149 148 171 50 137Z" fill="#eceee9" stroke="#b9c1ba"/>
+      <g fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" opacity={data.ready?(hasFlow?1:0):.2}>
+       {[0,1,2,3,4].map(i=>{const x=174+i*79,y=177-i*3;return <g key={i}><path d={`M${x} ${y} v${24+ratio*34}`} strokeWidth={1.4+ratio*3} strokeDasharray="4 8" className={hasFlow?'roof-heat-flow':''}/><path d={`m${x-5} ${y+19+ratio*34} 5 5 5 -5`} strokeWidth={1.4+ratio*2}/></g>})}
+      </g>
+     </svg>
+     <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line bg-bg-raised/80 px-4 py-3 text-xs text-ink-dim"><span>{t('Inside')}</span><span>{t('Whole-roof U-value')} · {activeU===null?'—':fmt(activeU,3)} W/m²K</span></div>
     </div>
-  )
+    <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-ink-faint"><span className="inline-flex items-center gap-2"><i className="h-2 w-4 rounded-sm bg-[#dce4de]"/>{t('Roof surface')}</span><span className="inline-flex items-center gap-2"><i className="h-2 w-4 rounded-sm bg-[#b9c2ba]"/>{t('Assembly section')}</span><span>{t('Schematic · layers not to scale')}</span></div>
+   </div>
+   <aside className="min-w-0 border-t border-line bg-bg/60 p-5 lg:border-l lg:border-t-0 sm:p-6">
+    <div aria-live="polite"><p className="text-xs text-ink-dim">{t(proposed?'Proposed heat flow':'Current heat flow')}</p><p className="mt-2 break-words font-display text-4xl leading-tight text-ink">{data.ready?fmt(activeW!,0):'—'} <span className="font-sans text-sm text-ink-faint">W</span></p></div>
+    <div className="mt-5 space-y-4">{([['Current roof',data.currentW,'#9a8770'],['Proposed roof',data.proposedW,'#677e74']] as const).map(([label,value,shade])=><div key={label}><div className="mb-2 flex justify-between gap-3 text-xs"><span className="text-ink-dim">{t(label)}</span><span className="min-w-0 break-words text-right text-ink">{value===null?'—':`${fmt(value,0)} W`}</span></div><div className="h-2 overflow-hidden rounded-full bg-bg-inset"><div className="h-full rounded-full transition-[width] duration-500 motion-reduce:transition-none" style={{width:`${(value??0)/maxW*100}%`,backgroundColor:shade}}/></div></div>)}</div>
+    {data.ready?<div className="mt-5 rounded border border-line bg-bg-raised p-3"><p className="flex items-center gap-2 text-sm text-ink">{data.differenceW!>=0?<ArrowDownRight size={16} aria-hidden/>:<ArrowUpRight size={16} aria-hidden/>}{fmt(Math.abs(data.differenceW!),0)} W {t(data.differenceW!>=0?'less heat flow':'more heat flow')}</p>{data.percent!==null&&<p className="mt-1 text-xs text-ink-dim">{fmt(Math.abs(data.percent))}% {t(data.percent>=0?'lower than current roof':'higher than current roof')}</p>}</div>:<div role="status" className="mt-5 rounded border border-dashed border-line p-3 text-xs leading-relaxed text-ink-dim">{t('Add comparison inputs')}: {data.missing.map(label=>t(label)).join(', ')}.</div>}
+    {onEditInputs&&<button type="button" className="mt-4 inline-flex min-h-11 items-center gap-2 text-sm text-ink underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-accent" onClick={onEditInputs}><Settings2 size={14} aria-hidden/>{t('Edit roof data')}</button>}
+   </aside>
+  </div>
+  <details className="border-t border-line px-5 text-xs text-ink-dim"><summary className="min-h-11 cursor-pointer py-3">{t('Calculation basis')}</summary><div className="space-y-2 pb-4"><p className="break-words">{t('Steady-state conduction')}: Q = U × A × ΔT{data.ready?` = ${fmt(activeU!,3)} × ${fmt(data.areaM2,3)} × ${fmt(deltaT!,3)} = ${fmt(activeW!,1)} W`:''}</p><p>{source.trim()||t('U-values and temperature difference are user-provided.')}</p><p>{t('Assembly materials and thicknesses are not inferred from a U-value. This comparison does not predict room temperature or peak solar heat gain.')}</p></div></details>
+  <style>{`@keyframes roof-heat-flow{to{stroke-dashoffset:-24}} .roof-heat-flow{animation:roof-heat-flow 1.8s linear infinite}@media(prefers-reduced-motion:reduce){.roof-heat-flow{animation:none}}`}</style>
+ </article>
 }

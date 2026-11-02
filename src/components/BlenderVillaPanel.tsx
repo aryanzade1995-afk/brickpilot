@@ -1,4 +1,8 @@
+import {COASTAL_ROOF_REVISION} from '@/lib/engine/massing/coastalRoof.ts'
 import { EntryRampLayer } from './EntryRampLayer.tsx'
+import {ServiceClosureLayer} from './ServiceClosureLayer.tsx'
+import {ParkedCarsLayer} from './ParkedCarsLayer.tsx'
+import {VEHICLES,parkedVehicleChoice} from '@/lib/three/vehicleGeometry.ts'
 import { BalconyShadeLayer } from './BalconyShadeLayer.tsx'
 import { SHADE_CHOICES, SHADE_CONTROL, shadeChoice } from '@/lib/three/shadeVariants.ts'
 import {useReference} from '@/state/reference.ts'
@@ -16,7 +20,8 @@ import { exportThreeSceneToGlb } from '@/lib/export/index.ts'
 import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
 import { useStudio } from '@/state/studio.ts'
 import { finishSignature } from '@/lib/cost/finishAssignments.ts'
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {useProgress} from '@react-three/drei'
 import type { Design } from '@/lib/engine/types.ts'
 import { expandBalconyArea } from '@/lib/engine/balconyExtent.ts'
 import { createBuildingModel } from '@/lib/engine/buildingModel.ts'
@@ -31,13 +36,19 @@ import { useSolarArtifacts, solarArtifactKey, isCurrentSolarArtifact } from '@/s
 import { ExportDropdown } from '@/components/export/ExportDropdown.tsx'
 import { villaCadExportItems, VILLA_CAD_HELP } from '@/components/export/villaCadExports.ts'
 import { captureCanvasPng } from '@/lib/export/index.ts'
+const RealisticSiteEnvironment=lazy(()=>import('./RealisticSiteEnvironment.tsx'))
+function SiteLoading(){const {active,progress}=useProgress();return <div role="status" className="absolute inset-0 z-10 flex items-center justify-center bg-bg/85"><div className="w-64 border border-line bg-bg p-5 shadow-lg"><p className="font-display text-xl">Preparing the surroundings</p><progress aria-label="Loading realistic house view" max={100} value={active?Math.max(10,progress):10} className="mt-4 h-2 w-full accent-emerald-800"/><p className="mt-2 text-xs text-ink-dim">Loading the villa, trees and road traffic…</p></div></div>}
 
 export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: { plan: Design; autoGenerate?: boolean; selectedSeed?: number }) {
   useLanguage(s => s.language);
   const villaContainerRef = useRef<HTMLDivElement>(null)
+  const [contextMode,setContextMode]=useState(false),[siteReady,setSiteReady]=useState(false),[golden,setGolden]=useState(false)
+  const [traffic,setTraffic]=useState(()=>!window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+  const siteLoaded=useCallback(()=>setSiteReady(true),[])
 
   const brief = useStudio(s => s.result?.design === plan ? s.brief : plan.model.brief)
   const edit=useStudio(s=>s.edit),shade=shadeChoice(brief.specs?.overrides[SHADE_CONTROL])
+  const parkedCar=parkedVehicleChoice(brief.specs?.overrides['visual-model-parked-car'])
   // Solar is a sibling scene layer, never an input to the prepared building or its render effect.
   const finishedPlan = useMemo(() => ({ ...plan, model: { ...plan.model, brief: { ...plan.model.brief, finish: brief.finish, specs: brief.specs } } }), [plan, brief.finish, brief.specs])
   const building = useMemo(() => createBuildingModel(finishedPlan), [finishedPlan])
@@ -61,7 +72,6 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
   const resume = useBlender((s) => s.resume)
   const ensureForPlan = useBlender((s) => s.ensureForPlan)
   const quality = result?.quality ?? 'preview'
-  const [view, setView] = useState<'hero' | 'front' | 'aerial'>('hero')
   const solarKey = solarArtifactKey(result, solar.solar, quality)
   const solarArtifact = useSolarArtifacts(s => s.renders[solarKey])
   const solarJob = useSolarArtifacts(s => s.jobs[solarKey])
@@ -114,11 +124,14 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
     {sourcePlanId === id && error && !error.includes('Set BLENDER_BIN') && !busy && <button type="button" onClick={() => void generate(finishedPlan, result?.seed ?? selectedSeed ?? plan.dna.seed, quality, true)}
       className="mt-3 border border-line px-4 py-2 text-sm">{translateUi('Retry 3D model')}</button>}
     {result && <>
-      {result.geometryRevision !== WALKTHROUGH_ACCESS_REVISION && <div className="mt-4 flex flex-wrap items-center gap-3 border border-line bg-bg-inset p-3"><p className="flex-1 text-xs text-ink-dim">{translateUi('Update terrace walls and floor edges on this same villa.')}</p><button type="button" disabled={busy} onClick={() => void generate(finishedPlan, result.seed, quality, true)} className="min-h-11 border border-line bg-accent px-4 text-xs text-bg disabled:opacity-50">{translateUi(busy ? 'Updating Blender villa…' : 'Update 3D model')}</button></div>}
+      {(result.geometryRevision !== WALKTHROUGH_ACCESS_REVISION || brief.style.character==='coastal-bungalow'&&result.roofRevision!==COASTAL_ROOF_REVISION) && <div className="mt-4 flex flex-wrap items-center gap-3 border border-line bg-bg-inset p-3"><p className="flex-1 text-xs text-ink-dim">{translateUi(brief.style.character==='coastal-bungalow'?'Update this villa with a continuous coastal roof.':'Update terrace walls and floor edges on this same villa.')}</p><button type="button" disabled={busy} onClick={() => void generate(finishedPlan, result.seed, quality, true)} className="min-h-11 border border-line bg-accent px-4 text-xs text-bg disabled:opacity-50">{translateUi(busy ? 'Updating Blender villa…' : 'Update 3D model')}</button></div>}
       {result.finishSignature !== signature && <p className="mt-3 text-sm text-ink-dim">{translateUi("Updating selected finishes on this same design…")}</p>}
       <p className="mt-4 font-mono text-xs text-ink-dim">{translateUi("Visualisation · Blender · Seed ")}{translateUi(result.seed)} · {translateUi(result.family.replaceAll('_', ' '))} · {translateUi(result.quality === 'final' ? 'Final render' : 'Preview')}</p>
-      <div className="mt-3 grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2">
-        <div id="villa-interactive-view" ref={villaContainerRef} role="region" aria-label={translateUi('Interactive villa with rooftop solar')} className="relative aspect-[4/3] w-full min-w-0 border border-line">
+      <div className="mt-3 min-w-0">
+        <div id="villa-interactive-view" ref={villaContainerRef} role="region" aria-label={translateUi('Interactive villa with rooftop solar')} className="house-viewer relative h-[clamp(420px,75vh,900px)] w-full min-w-0 border border-line [&:fullscreen]:h-screen">
+          <div className="absolute left-2 top-2 z-20 flex flex-wrap gap-1"><button type="button" aria-pressed={contextMode} onClick={()=>{setSiteReady(false);setContextMode(v=>!v)}} className="min-h-11 border border-line bg-bg/95 px-3 text-xs shadow-sm">{contextMode?'Studio view':'Realistic house view'}</button></div>
+          {contextMode&&!siteReady&&<SiteLoading/>}
+          {contextMode&&<div className="absolute bottom-2 left-2 right-2 z-20 flex flex-wrap items-center gap-2 border border-line bg-bg/95 p-2 text-xs"><button type="button" aria-pressed={traffic} onClick={()=>setTraffic(v=>!v)} className="min-h-11 border border-line px-3">{traffic?'Pause traffic':'Play traffic'}</button><button type="button" aria-pressed={golden} onClick={()=>setGolden(v=>!v)} className="min-h-11 border border-line px-3">{golden?'Golden hour':'Daylight'}</button><button type="button" onClick={()=>{if(document.fullscreenElement)void document.exitFullscreen();else void villaContainerRef.current?.requestFullscreen().catch(()=>{})}} className="min-h-11 border border-line px-3">Expand view</button><span className="text-ink-dim">Illustrative surroundings · not a site survey</span><a className="underline" href="/exterior-assets/site-context/ATTRIBUTION.md" target="_blank" rel="noreferrer">Model credits</a></div>}
           <div className="absolute top-2 right-2 z-20 pointer-events-auto">
             <ExportDropdown
               label="Download Villa"
@@ -176,20 +189,20 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
             />
           </div>
           {referenceFacade&&<p className="absolute bottom-2 left-2 right-2 z-10 bg-bg/90 px-3 py-2 text-xs text-ink-dim">Accepted reference facade overlay · source building retained. <Link className="underline" to="/workspace/plan#reference-facade">Edit / return to original</Link></p>}
-          <VillaSceneCanvas key={result.files.glb}>
-            <Suspense fallback={null}><group ref={liveExport}><AcceptedVillaModel url={result.files.glb} gardenShade={brief.rooms.priorities.garden && brief.rooms.priorities.gardenShade} separateRoofTanks={!!pipelines} style={referenceFacade?.operation==='style-transfer'?referenceFacade.geometry.style:undefined}/>{referenceFacade&&<ReferenceLayer geometry={referenceFacade.geometry}/>}
+          <VillaSceneCanvas key={`${result.files.glb}:${contextMode}`} realistic={contextMode} golden={contextMode&&golden}>
+            <Suspense fallback={null}><group ref={liveExport}><AcceptedVillaModel url={result.files.glb} replaceParkedCars gardenShade={brief.rooms.priorities.garden && brief.rooms.priorities.gardenShade} separateRoofTanks={!!pipelines} style={referenceFacade?.operation==='style-transfer'?referenceFacade.geometry.style:undefined}/><ParkedCarsLayer url={result.files.glb} choice={parkedCar} building={building}/>{referenceFacade&&<ReferenceLayer geometry={referenceFacade.geometry}/>}
+              <ServiceClosureLayer building={building} design={finishedPlan} url={result.files.glb}/>
               {building.entryRamp&&<EntryRampLayer ramp={building.entryRamp}/>}
               {shade!=='original'&&<BalconyShadeLayer url={result.files.glb} choice={shade}/>}
               <SolarLayer layout={solar.displayLayout} roof={solar.displayRoof} reservedAreas={solar.displayConfiguration.inputs.reservedAreas} selectedIds={solar.selectedIds} onSelect={solar.pickPanel}/>
               {pipelines&&<><ResizableRoofTanks url={result.files.glb} ports={pipelines.originalPorts} diameterScale={pipelines.options.roofDiameterScale??1} heightScale={pipelines.options.roofHeightScale??1} xray={false} onSelect={()=>{}}/><ProjectPipelineLayer network={pipelines} water={waterPipes} drain={drainPipes} xray={pipeXray}/></>}
             </group><SolarCamera request={solar.camera} roof={solar.displayRoof} layout={solar.displayLayout} selectedIds={solar.selectedIds}/></Suspense>
+            {contextMode&&<Suspense fallback={null}><RealisticSiteEnvironment key={result.files.glb} building={building} traffic={traffic} golden={golden} onReady={siteLoaded}/></Suspense>}
           </VillaSceneCanvas>
         </div>
-        <div>{referenceFacade&&<p className="mb-2 border border-line bg-bg-inset p-2 text-xs text-ink-dim">Source image · reference facade changes are only shown in the live model. Export an updated image from Reference facade.</p>}<p role="status" className="mb-2 text-xs text-ink-dim">{translateUi(currentSolar ? 'Current applied solar layout · accepted building unchanged.' : 'Building-only image · out of date for the current solar design. Render the applied solar layout to update.')}{solar.draft && ` ${translateUi('Unsaved layout preview is not included in exported images.')}`}</p><img src={(currentSolar ?? result).files[view]} alt={translateUi(currentSolar ? `${view} view with applied solar layout` : `${view} building-only reference; solar not current`)} className="aspect-[4/3] w-full object-contain" />
-          <div className="mt-2 flex gap-2">{(['hero', 'front', 'aerial'] as const).map((key) =>
-            <button type="button" key={key} onClick={() => setView(key)} className="border border-line px-3 py-1 text-xs uppercase">{translateUi(key)}</button>)}</div>
-        </div>
+
       </div>
+      <label className="mt-4 flex flex-wrap items-center gap-3 text-xs">Parked car<select aria-label="Parked car" className="min-h-11 border border-line bg-bg px-3" value={parkedCar} onChange={e=>edit(b=>{b.specs??={overrides:{}};b.specs.overrides['visual-model-parked-car']=e.target.value})}>{Object.entries(VEHICLES).filter(([id])=>id!=='compact-hatch').map(([id,car])=><option key={id} value={id}>{car.label}</option>)}</select><a className="underline text-ink-dim" href="/exterior-assets/free-cars/SOURCE.md" target="_blank" rel="noreferrer">Car model credits</a></label>
       <section className="mt-4 border border-line bg-bg-raised p-4" aria-label={translateUi('Water & drainage pipelines')}>
         <label className="mb-4 flex flex-wrap items-center gap-3 text-xs">Balcony shade<select aria-label="Balcony shade" className="min-h-11 border border-line bg-bg px-3" value={shade} onChange={e=>edit(b=>{b.specs??={overrides:{}};b.specs.overrides[SHADE_CONTROL]=shadeChoice(e.target.value)})}>{SHADE_CHOICES.map(([id,label])=><option key={id} value={id}>{label}</option>)}</select><span className="text-ink-dim">Existing framed balconies · live 3D / combined GLB only · saved images unchanged</span><a className="underline" href="https://kenney.nl/assets/city-kit-commercial" target="_blank" rel="noreferrer">Kenney · CC0</a></label>
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2"><h3 className="mr-auto font-display text-lg">{translateUi('Water & drainage pipelines')}</h3>{([[waterPipes,setWaterPipes,'Tank water supply'],[drainPipes,setDrainPipes,'Drainage & vents'],[pipeXray,setPipeXray,'See pipes through walls']] as const).map(([value,setter,label])=><label key={label} className="flex min-h-11 items-center gap-2 text-xs"><input type="checkbox" className="accent-accent" checked={value} onChange={e=>setter(e.target.checked)}/>{translateUi(label)}</label>)}</div>

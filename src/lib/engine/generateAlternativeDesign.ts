@@ -1,4 +1,6 @@
+import {coastalRoof} from './massing/coastalRoof.ts'
 import { balconySliders, roofAccess } from '../walkthrough/openingAssemblies.ts'
+import {roofServiceClosures} from '../walkthrough/serviceCovers.ts'
 import { createVillaPlumbing, selectedPipeSizes } from '../plumbing/villaPlumbing.ts'
 import type { Design } from './types.ts'
 import { validate } from '../rules/index.ts'
@@ -48,7 +50,11 @@ export function generateAlternativeDesign(plan: Design, seed: number) {
   // permitted canopies and facade geometry without inventing another footprint.
   const family = productionMassingFamily(buildingModel)
   const coastal=plan.model.brief.style.character==='coastal-bungalow'
-  const occupied = base.masses.filter((m) => m.usage !== 'roof'||coastal&&Math.min(m.width,m.depth)>=(ENVELOPE_LIMITS.minRoofWidthMm??500))
+  // Continuous roof surfaces retain narrow supported edge strips; these are
+  // surface regions, not separate decorative roof volumes.
+  const roofLimits=coastal?{...ENVELOPE_LIMITS,minRoofWidthMm:250}:ENVELOPE_LIMITS
+  const roof=coastal?coastalRoof(buildingModel,base.masses):null
+  const occupied = [...base.masses.filter(m=>m.usage!=='roof'),...(roof?.masses??[])]
   const ground = [...buildingModel.floors].sort((a, b) => a.level - b.level)[0]
   const frontY = ground.outline.y + ground.outline.h
   const protectedOutdoor = [...buildingModel.rooms.filter((r) => r.floorId === ground.id && r.outdoor).map((r) => r.rect), ...(buildingModel.siteFeatures ?? []).filter(f => f.kind !== 'lawn').map(f => f.rect)]
@@ -79,10 +85,10 @@ export function generateAlternativeDesign(plan: Design, seed: number) {
   }
   // Keep the actual top roof clear. Variation belongs on exterior facades and supported canopies.
   const candidate = (attempt: number): Mass[] => [...occupied, ...(attempt === 0 ? additions : [])]
-  const attempt = ArchitectureValidator.tryVariations(buildingModel, 4, candidate, ENVELOPE_LIMITS)
+  const attempt = ArchitectureValidator.tryVariations(buildingModel, 4, candidate, roofLimits)
   if (!attempt.report.valid) throw new Error(`Envelope rejected: ${attempt.report.issues.map((i) => i.code).join(', ')}`)
   const massingModel = { ...base, family, generationMode: 'plan-envelope-v1' as const,
-    architectureLimits: { ...ENVELOPE_LIMITS }, masses: attempt.masses, architectureReport: attempt.report,
+    architectureLimits: { ...roofLimits }, masses: attempt.masses, architectureReport: attempt.report,
     attemptsTried: attempt.attemptsTried, issues: [], silhouetteSignature: massingSilhouetteSignature(attempt.masses) }
   villaDesignDNA.massingFamily = family
   villaDesignDNA.roofType = coastal?'hip':'flat-terrace'
@@ -93,8 +99,8 @@ export function generateAlternativeDesign(plan: Design, seed: number) {
   villaDesignDNA.blockOffsets = actualBlocks.map((m) => ({ xMm: Math.round(m.x + m.width / 2 - top.outline.x - top.outline.w / 2),
     yMm: Math.round(m.y + m.depth / 2 - top.outline.y - top.outline.h / 2) }))
   villaDesignDNA.blockRotations = actualBlocks.map((m) => m.rotation)
-  const facadeGrammar = ArchitecturalFeatureGenerator.generate(buildingModel, villaDesignDNA, massingModel, { usableTerrace: !coastal })
+  const facadeGrammar = ArchitecturalFeatureGenerator.generate(buildingModel, villaDesignDNA, massingModel, { usableTerrace: !coastal, continuousRoof: coastal })
   if (facadeGrammar.status !== 'valid') throw new Error(`Facade rejected: ${JSON.stringify(facadeGrammar.issues)}`)
-  return { schemaVersion: 1 as const, buildingModel, villaDesignDNA, massingModel, facadeGrammar, stairGuards: createStairGuards(buildingModel), balconySliders: balconySliders(buildingModel), roofAccess: roofAccess(buildingModel), plumbing: createVillaPlumbing(buildingModel, selectedPipeSizes(plan.model.brief)),
+  return { schemaVersion: 1 as const, ...(roof?{coastalRoof:roof.model}:{}), buildingModel, villaDesignDNA, massingModel, facadeGrammar, serviceClosures:roofServiceClosures(buildingModel), stairGuards: createStairGuards(buildingModel), balconySliders: balconySliders(buildingModel), roofAccess: roofAccess(buildingModel), plumbing: createVillaPlumbing(buildingModel, selectedPipeSizes(plan.model.brief)),
     shapeFingerprint: createVillaShapeFingerprint(buildingModel, villaDesignDNA, massingModel, facadeGrammar) }
 }

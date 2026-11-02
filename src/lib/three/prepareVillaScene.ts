@@ -7,8 +7,8 @@ import { separateCoplanar } from './separateCoplanar.ts'
 // same static villa. Each canvas gets its own hierarchy and shares prepared data.
 const prepared = new WeakMap<THREE.Object3D, Map<string, THREE.Object3D>>()
 
-export function prepareVillaScene(source: THREE.Object3D, anisotropy: number, separateRoofTanks=false, gardenShade=false) {
-  const key=`${anisotropy}:${separateRoofTanks}:${gardenShade}`
+export function prepareVillaScene(source: THREE.Object3D, anisotropy: number, separateRoofTanks=false, gardenShade=false, replaceParkedCars=false) {
+  const key=`${anisotropy}:${separateRoofTanks}:${gardenShade}:${replaceParkedCars}`
   let variants = prepared.get(source)
   if (!variants) { variants = new Map(); prepared.set(source, variants) }
   let template = variants.get(key)
@@ -16,6 +16,7 @@ export function prepareVillaScene(source: THREE.Object3D, anisotropy: number, se
     template = source.clone(true)
     const remove: THREE.Object3D[] = []
     template.traverse(object => {
+      if(replaceParkedCars&&(object.userData.asset_id==='ferrari-458'||object.userData.formstead_vehicle))remove.push(object)
       if (!gardenShade && (/^EnvelopeCanopy_forecourt-canopy/.test(object.name) || /^Envelope(?:Pier|Foundation)_exterior-pier-/.test(object.name))) remove.push(object)
       // Combined GLBs carry tagged PV. Strip before caching the architecture;
       // the current canonical SolarLayer is then attached exactly once.

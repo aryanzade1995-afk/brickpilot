@@ -10,6 +10,13 @@ def validate_terrace(payload):
     limits=payload["massingModel"].get("architectureLimits",{})
     if not limits.get("minFreeTerraceRatio"): return
     terrace=payload["buildingModel"].get("roofTerrace")
+    # Coastal hip roofs are not accessible flat terraces. Keep the production
+    # terrace checks intact for all flat roofs, including malformed coastal jobs.
+    dna=payload["villaDesignDNA"]
+    if dna.get("character")=="coastal-bungalow" and dna.get("roofType")=="hip" and not terrace:
+        if not any(m["usage"]=="roof" for m in payload["massingModel"]["masses"]):
+            raise ValueError("Coastal hip roof requires source roof volumes")
+        return
     if not terrace: raise ValueError("Production roof requires the authoritative usable terrace")
     if any(m["usage"]=="roof" for m in payload["massingModel"]["masses"]):
         raise ValueError("Decorative roof volumes are forbidden on the usable terrace")

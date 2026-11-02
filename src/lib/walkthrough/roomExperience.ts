@@ -161,3 +161,15 @@ export function suggestionCandidates(context: GuideContext, language: GuideLangu
     `${kind} small narrow compact room dimensions shallow furniture unobstructed doors circulation`, [selected, ivory]))
   return options
 }
+
+/** Sentence boundaries retain decimal dimensions and the complete description. */
+export function narrationParts(text:string):string[]{
+ const sentences=text.trim().split(/(?<=[.!?।])\s+/u).filter(Boolean)
+ if(!sentences.length)return []
+ const result=[sentences[0]]
+ for(const sentence of sentences.slice(1)){
+  if(result.length>1&&result.at(-1)!.length+sentence.length+1<=160)result[result.length-1]+=' '+sentence
+  else result.push(sentence)
+ }
+ return result
+}

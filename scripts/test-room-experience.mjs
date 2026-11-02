@@ -96,3 +96,59 @@ test('a late-decoded audio buffer cannot play after room change or Escape', asyn
   const locked = new RoomAudioPlayer(() => ({ ...context, state: 'suspended' }))
   await assert.rejects(locked.play(new ArrayBuffer(4), () => {}), /Tap Replay/)
 })
+
+test('progressive Marathi narration preserves every sentence and decimal dimension',async()=>{
+ const {narrationParts}=await import('../src/lib/walkthrough/roomExperience.ts')
+ const text=describeRoom(base(),'mr'),parts=narrationParts(text)
+ assert.ok(parts.length>1);assert.ok(parts[0].length<text.length/2)
+ assert.equal(parts.join(' '),text)
+ assert.deepEqual(narrationParts('A room is 3.3 by 2.4 metres. A second sentence.'),['A room is 3.3 by 2.4 metres.','A second sentence.'])
+})
+
+test('the opening clip is generated alone, cached and returned without waiting for the complete description',async()=>{
+ const context=base();context.planId=`unit-progressive-${Date.now()}`
+ const calls=[]
+ const synthesize=async text=>{calls.push(text);return {wav:waveBuffer(Float32Array.from({length:12000},(_,i)=>Math.sin(i/16)*.2))}}
+ const first=await roomAudio(context,'mr',synthesize,0)
+ assert.equal(first.part,0);assert.ok(first.parts>1);assert.equal(calls.length,1)
+ assert.ok(calls[0].length<describeRoom(context,'mr').length)
+ assert.equal((await roomAudio(context,'mr',synthesize,0)).id,first.id);assert.equal(calls.length,1)
+ const second=await roomAudio(context,'mr',synthesize,1)
+ assert.notEqual(second.id,first.id);assert.equal(calls.length,2)
+ await assert.rejects(roomAudio(context,'mr',synthesize,999),/Unknown narration part/)
+})
+
+test('the first clip plays before the following clip finishes loading, and cancellation prevents stale playback',async()=>{
+ const {playNarrationClips}=await import('../src/lib/walkthrough/narrationClips.ts')
+ let next,ended,starts=0,stops=0
+ const controller=new AbortController()
+ const player={play:async(_,done)=>{starts++;ended=done;return true},stop:()=>{stops++}}
+ const load=async(_,part)=>part===0?{bytes:new ArrayBuffer(48),parts:2}:new Promise(resolve=>{next=resolve})
+ const playback=playNarrationClips(base(),player,controller.signal,()=>{},load)
+ await new Promise(resolve=>setTimeout(resolve,0))
+ assert.equal(starts,1);assert.equal(typeof next,'function')
+ ended();controller.abort();next({bytes:new ArrayBuffer(48),parts:2});await playback
+ assert.equal(starts,1)
+ const stopsBefore=stops
+ const stopped=new AbortController()
+ const active=playNarrationClips(base(),player,stopped.signal,()=>{},async()=>({bytes:new ArrayBuffer(48),parts:1}))
+ await new Promise(resolve=>setTimeout(resolve,0));stopped.abort();await active
+ assert.equal(stops,stopsBefore+1)
+})
+
+test('audio preloading and playback reuse the same bytes and changing finishes refreshes the request',async()=>{
+ const {requestNarrationClip}=await import('../src/lib/walkthrough/narrationClips.ts')
+ const original=globalThis.fetch,context=base();context.planId=`browser-clip-cache-${Date.now()}`
+ let posts=0,downloads=0
+ globalThis.fetch=async(url,options)=>{
+  if(options?.method==='POST'){posts++;return {ok:true,json:async()=>({planId:context.planId,roomId:context.currentRoomId,url:`/api/walkthrough-room/audio/${'a'.repeat(64)}.wav`,part:0,parts:2})}}
+  downloads++;return {ok:true,arrayBuffer:async()=>new ArrayBuffer(48)}
+ }
+ try{
+  const [a,b]=await Promise.all([requestNarrationClip(context),requestNarrationClip(context)])
+  assert.equal(posts,1);assert.equal(downloads,1);assert.equal(a.bytes,b.bytes)
+  await requestNarrationClip(context);assert.equal(posts,1)
+  context.rooms[0].finishes[0].value='Oak wood flooring'
+  await requestNarrationClip(context);assert.equal(posts,2)
+ }finally{globalThis.fetch=original}
+})

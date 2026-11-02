@@ -143,13 +143,25 @@ export function generateDirections(model: CanonicalModel, inspiration?: Inspirat
  * actual passing plan seed, so pinning never re-runs a different search. */
 export function distinctDirectionPlans(model:CanonicalModel,count=4,formVersion?:FormVersion):{plan:Design;massing:MassingType;planSeed:number}[]{
   const plans:{plan:Design;massing:MassingType;planSeed:number}[]=[],seen=new Set<string>()
-  for(const want of directionPlans(model,count*4,formVersion)){
-    const plan=generate(model,{massing:want.family,seed:want.seed,formVersion})
-    if(!validate(plan).hardChecksPass)continue
+  const wants=directionPlans(model,count*8,formVersion)
+  const add=(plan:Design|null)=>{
+    if(!plan||!validate(plan).hardChecksPass)return
     const fingerprint=planFingerprint(plan)
-    if(seen.has(fingerprint.key))continue
+    if(seen.has(fingerprint.key))return
     seen.add(fingerprint.key);plans.push({plan,massing:plan.massingType,planSeed:plan.planSeed??plan.dna.seed})
-    if(plans.length===count*2)break
+  }
+  // Test single concrete recipes, rather than nesting a full 12-candidate
+  // generate() search inside every diversity candidate. Preserve exact replay.
+  for(const want of wants){
+    const plan=generateOne(model,want.family,want.seed,model.seed.split('-')[0],false,true,undefined,formVersion)
+    if(plan){plan.planSeed=want.seed;plan.planRecipe={family:want.family,seed:want.seed,version:'resplan-ridge-retrieval-v1'}}
+    add(plan)
+    if(plans.length>=count*3)break
+  }
+  // Difficult plots retain the existing validated search as a bounded fallback.
+  if(plans.length<count)for(const want of wants.slice(0,count*2)){
+    add(generate(model,{massing:want.family,seed:want.seed,formVersion}))
+    if(plans.length>=count)break
   }
   return diversePlans(plans,count)
 }

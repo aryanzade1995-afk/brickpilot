@@ -30,10 +30,10 @@ export function SvgImpactScoreRing({ scores }: SvgImpactScoreRingProps) {
 
   const getScoreColor = (val: number | null) => {
     if (val === null) return '#707070'
-    if (val >= 80) return '#059669' // emerald-600
-    if (val >= 60) return '#0284c7' // sky-600
-    if (val >= 40) return '#d97706' // amber-600
-    return '#dc2626' // red-600
+    if (val >= 80) return '#405b52' // emerald-600
+    if (val >= 60) return '#536a76' // sky-600
+    if (val >= 40) return '#82715d' // amber-600
+    return '#966c6c' // red-600
   }
 
   const subScoreList = Object.entries(subScores).map(([key, s]) => ({
@@ -42,7 +42,7 @@ export function SvgImpactScoreRing({ scores }: SvgImpactScoreRingProps) {
   }))
 
   return (
-    <div className="relative flex flex-col rounded-xl border border-line bg-bg-raised p-5 shadow-2xs sm:flex-row sm:items-center sm:gap-6">
+    <div className="relative flex flex-col rounded border border-line bg-bg-raised p-5 shadow-2xs sm:flex-row sm:items-center sm:gap-6">
       {/* Radial Meter */}
       <div className="relative flex shrink-0 flex-col items-center justify-center">
         <svg
@@ -122,14 +122,14 @@ export function SvgImpactScoreRing({ scores }: SvgImpactScoreRingProps) {
       <div className="mt-4 flex flex-1 flex-col justify-center gap-2.5 sm:mt-0">
         <div className="mb-1 flex items-center justify-between">
           <span className="font-mono text-xs font-semibold uppercase tracking-wider text-ink-dim">
-            5-Pillar Calibration ({activeSubScoresCount}/5 Active)
+            Assessment pillars · {activeSubScoresCount}/5 active
           </span>
           <button
             type="button"
             onClick={() => setPopoverOpen(true)}
             className="font-mono text-xs text-accent hover:underline inline-flex items-center gap-1 cursor-pointer"
           >
-            <span>Formulas & Weights</span>
+            <span>How it is scored</span>
           </button>
         </div>
 
@@ -154,7 +154,7 @@ export function SvgImpactScoreRing({ scores }: SvgImpactScoreRingProps) {
                 {sub.score !== null ? (
                   `${sub.score} / 100`
                 ) : (
-                  <span className="text-xs font-normal text-amber-800">
+                  <span className="text-xs font-normal text-ink-dim">
                     Needs input
                   </span>
                 )}
@@ -178,7 +178,7 @@ export function SvgImpactScoreRing({ scores }: SvgImpactScoreRingProps) {
           >
             <div className="flex items-center justify-between border-b border-line pb-3">
               <div>
-                <h3 className="font-display text-xl font-medium text-ink">Impact Score Formulas & Weights</h3>
+                <h3 className="font-display text-xl font-medium text-ink">Impact Score How it is scored</h3>
                 <p className="mt-1 font-sans text-xs text-ink-dim">
                   Composite score is the unweighted average of all active sub-scores. Missing inputs are excluded.
                 </p>
@@ -197,7 +197,7 @@ export function SvgImpactScoreRing({ scores }: SvgImpactScoreRingProps) {
               {subScoreList.map(sub => (
                 <div
                   key={sub.key}
-                  className="rounded-xl border border-line bg-bg p-3.5 text-xs text-ink space-y-1.5"
+                  className="rounded border border-line bg-bg p-3.5 text-xs text-ink space-y-1.5"
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-sans font-semibold text-sm flex items-center gap-2">
@@ -218,8 +218,8 @@ export function SvgImpactScoreRing({ scores }: SvgImpactScoreRingProps) {
                     </span>
                   </div>
                   {sub.status === 'needs input' && (
-                    <div className="mt-1.5 flex items-center gap-1.5 rounded-md bg-amber-50 border border-amber-200 px-2.5 py-1.5 font-sans text-xs text-amber-900">
-                      <AlertCircle size={14} className="shrink-0 text-amber-700" />
+                    <div className="mt-1.5 flex items-center gap-1.5 rounded-md bg-bg-inset border border-line px-2.5 py-1.5 font-sans text-xs text-ink-dim">
+                      <AlertCircle size={14} className="shrink-0 text-ink-dim" />
                       <span>Input missing: excluded from composite calculation until data is provided.</span>
                     </div>
                   )}

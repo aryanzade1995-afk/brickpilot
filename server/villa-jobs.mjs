@@ -1,3 +1,4 @@
+import {readyHero} from './direction-render-profile.mjs'
 import { spawn, spawnSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { existsSync, createReadStream, statSync } from 'node:fs'
@@ -18,11 +19,11 @@ const publicJob = (job) => {
     solarVisualSignature: job.result.solarVisualSignature, roofSignature: job.result.roofSignature,
     panelCount: job.result.panelCount, capacityKwp: job.result.capacityKwp,
     seed: job.result.seed, requestedSeed: job.result.requestedSeed, planId: job.result.planId,
-    geometryRevision: job.result.geometryRevision, finishSignature: job.result.finishSignature, family: job.result.family, hero: job.result.hero, roofline: job.result.roofline, quality: job.result.quality,
+    roofRevision:job.result.roofRevision, geometryRevision: job.result.geometryRevision, finishSignature: job.result.finishSignature, family: job.result.family, hero: job.result.hero, roofline: job.result.roofline, quality: job.result.quality,
     warnings: job.result.warnings, files: Object.fromEntries(job.result.files.map((file) =>
       [file === 'solar-layout.json' ? 'solarLayout' : extname(file) === '.blend' ? 'blend' : extname(file) === '.glb' ? 'glb' : file.match(/_(hero|front|aerial)\.png$/)[1],
-        `/api/villas/${job.id}/files/${file}`])) }
-  return { id: job.id, status: job.status, phase: job.phase, progress: job.progress, seed: job.seed, attempt: job.attempt,
+        `/api/villas/${job.id}/files/${file}${job.result.roofRevision?`?roof=${encodeURIComponent(job.result.roofRevision)}`:''}`])) }
+  return { heroPreview:readyHero(job)?`/api/villas/${job.id}/preview/hero`:undefined, id: job.id, status: job.status, phase: job.phase, progress: job.progress, seed: job.seed, attempt: job.attempt,
     error: job.error, debug: job.debug, result }
 }
 async function drain() {
@@ -121,11 +122,20 @@ export async function handleVillaRequest(req, res, readJson) {
       // exact: render this seed as given (a Directions preview must show the
       // direction the user sees, not a retried look-alike)
       await writeFile(resolve(directory, 'request.json'), JSON.stringify({ plan: request.plan, seed: request.seed, quality: request.quality ?? 'preview',
-        ...(request.exact === true ? { exact: true } : {}) }))
+        ...(request.exact === true ? { exact: true } : {}),...(request.directionPreview===true?{directionPreview:true}:{}) }))
       const job = { id, directory, status: 'queued', phase: 'Waiting to generate', seed: request.seed, debug: [] }
       await writeFile(resolve(directory, 'status.json'), JSON.stringify(job))
       jobs.set(id, job); queue.push(job); void drain()
       json(res, 202, publicJob(job)); return true
+    }
+    const previewMatch=path.match(/^\/api\/villas\/([a-f0-9-]{36})\/preview\/hero$/)
+    if(previewMatch&&['GET','HEAD'].includes(req.method)){
+      const job=jobs.get(previewMatch[1]),acceptedHero=job?.status==='complete'?job.result?.files.find(file=>file.endsWith('_hero.png')):null
+      const file=job&&(readyHero(job)||(acceptedHero?resolve(job.result.directory,acceptedHero):null))
+      if(!file){json(res,404,{error:'Preview is not ready'});return true}
+      res.writeHead(200,{'content-type':'image/png','content-length':statSync(file).size,'cache-control':'no-store'})
+      if(req.method==='HEAD')res.end();else createReadStream(file).pipe(res)
+      return true
     }
     const match = path.match(/^\/api\/villas\/([a-f0-9-]{36})(?:\/files\/([^/]+))?$/)
     if (!match || !UUID.test(match[1]) || !['GET', 'HEAD'].includes(req.method)) { json(res, 404, { error: 'Unknown villa endpoint' }); return true }

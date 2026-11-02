@@ -1,0 +1,74 @@
+[
+  {
+    "id": "sedan",
+    "file": "sedan.glb",
+    "lengthM": 4.3,
+    "front": "+Z",
+    "paint": "#b33132",
+    "paintedFaces": 138,
+    "triangles": 2032,
+    "sha256": "876fae54e65f0024248e079aaddb7565bd9855d2cf18327aa6423503ed4f85d3",
+    "license": "CC0-1.0",
+    "source": "https://kenney.nl/assets/car-kit"
+  },
+  {
+    "id": "sedan-sports",
+    "file": "sedan-sports.glb",
+    "lengthM": 4.5,
+    "front": "+Z",
+    "paint": "#226cb2",
+    "paintedFaces": 166,
+    "triangles": 2088,
+    "sha256": "6acd415cf36f622b8d04dd2298aa10261a27e7891ae06b1b6196c530bf9d6bd5",
+    "license": "CC0-1.0",
+    "source": "https://kenney.nl/assets/car-kit"
+  },
+  {
+    "id": "hatchback-sports",
+    "file": "hatchback-sports.glb",
+    "lengthM": 4.0,
+    "front": "+Z",
+    "paint": "#23877e",
+    "paintedFaces": 4,
+    "triangles": 2088,
+    "sha256": "cd85600bb0aca49cc34dacacc440775e0a5050b5f18e1249a62a44bbdbbcfa11",
+    "license": "CC0-1.0",
+    "source": "https://kenney.nl/assets/car-kit"
+  },
+  {
+    "id": "suv",
+    "file": "suv.glb",
+    "lengthM": 4.55,
+    "front": "+Z",
+    "paint": "#bb7431",
+    "paintedFaces": 4,
+    "triangles": 2474,
+    "sha256": "bd5caf9700d7c74f22c5f9ac17b8f082e1ab9735fbbcd3ff25900e024f7a9131",
+    "license": "CC0-1.0",
+    "source": "https://kenney.nl/assets/car-kit"
+  },
+  {
+    "id": "suv-luxury",
+    "file": "suv-luxury.glb",
+    "lengthM": 4.65,
+    "front": "+Z",
+    "paint": "#553f85",
+    "paintedFaces": 47,
+    "triangles": 2086,
+    "sha256": "d2f5e8017aa7c34f3ab52f33d40c4c9e4f3e6cff4bc7a1206faef13c735fdf0d",
+    "license": "CC0-1.0",
+    "source": "https://kenney.nl/assets/car-kit"
+  },
+  {
+    "id": "taxi",
+    "file": "taxi.glb",
+    "lengthM": 4.4,
+    "front": "+Z",
+    "paint": "#e6b533",
+    "paintedFaces": 69,
+    "triangles": 2072,
+    "sha256": "73ed512822c678cd46eb384f6c65f547ecba35b3397949b8a89b8c00fcdc2335",
+    "license": "CC0-1.0",
+    "source": "https://kenney.nl/assets/car-kit"
+  }
+]
