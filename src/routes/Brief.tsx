@@ -171,7 +171,7 @@ export function Brief() {
 
       {/* step body */}
       <div className="mx-auto max-w-[1400px] px-6 py-12 md:px-10 md:py-16">
-        <FitMeter />
+        {BRIEF_STEPS[step]?.key !== 'project' && <FitMeter />}
         {formError && <p role="alert" className="mb-6 border-l-2 border-bad bg-bad/5 px-4 py-3 text-sm text-bad">{translateUi(formError)}</p>}
         <p className="label">{translateUi("Step ")}{translateUi(step + 1)} {translateUi(" of ")}{translateUi(BRIEF_STEPS.length)}</p>
         <h1 className="mt-3 font-display text-[clamp(2rem,4vw,3rem)]">{translateUi(title)}</h1>
