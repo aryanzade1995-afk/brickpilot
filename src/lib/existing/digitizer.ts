@@ -316,12 +316,47 @@ export function rawSurveyToSurvey(
     y: pxToM(pt.y - originOffsetPx.y),
   })
 
+  const VALID_ROOM_TYPES = new Set([
+    'living',
+    'livingDining',
+    'dining',
+    'kitchen',
+    'bed',
+    'bath',
+    'study',
+    'pooja',
+    'utility',
+    'corridor',
+    'foyer',
+    'stair',
+  ] as const)
+  type SurveyRoomType =
+    | 'living'
+    | 'livingDining'
+    | 'dining'
+    | 'kitchen'
+    | 'bed'
+    | 'bath'
+    | 'study'
+    | 'pooja'
+    | 'utility'
+    | 'corridor'
+    | 'foyer'
+    | 'stair'
+
   // Map rooms
   const rooms = raw.elements.rooms.map((r) => {
     const tl = ptToM({ x: r.box.x, y: r.box.y })
+    const type: SurveyRoomType =
+      r.type === 'master_bed'
+        ? 'bed'
+        : VALID_ROOM_TYPES.has(r.type as SurveyRoomType)
+        ? (r.type as SurveyRoomType)
+        : 'living'
+
     return {
       name: r.name || 'Room',
-      type: r.type || 'living',
+      type,
       x: tl.x,
       y: tl.y,
       w: pxToM(r.box.w),
@@ -354,6 +389,7 @@ export function rawSurveyToSurvey(
     const widthM = o.widthPx ? pxToM(o.widthPx) : o.kind === 'window' ? 1.2 : 0.9
     const headM = o.kind === 'window' ? SURVEY_DEFAULTS.windowHeadM : SURVEY_DEFAULTS.doorHeadM
     const sillM = o.kind === 'window' ? SURVEY_DEFAULTS.windowSillM : null
+    const swing: 1 | -1 = o.swing === -1 ? -1 : 1
 
     return {
       x: at.x,
@@ -363,7 +399,7 @@ export function rawSurveyToSurvey(
       widthM,
       headM,
       sillM,
-      swing: o.swing ?? 1,
+      swing,
       leaf: true,
       emergencyExit: false,
     }
@@ -409,3 +445,4 @@ export function rawSurveyToSurvey(
   // Validate with surveySchema
   return surveySchema.parse(draft)
 }
+

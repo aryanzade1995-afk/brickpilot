@@ -5,6 +5,7 @@ import { AlertTriangle, ArrowRight, Check, ImagePlus, Lock, Sparkles } from 'luc
 import { Button } from '@/components/ui/Button.tsx'
 import { PhotoEditor } from '@/components/existing/PhotoEditor.tsx'
 import { SurveyInput } from '@/components/existing/SurveyInput.tsx'
+import { StartFromPlanFlow } from '@/components/existing/StartFromPlanFlow.tsx'
 import { PlanLegend, PlanView } from '@/components/existing/PlanView.tsx'
 import { useExisting } from '@/state/existing.ts'
 import { useStudio } from '@/state/studio.ts'
@@ -433,7 +434,8 @@ export function ExistingMode() {
       <div className="mt-7" aria-busy={!!busy}>
         {step === 0 && !inputMode && <div className="grid gap-4 md:grid-cols-3">{([['drawing','I have a rough plan','Upload a house layout or foundation / column drawing. Review the tracing and fill in missing measurements.'],['manual','I do not have a drawing','Enter individual column and footing positions, beam connections and existing walls.'],['photo','I have a site photo','Detect visible columns in a photograph and confirm their measurements.']] as const).map(([mode,label,description])=><button key={mode} type="button" onClick={()=>setInputMode(mode)} className="rounded-xl border border-line p-6 text-left hover:bg-bg-inset"><h2 className="font-display text-xl">{translateUi(label)}</h2><p className="mt-3 text-sm text-ink-dim">{translateUi(description)}</p></button>)}</div>}
         {step === 0 && inputMode === 'photo' && <PhotoStep />}
-        {(inputMode === 'drawing' || inputMode === 'manual') && <div hidden={step!==0&&step!==2}><SurveyInput manual={inputMode==='manual'} /></div>}
+        {inputMode === 'drawing' && <StartFromPlanFlow />}
+        {inputMode === 'manual' && <div hidden={step!==0&&step!==2}><SurveyInput manual={true} /></div>}
         {step === 2 && inputMode !== 'drawing' && inputMode !== 'manual' && <MeasureStep />}
         {step === 3 && <MapStep />}
         {step === 4 && <PlanStep />}

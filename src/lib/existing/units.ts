@@ -146,3 +146,4 @@ export function checkDimensionPlausibility(meters: number, kind: 'room' | 'plot'
 
   return { plausible: true }
 }
+
