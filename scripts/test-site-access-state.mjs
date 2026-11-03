@@ -15,11 +15,11 @@ test('height and entry-ramp edits preserve the pinned direction/layout and updat
  useStudio.setState({pinned,layout})
  useStudio.getState().edit(b=>{b.specs.overrides['plinth-height']='raised'})
  const raised=useStudio.getState()
- assert.equal(raised.pinned,pinned);assert.equal(raised.layout,layout);assert.equal(raised.result.buildingModel.structuralSizing.plinthHeightMm,600)
+ assert.equal(raised.pinned,pinned);assert.equal(raised.layout,layout);assert.equal(raised.result.buildingModel.structuralSizing.plinthHeightMm,2000)
  assert.notEqual(raised.result.buildingModel.planId,planId);assert.equal(raised.result.design.dna.seed,plan.dna.seed)
  assert.equal(raised.brief.entry.accessIdentity.planId,planId);assert.equal(raised.result.buildingModel.exteriorSeedPlanId,planId)
  assert.equal(JSON.stringify(raised.result.design.floors.map(({structuralSizing,...f})=>f)),geometry)
- assert.equal(raised.result.design.floors[0].structuralSizing.plinthHeightMm,600)
+ assert.equal(raised.result.design.floors[0].structuralSizing.plinthHeightMm,2000)
  useStudio.getState().edit(b=>{b.entry.ramp=true})
  const ramp=useStudio.getState();assert.ok(ramp.result.buildingModel.entryRamp);assert.equal(ramp.pinned,pinned);assert.equal(ramp.layout,layout)
  const building=ramp.result.buildingModel
