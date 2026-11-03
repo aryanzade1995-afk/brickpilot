@@ -26,6 +26,7 @@ import { type Answers } from '@/lib/existing/types.ts'
 import { Button } from '@/components/ui/Button.tsx'
 import { DrawingCanvasReviewer } from './DrawingCanvasReviewer.tsx'
 import { NbcHealthBadgePanel } from './NbcHealthBadgePanel.tsx'
+import { FitDiagnosticPanel } from './FitDiagnosticPanel.tsx'
 import { cx } from '@/lib/cx.ts'
 
 const STORAGE_KEY = 'brickpilot_drawing_review_v1'
@@ -392,6 +393,29 @@ export function StartFromPlanFlow() {
             }}
             plotWidthM={answers.plotWidthM}
             plotDepthM={answers.plotDepthM}
+          />
+
+          {/* Fit Diagnostics & User Remediation Assistant */}
+          <FitDiagnosticPanel
+            rawSurvey={rawSurvey}
+            activeSurvey={activeSurvey}
+            scaleMPerPx={scaleMPerPx}
+            plotWidthM={answers.plotWidthM || 15}
+            plotDepthM={answers.plotDepthM || 18}
+            nbcReport={nbcReport}
+            onUpdateSurvey={(newSurvey) => {
+              setRawSurvey(newSurvey)
+              saveDraft(newSurvey, scaleMPerPx, imageUrl, answers)
+            }}
+            onUpdateScale={(newScale) => {
+              setScaleMPerPx(newScale)
+              saveDraft(rawSurvey, newScale, imageUrl, answers)
+            }}
+            onUpdatePlot={({ plotWidthM, plotDepthM }) => {
+              const updated = { ...answers, plotWidthM, plotDepthM }
+              setAnswers(updated)
+              saveDraft(rawSurvey, scaleMPerPx, imageUrl, updated)
+            }}
           />
 
           {/* NBC Pre-Flight Compliance Preview */}

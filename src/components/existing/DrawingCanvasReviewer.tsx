@@ -588,8 +588,8 @@ export function DrawingCanvasReviewer({
                 {!calibPointA
                   ? 'Click Point 1 on any wall or known dimension line.'
                   : !calibPointB
-                  ? 'Click Point 2 to complete the reference span.'
-                  : 'Enter the real-world distance between the two points.'}
+                    ? 'Click Point 2 to complete the reference span.'
+                    : 'Enter the real-world distance between the two points.'}
               </p>
             </div>
           </div>
