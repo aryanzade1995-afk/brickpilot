@@ -26,7 +26,7 @@ import { parseDimension, sqmToGuntha } from '@/lib/existing/units.ts'
 import { Button } from '@/components/ui/Button.tsx'
 import { cx } from '@/lib/cx.ts'
 
-export const INDIAN_ROOM_TYPES = [
+const INDIAN_ROOM_TYPES = [
   { value: 'living', label: 'Living Room' },
   { value: 'bed', label: 'Bedroom' },
   { value: 'master_bed', label: 'Master Bedroom' },
