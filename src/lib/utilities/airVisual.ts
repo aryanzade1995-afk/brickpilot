@@ -37,7 +37,7 @@ export function airOverviewPose(building:BuildingModel,fovDeg:number,aspect:numb
  const minX=Math.min(...rs.map(r=>r.x))/1000-1,maxX=Math.max(...rs.map(r=>r.x+r.w))/1000+1
  const minZ=-Math.max(...rs.map(r=>r.y+r.h))/1000-1,maxZ=-Math.min(...rs.map(r=>r.y))/1000+1
  const high=Math.max(...building.floors.map(f=>f.elevationMm+f.heightMm))/1000+1
- const low=-(building.structuralSizing?.plinthHeightMm??450)/1000
+ const low=-(building.structuralSizing?.plinthHeightMm??1000)/1000
  const center=new Vector3((minX+maxX)/2,(low+high)/2,(minZ+maxZ)/2),direction=new Vector3(1,.8,-1).normalize()
  const right=new Vector3().crossVectors(new Vector3(0,1,0),direction).normalize(),up=new Vector3().crossVectors(direction,right).normalize()
  const tangent=Math.tan(fovDeg*Math.PI/360);let distance=1

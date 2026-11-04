@@ -26,7 +26,7 @@ const close=(a,b)=>assert.ok(Math.abs(a-b)<1e-8,`${a} ≠ ${b}`)
 test('hand take-off: 4m square, four corner columns, four beams, one wall and two apertures',()=>{
  const d=simpleQuantityPlan(),before=JSON.stringify(d),q=calculateQuantities(d),i=q.total.items
  close(i['concrete.footings'].NetVolume,2.016)
- close(i['concrete.columns'].NetVolume,.8993) // 4 × .23² × (3.075 + 1.175)
+ close(i['concrete.columns'].NetVolume,1.01568) // 4 × .23² × (3.075 + 1.725)
  close(i['concrete.beams'].NetVolume,.78039) // 4 × 3.77 clear span × .23 × (.35-.125)
  close(i['concrete.plinthBeams'].NetVolume,1.04052)
  close(i['concrete.slabs'].NetVolume,4) // ground plate + roof, each 16 × .125
@@ -41,7 +41,7 @@ test('hand take-off: 4m square, four corner columns, four beams, one wall and tw
  close(q.total.formworkM2.footings,4*4.8*.35)
  close(i['earthwork.excavation'].NetVolume,4*1.5*1.5*1.3)
  close(i['earthwork.pcc'].NetVolume,4*1.4*1.4*.1)
- const concrete=8.90046,dry=concrete*1.54
+ const concrete=9.01684,dry=concrete*1.54
  close(q.concreteMaterials.cementBags,dry/5.5*1440/50)
  close(q.concreteMaterials.sandM3,dry*1.5/5.5);close(q.concreteMaterials.aggregateM3,dry*3/5.5)
  assert.equal(JSON.stringify(d),before);assert.deepEqual(q.total.items,q.perFloor[0].items)
@@ -76,12 +76,12 @@ test('sizing grows with storeys/span and soil/plinth selections are explicit, no
  d.floors.push({...structuredClone(d.floors[0]),level:1})
  assert.ok(sizeStructure(d).footings[0].rect.w>s.footings[0].rect.w)
  d.model.brief.specs.overrides['soil-type']='unknown';assert.ok(sizeStructure(d).footings[0].rect.w>1450)
- d.model.brief.specs.overrides['plinth-height']='flood';assert.equal(sizeStructure(d).plinthHeightMm,900)
+ d.model.brief.specs.overrides['plinth-height']='flood';assert.equal(sizeStructure(d).plinthHeightMm,3000)
  d.model.brief.specs.overrides['concrete-grade']='m30';assert.equal(measureDesign(d).concreteMaterials.cementBags,null)
  const damaged=structuredClone(quantityRules);damaged.beam.spanDepthRatio=0
  assert.throws(()=>quantityRulesSchema.parse(damaged))
  const legacy=simpleQuantityPlan();delete legacy.model.brief.specs;delete legacy.model.brief.finish
- assert.equal(sizeStructure(legacy).plinthHeightMm,450)
+ assert.equal(sizeStructure(legacy).plinthHeightMm,1000)
 })
 test('site/room quantities and tank sizing respond to source geometry and household count',()=>{
  const d=simpleQuantityPlan(),r={x:0,y:0,w:1000,h:2000}

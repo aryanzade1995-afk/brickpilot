@@ -420,7 +420,7 @@
       "options": [
         {
           "id": "standard",
-          "name": "450 mm proposal",
+          "name": "1 metre proposal",
           "rateId": "plinth-height-standard",
           "blenderMaterial": "exposed_concrete",
           "facts": [],
@@ -432,7 +432,7 @@
         },
         {
           "id": "raised",
-          "name": "600 mm proposal",
+          "name": "2 metre proposal",
           "rateId": "plinth-height-raised",
           "blenderMaterial": "exposed_concrete",
           "facts": [],
@@ -444,7 +444,7 @@
         },
         {
           "id": "flood",
-          "name": "900 mm proposal",
+          "name": "3 metre proposal",
           "rateId": "plinth-height-flood",
           "blenderMaterial": "exposed_concrete",
           "facts": [],

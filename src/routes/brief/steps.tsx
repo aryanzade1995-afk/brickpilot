@@ -1,7 +1,8 @@
 import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
+import { cx } from '@/lib/cx.ts'
 import { resolveSpecification } from '@/lib/cost/catalogue.ts'
 import { FurnitureReview } from './RoomPanel.tsx'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { MODERN_COMPOSITION_CHOICES, type ModernComposition } from '@/lib/model/modernCompositions.ts'
 import { assessShape, SHAPE_CHOICES } from '@/lib/engine/planner/fit.ts'
 import { resolveOpenSpace, OPEN_SPACE_LABEL } from '@/lib/model/openSpace.ts'
@@ -65,14 +66,38 @@ export function ProjectStep() {
 
 /* -------------------------------------------------------------------------- */
 
+export const SQM_PER_GUNTHA = 101.17141
+const STANDARD_GUNTHA_PRESETS = [0.5, 1, 1.5, 2, 2.5, 3, 4, 5]
+
 export function SiteStep() {
   useLanguage(s => s.language);
 
   const [brief, edit] = useBrief()
+  const [customDraft, setCustomDraft] = useState<string | null>(null)
+  const [isCustomMode, setIsCustomMode] = useState(false)
+
   const s = brief.site
   const open = resolveOpenSpace(s)
   const maxBuildLimit = (s.plotWidth * s.plotDepth * PLANNING_LIMITS.maxCoverage) / Math.max(1, (s.plotWidth - s.setbacks.E - s.setbacks.W) * (s.plotDepth - s.setbacks.N - s.setbacks.S))
 
+  const plotAreaM2 = s.plotWidth * s.plotDepth
+  const currentGuntha = Number((plotAreaM2 / SQM_PER_GUNTHA).toFixed(2))
+  const plotAreaSqft = Math.round(plotAreaM2 * 10.76391)
+  const matchingPreset = STANDARD_GUNTHA_PRESETS.find((g) => Math.abs(currentGuntha - g) < 0.05)
+  const isCustom = matchingPreset === undefined
+
+  const setPlotByGuntha = (guntha: number, aspectPreference?: number) => {
+    const targetArea = Math.max(36, Math.min(6400, guntha * SQM_PER_GUNTHA))
+    const aspect = aspectPreference ?? (s.plotDepth > 0 ? s.plotWidth / s.plotDepth : 1)
+    const validAspect = Math.max(0.1, Math.min(10, aspect))
+    const rawDepth = Math.sqrt(targetArea / validAspect)
+    const depth = Math.max(6, Math.min(80, Math.round(rawDepth * 2) / 2))
+    const width = Math.max(6, Math.min(80, Math.round((targetArea / depth) * 2) / 2))
+    edit((b) => {
+      b.site.plotWidth = width
+      b.site.plotDepth = depth
+    })
+  }
 
   const toggleRoad = (d: Direction) =>
     edit((b) => {
@@ -85,13 +110,213 @@ export function SiteStep() {
 
   return (
     <div className="max-w-2xl space-y-8">
-      <div className="grid grid-cols-2 gap-6">
-        <Field label="Plot width (m)" hint="East–west frontage">
-          <NumberInput value={s.plotWidth} min={6} max={80} step={0.5} suffix="m" onChange={(v) => edit((b) => void (b.site.plotWidth = v))} />
-        </Field>
-        <Field label="Plot depth (m)" hint="North–south">
-          <NumberInput value={s.plotDepth} min={6} max={80} step={0.5} suffix="m" onChange={(v) => edit((b) => void (b.site.plotDepth = v))} />
-        </Field>
+      {/* Plot size & Guntha control */}
+      <div className="border border-line bg-bg-raised/70 p-4 space-y-4 rounded-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-xs uppercase tracking-wider text-accent font-semibold">
+                {translateUi("Plot Size & Dimensions")}
+              </span>
+              <span className="rounded bg-accent/10 px-2 py-0.5 font-mono text-[11px] font-semibold text-accent">
+                {currentGuntha} {translateUi("Guntha")}
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-ink-dim">
+              {translateUi("1 Guntha = 1,089 sq ft ≈ 101.17 m² (33 × 33 ft)")}
+            </p>
+          </div>
+          <div className="text-right">
+            <span className="font-mono text-xs font-medium text-ink">
+              {Math.round(plotAreaM2)} m²
+            </span>
+            <span className="text-xs text-ink-faint ml-1">
+              ({plotAreaSqft.toLocaleString('en-IN')} sq ft)
+            </span>
+          </div>
+        </div>
+
+        {/* 3-Column Inputs: Guntha, Width, Depth */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+          <Field label="Plot size (Guntha)" hint="Direct area sizing">
+            <NumberInput
+              value={currentGuntha}
+              min={0.4}
+              max={60}
+              step={0.1}
+              suffix="G"
+              onChange={(v) => setPlotByGuntha(v)}
+            />
+          </Field>
+          <Field label="Plot width (m)" hint="East–west frontage">
+            <NumberInput
+              value={s.plotWidth}
+              min={6}
+              max={80}
+              step={0.5}
+              suffix="m"
+              onChange={(v) => edit((b) => void (b.site.plotWidth = v))}
+            />
+          </Field>
+          <Field label="Plot depth (m)" hint="North–south">
+            <NumberInput
+              value={s.plotDepth}
+              min={6}
+              max={80}
+              step={0.5}
+              suffix="m"
+              onChange={(v) => edit((b) => void (b.site.plotDepth = v))}
+            />
+          </Field>
+        </div>
+
+        {/* Quick Guntha Presets */}
+        <div className="pt-1">
+          <span className="font-mono text-[10px] uppercase tracking-wider text-ink-faint">
+            {translateUi("Standard Indian Plot Sizes (Guntha):")}
+          </span>
+          <div className="mt-2 flex flex-wrap gap-1.5 items-center">
+            {STANDARD_GUNTHA_PRESETS.map((g) => {
+              const isMatch = !isCustomMode && Math.abs(currentGuntha - g) < 0.05
+              return (
+                <button
+                  key={g}
+                  type="button"
+                  onClick={() => {
+                    setIsCustomMode(false)
+                    setCustomDraft(null)
+                    setPlotByGuntha(g)
+                  }}
+                  className={cx(
+                    'border px-2.5 py-1.5 font-mono text-xs transition-colors cursor-pointer',
+                    isMatch
+                      ? 'border-accent bg-accent text-white font-semibold shadow-xs'
+                      : 'border-line bg-bg text-ink-dim hover:border-ink hover:text-ink'
+                  )}
+                >
+                  {g} {translateUi("G")}{' '}
+                  <span className="text-[10px] opacity-75">
+                    ({Math.round(g * SQM_PER_GUNTHA)}m²)
+                  </span>
+                </button>
+              )
+            })}
+
+            {/* Other / Custom Option (for >5 G or any decimal) */}
+            {isCustom || isCustomMode ? (
+              <div
+                className="flex items-center gap-1.5 border border-accent bg-accent/10 px-2.5 py-1 font-mono text-xs shadow-xs"
+              >
+                <span className="font-semibold text-accent">{translateUi("Other:")}</span>
+                <input
+                  type="number"
+                  min="0.35"
+                  max="60"
+                  step="any"
+                  placeholder="e.g. 6.5"
+                  autoFocus={isCustomMode}
+                  value={customDraft !== null ? customDraft : String(currentGuntha)}
+                  onChange={(e) => {
+                    const text = e.target.value
+                    setCustomDraft(text)
+                    const val = parseFloat(text)
+                    if (!isNaN(val) && val >= 0.35 && val <= 60) {
+                      setPlotByGuntha(val)
+                    }
+                  }}
+                  onBlur={() => {
+                    if (customDraft !== null) {
+                      const val = parseFloat(customDraft)
+                      if (!isNaN(val) && val >= 0.35 && val <= 60) {
+                        setPlotByGuntha(val)
+                      }
+                      setCustomDraft(null)
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.currentTarget.blur()
+                    }
+                  }}
+                  className="w-16 border-b border-accent bg-transparent px-1 py-0.5 text-center font-mono text-xs font-semibold text-ink focus:border-accent focus:outline-none"
+                />
+                <span className="font-semibold text-accent">{translateUi("G")}</span>
+                <span className="text-[10px] text-accent/80">
+                  ({Math.round(currentGuntha * SQM_PER_GUNTHA)}m²)
+                </span>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsCustomMode(true)
+                  setCustomDraft(String(currentGuntha))
+                }}
+                className="border border-line bg-bg px-2.5 py-1.5 font-mono text-xs text-ink-dim hover:border-ink hover:text-ink cursor-pointer"
+              >
+                + {translateUi("Other...")}
+              </button>
+            )}
+          </div>
+
+          {/* Quick Chips for Large Plots (> 5 Guntha) */}
+          {(isCustom || isCustomMode || currentGuntha > 5) && (
+            <div className="flex flex-wrap items-center gap-1.5 pt-2">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-ink-faint">
+                {translateUi("Larger plots (>5 G):")}
+              </span>
+              {[6, 7.5, 10, 12, 15, 20].map((lg) => {
+                const isLgMatch = Math.abs(currentGuntha - lg) < 0.05
+                return (
+                  <button
+                    key={lg}
+                    type="button"
+                    onClick={() => {
+                      setCustomDraft(null)
+                      setIsCustomMode(true)
+                      setPlotByGuntha(lg)
+                    }}
+                    className={cx(
+                      'border px-2 py-0.5 font-mono text-[11px] transition-colors cursor-pointer',
+                      isLgMatch
+                        ? 'border-accent bg-accent text-white font-semibold shadow-xs'
+                        : 'border-line/80 bg-bg text-ink-dim hover:border-ink hover:text-ink'
+                    )}
+                  >
+                    {lg} {translateUi("G")}{' '}
+                    <span className="text-[10px] opacity-75">
+                      ({Math.round(lg * SQM_PER_GUNTHA)}m²)
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Proportions / Aspect helper */}
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line/60 pt-2.5 text-xs text-ink-dim">
+          <span className="font-mono text-[10px] uppercase tracking-wider text-ink-faint">
+            {translateUi("Plot Proportions:")}
+          </span>
+          <div className="flex flex-wrap gap-1">
+            {[
+              { label: 'Square (1:1)', ratio: 1 },
+              { label: '1 : 1.25', ratio: 1 / 1.25 },
+              { label: '1 : 1.5', ratio: 1 / 1.5 },
+              { label: '1 : 2 (Deep)', ratio: 1 / 2 },
+            ].map((prop) => (
+              <button
+                key={prop.label}
+                type="button"
+                onClick={() => setPlotByGuntha(currentGuntha, prop.ratio)}
+                className="border border-line/80 px-2 py-0.5 text-[11px] font-mono text-ink-dim hover:border-ink hover:text-ink bg-bg/50 cursor-pointer"
+              >
+                {prop.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       <Field label="Road edges" hint="Which sides face a road — the first is the approach">
@@ -392,9 +617,15 @@ export function LevelsStep() {
         />
       </Field>
       <Field label="House height above site ground">
-        <Segmented value={resolveSpecification(brief,'plinth-height').id} onChange={v=>edit(b=>{b.specs.overrides['plinth-height']=v})} options={[
-          {value:'standard',label:'450 mm'}, {value:'raised',label:'600 mm'}, {value:'flood',label:'900 mm'},
-        ]}/>
+        <Segmented
+          value={['standard', '1m'].includes(resolveSpecification(brief, 'plinth-height').id) ? 'standard' : ['raised', '2m'].includes(resolveSpecification(brief, 'plinth-height').id) ? 'raised' : 'flood'}
+          onChange={v => edit(b => { b.specs.overrides['plinth-height'] = v })}
+          options={[
+            { value: 'standard', label: '1 metre' },
+            { value: 'raised', label: '2 metre' },
+            { value: 'flood', label: '3 metre' },
+          ]}
+        />
       </Field>
       <div className="grid grid-cols-2 gap-6">
         <Field label="Floor-to-floor (m)">

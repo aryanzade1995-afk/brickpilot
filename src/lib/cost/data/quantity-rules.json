@@ -11,7 +11,7 @@
   "beam": {"spanDepthRatio":12,"roundMm":50,"minDepthMm":250,"widthMm":230},
   "slab": {"shortSpanLimitMm":4000,"shortThicknessMm":125,"longThicknessMm":150},
   "footing": {"baseWidthMm":1200,"perStoreyMm":250,"thicknessMm":350,"perStoreyThicknessMm":50,"depthBelowGradeMm":1200,"soilFactors":{"unknown":1.25,"firm":1,"rock":0.85},"roundMm":50},
-  "plinthHeightsMm":{"standard":450,"raised":600,"flood":900},
+  "plinthHeightsMm":{"standard":1000,"raised":2000,"flood":3000},
   "plinthBeam":{"widthMm":230,"depthMm":300},
   "earthwork":{"workingSpaceMm":150,"pccProjectionMm":100,"pccThicknessMm":100},
   "steelKgPerM3":{"footings":75,"columns":175,"plinthBeams":140,"beams":140,"slabs":90,"stairs":90,"lintels":100,"chajjas":90},

@@ -29,7 +29,7 @@ function PlotDiagram({ plotSqm, w, d, need, tone }: { plotSqm: number; w: number
       <rect x={cx - bw / 2} y={cy - bh / 2} width={bw} height={bh} fill="#FDF1DD" stroke="#E0873A" strokeDasharray="4 3" />
       <rect x={cx - hw / 2} y={cy - hh / 2} width={hw} height={hh} fill={TONE[tone].fill} stroke={TONE[tone].bar} strokeWidth={1.5}
         style={{ transition: 'all 400ms ease' }} />
-      <text x={cx} y={H - 1} textAnchor="middle" fontSize="7" fill="#6B7280">{translateUi(Math.round(plotSqm))} {translateUi(" m² plot")}</text>
+      <text x={cx} y={H - 1} textAnchor="middle" fontSize="6.5" fill="#6B7280">{translateUi(Math.round(plotSqm))} {translateUi("m²")} ({(plotSqm / 101.17141).toFixed(1)} {translateUi("Guntha")})</text>
     </svg>
   )
 }
