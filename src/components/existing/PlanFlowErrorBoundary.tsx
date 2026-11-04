@@ -70,3 +70,4 @@ export class PlanFlowErrorBoundary extends Component<Props, State> {
     return this.props.children
   }
 }
+
