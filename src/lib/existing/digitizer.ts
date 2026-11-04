@@ -627,10 +627,25 @@ export function rawSurveyToSurvey(
     throw new Error('A valid positive scale (m/px) is required to convert raw survey.')
   }
 
+  // Derive origin offset from element bounding box if not explicitly set
+  const rawAllX = [
+    ...raw.elements.walls.flatMap((w) => [w.a.x, w.b.x]),
+    ...raw.elements.rooms.flatMap((r) => [r.box.x, r.box.x + r.box.w]),
+    ...raw.elements.openings.map((o) => o.at.x),
+  ]
+  const rawAllY = [
+    ...raw.elements.walls.flatMap((w) => [w.a.y, w.b.y]),
+    ...raw.elements.rooms.flatMap((r) => [r.box.y, r.box.y + r.box.h]),
+    ...raw.elements.openings.map((o) => o.at.y),
+  ]
+
+  const originX = originOffsetPx.x !== 0 ? originOffsetPx.x : rawAllX.length ? Math.min(...rawAllX) : 0
+  const originY = originOffsetPx.y !== 0 ? originOffsetPx.y : rawAllY.length ? Math.min(...rawAllY) : 0
+
   const pxToM = (px: number) => +(px * scaleMPerPx).toFixed(3)
   const ptToM = (pt: ImagePointPx) => ({
-    x: pxToM(pt.x - originOffsetPx.x),
-    y: pxToM(pt.y - originOffsetPx.y),
+    x: +(Math.max(0, pt.x - originX) * scaleMPerPx).toFixed(3),
+    y: +(Math.max(0, pt.y - originY) * scaleMPerPx).toFixed(3),
   })
 
   const VALID_ROOM_TYPES = new Set([
@@ -739,8 +754,8 @@ export function rawSurveyToSurvey(
   const minY = allY.length ? Math.min(...allY) : 0
   const maxY = allY.length ? Math.max(...allY) : pxToM(raw.imageHeight)
 
-  const widthM = +(maxX - minX).toFixed(2)
-  const depthM = +(maxY - minY).toFixed(2)
+  const widthM = +(maxX + 0.05).toFixed(2)
+  const depthM = +(maxY + 0.05).toFixed(2)
 
   const draft: Survey = {
     widthM: widthM > 0 ? widthM : null,
