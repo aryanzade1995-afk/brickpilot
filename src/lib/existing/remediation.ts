@@ -44,7 +44,7 @@ export function autoScaleToFitPlot(
   report: RemediationChangeReport
 } {
   const updated = structuredClone(raw)
-  const rooms = updated.elements.rooms
+  const rooms = updated?.elements?.rooms || []
 
   if (!rooms.length) {
     return {
@@ -96,7 +96,7 @@ export function calculateRequiredPlot(
   raw: RawSurvey,
   scaleMPerPx: number
 ): RequiredPlotResult {
-  const rooms = raw.elements.rooms
+  const rooms = raw?.elements?.rooms || []
   if (!rooms.length) {
     return {
       requiredPlotWidthM: 15,

@@ -72,8 +72,12 @@ export function InteractiveFitQuestioner({
 
   // Measure current building dimensions in metres
   const footprint = useMemo(() => {
-    const rooms = rawSurvey.elements.rooms
-    if (!rooms.length) return { w: 0, d: 0, roomCount: 0, wallCount: 0, doorCount: 0 }
+    const rooms = rawSurvey?.elements?.rooms || []
+    const walls = rawSurvey?.elements?.walls || []
+    const openings = rawSurvey?.elements?.openings || []
+    const doors = openings.filter((o) => o.kind === 'door' || o.kind === 'entry')
+
+    if (!rooms.length) return { w: 0, d: 0, roomCount: 0, wallCount: walls.length, doorCount: doors.length }
     const minX = Math.min(...rooms.map((r) => r.box.x))
     const maxX = Math.max(...rooms.map((r) => r.box.x + r.box.w))
     const minY = Math.min(...rooms.map((r) => r.box.y))
@@ -83,8 +87,8 @@ export function InteractiveFitQuestioner({
       w: +((maxX - minX) * scaleMPerPx).toFixed(2),
       d: +((maxY - minY) * scaleMPerPx).toFixed(2),
       roomCount: rooms.length,
-      wallCount: rawSurvey.elements.walls.length,
-      doorCount: rawSurvey.elements.doors.length,
+      wallCount: walls.length,
+      doorCount: doors.length,
     }
   }, [rawSurvey, scaleMPerPx])
 
@@ -112,12 +116,12 @@ export function InteractiveFitQuestioner({
   const plotAreaSqft = sqmToSqft(plotAreaM2)
 
   // Ventilation check
-  const ventCheck = nbcReport?.checks.find((c) => c.id === 'ventilation')
-  const unventilatedRooms = ventCheck && ventCheck.status !== 'pass' ? ventCheck.offendingRoomIds : []
+  const ventCheck = nbcReport?.checks?.find((c) => c.id === 'ventilation')
+  const unventilatedRooms = ventCheck && ventCheck.status !== 'pass' ? (ventCheck.offendingRoomIds || []) : []
 
   // Accessibility / doors check
-  const accessCheck = nbcReport?.checks.find((c) => c.id === 'accessibility')
-  const narrowDoorsCount = accessCheck && accessCheck.status !== 'pass' ? accessCheck.offendingOpeningIndices.length : 0
+  const accessCheck = nbcReport?.checks?.find((c) => c.id === 'accessibility')
+  const narrowDoorsCount = accessCheck && accessCheck.status !== 'pass' ? (accessCheck.offendingOpeningIndices?.length || 0) : 0
 
   return (
     <div className="w-full space-y-6">

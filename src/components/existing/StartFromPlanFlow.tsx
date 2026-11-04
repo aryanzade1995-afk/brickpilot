@@ -36,6 +36,7 @@ import { Button } from '@/components/ui/Button.tsx'
 import { DrawingCanvasReviewer } from './DrawingCanvasReviewer.tsx'
 import { InteractiveFitQuestioner } from './InteractiveFitQuestioner.tsx'
 import { StyleSelectorCard } from './StyleSelectorCard.tsx'
+import { PlanFlowErrorBoundary } from './PlanFlowErrorBoundary.tsx'
 import { cx } from '@/lib/cx.ts'
 
 const STORAGE_KEY = 'brickpilot_drawing_review_v2'
@@ -774,28 +775,30 @@ export function StartFromPlanFlow() {
           )}
 
           {/* Interactive Canvas Reviewer */}
-          <DrawingCanvasReviewer
-            imageUrl={imageUrl}
-            rawSurvey={rawSurvey}
-            scaleMPerPx={scaleMPerPx}
-            onChangeSurvey={(updated) => {
-              setFloorSlots((prev) => ({
-                ...prev,
-                [activeLevel]: { ...prev[activeLevel], rawSurvey: updated },
-              }))
-              saveDraft(updated, scaleMPerPx, imageUrl, answers, currentStep)
-            }}
-            onChangeScale={(newScale) => {
-              setScaleMPerPx(newScale)
-              setFloorSlots((prev) => ({
-                ...prev,
-                [activeLevel]: { ...prev[activeLevel], scaleMPerPx: newScale },
-              }))
-              saveDraft(rawSurvey, newScale, imageUrl, answers, currentStep)
-            }}
-            plotWidthM={answers.plotWidthM}
-            plotDepthM={answers.plotDepthM}
-          />
+          <PlanFlowErrorBoundary stepName="Drawing Review Canvas">
+            <DrawingCanvasReviewer
+              imageUrl={imageUrl}
+              rawSurvey={rawSurvey}
+              scaleMPerPx={scaleMPerPx}
+              onChangeSurvey={(updated) => {
+                setFloorSlots((prev) => ({
+                  ...prev,
+                  [activeLevel]: { ...prev[activeLevel], rawSurvey: updated },
+                }))
+                saveDraft(updated, scaleMPerPx, imageUrl, answers, currentStep)
+              }}
+              onChangeScale={(newScale) => {
+                setScaleMPerPx(newScale)
+                setFloorSlots((prev) => ({
+                  ...prev,
+                  [activeLevel]: { ...prev[activeLevel], scaleMPerPx: newScale },
+                }))
+                saveDraft(rawSurvey, newScale, imageUrl, answers, currentStep)
+              }}
+              plotWidthM={answers.plotWidthM}
+              plotDepthM={answers.plotDepthM}
+            />
+          </PlanFlowErrorBoundary>
         </div>
       )}
 
@@ -827,43 +830,45 @@ export function StartFromPlanFlow() {
             </div>
           </div>
 
-          <InteractiveFitQuestioner
-            rawSurvey={rawSurvey}
-            activeSurvey={activeSurvey}
-            scaleMPerPx={scaleMPerPx}
-            plotWidthM={answers.plotWidthM || 15}
-            plotDepthM={answers.plotDepthM || 18}
-            roadSide={answers.roadSide || 'N'}
-            nbcReport={nbcReport}
-            snappedDiff={snappedDiff}
-            onUpdateSurvey={(newSurvey) => {
-              setFloorSlots((prev) => ({
-                ...prev,
-                [activeLevel]: { ...prev[activeLevel], rawSurvey: newSurvey },
-              }))
-              saveDraft(newSurvey, scaleMPerPx, imageUrl, answers, currentStep)
-            }}
-            onUpdateScale={(newScale) => {
-              setScaleMPerPx(newScale)
-              setFloorSlots((prev) => ({
-                ...prev,
-                [activeLevel]: { ...prev[activeLevel], scaleMPerPx: newScale },
-              }))
-              saveDraft(rawSurvey, newScale, imageUrl, answers, currentStep)
-            }}
-            onUpdatePlot={({ plotWidthM, plotDepthM }) => {
-              const updated = { ...answers, plotWidthM, plotDepthM }
-              setAnswers(updated)
-              saveDraft(rawSurvey, scaleMPerPx, imageUrl, updated, currentStep)
-            }}
-            onUpdateRoadSide={(side) => {
-              const updated = { ...answers, roadSide: side }
-              setAnswers(updated)
-              saveDraft(rawSurvey, scaleMPerPx, imageUrl, updated, currentStep)
-            }}
-            onApplySnapping={handleApplySnapping}
-            onUndoSnapping={handleUndoSnapping}
-          />
+          <PlanFlowErrorBoundary stepName="Fit & Remediation">
+            <InteractiveFitQuestioner
+              rawSurvey={rawSurvey}
+              activeSurvey={activeSurvey}
+              scaleMPerPx={scaleMPerPx}
+              plotWidthM={answers.plotWidthM || 15}
+              plotDepthM={answers.plotDepthM || 18}
+              roadSide={answers.roadSide || 'N'}
+              nbcReport={nbcReport}
+              snappedDiff={snappedDiff}
+              onUpdateSurvey={(newSurvey) => {
+                setFloorSlots((prev) => ({
+                  ...prev,
+                  [activeLevel]: { ...prev[activeLevel], rawSurvey: newSurvey },
+                }))
+                saveDraft(newSurvey, scaleMPerPx, imageUrl, answers, currentStep)
+              }}
+              onUpdateScale={(newScale) => {
+                setScaleMPerPx(newScale)
+                setFloorSlots((prev) => ({
+                  ...prev,
+                  [activeLevel]: { ...prev[activeLevel], scaleMPerPx: newScale },
+                }))
+                saveDraft(rawSurvey, newScale, imageUrl, answers, currentStep)
+              }}
+              onUpdatePlot={({ plotWidthM, plotDepthM }) => {
+                const updated = { ...answers, plotWidthM, plotDepthM }
+                setAnswers(updated)
+                saveDraft(rawSurvey, scaleMPerPx, imageUrl, updated, currentStep)
+              }}
+              onUpdateRoadSide={(side) => {
+                const updated = { ...answers, roadSide: side }
+                setAnswers(updated)
+                saveDraft(rawSurvey, scaleMPerPx, imageUrl, updated, currentStep)
+              }}
+              onApplySnapping={handleApplySnapping}
+              onUndoSnapping={handleUndoSnapping}
+            />
+          </PlanFlowErrorBoundary>
         </div>
       )}
 
@@ -900,14 +905,16 @@ export function StartFromPlanFlow() {
           </div>
 
           {/* Style Selector Component */}
-          <StyleSelectorCard
-            buildingType={buildingType}
-            character={character}
-            plinthHeight={plinthHeight}
-            onChangeBuildingType={setBuildingType}
-            onChangeCharacter={setCharacter}
-            onChangePlinthHeight={setPlinthHeight}
-          />
+          <PlanFlowErrorBoundary stepName="Architectural Style Selector">
+            <StyleSelectorCard
+              buildingType={buildingType}
+              character={character}
+              plinthHeight={plinthHeight}
+              onChangeBuildingType={setBuildingType}
+              onChangeCharacter={setCharacter}
+              onChangePlinthHeight={setPlinthHeight}
+            />
+          </PlanFlowErrorBoundary>
         </div>
       )}
     </div>

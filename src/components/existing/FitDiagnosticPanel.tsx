@@ -52,7 +52,7 @@ export function FitDiagnosticPanel({
 
   // Measure current building dimensions in metres
   const footprint = useMemo(() => {
-    const rooms = rawSurvey.elements.rooms
+    const rooms = rawSurvey?.elements?.rooms || []
     if (!rooms.length) return { w: 0, d: 0, minX: 0, maxX: 0, minY: 0, maxY: 0 }
     const minX = Math.min(...rooms.map((r) => r.box.x))
     const maxX = Math.max(...rooms.map((r) => r.box.x + r.box.w))
@@ -67,7 +67,7 @@ export function FitDiagnosticPanel({
       minY,
       maxY,
     }
-  }, [rawSurvey.elements.rooms, scaleMPerPx])
+  }, [rawSurvey?.elements?.rooms, scaleMPerPx])
 
   // Buildable area inside plot after setbacks
   const buildable = useMemo(() => {
