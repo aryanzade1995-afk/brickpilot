@@ -1,4 +1,4 @@
-import { briefSchema, type Brief } from '../model/brief.ts'
+import { briefSchema, type Brief, type BuildingType, type Character } from '../model/brief.ts'
 import { compile } from '../model/canonical.ts'
 import { generateExisting } from '../engine/generateExisting.ts'
 import { validate, type ValidationReport } from '../rules/index.ts'
@@ -7,15 +7,38 @@ import type { Answers } from './types.ts'
 import type { AsBuilt } from './asBuilt.ts'
 import { validateExisting, type ExistingReport } from './validate.ts'
 
+export interface BriefOverrides {
+  name?: string
+  buildingType?: BuildingType
+  character?: Character
+}
+
 /** The brief the planner works from, built only from what the user told us about the plot and the rooms. */
-export function briefFromAnswers(a: Answers): Brief {
+export function briefFromAnswers(a: Answers, overrides?: BriefOverrides): Brief {
   return briefSchema.parse({
-    project: { name: 'My existing structure' },
-    site: { plotWidth: a.plotWidthM, plotDepth: a.plotDepthM, facing:a.roadSide,roadEdges:[a.roadSide] },
-    levels: { storeys: Math.max(0, Math.min(3, a.storeysWanted - 1)), ...(a.floorHeightM ? {floorToFloor:a.floorHeightM}: {}) },
+    project: {
+      name: overrides?.name || 'My existing structure',
+      buildingType: overrides?.buildingType || 'villa',
+    },
+    site: { plotWidth: a.plotWidthM, plotDepth: a.plotDepthM, facing: a.roadSide, roadEdges: [a.roadSide] },
+    levels: { storeys: Math.max(0, Math.min(3, a.storeysWanted - 1)), ...(a.floorHeightM ? { floorToFloor: a.floorHeightM } : {}) },
     rooms: {
-      bedroomsWithBath: a.bedroomsWithBath, bedroomsNoBath: a.bedroomsNoBath, sharedBaths: a.sharedBaths, studies: a.studies,
-      priorities: { coveredParking: a.parking, coveredVerandah: false, utility: a.utility, pooja: a.pooja, courtyard: false, garden: true, compoundWall: false },
+      bedroomsWithBath: a.bedroomsWithBath,
+      bedroomsNoBath: a.bedroomsNoBath,
+      sharedBaths: a.sharedBaths,
+      studies: a.studies,
+      priorities: {
+        coveredParking: a.parking,
+        coveredVerandah: false,
+        utility: a.utility,
+        pooja: a.pooja,
+        courtyard: false,
+        garden: true,
+        compoundWall: false,
+      },
+    },
+    style: {
+      character: overrides?.character || 'modern-box',
     },
   })
 }
