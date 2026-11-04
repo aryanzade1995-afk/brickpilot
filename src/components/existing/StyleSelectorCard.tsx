@@ -1,5 +1,5 @@
 import React from 'react'
-import { Check, Sparkles, Home, Building2 } from 'lucide-react'
+import { Check, Sparkles, Home, Building2, Mountain } from 'lucide-react'
 import { cx } from '@/lib/cx.ts'
 import type { BuildingType, Character } from '@/lib/model/brief.ts'
 
@@ -11,6 +11,14 @@ export interface StyleOption {
   badge: string
   accentColor: string
 }
+
+export type PlinthHeightChoice = 'standard' | 'raised' | 'flood'
+
+export const PLINTH_HEIGHT_OPTIONS: { value: PlinthHeightChoice; label: string; desc: string }[] = [
+  { value: 'standard', label: '1 metre', desc: 'Standard residential plinth (1.0 m above site ground)' },
+  { value: 'raised', label: '2 metre', desc: 'Raised plinth (2.0 m with feature entry steps / ramp)' },
+  { value: 'flood', label: '3 metre', desc: 'Flood protection (3.0 m elevated stilt foundation)' },
+]
 
 export const ARCHITECTURAL_STYLES: StyleOption[] = [
   {
@@ -66,15 +74,19 @@ export const ARCHITECTURAL_STYLES: StyleOption[] = [
 interface StyleSelectorProps {
   buildingType: BuildingType
   character: Character
+  plinthHeight?: PlinthHeightChoice
   onChangeBuildingType: (type: BuildingType) => void
   onChangeCharacter: (char: Character) => void
+  onChangePlinthHeight?: (height: PlinthHeightChoice) => void
 }
 
 export function StyleSelectorCard({
   buildingType,
   character,
+  plinthHeight = 'standard',
   onChangeBuildingType,
   onChangeCharacter,
+  onChangePlinthHeight,
 }: StyleSelectorProps) {
   return (
     <div className="w-full space-y-8">
@@ -249,6 +261,54 @@ export function StyleSelectorCard({
           })}
         </div>
       </div>
+
+      {/* SECTION 3: PLINTH HEIGHT (1m / 2m / 3m) */}
+      {onChangePlinthHeight && (
+        <div className="space-y-3 pt-2 border-t border-line">
+          <div>
+            <label className="text-xs font-mono uppercase tracking-wider text-ink-muted">
+              3. House Height Above Site Ground (Plinth Level)
+            </label>
+            <p className="text-sm text-ink-muted mt-0.5">
+              Set the finished ground floor elevation above site grade (1 metre, 2 metres, or 3 metres).
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {PLINTH_HEIGHT_OPTIONS.map((opt) => {
+              const isSelected = plinthHeight === opt.value
+              return (
+                <div
+                  key={opt.value}
+                  role="radio"
+                  tabIndex={0}
+                  aria-checked={isSelected}
+                  onClick={() => onChangePlinthHeight(opt.value)}
+                  onKeyDown={(e) => (e.key === ' ' || e.key === 'Enter') && onChangePlinthHeight(opt.value)}
+                  className={cx(
+                    'p-4 rounded-xl border-2 transition-all cursor-pointer text-left',
+                    isSelected
+                      ? 'border-accent bg-accent/5 ring-2 ring-accent/20'
+                      : 'border-line bg-surface hover:border-accent/40 hover:bg-surface-elevated'
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-sm text-ink-primary">{opt.label}</span>
+                    {isSelected && (
+                      <div className="p-1 rounded-full bg-accent text-white">
+                        <Check size={12} />
+                      </div>
+                    )}
+                  </div>
+                  <p className="mt-1.5 text-xs text-ink-muted leading-relaxed">
+                    {opt.desc}
+                  </p>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

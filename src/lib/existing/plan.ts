@@ -11,6 +11,7 @@ export interface BriefOverrides {
   name?: string
   buildingType?: BuildingType
   character?: Character
+  plinthHeight?: 'standard' | 'raised' | 'flood'
 }
 
 /** The brief the planner works from, built only from what the user told us about the plot and the rooms. */
@@ -39,6 +40,11 @@ export function briefFromAnswers(a: Answers, overrides?: BriefOverrides): Brief 
     },
     style: {
       character: overrides?.character || 'modern-box',
+    },
+    specs: {
+      overrides: {
+        'plinth-height': overrides?.plinthHeight || 'standard',
+      },
     },
   })
 }

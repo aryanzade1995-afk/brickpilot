@@ -57,6 +57,7 @@ interface SavedState {
   storeysWanted: number
   buildingType: BuildingType
   character: Character
+  plinthHeight?: 'standard' | 'raised' | 'flood'
   rawSurvey: RawSurvey | null
   scaleMPerPx: number
   imageUrl: string | null
@@ -101,6 +102,7 @@ export function StartFromPlanFlow() {
   const [storeysWanted, setStoreysWanted] = useState<number>(1)
   const [buildingType, setBuildingType] = useState<BuildingType>('villa')
   const [character, setCharacter] = useState<Character>('modern-box')
+  const [plinthHeight, setPlinthHeight] = useState<'standard' | 'raised' | 'flood'>('standard')
 
   // Floor drawing slots
   const [activeLevel, setActiveLevel] = useState<number>(0)
@@ -140,6 +142,7 @@ export function StartFromPlanFlow() {
         if (parsed.storeysWanted) setStoreysWanted(parsed.storeysWanted)
         if (parsed.buildingType) setBuildingType(parsed.buildingType)
         if (parsed.character) setCharacter(parsed.character)
+        if (parsed.plinthHeight) setPlinthHeight(parsed.plinthHeight)
         if (parsed.rawSurvey && parsed.imageUrl) {
           setScaleMPerPx(parsed.scaleMPerPx || 0.01)
           setFloorSlots((prev) => ({
@@ -169,6 +172,7 @@ export function StartFromPlanFlow() {
         storeysWanted,
         buildingType,
         character,
+        plinthHeight,
         rawSurvey: survey,
         scaleMPerPx: scale,
         imageUrl: img,
@@ -320,7 +324,7 @@ export function StartFromPlanFlow() {
       // 2. Validate measured structure
       const asBuilt = measuredStructure(finalSurvey, answers, true)
 
-      // 3. Generate Brief with Project Name, Typology, and Selected Style
+      // 3. Generate Brief with Project Name, Typology, Selected Style, and Plinth Height
       const brief = briefFromAnswers(
         {
           ...answers,
@@ -331,6 +335,7 @@ export function StartFromPlanFlow() {
           name: projectName || 'My Family Villa',
           buildingType,
           character,
+          plinthHeight,
         }
       )
 
@@ -891,8 +896,10 @@ export function StartFromPlanFlow() {
           <StyleSelectorCard
             buildingType={buildingType}
             character={character}
+            plinthHeight={plinthHeight}
             onChangeBuildingType={setBuildingType}
             onChangeCharacter={setCharacter}
+            onChangePlinthHeight={setPlinthHeight}
           />
         </div>
       )}

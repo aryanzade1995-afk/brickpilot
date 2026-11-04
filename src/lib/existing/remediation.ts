@@ -14,10 +14,19 @@ import {
   type RawSurvey,
 } from './digitizer.ts'
 import { SURVEY_SETBACKS } from './survey.ts'
+import { SQM_PER_GUNTHA, SQFT_PER_SQM } from './units.ts'
 
 export interface RemediationChangeReport {
   action: string
   details: string
+}
+
+export interface RequiredPlotResult {
+  requiredPlotWidthM: number
+  requiredPlotDepthM: number
+  areaM2: number
+  areaGuntha: number
+  areaSqft: number
 }
 
 /**
@@ -81,17 +90,22 @@ export function autoScaleToFitPlot(
 
 /**
  * Calculates the required plot dimensions to fit the current building footprint
- * with full NBC setbacks.
+ * with full NBC setbacks, with Guntha and sq ft conversions.
  */
 export function calculateRequiredPlot(
   raw: RawSurvey,
   scaleMPerPx: number
-): {
-  requiredPlotWidthM: number
-  requiredPlotDepthM: number
-} {
+): RequiredPlotResult {
   const rooms = raw.elements.rooms
-  if (!rooms.length) return { requiredPlotWidthM: 15, requiredPlotDepthM: 18 }
+  if (!rooms.length) {
+    return {
+      requiredPlotWidthM: 15,
+      requiredPlotDepthM: 18,
+      areaM2: 270,
+      areaGuntha: +(270 / SQM_PER_GUNTHA).toFixed(2),
+      areaSqft: Math.round(270 * SQFT_PER_SQM),
+    }
+  }
 
   const minX = Math.min(...rooms.map((r) => r.box.x))
   const maxX = Math.max(...rooms.map((r) => r.box.x + r.box.w))
@@ -103,10 +117,16 @@ export function calculateRequiredPlot(
 
   const reqW = +(houseW_M + SURVEY_SETBACKS.left + SURVEY_SETBACKS.right + 0.5).toFixed(1)
   const reqD = +(houseD_M + SURVEY_SETBACKS.rear + SURVEY_SETBACKS.road + 0.5).toFixed(1)
+  const widthM = Math.ceil(reqW)
+  const depthM = Math.ceil(reqD)
+  const areaM2 = widthM * depthM
 
   return {
-    requiredPlotWidthM: Math.ceil(reqW),
-    requiredPlotDepthM: Math.ceil(reqD),
+    requiredPlotWidthM: widthM,
+    requiredPlotDepthM: depthM,
+    areaM2,
+    areaGuntha: +(areaM2 / SQM_PER_GUNTHA).toFixed(2),
+    areaSqft: Math.round(areaM2 * SQFT_PER_SQM),
   }
 }
 

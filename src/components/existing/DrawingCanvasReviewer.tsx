@@ -14,7 +14,7 @@ import {
   Square,
 } from 'lucide-react'
 import { type RawSurvey, type RawSurveyRoom, type RawSurveyWall, type RawSurveyOpening, type ImagePointPx } from '@/lib/existing/digitizer.ts'
-import { parseDimension } from '@/lib/existing/units.ts'
+import { parseDimension, sqmToGuntha } from '@/lib/existing/units.ts'
 import { Button } from '@/components/ui/Button.tsx'
 import { cx } from '@/lib/cx.ts'
 
@@ -493,7 +493,7 @@ export function DrawingCanvasReviewer({
             <>
               <span>·</span>
               <span>
-                Plot: {plotWidthM} × {plotDepthM} m
+                Plot: {plotWidthM} × {plotDepthM} m ({sqmToGuntha(plotWidthM * plotDepthM)} Guntha)
               </span>
             </>
           )}

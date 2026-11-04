@@ -14,6 +14,50 @@ export interface ParsedDimension {
   unit: 'm' | 'mm' | 'cm' | 'ft-in' | 'in' | 'ft'
 }
 
+/** Standard Indian Guntha area unit conversion constants */
+export const SQM_PER_GUNTHA = 101.17141
+export const SQFT_PER_SQM = 10.76391
+export const SQFT_PER_GUNTHA = 1089 // 33 ft x 33 ft
+
+export const GUNTHA_PRESETS = [0.5, 1, 1.5, 2, 2.5, 3, 4, 5] as const
+export const LARGE_GUNTHA_PRESETS = [6, 7.5, 10, 12, 15, 20] as const
+
+/** Convert square metres to Guntha (rounded to 2 decimals) */
+export function sqmToGuntha(sqm: number): number {
+  if (!Number.isFinite(sqm) || sqm <= 0) return 0
+  return Number((sqm / SQM_PER_GUNTHA).toFixed(2))
+}
+
+/** Convert Guntha to square metres */
+export function gunthaToSqm(guntha: number): number {
+  if (!Number.isFinite(guntha) || guntha <= 0) return 0
+  return Number((guntha * SQM_PER_GUNTHA).toFixed(2))
+}
+
+/** Convert square metres to square feet */
+export function sqmToSqft(sqm: number): number {
+  if (!Number.isFinite(sqm) || sqm <= 0) return 0
+  return Math.round(sqm * SQFT_PER_SQM)
+}
+
+/** Calculate recommended plot width and depth from Guntha and aspect ratio */
+export function calculatePlotFromGuntha(
+  guntha: number,
+  aspectRatio = 1.25 // depth / width ratio
+): { widthM: number; depthM: number; areaM2: number; areaSqft: number } {
+  const targetArea = Math.max(36, Math.min(6400, guntha * SQM_PER_GUNTHA))
+  const validAspect = Math.max(0.2, Math.min(5, aspectRatio))
+  const rawDepth = Math.sqrt(targetArea * validAspect)
+  const depthM = Math.max(6, Math.min(80, Math.round(rawDepth * 2) / 2))
+  const widthM = Math.max(6, Math.min(80, Math.round((targetArea / depthM) * 2) / 2))
+  return {
+    widthM,
+    depthM,
+    areaM2: widthM * depthM,
+    areaSqft: Math.round(widthM * depthM * SQFT_PER_SQM),
+  }
+}
+
 const INCH_TO_M = 0.0254
 const FOOT_TO_M = 0.3048
 

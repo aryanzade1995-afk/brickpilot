@@ -22,6 +22,13 @@ import {
 } from '@/lib/existing/remediation.ts'
 import { type NbcHealthReport } from '@/lib/existing/nbcPreflight.ts'
 import { applyIndianConstructionSnapping, type SnappingDiff } from '@/lib/existing/snapping.ts'
+import {
+  sqmToGuntha,
+  sqmToSqft,
+  calculatePlotFromGuntha,
+  GUNTHA_PRESETS,
+  SQM_PER_GUNTHA,
+} from '@/lib/existing/units.ts'
 import { Button } from '@/components/ui/Button.tsx'
 import { cx } from '@/lib/cx.ts'
 import type { RoadSide } from '@/lib/existing/types.ts'
@@ -99,6 +106,11 @@ export function InteractiveFitQuestioner({
     [rawSurvey, scaleMPerPx]
   )
 
+  // Plot Area in Guntha & Sq Ft
+  const plotAreaM2 = plotWidthM * plotDepthM
+  const currentGuntha = sqmToGuntha(plotAreaM2)
+  const plotAreaSqft = sqmToSqft(plotAreaM2)
+
   // Ventilation check
   const ventCheck = nbcReport?.checks.find((c) => c.id === 'ventilation')
   const unventilatedRooms = ventCheck && ventCheck.status !== 'pass' ? ventCheck.offendingRoomIds : []
@@ -152,7 +164,16 @@ export function InteractiveFitQuestioner({
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+        {/* Guntha & Area Summary Banner */}
+        <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl border border-line bg-surface-elevated text-xs">
+          <div className="flex items-center gap-2.5">
+            <span className="font-semibold text-accent font-mono text-sm">{currentGuntha} Guntha</span>
+            <span className="text-ink-muted">({Math.round(plotAreaM2)} m² / {plotAreaSqft.toLocaleString('en-IN')} sq ft)</span>
+          </div>
+          <span className="text-[0.7rem] text-ink-muted font-mono">1 Guntha = 1,089 sq ft ≈ 101.17 m² (33 × 33 ft)</span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
           {/* Plot Width */}
           <div className="space-y-1.5">
             <label className="text-xs font-mono uppercase tracking-wider text-ink-muted">
@@ -228,6 +249,39 @@ export function InteractiveFitQuestioner({
               ))}
             </div>
             <span className="text-[0.7rem] text-ink-muted">Direction your plot faces the road</span>
+          </div>
+        </div>
+
+        {/* Quick Guntha Presets */}
+        <div className="space-y-1.5 pt-2 border-t border-line/60">
+          <label className="text-[0.7rem] font-mono uppercase tracking-wider text-ink-muted">
+            Quick Guntha Plot Sizing Presets:
+          </label>
+          <div className="flex flex-wrap gap-1.5">
+            {GUNTHA_PRESETS.map((g) => {
+              const isSelected = Math.abs(currentGuntha - g) < 0.08
+              return (
+                <button
+                  key={g}
+                  type="button"
+                  onClick={() => {
+                    const aspect = plotDepthM > 0 && plotWidthM > 0 ? plotDepthM / plotWidthM : 1.2
+                    const res = calculatePlotFromGuntha(g, aspect)
+                    onUpdatePlot({ plotWidthM: res.widthM, plotDepthM: res.depthM })
+                    setManualPlotW(String(res.widthM))
+                    setManualPlotD(String(res.depthM))
+                  }}
+                  className={cx(
+                    'px-2.5 py-1 rounded-lg text-xs font-mono border transition-colors cursor-pointer',
+                    isSelected
+                      ? 'border-accent bg-accent text-white font-semibold shadow-xs'
+                      : 'border-line bg-surface-elevated text-ink-muted hover:text-ink-primary hover:border-accent/40'
+                  )}
+                >
+                  {g} Guntha <span className="opacity-75 text-[0.65rem]">({Math.round(g * SQM_PER_GUNTHA)} m²)</span>
+                </button>
+              )
+            })}
           </div>
         </div>
       </div>
@@ -358,7 +412,9 @@ export function InteractiveFitQuestioner({
                     </div>
                     <p className="mt-2 text-xs text-ink-muted leading-relaxed">
                       Keep your house the exact size you drew and expand your plot dimensions to at least{' '}
-                      <strong className="text-ink-primary font-mono">{requiredPlot.requiredPlotWidthM} × {requiredPlot.requiredPlotDepthM} m</strong>.
+                      <strong className="text-ink-primary font-mono">
+                        {requiredPlot.requiredPlotWidthM} × {requiredPlot.requiredPlotDepthM} m ({requiredPlot.areaGuntha} Guntha / {requiredPlot.areaSqft.toLocaleString('en-IN')} sq ft)
+                      </strong>.
                     </p>
                   </div>
                   <Button
@@ -375,12 +431,12 @@ export function InteractiveFitQuestioner({
                       setManualPlotD(String(requiredPlot.requiredPlotDepthM))
                       setLastActionReport({
                         action: 'Plot Expanded',
-                        details: `Plot size increased to ${requiredPlot.requiredPlotWidthM} × ${requiredPlot.requiredPlotDepthM} m to fit full house footprint and setbacks.`,
+                        details: `Plot size increased to ${requiredPlot.requiredPlotWidthM} × ${requiredPlot.requiredPlotDepthM} m (${requiredPlot.areaGuntha} Guntha) to fit full house footprint and setbacks.`,
                       })
                     }}
                   >
                     <Maximize2 size={14} />
-                    <span>Expand Plot to {requiredPlot.requiredPlotWidthM} × {requiredPlot.requiredPlotDepthM} m</span>
+                    <span>Expand Plot to {requiredPlot.requiredPlotWidthM} × {requiredPlot.requiredPlotDepthM} m ({requiredPlot.areaGuntha} G)</span>
                   </Button>
                 </div>
               </div>
