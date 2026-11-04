@@ -436,7 +436,7 @@ export function StartFromPlanFlow() {
       {/* STEP 1: PROJECT SETUP (NAME, FLOORS, TYPOLOGY) */}
       {/* -------------------------------------------------------------------------- */}
       {currentStep === 'project' && (
-        <div className="max-w-2xl mx-auto py-6 space-y-8">
+        <div className="max-w-3xl py-4 space-y-6 text-left">
           <div>
             <h2 className="font-display text-3xl font-semibold text-ink-primary">
               Project Name & Floor Count
@@ -549,7 +549,7 @@ export function StartFromPlanFlow() {
       {/* STEP 2: DRAWING UPLOAD (SINGLE OR MULTI-FLOOR, ANY ORIENTATION) */}
       {/* -------------------------------------------------------------------------- */}
       {currentStep === 'upload' && (
-        <div className="max-w-3xl mx-auto py-6 space-y-8">
+        <div className="max-w-3xl py-4 space-y-6 text-left">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h2 className="font-display text-3xl font-semibold text-ink-primary">
@@ -588,7 +588,7 @@ export function StartFromPlanFlow() {
             </div>
           )}
 
-          {/* Active Level Upload Card */}
+          {/* Active Level Upload Card (Left-aligned, matching site dropzone) */}
           <div
             role="button"
             tabIndex={0}
@@ -614,19 +614,19 @@ export function StartFromPlanFlow() {
               if (file) void processImageFile(file, activeLevel)
             }}
             className={cx(
-              'flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed p-10 text-center transition-all cursor-pointer',
+              'flex flex-col items-start justify-center gap-4 rounded-2xl border-2 border-dashed p-8 text-left transition-all cursor-pointer',
               isDragging
-                ? 'border-accent bg-accent/5 scale-[1.01]'
-                : 'border-line bg-surface hover:border-accent/70 hover:bg-surface-elevated'
+                ? 'border-accent bg-accent/5 scale-[1.005]'
+                : 'border-line-strong bg-bg-inset hover:border-accent hover:bg-surface-elevated'
             )}
           >
             {currentFloor.imageUrl ? (
-              <div className="space-y-4 w-full flex flex-col items-center">
+              <div className="space-y-4 w-full flex flex-col items-start">
                 <div className="relative max-w-sm max-h-60 overflow-hidden rounded-xl border border-line bg-black/5 p-2">
                   <img
                     src={currentFloor.imageUrl}
                     alt={currentFloor.label}
-                    className="max-h-52 w-auto object-contain mx-auto rounded"
+                    className="max-h-52 w-auto object-contain rounded"
                   />
                   <div className="absolute top-3 right-3 flex items-center gap-1.5">
                     <span className="text-[0.65rem] font-mono px-2 py-0.5 rounded-full bg-black/70 text-white backdrop-blur">

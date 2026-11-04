@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useMemo } from 'react'
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react'
 import {
   ZoomIn,
   ZoomOut,
@@ -6,14 +6,22 @@ import {
   Undo2,
   Redo2,
   Ruler,
-  AlertCircle,
   Eye,
+  EyeOff,
   Plus,
   Trash2,
   DoorOpen,
   Square,
+  Compass,
+  Check,
 } from 'lucide-react'
-import { type RawSurvey, type RawSurveyRoom, type RawSurveyWall, type RawSurveyOpening, type ImagePointPx } from '@/lib/existing/digitizer.ts'
+import {
+  type RawSurvey,
+  type RawSurveyRoom,
+  type RawSurveyWall,
+  type RawSurveyOpening,
+  type ImagePointPx,
+} from '@/lib/existing/digitizer.ts'
 import { parseDimension, sqmToGuntha } from '@/lib/existing/units.ts'
 import { Button } from '@/components/ui/Button.tsx'
 import { cx } from '@/lib/cx.ts'
@@ -33,6 +41,22 @@ export const INDIAN_ROOM_TYPES = [
   { value: 'utility', label: 'Utility' },
 ] as const
 
+/** BrickPilot Architectural Zone Palette matching 2D Plan Studio */
+const ZONE_COLORS: Record<string, { fill: string; stroke: string; text: string }> = {
+  living: { fill: '#F6E3BE', stroke: '#D97706', text: '#78350F' },
+  dining: { fill: '#F6E3BE', stroke: '#D97706', text: '#78350F' },
+  bed: { fill: '#D3E3F2', stroke: '#2563EB', text: '#1E3A8A' },
+  master_bed: { fill: '#D3E3F2', stroke: '#2563EB', text: '#1E3A8A' },
+  kitchen: { fill: '#CFE8D0', stroke: '#16A34A', text: '#14532D' },
+  utility: { fill: '#CFE8D0', stroke: '#16A34A', text: '#14532D' },
+  store: { fill: '#ECECEA', stroke: '#64748B', text: '#334155' },
+  bath: { fill: '#E0E7FF', stroke: '#4F46E5', text: '#312E81' },
+  pooja: { fill: '#F6D4D0', stroke: '#DC2626', text: '#7F1D1D' },
+  corridor: { fill: '#F1F5F9', stroke: '#94A3B8', text: '#475569' },
+  stair: { fill: '#F1F5F9', stroke: '#94A3B8', text: '#475569' },
+  balcony: { fill: '#E3EED5', stroke: '#65A30D', text: '#365314' },
+}
+
 interface DrawingCanvasReviewerProps {
   imageUrl: string
   rawSurvey: RawSurvey
@@ -48,7 +72,7 @@ type Tool = 'select' | 'calibrate' | 'add-room' | 'add-wall' | 'add-door' | 'add
 interface DragState {
   type: 'room-corner' | 'room-move' | 'wall-endpoint' | 'opening-move'
   elementId: string
-  handle?: string // e.g., 'tl', 'tr', 'bl', 'br', 'a', 'b'
+  handle?: string
   startX: number
   startY: number
   initialPos: Record<string, number>
@@ -75,10 +99,11 @@ export function DrawingCanvasReviewer({
 
   // 3. UI Controls
   const [activeTool, setActiveTool] = useState<Tool>('select')
-  const [overlayOpacity, setOverlayOpacity] = useState(0.55)
+  // Default to FALSE: only show the website's clean CAD vector drawing, NOT the raw user photo
+  const [showOriginalSketch, setShowOriginalSketch] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [selectedType, setSelectedType] = useState<'room' | 'wall' | 'opening' | null>(null)
-  const [showNeedsReviewDrawer, setShowNeedsReviewDrawer] = useState(true)
+  const [showNeedsReviewDrawer, setShowNeedsReviewDrawer] = useState(false)
 
   // 4. Two-Point Calibration Tool State
   const [calibPointA, setCalibPointA] = useState<ImagePointPx | null>(null)
@@ -122,13 +147,13 @@ export function DrawingCanvasReviewer({
   // Low confidence items (< 0.7) for "Needs review" side panel
   const lowConfidenceItems = useMemo(() => {
     const items: { id: string; type: 'room' | 'wall' | 'opening'; label: string; confidence: number }[] = []
-    for (const r of rawSurvey.elements.rooms) {
+    for (const r of rawSurvey?.elements?.rooms || []) {
       if (r.confidence < 0.7) items.push({ id: r.id, type: 'room', label: r.name || 'Room', confidence: r.confidence })
     }
-    for (const w of rawSurvey.elements.walls) {
+    for (const w of rawSurvey?.elements?.walls || []) {
       if (w.confidence < 0.7) items.push({ id: w.id, type: 'wall', label: `Wall (${w.kind})`, confidence: w.confidence })
     }
-    for (const o of rawSurvey.elements.openings) {
+    for (const o of rawSurvey?.elements?.openings || []) {
       if (o.confidence < 0.7) items.push({ id: o.id, type: 'opening', label: `${o.kind} opening`, confidence: o.confidence })
     }
     return items
@@ -146,11 +171,115 @@ export function DrawingCanvasReviewer({
     return { x: Math.round(svgPt.x), y: Math.round(svgPt.y) }
   }, [])
 
-  // Canvas zoom via wheel
+  // Auto-fit & Center drawing inside the viewport container
+  const fitToView = useCallback(() => {
+    if (!containerRef.current) return
+    const container = containerRef.current.getBoundingClientRect()
+    const rooms = rawSurvey?.elements?.rooms || []
+    const walls = rawSurvey?.elements?.walls || []
+
+    let minX = 0, maxX = rawSurvey.imageWidth || 1000
+    let minY = 0, maxY = rawSurvey.imageHeight || 800
+
+    if (rooms.length > 0) {
+      minX = Math.min(...rooms.map((r) => r.box.x))
+      maxX = Math.max(...rooms.map((r) => r.box.x + r.box.w))
+      minY = Math.min(...rooms.map((r) => r.box.y))
+      maxY = Math.max(...rooms.map((r) => r.box.y + r.box.h))
+    } else if (walls.length > 0) {
+      minX = Math.min(...walls.flatMap((w) => [w.a.x, w.b.x]))
+      maxX = Math.max(...walls.flatMap((w) => [w.a.x, w.b.x]))
+      minY = Math.min(...walls.flatMap((w) => [w.a.y, w.b.y]))
+      maxY = Math.max(...walls.flatMap((w) => [w.a.y, w.b.y]))
+    }
+
+    const planW = Math.max(80, maxX - minX)
+    const planH = Math.max(80, maxY - minY)
+
+    const padding = 70
+    const availW = Math.max(200, container.width - padding * 2)
+    const availH = Math.max(200, container.height - padding * 2)
+
+    const scale = Math.min(availW / planW, availH / planH)
+    const finalZoom = Math.max(0.15, Math.min(scale, 2.5))
+
+    const centerX = minX + planW / 2
+    const centerY = minY + planH / 2
+
+    const newPanX = container.width / 2 - centerX * finalZoom
+    const newPanY = container.height / 2 - centerY * finalZoom
+
+    setZoom(+finalZoom.toFixed(2))
+    setPan({ x: Math.round(newPanX), y: Math.round(newPanY) })
+  }, [rawSurvey])
+
+  // Auto-fit on initial mount or when survey loads
+  const hasAutoFittedRef = useRef(false)
+  useEffect(() => {
+    if (!hasAutoFittedRef.current && containerRef.current) {
+      // Small timeout to allow container layout dimensions to settle
+      const timer = setTimeout(() => {
+        fitToView()
+        hasAutoFittedRef.current = true
+      }, 50)
+      return () => clearTimeout(timer)
+    }
+  }, [fitToView])
+
+  // Cursor-centered Wheel Zoom
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault()
+    if (!containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    const mouseX = e.clientX - rect.left
+    const mouseY = e.clientY - rect.top
+
     const zoomFactor = e.deltaY < 0 ? 1.15 : 0.87
-    setZoom((z) => Math.max(0.2, Math.min(6, +(z * zoomFactor).toFixed(2))))
+    const nextZoom = Math.max(0.15, Math.min(8, +(zoom * zoomFactor).toFixed(3)))
+
+    // Pivot pan around mouse position
+    const nextPanX = mouseX - (mouseX - pan.x) * (nextZoom / zoom)
+    const nextPanY = mouseY - (mouseY - pan.y) * (nextZoom / zoom)
+
+    setZoom(nextZoom)
+    setPan({ x: Math.round(nextPanX), y: Math.round(nextPanY) })
+  }
+
+  // Smooth Zoom Buttons
+  const handleZoomIn = () => {
+    if (!containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    const cx = rect.width / 2
+    const cy = rect.height / 2
+    const nextZoom = Math.min(8, +(zoom * 1.25).toFixed(2))
+    const nextPanX = cx - (cx - pan.x) * (nextZoom / zoom)
+    const nextPanY = cy - (cy - pan.y) * (nextZoom / zoom)
+    setZoom(nextZoom)
+    setPan({ x: Math.round(nextPanX), y: Math.round(nextPanY) })
+  }
+
+  const handleZoomOut = () => {
+    if (!containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    const cx = rect.width / 2
+    const cy = rect.height / 2
+    const nextZoom = Math.max(0.15, +(zoom / 1.25).toFixed(2))
+    const nextPanX = cx - (cx - pan.x) * (nextZoom / zoom)
+    const nextPanY = cy - (cy - pan.y) * (nextZoom / zoom)
+    setZoom(nextZoom)
+    setPan({ x: Math.round(nextPanX), y: Math.round(nextPanY) })
+  }
+
+  const handleResetZoom100 = () => {
+    if (!containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    const cx = rect.width / 2
+    const cy = rect.height / 2
+    const nextZoom = 1.0
+    const nextPanX = cx - (cx - pan.x) * (nextZoom / zoom)
+    const nextPanY = cy - (cy - pan.y) * (nextZoom / zoom)
+    setZoom(nextZoom)
+    setPan({ x: Math.round(nextPanX), y: Math.round(nextPanY) })
   }
 
   // Calibration tool point selection
@@ -160,7 +289,6 @@ export function DrawingCanvasReviewer({
     } else if (!calibPointB) {
       setCalibPointB(pt)
     } else {
-      // Reset and pick first point again
       setCalibPointA(pt)
       setCalibPointB(null)
       setCalibInput('')
@@ -189,24 +317,21 @@ export function DrawingCanvasReviewer({
     setActiveTool('select')
   }
 
-  // Pointer Down (Pan or Start Drag)
+  // Pointer Down (Pan or Start Tool / Drag)
   const handlePointerDown = (e: React.PointerEvent) => {
-    // Middle click or space+click starts panning
-    if (e.button === 1 || e.shiftKey) {
-      setIsPanning(true)
-      panStartRef.current = { x: e.clientX - pan.x, y: e.clientY - pan.y }
-      return
-    }
+    // If clicking on toolbar or overlay controls, ignore
+    if ((e.target as HTMLElement).closest('.canvas-control-bar')) return
 
     const imgPt = clientToImageCoords(e.clientX, e.clientY)
-    if (!imgPt) return
 
-    if (activeTool === 'calibrate') {
+    // Calibration tool
+    if (activeTool === 'calibrate' && imgPt) {
       handleCalibrationClick(imgPt)
       return
     }
 
-    if (activeTool === 'add-room') {
+    // Add element tools
+    if (activeTool === 'add-room' && imgPt) {
       const newRoom: RawSurveyRoom = {
         id: `r-${Date.now()}`,
         name: 'New Room',
@@ -223,7 +348,7 @@ export function DrawingCanvasReviewer({
       return
     }
 
-    if (activeTool === 'add-wall') {
+    if (activeTool === 'add-wall' && imgPt) {
       const newWall: RawSurveyWall = {
         id: `w-${Date.now()}`,
         a: { x: imgPt.x, y: imgPt.y },
@@ -240,7 +365,7 @@ export function DrawingCanvasReviewer({
       return
     }
 
-    if (activeTool === 'add-door' || activeTool === 'add-window') {
+    if ((activeTool === 'add-door' || activeTool === 'add-window') && imgPt) {
       const kind = activeTool === 'add-door' ? 'door' : 'window'
       const newOpening: RawSurveyOpening = {
         id: `o-${Date.now()}`,
@@ -259,9 +384,13 @@ export function DrawingCanvasReviewer({
       setActiveTool('select')
       return
     }
+
+    // Default left click or drag on background: start smooth panning
+    setIsPanning(true)
+    panStartRef.current = { x: e.clientX - pan.x, y: e.clientY - pan.y }
   }
 
-  // Pointer Move (Panning or Dragging)
+  // Pointer Move (Panning or Dragging elements)
   const handlePointerMove = (e: React.PointerEvent) => {
     if (isPanning) {
       setPan({
@@ -379,42 +508,53 @@ export function DrawingCanvasReviewer({
 
   // Live estimated building footprint size in metres
   const footprintM = useMemo(() => {
-    const W = rawSurvey.imageWidth * scaleMPerPx
-    const H = rawSurvey.imageHeight * scaleMPerPx
-    return { w: +W.toFixed(2), h: +H.toFixed(2) }
-  }, [rawSurvey.imageWidth, rawSurvey.imageHeight, scaleMPerPx])
+    const rooms = rawSurvey?.elements?.rooms || []
+    if (!rooms.length) {
+      const W = rawSurvey.imageWidth * scaleMPerPx
+      const H = rawSurvey.imageHeight * scaleMPerPx
+      return { w: +W.toFixed(2), h: +H.toFixed(2) }
+    }
+    const minX = Math.min(...rooms.map((r) => r.box.x))
+    const maxX = Math.max(...rooms.map((r) => r.box.x + r.box.w))
+    const minY = Math.min(...rooms.map((r) => r.box.y))
+    const maxY = Math.max(...rooms.map((r) => r.box.y + r.box.h))
+    return {
+      w: +((maxX - minX) * scaleMPerPx).toFixed(2),
+      h: +((maxY - minY) * scaleMPerPx).toFixed(2),
+    }
+  }, [rawSurvey, scaleMPerPx])
 
   const selectedRoom = useMemo(
-    () => rawSurvey.elements.rooms.find((r) => r.id === selectedId),
-    [rawSurvey.elements.rooms, selectedId]
+    () => rawSurvey?.elements?.rooms?.find((r) => r.id === selectedId),
+    [rawSurvey?.elements?.rooms, selectedId]
   )
 
   const selectedOpening = useMemo(
-    () => rawSurvey.elements.openings.find((o) => o.id === selectedId),
-    [rawSurvey.elements.openings, selectedId]
+    () => rawSurvey?.elements?.openings?.find((o) => o.id === selectedId),
+    [rawSurvey?.elements?.openings, selectedId]
   )
 
   const selectedWall = useMemo(
-    () => rawSurvey.elements.walls.find((w) => w.id === selectedId),
-    [rawSurvey.elements.walls, selectedId]
+    () => rawSurvey?.elements?.walls?.find((w) => w.id === selectedId),
+    [rawSurvey?.elements?.walls, selectedId]
   )
 
   return (
     <div
       ref={containerRef}
-      className="relative flex flex-col h-[750px] w-full rounded-2xl border border-line bg-surface overflow-hidden select-none"
+      className="relative flex flex-col h-[740px] w-full rounded-2xl border border-line bg-surface overflow-hidden select-none shadow-sm"
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerUp}
     >
       {/* 1. TOP TOOLBAR */}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 border-b border-line bg-surface-elevated z-10 text-xs">
+      <div className="canvas-control-bar flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 border-b border-line bg-surface-elevated z-10 text-xs">
         {/* Left tools */}
         <div className="flex items-center gap-1.5">
           <Button
             size="sm"
             variant={activeTool === 'select' ? 'primary' : 'ghost'}
             onClick={() => setActiveTool('select')}
-            title="Select and drag elements"
+            title="Select & Move elements"
           >
             Select
           </Button>
@@ -428,11 +568,11 @@ export function DrawingCanvasReviewer({
               setCalibPointB(null)
               setCalibError(null)
             }}
-            title="Calibrate drawing scale with 2 points"
+            title="Calibrate drawing scale with 2 reference points"
             className="flex items-center gap-1"
           >
             <Ruler size={13} />
-            <span>Calibrate Scale</span>
+            <span>Calibrate</span>
           </Button>
 
           <div className="h-4 w-px bg-line mx-1" />
@@ -442,7 +582,7 @@ export function DrawingCanvasReviewer({
             variant={activeTool === 'add-room' ? 'primary' : 'ghost'}
             onClick={() => setActiveTool('add-room')}
             className="flex items-center gap-1"
-            title="Click to place a new room"
+            title="Add a new room"
           >
             <Square size={13} />
             <span>+ Room</span>
@@ -453,7 +593,7 @@ export function DrawingCanvasReviewer({
             variant={activeTool === 'add-wall' ? 'primary' : 'ghost'}
             onClick={() => setActiveTool('add-wall')}
             className="flex items-center gap-1"
-            title="Click to place a wall segment"
+            title="Add a wall"
           >
             <Plus size={13} />
             <span>+ Wall</span>
@@ -464,7 +604,7 @@ export function DrawingCanvasReviewer({
             variant={activeTool === 'add-door' ? 'primary' : 'ghost'}
             onClick={() => setActiveTool('add-door')}
             className="flex items-center gap-1"
-            title="Click to place a door"
+            title="Add a door"
           >
             <DoorOpen size={13} />
             <span>+ Door</span>
@@ -475,19 +615,19 @@ export function DrawingCanvasReviewer({
             variant={activeTool === 'add-window' ? 'primary' : 'ghost'}
             onClick={() => setActiveTool('add-window')}
             className="flex items-center gap-1"
-            title="Click to place a window"
+            title="Add a window"
           >
             <Plus size={13} />
             <span>+ Window</span>
           </Button>
         </div>
 
-        {/* Center: Live Scale info */}
+        {/* Center: Live CAD Scale readout */}
         <div className="hidden lg:flex items-center gap-3 font-mono text-[0.72rem] text-ink-muted">
           <span>Scale: 1 px = {(scaleMPerPx * 1000).toFixed(1)} mm</span>
           <span>·</span>
           <span>
-            Drawing: {footprintM.w} × {footprintM.h} m
+            House: {footprintM.w} × {footprintM.h} m
           </span>
           {plotWidthM && plotDepthM && (
             <>
@@ -501,31 +641,31 @@ export function DrawingCanvasReviewer({
 
         {/* Right actions */}
         <div className="flex items-center gap-2">
-          {/* Opacity slider */}
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-bg-inset border border-line">
-            <Eye size={12} className="text-ink-muted" />
-            <input
-              type="range"
-              min="0.1"
-              max="1.0"
-              step="0.05"
-              value={overlayOpacity}
-              onChange={(e) => setOverlayOpacity(parseFloat(e.target.value))}
-              className="w-16 accent-accent h-1"
-              title="Overlay opacity"
-            />
-            <span className="font-mono text-[0.65rem] text-ink-muted w-6 text-right">
-              {Math.round(overlayOpacity * 100)}%
+          {/* Optional Sketch Overlay Toggle */}
+          <button
+            type="button"
+            onClick={() => setShowOriginalSketch(!showOriginalSketch)}
+            className={cx(
+              'px-2.5 py-1.5 rounded-lg border text-xs font-mono flex items-center gap-1.5 transition-colors',
+              showOriginalSketch
+                ? 'border-accent bg-accent/10 text-accent font-medium'
+                : 'border-line bg-surface hover:bg-bg-inset text-ink-muted hover:text-ink-primary'
+            )}
+            title="Toggle original uploaded photo reference overlay"
+          >
+            {showOriginalSketch ? <Eye size={13} /> : <EyeOff size={13} />}
+            <span className="hidden sm:inline">
+              {showOriginalSketch ? 'Hide Sketch' : 'Compare Sketch'}
             </span>
-          </div>
+          </button>
 
           {/* Undo / Redo */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 border-l border-line pl-1.5">
             <button
               type="button"
               disabled={historyIndex <= 0}
               onClick={handleUndo}
-              className="p-1.5 rounded hover:bg-bg-inset disabled:opacity-30 transition-colors"
+              className="p-1.5 rounded hover:bg-bg-inset disabled:opacity-30 transition-colors text-ink-muted hover:text-ink-primary"
               title="Undo (Ctrl+Z)"
             >
               <Undo2 size={14} />
@@ -534,7 +674,7 @@ export function DrawingCanvasReviewer({
               type="button"
               disabled={historyIndex >= history.length - 1}
               onClick={handleRedo}
-              className="p-1.5 rounded hover:bg-bg-inset disabled:opacity-30 transition-colors"
+              className="p-1.5 rounded hover:bg-bg-inset disabled:opacity-30 transition-colors text-ink-muted hover:text-ink-primary"
               title="Redo (Ctrl+Y)"
             >
               <Redo2 size={14} />
@@ -545,31 +685,33 @@ export function DrawingCanvasReviewer({
           <div className="flex items-center gap-1 border-l border-line pl-2">
             <button
               type="button"
-              onClick={() => setZoom((z) => Math.min(6, +(z * 1.2).toFixed(2)))}
-              className="p-1.5 rounded hover:bg-bg-inset"
-              title="Zoom In"
-            >
-              <ZoomIn size={14} />
-            </button>
-            <span className="font-mono text-[0.68rem] text-ink-muted w-9 text-center">
-              {Math.round(zoom * 100)}%
-            </span>
-            <button
-              type="button"
-              onClick={() => setZoom((z) => Math.max(0.2, +(z / 1.2).toFixed(2)))}
-              className="p-1.5 rounded hover:bg-bg-inset"
+              onClick={handleZoomOut}
+              className="p-1.5 rounded hover:bg-bg-inset text-ink-muted hover:text-ink-primary"
               title="Zoom Out"
             >
               <ZoomOut size={14} />
             </button>
             <button
               type="button"
-              onClick={() => {
-                setZoom(1)
-                setPan({ x: 0, y: 0 })
-              }}
-              className="p-1.5 rounded hover:bg-bg-inset"
-              title="Reset Zoom"
+              onClick={handleResetZoom100}
+              className="font-mono text-[0.68rem] text-ink-muted px-1.5 py-0.5 rounded hover:bg-bg-inset hover:text-ink-primary"
+              title="Reset to 100%"
+            >
+              {Math.round(zoom * 100)}%
+            </button>
+            <button
+              type="button"
+              onClick={handleZoomIn}
+              className="p-1.5 rounded hover:bg-bg-inset text-ink-muted hover:text-ink-primary"
+              title="Zoom In"
+            >
+              <ZoomIn size={14} />
+            </button>
+            <button
+              type="button"
+              onClick={fitToView}
+              className="p-1.5 rounded hover:bg-bg-inset text-accent hover:bg-accent/10"
+              title="Fit to Screen"
             >
               <Maximize2 size={14} />
             </button>
@@ -579,7 +721,7 @@ export function DrawingCanvasReviewer({
 
       {/* 2. CALIBRATION BANNER (active when calibrating) */}
       {activeTool === 'calibrate' && (
-        <div className="absolute top-12 left-4 right-4 z-20 flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl border border-accent/40 bg-surface-elevated/95 backdrop-blur shadow-lg text-xs">
+        <div className="canvas-control-bar absolute top-12 left-4 right-4 z-20 flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl border border-accent/40 bg-surface-elevated/95 backdrop-blur shadow-lg text-xs">
           <div className="flex items-center gap-2">
             <Ruler size={16} className="text-accent flex-none" />
             <div>
@@ -598,14 +740,12 @@ export function DrawingCanvasReviewer({
             <div className="flex items-center gap-2">
               <input
                 type="text"
-                placeholder="e.g. 30 ft, 9.1 m, 9'6&quot;"
+                placeholder="e.g. 15 ft, 4.5 m"
                 value={calibInput}
-                onChange={(e) => {
-                  setCalibInput(e.target.value)
-                  setCalibError(null)
-                }}
+                onChange={(e) => setCalibInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && applyCalibration()}
-                className="px-2.5 py-1.5 rounded border border-line bg-bg-inset text-xs font-mono outline-none focus:border-accent w-48"
+                className="px-3 py-1.5 rounded border border-line bg-bg-inset text-xs font-mono w-36 outline-none focus:border-accent"
+                autoFocus
               />
               <Button size="sm" onClick={applyCalibration}>
                 Apply Scale
@@ -616,6 +756,8 @@ export function DrawingCanvasReviewer({
                 onClick={() => {
                   setCalibPointA(null)
                   setCalibPointB(null)
+                  setCalibInput('')
+                  setCalibError(null)
                   setActiveTool('select')
                 }}
               >
@@ -628,34 +770,63 @@ export function DrawingCanvasReviewer({
         </div>
       )}
 
-      {/* 3. MAIN CANVAS AREA */}
+      {/* 3. MAIN CAD DRAFTING CANVAS */}
       <div
-        className="relative flex-1 w-full h-full overflow-hidden bg-neutral-900 cursor-crosshair"
+        className={cx(
+          'relative flex-1 w-full h-full overflow-hidden transition-colors',
+          isPanning
+            ? 'cursor-grabbing'
+            : activeTool === 'select'
+            ? 'cursor-grab'
+            : 'cursor-crosshair'
+        )}
+        style={{
+          backgroundColor: '#FBFBFA',
+          backgroundImage: 'radial-gradient(circle, #CBD5E1 1.2px, transparent 1.2px)',
+          backgroundSize: '24px 24px',
+        }}
         onWheel={handleWheel}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
       >
+        {/* COMPASS NORTH ARROW */}
+        <div className="absolute top-4 right-4 z-10 pointer-events-none flex flex-col items-center bg-white/80 dark:bg-slate-900/80 backdrop-blur p-2 rounded-xl border border-line shadow-xs">
+          <Compass size={20} className="text-accent" />
+          <span className="font-mono text-[0.65rem] font-bold text-ink-primary mt-0.5">N</span>
+        </div>
+
+        {/* GRAPHIC SCALE BAR */}
+        <div className="absolute bottom-4 right-4 z-10 pointer-events-none bg-white/85 dark:bg-slate-900/80 backdrop-blur px-3 py-1.5 rounded-lg border border-line shadow-xs font-mono text-[0.65rem] text-ink-muted flex items-center gap-2">
+          <span>0</span>
+          <div
+            className="h-1 bg-ink-primary border border-ink-primary"
+            style={{ width: `${Math.max(30, Math.round((2.0 / scaleMPerPx) * zoom))}px` }}
+          />
+          <span>2m</span>
+        </div>
+
         <div
           className="absolute origin-top-left transition-transform duration-75"
           style={{
             transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
           }}
         >
-          {/* Background uploaded plan image */}
-          <img
-            src={imageUrl}
-            alt="Source drawing"
-            className="block max-w-none pointer-events-none select-none"
-            style={{ width: rawSurvey.imageWidth, height: rawSurvey.imageHeight }}
-          />
+          {/* OPTIONAL SKETCH OVERLAY (Only if user explicitly clicked "Compare Sketch") */}
+          {showOriginalSketch && imageUrl && (
+            <img
+              src={imageUrl}
+              alt="Source drawing reference"
+              className="block max-w-none pointer-events-none select-none opacity-30 mix-blend-multiply"
+              style={{ width: rawSurvey.imageWidth, height: rawSurvey.imageHeight }}
+            />
+          )}
 
-          {/* SVG Overlay layer */}
+          {/* CLEAN ARCHITECTURAL VECTOR DRAWING (Created by BrickPilot) */}
           <svg
             ref={svgRef}
-            width={rawSurvey.imageWidth}
-            height={rawSurvey.imageHeight}
-            className="absolute inset-0 pointer-events-auto"
-            style={{ opacity: overlayOpacity }}
+            width={rawSurvey.imageWidth || 1200}
+            height={rawSurvey.imageHeight || 900}
+            className="block pointer-events-auto"
           >
             {/* Calibration Reference Line */}
             {calibPointA && (
@@ -691,23 +862,27 @@ export function DrawingCanvasReviewer({
             )}
 
             {/* ROOMS */}
-            {rawSurvey.elements.rooms.map((room) => {
+            {(rawSurvey?.elements?.rooms || []).map((room) => {
               const isSelected = selectedId === room.id
               const isLowConf = room.confidence < 0.7
               const realW = (room.box.w * scaleMPerPx).toFixed(1)
               const realH = (room.box.h * scaleMPerPx).toFixed(1)
+              const areaM2 = ((room.box.w * scaleMPerPx) * (room.box.h * scaleMPerPx)).toFixed(1)
+
+              const zone = ZONE_COLORS[room.type] || { fill: '#F1F5F9', stroke: '#94A3B8', text: '#475569' }
+              const tagWidth = Math.max(90, room.name.length * 7 + 22)
 
               return (
                 <g key={room.id} className="cursor-pointer">
-                  {/* Room bounding box */}
+                  {/* Room bounding box with authentic architectural fill */}
                   <rect
                     x={room.box.x}
                     y={room.box.y}
                     width={room.box.w}
                     height={room.box.h}
-                    fill={isSelected ? '#3b82f6' : isLowConf ? '#f59e0b' : '#6366f1'}
-                    fillOpacity={isSelected ? 0.35 : 0.22}
-                    stroke={isSelected ? '#2563eb' : isLowConf ? '#d97706' : '#4f46e5'}
+                    fill={isSelected ? '#BFDBFE' : zone.fill}
+                    fillOpacity={isSelected ? 0.65 : 0.45}
+                    stroke={isSelected ? '#2563EB' : isLowConf ? '#D97706' : zone.stroke}
                     strokeWidth={isSelected ? 3 : 1.5}
                     onClick={(e) => {
                       e.stopPropagation()
@@ -716,7 +891,7 @@ export function DrawingCanvasReviewer({
                     }}
                   />
 
-                  {/* Room Label Badge */}
+                  {/* Clean Architectural Room Label Stamp */}
                   <g
                     transform={`translate(${room.box.x + room.box.w / 2}, ${room.box.y + room.box.h / 2})`}
                     onClick={(e) => {
@@ -724,34 +899,38 @@ export function DrawingCanvasReviewer({
                       setSelectedId(room.id)
                       setSelectedType('room')
                     }}
+                    className="select-none"
                   >
                     <rect
-                      x={-55}
-                      y={-14}
-                      width={110}
-                      height={28}
-                      rx={6}
-                      fill="#111827"
-                      fillOpacity={0.85}
+                      x={-tagWidth / 2}
+                      y={-17}
+                      width={tagWidth}
+                      height={34}
+                      rx={4}
+                      fill="#FFFFFF"
+                      fillOpacity={0.92}
+                      stroke={isSelected ? '#2563EB' : '#CBD5E1'}
+                      strokeWidth={isSelected ? 1.5 : 1}
                     />
                     <text
                       textAnchor="middle"
-                      y={-1}
-                      fill="#ffffff"
+                      y={-2}
+                      fill="#0F172A"
                       fontSize={11}
-                      fontWeight="bold"
-                      fontFamily="system-ui"
+                      fontWeight="700"
+                      fontFamily="system-ui, -apple-system, sans-serif"
+                      letterSpacing="0.03em"
                     >
-                      {room.name}
+                      {room.name.toUpperCase()}
                     </text>
                     <text
                       textAnchor="middle"
                       y={10}
-                      fill="#9ca3af"
+                      fill="#64748B"
                       fontSize={9}
-                      fontFamily="monospace"
+                      fontFamily="ui-monospace, monospace"
                     >
-                      {realW} × {realH} m
+                      {realW} × {realH} m ({areaM2} m²)
                     </text>
                   </g>
 
@@ -768,7 +947,7 @@ export function DrawingCanvasReviewer({
                             cy={hy}
                             r={6}
                             fill="#ffffff"
-                            stroke="#2563eb"
+                            stroke="#2563EB"
                             strokeWidth={2}
                             className="cursor-nwse-resize"
                             onPointerDown={(e) => startRoomCornerDrag(e, room.id, handle, room.box)}
@@ -782,10 +961,10 @@ export function DrawingCanvasReviewer({
             })}
 
             {/* WALLS */}
-            {rawSurvey.elements.walls.map((wall) => {
+            {(rawSurvey?.elements?.walls || []).map((wall) => {
               const isSelected = selectedId === wall.id
               const isExt = wall.kind === 'exterior'
-              const strokeW = wall.thicknessPx ?? (isExt ? 6 : 3)
+              const strokeW = wall.thicknessPx ?? (isExt ? 6 : 3.5)
 
               return (
                 <g key={wall.id}>
@@ -794,8 +973,8 @@ export function DrawingCanvasReviewer({
                     y1={wall.a.y}
                     x2={wall.b.x}
                     y2={wall.b.y}
-                    stroke={isSelected ? '#3b82f6' : isExt ? '#1f2937' : '#4b5563'}
-                    strokeWidth={isSelected ? strokeW + 4 : strokeW}
+                    stroke={isSelected ? '#2563eb' : isExt ? '#141414' : '#4b5563'}
+                    strokeWidth={isSelected ? strokeW + 3 : strokeW}
                     strokeLinecap="round"
                     onClick={(e) => {
                       e.stopPropagation()
@@ -856,7 +1035,7 @@ export function DrawingCanvasReviewer({
             })}
 
             {/* OPENINGS (Doors & Windows) */}
-            {rawSurvey.elements.openings.map((opening) => {
+            {(rawSurvey?.elements?.openings || []).map((opening) => {
               const isSelected = selectedId === opening.id
               const isDoor = opening.kind === 'door' || opening.kind === 'entry'
               const halfW = opening.widthPx / 2
@@ -875,27 +1054,52 @@ export function DrawingCanvasReviewer({
                     setSelectedType('opening')
                   }}
                 >
-                  <line
-                    x1={x1}
-                    y1={y1}
-                    x2={x2}
-                    y2={y2}
-                    stroke={isSelected ? '#3b82f6' : isDoor ? '#f97316' : '#06b6d4'}
-                    strokeWidth={isSelected ? 6 : 4}
-                  />
-
-                  {/* Door Swing Arc */}
-                  {isDoor && (
-                    <circle
-                      cx={opening.at.x}
-                      cy={opening.at.y}
-                      r={halfW}
-                      fill="none"
-                      stroke="#f97316"
-                      strokeWidth={1.5}
-                      strokeDasharray="4 3"
-                      opacity={0.7}
-                    />
+                  {isDoor ? (
+                    <>
+                      {/* Door clear opening line */}
+                      <line
+                        x1={x1}
+                        y1={y1}
+                        x2={x2}
+                        y2={y2}
+                        stroke={isSelected ? '#2563EB' : '#E0873A'}
+                        strokeWidth={isSelected ? 6 : 4}
+                        strokeLinecap="round"
+                      />
+                      {/* Door swing arc */}
+                      <circle
+                        cx={opening.at.x}
+                        cy={opening.at.y}
+                        r={halfW}
+                        fill="none"
+                        stroke="#E0873A"
+                        strokeWidth={1.5}
+                        strokeDasharray="4 3"
+                        opacity={0.8}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      {/* Window Double-Line Glazing Marker */}
+                      <line
+                        x1={x1}
+                        y1={y1}
+                        x2={x2}
+                        y2={y2}
+                        stroke={isSelected ? '#2563EB' : '#0284C7'}
+                        strokeWidth={isSelected ? 6 : 4.5}
+                        strokeLinecap="butt"
+                      />
+                      <line
+                        x1={x1}
+                        y1={y1}
+                        x2={x2}
+                        y2={y2}
+                        stroke="#FFFFFF"
+                        strokeWidth={1.5}
+                        strokeLinecap="butt"
+                      />
+                    </>
                   )}
                 </g>
               )
@@ -904,9 +1108,9 @@ export function DrawingCanvasReviewer({
         </div>
       </div>
 
-      {/* 4. SELECTED ELEMENT EDITING POPOVER (BOTTOM-LEFT) */}
+      {/* 4. SELECTED ELEMENT EDITING CARD (BOTTOM-LEFT) */}
       {selectedId && (
-        <div className="absolute bottom-4 left-4 z-20 w-80 rounded-xl border border-line bg-surface-elevated/95 backdrop-blur p-3.5 shadow-xl text-xs space-y-2.5">
+        <div className="canvas-control-bar absolute bottom-4 left-4 z-20 w-80 rounded-xl border border-line bg-surface-elevated/95 backdrop-blur p-4 shadow-xl text-xs space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-line">
             <span className="font-mono text-[0.7rem] uppercase tracking-wider text-ink-muted">
               Edit {selectedType}
@@ -923,9 +1127,9 @@ export function DrawingCanvasReviewer({
 
           {/* Room Editor */}
           {selectedType === 'room' && selectedRoom && (
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               <label className="block">
-                <span className="text-ink-muted">Standard Room Type</span>
+                <span className="text-ink-muted">Room Type</span>
                 <select
                   value={selectedRoom.type}
                   onChange={(e) => {
@@ -938,7 +1142,7 @@ export function DrawingCanvasReviewer({
                       pushState(updated)
                     }
                   }}
-                  className="mt-1 w-full px-2 py-1.5 rounded border border-line bg-bg-inset text-xs outline-none focus:border-accent"
+                  className="mt-1 w-full px-2.5 py-1.5 rounded-lg border border-line bg-bg-inset text-xs outline-none focus:border-accent"
                 >
                   {INDIAN_ROOM_TYPES.map((t) => (
                     <option key={t.value} value={t.value}>
@@ -961,7 +1165,7 @@ export function DrawingCanvasReviewer({
                       pushState(updated)
                     }
                   }}
-                  className="mt-1 w-full px-2 py-1.5 rounded border border-line bg-bg-inset text-xs outline-none focus:border-accent"
+                  className="mt-1 w-full px-2.5 py-1.5 rounded-lg border border-line bg-bg-inset text-xs outline-none focus:border-accent"
                 />
               </label>
 
@@ -974,7 +1178,7 @@ export function DrawingCanvasReviewer({
 
           {/* Opening Editor */}
           {selectedType === 'opening' && selectedOpening && (
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               <label className="block">
                 <span className="text-ink-muted">Opening Kind</span>
                 <select
@@ -987,7 +1191,7 @@ export function DrawingCanvasReviewer({
                       pushState(updated)
                     }
                   }}
-                  className="mt-1 w-full px-2 py-1.5 rounded border border-line bg-bg-inset text-xs outline-none"
+                  className="mt-1 w-full px-2.5 py-1.5 rounded-lg border border-line bg-bg-inset text-xs outline-none"
                 >
                   <option value="door">Door</option>
                   <option value="entry">Main Entry Door</option>
@@ -1015,29 +1219,9 @@ export function DrawingCanvasReviewer({
                         }
                       }
                     }}
-                    className="mt-1 w-full px-2 py-1 rounded border border-line bg-bg-inset text-xs font-mono"
+                    className="mt-1 w-full px-2 py-1.5 rounded border border-line bg-bg-inset text-xs font-mono"
                   />
                 </label>
-
-                {selectedOpening.kind !== 'window' && (
-                  <label className="block">
-                    <span className="text-ink-muted">Swing</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const updated = structuredClone(rawSurvey)
-                        const o = updated.elements.openings.find((item) => item.id === selectedId)
-                        if (o) {
-                          o.swing = (o.swing ?? 1) * -1
-                          pushState(updated)
-                        }
-                      }}
-                      className="mt-1 w-full px-2 py-1 rounded border border-line bg-bg-inset text-xs font-mono hover:bg-black/5"
-                    >
-                      Flip Swing ({selectedOpening.swing ?? 1})
-                    </button>
-                  </label>
-                )}
               </div>
             </div>
           )}
@@ -1046,20 +1230,20 @@ export function DrawingCanvasReviewer({
           {selectedType === 'wall' && selectedWall && (
             <div className="space-y-2">
               <label className="block">
-                <span className="text-ink-muted">Wall Category</span>
+                <span className="text-ink-muted">Wall Classification</span>
                 <select
                   value={selectedWall.kind}
                   onChange={(e) => {
                     const updated = structuredClone(rawSurvey)
                     const w = updated.elements.walls.find((item) => item.id === selectedId)
                     if (w) {
-                      w.kind = e.target.value as 'exterior' | 'interior'
+                      w.kind = e.target.value as RawSurveyWall['kind']
                       pushState(updated)
                     }
                   }}
-                  className="mt-1 w-full px-2 py-1.5 rounded border border-line bg-bg-inset text-xs outline-none"
+                  className="mt-1 w-full px-2.5 py-1.5 rounded-lg border border-line bg-bg-inset text-xs outline-none"
                 >
-                  <option value="exterior">Exterior (230 mm)</option>
+                  <option value="exterior">Exterior Wall (230 mm)</option>
                   <option value="interior">Interior Partition (115 mm)</option>
                 </select>
               </label>
@@ -1068,14 +1252,13 @@ export function DrawingCanvasReviewer({
         </div>
       )}
 
-      {/* 5. "NEEDS REVIEW" SIDE DRAWER (Low confidence items < 0.7) */}
+      {/* 5. LOW CONFIDENCE "NEEDS REVIEW" SIDE DRAWER */}
       {lowConfidenceItems.length > 0 && showNeedsReviewDrawer && (
-        <div className="absolute top-12 right-4 z-20 w-72 rounded-xl border border-line bg-surface-elevated/95 backdrop-blur p-3.5 shadow-xl text-xs">
-          <div className="flex items-center justify-between pb-2 border-b border-line">
-            <div className="flex items-center gap-1.5 font-medium text-amber-500">
-              <AlertCircle size={14} />
-              <span>Needs Review ({lowConfidenceItems.length})</span>
-            </div>
+        <div className="canvas-control-bar absolute top-14 right-4 z-20 w-72 max-h-[460px] overflow-y-auto rounded-xl border border-line bg-surface-elevated/95 backdrop-blur p-4 shadow-xl text-xs space-y-2.5">
+          <div className="flex items-center justify-between pb-1.5 border-b border-line">
+            <span className="font-semibold text-ink-primary">
+              Needs Review ({lowConfidenceItems.length})
+            </span>
             <button
               type="button"
               onClick={() => setShowNeedsReviewDrawer(false)}
@@ -1084,10 +1267,10 @@ export function DrawingCanvasReviewer({
               ✕
             </button>
           </div>
-          <p className="mt-1.5 text-[0.72rem] text-ink-muted">
-            The extractor was uncertain about these items. Click one to inspect and confirm:
+          <p className="text-[0.72rem] text-ink-muted">
+            The AI flagged these elements with low detection confidence. Click to inspect or correct.
           </p>
-          <div className="mt-2.5 max-h-48 overflow-y-auto space-y-1">
+          <div className="space-y-1.5 pt-1">
             {lowConfidenceItems.map((item) => (
               <button
                 key={item.id}
@@ -1097,12 +1280,14 @@ export function DrawingCanvasReviewer({
                   setSelectedType(item.type)
                 }}
                 className={cx(
-                  'w-full text-left p-1.5 rounded flex items-center justify-between text-xs transition-colors',
-                  selectedId === item.id ? 'bg-accent/10 border border-accent/40' : 'hover:bg-bg-inset'
+                  'w-full p-2 rounded-lg border text-left flex items-center justify-between transition-colors',
+                  selectedId === item.id
+                    ? 'border-accent bg-accent/10 text-accent font-medium'
+                    : 'border-line bg-surface hover:bg-bg-inset text-ink-primary'
                 )}
               >
-                <span className="truncate">{item.label}</span>
-                <span className="font-mono text-[0.65rem] text-amber-500">
+                <span>{item.label}</span>
+                <span className="font-mono text-[0.65rem] text-amber-600 dark:text-amber-400">
                   {Math.round(item.confidence * 100)}%
                 </span>
               </button>
