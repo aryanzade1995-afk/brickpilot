@@ -321,16 +321,23 @@ export function StartFromPlanFlow() {
         finalSurvey = snappedSurvey
       }
 
+      // Safeguard: Ensure plot dimensions comfortably accommodate the structure and offsets
+      const minPlotW = Math.ceil((finalSurvey.widthM || 10) + (finalSurvey.plotOffsetXM || 1.5) + 1.5)
+      const minPlotD = Math.ceil((finalSurvey.depthM || 12) + (finalSurvey.plotOffsetYM || 2.0) + 2.0)
+      const safeAnswers: Answers = {
+        ...answers,
+        plotWidthM: Math.max(answers.plotWidthM || 15, minPlotW),
+        plotDepthM: Math.max(answers.plotDepthM || 18, minPlotD),
+        storeysWanted,
+        storeysBuilt: storeysWanted,
+      }
+
       // 2. Validate measured structure
-      const asBuilt = measuredStructure(finalSurvey, answers, true)
+      const asBuilt = measuredStructure(finalSurvey, safeAnswers, true)
 
       // 3. Generate Brief with Project Name, Typology, Selected Style, and Plinth Height
       const brief = briefFromAnswers(
-        {
-          ...answers,
-          storeysWanted,
-          storeysBuilt: storeysWanted,
-        },
+        safeAnswers,
         {
           name: projectName || 'My Family Villa',
           buildingType,
