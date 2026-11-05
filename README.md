@@ -55,13 +55,15 @@ separately. [`vite.config.ts`](vite.config.ts) proxies `/api` to the Node server
 | Route | Purpose |
 | --- | --- |
 | `/` | Landing page |
-| `/workspace` | Eight-step brief: project, site, household, levels, rooms, style, entry, review |
+| `/workspace` | Eight-step brief: project, site (with Guntha plot sizing), household, levels (1m/2m/3m plinth), rooms, style, entry, review |
 | `/workspace/directions` | Choose from four validated directions — each its own plan shape and composition, rendered in Blender — preview their 2D floors and optionally upload a reference image |
 | `/workspace/plan` | Per-floor SVG drawing, room schedule and validation |
 | `/workspace/massing` | Interactive Three.js building, layer controls and furnished dollhouse view |
+| `/workspace/utilities` | Interactive 2D/3D electrical, water supply, and drainage MEP networks with clash detection |
 | `/workspace/render` | Geometry-conditioned building concepts and room interior renders |
-| `/workspace/finishes` | Step 06: finish choices, geometry-based quantities, concept cost and BOQ CSV/Excel |
-| `/workspace/report` | Step 07: project summary and PDF with the selected finishes and full BOQ |
+| `/workspace/finishes` | Finish choices, geometry-based quantities, concept cost and BOQ CSV/Excel |
+| `/workspace/impact` | Social impact & sustainability: water balance, embodied carbon, PM Surya Ghar solar, accessibility, and housing benchmarks |
+| `/workspace/report` | Project summary and PDF with the selected finishes and full BOQ |
 | `/designs` | Saved projects when Supabase is configured and the user is signed in |
 | `/share/finishes/:token` | Read-only snapshot of a specification sheet and its concept estimate |
 
