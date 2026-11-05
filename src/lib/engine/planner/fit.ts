@@ -48,6 +48,23 @@ function packingFit(brief: Brief): BriefFit {
     issues: briefSiteIssues(brief),
   }
   if (result.issues.length) return result
+  // An exact necessary condition, not the approximate packing hint: disjoint
+  // enclosed rooms cannot occupy more than the entire buildable envelope.
+  // Avoid an exhaustive layout search for obviously impossible programmes.
+  // Large free-composition wing plans can move a bedroom group downstairs.
+  // For those use only the total bound. Other recipes keep floor assignments.
+  const totalMinimum=model.floors.reduce((sum,floor)=>sum+floor.spaces.filter(space=>!space.outdoor).reduce((area,space)=>area+space.min,0),0)
+  const perFloor=model.envelope.width*model.envelope.depth/1e6
+  const available=perFloor*model.floors.length
+  if(totalMinimum>available+.001){
+    result.issues=[`Your rooms need at least ${Math.ceil(totalMinimum)} m² of enclosed space, but only ${Math.floor(available)} m² is buildable across ${model.floors.length} floors.`]
+    return result
+  }
+  const canRedistribute=perFloor>=600&&!brief.style.composition
+  if(!canRedistribute&&busiest.minimum>perFloor+.001){
+    result.issues=[`${busiest.name} needs at least ${Math.ceil(busiest.minimum)} m² of enclosed space, but only ${Math.floor(perFloor)} m² is buildable on that floor.`]
+    return result
+  }
   if (['twin-wing','u-wing','courtyard-ring','pavilion'].includes(brief.style.massing) ||
     ((brief.style.massing==='auto'||brief.style.massing==='random')&&brief.project.buildingType==='large-villa'&&
       model.envelope.width*model.envelope.depth>=600e6)) {
@@ -98,7 +115,7 @@ export function assessBriefFit(brief: Brief): BriefFit {
   // bar estimate misses. Keep the actual validated plan as the authority.
   if (!fit.issues.length) {
     try {
-      const report = validate(generate(compile(brief)))
+      const report = validate(generate(compile(brief),{firstValid:true}))
       fit.fits = report.hardChecksPass
       if (!fit.fits) fit.issues = report.findings.filter(f => f.severity === 'error').map(f => f.message)
     } catch (error) {
@@ -127,7 +144,7 @@ export function assessShape(brief: Brief, shape: ShapeChoice): ShapeCheck {
   try {
     const trial = structuredClone(brief)
     trial.style.massing = shape
-    const plan = generate(compile(trial), { massing: shape })
+    const plan = generate(compile(trial), { massing: shape, firstValid:true })
     check = !validate(plan).hardChecksPass
       ? { ok: false, reason: 'No valid plan of this shape fits the plot and rooms.' }
       : plan.massingType !== shape

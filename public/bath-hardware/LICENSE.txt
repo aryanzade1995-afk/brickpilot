@@ -1,0 +1,10 @@
+Detailed bathroom hardware assets
+
+All current basin-tap, shower-set and basin-no-tap assets:
+Formstead original geometry, CC0
+Dedicated under https://creativecommons.org/publicdomain/zero/1.0/
+
+Visual references are the existing Jaquar product photographs in Formstead's
+catalogue. No manufacturer CAD is reproduced. Single basin mixers and separate shower filling taps are
+a user-requested visual configuration; product selections retain their finish
+and mounting family. These are not dimensionally certified manufacturer models.

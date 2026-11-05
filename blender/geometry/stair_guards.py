@@ -7,7 +7,7 @@ def create_stair_guards(scene, payload):
     guards = payload.get('stairGuards')
     if not guards:
         return
-    if guards.get('version') != 'stair-guards-v1':
+    if guards.get('version') not in ('stair-guards-v1', 'stair-guards-v2'):
         raise ValueError('Unsupported stair guard version')
     stair_ids = {(s['floorId'], s['id']) for s in payload['buildingModel']['stairs']}
     for part in guards['parts']:

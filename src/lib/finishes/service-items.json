@@ -33,17 +33,6 @@
     "roomSource": "sanitary"
   },
   {
-    "id": "bath-enclosure",
-    "group": "plumbing-sanitary",
-    "label": "Shower cabins & glass enclosures",
-    "scope": "perRoom",
-    "level": "main",
-    "control": "dropdown",
-    "note": "Optional enclosure preference. Glass, hardware and installation are excluded until actual bathroom clearance is measured and quoted.",
-    "options": [],
-    "roomSource": "sanitary"
-  },
-  {
     "id": "electrical-bulbs",
     "group": "electrical",
     "label": "LED & decorative bulbs",

@@ -40,7 +40,7 @@ export type InteriorFinishes = {
   glazing: { name: string; frosted: boolean; solar: boolean; double: boolean }
   grills: { name: string; mesh: boolean; bars: boolean; decorative: boolean; stainless: boolean }
   sanitary?: { name: string; wc: 'floor' | 'wall' | 'indian'; image?: string; profile?: FinishProduct['preview'] }
-  fittings?: { name: string; finish: 'chrome' | 'black' | 'gold'; image?: string }
+  fittings?: { name: string; finish: 'chrome' | 'black' | 'gold'; image?: string; profile?: FinishProduct['preview'] }
   basin?: Fixture
   shower?: Fixture
   tub?: Fixture
@@ -179,7 +179,7 @@ export function interiorFinishes(design: Design, floorLevel: number, roomId: str
     sanitary = { name: s.option.name, image: s.photo, profile: s.profile, wc: sanitaryKind(s.option.name,s.option.id) }
     note('sanitary', s.option.name, s.photo)
     const f = pick('cp-fittings')!
-    fittings = { name: f.option.name, image: f.photo, finish: /black|blk/i.test(f.option.name) ? 'black' : /gold|brass|gld/i.test(f.option.name) ? 'gold' : 'chrome' }
+    fittings = { name: f.option.name, image: f.photo, profile: f.profile, finish: /black|blk/i.test(f.option.name) ? 'black' : /gold|brass|gld/i.test(f.option.name) ? 'gold' : 'chrome' }
     note('cp-fittings', f.option.name, f.photo)
     if (assigned.has('water-heater')) {
       const h = pick('water-heater')!
@@ -195,7 +195,7 @@ export function interiorFinishes(design: Design, floorLevel: number, roomId: str
   }
   const basin = wet ? fixture('bath-basin') : undefined, shower = wet ? fixture('bath-shower') : undefined
   // These are optional installation preferences, not automatically included by a finish preset.
-  const tub = wet ? fixture('bath-tub', true) : undefined, enclosure = wet ? fixture('bath-enclosure', true) : undefined
+  const tub = wet ? fixture('bath-tub', true) : undefined, enclosure = undefined
   if (waterHeater) waterHeater.profile = pick('water-heater')!.profile
   if (wet || kitchen) {
     const e = pick('electrical-exhaust', false)
@@ -225,7 +225,7 @@ export function interiorFinishes(design: Design, floorLevel: number, roomId: str
   note('switches', sw.option.name, sw.photo)
 
   const specifications = specsCatalogue.items.filter(i => i.level !== 'auto' && (i.scope === 'house' || assigned.has(i.id) ||
-    wet && ['bath-basin', 'bath-shower', 'bath-tub', 'bath-enclosure'].includes(i.id))).map(i => {
+    wet && ['bath-basin', 'bath-shower', 'bath-tub'].includes(i.id))).map(i => {
     const { option, chosen } = pick(i.id)!
     return { item: i.id, optionId: chosen.id, productId: option.finishProductId ?? option.flooringProductId, name: option.name }
   })

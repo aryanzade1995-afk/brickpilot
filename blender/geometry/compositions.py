@@ -20,6 +20,11 @@ def create_composition_canopies(scene, building):
         obj = scene.rect(canopy['id'], 'ROOF', r, canopy['bottomMm'], canopy['thicknessMm'], 'wall', canopy['sourceRoomId'], bevel=12)
         obj['composition_canopy'] = True
         obj['source_window_id'] = canopy['sourceWindowId']
+        for index, post in enumerate(canopy.get('framePosts', [])):
+            base = canopy['baseMm']
+            pier = scene.rect(canopy['id']+'_FramePost_'+str(index), 'FACADE', post,
+                              base, canopy['bottomMm']-base, 'wall', canopy['sourceRoomId'], bevel=10)
+            pier['composition_frame'] = True
         inset = 70
         soffit = dict(x=r['x']+inset, y=r['y']+inset, w=r['w']-2*inset, h=r['h']-2*inset)
         scene.rect(canopy['id']+'_TimberSoffit', 'ROOF', soffit, canopy['bottomMm']-25, 25, 'wood', canopy['sourceRoomId'], bevel=3)

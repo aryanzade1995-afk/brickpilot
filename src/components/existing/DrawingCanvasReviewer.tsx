@@ -13,7 +13,6 @@ import {
   DoorOpen,
   Square,
   Compass,
-  Check,
 } from 'lucide-react'
 import {
   type RawSurvey,
@@ -100,7 +99,7 @@ export function DrawingCanvasReviewer({
   // 3. UI Controls
   const [activeTool, setActiveTool] = useState<Tool>('select')
   // Default to FALSE: only show the website's clean CAD vector drawing, NOT the raw user photo
-  const [showOriginalSketch, setShowOriginalSketch] = useState(false)
+  const [showOriginalSketch, setShowOriginalSketch] = useState(()=>!rawSurvey.elements.rooms.length)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [selectedType, setSelectedType] = useState<'room' | 'wall' | 'opening' | null>(null)
   const [showNeedsReviewDrawer, setShowNeedsReviewDrawer] = useState(false)
@@ -542,12 +541,12 @@ export function DrawingCanvasReviewer({
   return (
     <div
       ref={containerRef}
-      className="relative flex flex-col h-[740px] w-full rounded-2xl border border-line bg-surface overflow-hidden select-none shadow-sm"
+      className="relative flex flex-col h-[740px] w-full rounded-md border border-line bg-bg-raised overflow-hidden select-none shadow-sm"
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerUp}
     >
       {/* 1. TOP TOOLBAR */}
-      <div className="canvas-control-bar flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 border-b border-line bg-surface-elevated z-10 text-xs">
+      <div className="canvas-control-bar flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 border-b border-line bg-bg-inset z-10 text-xs">
         {/* Left tools */}
         <div className="flex items-center gap-1.5">
           <Button
@@ -623,7 +622,7 @@ export function DrawingCanvasReviewer({
         </div>
 
         {/* Center: Live CAD Scale readout */}
-        <div className="hidden lg:flex items-center gap-3 font-mono text-[0.72rem] text-ink-muted">
+        <div className="hidden lg:flex items-center gap-3 font-mono text-[0.72rem] text-ink-dim">
           <span>Scale: 1 px = {(scaleMPerPx * 1000).toFixed(1)} mm</span>
           <span>·</span>
           <span>
@@ -649,7 +648,7 @@ export function DrawingCanvasReviewer({
               'px-2.5 py-1.5 rounded-lg border text-xs font-mono flex items-center gap-1.5 transition-colors',
               showOriginalSketch
                 ? 'border-accent bg-accent/10 text-accent font-medium'
-                : 'border-line bg-surface hover:bg-bg-inset text-ink-muted hover:text-ink-primary'
+                : 'border-line bg-bg-raised hover:bg-bg-inset text-ink-dim hover:text-ink'
             )}
             title="Toggle original uploaded photo reference overlay"
           >
@@ -665,7 +664,7 @@ export function DrawingCanvasReviewer({
               type="button"
               disabled={historyIndex <= 0}
               onClick={handleUndo}
-              className="p-1.5 rounded hover:bg-bg-inset disabled:opacity-30 transition-colors text-ink-muted hover:text-ink-primary"
+              className="p-1.5 rounded hover:bg-bg-inset disabled:opacity-30 transition-colors text-ink-dim hover:text-ink"
               title="Undo (Ctrl+Z)"
             >
               <Undo2 size={14} />
@@ -674,7 +673,7 @@ export function DrawingCanvasReviewer({
               type="button"
               disabled={historyIndex >= history.length - 1}
               onClick={handleRedo}
-              className="p-1.5 rounded hover:bg-bg-inset disabled:opacity-30 transition-colors text-ink-muted hover:text-ink-primary"
+              className="p-1.5 rounded hover:bg-bg-inset disabled:opacity-30 transition-colors text-ink-dim hover:text-ink"
               title="Redo (Ctrl+Y)"
             >
               <Redo2 size={14} />
@@ -686,7 +685,7 @@ export function DrawingCanvasReviewer({
             <button
               type="button"
               onClick={handleZoomOut}
-              className="p-1.5 rounded hover:bg-bg-inset text-ink-muted hover:text-ink-primary"
+              className="p-1.5 rounded hover:bg-bg-inset text-ink-dim hover:text-ink"
               title="Zoom Out"
             >
               <ZoomOut size={14} />
@@ -694,7 +693,7 @@ export function DrawingCanvasReviewer({
             <button
               type="button"
               onClick={handleResetZoom100}
-              className="font-mono text-[0.68rem] text-ink-muted px-1.5 py-0.5 rounded hover:bg-bg-inset hover:text-ink-primary"
+              className="font-mono text-[0.68rem] text-ink-dim px-1.5 py-0.5 rounded hover:bg-bg-inset hover:text-ink"
               title="Reset to 100%"
             >
               {Math.round(zoom * 100)}%
@@ -702,7 +701,7 @@ export function DrawingCanvasReviewer({
             <button
               type="button"
               onClick={handleZoomIn}
-              className="p-1.5 rounded hover:bg-bg-inset text-ink-muted hover:text-ink-primary"
+              className="p-1.5 rounded hover:bg-bg-inset text-ink-dim hover:text-ink"
               title="Zoom In"
             >
               <ZoomIn size={14} />
@@ -721,12 +720,12 @@ export function DrawingCanvasReviewer({
 
       {/* 2. CALIBRATION BANNER (active when calibrating) */}
       {activeTool === 'calibrate' && (
-        <div className="canvas-control-bar absolute top-12 left-4 right-4 z-20 flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl border border-accent/40 bg-surface-elevated/95 backdrop-blur shadow-lg text-xs">
+        <div className="canvas-control-bar absolute top-12 left-4 right-4 z-20 flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-md border border-accent/40 bg-bg-inset/95 backdrop-blur shadow-lg text-xs">
           <div className="flex items-center gap-2">
             <Ruler size={16} className="text-accent flex-none" />
             <div>
-              <p className="font-medium text-ink-primary">Two-Point Scale Calibration</p>
-              <p className="text-ink-muted text-[0.72rem]">
+              <p className="font-medium text-ink">Two-Point Scale Calibration</p>
+              <p className="text-ink-dim text-[0.72rem]">
                 {!calibPointA
                   ? 'Click Point 1 on any wall or known dimension line.'
                   : !calibPointB
@@ -790,16 +789,16 @@ export function DrawingCanvasReviewer({
         onPointerMove={handlePointerMove}
       >
         {/* COMPASS NORTH ARROW */}
-        <div className="absolute top-4 right-4 z-10 pointer-events-none flex flex-col items-center bg-white/80 dark:bg-slate-900/80 backdrop-blur p-2 rounded-xl border border-line shadow-xs">
+        <div className="absolute top-4 right-4 z-10 pointer-events-none flex flex-col items-center bg-white/80 dark:bg-slate-900/80 backdrop-blur p-2 rounded-md border border-line shadow-xs">
           <Compass size={20} className="text-accent" />
-          <span className="font-mono text-[0.65rem] font-bold text-ink-primary mt-0.5">N</span>
+          <span className="font-mono text-[0.65rem] font-bold text-ink mt-0.5">N</span>
         </div>
 
         {/* GRAPHIC SCALE BAR */}
-        <div className="absolute bottom-4 right-4 z-10 pointer-events-none bg-white/85 dark:bg-slate-900/80 backdrop-blur px-3 py-1.5 rounded-lg border border-line shadow-xs font-mono text-[0.65rem] text-ink-muted flex items-center gap-2">
+        <div className="absolute bottom-4 right-4 z-10 pointer-events-none bg-white/85 dark:bg-slate-900/80 backdrop-blur px-3 py-1.5 rounded-lg border border-line shadow-xs font-mono text-[0.65rem] text-ink-dim flex items-center gap-2">
           <span>0</span>
           <div
-            className="h-1 bg-ink-primary border border-ink-primary"
+            className="h-1 bg-ink border border-ink"
             style={{ width: `${Math.max(30, Math.round((2.0 / scaleMPerPx) * zoom))}px` }}
           />
           <span>2m</span>
@@ -870,7 +869,8 @@ export function DrawingCanvasReviewer({
               const areaM2 = ((room.box.w * scaleMPerPx) * (room.box.h * scaleMPerPx)).toFixed(1)
 
               const zone = ZONE_COLORS[room.type] || { fill: '#F1F5F9', stroke: '#94A3B8', text: '#475569' }
-              const tagWidth = Math.max(90, room.name.length * 7 + 22)
+              const labelFont=Math.max(8,Math.min(14/zoom,room.box.w/12,room.box.h/4))
+              const tagWidth=Math.max(24,Math.min(room.box.w-8,room.name.length*labelFont*.6+18))
 
               return (
                 <g key={room.id} className="cursor-pointer">
@@ -903,9 +903,9 @@ export function DrawingCanvasReviewer({
                   >
                     <rect
                       x={-tagWidth / 2}
-                      y={-17}
+                      y={-labelFont*1.5}
                       width={tagWidth}
-                      height={34}
+                      height={labelFont*3}
                       rx={4}
                       fill="#FFFFFF"
                       fillOpacity={0.92}
@@ -914,9 +914,11 @@ export function DrawingCanvasReviewer({
                     />
                     <text
                       textAnchor="middle"
-                      y={-2}
+                      y={-labelFont*.15}
                       fill="#0F172A"
-                      fontSize={11}
+                      fontSize={labelFont}
+                      textLength={Math.min(tagWidth-12,room.name.length*labelFont*.6)}
+                      lengthAdjust="spacingAndGlyphs"
                       fontWeight="700"
                       fontFamily="system-ui, -apple-system, sans-serif"
                       letterSpacing="0.03em"
@@ -925,9 +927,11 @@ export function DrawingCanvasReviewer({
                     </text>
                     <text
                       textAnchor="middle"
-                      y={10}
+                      y={labelFont*1.05}
                       fill="#64748B"
-                      fontSize={9}
+                      fontSize={labelFont*.76}
+                      textLength={Math.min(tagWidth-10,`${realW} × ${realH} m (${areaM2} m²)`.length*labelFont*.42)}
+                      lengthAdjust="spacingAndGlyphs"
                       fontFamily="ui-monospace, monospace"
                     >
                       {realW} × {realH} m ({areaM2} m²)
@@ -1110,9 +1114,9 @@ export function DrawingCanvasReviewer({
 
       {/* 4. SELECTED ELEMENT EDITING CARD (BOTTOM-LEFT) */}
       {selectedId && (
-        <div className="canvas-control-bar absolute bottom-4 left-4 z-20 w-80 rounded-xl border border-line bg-surface-elevated/95 backdrop-blur p-4 shadow-xl text-xs space-y-3">
+        <div className="canvas-control-bar absolute bottom-4 left-4 z-20 w-[min(20rem,calc(100%-2rem))] rounded-md border border-line bg-bg-inset/95 backdrop-blur p-4 shadow-xl text-xs space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-line">
-            <span className="font-mono text-[0.7rem] uppercase tracking-wider text-ink-muted">
+            <span className="font-mono text-[0.7rem] uppercase tracking-wider text-ink-dim">
               Edit {selectedType}
             </span>
             <button
@@ -1129,7 +1133,7 @@ export function DrawingCanvasReviewer({
           {selectedType === 'room' && selectedRoom && (
             <div className="space-y-2.5">
               <label className="block">
-                <span className="text-ink-muted">Room Type</span>
+                <span className="text-ink-dim">Room Type</span>
                 <select
                   value={selectedRoom.type}
                   onChange={(e) => {
@@ -1153,7 +1157,7 @@ export function DrawingCanvasReviewer({
               </label>
 
               <label className="block">
-                <span className="text-ink-muted">Custom Label</span>
+                <span className="text-ink-dim">Custom Label</span>
                 <input
                   type="text"
                   value={selectedRoom.name}
@@ -1169,7 +1173,7 @@ export function DrawingCanvasReviewer({
                 />
               </label>
 
-              <div className="grid grid-cols-2 gap-2 text-ink-muted font-mono text-[0.7rem] pt-1">
+              <div className="grid grid-cols-2 gap-2 text-ink-dim font-mono text-[0.7rem] pt-1">
                 <span>Width: {(selectedRoom.box.w * scaleMPerPx).toFixed(2)} m</span>
                 <span>Depth: {(selectedRoom.box.h * scaleMPerPx).toFixed(2)} m</span>
               </div>
@@ -1180,7 +1184,7 @@ export function DrawingCanvasReviewer({
           {selectedType === 'opening' && selectedOpening && (
             <div className="space-y-2.5">
               <label className="block">
-                <span className="text-ink-muted">Opening Kind</span>
+                <span className="text-ink-dim">Opening Kind</span>
                 <select
                   value={selectedOpening.kind}
                   onChange={(e) => {
@@ -1201,7 +1205,7 @@ export function DrawingCanvasReviewer({
 
               <div className="grid grid-cols-2 gap-2">
                 <label className="block">
-                  <span className="text-ink-muted">Width (m)</span>
+                  <span className="text-ink-dim">Width (m)</span>
                   <input
                     type="number"
                     step="0.05"
@@ -1230,7 +1234,7 @@ export function DrawingCanvasReviewer({
           {selectedType === 'wall' && selectedWall && (
             <div className="space-y-2">
               <label className="block">
-                <span className="text-ink-muted">Wall Classification</span>
+                <span className="text-ink-dim">Wall Classification</span>
                 <select
                   value={selectedWall.kind}
                   onChange={(e) => {
@@ -1254,20 +1258,20 @@ export function DrawingCanvasReviewer({
 
       {/* 5. LOW CONFIDENCE "NEEDS REVIEW" SIDE DRAWER */}
       {lowConfidenceItems.length > 0 && showNeedsReviewDrawer && (
-        <div className="canvas-control-bar absolute top-14 right-4 z-20 w-72 max-h-[460px] overflow-y-auto rounded-xl border border-line bg-surface-elevated/95 backdrop-blur p-4 shadow-xl text-xs space-y-2.5">
+        <div className="canvas-control-bar absolute top-14 right-4 z-20 w-72 max-h-[460px] overflow-y-auto rounded-md border border-line bg-bg-inset/95 backdrop-blur p-4 shadow-xl text-xs space-y-2.5">
           <div className="flex items-center justify-between pb-1.5 border-b border-line">
-            <span className="font-semibold text-ink-primary">
+            <span className="font-semibold text-ink">
               Needs Review ({lowConfidenceItems.length})
             </span>
             <button
               type="button"
               onClick={() => setShowNeedsReviewDrawer(false)}
-              className="text-ink-muted hover:text-ink-primary text-xs"
+              className="text-ink-dim hover:text-ink text-xs"
             >
               ✕
             </button>
           </div>
-          <p className="text-[0.72rem] text-ink-muted">
+          <p className="text-[0.72rem] text-ink-dim">
             The AI flagged these elements with low detection confidence. Click to inspect or correct.
           </p>
           <div className="space-y-1.5 pt-1">
@@ -1283,7 +1287,7 @@ export function DrawingCanvasReviewer({
                   'w-full p-2 rounded-lg border text-left flex items-center justify-between transition-colors',
                   selectedId === item.id
                     ? 'border-accent bg-accent/10 text-accent font-medium'
-                    : 'border-line bg-surface hover:bg-bg-inset text-ink-primary'
+                    : 'border-line bg-bg-raised hover:bg-bg-inset text-ink'
                 )}
               >
                 <span>{item.label}</span>

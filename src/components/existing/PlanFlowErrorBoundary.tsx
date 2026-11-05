@@ -39,7 +39,7 @@ export class PlanFlowErrorBoundary extends Component<Props, State> {
       return (
         <div
           role="alert"
-          className="rounded-2xl border border-rose-300 bg-rose-50/70 p-6 shadow-sm dark:border-rose-900 dark:bg-rose-950/20 my-4"
+          className="rounded-md border border-rose-300 bg-rose-50/70 p-6 shadow-sm dark:border-rose-900 dark:bg-rose-950/20 my-4"
         >
           <div className="flex items-start gap-3">
             <AlertTriangle className="h-6 w-6 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />

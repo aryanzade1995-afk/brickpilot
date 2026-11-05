@@ -27,7 +27,8 @@ export function useProjectPipelines(design: Design | undefined, building: Buildi
   const preferences = draft ?? (saved && saved.sourcePlanId === building?.planId ? saved.simple : undefined)
   const diameter = preferences?.roofDiameterScale ?? 1, height = preferences?.roofHeightScale ?? 1
   const litres = preferences?.tankLitres ?? SIMPLE_WATER_DEFAULTS.tankLitres
+  const rainwater = preferences?.rainwater ?? SIMPLE_WATER_DEFAULTS.rainwater
   return useMemo(() => enabled && design && building ? { ...projectPipelines(design, building, brief, projectId,
-    { ...SIMPLE_WATER_DEFAULTS, roofDiameterScale: diameter, roofHeightScale: height, tankLitres: litres }), drawingRevision: revision + storageRevision } : null,
-  [enabled, design, building, brief, projectId, diameter, height, litres, revision, storageRevision])
+    { ...SIMPLE_WATER_DEFAULTS, rainwater, roofDiameterScale: diameter, roofHeightScale: height, tankLitres: litres }), drawingRevision: revision + storageRevision } : null,
+  [enabled, design, building, brief, projectId, diameter, height, litres, rainwater, revision, storageRevision])
 }

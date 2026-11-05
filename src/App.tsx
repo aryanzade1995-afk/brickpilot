@@ -1,3 +1,6 @@
+import { GenerationOverlay } from './components/GenerationOverlay.tsx'
+import { useConceptProgress } from './state/directionsWorkerClient.ts'
+import { useStudio } from './state/studio.ts'
 import { useEffect } from 'react'
 import { Outlet, useLocation, useNavigation } from 'react-router-dom'
 import { SiteHeader } from './components/SiteHeader.tsx'
@@ -8,6 +11,11 @@ import { startAutosave } from './state/projects.ts'
 
 export function App() {
   const { pathname } = useLocation()
+  const concept=useConceptProgress()
+  const directions=useStudio(s=>s.directions)
+  const brief=useStudio(s=>s.brief)
+  const hasPlan=concept.sourceBrief===brief&&concept.plans.some(Boolean)
+  const conceptLoading=!concept.error&&(concept.active||pathname==='/workspace/directions'&&directions===null)&&!(pathname==='/workspace/directions'&&hasPlan)
   const isWorkspace = pathname.startsWith('/workspace')
   // while the next page's code loads, the current page stays and a slim bar shows the move
   const loading = useNavigation().state === 'loading'
@@ -34,6 +42,7 @@ export function App() {
   return (
     <div className="flex min-h-dvh w-full min-w-0 flex-col">
       <div aria-hidden className={`pointer-events-none fixed inset-x-0 top-0 z-[60] h-0.5 origin-left bg-accent transition-[transform,opacity] duration-300 ${loading ? 'scale-x-75 opacity-100 ease-out' : 'scale-x-100 opacity-0'}`} />
+      {conceptLoading&&<GenerationOverlay label="Generating your concepts" value={concept.value}/>}
       <SiteHeader variant={isWorkspace ? 'workspace' : 'marketing'} />
       <main className="w-full min-w-0 flex-1">
         <Outlet />

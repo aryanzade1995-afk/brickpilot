@@ -36,11 +36,11 @@ export function NbcHealthBadgePanel({
   }
 
   return (
-    <div className="rounded-xl border border-line bg-bg-inset p-4 shadow-sm">
+    <div className="rounded-md border border-line bg-bg-inset p-4 shadow-sm">
       <div className="flex items-center justify-between pb-3 border-b border-line">
         <div className="flex items-center gap-2">
-          <span className="font-mono text-xs uppercase tracking-wider text-ink-muted">Pre-Flight Check</span>
-          <h3 className="font-display text-sm font-semibold text-ink-primary">NBC Compliance Preview</h3>
+          <span className="font-mono text-xs uppercase tracking-wider text-ink-dim">Pre-Flight Check</span>
+          <h3 className="font-display text-sm font-semibold text-ink">NBC Compliance Preview</h3>
         </div>
         <span
           className={cx(
@@ -109,7 +109,7 @@ export function NbcHealthBadgePanel({
           </div>
         ))}
       </div>
-      <p className="mt-3 text-[0.72rem] text-ink-muted leading-relaxed">
+      <p className="mt-3 text-[0.72rem] text-ink-dim leading-relaxed">
         Note: NBC pre-flight alerts are advisory and do not block building your 2D plan. You can adjust openings and setbacks at any stage.
       </p>
     </div>

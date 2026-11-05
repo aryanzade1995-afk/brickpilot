@@ -1,6 +1,6 @@
 import { newDesignSeed } from '@/lib/newDesignSeed.ts'
 import type { ModernComposition } from '@/lib/model/modernCompositions.ts'
-import { measuredPlanSchema } from '@/lib/existing/survey.ts'
+import { measuredPlanSchema, measuredFloorsSchema } from '@/lib/existing/survey.ts'
 import { selectAdaptiveVilla } from '@/lib/engine/fingerprint/AdaptiveVillaSearch.ts'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
@@ -18,8 +18,11 @@ import {
   type MassingType,
 } from '@/lib/engine/index.ts'
 import { distinctDirectionPlans } from '@/lib/engine/generate.ts'
+import { modernCompositionTitle, MODERN_DIRECTION_COMPOSITIONS } from '@/lib/model/modernCompositions.ts'
+import {horizontalPlan} from '@/lib/engine/planner/directionFrontage.ts'
 import { SITE_FORM_VERSION, parseFormVersion } from '@/lib/engine/siteForm.ts'
 import { expandBalconyArea } from '@/lib/engine/balconyExtent.ts'
+import {withSetbackBalcony} from '@/lib/engine/setbackBalcony.ts'
 import { buildingShape, parseBuildingShapes, type BuildingShape } from '@/lib/engine/buildingShapes.ts'
 import { planFingerprint, type PlanFingerprint } from '@/lib/engine/planner/planFingerprint.ts'
 import { applyBriefChoice } from '@/lib/engine/planner/fit.ts'
@@ -65,6 +68,7 @@ export type Result = {
  *  massing archetype plus the seed that produced it. Together with the brief it
  *  fully and deterministically defines the canonical design. */
 export type PinnedDir = {
+  setbackBalcony?: boolean
   balconyExtent?: 'full-slab'
   formVersion?: Design['formVersion']
   planner?: 'ml' | 'baseline'
@@ -105,8 +109,9 @@ export function parsePinned(v: unknown): PinnedDir | null {
       const recipe=o.recipe as Record<string,unknown>|undefined
       const parsedRecipe=recipe && recipe.version==='resplan-ridge-retrieval-v1' && Number.isSafeInteger(recipe.seed) &&
         ['rectangular','stepped','l-shape','courtyard','twin-wing','u-wing','courtyard-ring','pavilion'].includes(String(recipe.family))
-        ? {family:recipe.family,seed:recipe.seed,version:recipe.version} as Design['planRecipe'] : undefined
+        ? {family:recipe.family,seed:recipe.seed,version:recipe.version,...(recipe.frontage==='wide'?{frontage:'wide'}:{})} as Design['planRecipe'] : undefined
       return { massing: o.massing as MassingType, seed: o.seed,
+        ...(o.setbackBalcony===true?{setbackBalcony:true}:{}),
         ...(o.balconyExtent==='full-slab'?{balconyExtent:'full-slab' as const}:{}),
         ...(parseFormVersion(o.formVersion)?{formVersion:parseFormVersion(o.formVersion)}:{}),
         ...(parsedRecipe?{recipe:parsedRecipe}:{}),
@@ -128,7 +133,7 @@ export function parsePinned(v: unknown): PinnedDir | null {
 }
 
 export const serializePinned = (p: PinnedDir | null): string | null =>
-  p ? p.inspiration || p.planSeed !== undefined || p.planner || p.planFamily || p.recipe || p.formVersion || p.balconyExtent ? JSON.stringify(p) : `${p.massing}:${p.seed}` : null
+  p ? p.setbackBalcony || p.inspiration || p.planSeed !== undefined || p.planner || p.planFamily || p.recipe || p.formVersion || p.balconyExtent ? JSON.stringify(p) : `${p.massing}:${p.seed}` : null
 
 /** the 2D plan a pin stands on: a direction's own plan shape and seed, or the
  *  brief's plan (an older pin of another shape regenerates that shape) */
@@ -164,6 +169,7 @@ type StudioState = {
   recentBuildingShapes: BuildingShape[]
   newBuildingShape: (quality?: 'preview' | 'final', composition?:ModernComposition|'auto') => Promise<boolean>
   fillBalconyArea: (quality?: 'preview' | 'final') => Promise<boolean>
+  useSetbackBalcony: () => void
   recentVillaFingerprints: ShapeFingerprintRecord[]
   diversityLimits: VillaDiversityLimits
   shapeDebug: FingerprintDebug[]
@@ -263,6 +269,7 @@ function parseExisting(value: unknown): { structure: ExistingStructure; seed: nu
   if (!s.columns.every((c) => point(c.at)) || !s.footings.every((f) => point(f.at)) || !s.beams.every((b) => point(b.a) && point(b.b))) return null
   if(s.position&&!point(s.position))return null
   if(s.measuredPlan&&!measuredPlanSchema.safeParse(s.measuredPlan).success)return null
+  if(s.measuredFloors&&!measuredFloorsSchema.safeParse(s.measuredFloors).success)return null
   return { structure: s as ExistingStructure, seed: Number.isSafeInteger(v?.seed) ? (v!.seed as number) : 1 }
 }
 
@@ -280,6 +287,7 @@ function assemble(brief: Brief, pinned: PinnedDir | null, inspiration: Inspirati
     if (edited.ok) { plan = edited.design; layoutUsed = layout }
   }
   if(pinned?.balconyExtent==='full-slab')plan={...plan,balconyExtent:'full-slab'}
+  if(pinned?.setbackBalcony)plan=withSetbackBalcony(plan)
   if (!validate(plan).hardChecksPass) return { result: resultForPlan(plan), history, debug: [], notice: null, layout: layoutUsed }
   if (pinned || layoutUsed?.exteriorSeed !== undefined) {
     // Loading/pinning/navigation is an exact replay, not another new candidate.
@@ -345,7 +353,7 @@ function runPlanOp(get: () => StudioState, set: Setter, run: (layout: LayoutDoc,
 
 export type DirectionsInput = Pick<StudioState, 'brief' | 'pinned' | 'referencePreferences' | 'recentVillaFingerprints' | 'diversityLimits'>
 /** The four design directions for a brief. Pure: it runs on the main thread or in the directions worker. */
-export function computeDirections(cur: DirectionsInput, progress?: (value:number,label:string)=>void) {
+export function computeDirections(cur: DirectionsInput, progress?: (value:number,label:string)=>void,onPlan?:(plan:Design,index:number)=>void) {
     progress?.(0,"Preparing your brief")
     const model = compile(cur.brief)
     const dirs: DirectionOption[] = [], debug: FingerprintDebug[] = []
@@ -353,16 +361,18 @@ export function computeDirections(cur: DirectionsInput, progress?: (value:number
     // every direction stands on its own plan shape, so the four houses differ
     // in form, not only in trim; a shape the plot cannot take falls back to
     // the brief's own plan
-    const plans: { plan: Design; massing: MassingType; planSeed?: number }[] = distinctDirectionPlans(model,4,SITE_FORM_VERSION)
+    const plans: { plan: Design; massing: MassingType; planSeed?: number }[] = distinctDirectionPlans(model,4,SITE_FORM_VERSION,cur.pinned?undefined:onPlan)
     const plan=plans[0]?.plan??generate(model,{formVersion:SITE_FORM_VERSION})
     progress?.(20,"Floor plan options prepared")
-    if (!plans.length && validate(plan).hardChecksPass) plans.push({ plan, massing: plan.massingType,planSeed:plan.planSeed })
+    const modernSet=cur.brief.style.character==='modern-box'&&(!cur.brief.style.composition||(MODERN_DIRECTION_COMPOSITIONS as readonly string[]).includes(cur.brief.style.composition))
+    if (!plans.length && !modernSet && validate(plan).hardChecksPass) plans.push({ plan, massing: plan.massingType,planSeed:plan.planSeed })
+    if(modernSet&&plans.length<4)notice=`${plans.length} distinct modern compositions fit this brief. Adjust the plot or room requirements to explore more.`
     const option = (r: Result, index: number, novelty: number, source?: (typeof plans)[number]): DirectionOption => ({
       planFingerprint:planFingerprint(r.design),
       massing: source?.massing ?? r.design.massingType, seed: r.design.dna.seed,
       ...(source?.planSeed !== undefined ? { planSeed: source.planSeed } : {}),
-      label: `Direction ${'ABCD'[index]} — ${r.shapeFingerprint!.massingFamily.replaceAll('_', ' ').toLowerCase()}`,
-      blurb: `${r.shapeFingerprint!.heroFeature.replaceAll('_', ' ').toLowerCase()} · ${r.shapeFingerprint!.rooflineType.replaceAll('_', ' ').toLowerCase()}`,
+      label: `Direction ${'ABCD'[index]} — ${r.design.model.brief.style.composition?modernCompositionTitle(r.design.model.brief.style.composition):r.shapeFingerprint!.massingFamily.replaceAll('_', ' ').toLowerCase()}`,
+      blurb: r.design.floors.some(f=>f.supportZones?.some(z=>z.review))?'Projecting upper rooms · structural design requires review':`${r.shapeFingerprint!.heroFeature.replaceAll('_', ' ').toLowerCase()} · ${r.shapeFingerprint!.rooflineType.replaceAll('_', ' ').toLowerCase()}`,
       novelty, design: r.design, report: r.report, buildingModel: r.buildingModel!, villaDesignDNA: r.villaDesignDNA!,
       massingModel: r.massingModel!, facadeModel: r.facadeModel!, shapeFingerprint: r.shapeFingerprint! })
     if (cur.pinned) {
@@ -372,8 +382,9 @@ export function computeDirections(cur: DirectionsInput, progress?: (value:number
         const replay = replayResult(pinnedSource.plan, cur.pinned.seed, cur.referencePreferences)
         if (replay.result.shapeFingerprint) {
           dirs.push(option(replay.result, 0, 0, pinnedSource))
+          onPlan?.(pinnedSource.plan,0)
           // the pinned plan takes the first slot; drop the same plan from the rest
-          const same = plans.findIndex((p) => p.massing === pinnedSource.massing && p.planSeed === pinnedSource.planSeed)
+          const same = plans.findIndex((p) => planFingerprint(p.plan).key===planFingerprint(pinnedSource.plan).key)
           if(same>=0)plans.splice(same,1)
           for(let j=plans.length-1;j>=0;j--)if(planFingerprint(plans[j].plan).key===planFingerprint(pinnedSource.plan).key)plans.splice(j,1)
         } else debug.push(...replay.debug)
@@ -382,6 +393,7 @@ export function computeDirections(cur: DirectionsInput, progress?: (value:number
     if (validate(plan).hardChecksPass || plans.some((p) => p.planSeed !== undefined)) for (let i = dirs.length; i < 4 && plans.length; i++) {
       progress?.(20+i*20,`Checking direction ${i+1} of 4`)
       const source = plans.shift()!
+      if(cur.pinned)onPlan?.(source.plan,i)
       const usedFamilies = new Set(dirs.map((d) => d.facadeModel.architecturalFamily))
       const selection = generateDistinct(source.plan, cur.brief.variation + 1 + i * 977, cur.referencePreferences, history, cur.diversityLimits,
         dirs.map((d) => fingerprintRecord(d.shapeFingerprint)))
@@ -403,13 +415,23 @@ export function computeDirections(cur: DirectionsInput, progress?: (value:number
         }
       }
       debug.push(...selection.debug)
-      if (!selection.accepted) { notice = exhaustedNotice(selection.debug.length); break }
-      const r = swap ?? selection.accepted.candidate
-      history = swap ? [...selection.history.slice(0, -1), fingerprintRecord(swap.shapeFingerprint!)] : selection.history
+      let checked=swap??selection.accepted?.candidate
+      // History similarity is a preference; it must not hide a different,
+      // fully checked source layout merely because a prior facade was similar.
+      if(!checked)for(let retry=0;retry<3;retry++)try{
+        const candidate=exactResult(source.plan,cur.brief.variation+1+i*977+retry*131,cur.referencePreferences,'accepted')
+        if(candidate.report.hardChecksPass){checked=candidate;break}
+      }catch{ /* keep looking; hard architecture checks are never bypassed */ }
+      if(!checked){notice=exhaustedNotice(selection.debug.length);i--;continue}
+      const r = checked
+      history = selection.accepted&&!swap ? selection.history : [...history,fingerprintRecord(r.shapeFingerprint!)]
       if (selection.debug.at(-1)?.reason.startsWith('Adaptive')) notice = null
       dirs.push(option(r, i, 100 - selection.debug.at(-1)!.similarityPercent, source))
     }
   progress?.(100,"Concept checks complete")
+  const wide=dirs.filter(d=>horizontalPlan(d.design)).length
+  if(dirs.length<4)notice=`${dirs.length} distinct valid plans fit the current constraints after searching additional layouts. Adjust the brief to explore more.`
+  else if(wide<2)notice='Four distinct plans are ready. The plot and room requirements limit the number of wide layouts.'
   return { dirs, history, debug, notice }
 }
 
@@ -633,6 +655,18 @@ export const useStudio = create<StudioState>()(
         return result
       },
 
+      useSetbackBalcony: () => {
+        const cur=get();if(!cur.result||cur.existing)return
+        const design=withSetbackBalcony(cur.result.design)
+        if(design===cur.result.design)return
+        const seed=cur.result.villaDesignDNA?.seed??cur.result.design.dna.seed
+        const result=exactResult(design,seed,cur.referencePreferences)
+        const oldKey=geometryCostKey(cur.result.design),key=geometryCostKey(design),entries=useFinishes.getState().entries
+        if(key!==oldKey&&entries[oldKey]&&!entries[key])useFinishes.getState().setSelection(key,entries[oldKey])
+        const pinned:PinnedDir={...(cur.pinned??{massing:design.massingType,seed,planSeed:design.planSeed,planFamily:design.planFamily,recipe:design.planRecipe,formVersion:design.formVersion,planner:design.planProposal?'ml':'baseline'}),setbackBalcony:true}
+        set(s=>{s.pinned=pinned;s.result=result;s.directions=null;s.generationNotice=null})
+        useBlender.getState().selectDirection(result.design,seed)
+      },
       fillBalconyArea: async (quality = 'preview') => {
         const cur=get()
         if(!cur.result||cur.existing||useBlender.getState().job&&!['complete','failed'].includes(useBlender.getState().job!.status))return false
@@ -738,7 +772,11 @@ export const useStudio = create<StudioState>()(
         const input: DirectionsInput = { brief: cur.brief, pinned: cur.pinned, referencePreferences: cur.referencePreferences,
           recentVillaFingerprints: cur.recentVillaFingerprints, diversityLimits: cur.diversityLimits }
         // the four houses are generated in a worker; failures offer a retry without blocking navigation
-        const out = await import('./directionsWorkerClient.ts').then((m) => m.runDirections(input)).catch(error => { void import('./directionsWorkerClient.ts').then(m=>m.useConceptProgress.setState({error:error instanceof Error?error.message:'Directions could not be generated.'})); return null })
+        const out = await import('./directionsWorkerClient.ts').then((m) => m.runDirections(input)).catch(error => {
+          if(error instanceof Error&&error.message.includes('superseded'))return null
+          if(get().brief===cur.brief&&get().pinned===cur.pinned)void import('./directionsWorkerClient.ts').then(m=>m.useConceptProgress.setState({error:error instanceof Error?error.message:'Directions could not be generated.'}))
+          return null
+        })
         const now = get()
         if (!out || now.directions !== null || now.brief !== cur.brief || now.pinned !== cur.pinned) return
         set((s) => {
@@ -772,6 +810,10 @@ export const useStudio = create<StudioState>()(
         const result = assembled.result
         set((s) => {
           s.pinned = pinned
+          if(source?.design.model.brief.style.character==='modern-box'){
+            if(source.design.model.brief.style.composition)s.brief.style.composition=source.design.model.brief.style.composition
+            else delete s.brief.style.composition
+          }
           s.layout = assembled.layout
           s.recentExteriorSeeds = [...s.recentExteriorSeeds, pinned.seed].slice(-50)
           s.result = result

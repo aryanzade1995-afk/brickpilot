@@ -18,6 +18,8 @@ import { generate } from '@/lib/engine/generate.ts'
 import { validate } from '@/lib/rules/index.ts'
 import { RenderProgress } from '@/components/RenderProgress.tsx'
 import { useBlender, directionRenderKey } from '@/state/blender.ts'
+import {horizontalPlan} from '@/lib/engine/planner/directionFrontage.ts'
+import {modernCompositionTitle} from '@/lib/model/modernCompositions.ts'
 
 const MemoFloorDrawing=memo(FloorDrawing)
 
@@ -36,6 +38,7 @@ export function Directions() {
   const adviceDesigns=useMemo(()=>directions?.map(d=>d.design)??[],[directions])
   const query=useMemo(()=>`Home priorities: ${Object.entries(brief.rooms.priorities).filter(([,v])=>v===true).map(([k])=>k).join(', ')}. ${brief.project.buildingType}. Vastu ${brief.lifestyle.vastu}.`,[brief])
   const {evidence,advice}=useDirectionRecommendations(adviceDesigns,query)
+  const streamedPlans=conceptProgress.sourceBrief===brief?conceptProgress.plans:[]
 
   useEffect(() => {
     if (!directions) void explore()
@@ -48,22 +51,27 @@ export function Directions() {
   }, [directions, previewDirections])
 
 
-  if (!directions) {
-    // the directions are generated in the background: the page is usable and shows where they will appear
-    return <div className="mx-auto max-w-[1400px] px-6 py-8 md:px-10">
-      <WorkspaceTabs />
-      <p className="mt-8 label">{translateUi("Step 02 · Directions")}</p>
-      <h1 className="mt-3 font-display text-3xl">{translateUi("Engineering four directions…")}</h1>
-      <p role="status" className="mt-3 text-sm text-ink-dim">{translateUi("Each is a different plan shape for your brief, checked against every rule.")}</p>
-      {conceptProgress.error&&<div role="alert" className="mt-4 rounded border border-line p-4 text-sm"><p>{conceptProgress.error}</p><button className="mt-2 min-h-11 border border-line px-3" type="button" onClick={()=>void explore()}>Retry directions</button></div>}
-      <div className="mt-6 max-w-xl" role="status" aria-live="polite"><div className="flex justify-between text-sm"><span>{translateUi(conceptProgress.label)}</span><span>{conceptProgress.value}%</span></div><progress className="mt-2 h-2 w-full accent-emerald-800" aria-label="Concept generation progress" value={conceptProgress.value} max={100}/><p className="mt-2 text-xs text-ink-dim">Completed planning stages; individual stages can take different amounts of time.</p></div>
-      <div className="mt-8 grid gap-6 md:grid-cols-2" aria-hidden>
-        {[0, 1, 2, 3].map((i) => <div key={i} className="overflow-hidden border border-line">
-          <div className="aspect-[16/10] animate-pulse bg-bg-inset" style={{ animationDelay: `${i * 150}ms` }} />
-          <div className="space-y-3 p-5"><div className="h-4 w-2/3 animate-pulse rounded bg-bg-inset" /><div className="h-3 w-1/2 animate-pulse rounded bg-bg-inset" /></div>
-        </div>)}
-      </div>
+  if(!directions&&streamedPlans.some(Boolean))return <div className="mx-auto max-w-[1400px] px-6 py-8 md:px-10">
+    <WorkspaceTabs/>
+    <h1 className="mt-6 font-display text-[clamp(1.8rem,3.5vw,2.6rem)]">{translateUi('Your plans are taking shape')}</h1>
+    <div className="mt-4 max-w-xl"><RenderProgress progress={conceptProgress.value} label={conceptProgress.label}/></div>
+    <p className="mt-3 text-sm text-ink-dim">{translateUi('View the ready 2D plans while the remaining directions are checked.')}</p>
+    {conceptProgress.error&&<div role="alert" className="mt-3 border border-line p-3 text-sm">{conceptProgress.error}<button className="ml-3 underline" onClick={()=>void explore()}>{translateUi('Retry directions')}</button></div>}
+    <div className="mt-8 grid gap-6 lg:grid-cols-2" aria-busy={conceptProgress.active}>
+      {Array.from({length:4},(_,index)=>{
+        const plan=streamedPlans[index],composition=plan?.model.brief.style.composition
+        const label=`Direction ${'ABCD'[index]}${composition?` — ${modernCompositionTitle(composition)}`:''}`
+        return <section key={index} className="direction-card overflow-hidden border border-line bg-bg" data-direction-stage={plan?'plan-ready':'pending'}>
+          <div className="flex items-center justify-between gap-3 border-b border-line p-5"><h2 className="font-display text-xl">{label}</h2><span className="font-mono text-[10px] uppercase tracking-wider text-ink-dim">{plan?'2D ready':'Preparing'}</span></div>
+          {plan?<DirectionPlanPreview design={plan} label={label}/>:<div className="flex aspect-[3/2] items-center justify-center bg-bg-inset text-sm text-ink-dim" role="status">{translateUi('Preparing next plan…')}</div>}
+          <p className="p-4 text-xs text-ink-dim">{translateUi(plan?'Checking 3D details. This plan stays visible.':'Finding another distinct layout.')}</p>
+        </section>
+      })}
     </div>
+  </div>
+  if (!directions) {
+    if(!conceptProgress.error)return null
+    return <div className="mx-auto max-w-[1400px] px-6 py-8 md:px-10"><WorkspaceTabs/><div role="alert" className="mt-6 border border-line p-4 text-sm"><p>{conceptProgress.error}</p><button className="mt-3 min-h-11 border border-line px-4" onClick={()=>void explore()}>Retry directions</button></div></div>
   }
 
   if (directions.length === 0) {
@@ -108,6 +116,7 @@ export function Directions() {
 
       {selectionError&&<p role="alert" className="mt-4 rounded border border-line p-3 text-sm text-ink">{selectionError}</p>}
       {directions.length<4&&<p role="status" className="mt-3 text-xs text-ink-dim">{directions.length} distinct checked plans fit this brief. Adjust the brief to explore more layouts.</p>}
+      {generationNotice&&directions.length===4&&<VillaGenerationNotice/>}
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
         {directions.map((d) => {
           const isPinned = pinned?.massing === d.massing && pinned?.seed === d.seed && pinned?.planSeed === d.planSeed
@@ -139,9 +148,9 @@ export function Directions() {
                 </div>
               </div>
 
+              <DirectionPlanPreview design={d.design} label={d.label} />
               <DirectionRender plan={d.design} planId={d.buildingModel.planId} seed={d.seed} label={d.label}
                 elements={d.facadeModel.features.map((f) => FEATURE_LABEL[f.type] ?? f.type.replaceAll('_', ' ').toLowerCase())} />
-              <DirectionPlanPreview design={d.design} label={d.label} />
 
               <div className="flex flex-wrap items-center gap-x-6 gap-y-2 p-5 font-mono text-[0.7rem] uppercase tracking-[0.08em]">
                 <span className={d.report.hardChecksPass ? 'text-ok' : 'text-bad'}>
@@ -220,7 +229,7 @@ function DirectionRender({ plan, planId, seed, label, elements }: { plan: Design
           </a>
         </div>
         <img src={result?.files.hero??preview?.heroPreview} alt={translateUi(`${label} — Blender render`)} className="aspect-[3/2] w-full object-cover" loading="lazy" decoding="async" />
-        {!result&&<div className="absolute bottom-12 left-2 right-2 border border-line bg-bg/95 px-3 py-2"><RenderProgress progress={preview?.progress} label="Main view ready · finishing model files"/></div>}
+        {!result&&preview?.status!=='complete'&&<div className="absolute bottom-12 left-2 right-2 border border-line bg-bg/95 px-3 py-2"><RenderProgress progress={preview?.progress} label="Main view ready · finishing model files"/></div>}
       </>
     ) : (
       <div className="flex aspect-[3/2] w-full flex-col items-center justify-center bg-bg-inset p-6 text-center text-sm text-ink-dim" role="status">
@@ -294,5 +303,6 @@ export function DirectionPlanPreview({ design, label }: { design: Design; label:
     <div className="aspect-[3/2] w-full" aria-label={translateUi(`${label} ${floor.name} 2D plan`)}>
       <MemoFloorDrawing svgRef={svgRef} floor={floor} model={design.model} siteFeatures={design.siteFeatures} theme="paper" showDimensions={false} />
     </div>
+    <div className="flex items-center justify-between gap-3 border-t border-line bg-bg-inset px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-ink-dim"><span>{translateUi('Front entrance')} · {design.model.entrySide}</span>{horizontalPlan(design)&&<span>{translateUi('Wide frontage')}</span>}</div>
   </div>
 }

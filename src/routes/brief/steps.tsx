@@ -1,10 +1,13 @@
 import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
 import { cx } from '@/lib/cx.ts'
+import {Link} from 'react-router-dom'
 import { resolveSpecification } from '@/lib/cost/catalogue.ts'
 import { FurnitureReview } from './RoomPanel.tsx'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { MODERN_COMPOSITION_CHOICES, type ModernComposition } from '@/lib/model/modernCompositions.ts'
-import { assessShape, SHAPE_CHOICES } from '@/lib/engine/planner/fit.ts'
+import {SHAPE_CHOICES} from '@/lib/engine/planner/fit.ts'
+import {useBriefValidation} from '@/state/briefValidation.ts'
+import {SpaceValidation} from '@/components/ui/SpaceValidation.tsx'
 import { resolveOpenSpace, OPEN_SPACE_LABEL } from '@/lib/model/openSpace.ts'
 import { PLANNING_LIMITS } from '@/lib/engine/planner/limits.ts'
 import { Plus, X } from 'lucide-react'
@@ -20,7 +23,6 @@ import {
   STAFF_LABEL,
   VASTU_LABEL,
   occupantCount,
-  geometryBrief,
   type Brief,
   type Direction,
   type Guests,
@@ -57,6 +59,7 @@ export function ProjectStep() {
   const [brief, edit] = useBrief()
   return (
     <div className="max-w-xl space-y-8">
+      <div className="border border-line bg-bg-raised p-4"><p className="text-sm text-ink">Already have a house drawing?</p><p className="mt-1 text-xs leading-relaxed text-ink-dim">Review your own layout and carry it into the studio.</p><Link to="/workspace/existing?input=drawing" className="mt-3 inline-flex border border-line-strong px-3 py-2 font-mono text-xs text-ink">Start from my plan →</Link></div>
       <Field label="Project name">
         <TextInput value={brief.project.name} onChange={(v) => edit((b) => void (b.project.name = v))} />
       </Field>
@@ -714,11 +717,7 @@ export function StyleStep() {
   const [brief, edit] = useBrief()
   // each shape is built by the production planner for this exact brief: one
   // the plot cannot take is shown, but cannot be chosen
-  const shapeKey = JSON.stringify({ ...geometryBrief(brief), style: { ...brief.style, massing: 'auto' } })
-  const shapeChecks = useMemo(() => Object.fromEntries(SHAPE_CHOICES.map((shape) => [shape, assessShape(brief, shape)])) as
-    Record<ShapeChoiceValue, ReturnType<typeof assessShape>>,
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  [shapeKey])
+  const {shapes:shapeChecks,checking:checkingShapes}=useBriefValidation(brief,'shapes')
   return (
     <div className="max-w-2xl space-y-10">
       <div className="space-y-4">
@@ -765,7 +764,7 @@ export function StyleStep() {
             if(v==='auto')delete b.style.composition
             else b.style.composition=v as ModernComposition
             b.style.massing='auto'
-          })} options={[{value:'auto',title:'Automatic',body:'Choose a composition that fits the brief.'},...MODERN_COMPOSITION_CHOICES]}/>
+          })} options={[{value:'auto',title:'Automatic',body:'Explore four distinct compositions that fit the brief.'},...MODERN_COMPOSITION_CHOICES.filter(c=>!['glazed-bay','staggered-wings','terraced-villa'].includes(c.value)||c.value===brief.style.composition)]}/>
         </div>}
         {!SELECTABLE_CHARACTERS.some((value) => value === brief.style.character) && (
           <p className="text-sm text-ink-dim" role="status">
@@ -779,12 +778,13 @@ export function StyleStep() {
           <p className="mt-1 text-sm text-ink-dim">
             {translateUi("Choose the building shape for both your 2D plan and 3D villa. Auto chooses a layout that fits your rooms and plot.")}</p>
         </div>
+        {checkingShapes&&<SpaceValidation compact/>}
         <CardChoice
           value={brief.style.massing}
           onChange={(v) => edit((b) => void (b.style.massing = v))}
           options={MASSING_CHOICES.map((o) => o.value === 'auto' ? o : { ...o,
             // never blocked: a shape that may not fit says so, and the fit panel offers adjustments
-            note: !shapeChecks[o.value as ShapeChoiceValue].ok ? 'May not fit this plot' : undefined })}
+            note: checkingShapes?'Checking layout…':shapeChecks?.[o.value as ShapeChoiceValue]?.ok===false?'May not fit this plot':undefined })}
         />
         {!['auto', ...SHAPE_CHOICES].includes(brief.style.massing) && (
           <p className="text-sm text-ink-dim" role="status">

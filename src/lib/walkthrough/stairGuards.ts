@@ -2,7 +2,7 @@ import type { BuildingModel } from '../engine/buildingModel.ts'
 import { realizeSourceStair } from './stairs.ts'
 
 type V3 = [number, number, number]
-export const STAIR_GUARD_VERSION = 'stair-guards-v1'
+export const STAIR_GUARD_VERSION = 'stair-guards-v2'
 /** Concept metal guard profile, not a structural/code certification. Placement
  * derives only from the recorded nosings and elevations. No stair is widened. */
 export const STAIR_GUARD_PROFILE = { heightMm: 1000, railMm: 40, postMm: 30, maxPostSpacingMm: 850, maxInfillSpacingMm: 110 } as const
@@ -34,10 +34,11 @@ export function createStairGuards(building: BuildingModel) {
       const add=(id:string,kind:StairGuardPart['kind'],fromMm:V3,toMm:V3,width:number)=>parts.push({id:`${floor.id}_${stair.id}_Guard_${id}`,stairId:stair.id,floorId:floor.id,kind,fromMm,toMm,
         verticesMm:beam(fromMm,toMm,width),faces:[[0,3,2,1],[4,5,6,7],[0,1,5,4],[1,2,6,5],[2,3,7,6],[3,0,4,7]],material:'metal'})
       for(const flight of [0,1]) {
-        // Centre every profile in the existing well; never on a usable tread.
-        const at=(a+b)/2, start=flight===0?0:geometry.goingMm, end=flight===0?travel-geometry.goingMm:travel
+        // Mount on the inner tread edge, rather than floating in the well.
+        const start=flight===0?0:geometry.goingMm, end=flight===0?travel-geometry.goingMm:travel
         const top=(run:number)=>base+(flight===0?rise+(count-1)*rise*run/(travel-geometry.goingMm):floor.heightMm-(count-1)*rise*(run-geometry.goingMm)/(travel-geometry.goingMm))
-        const axis=at+(flight===0?-1:1)*Math.max(0,(gap-STAIR_GUARD_PROFILE.railMm-4)/2)
+        const inset=STAIR_GUARD_PROFILE.railMm/2
+        const axis=flight===0?a-inset:b+inset
         add(`${flight}_rail`,'handrail',world(axis,start,top(start)+h),world(axis,end,top(end)+h),STAIR_GUARD_PROFILE.railMm)
         const span=end-start, bays=Math.max(1,Math.ceil(span/STAIR_GUARD_PROFILE.maxPostSpacingMm))
         for(let i=0;i<=bays;i++) {
@@ -49,7 +50,7 @@ export function createStairGuards(building: BuildingModel) {
         for(let i=1;i<infills;i++) {
           const run=start+span*i/infills
           const support=base+(flight===0?Math.min(count,Math.floor(run/geometry.goingMm)+1)*rise:Math.min(count*2,count+Math.floor((travel-run)/geometry.goingMm)+1)*rise)
-          add(`${flight}_bar_${i}`,'infill',world(axis,run,support+20),world(axis,run,top(run)+h-20),12)
+          add(`${flight}_bar_${i}`,'infill',world(axis,run,support-20),world(axis,run,top(run)+h),12)
         }
       }
     } catch(error) {issues.push({stairId:stair.id,message:error instanceof Error?error.message:'Unsupported stair guard.'})}

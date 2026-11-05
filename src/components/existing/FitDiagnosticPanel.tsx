@@ -201,7 +201,7 @@ export function FitDiagnosticPanel({
   ])
 
   return (
-    <div className="rounded-2xl border border-line bg-surface p-5 shadow-sm space-y-4">
+    <div className="rounded-md border border-line bg-bg-raised p-5 shadow-sm space-y-4">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-line">
         <div className="flex items-center gap-2">
@@ -209,10 +209,10 @@ export function FitDiagnosticPanel({
             <Sliders size={18} />
           </div>
           <div>
-            <h3 className="font-display text-base font-semibold text-ink-primary">
+            <h3 className="font-display text-base font-semibold text-ink">
               Fit Diagnostics & Remediation Assistant
             </h3>
-            <p className="text-xs text-ink-muted">
+            <p className="text-xs text-ink-dim">
               Live inspection of building dimensions, plot setbacks, and code requirements.
             </p>
           </div>
@@ -244,7 +244,7 @@ export function FitDiagnosticPanel({
 
       {/* Success Banner when Action Executed */}
       {lastActionReport && (
-        <div className="flex items-center justify-between gap-2 p-3 rounded-xl border border-emerald-200 bg-emerald-50 dark:border-emerald-900/50 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-200 text-xs animate-in fade-in">
+        <div className="flex items-center justify-between gap-2 p-3 rounded-md border border-emerald-200 bg-emerald-50 dark:border-emerald-900/50 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-200 text-xs animate-in fade-in">
           <div className="flex items-center gap-2">
             <Wand2 size={15} className="text-emerald-600 dark:text-emerald-400 flex-none" />
             <span className="font-medium">{lastActionReport.action}:</span>
@@ -262,32 +262,32 @@ export function FitDiagnosticPanel({
 
       {/* Live Metrics Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-        <div className="p-3 rounded-xl border border-line bg-bg-inset">
-          <span className="text-ink-muted block text-[0.7rem] uppercase tracking-wider font-mono">House Footprint</span>
-          <span className="text-base font-semibold text-ink-primary font-mono mt-0.5 block">
+        <div className="p-3 rounded-md border border-line bg-bg-inset">
+          <span className="text-ink-dim block text-[0.7rem] uppercase tracking-wider font-mono">House Footprint</span>
+          <span className="text-base font-semibold text-ink font-mono mt-0.5 block">
             {footprint.w} × {footprint.d} m
           </span>
-          <span className="text-[0.68rem] text-ink-muted">{(footprint.w * footprint.d).toFixed(1)} m² area</span>
+          <span className="text-[0.68rem] text-ink-dim">{(footprint.w * footprint.d).toFixed(1)} m² area</span>
         </div>
 
-        <div className="p-3 rounded-xl border border-line bg-bg-inset">
-          <span className="text-ink-muted block text-[0.7rem] uppercase tracking-wider font-mono">Your Plot</span>
-          <span className="text-base font-semibold text-ink-primary font-mono mt-0.5 block">
+        <div className="p-3 rounded-md border border-line bg-bg-inset">
+          <span className="text-ink-dim block text-[0.7rem] uppercase tracking-wider font-mono">Your Plot</span>
+          <span className="text-base font-semibold text-ink font-mono mt-0.5 block">
             {plotWidthM} × {plotDepthM} m
           </span>
-          <span className="text-[0.68rem] text-ink-muted">{(plotWidthM * plotDepthM).toFixed(1)} m² plot</span>
+          <span className="text-[0.68rem] text-ink-dim">{(plotWidthM * plotDepthM).toFixed(1)} m² plot</span>
         </div>
 
-        <div className="p-3 rounded-xl border border-line bg-bg-inset">
-          <span className="text-ink-muted block text-[0.7rem] uppercase tracking-wider font-mono">Buildable Envelope</span>
-          <span className="text-base font-semibold text-ink-primary font-mono mt-0.5 block">
+        <div className="p-3 rounded-md border border-line bg-bg-inset">
+          <span className="text-ink-dim block text-[0.7rem] uppercase tracking-wider font-mono">Buildable Envelope</span>
+          <span className="text-base font-semibold text-ink font-mono mt-0.5 block">
             {buildable.w} × {buildable.d} m
           </span>
-          <span className="text-[0.68rem] text-ink-muted">After 1.5m sides, 3.3m rear, 2.3m front</span>
+          <span className="text-[0.68rem] text-ink-dim">After 1.5m sides, 3.3m rear, 2.3m front</span>
         </div>
 
-        <div className="p-3 rounded-xl border border-line bg-bg-inset">
-          <span className="text-ink-muted block text-[0.7rem] uppercase tracking-wider font-mono">Plot Fit Status</span>
+        <div className="p-3 rounded-md border border-line bg-bg-inset">
+          <span className="text-ink-dim block text-[0.7rem] uppercase tracking-wider font-mono">Plot Fit Status</span>
           <span
             className={cx(
               'text-base font-semibold font-mono mt-0.5 block',
@@ -296,19 +296,19 @@ export function FitDiagnosticPanel({
           >
             {isPlotOverflow ? `Overflows ${Math.max(overflowW, overflowD).toFixed(1)}m` : 'Fits inside plot'}
           </span>
-          <span className="text-[0.68rem] text-ink-muted">
+          <span className="text-[0.68rem] text-ink-dim">
             {isPlotOverflow ? 'Adjustment required' : 'Setbacks fully satisfied'}
           </span>
         </div>
       </div>
 
       {/* Interactive Quick-Fit Slider */}
-      <div className="p-3.5 rounded-xl border border-line bg-surface-elevated flex flex-wrap items-center justify-between gap-4 text-xs">
+      <div className="p-3.5 rounded-md border border-line bg-bg-inset flex flex-wrap items-center justify-between gap-4 text-xs">
         <div className="flex items-center gap-2">
           <Compass size={16} className="text-accent" />
           <div>
-            <span className="font-semibold text-ink-primary block">Proportional Building Footprint Adjuster</span>
-            <span className="text-ink-muted text-[0.72rem]">
+            <span className="font-semibold text-ink block">Proportional Building Footprint Adjuster</span>
+            <span className="text-ink-dim text-[0.72rem]">
               Drag to scale the building footprint up or down in real time.
             </span>
           </div>
@@ -318,20 +318,20 @@ export function FitDiagnosticPanel({
           <button
             type="button"
             onClick={() => onUpdateScale(+(scaleMPerPx * 0.95).toFixed(6))}
-            className="p-1.5 rounded hover:bg-bg-inset border border-line text-ink-primary"
+            className="p-1.5 rounded hover:bg-bg-inset border border-line text-ink"
             title="Scale down 5%"
           >
             <Minimize2 size={13} />
           </button>
 
-          <span className="font-mono text-xs font-semibold text-ink-primary w-24 text-center">
+          <span className="font-mono text-xs font-semibold text-ink w-24 text-center">
             {footprint.w} × {footprint.d} m
           </span>
 
           <button
             type="button"
             onClick={() => onUpdateScale(+(scaleMPerPx * 1.05).toFixed(6))}
-            className="p-1.5 rounded hover:bg-bg-inset border border-line text-ink-primary"
+            className="p-1.5 rounded hover:bg-bg-inset border border-line text-ink"
             title="Scale up 5%"
           >
             <Maximize2 size={13} />
@@ -346,7 +346,7 @@ export function FitDiagnosticPanel({
             <div
               key={item.id}
               className={cx(
-                'rounded-xl border p-4 space-y-3 transition-all',
+                'rounded-md border p-4 space-y-3 transition-all',
                 item.severity === 'error'
                   ? 'border-rose-200 bg-rose-50/40 dark:border-rose-900/40 dark:bg-rose-950/20'
                   : 'border-amber-200 bg-amber-50/40 dark:border-amber-900/40 dark:bg-amber-950/20'
@@ -357,7 +357,7 @@ export function FitDiagnosticPanel({
                   size={16}
                   className={item.severity === 'error' ? 'text-rose-500' : 'text-amber-500'}
                 />
-                <h4 className="font-semibold text-xs text-ink-primary">{item.title}</h4>
+                <h4 className="font-semibold text-xs text-ink">{item.title}</h4>
               </div>
 
               {/* 1. What is not fitting */}
@@ -365,7 +365,7 @@ export function FitDiagnosticPanel({
                 <span className="font-mono text-[0.68rem] uppercase tracking-wider text-rose-600 dark:text-rose-400 font-semibold block">
                   What is not fitting:
                 </span>
-                <p className="text-ink-primary leading-relaxed">{item.whatIsNotFitting}</p>
+                <p className="text-ink leading-relaxed">{item.whatIsNotFitting}</p>
               </div>
 
               {/* 2. What needs to change */}
@@ -373,7 +373,7 @@ export function FitDiagnosticPanel({
                 <span className="font-mono text-[0.68rem] uppercase tracking-wider text-amber-600 dark:text-amber-400 font-semibold block">
                   What is needed to be changed:
                 </span>
-                <p className="text-ink-muted leading-relaxed">{item.whatNeedsToChange}</p>
+                <p className="text-ink-dim leading-relaxed">{item.whatNeedsToChange}</p>
               </div>
 
               {/* 3. Action Buttons that mutate the model according to user input */}
@@ -395,7 +395,7 @@ export function FitDiagnosticPanel({
           ))}
         </div>
       ) : (
-        <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/50 dark:border-emerald-900/30 dark:bg-emerald-950/20 flex items-center gap-3 text-xs text-emerald-900 dark:text-emerald-200">
+        <div className="p-4 rounded-md border border-emerald-200 bg-emerald-50/50 dark:border-emerald-900/30 dark:bg-emerald-950/20 flex items-center gap-3 text-xs text-emerald-900 dark:text-emerald-200">
           <CheckCircle2 size={18} className="text-emerald-600 dark:text-emerald-400 flex-none" />
           <div>
             <span className="font-semibold block">All checks passing!</span>

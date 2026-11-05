@@ -1,5 +1,5 @@
 export const WALKTHROUGH_QUALITY = {
-  adaptive: { label: 'Balanced', min: .75, max: 1, start: 1, target:60 },
+  adaptive: { label: 'Balanced', min: .65, max: 1, start: .85, target:60 },
   detailed: { label: 'High Quality', min: .85, max: 1.25, start: 1, target:60 },
   performance: { label: 'Performance', min: .65, max: 1, start: .85, target:60 },
 } as const

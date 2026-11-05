@@ -2,6 +2,31 @@
 import math
 
 
+def create_plinth_enclosure(scene, building, floor):
+    """Masonry perimeter and compacted earth under the raised ground slab."""
+    from .plates import subtract_rectangles
+    from .outdoor import boundary_edges
+    grade = floor['elevationMm'] - building.get('structuralSizing', {}).get('plinthHeightMm', 400)
+    top = floor['elevationMm'] - slab_thickness(floor)
+    if top <= grade:
+        return
+    voids = [floor['courtyard']] if floor.get('courtyard') else []
+    plates = [p for r in floor['footprint'] for p in subtract_rectangles(r, voids)]
+    for i, r in enumerate(plates):
+        obj = scene.rect(f"Plinth_CompactedEarth_{i}", 'STRUCTURE', r, grade-20, top-grade+20, 'soil', floor['id'], bevel=0)
+        obj['construction_role'] = 'compacted-earth-fill'
+    strips=[]
+    for i, (axis, fixed, lo, hi, out) in enumerate(boundary_edges(plates)):
+        x,y = ((lo+hi)/2, fixed) if axis=='h' else (fixed,(lo+hi)/2)
+        # Project 15 mm beyond the existing 230 mm plinth beams, so the
+        # finish and structural concrete never occupy the same face.
+        w,d = (hi-lo+260,260) if axis=='h' else (260,hi-lo+260)
+        strips.append(dict(x=x-w/2,y=y-d/2,w=w,h=d))
+    obj=scene.plate_union('Plinth_Masonry', 'STRUCTURE', strips, grade-20,top-grade+20,floor['id'])
+    scene.assign_material(obj,'secondary_wall')
+    obj['construction_role'] = 'masonry-plinth-enclosure'
+
+
 def slab_thickness(floor, legacy=180):
     return floor.get("slabThicknessMm", legacy)
 

@@ -7,9 +7,7 @@ import {
   Minimize2,
   Compass,
   Check,
-  HelpCircle,
   Sliders,
-  Sparkles,
 } from 'lucide-react'
 import { type RawSurvey } from '@/lib/existing/digitizer.ts'
 import { type Survey, SURVEY_SETBACKS } from '@/lib/existing/survey.ts'
@@ -21,7 +19,7 @@ import {
   type RemediationChangeReport,
 } from '@/lib/existing/remediation.ts'
 import { type NbcHealthReport } from '@/lib/existing/nbcPreflight.ts'
-import { applyIndianConstructionSnapping, type SnappingDiff } from '@/lib/existing/snapping.ts'
+import { type SnappingDiff } from '@/lib/existing/snapping.ts'
 import {
   sqmToGuntha,
   sqmToSqft,
@@ -67,8 +65,8 @@ export function InteractiveFitQuestioner({
 }: InteractiveFitQuestionerProps) {
   const [lastActionReport, setLastActionReport] = useState<RemediationChangeReport | null>(null)
   const [selectedResolution, setSelectedResolution] = useState<'scale' | 'expand' | 'manual'>('scale')
-  const [manualPlotW, setManualPlotW] = useState(String(plotWidthM))
-  const [manualPlotD, setManualPlotD] = useState(String(plotDepthM))
+  const [, setManualPlotW] = useState(String(plotWidthM))
+  const [, setManualPlotD] = useState(String(plotDepthM))
 
   // Measure current building dimensions in metres
   const footprint = useMemo(() => {
@@ -127,7 +125,7 @@ export function InteractiveFitQuestioner({
     <div className="w-full space-y-6">
       {/* SUCCESS ACTION BANNER */}
       {lastActionReport && (
-        <div className="flex items-center justify-between gap-3 p-4 rounded-xl border border-emerald-300 bg-emerald-50 dark:border-emerald-900/60 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200 text-sm">
+        <div className="flex items-center justify-between gap-3 p-4 rounded-md border border-emerald-300 bg-emerald-50 dark:border-emerald-900/60 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200 text-sm">
           <div className="flex items-center gap-2.5">
             <Wand2 size={18} className="text-emerald-600 dark:text-emerald-400 flex-none" />
             <div>
@@ -146,41 +144,41 @@ export function InteractiveFitQuestioner({
       )}
 
       {/* QUESTION 1: SITE CONFIRMATION */}
-      <div className="rounded-2xl border border-line bg-surface p-6 shadow-sm space-y-5">
+      <div className="rounded-md border border-line bg-bg-raised p-6 shadow-sm space-y-5">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-accent/10 text-accent">
+            <div className="p-2.5 rounded-md bg-accent/10 text-accent">
               <Compass size={20} />
             </div>
             <div>
-              <h3 className="font-display text-lg font-semibold text-ink-primary">
+              <h3 className="font-display text-lg text-ink">
                 1. Site Dimensions & Road Frontage Confirmation
               </h3>
-              <p className="text-xs text-ink-muted">
+              <p className="text-xs text-ink-dim">
                 The AI measured your drawn building footprint as{' '}
-                <strong className="text-ink-primary">{footprint.w} m wide × {footprint.d} m deep</strong>{' '}
+                <strong className="text-ink">{footprint.w} m wide × {footprint.d} m deep</strong>{' '}
                 ({footprint.roomCount} rooms, {footprint.wallCount} walls).
               </p>
             </div>
           </div>
-          <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-surface-elevated border border-line text-ink-muted">
+          <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-bg-inset border border-line text-ink-dim">
             Step 1 of 3
           </span>
         </div>
 
         {/* Guntha & Area Summary Banner */}
-        <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl border border-line bg-surface-elevated text-xs">
+        <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-md border border-line bg-bg-inset text-xs">
           <div className="flex items-center gap-2.5">
             <span className="font-semibold text-accent font-mono text-sm">{currentGuntha} Guntha</span>
-            <span className="text-ink-muted">({Math.round(plotAreaM2)} m² / {plotAreaSqft.toLocaleString('en-IN')} sq ft)</span>
+            <span className="text-ink-dim">({Math.round(plotAreaM2)} m² / {plotAreaSqft.toLocaleString('en-IN')} sq ft)</span>
           </div>
-          <span className="text-[0.7rem] text-ink-muted font-mono">1 Guntha = 1,089 sq ft ≈ 101.17 m² (33 × 33 ft)</span>
+          <span className="text-[0.7rem] text-ink-dim font-mono">1 Guntha = 1,089 sq ft ≈ 101.17 m² (33 × 33 ft)</span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
           {/* Plot Width */}
           <div className="space-y-1.5">
-            <label className="text-xs font-mono uppercase tracking-wider text-ink-muted">
+            <label className="text-xs font-mono uppercase tracking-wider text-ink-dim">
               Plot Width (m)
             </label>
             <div className="relative">
@@ -197,16 +195,16 @@ export function InteractiveFitQuestioner({
                     setManualPlotW(String(val))
                   }
                 }}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-line bg-surface-elevated text-sm text-ink-primary font-mono focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full px-3.5 py-2.5 rounded-md border border-line bg-bg-inset text-sm text-ink font-mono focus:outline-none focus:ring-2 focus:ring-accent"
               />
-              <span className="absolute right-3.5 top-2.5 text-xs text-ink-muted font-mono">m</span>
+              <span className="absolute right-3.5 top-2.5 text-xs text-ink-dim font-mono">m</span>
             </div>
-            <span className="text-[0.7rem] text-ink-muted">East-West frontage width</span>
+            <span className="text-[0.7rem] text-ink-dim">East-West frontage width</span>
           </div>
 
           {/* Plot Depth */}
           <div className="space-y-1.5">
-            <label className="text-xs font-mono uppercase tracking-wider text-ink-muted">
+            <label className="text-xs font-mono uppercase tracking-wider text-ink-dim">
               Plot Depth (m)
             </label>
             <div className="relative">
@@ -223,16 +221,16 @@ export function InteractiveFitQuestioner({
                     setManualPlotD(String(val))
                   }
                 }}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-line bg-surface-elevated text-sm text-ink-primary font-mono focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full px-3.5 py-2.5 rounded-md border border-line bg-bg-inset text-sm text-ink font-mono focus:outline-none focus:ring-2 focus:ring-accent"
               />
-              <span className="absolute right-3.5 top-2.5 text-xs text-ink-muted font-mono">m</span>
+              <span className="absolute right-3.5 top-2.5 text-xs text-ink-dim font-mono">m</span>
             </div>
-            <span className="text-[0.7rem] text-ink-muted">North-South depth</span>
+            <span className="text-[0.7rem] text-ink-dim">North-South depth</span>
           </div>
 
           {/* Road Edge */}
           <div className="space-y-1.5">
-            <label className="text-xs font-mono uppercase tracking-wider text-ink-muted">
+            <label className="text-xs font-mono uppercase tracking-wider text-ink-dim">
               Road Access Side
             </label>
             <div className="grid grid-cols-4 gap-1.5">
@@ -242,23 +240,23 @@ export function InteractiveFitQuestioner({
                   type="button"
                   onClick={() => onUpdateRoadSide(side)}
                   className={cx(
-                    'py-2 rounded-xl text-xs font-mono font-medium border transition-colors',
+                    'py-2 rounded-md text-xs font-mono font-medium border transition-colors',
                     roadSide === side
                       ? 'border-accent bg-accent text-white'
-                      : 'border-line bg-surface-elevated text-ink-muted hover:text-ink-primary'
+                      : 'border-line bg-bg-inset text-ink-dim hover:text-ink'
                   )}
                 >
                   {side === 'N' ? 'North' : side === 'E' ? 'East' : side === 'S' ? 'South' : 'West'}
                 </button>
               ))}
             </div>
-            <span className="text-[0.7rem] text-ink-muted">Direction your plot faces the road</span>
+            <span className="text-[0.7rem] text-ink-dim">Direction your plot faces the road</span>
           </div>
         </div>
 
         {/* Quick Guntha Presets */}
         <div className="space-y-1.5 pt-2 border-t border-line/60">
-          <label className="text-[0.7rem] font-mono uppercase tracking-wider text-ink-muted">
+          <label className="text-[0.7rem] font-mono uppercase tracking-wider text-ink-dim">
             Quick Guntha Plot Sizing Presets:
           </label>
           <div className="flex flex-wrap gap-1.5">
@@ -279,7 +277,7 @@ export function InteractiveFitQuestioner({
                     'px-2.5 py-1 rounded-lg text-xs font-mono border transition-colors cursor-pointer',
                     isSelected
                       ? 'border-accent bg-accent text-white font-semibold shadow-xs'
-                      : 'border-line bg-surface-elevated text-ink-muted hover:text-ink-primary hover:border-accent/40'
+                      : 'border-line bg-bg-inset text-ink-dim hover:text-ink hover:border-accent/40'
                   )}
                 >
                   {g} Guntha <span className="opacity-75 text-[0.65rem]">({Math.round(g * SQM_PER_GUNTHA)} m²)</span>
@@ -291,22 +289,22 @@ export function InteractiveFitQuestioner({
       </div>
 
       {/* QUESTION 2: FIT & SETBACK RESOLUTION (WHAT IS NOT FITTING & HOW TO RESOLVE) */}
-      <div className="rounded-2xl border border-line bg-surface p-6 shadow-sm space-y-5">
+      <div className="rounded-md border border-line bg-bg-raised p-6 shadow-sm space-y-5">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
             <div
               className={cx(
-                'p-2.5 rounded-xl',
+                'p-2.5 rounded-md',
                 isPlotOverflow ? 'bg-amber-500/10 text-amber-500' : 'bg-emerald-500/10 text-emerald-500'
               )}
             >
               {isPlotOverflow ? <AlertTriangle size={20} /> : <CheckCircle2 size={20} />}
             </div>
             <div>
-              <h3 className="font-display text-lg font-semibold text-ink-primary">
+              <h3 className="font-display text-lg text-ink">
                 2. Building Setback & Fit Analysis
               </h3>
-              <p className="text-xs text-ink-muted">
+              <p className="text-xs text-ink-dim">
                 Mandatory Indian bylaws: 1.5 m side setbacks, 3.3 m rear setback, 2.3 m front road setback.
               </p>
             </div>
@@ -326,7 +324,7 @@ export function InteractiveFitQuestioner({
         {/* What is not fitting diagnosis */}
         {isPlotOverflow ? (
           <div className="space-y-4">
-            <div className="p-4 rounded-xl border border-amber-200 bg-amber-50/70 dark:border-amber-900/40 dark:bg-amber-950/20 text-amber-900 dark:text-amber-200 text-xs space-y-1.5">
+            <div className="p-4 rounded-md border border-amber-200 bg-amber-50/70 dark:border-amber-900/40 dark:bg-amber-950/20 text-amber-900 dark:text-amber-200 text-xs space-y-1.5">
               <span className="font-semibold block text-sm">What is not fitting:</span>
               <p>
                 Your drawn house footprint (<strong className="font-mono">{footprint.w} × {footprint.d} m</strong>)
@@ -340,7 +338,7 @@ export function InteractiveFitQuestioner({
 
             {/* What needs to be changed (Resolution Choices) */}
             <div className="space-y-3">
-              <label className="text-xs font-mono uppercase tracking-wider text-ink-muted">
+              <label className="text-xs font-mono uppercase tracking-wider text-ink-dim">
                 Choose How You Want to Resolve the Overflow:
               </label>
 
@@ -353,23 +351,23 @@ export function InteractiveFitQuestioner({
                   onClick={() => setSelectedResolution('scale')}
                   onKeyDown={(e) => (e.key === ' ' || e.key === 'Enter') && setSelectedResolution('scale')}
                   className={cx(
-                    'flex flex-col justify-between p-4 rounded-xl border-2 transition-all cursor-pointer text-left',
+                    'flex flex-col justify-between p-4 rounded-md border-2 transition-all cursor-pointer text-left',
                     selectedResolution === 'scale'
                       ? 'border-accent bg-accent/5 ring-2 ring-accent/20'
-                      : 'border-line bg-surface hover:border-accent/40 hover:bg-surface-elevated'
+                      : 'border-line bg-bg-raised hover:border-accent/40 hover:bg-bg-inset'
                   )}
                 >
                   <div>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Minimize2 size={16} className="text-accent" />
-                        <h4 className="font-semibold text-sm text-ink-primary">Option A: Auto-Scale House</h4>
+                        <h4 className="font-semibold text-sm text-ink">Option A: Auto-Scale House</h4>
                       </div>
                       <span className="text-[0.65rem] font-mono px-2 py-0.5 rounded-full bg-accent/10 text-accent font-semibold">
                         Recommended
                       </span>
                     </div>
-                    <p className="mt-2 text-xs text-ink-muted leading-relaxed">
+                    <p className="mt-2 text-xs text-ink-dim leading-relaxed">
                       Proportionally scale down the house dimensions so it fits inside the {buildable.w} × {buildable.d} m
                       buildable envelope without changing your plot size.
                     </p>
@@ -398,25 +396,25 @@ export function InteractiveFitQuestioner({
                   onClick={() => setSelectedResolution('expand')}
                   onKeyDown={(e) => (e.key === ' ' || e.key === 'Enter') && setSelectedResolution('expand')}
                   className={cx(
-                    'flex flex-col justify-between p-4 rounded-xl border-2 transition-all cursor-pointer text-left',
+                    'flex flex-col justify-between p-4 rounded-md border-2 transition-all cursor-pointer text-left',
                     selectedResolution === 'expand'
                       ? 'border-accent bg-accent/5 ring-2 ring-accent/20'
-                      : 'border-line bg-surface hover:border-accent/40 hover:bg-surface-elevated'
+                      : 'border-line bg-bg-raised hover:border-accent/40 hover:bg-bg-inset'
                   )}
                 >
                   <div>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Maximize2 size={16} className="text-accent" />
-                        <h4 className="font-semibold text-sm text-ink-primary">Option B: Enlarge Plot Size</h4>
+                        <h4 className="font-semibold text-sm text-ink">Option B: Enlarge Plot Size</h4>
                       </div>
-                      <span className="text-[0.65rem] font-mono px-2 py-0.5 rounded-full bg-surface-elevated border border-line text-ink-muted">
+                      <span className="text-[0.65rem] font-mono px-2 py-0.5 rounded-full bg-bg-inset border border-line text-ink-dim">
                         Keep Dimensions
                       </span>
                     </div>
-                    <p className="mt-2 text-xs text-ink-muted leading-relaxed">
+                    <p className="mt-2 text-xs text-ink-dim leading-relaxed">
                       Keep your house the exact size you drew and expand your plot dimensions to at least{' '}
-                      <strong className="text-ink-primary font-mono">
+                      <strong className="text-ink font-mono">
                         {requiredPlot.requiredPlotWidthM} × {requiredPlot.requiredPlotDepthM} m ({requiredPlot.areaGuntha} Guntha / {requiredPlot.areaSqft.toLocaleString('en-IN')} sq ft)
                       </strong>.
                     </p>
@@ -447,7 +445,7 @@ export function InteractiveFitQuestioner({
             </div>
           </div>
         ) : (
-          <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/70 dark:border-emerald-900/40 dark:bg-emerald-950/20 text-emerald-900 dark:text-emerald-200 text-xs flex items-center gap-3">
+          <div className="p-4 rounded-md border border-emerald-200 bg-emerald-50/70 dark:border-emerald-900/40 dark:bg-emerald-950/20 text-emerald-900 dark:text-emerald-200 text-xs flex items-center gap-3">
             <CheckCircle2 size={18} className="text-emerald-600 dark:text-emerald-400 flex-none" />
             <div>
               <span className="font-semibold block text-sm">Perfect Setback Fit</span>
@@ -461,38 +459,38 @@ export function InteractiveFitQuestioner({
       </div>
 
       {/* QUESTION 3: BUILDING CODE (NBC) AUTOMATIC FIXES & MASONRY SNAPPING */}
-      <div className="rounded-2xl border border-line bg-surface p-6 shadow-sm space-y-5">
+      <div className="rounded-md border border-line bg-bg-raised p-6 shadow-sm space-y-5">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-accent/10 text-accent">
+            <div className="p-2.5 rounded-md bg-accent/10 text-accent">
               <Sliders size={20} />
             </div>
             <div>
-              <h3 className="font-display text-lg font-semibold text-ink-primary">
+              <h3 className="font-display text-lg text-ink">
                 3. Building Code (NBC) & Masonry Snapping
               </h3>
-              <p className="text-xs text-ink-muted">
+              <p className="text-xs text-ink-dim">
                 Ensure structural wall thickness (230 mm exterior, 115 mm interior) and statutory room ventilation.
               </p>
             </div>
           </div>
-          <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-surface-elevated border border-line text-ink-muted">
+          <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-bg-inset border border-line text-ink-dim">
             Step 3 of 3
           </span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Construction Snapping */}
-          <div className="p-4 rounded-xl border border-line bg-surface-elevated space-y-2">
+          <div className="p-4 rounded-md border border-line bg-bg-inset space-y-2">
             <div className="flex items-center justify-between">
-              <h4 className="font-semibold text-xs text-ink-primary">Indian Masonry Grid</h4>
+              <h4 className="font-semibold text-xs text-ink">Indian Masonry Grid</h4>
               {snappedDiff && (
                 <span className="p-1 rounded-full bg-emerald-500 text-white text-[0.6rem]">
                   <Check size={10} />
                 </span>
               )}
             </div>
-            <p className="text-xs text-ink-muted leading-relaxed">
+            <p className="text-xs text-ink-dim leading-relaxed">
               Straighten angles to 90°, align room centrelines, and set walls to 230 mm external / 115 mm internal.
             </p>
             <div className="pt-2">
@@ -510,9 +508,9 @@ export function InteractiveFitQuestioner({
           </div>
 
           {/* Exterior Ventilation */}
-          <div className="p-4 rounded-xl border border-line bg-surface-elevated space-y-2">
+          <div className="p-4 rounded-md border border-line bg-bg-inset space-y-2">
             <div className="flex items-center justify-between">
-              <h4 className="font-semibold text-xs text-ink-primary">Exterior Ventilation</h4>
+              <h4 className="font-semibold text-xs text-ink">Exterior Ventilation</h4>
               {unventilatedRooms.length === 0 ? (
                 <span className="p-1 rounded-full bg-emerald-500 text-white text-[0.6rem]">
                   <Check size={10} />
@@ -523,7 +521,7 @@ export function InteractiveFitQuestioner({
                 </span>
               )}
             </div>
-            <p className="text-xs text-ink-muted leading-relaxed">
+            <p className="text-xs text-ink-dim leading-relaxed">
               {unventilatedRooms.length === 0
                 ? 'All habitable rooms have at least one exterior wall window.'
                 : `${unventilatedRooms.join(', ')} lacks an exterior window.`}
@@ -555,9 +553,9 @@ export function InteractiveFitQuestioner({
           </div>
 
           {/* Door Widths */}
-          <div className="p-4 rounded-xl border border-line bg-surface-elevated space-y-2">
+          <div className="p-4 rounded-md border border-line bg-bg-inset space-y-2">
             <div className="flex items-center justify-between">
-              <h4 className="font-semibold text-xs text-ink-primary">Circulation Doors</h4>
+              <h4 className="font-semibold text-xs text-ink">Circulation Doors</h4>
               {narrowDoorsCount === 0 ? (
                 <span className="p-1 rounded-full bg-emerald-500 text-white text-[0.6rem]">
                   <Check size={10} />
@@ -568,7 +566,7 @@ export function InteractiveFitQuestioner({
                 </span>
               )}
             </div>
-            <p className="text-xs text-ink-muted leading-relaxed">
+            <p className="text-xs text-ink-dim leading-relaxed">
               {narrowDoorsCount === 0
                 ? 'All doors meet or exceed 900 mm clear accessibility width.'
                 : `${narrowDoorsCount} door(s) are narrower than 900 mm.`}

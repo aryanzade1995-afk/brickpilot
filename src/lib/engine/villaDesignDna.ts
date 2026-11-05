@@ -135,14 +135,16 @@ export function createVillaDesignDNA(building: BuildingModel, seed: number, char
   }
   if(building.modernComposition){
     const composition=building.modernComposition.id
-    result.compositionType=composition==='glazed-bay'?'tower-and-wing':composition==='staggered-wings'?'split-canopy':'layered-terrace'
-    result.architecturalFamily=composition==='glazed-bay'?'FRAMED_MODERN':composition==='staggered-wings'?'HORIZONTAL_LAYERED':'MINIMAL_LUXURY'
+    result.compositionType=composition==='offset-box'?'interlocking-frames':composition==='framed-balcony'?'interlocking-frames':composition==='interlocking-boxes'?'split-canopy':composition==='glazed-bay'?'tower-and-wing':composition==='staggered-wings'?'split-canopy':'layered-terrace'
+    result.architecturalFamily=composition==='offset-box'?'FLOATING_BOX':composition==='framed-balcony'?'FRAMED_MODERN':composition==='interlocking-boxes'?'INTERLOCKING_MODERN':composition==='glazed-bay'?'FRAMED_MODERN':composition==='staggered-wings'?'HORIZONTAL_LAYERED':'MINIMAL_LUXURY'
     result.roofType='flat-terrace';result.glazingPattern='vertical'
     result.balconyType=hasBalcony?'glass-floating':'none';result.landscapeStyle='minimal'
   }
   // Finishes use their own seed stream, so adding colours cannot move rooms,
   // windows, canopies or any of the building's exterior geometry.
   if(character==='modern-box')result.materialPalette=makeRng(seed,'modern-exterior-colours-v1').pick(MODERN_EXTERIOR_PALETTES)
+  if(building.modernComposition&&['offset-box','framed-balcony','stepped-terrace','interlocking-boxes'].includes(building.modernComposition.id))
+    result.materialPalette=building.modernComposition.id==='offset-box'?'warm-stone':building.modernComposition.id==='stepped-terrace'?'lime-plaster':'charcoal-oak'
   if(character==='coastal-bungalow'){
     result.roofType='hip';result.materialPalette='kerala-laterite';result.entranceType='column-portico';result.landscapeStyle='lush-tropical';result.balconyType=hasBalcony?'metal-rail':'none'
   }

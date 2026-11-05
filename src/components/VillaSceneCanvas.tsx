@@ -2,7 +2,7 @@ import { Component, Suspense, memo, useEffect, useLayoutEffect, useMemo, type Re
 import { ghostWaterArchitecture } from '@/lib/water/ghostScene.ts';
 import { Canvas, useThree, type RootState } from '@react-three/fiber';
 import { OrbitControls, useGLTF } from '@react-three/drei';
-import { Mesh, MeshStandardMaterial, ACESFilmicToneMapping, PCFSoftShadowMap, SRGBColorSpace, DataTexture, LinearFilter, type Material } from 'three';
+import { Mesh, MeshStandardMaterial, ACESFilmicToneMapping, PCFShadowMap, SRGBColorSpace, DataTexture, LinearFilter, type Material } from 'three';
 import { prepareVillaScene } from '@/lib/three/prepareVillaScene.ts';
 import { FitAcceptedVilla } from '@/lib/three/SolarCamera.tsx';
 import { StudioReflections } from './StudioReflections.tsx';
@@ -11,10 +11,10 @@ const CAMERA = { position: [20, 14, -25] as [
         number,
         number,
         number
-    ], fov: 40 }, GL = { antialias: true, logarithmicDepthBuffer: true, preserveDrawingBuffer: true }, DPR: [
+    ], fov: 40 }, GL = { antialias: true, logarithmicDepthBuffer: true, preserveDrawingBuffer: true, powerPreference:'high-performance' as const }, DPR: [
     number,
     number
-] = [1, 2];
+] = [1, 1.5];
 export const AcceptedVillaModel = memo(function AcceptedVillaModel({ url, fit = true, style, technicalXray = false, separateRoofTanks = false, gardenShade=false, replaceParkedCars=false }: {
     url: string;
     fit?: boolean;
@@ -76,8 +76,8 @@ export function VillaSceneCanvas({ children, onCreated, realistic=false,golden=f
     golden?: boolean;
     background?: 'studio' | 'white';
 }) {
-    return <ModelBoundary><Canvas frameloop="demand" shadows dpr={DPR} gl={GL} camera={CAMERA} onCreated={state=>{state.gl.toneMapping=ACESFilmicToneMapping;state.gl.toneMappingExposure=1;state.gl.outputColorSpace=SRGBColorSpace;state.gl.shadowMap.type=PCFSoftShadowMap;onCreated?.(state)}}>
- {!realistic&&(background==='white'?<color attach="background" args={['#ffffff']}/>:<StudioBackground/>)}<hemisphereLight args={['#e5efff','#b4a18b',realistic?.8:1.1]}/>
+    return <ModelBoundary><Canvas frameloop="demand" shadows dpr={DPR} gl={GL} camera={CAMERA} onCreated={state=>{state.gl.toneMapping=ACESFilmicToneMapping;state.gl.toneMappingExposure=1;state.gl.outputColorSpace=SRGBColorSpace;state.gl.shadowMap.type=PCFShadowMap;onCreated?.(state)}}>
+ {!realistic&&(background==='white'?<color attach="background" args={['#ffffff']}/>:<StudioBackground/>)}<hemisphereLight args={['#e5efff','#b4a18b',.65]}/>
  <directionalLight color={golden?'#ffd19c':'#fff2df'} position={golden?[35,12,-25]:[14, 24, -16]} intensity={golden?2:2.5} castShadow shadow-mapSize={[2048, 2048]} shadow-camera-left={-45} shadow-camera-right={45} shadow-camera-top={45} shadow-camera-bottom={-45} shadow-camera-far={150} shadow-bias={-.0002} shadow-normalBias={.025}/>
  <directionalLight color="#dce8ff" position={[-18,10,12]} intensity={.65}/>
  <Suspense fallback={null}><StudioReflections />{children}</Suspense><OrbitControls makeDefault minPolarAngle={0} maxPolarAngle={Math.PI / 2}/>

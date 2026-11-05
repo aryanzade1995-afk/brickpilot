@@ -12,7 +12,9 @@ import {createBlenderInput} from './export-blender-input.mjs'
 import {readFile} from 'node:fs/promises'
 import {join} from 'node:path'
 import {parseAcceptedVilla} from '../src/lib/three/acceptedVillaWalkthrough.ts'
-import {Box3,Vector3} from 'three'
+import {Box3,Vector3,Group,Mesh,BoxGeometry,MeshStandardMaterial} from 'three'
+import {realizeSourceStair} from '../src/lib/walkthrough/stairs.ts'
+import {reconcileStairGuardContacts} from '../src/lib/three/stairGuardContacts.ts'
 
 function fixture(side) {
   const rect={x:1000,y:2000,w:['N','S'].includes(side)?2400:3300,h:['N','S'].includes(side)?3300:2400}
@@ -29,7 +31,7 @@ for(const side of ['N','S','E','W'])test(`guards follow ${side}-entry source nos
     assert.equal(part.verticesMm.length,8);assert.equal(part.faces.length,6)
     for(const [x,y,z] of part.verticesMm) {
       const across=['N','S'].includes(side)?x-r.x:y-r.y
-      assert.ok(across>1150 && across<1250,'Guard stays in the existing well, outside both clear flights')
+      assert.ok(across>=1110-.001&&across<=1150+.001||across>=1250-.001&&across<=1290+.001,'Guard is mounted on the inner tread edge')
       assert.ok(z>=-20 && z<=4140,'No exaggerated height or storey offset')
     }
     if(part.kind!=='handrail')assert.ok(part.toMm[2]>part.fromMm[2])
@@ -68,4 +70,40 @@ test('accepted Blender GLB contains exactly the canonical guard parts at their o
     const actual=new Box3().setFromObject(mesh),expected=new Box3().setFromPoints(part.verticesMm.map(([x,y,z])=>new Vector3(x/1000,z/1000,-y/1000)))
     for(const side of ['min','max'])for(const axis of ['x','y','z'])assert.ok(Math.abs(actual[side][axis]-expected[side][axis])<.0021,`${part.id}: only 2mm edge bevel, no repositioning`)
   }
+})
+
+
+for(const side of ['N','S','E','W'])test(`every ${side} railing upright embeds into its source tread and meets the handrail`,()=>{
+ for(const elevation of [0,3100]){
+  const building=fixture(side);building.floors[0].elevationMm=elevation
+  const stair=realizeSourceStair(building.stairs[0],building.floors[0],null,building.quantityRules.stairs)
+  const surfaces=[...stair.steps,stair.midLanding,{rectMm:stair.destinationLandingMm,topMm:stair.destinationElevationMm}]
+  const guards=createStairGuards(building)
+  for(const part of guards.parts.filter(p=>p.kind!=='handrail')){
+   const [x,y,z]=part.fromMm
+   const supporting=surfaces.filter(s=>x>=s.rectMm.x-.001&&x<=s.rectMm.x+s.rectMm.w+.001&&y>=s.rectMm.y-.001&&y<=s.rectMm.y+s.rectMm.h+.001)
+   assert.ok(supporting.some(s=>Math.abs(s.topMm-z-20)<.001),part.id+' must embed 20 mm in an actual tread')
+   const rail=guards.parts.find(p=>p.id===part.id.replace(/_(?:post|bar)_\d+$/,'_rail'))
+   const axis=Math.abs(rail.toMm[0]-rail.fromMm[0])>.001?0:1
+   const t=(part.toMm[axis]-rail.fromMm[axis])/(rail.toMm[axis]-rail.fromMm[axis])
+   assert.ok(Math.abs(part.toMm[2]-(rail.fromMm[2]+t*(rail.toMm[2]-rail.fromMm[2])))<.001)
+  }
+ }
+})
+
+test('existing exports replace only stair guards and retain architecture, finishes and idempotence',()=>{
+ const b=defaultBrief();b.site.plotWidth=18;b.site.plotDepth=24
+ const design=generate(compile(b),{seed:41}),building=createBuildingModel(design)
+ const payload=prepareWalkthroughGeometry(buildWalkthroughScene(building,validate(design)))
+ const root=new Group(),old=new Mesh(new BoxGeometry(),new MeshStandardMaterial({color:'#123456'}))
+ old.name=createStairGuards(building).parts[0].id
+ const tread=old.clone();tread.name='Original_Stair_Tread';root.add(old,tread)
+ const original=[...tread.geometry.attributes.position.array]
+ reconcileStairGuardContacts(root,payload)
+ assert.equal(old.visible,false);assert.equal(tread.visible,true)
+ assert.deepEqual([...tread.geometry.attributes.position.array],original)
+ const current=root.getObjectByName('Current_Stair_Guards')
+ assert.equal(current.children.length,createStairGuards(building).parts.length)
+ assert.equal(current.children[0].material.color.getHexString(),'123456')
+ reconcileStairGuardContacts(root,payload);assert.equal(root.children.length,3)
 })

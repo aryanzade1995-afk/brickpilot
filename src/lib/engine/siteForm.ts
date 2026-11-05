@@ -11,7 +11,7 @@ export type FormVersion = 'site-form-v1' | 'site-form-v2' | typeof SITE_FORM_VER
 export const parseFormVersion = (value: unknown): FormVersion | undefined =>
   value === 'site-form-v1' || value === 'site-form-v2' || value === SITE_FORM_VERSION ? value : undefined
 export const usesSetbackTerraces=(version:FormVersion|undefined)=>version==='site-form-v2'||version===SITE_FORM_VERSION
-export type UpperProfile = 'compact' | 'terraced' | 'staggered' | 'recessed'
+export type UpperProfile = 'compact' | 'terraced' | 'staggered' | 'recessed' | 'offset'
 export type PlotForm = 'narrow' | 'wide' | 'balanced'
 
 export function plotForm(model: CanonicalModel): PlotForm {
@@ -22,7 +22,9 @@ export function plotForm(model: CanonicalModel): PlotForm {
 export function upperProfile(model: CanonicalModel, seed: number): UpperProfile {
   if (plotForm(model) === 'narrow') return 'compact'
   const composition=model.brief.style.character==='modern-box'?model.brief.style.composition:undefined
-  if(composition)return composition==='glazed-bay'?'recessed':composition==='staggered-wings'?'staggered':'terraced'
+  if(composition)return composition==='offset-box'?'offset':
+    composition==='glazed-bay'||composition==='framed-balcony'?'recessed':
+    composition==='staggered-wings'||composition==='interlocking-boxes'?'staggered':'terraced'
   return makeRng(seed, 'site-form-upper-v1').pick(['terraced', 'staggered', 'recessed'] as UpperProfile[])
 }
 
@@ -31,6 +33,10 @@ export function compositionFamilies(model:CanonicalModel):PlateFamily[]|null {
   const composition=model.brief.style.composition
   if(!composition||model.brief.style.character!=='modern-box')return null
   if(model.brief.rooms.priorities.courtyard)return ['courtyard-ring','courtyard']
+  if(composition==='offset-box')return ['l-shape','stepped']
+  if(composition==='framed-balcony')return ['stepped','l-shape']
+  if(composition==='stepped-terrace')return ['stepped','l-shape','u-wing']
+  if(composition==='interlocking-boxes')return ['twin-wing','pavilion','l-shape']
   return composition==='glazed-bay'?['u-wing','twin-wing','stepped']:
     composition==='staggered-wings'?['pavilion','twin-wing','u-wing','l-shape']:['stepped','l-shape','u-wing']
 }

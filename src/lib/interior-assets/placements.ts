@@ -63,7 +63,25 @@ export function roomInteriorModels(brief:Brief,roomId:string,finishRoomId:string
  if(fin.exhaust){const g=match(/^exhaust$/);add('exhaust',g,facing(g),['exhaust'],fin.exhaust.profile?.color)}
  const wc=fin.sanitary?.wc
  if(wc&&wc!=='indian'){const g=match(/-toilet(?:-|$)|-selected-cistern$|-flush-plate$/);add('toilet',g,facing(g),wc==='wall'?['toilet-wall']:['user-bathroom-toilet','toilet-modern','toilet'],fin.sanitary?.profile?.color)}
- if(fin.basin){const g=match(/-(?:selected-basin|basin)(?:-|$)/).filter(p=>!p.sourceIds.some(id=>/-basin-pedestal$/.test(id)));add('basin',g,facing(g),['user-bathroom-basin','basin'],fin.basin.profile?.color)}
+ if(fin.basin?.profile?.model==='basin-pedestal'){const g=match(/-(?:selected-basin|basin)(?:-|$)/).filter(p=>!p.sourceIds.some(id=>/-basin-(?:mixer|spout|cold-mixer|cold-spout|hot-index|cold-index|tap-anchor)$/.test(id)));add('basin',g,facing(g),['basin-no-tap'],fin.basin.profile?.color,'floor',true)}
+ // Hardware attaches at the existing fitted wall/rim anchors; never scale
+ // a whole shower assembly into the old spout's tiny placeholder box.
+ const hardware=(prefix:'basin-tap'|'shower-set',variant:number,product?:string)=>{
+  const anchor=match(new RegExp('-'+prefix+'-anchor$'))[0]
+  const asset=interiorAsset(prefix+'-'+Math.max(0,Math.min(4,variant)))
+  if(!anchor||!asset)return
+  const group=prefix==='basin-tap'?match(/-basin-(?:mixer|spout|cold-mixer|cold-spout|hot-index|cold-index|tap-anchor)$/):match(/-shower-(?:riser|arm|head|mixer|handle)$|-shower-set-anchor$/)
+  const basin=match(/-selected-basin$/)[0]
+  const angle=facing([anchor]),sideways=Math.abs(Math.sin(angle))>.5
+  const width=basin?(sideways?basin.size[2]:basin.size[0]):.5
+  const depth=basin?(sideways?basin.size[0]:basin.size[2]):.4
+  const factor=prefix==='basin-tap'?Math.min(1,width*.72/asset.sizeM[0],depth*.7/asset.sizeM[2],.18/asset.sizeM[1]):1
+  const color=fin.fittings?.finish==='gold'?'#BA9856':fin.fittings?.finish==='black'?'#202326':'#BDC5CD'
+  models.push({id:`hardware:${anchor.id}`,assetId:asset.id,assetRevision:asset.sha256,roomId,floorId:anchor.floorId,position:[...anchor.position],size:asset.sizeM.map(n=>n*factor) as V3,rotation:angle,scale:[factor,factor,factor],hardwareColor:color,replaces:group.map(p=>p.id),sourceProduct:product})
+  group.forEach(p=>used.add(p.id))
+ }
+ if(fin.basin&&fin.fittings)hardware('basin-tap',fin.fittings.profile?.variant??0,fin.fittings.name)
+ if(fin.shower)hardware('shower-set',fin.shower.profile?.variant??0,fin.shower.name)
  if(fin.tub)add('bathtub',match(/-tub(?:-|$)|-bathtub(?:-|$)/),0,['bathtub'],fin.tub.profile?.color)
  if(fin.kitchenSink?.bowls===1)add('kitchen-sink',match(/-sink-(?:rim|bowl|drain|\d)|-faucet-/),0,['kitchen-sink'])
  // Countertop/sink geometry is never part of a cabinet replacement. Preserve

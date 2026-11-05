@@ -36,7 +36,8 @@ export async function playNarrationClips(context:GuideContext,player:Pick<RoomAu
   try{
    if(signal.aborted)return
    const started=await player.play(clip.bytes,finish)
-   if(!started||signal.aborted)return
+   if(signal.aborted)return
+   if(!started)throw Error('Narration playback could not start')
    status('speaking');await ended
   }finally{signal.removeEventListener('abort',abort)}
   if(signal.aborted)return

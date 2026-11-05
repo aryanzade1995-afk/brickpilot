@@ -17,6 +17,9 @@ export const measuredPlanSchema=z.object({
   walls:z.array(z.object({a:measuredPoint,b:measuredPoint,thickness:z.number().finite().positive().max(1000),kind:z.enum(['interior','exterior','parapet'])}).passthrough()).min(1).max(300),
   openings:z.array(z.object({kind:z.enum(['door','window','entry']),at:measuredPoint,orient:z.enum(['h','v']),width:z.number().finite().positive().max(20000)}).passthrough()).min(1).max(200),
 })
+export const measuredFloorsSchema=z.array(z.object({level:z.number().int().min(0).max(2),plan:measuredPlanSchema,position:measuredPoint,
+  columns:z.array(z.object({id:z.string(),at:measuredPoint,size:z.number().finite().positive().max(1500)})).max(150),
+  beams:z.array(z.object({id:z.string(),a:measuredPoint,b:measuredPoint,width:z.number().finite().positive().max(1500)})).max(300)})).min(1).max(3).refine(items=>items.every((item,i)=>item.level===i),'Floor drawings must be consecutive')
 export const surveySchema = z.object({
   plotOffsetXM: number.nullable().default(null), plotOffsetYM: number.nullable().default(null),
   widthM: positive.nullable(), depthM: positive.nullable(), heightM: positive.nullable(),
@@ -162,7 +165,7 @@ export function scaleDrawing(value: unknown, width: number, depth: number): Surv
     walls:draft.walls.map(w=>({...w,a:p(w.a),b:p(w.b)})),rooms:draft.rooms.map(r=>({...r,...p(r),w:r.w*width/1000,h:r.h*depth/1000})),openings:draft.openings.map(o=>({...o,...p(o)}))}
 }
 
-export function measuredStructure(value: unknown, answers: Answers, confirmed: boolean): AsBuilt {
+export function measuredStructure(value: unknown, answers: Answers, confirmed: boolean, options:{layoutOnly?:boolean;upperFloor?:boolean}={}): AsBuilt {
   const parsed=surveySchema.safeParse(value)
   if(!parsed.success)throw new Error('Enter valid measurements in: '+parsed.error.issues.slice(0,4).map(i=>i.path.join(' → ')).join(', '))
   const s=parsed.data
@@ -172,7 +175,7 @@ export function measuredStructure(value: unknown, answers: Answers, confirmed: b
   if (s.heightM < 2.7 || s.heightM > 4) throw new Error('Floor height must be between 2.7 and 4 metres for the current planner.')
   if (!Number.isFinite(answers.plotWidthM + answers.plotDepthM) || answers.plotWidthM <= 0 || answers.plotDepthM <= 0) throw new Error('Enter the measured plot dimensions.')
   if (s.widthM+s.plotOffsetXM > answers.plotWidthM || s.depthM+s.plotOffsetYM > answers.plotDepthM) throw new Error('The measured structure does not fit the plot dimensions and its position on the plot.')
-  if (s.columns.length + s.footings.length < 2) throw new Error('Enter at least two confirmed columns or footings. Do not invent supports missing from the drawing.')
+  if (s.columns.length + s.footings.length < 2 && !(options.layoutOnly&&s.rooms.length)) throw new Error('Enter at least two confirmed columns or footings. Do not invent supports missing from the drawing.')
   const inside = (p:{x:number;y:number}) => p.x>=-1e-6 && p.y>=-1e-6 && p.x<=s.widthM!+1e-6 && p.y<=s.depthM!+1e-6 // float sums like 7.0+2.871
   if ([...s.columns,...s.footings,...s.walls.flatMap(w=>[w.a,w.b]),...s.openings].some(p=>!inside(p)) || s.rooms.some(r=>!inside(r)||!inside({x:r.x+r.w,y:r.y+r.h}))) throw new Error('An element extends beyond the measured drawing. Correct its coordinates.')
   if (s.columns.some(c=>c.sizeMm===null) || s.beams.some(b=>b.widthMm===null) || s.walls.some(w=>w.thicknessMm===null) || s.openings.some(o=>o.widthM===null||o.headM===null||(o.kind==='window'&&o.sillM===null))) throw new Error('Fill in every column size, beam width, wall thickness and opening width/head/sill shown in the tables.')
@@ -192,7 +195,7 @@ export function measuredStructure(value: unknown, answers: Answers, confirmed: b
   const structure: AsBuilt['structure']={columns,footings,beams,walls,storeysBuilt:answers.storeysBuilt,position:{x:mm(s.plotOffsetXM),y:mm(s.plotOffsetYM)}}
   if (s.rooms.length) {
     if(answers.storeysWanted!==1) throw new Error('A traced house plan currently imports one floor. Set floors wanted to 1; additional floors need their own measured plans.')
-    if(!walls.length || !s.openings.some(o=>o.kind==='entry')) throw new Error('To preserve a house plan, enter its walls and main entrance. Use Entry for the outside door.')
+    if(!walls.length || !options.upperFloor&&!s.openings.some(o=>o.kind==='entry')) throw new Error('To preserve a house plan, enter its walls and main entrance. Use Entry for the outside door.')
     if(s.rooms.some(r=>r.type==='stair'&&!r.stairStartSide))throw new Error('Choose the starting side for each existing staircase.')
     const counters:Record<string,number>={}
     const rooms:FloorPlan['rooms']=s.rooms.map(r=>{
@@ -220,6 +223,24 @@ export function measuredStructure(value: unknown, answers: Answers, confirmed: b
 
 /** Reuse the normal Design container but replace all ground geometry with the confirmed tracing. */
 export function applyMeasuredPlan(base: Design, structure: AsBuilt['structure']): Design {
+  if(structure.measuredFloors?.length){
+    const entries=[...structure.measuredFloors].sort((a,b)=>a.level-b.level)
+    if(entries.some((entry,i)=>entry.level!==i)||entries.length!==base.model.brief.levels.storeys+1)throw Error('A confirmed drawing is required for every floor.')
+    const parts=entries.map(entry=>applyMeasuredPlan(base,{...structure,position:entry.position,columns:entry.columns,beams:entry.beams,measuredPlan:entry.plan,measuredFloors:undefined}))
+    const floors=parts.map((part,i)=>{
+      const original=part.floors[0],prefix=i===0?'GF':`F${i}`
+      const rooms=original.rooms.map(room=>({...room,semanticId:room.semanticId?.replace(/^GF_/,prefix+'_')}))
+      const openings=original.openings.map(o=>({...o,id:o.id?.replace(/^GF_/,prefix+'_')}))
+      const unreachableRooms=reachability(rooms,openings,i)
+      return {...original,rooms,openings,walls:original.walls.map((w,j)=>({...w,id:`${prefix}_WALL_${j+1}`})),
+        columns:original.columns?.map(c=>({...c,id:`${prefix}_${c.id}`})),beams:original.beams?.map(b=>({...b,id:`${prefix}_${b.id}`})),
+        level:i,name:i===0?'Ground floor':`Floor ${i}`,prefix,unreachableRooms,reachable:!unreachableRooms.length}
+    })
+    const ground=parts[0],area=parts.reduce((sum,p)=>sum+p.builtAreaSqm,0)
+    return {...ground,floors,model:{...ground.model,floors:parts.map((part,i)=>({...part.model.floors[0],level:i,name:floors[i].name})),relationships:parts.flatMap(part=>part.model.relationships)},
+      builtAreaSqm:area,heightM:entries.reduce((sum,e)=>sum+e.plan.heightM,0),openingCounts:{doors:floors.flatMap(f=>f.openings).filter(o=>o.kind!=='window').length,windows:floors.flatMap(f=>f.openings).filter(o=>o.kind==='window').length},
+      existingStructure:{structure,dx:structure.position?.x??0,dy:structure.position?.y??0}}
+  }
   const measured=structure.measuredPlan
   if(!measured)return base
   const dx=structure.position?.x??0,dy=structure.position?.y??0,p=(v:{x:number;y:number})=>({x:v.x+dx,y:v.y+dy})

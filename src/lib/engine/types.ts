@@ -103,7 +103,7 @@ export type Design = {
   exteriorIdentity?: { planId: string; compositionId: string }
   planProposal?: import('./planner/ml/proposal.ts').PlanProposal
   planFamily?: import('./planner/types.ts').PlateFamily
-  planRecipe?: {family: import('./planner/types.ts').PlateFamily;seed:number;version:'resplan-ridge-retrieval-v1'}
+  planRecipe?: {family: import('./planner/types.ts').PlateFamily;seed:number;version:'resplan-ridge-retrieval-v1';frontage?:'wide'}
   formVersion?: import('./siteForm.ts').FormVersion
   structuralSizing?: import('./structuralSizing.ts').StructuralSizing
   /** the rooms were arranged by the person (not generated): room-size guidance is advice, not a limit */

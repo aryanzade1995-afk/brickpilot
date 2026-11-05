@@ -2,6 +2,8 @@ import * as THREE from 'three'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import { completeBalconyShades } from './balconyShades.ts'
 import { separateCoplanar } from './separateCoplanar.ts'
+import { hideBathroomPartitions } from './bathroomPartitions.ts'
+import { refineMaterialResponse } from './materialResponse.ts'
 
 // A route remount must not repeat geometry repairs or upload new copies of the
 // same static villa. Each canvas gets its own hierarchy and shares prepared data.
@@ -14,6 +16,7 @@ export function prepareVillaScene(source: THREE.Object3D, anisotropy: number, se
   let template = variants.get(key)
   if (!template) {
     template = source.clone(true)
+    hideBathroomPartitions(template)
     const remove: THREE.Object3D[] = []
     template.traverse(object => {
       if(replaceParkedCars&&(object.userData.asset_id==='ferrari-458'||object.userData.formstead_vehicle))remove.push(object)
@@ -51,6 +54,7 @@ export function prepareVillaScene(source: THREE.Object3D, anisotropy: number, se
     completeBalconyShades(template)
     separateCoplanar(template)
     batchOpaqueMeshes(template)
+    refineMaterialResponse(template)
     variants.set(key, template)
   }
   return template.clone(true)

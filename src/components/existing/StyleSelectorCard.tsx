@@ -1,7 +1,6 @@
-import React from 'react'
-import { Check, Sparkles, Home, Building2, Mountain } from 'lucide-react'
+import { Check, Sparkles, Home, Building2 } from 'lucide-react'
 import { cx } from '@/lib/cx.ts'
-import type { BuildingType, Character } from '@/lib/model/brief.ts'
+import {SELECTABLE_CHARACTERS,type BuildingType,type Character} from '@/lib/model/brief.ts'
 
 export interface StyleOption {
   value: Character
@@ -27,7 +26,7 @@ export const ARCHITECTURAL_STYLES: StyleOption[] = [
     subtitle: 'Crisp Geometric Cantilevers',
     body: 'Crisp white orthogonal volumes, upper floor oversailing full-height glass, frameless glass rails, and an accessible terrace.',
     badge: 'Popular',
-    accentColor: 'border-sky-500/30 text-sky-500 bg-sky-500/10',
+    accentColor: 'border-line text-ink-dim bg-bg-inset',
   },
   {
     value: 'contemporary-indian',
@@ -35,15 +34,15 @@ export const ARCHITECTURAL_STYLES: StyleOption[] = [
     subtitle: 'Warm Stone & Deep Hoods',
     body: 'Smooth plaster planes over a stone-clad ground floor, wide sliding glass openings, deep flat sunhoods, and a grand double-height entry.',
     badge: 'Signature',
-    accentColor: 'border-amber-500/30 text-amber-500 bg-amber-500/10',
+    accentColor: 'border-line text-ink-dim bg-bg-inset',
   },
   {
     value: 'courtyard-indian',
     title: 'Courtyard Villa',
     subtitle: 'Inward Garden Sanctuary',
     body: 'Open-to-sky central courtyard enclosed by living wings and shaded galleries, featuring warm natural stone and privacy jali screens.',
-    badge: 'Vastu Aligned',
-    accentColor: 'border-emerald-500/30 text-emerald-500 bg-emerald-500/10',
+    badge: 'Courtyard layout',
+    accentColor: 'border-line text-ink-dim bg-bg-inset',
   },
   {
     value: 'coastal-bungalow',
@@ -51,7 +50,7 @@ export const ARCHITECTURAL_STYLES: StyleOption[] = [
     subtitle: 'Mangalore Tile & Verandahs',
     body: 'Terracotta hip roofs, lime-washed plaster walls, handcrafted timber shutters, and deep wrap-around shaded verandahs for tropical breezes.',
     badge: 'Climate Responsive',
-    accentColor: 'border-orange-500/30 text-orange-500 bg-orange-500/10',
+    accentColor: 'border-line text-ink-dim bg-bg-inset',
   },
   {
     value: 'tropical-beach-villa',
@@ -59,7 +58,7 @@ export const ARCHITECTURAL_STYLES: StyleOption[] = [
     subtitle: 'Low Pavilions & Shaded Decks',
     body: 'Low horizontal white pavilions, deep protective roof eaves, warm teak wood slats, outdoor shower alcoves, and expansive timber decks.',
     badge: 'Resort Living',
-    accentColor: 'border-teal-500/30 text-teal-500 bg-teal-500/10',
+    accentColor: 'border-line text-ink-dim bg-bg-inset',
   },
   {
     value: 'luxury-indian',
@@ -67,7 +66,7 @@ export const ARCHITECTURAL_STYLES: StyleOption[] = [
     subtitle: 'Monumental Portico & Marble',
     body: 'Stately stone portico entry, monumental vertical proportions, grand double-height living room, travertine cladding, and fluted paneling.',
     badge: 'Premium',
-    accentColor: 'border-purple-500/30 text-purple-500 bg-purple-500/10',
+    accentColor: 'border-line text-ink-dim bg-bg-inset',
   },
 ]
 
@@ -93,10 +92,10 @@ export function StyleSelectorCard({
       {/* SECTION 1: TYPOLOGY */}
       <div className="space-y-3">
         <div>
-          <label className="text-xs font-mono uppercase tracking-wider text-ink-muted">
+          <label className="text-xs font-mono uppercase tracking-wider text-ink-dim">
             1. Villa Typology & Scale
           </label>
-          <p className="text-sm text-ink-muted mt-0.5">
+          <p className="text-sm text-ink-dim mt-0.5">
             Select the overall scale grammar for the architectural envelope.
           </p>
         </div>
@@ -110,27 +109,27 @@ export function StyleSelectorCard({
             onClick={() => onChangeBuildingType('villa')}
             onKeyDown={(e) => (e.key === ' ' || e.key === 'Enter') && onChangeBuildingType('villa')}
             className={cx(
-              'group relative flex flex-col justify-between p-5 rounded-2xl border-2 transition-all cursor-pointer text-left',
+              'group relative flex flex-col justify-between p-5 rounded-md border-2 transition-all cursor-pointer text-left',
               buildingType === 'villa'
                 ? 'border-accent bg-accent/5 ring-2 ring-accent/20'
-                : 'border-line bg-surface hover:border-accent/40 hover:bg-surface-elevated'
+                : 'border-line bg-bg-raised hover:border-accent/40 hover:bg-bg-inset'
             )}
           >
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-2.5">
                 <div
                   className={cx(
-                    'p-2.5 rounded-xl border transition-colors',
+                    'p-2.5 rounded-md border transition-colors',
                     buildingType === 'villa'
                       ? 'border-accent/40 bg-accent/10 text-accent'
-                      : 'border-line bg-surface-elevated text-ink-muted group-hover:text-ink-primary'
+                      : 'border-line bg-bg-inset text-ink-dim group-hover:text-ink'
                   )}
                 >
                   <Home size={18} />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-base text-ink-primary">Villa / Bungalow</h3>
-                  <span className="text-xs font-mono text-ink-muted">Standard Family Footprint</span>
+                  <h3 className="font-semibold text-base text-ink">Villa / Bungalow</h3>
+                  <span className="text-xs font-mono text-ink-dim">Standard Family Footprint</span>
                 </div>
               </div>
               {buildingType === 'villa' && (
@@ -139,7 +138,7 @@ export function StyleSelectorCard({
                 </div>
               )}
             </div>
-            <p className="mt-3 text-xs text-ink-muted leading-relaxed">
+            <p className="mt-3 text-xs text-ink-dim leading-relaxed">
               Tailored single-family home sized directly to your plan. Efficient block or split wings with optimal circulation.
             </p>
           </div>
@@ -152,27 +151,27 @@ export function StyleSelectorCard({
             onClick={() => onChangeBuildingType('large-villa')}
             onKeyDown={(e) => (e.key === ' ' || e.key === 'Enter') && onChangeBuildingType('large-villa')}
             className={cx(
-              'group relative flex flex-col justify-between p-5 rounded-2xl border-2 transition-all cursor-pointer text-left',
+              'group relative flex flex-col justify-between p-5 rounded-md border-2 transition-all cursor-pointer text-left',
               buildingType === 'large-villa'
                 ? 'border-accent bg-accent/5 ring-2 ring-accent/20'
-                : 'border-line bg-surface hover:border-accent/40 hover:bg-surface-elevated'
+                : 'border-line bg-bg-raised hover:border-accent/40 hover:bg-bg-inset'
             )}
           >
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-2.5">
                 <div
                   className={cx(
-                    'p-2.5 rounded-xl border transition-colors',
+                    'p-2.5 rounded-md border transition-colors',
                     buildingType === 'large-villa'
                       ? 'border-accent/40 bg-accent/10 text-accent'
-                      : 'border-line bg-surface-elevated text-ink-muted group-hover:text-ink-primary'
+                      : 'border-line bg-bg-inset text-ink-dim group-hover:text-ink'
                   )}
                 >
                   <Building2 size={18} />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-base text-ink-primary">Large Estate Villa</h3>
-                  <span className="text-xs font-mono text-ink-muted">Expansive Footprint</span>
+                  <h3 className="font-semibold text-base text-ink">Large Estate Villa</h3>
+                  <span className="text-xs font-mono text-ink-dim">Expansive Footprint</span>
                 </div>
               </div>
               {buildingType === 'large-villa' && (
@@ -181,7 +180,7 @@ export function StyleSelectorCard({
                 </div>
               )}
             </div>
-            <p className="mt-3 text-xs text-ink-muted leading-relaxed">
+            <p className="mt-3 text-xs text-ink-dim leading-relaxed">
               Grand estate scale with wider structural spans, deeper overhangs, double-height volumes, and optional leisure wings.
             </p>
           </div>
@@ -192,10 +191,10 @@ export function StyleSelectorCard({
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <label className="text-xs font-mono uppercase tracking-wider text-ink-muted">
+            <label className="text-xs font-mono uppercase tracking-wider text-ink-dim">
               2. Architectural Character & Exterior Style
             </label>
-            <p className="text-sm text-ink-muted mt-0.5">
+            <p className="text-sm text-ink-dim mt-0.5">
               Choose the architectural aesthetic for facade materials, rooflines, and 3D detailing.
             </p>
           </div>
@@ -206,7 +205,7 @@ export function StyleSelectorCard({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {ARCHITECTURAL_STYLES.map((style) => {
+          {ARCHITECTURAL_STYLES.filter(style=>SELECTABLE_CHARACTERS.some(value=>value===style.value)).map((style) => {
             const isSelected = character === style.value
             return (
               <div
@@ -217,10 +216,10 @@ export function StyleSelectorCard({
                 onClick={() => onChangeCharacter(style.value)}
                 onKeyDown={(e) => (e.key === ' ' || e.key === 'Enter') && onChangeCharacter(style.value)}
                 className={cx(
-                  'group relative flex flex-col justify-between p-5 rounded-2xl border-2 transition-all cursor-pointer text-left',
+                  'group relative flex flex-col justify-between p-5 rounded-md border-2 transition-all cursor-pointer text-left',
                   isSelected
                     ? 'border-accent bg-accent/5 ring-2 ring-accent/20 shadow-sm'
-                    : 'border-line bg-surface hover:border-accent/50 hover:bg-surface-elevated'
+                    : 'border-line bg-bg-raised hover:border-accent/50 hover:bg-bg-inset'
                 )}
               >
                 <div>
@@ -240,19 +239,19 @@ export function StyleSelectorCard({
                     )}
                   </div>
 
-                  <h4 className="mt-3 font-display font-semibold text-lg text-ink-primary">
+                  <h4 className="mt-3 font-display font-semibold text-lg text-ink">
                     {style.title}
                   </h4>
-                  <p className="text-xs font-medium text-ink-muted">{style.subtitle}</p>
+                  <p className="text-xs font-medium text-ink-dim">{style.subtitle}</p>
 
-                  <p className="mt-3 text-xs text-ink-muted leading-relaxed line-clamp-3">
+                  <p className="mt-3 text-xs text-ink-dim leading-relaxed line-clamp-3">
                     {style.body}
                   </p>
                 </div>
 
                 <div className="mt-4 pt-3 border-t border-line/60 flex items-center justify-between text-[0.7rem] font-mono text-ink-dim">
                   <span>3D Facade & Roof</span>
-                  <span className={isSelected ? 'text-accent font-semibold' : 'group-hover:text-ink-primary'}>
+                  <span className={isSelected ? 'text-accent font-semibold' : 'group-hover:text-ink'}>
                     {isSelected ? 'Selected' : 'Select'}
                   </span>
                 </div>
@@ -266,10 +265,10 @@ export function StyleSelectorCard({
       {onChangePlinthHeight && (
         <div className="space-y-3 pt-2 border-t border-line">
           <div>
-            <label className="text-xs font-mono uppercase tracking-wider text-ink-muted">
+            <label className="text-xs font-mono uppercase tracking-wider text-ink-dim">
               3. House Height Above Site Ground (Plinth Level)
             </label>
-            <p className="text-sm text-ink-muted mt-0.5">
+            <p className="text-sm text-ink-dim mt-0.5">
               Set the finished ground floor elevation above site grade (1 metre, 2 metres, or 3 metres).
             </p>
           </div>
@@ -286,21 +285,21 @@ export function StyleSelectorCard({
                   onClick={() => onChangePlinthHeight(opt.value)}
                   onKeyDown={(e) => (e.key === ' ' || e.key === 'Enter') && onChangePlinthHeight(opt.value)}
                   className={cx(
-                    'p-4 rounded-xl border-2 transition-all cursor-pointer text-left',
+                    'p-4 rounded-md border-2 transition-all cursor-pointer text-left',
                     isSelected
                       ? 'border-accent bg-accent/5 ring-2 ring-accent/20'
-                      : 'border-line bg-surface hover:border-accent/40 hover:bg-surface-elevated'
+                      : 'border-line bg-bg-raised hover:border-accent/40 hover:bg-bg-inset'
                   )}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold text-sm text-ink-primary">{opt.label}</span>
+                    <span className="font-semibold text-sm text-ink">{opt.label}</span>
                     {isSelected && (
                       <div className="p-1 rounded-full bg-accent text-white">
                         <Check size={12} />
                       </div>
                     )}
                   </div>
-                  <p className="mt-1.5 text-xs text-ink-muted leading-relaxed">
+                  <p className="mt-1.5 text-xs text-ink-dim leading-relaxed">
                     {opt.desc}
                   </p>
                 </div>

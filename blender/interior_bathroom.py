@@ -5,6 +5,7 @@ Optional baths are fitted only where doors, columns and circulation remain clear
 """
 import math
 import bpy
+from bathroom_hardware import attach_hardware
 
 
 def bowl(name, center, width, depth, height, mat, rectangular=False):
@@ -95,45 +96,35 @@ def apply_bathroom(data, box, principled, hex_rgb, out, metal):
         # The mixer is fitted at the rear edge of the existing basin footprint.
         distances = {'N': z+dims['d']/2,'S':dims['d']/2-z,'W':x+dims['w']/2,'E':dims['w']/2-x}
         side = min(distances,key=distances.get); dx,dz = {'N':(0,-1),'S':(0,1),'W':(-1,0),'E':(1,0)}[side]
-        mx, mz = x+dx*w*.30, z+dz*d*.30
-        wall_mixer = 'exposed part' in fin.get('fittings',{}).get('name','').lower()
-        cylinder('basin-mixer', (mx,y+h/2+.08,mz), .018,.16,metal)
-        tag(box('basin-spout',(mx-dx*.05,y+h/2+.14,mz-dz*.05),(.12 if dx else .025,.025,.12 if dz else .025),metal,bevel=.008), 'cp-fittings', fin.get('fittings',value))
-        if wall_mixer: box('basin-wall-mixer-plate',(mx,y+h/2+.1,mz),(.09,.06,.06),metal,bevel=.01)
+        depth=d if side in 'NS' else w
+        rear=max(.03,depth/2-.035)
+        mx, mz = x+dx*rear, z+dz*rear
+        fittings=fin.get('fittings') or value
+        profile=fittings.get('profile') or {}
+        variant=profile.get('variant',0)
+        wall_mixer=profile.get('model')=='faucet-wall' or 'exposed part' in fittings.get('name','').lower()
+        tx=dx*(dims['w']/2-.14) if wall_mixer and dx else mx
+        tz=dz*(dims['d']/2-.14) if wall_mixer and dz else mz
+        if not attach_hardware('basin-tap',variant,(tx,y+h/2+(.16 if wall_mixer else 0),tz),(dx,dz),fittings,fittings.get('finish','chrome'),(w if side in 'NS' else d,depth)):
+            cylinder('basin-mixer',(mx,y+h/2+.08,mz),.018,.16,metal)
+            box('basin-spout',(mx-dx*.05,y+h/2+.14,mz-dz*.05),(.12 if dx else .025,.025,.12 if dz else .025),metal,bevel=.008)
     elif value: warnings.append('The selected basin cannot fit this bathroom without changing its clearances.')
 
-    tray, shower, enclosure = find('-shower-tray'), fin.get('shower'), fin.get('enclosure')
+    tray, shower = find('-shower-tray'), fin.get('shower')
+    for part in furniture:
+        if part['id'].endswith('-shower-glass') or '-enclosure-' in part['id']:
+            skip.add(part['id'])
     if tray:
         x, y, z = tray['pos']; w, _, d = tray['size']
         if shower:
-            variant = (shower.get('profile') or {}).get('variant',0)
-            radius = [.0525,.07,.09,.12,.15][min(4,variant)]
-            sy = min(2.2,dims['h']-.3)
-            tag(cylinder('selected-showerhead',(x,sy,z),radius,.024,metal),'bath-shower',shower)
+            variant=(shower.get('profile') or {}).get('variant',0)
             distances={'N':z+dims['d']/2,'S':dims['d']/2-z,'W':x+dims['w']/2,'E':dims['w']/2-x}
-            side=min(distances,key=distances.get); dx,dz={'N':(0,-1),'S':(0,1),'W':(-1,0),'E':(1,0)}[side]
-            box('shower-arm',(x+dx*w*.2,sy+.03,z+dz*d*.2),(w*.45 if dx else .025,.025,d*.45 if dz else .025),metal,bevel=.008)
-            cylinder('shower-riser',(x+dx*w*.4,1.65,z+dz*d*.4),.012,1.0,metal)
-        if enclosure:
-            glass = find('-shower-glass')
-            if glass:
-                skip.add(glass['id']); pos,size=list(glass['pos']),list(glass['size'])
-                profile=enclosure.get('profile') or {}; model=profile.get('model','enclosure-sliding')
-                glass_mat=principled('selected-enclosure-glass',(.90,.95,.96),.03,transmission=1,alpha=.3)
-                trim=principled('selected-enclosure-trim',hex_rgb(profile.get('accent','#AEB8BD')),.18,metal=1)
-                tag(box('selected-shower-enclosure',pos,size,glass_mat),'bath-enclosure',enclosure)
-                horizontal=size[0]>size[2]; span=size[0] if horizontal else size[2]
-                for offset in (-span/2,span/2):
-                    p=list(pos);p[0 if horizontal else 2]+=offset
-                    box(f'enclosure-post-{offset}',p,(.022,size[1],.022),trim,bevel=.004)
-                if model != 'enclosure-screen':
-                    box('enclosure-door-stile',pos,(.022,size[1],.022),trim,bevel=.004)
-                    p=list(pos);p[1]=1.1
-                    tag(box('enclosure-handle',p,(.035,.25,.035),trim,bevel=.01),'bath-enclosure',enclosure)
-                if model == 'enclosure-sliding':
-                    p=list(pos);p[1]+=size[1]/2
-                    box('enclosure-slide-rail',p,(span,.035,.035) if horizontal else (.035,.035,span),trim,bevel=.005)
-    elif shower or enclosure: warnings.append('The selected shower needs a clear shower area; this room has no safe fitted location.')
+            side=min(distances,key=distances.get);dx,dz={'N':(0,-1),'S':(0,1),'W':(-1,0),'E':(1,0)}[side]
+            wall_x=dx*(dims['w']/2-.14) if dx else x
+            wall_z=dz*(dims['d']/2-.14) if dz else z
+            if not attach_hardware('shower-set',variant,(wall_x,1.0,wall_z),(dx,dz),shower,(fin.get('fittings') or {}).get('finish','chrome')):
+                tag(cylinder('selected-showerhead',(x,2.08,z),.0525,.024,metal),'bath-shower',shower)
+    elif shower: warnings.append('The selected shower needs a clear shower area; this room has no safe fitted location.')
 
     tub=fin.get('tub')
     if tub:

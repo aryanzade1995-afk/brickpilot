@@ -63,7 +63,7 @@ test('PBR microdetail preserves selected albedo, metre scale and geometry',()=>{
  applySurfaceMicrodetail(material,profile,cache)
  assert.equal(material.color.getHexString(),'bb8877');assert.equal(material.roughness,.78);assert.equal(material.normalMap.repeat.x,4);assert.ok(material.normalScale.x<.1)
  assert.equal(material.userData.surfaceProfile.basis,'illustrative-microdetail')
- assert.equal(Object.keys(WALKTHROUGH_QUALITY).length,3);assert.equal(WALKTHROUGH_QUALITY.adaptive.start,1)
+ assert.equal(Object.keys(WALKTHROUGH_QUALITY).length,3);assert.equal(WALKTHROUGH_QUALITY.adaptive.start,.85)
  assert.equal(adaptWalkthroughResolution('adaptive',40,1,0).ratio,.9)
 })
 

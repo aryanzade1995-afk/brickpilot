@@ -45,7 +45,8 @@ test('actual Blender leaf and handle leave the fixed trimesh; E opens the same d
   slats.userData.finish_parent = 'Door_D_Leaf'
   const frame = add(root, 'Door_D_Head', [1, .055, .09], [3, 2.1, -3], 'D')
   const mesh = acceptedVillaCollision(root, [opening]), { metadata, collision } = walkingBundle()
-  assert.equal(mesh.doors.length, 1); assert.equal(leaf.userData.walkthroughDoorId, handle.userData.walkthroughDoorId)
+  assert.equal(mesh.doors.length, 1); assert.equal(handle.visible,false)
+  assert.equal(root.getObjectByName(`Walkthrough_Knobs_${leaf.userData.walkthroughDoorId}`).userData.walkthroughDoorId,leaf.userData.walkthroughDoorId)
   assert.equal(slats.userData.walkthroughDoorId, leaf.userData.walkthroughDoorId)
   assert.equal(frame.userData.walkthroughDoorId, undefined)
   const sim = new HouseWalkingSimulation(metadata, collision, 'exact', mesh)

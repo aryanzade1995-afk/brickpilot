@@ -60,12 +60,14 @@ export class HouseWalkingSimulation {
   private accumulator = 0
   private freed = false
   private floor = ''
+  private readonly floorOrder:NavigationMetadata['floors']
   private eyeY = 0
   private collidersByHandle = new Map<number, Collider>()
 
   constructor(metadata: NavigationMetadata, collision: NavigationCollision, planId = metadata.designId, acceptedMesh?: AcceptedMeshCollision) {
     validateNavigationBundle(metadata, collision, planId)
     this.metadata = metadata
+    this.floorOrder=[...metadata.floors].sort((a,b)=>b.elevationM-a.elevationM)
     this.world = new RAPIER.World({ x: 0, y: -WALKING.gravity, z: 0 }); this.world.timestep = WALKING.fixedStep
     try {
       if (acceptedMesh) {
@@ -184,7 +186,7 @@ export class HouseWalkingSimulation {
     this.character.setTranslation({ x: next.x, y: next.y + WALKING.height / 2, z: next.z })
     this.world.step()
     this.eyeY = clamp(this.eyeY + (next.y + WALKING.eye - this.eyeY) * (1 - Math.exp(-16 * dt)), next.y + 1.4, next.y + WALKING.eye + .015)
-    this.floor = [...this.metadata.floors].sort((a, b) => b.elevationM - a.elevationM).find(f => f.elevationM <= next.y + .08)?.sourceId ?? ''
+    this.floor = this.floorOrder.find(f => f.elevationM <= next.y + .08)?.sourceId ?? ''
   }
   advance(input: WalkingInput, seconds: number) {
     this.accumulator += Math.min(Math.max(seconds, 0), WALKING.maxFrame)

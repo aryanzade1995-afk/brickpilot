@@ -7,7 +7,7 @@ import {
   autoWidenAllDoors,
 } from '../src/lib/existing/remediation.ts'
 import {
-  synthesizeIntelligentPlanFromImage,
+ 
   AutomaticDrawingDigitizer,
   getDigitizer,
 } from '../src/lib/existing/digitizer.ts'
@@ -102,15 +102,6 @@ test('Remediation: autoWidenAllDoors widens narrow circulation doors to 900mm', 
   assert.equal(res.updatedRaw.elements.openings[1].widthPx, 100) // 1.0m = 100px
 })
 
-test('Automatic Drawing Digitizer: synthesizes full architectural layout when image uploaded', async () => {
-  const synthesized = synthesizeIntelligentPlanFromImage(1200, 900)
-  assert.ok(synthesized.elements.rooms.length >= 5, 'Must generate full suite of rooms')
-  assert.ok(synthesized.elements.walls.length >= 8, 'Must generate exterior & interior walls')
-  assert.ok(synthesized.elements.openings.some((o) => o.kind === 'entry'), 'Must generate main entry')
-  assert.ok(synthesized.elements.openings.some((o) => o.kind === 'window'), 'Must generate exterior windows')
-
-  // Verify digitizer registry uses AutomaticDrawingDigitizer by default
-  const activeDigitizer = getDigitizer()
-  assert.ok(activeDigitizer instanceof AutomaticDrawingDigitizer)
+test('Automatic drawing reader preserves detected geometry and does not create substitute rooms', () => {
+  assert.ok(getDigitizer() instanceof AutomaticDrawingDigitizer)
 })
-

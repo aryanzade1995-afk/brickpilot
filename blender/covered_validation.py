@@ -143,7 +143,8 @@ def validate_outdoor_meshes(payload):
         hi = [max(p[i] for p in pts)*1000 for i in range(3)]
         return dict(x=lo[0], y=lo[1], z=lo[2], w=hi[0]-lo[0], h=hi[1]-lo[1], height=hi[2]-lo[2])
     posts = [o for o in objects if covered_support_name(o.name)]
-    blockers = [o for o in objects if any(c.name in ('FACADE', 'WALLS', 'WINDOWS', 'DOORS', 'LANDSCAPE') for c in o.users_collection)
+    members = {obj for collection in bpy.data.collections if collection.name in ('FACADE', 'WALLS', 'WINDOWS', 'DOORS', 'LANDSCAPE') for obj in collection.objects}
+    blockers = [o for o in objects if o in members
                 or o.name.startswith(('GF_Parking_Car_', 'Column_'))]
     boxes = {o.name: bounds(o) for o in posts+blockers}
     building = payload['buildingModel']

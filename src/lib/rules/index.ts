@@ -49,7 +49,7 @@ export const RULE_PACK = 'residential-v1'
 const USER_CHOICE = new Set(['AREA_BELOW_MINIMUM', 'MIN_ROOM_DIMENSION', 'NO_DAYLIGHT', 'BATH_NO_VENTILATION', 'ROOM_OVER_GROWTH_LIMIT', 'COLUMN_NOT_IN_WALL', 'ROOM_PROPORTION'])
 /** A confirmed traced or measured house is the house as it is drawn or built: layout preferences meant for a new
  *  design advise instead of blocking it. Geometry, overlaps, reachability and 3D placement still block. */
-const AS_BUILT = new Set(['DOOR_PRIVACY', 'DOOR_TOO_WIDE', 'MAIN_ENTRY_SIZE', 'TERRACE_ACCESS', 'VERTICAL_ROOM_PARTITION_DOOR', 'PROGRAMME_MISMATCH', 'GROUND_FLOOR_BEDROOM_MISSING'])
+const AS_BUILT = new Set(['DOOR_PRIVACY', 'DOOR_TOO_WIDE', 'MAIN_ENTRY_SIZE', 'TERRACE_ACCESS', 'TERRACE_FREE_AREA', 'VERTICAL_ROOM_PARTITION_DOOR', 'PROGRAMME_MISMATCH', 'GROUND_FLOOR_BEDROOM_MISSING'])
 
 export function validate(design: Design, options: { checkFacade?: boolean } = {}): ValidationReport {
   const findings: Finding[] = []

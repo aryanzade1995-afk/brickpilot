@@ -214,7 +214,7 @@ export function planWings(model: CanonicalModel, request: PlanRequest): PlanResu
    }
    frontYard(rooms,f.outdoor.filter(r=>r.kind!=='courtyard'&&!r.id.startsWith('verandahWing')),outline,site,nb.twoCar,nb.large,outdoor)
   }else for(const r of f.outdoor.filter(r=>r.kind==='balcony')){
-   const rect=placeBalcony(rooms,outline,site,id=>kinds.get(id)??'',floors[fi-1].footprint,usesSetbackTerraces(request.formVersion),floors[0]?.rooms.filter(r=>r.id==='parking').map(r=>r.rect))
+   const rect=placeBalcony(rooms,outline,site,id=>kinds.get(id)??'',floors[fi-1].footprint,usesSetbackTerraces(request.formVersion),floors[0]?.rooms.filter(r=>r.id==='parking').map(r=>r.rect),['stepped-terrace','framed-balcony'].includes(model.brief.style.composition??''))
    if(rect){
     const supported=floors[fi-1].footprint.reduce((n,p)=>n+Math.max(0,Math.min(rect.x+rect.w,p.x+p.w)-Math.max(rect.x,p.x))*Math.max(0,Math.min(rect.y+rect.h,p.y+p.h)-Math.max(rect.y,p.y)),0)>=rectArea(rect)-1000
     rooms.push(outdoor(usesSetbackTerraces(request.formVersion)&&supported?{...r,name:'Setback terrace'}:r,rect))

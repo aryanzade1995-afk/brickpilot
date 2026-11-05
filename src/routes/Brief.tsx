@@ -1,14 +1,15 @@
 import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
 import { HouseIdeaPreview } from './brief/HouseIdeaPreview.tsx'
-import { useDeferredValue, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, RotateCcw, Sparkles } from 'lucide-react'
 import { BRIEF_STEPS } from '@/lib/model/brief.ts'
 import { useStudio } from '@/state/studio.ts'
 import { Button } from '@/components/ui/Button.tsx'
 import { cx } from '@/lib/cx.ts'
-import { GenerationOverlay } from '@/components/GenerationOverlay.tsx'
-import { assessBriefFit, CAPACITY_GUIDANCE } from '@/lib/engine/planner/fit.ts'
+import { useConceptProgress } from '@/state/directionsWorkerClient.ts'
+import { CAPACITY_GUIDANCE } from '@/lib/engine/planner/fit.ts'
+import { useBriefValidation } from '@/state/briefValidation.ts'
 import { FitMeter } from '@/routes/brief/FitMeter.tsx'
 import {
   EntryStep,
@@ -67,6 +68,7 @@ export function Brief() {
   }, [])
   const [step, setStepState] = useState(0)
   const [sub, setSub] = useState(0)
+  useLayoutEffect(()=>{window.scrollTo({top:0,behavior:'instant'})},[step,sub])
   /** changing the top-level step always starts at its first sub-step */
   const setStep = (s: number, subStep = 0) => {
     setStepState(s)
@@ -77,11 +79,9 @@ export function Brief() {
   const briefChoiceIssue = useStudio(s => s.briefChoiceIssue)
   const [formError, setFormError] = useState<string | null>(null)
   const navigate = useNavigate()
-  const [generating, setGenerating] = useState(false)
 
-  const capacityBrief = useDeferredValue(brief)
-  const checking = capacityBrief !== brief
-  const fit = useMemo(() => assessBriefFit(capacityBrief), [capacityBrief])
+  const validation=useBriefValidation(brief)
+  const {checking,fit}=validation
   const last = step === BRIEF_STEPS.length - 1
   const subs = SUBSTEPS[step]
   const active = subs?.[sub]
@@ -93,15 +93,15 @@ export function Brief() {
     if (subs && sub < subs.length - 1) {
       setSub(sub + 1)
     } else if (last) {
-      // Recheck the exact current brief, not a deferred render's earlier answer.
-      const currentFit = assessBriefFit(useStudio.getState().brief)
-      const issues = currentFit.fits ? [] : [CAPACITY_GUIDANCE, ...currentFit.issues.slice(0, 2)]
+      // The worker result is keyed to these exact geometry inputs.
+      if(!fit||validation.error)return
+      const issues = fit.fits ? [] : [CAPACITY_GUIDANCE, ...fit.issues.slice(0, 2)]
       if (checking || issues.length) { setFormError(issues.join(' ')); return }
       setFormError(null)
-      setGenerating(true)
+      useConceptProgress.setState({active:true,error:undefined,value:0,label:'Preparing your brief'})
       // a fresh brief leaves any Existing Structure Mode project behind; the directions are made in the background
       useStudio.getState().clearExisting()
-      void useStudio.getState().exploreInBackground()
+      void useStudio.getState().exploreInBackground().finally(()=>useConceptProgress.setState({active:false}))
       navigate('/workspace/directions')
     } else {
       setStep(step + 1)
@@ -115,7 +115,6 @@ export function Brief() {
 
   return (
     <div style={{ "--brief-rail-height": `${railHeight}px` } as CSSProperties}>
-      {generating && <GenerationOverlay label="Generating your concepts" />}
       {briefChoiceIssue && <p role="status" className="mx-auto max-w-[1400px] px-6 py-3 text-sm text-ink-dim md:px-10">{translateUi(briefChoiceIssue)}</p>}
       {/* wizard rail */}
       <div ref={rail} className="sticky top-0 z-10 border-b border-line bg-bg/90 backdrop-blur">
@@ -128,6 +127,7 @@ export function Brief() {
                 key={s.key}
                 type="button"
                 onClick={() => setStep(i)}
+                aria-current={i===step?'step':undefined}
                 className={cx(
                   'flex flex-none items-center gap-1.5 border px-2 py-1.5 font-mono text-[0.7rem] uppercase tracking-[0.1em] transition-colors',
                   i === step
@@ -138,7 +138,7 @@ export function Brief() {
                 )}
               >
                 <span>{translateUi(String(i + 1).padStart(2, '0'))}</span>
-                <span className={cx(i === step ? 'inline' : 'hidden md:inline')}>{translateUi(s.label)}</span>
+                <span>{translateUi(s.label)}</span>
               </button>
             ))}
           </div>
@@ -154,7 +154,7 @@ export function Brief() {
             >
               <RotateCcw size={12} />
               {translateUi("Reset")}</button>
-            <Button size="sm" onClick={next} disabled={last && (checking || !fit.fits)}>
+            <Button size="sm" onClick={next} disabled={last && (checking || !fit?.fits)}>
               {last ? (
                 <>
                   {translateUi("Generate concept")}<Sparkles size={13} />
@@ -171,7 +171,7 @@ export function Brief() {
 
       {/* step body */}
       <div className="mx-auto max-w-[1400px] px-6 py-12 md:px-10 md:py-16">
-        {BRIEF_STEPS[step]?.key !== 'project' && <FitMeter />}
+        <FitMeter validation={validation} visible={step!==0}/>
         {formError && <p role="alert" className="mb-6 border-l-2 border-bad bg-bad/5 px-4 py-3 text-sm text-bad">{translateUi(formError)}</p>}
         <p className="label">{translateUi("Step ")}{translateUi(step + 1)} {translateUi(" of ")}{translateUi(BRIEF_STEPS.length)}</p>
         <h1 className="mt-3 font-display text-[clamp(2rem,4vw,3rem)]">{translateUi(title)}</h1>
@@ -198,8 +198,8 @@ export function Brief() {
           </div>
         )}
 
-        <div className={cx("mt-10", [4,5,7].includes(step) && "grid items-start gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]")}><section className="order-2 min-w-0 lg:order-1">
-          <Body />
+        <div className={cx("mt-10 brief-step-content", [4,5,7].includes(step) && "grid items-start gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]")}><section className="order-2 min-w-0 lg:order-1">
+          <div key={`${step}:${sub}`} className="brief-step-enter"><Body /></div>
 
         <div className="mt-14 flex items-center justify-between border-t border-line pt-6">
           <button
@@ -210,7 +210,7 @@ export function Brief() {
           >
             <ArrowLeft size={13} />
             {translateUi("Back")}</button>
-          <Button onClick={next} disabled={last && (checking || !fit.fits)}>
+          <Button onClick={next} disabled={last && (checking || !fit?.fits)}>
             {last ? (
               <>
                 {translateUi("Generate verified concept")}<Sparkles size={14} />

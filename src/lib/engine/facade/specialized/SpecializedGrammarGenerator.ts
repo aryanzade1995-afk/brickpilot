@@ -44,7 +44,7 @@ export class SpecializedGrammarGenerator {
       if (requested) { model.status = 'rejected'; model.issues.push({ code: 'GRAMMAR_UNAVAILABLE', message: `${category} ${requested} cannot fit ${sourceId}.` }) }
       return null
     }
-    for (const room of building.rooms.filter((r) => r.outdoor && r.id.startsWith('balcony')))
+    for (const room of building.rooms.filter((r) => r.outdoor && r.id.startsWith('balcony') && !r.id.startsWith('balconySetback')))
       choose('BALCONY', room.semanticId, (type) => makeBalcony(ctx, room, type))
     for (const door of building.doors.filter((d) => d.kind === 'entry' && !d.emergencyExit)) choose('ENTRANCE', door.id!, (type) => makeEntrance(ctx, door, type))
     const used = new Set<string>()

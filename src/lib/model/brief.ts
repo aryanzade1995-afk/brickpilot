@@ -269,7 +269,7 @@ export const briefSchema = z
           .default('modern-box'),
         /** architectural massing archetype — `auto` picks by fit, `random` re-rolls */
         massing: massingSchema.default('auto'),
-        composition: z.enum(['glazed-bay','staggered-wings','terraced-villa']).optional(),
+        composition: z.enum(['glazed-bay','staggered-wings','terraced-villa','offset-box','framed-balcony','stepped-terrace','interlocking-boxes']).optional(),
         /** how far the massing grammar pushes offsets / cantilevers / asymmetry */
         diversity: diversitySchema.default('medium'),
         personality: personalitySchema.default('balanced'),

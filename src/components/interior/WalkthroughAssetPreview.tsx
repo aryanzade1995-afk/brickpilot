@@ -1,3 +1,4 @@
+import { reconcileStairGuardContacts } from '@/lib/three/stairGuardContacts.ts'
 import { completeBalconyShades } from '@/lib/three/balconyShades.ts'
 import { ResizableRoofTanks } from '../water/ResizableRoofTanks.tsx'
 import type { ProjectPipelines } from '@/lib/water/projectPipelines.ts'
@@ -5,7 +6,7 @@ import { hideBakedPipelines, hideReplacedRoofTanks } from '@/lib/three/pipelineV
 import { Component, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Canvas, useThree } from '@react-three/fiber'
 import { Bounds, OrbitControls } from '@react-three/drei'
-import { ACESFilmicToneMapping, PCFShadowMap, Plane, Vector3, type Group } from 'three'
+import { ACESFilmicToneMapping, PCFShadowMap, SRGBColorSpace, Plane, Vector3, type Group } from 'three'
 import { loadWalkthroughAsset, disposeWalkthroughAsset, applyWalkthroughMaterialBindings } from '@/lib/three/loadWalkthroughAsset.ts'
 import { adoptBlenderWalkthroughAppearance, prepareWalkthroughAppearanceUpdate, walkthroughFurnishingGeometryKey } from '@/lib/three/walkthroughAppearance.ts'
 import { furnitureColliders, type WalkthroughAppearancePayload, type WalkthroughGeometryPayload } from '@/lib/walkthrough/delivery.ts'
@@ -97,6 +98,7 @@ export default function WalkthroughAssetPreview({ id, planId, floors, appearance
         completeBalconyShades(group)
         separateCoplanar(group)
         prepareWalkthroughShell(group)
+        if (acceptedVilla.geometry) reconcileStairGuardContacts(group,acceptedVilla.geometry)
         prepareWalkthroughGlazing(group)
         if (acceptedVilla.geometry) removeBathroomMirrors(group, acceptedVilla.geometry.metadata)
         try {
@@ -104,7 +106,7 @@ export default function WalkthroughAssetPreview({ id, planId, floors, appearance
           await initializeWalkingPhysics()
           if (controller.signal.aborted) return
           const geometry = acceptedVilla.geometry, identity = { designId: planId, projectId: 'accepted-villa', geometryKey: acceptedVilla.url, appearanceKey: acceptedVilla.url }
-          ownedSimulation = new HouseWalkingSimulation({ ...geometry.metadata, ...identity }, { ...geometry.collision, ...identity }, planId, acceptedVillaCollision(group, geometry.metadata.openings))
+          ownedSimulation = new HouseWalkingSimulation({ ...geometry.metadata, ...identity }, { ...geometry.collision, ...identity }, planId, acceptedVillaCollision(group, geometry.metadata.openings,geometry.metadata.rooms))
           setSimulation(ownedSimulation)
         } catch (error) { if (!controller.signal.aborted) setWalkingError(error instanceof Error ? error.message : 'Walking could not be prepared. The orbit view is still available.') }
         if (!controller.signal.aborted) setModel(group)
@@ -213,7 +215,7 @@ export default function WalkthroughAssetPreview({ id, planId, floors, appearance
     {!simulation && !walkingError && model && <p role="status" className="p-3 text-xs text-ink-dim">{t('Preparing walking physics…')}</p>}
     {failed ? <p role="alert" className="p-5 text-sm text-bad">{t(acceptedVilla ? 'The accepted Blender villa could not load. Check its export in 3D Massing.' : 'The exported model could not be loaded. Generate the assets again.')}</p> : !model ? <p role="status" className="p-5 text-sm text-ink-dim">{t('Loading the exported house…')}</p> : <div ref={viewport} className={walking ? 'fixed inset-0 z-[1000] h-dvh w-screen cursor-none bg-bg-inset [&_canvas]:cursor-none' : 'relative h-[420px] bg-bg-inset'} role={walking ? 'dialog' : undefined} aria-modal={walking || undefined} aria-label={t(walking ? 'First-person house walkthrough' : 'Exported house model')}
       data-model-source={acceptedVilla ? 'accepted-massing-glb' : 'blender-glb'} data-model-url={acceptedVilla?.url} data-blender-room-count={blenderRoomCount} data-building-instance={model.uuid} data-finish-revision={appearanceRevision} data-walk-mode={walking ? 'first-person' : 'orbit'} data-walk-input={lookMode} data-walk-feet={JSON.stringify(hud.feet)} data-walk-look={JSON.stringify(hud.look)} data-walk-grounded={hud.grounded} data-walk-floor={hud.floor}>
-      <ModelBoundary><Canvas frameloop={walking ? 'always' : 'demand'} shadows={{ type: PCFShadowMap, autoUpdate: false }} dpr={metrics?.dpr ?? WALKTHROUGH_QUALITY[quality].start} camera={cameraConfiguration} gl={{ antialias: true, powerPreference: 'high-performance' }} onCreated={({ gl }) => { gl.localClippingEnabled = true; gl.toneMapping = ACESFilmicToneMapping; gl.toneMappingExposure = 1; gl.shadowMap.type = PCFShadowMap; gl.shadowMap.autoUpdate = false; gl.shadowMap.needsUpdate = true }}>
+      <ModelBoundary><Canvas frameloop={walking ? 'always' : 'demand'} shadows={{ type: PCFShadowMap, autoUpdate: false }} dpr={metrics?.dpr ?? WALKTHROUGH_QUALITY[quality].start} camera={cameraConfiguration} gl={{ antialias: true, powerPreference: 'high-performance' }} onCreated={({ gl }) => { gl.localClippingEnabled = true; gl.toneMapping = ACESFilmicToneMapping; gl.toneMappingExposure = 1; gl.outputColorSpace = SRGBColorSpace; gl.shadowMap.type = PCFShadowMap; gl.shadowMap.autoUpdate = false; gl.shadowMap.needsUpdate = true }}>
         <color attach="background" args={['#e7e9e7']} /><WalkthroughLighting model={model} bounds={framing} />
         <WarmWalkthroughShaders revision={appearanceRevision} onReady={setRenderReady}/>
         <WalkthroughRoomLights appearance={appearance} geometry={acceptedVilla?.geometry} /><WalkthroughPerformance active={walking} revision={appearanceRevision} quality={quality} nativeResolution={nativeResolution} onMetrics={setMetrics} />

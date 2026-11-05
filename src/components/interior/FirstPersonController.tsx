@@ -1,3 +1,4 @@
+import { walkthroughLocation } from '@/lib/walkthrough/location.ts'
 /* eslint-disable react/immutability -- This imperative R3F bridge owns camera, canvas and loaded Three object transforms; no React data props are mutated. */
 import { useEffect, useLayoutEffect, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
@@ -26,6 +27,7 @@ export function FirstPersonController({ simulation, model, onControls, onActive,
   useLayoutEffect(() => { callbacks.current = { onActive, onHud, onError } }, [onActive, onHud, onError])
   const saved = useRef<{ position: Vector3; quaternion: Quaternion; near: number; far: number; fov: number; target?: Vector3 } | null>(null)
   const doorMeshes = useRef(new Map<string, { id: string; mesh: Object3D; originalWorld: Matrix4; originalLocal: Matrix4; centre: Vector3; progress: number }>())
+  const previousHud=useRef<WalkingHud|null>(null)
   const direction = useRef(new Vector3()), translation = useRef(new Matrix4()), rotation = useRef(new Matrix4()), delta = useRef(new Matrix4()), parentInverse = useRef(new Matrix4())
   useEffect(() => {
     model.updateMatrixWorld(true)
@@ -136,12 +138,13 @@ export function FirstPersonController({ simulation, model, onControls, onActive,
     camera.position.set(eye.x, eye.y, eye.z); camera.rotation.set(pitch.current, yaw.current, 0, 'YXZ')
     syncDoors()
     clock.current += elapsed
-    if (clock.current >= .12) {
+    if (clock.current >= .2) {
       clock.current = 0; camera.getWorldDirection(direction.current)
-      const floor = simulation.metadata.floors.find(f => f.sourceId === simulation.floorId)
-      const room = simulation.metadata.rooms.find(r => r.floorId === simulation.floorId && simulation.feet.x * 1000 >= r.rectMm.x && simulation.feet.x * 1000 <= r.rectMm.x + r.rectMm.w && -simulation.feet.z * 1000 >= r.rectMm.y && -simulation.feet.z * 1000 <= r.rectMm.y + r.rectMm.h)
-      callbacks.current.onHud({ room: room?.name ?? '', roomId: room?.id, floor: floor?.level ?? 0, door: simulation.targetDoor(camera.position, direction.current), blocked: simulation.blocked,
-        feet: [simulation.feet.x, simulation.feet.y, simulation.feet.z], grounded: simulation.grounded, look: [yaw.current, pitch.current] })
+      const location=walkthroughLocation(simulation.metadata,simulation.feet,simulation.floorId)
+      const next:WalkingHud={ ...location, door: simulation.targetDoor(camera.position, direction.current), blocked: simulation.blocked,
+        feet: [simulation.feet.x, simulation.feet.y, simulation.feet.z], grounded: simulation.grounded, look: [yaw.current, pitch.current] }
+      const old=previousHud.current
+      if(!old||old.roomId!==next.roomId||old.floor!==next.floor||old.door?.id!==next.door?.id||old.door?.open!==next.door?.open||old.door?.blocked!==next.door?.blocked||old.blocked!==next.blocked||old.grounded!==next.grounded||next.feet.some((v,i)=>Math.abs(v-old.feet[i])>.03)||next.look.some((v,i)=>Math.abs(v-old.look[i])>.02)){previousHud.current=next;callbacks.current.onHud(next)}
     }
     // Demand rendering resumes its idle behaviour immediately on Escape/blur.
     invalidate()

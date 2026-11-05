@@ -19,7 +19,9 @@ def wall_side(building, wall):
     x, y = (wall["a"]["x"] + wall["b"]["x"]) / 2, (wall["a"]["y"] + wall["b"]["y"]) / 2
     def inside(px, py):
         shell = [*floor["footprint"], *[void["rect"] for void in floor.get("doubleHeightVoids", [])]]
-        return any(r["x"] < px < r["x"] + r["w"] and r["y"] < py < r["y"] + r["h"] for r in shell) and not (
+        # The midpoint may coincide with a shared edge between two slab cells.
+        # The union includes that edge; strict inequalities create a false void.
+        return any(r["x"] <= px <= r["x"] + r["w"] and r["y"] <= py <= r["y"] + r["h"] for r in shell) and not (
             floor.get("courtyard") and floor["courtyard"]["x"] < px < floor["courtyard"]["x"] + floor["courtyard"]["w"] and
             floor["courtyard"]["y"] < py < floor["courtyard"]["y"] + floor["courtyard"]["h"])
     before, after = (inside(x, y - 1), inside(x, y + 1)) if horizontal else (inside(x - 1, y), inside(x + 1, y))

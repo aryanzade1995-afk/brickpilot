@@ -527,6 +527,12 @@ class RoomPlan {
     this.taken.push(r)
   }
 
+  fork() {
+    const copy = new RoomPlan(this.W, this.D, this.openings)
+    this.taken.forEach(r => copy.reserve({...r}))
+    return copy
+  }
+
   /** put a piece against a wall with its working clearance; null if it will not fit */
   place(spec: Spec): Placement | null {
     const gap = spec.gap ?? 0.03
@@ -986,18 +992,48 @@ function furnishRoom(
     // away from the door: the WC is the piece you least want to see from it
     const opposite:Record<Side,Side>={N:'S',S:'N',E:'W',W:'E'}
     const facingDoor=new Set([...plan.doorSides].map(s=>opposite[s]))
-    // Allocate the wet zone before fixtures consume its footprint. Prefer the
-    // rear wall; its entrance stays open, never crossed by a full-width pane.
-    const shower = recipe==='bath' && W*D>=2.5 ? tryPlace(
-      {w:.9,d:.9,front:.25,gap:.01,sides:[...facingDoor,...SIDES.filter(s=>!plan.doorSides.has(s)&&!facingDoor.has(s))]},
-      {w:.8,d:.9,front:.25,gap:.01,sides:[...facingDoor]},
-    ) : null
     const privateSides=SIDES.filter(s=>!plan.doorSides.has(s)&&!facingDoor.has(s))
-    const away = privateSides.length?privateSides:SIDES.filter(s=>!facingDoor.has(s))
-    const wc = tryPlace(
-      { w: 0.42, d: 0.65, front: Math.max(.6,CLEAR.wcFront), sides: away, gap: 0.02 },
-      { w: 0.42, d: 0.6, front: .6, sides:away, gap: 0.02 },
-    )
+    const away = [...privateSides,...SIDES.filter(s=>!privateSides.includes(s)&&!facingDoor.has(s)),...facingDoor]
+    let fitted: {wc:Placement;basin:Placement;shower:Placement|null}|null=null
+    const fitWet=(wc:Placement,basin:Placement)=>{
+      const wet=plan.fork()
+      for(const fixture of [wc,basin]){
+        const size=sz(fixture,fixture.w,.1,fixture.d)
+        wet.reserve({x0:fixture.cx-size[0]/2-.03,x1:fixture.cx+size[0]/2+.03,z0:fixture.cz-size[2]/2-.03,z1:fixture.cz+size[2]/2+.03})
+      }
+      for(const size of [.8,.7]){
+        const tray=wet.place({w:size,d:size,front:0,gap:.01,sides:[...facingDoor,...SIDES.filter(s=>!facingDoor.has(s))]})
+        if(tray)return tray
+      }
+      return null
+    }
+
+    // Try complete layouts before committing any fixture. A failed shower
+    // proposal must never silently consume the only usable toilet location.
+    search: for (const wetSide of [...facingDoor,...SIDES.filter(s=>!facingDoor.has(s)),null]) {
+      for (const side of away) for (const basinWidth of [.6,.55,.5]) {
+        const candidate=plan.fork()
+        let shower:Placement|null=null
+        if (wetSide && recipe==='bath' && W*D>=2.5) {
+          shower=candidate.place({w:.8,d:.9,front:.15,gap:.01,sides:[wetSide]})
+          if(!shower)continue
+        }
+        const wc=candidate.place({w:.42,d:.65,front:CLEAR.wcFront,gap:.02,sides:[side],flank:.15})
+        if(!wc)continue
+        const ws=sz(wc,wc.w,.42,wc.d)
+        candidate.reserve({x0:wc.cx-ws[0]/2-.27,x1:wc.cx+ws[0]/2+.27,z0:wc.cz-ws[2]/2-.27,z1:wc.cz+ws[2]/2+.27})
+        const basin=candidate.place({w:basinWidth,d:basinWidth===.5?.4:.45,front:.55,gap:.02})
+        if(!basin)continue
+        if(!shower&&recipe==='bath')shower=fitWet(wc,basin)
+        const proposal={wc,basin,shower}
+        if(!fitted)fitted=proposal
+        if(shower||recipe==='toilet'){fitted=proposal;break search}
+      }
+    }
+    // A WC is essential even where a basin and shower cannot both fit.
+    const wc=fitted?.wc??tryPlace({w:.42,d:.6,front:CLEAR.wcFront,gap:.02,sides:away,flank:.15})
+    const basin=fitted?.basin
+    const shower=fitted?.shower
     if (wc) {
       const ws = sz(wc, wc.w, 0.42, wc.d)
       P('wc', 'ceramic', wc.cx, 0.0, wc.cz, ws[0], ws[1], ws[2])
@@ -1005,11 +1041,6 @@ function furnishRoom(
       const cs = sz(wc, wc.w, 0.42, 0.16)
       P('cistern', 'ceramic', cx2, 0.42, cz2, cs[0], cs[1], cs[2])
     }
-    const basin = tryPlace(
-      { w: 0.6, d: 0.45, front: CLEAR.basinFront, gap: 0.02 },
-      { w: 0.55, d: 0.42, front: 0.55, gap: 0.02 },
-      { w: 0.5, d: 0.4, front: 0.45, gap: 0.02 },
-    )
     if (basin) {
       const vs = sz(basin, basin.w, 0.78, basin.d)
       P('vanity', 'panel', basin.cx, 0.0, basin.cz, vs[0], vs[1], vs[2])
@@ -1020,9 +1051,7 @@ function furnishRoom(
       if (sh) {
         const traySize = sz(sh, sh.w, .02, sh.d)
         P('shower-tray', 'stone', sh.cx, 0.0, sh.cz, ...traySize)
-        const [gx, gz] = at(sh, sh.w/2-.012, 0)
-        const gs = sz(sh, .018, 1.95, sh.d-.04)
-        P('shower-glass', 'glass', gx, .02, gz, gs[0], gs[1], gs[2])
+
       }
     }
     return n

@@ -1,3 +1,4 @@
+import { useNarrationPreferences } from '@/state/narrationPreferences.ts'
 import {requestNarrationClip,playNarrationClips} from '@/lib/walkthrough/narrationClips.ts'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -13,7 +14,8 @@ export function RoomNarration({ metadata, appearance, walking, roomId, onReview 
   metadata: WalkthroughGeometryPayload['metadata']; appearance?: WalkthroughAppearancePayload; walking: boolean; roomId?: string; onReview?: () => void;
 }) {
   const language = useLanguage(s => s.language)
-  const [voiceLanguage, setVoiceLanguage] = useState<GuideLanguage>('mr'), [enabled, setEnabled] = useState(true)
+  const voiceLanguage=useNarrationPreferences(s=>s.language),setVoiceLanguage=useNarrationPreferences(s=>s.setLanguage)
+  const enabled=useNarrationPreferences(s=>s.enabled),setEnabled=useNarrationPreferences(s=>s.setEnabled)
   const [replay, setReplay] = useState(0), [status, setStatus] = useState<'idle' | 'preparing' | 'speaking' | 'unavailable'>('idle')
   const [analysis, setAnalysis] = useState<{ key: string; suggestion: DesignSuggestion; ai: boolean } | null>(null)
   const [dismissed, setDismissed] = useState('')
@@ -30,7 +32,7 @@ export function RoomNarration({ metadata, appearance, walking, roomId, onReview 
   const candidates = useMemo(() => context ? suggestionCandidates(context, language) : [], [context, language])
   const fallback = useMemo(() => [...candidates].sort((a, b) => b.score - a.score)[0], [candidates])
   const stop = useCallback(() => { player.stop(); speech.stop() }, [player, speech])
-  const replayRoom = useCallback(() => { unlockRoomNarration(); setEnabled(true); setReplay(n => n + 1) }, [])
+  const replayRoom = useCallback(() => { unlockRoomNarration(); setEnabled(true); setReplay(n => n + 1) }, [setEnabled])
   useEffect(() => { speech.activate(); return () => { player.stop(); speech.dispose() } }, [player, speech])
   useEffect(() => {
     if (walking || !enabled || voiceLanguage !== 'mr') return
@@ -58,19 +60,27 @@ export function RoomNarration({ metadata, appearance, walking, roomId, onReview 
     stop()
     if (!walking || !enabled || !context || !description || !key) return
     const controller = new AbortController(); let active = true
+    let preparation:ReturnType<typeof setTimeout>|undefined
+    const progress=(value:'preparing'|'speaking'|'idle')=>{
+      clearTimeout(preparation)
+      if(!active||controller.signal.aborted)return
+      if(value==='preparing')preparation=setTimeout(()=>{if(active){controller.abort();stop();setStatus('unavailable')}},15000)
+      setStatus(value)
+    }
     const immediate=playedReplay.current!==replay;playedReplay.current=replay
     const timer = setTimeout(() => {
       setStatus('preparing')
       if (voiceLanguage !== 'mr') { speech.speak(description, voiceLanguage); return }
       const localVoice=window.speechSynthesis?.getVoices().some(voice=>voice.localService&&/^mr(?:-|$)/i.test(voice.lang))
       if(localVoice){speech.speak(description,'mr');return}
-      void playNarrationClips(context,player,controller.signal,value=>{if(active)setStatus(value)})
-        .catch(()=>{if(active&&!controller.signal.aborted)setStatus('unavailable')})
+      progress('preparing')
+      void playNarrationClips(context,player,controller.signal,progress)
+        .catch(()=>{if(active&&!controller.signal.aborted)setStatus('unavailable')}).finally(()=>clearTimeout(preparation))
     }, immediate?0:250)
-    return () => { active = false; clearTimeout(timer); controller.abort(); stop() }
+    return () => { active = false; clearTimeout(timer); clearTimeout(preparation); controller.abort(); stop() }
   }, [walking, enabled, key, replay, voiceLanguage, context, description, player, speech, stop])
   useEffect(() => {
-    if (!walking || !key || !context) return
+    if (!walking || !key || !context || status==='preparing' || status==='speaking') return
     const controller = new AbortController(); let active = true
     const timer = setTimeout(() => {
       void fetch('/api/walkthrough-room', { method: 'POST', headers: { 'content-type': 'application/json' },
@@ -83,9 +93,9 @@ export function RoomNarration({ metadata, appearance, walking, roomId, onReview 
         const candidate = candidates.find(c => c.id === s.id)!
         setAnalysis({ key, suggestion: candidate, ai: result.mode === 'local-ai' })
       }).catch(() => { /* The contextual design proposal remains available. */ })
-    }, 500)
+    }, 2500)
     return () => { active = false; clearTimeout(timer); controller.abort() }
-  }, [walking, key, context, language, candidates])
+  }, [walking, key, context, language, candidates, status])
   if (!walking || !room || !fallback) return null
   const suggestion = analysis?.key === key ? analysis.suggestion : fallback, ai = analysis?.key === key && analysis.ai
   const expanded = expandedFor === key

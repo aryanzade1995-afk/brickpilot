@@ -69,6 +69,17 @@ class VisualizationTest(unittest.TestCase):
                 self.assertFalse(any(overlaps(rect, opening_box(o, 1000)) for o in b["doors"] if o["floorId"] == ground["id"]))
         self.assertTrue(any(p["category"] == "side" for p in layout["planters"]))
 
+    def test_ground_planters_follow_selected_plinth_height(self):
+        for height in (450, 1000, 1500):
+            payload = deepcopy(self.payload)
+            b = payload['buildingModel']
+            b.setdefault('structuralSizing', {})['plinthHeightMm'] = height
+            ground = min(b['floors'], key=lambda f: f['level'])
+            layout = planting_layout(payload, visualization_options(payload))
+            plants = [p for p in layout['planters'] if p['category'] in ('side', 'entry')]
+            self.assertTrue(plants)
+            self.assertTrue(all(p['z'] == ground['elevationMm'] - height for p in plants))
+
     def test_roof_greenery_requires_actual_stair_support_and_clear_route(self):
         b, m = self.payload["buildingModel"], deepcopy(self.payload["massingModel"])
         self.assertIsNone(clear_roof_pad(b, m))

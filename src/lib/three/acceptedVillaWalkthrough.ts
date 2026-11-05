@@ -1,8 +1,13 @@
+import { wallSideDoorSwing } from '../walkthrough/doorSwing.ts'
+import { addDoorKnobs } from './doorKnobs.ts'
+import type { WalkthroughScene } from '../walkthrough/sceneTypes.ts'
 import { Box3, Mesh, Vector3, type Group } from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { disposeWalkthroughAsset } from './loadWalkthroughAsset.ts'
 import type { AcceptedMeshCollision, AcceptedDoor } from '../walkthrough/navigation.ts'
 import type { SceneOpening } from '../walkthrough/sceneTypes.ts'
+import { hideBathroomPartitions } from './bathroomPartitions.ts'
+import { upgradeExtinguishers } from './extinguisherAsset.ts'
 
 export function acceptedVillaUrl(url: string) {
   if (!/^\/api\/villas\/[a-f0-9-]{36}\/files\/[a-zA-Z0-9_-]+\.glb$/.test(url)) throw new Error('Select the accepted Blender villa from 3D Massing.')
@@ -14,6 +19,7 @@ export function acceptedVillaUrl(url: string) {
  * Its glTF Y-up transform already maps plan x/y mm to x/-z metres. */
 export async function parseAcceptedVilla(bytes: ArrayBuffer, planId: string) {
   const { scene } = await new GLTFLoader().parseAsync(bytes, '')
+  hideBathroomPartitions(scene)
   let matching = false, foreign = false, meshes = 0
   scene.traverse(o => {
     const id = o.userData.source_plan_id ?? o.userData.sourcePlanId
@@ -26,6 +32,7 @@ export async function parseAcceptedVilla(bytes: ArrayBuffer, planId: string) {
     }
   })
   if (!matching || foreign || !meshes) { disposeWalkthroughAsset(scene); throw new Error('This Blender model does not match the current house.') }
+  await upgradeExtinguishers(scene)
   return scene
 }
 
@@ -54,10 +61,10 @@ export function acceptedVillaBounds(scene: Group) {
 /** Build collision from actual displayed triangles, with all parent transforms
  * baked into a separate copy. Holes, detailed stairs, glass and furniture keep
  * their real extents. Closed doors remain closed, exactly as exported. */
-export function acceptedVillaCollision(scene: Group, openings: SceneOpening[] = []): AcceptedMeshCollision {
+export function acceptedVillaCollision(scene: Group, openings: SceneOpening[] = [], rooms: WalkthroughScene['rooms'] = []): AcceptedMeshCollision {
   reconcileAcceptedOpenPortals(scene, openings)
   scene.updateMatrixWorld(true)
-  const doors = acceptedVillaDoors(scene, openings)
+  const doors = acceptedVillaDoors(scene, openings, rooms)
   const meshes: Mesh[] = []; let count = 0, indexCount = 0
   scene.traverseVisible(o => {
     if (!(o instanceof Mesh)) return
@@ -106,7 +113,7 @@ export function reconcileAcceptedOpenPortals(scene: Group, openings: SceneOpenin
  * source IDs + stable Blender names; newer exports may carry leaf metadata.
  * A two-track slider has one moving sash and one fixed sash: half-width access.
  */
-export function acceptedVillaDoors(scene: Group, openings: SceneOpening[]): AcceptedDoor[] {
+export function acceptedVillaDoors(scene: Group, openings: SceneOpening[], rooms: WalkthroughScene['rooms'] = []): AcceptedDoor[] {
   const result: AcceptedDoor[] = []
   for (const opening of openings.filter(o => o.kind !== 'window' && o.operation !== 'open')) {
     const parts: Mesh[] = []
@@ -123,18 +130,25 @@ export function acceptedVillaDoors(scene: Group, openings: SceneOpening[]): Acce
       // Exported finish profiles are independent meshes (e.g. timber slats).
       // Their explicit finish_parent must follow the leaf too, otherwise the
       // opened door leaves an invisible-looking solid finish across the exit.
-      const members = parts.filter(p => (group.suffix !== 'surface' || p.userData.opening_operation === 'surface-sliding-door') && (group.names.some(name => [p.name, p.userData.finish_parent].some(part => typeof part === 'string' && (name.endsWith('_') ? part.startsWith(name) : part === name))) ||
+      let members = parts.filter(p => (group.suffix !== 'surface' || p.userData.opening_operation === 'surface-sliding-door') && (group.names.some(name => [p.name, p.userData.finish_parent].some(part => typeof part === 'string' && (name.endsWith('_') ? part.startsWith(name) : part === name))) ||
         group.suffix === 'single' && opening.emergencyExit && p.name.startsWith('EmergencyDoor_ReleaseBar')))
       if (!members.length) continue
       const box = new Box3(); members.forEach(p => box.expandByObject(p))
       if (box.isEmpty()) continue
       const id = `${opening.id}:${group.suffix}`
+      const motion=wallSideDoorSwing(opening,rooms)
+      const hinge=group.suffix==='single'?motion.hinge:group.hinge
+      const oldHandles=members.filter(p=>/handle|knob/i.test(p.name))
+      oldHandles.forEach(p=>{p.visible=false})
+      members=members.filter(p=>!oldHandles.includes(p))
+      const existing=scene.getObjectByName(`Walkthrough_Knobs_${id}`) as Mesh|undefined
+      members.push(existing??addDoorKnobs(scene,box,opening.orient==='h',hinge,id))
       members.forEach(p => { p.userData.walkthroughDoorId = id })
       const fixed = new Box3()
       if (group.operation === 'sliding') parts.filter(p => p.name.startsWith(`Door_${source}_SlidingRight_`)).forEach(p => fixed.expandByObject(p))
       const movement = !fixed.isEmpty() ? fixed.getCenter(new Vector3()).sub(box.getCenter(new Vector3())) : null
       const slide = members.find(p => Array.isArray(p.userData.slide_translation_mm))?.userData.slide_translation_mm as number[] | undefined
-      result.push({ id, openingId: opening.id, hinge: group.hinge, swing: group.swing as 1 | -1, operation: group.operation,
+      result.push({ id, openingId: opening.id, hinge, swing: rooms.length?motion.swing:group.swing as 1 | -1, operation: group.operation,
         ...(slide?.length === 3 && slide.every(Number.isFinite) ? { translation: [slide[0]/1000, slide[2]/1000, -slide[1]/1000] as [number, number, number] } : movement ? { translation: (opening.orient === 'h' ? [movement.x, 0, 0] : [0, 0, movement.z]) as [number, number, number] } : {}),
         collider: { id, sourceIds: [source], floorId: opening.floorId, kind: 'door', min: box.min.toArray(), max: box.max.toArray() } })
     }

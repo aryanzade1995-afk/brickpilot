@@ -3,6 +3,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import type { Look } from './dressRoom.ts'
 import { floorFinishDetail } from './floorFinishDetail.ts'
 import {worktopDetailMap} from './walkthroughSurfaceDetail.ts'
+import { upgradeExtinguishers } from './extinguisherAsset.ts'
 import {surfaceProfile,applySurfaceMicrodetail} from './pbrSurfaces.ts'
 
 /** Loads the combined export exactly once. Do not add furniture.glb on top:
@@ -22,6 +23,7 @@ export async function loadWalkthroughAsset(url: string, expectedPlanId: string, 
       o.castShadow = !materials.every(m => m.transparent); o.receiveShadow = true }
   })
   if (!matching || foreign) { disposeWalkthroughAsset(gltf.scene); throw new Error('The walkthrough belongs to a different house.') }
+  await upgradeExtinguishers(gltf.scene)
   return gltf.scene
 }
 

@@ -2,7 +2,10 @@ import { withEmergencyExit } from './safety.ts'
 import { placeSiteFeatures } from './planner/siteFeatures.ts'
 import { beamDepthMm, exposeStructuralSizing } from './structuralSizing.ts'
 import { rectArea, rectUnionArea, toSqm } from '../geometry.ts'
-import type { CanonicalModel } from '../model/canonical.ts'
+import { compile, type CanonicalModel } from '../model/canonical.ts'
+import { MODERN_DIRECTION_COMPOSITIONS } from '../model/modernCompositions.ts'
+import { buildingShape, buildingShapeDifference } from './buildingShapes.ts'
+import {frontFacingPlan,horizontalPlan} from './planner/directionFrontage.ts'
 import { themeOf } from '../model/themes.ts'
 import { makeRng, type Rng } from './massing/rng.ts'
 import type { Diversity, MassingType, RoofSpec } from './massing/types.ts'
@@ -43,6 +46,9 @@ export const STRATEGIES: { id: Strategy; label: string; blurb: string }[] = [
 ]
 
 export type GenerateOpts = {
+  /** Availability only: stop at a fully validated plan. Normal generation
+   * still ranks all candidates; this switch is never stored as a recipe. */
+  firstValid?: boolean
   formVersion?: FormVersion
   /** Internal benchmark/replay switch; new plans use the learned guidance. */
   planner?: 'ml' | 'baseline'
@@ -141,14 +147,74 @@ export function generateDirections(model: CanonicalModel, inspiration?: Inspirat
 
 /** Explore plan variety before exterior novelty. The recorded seed is the
  * actual passing plan seed, so pinning never re-runs a different search. */
-export function distinctDirectionPlans(model:CanonicalModel,count=4,formVersion?:FormVersion):{plan:Design;massing:MassingType;planSeed:number}[]{
+export function distinctDirectionPlans(model:CanonicalModel,count=4,formVersion?:FormVersion,onPlan?:(plan:Design,index:number)=>void):{plan:Design;massing:MassingType;planSeed:number}[]{
+  const minimum=model.floors.reduce((sum,f)=>sum+f.spaces.filter(s=>!s.outdoor).reduce((area,s)=>area+s.min,0),0)
+  if(minimum>model.envelope.width*model.envelope.depth/1e6*model.floors.length)return []
+  if(formVersion&&model.brief.style.character==='modern-box'&&(!model.brief.style.composition||
+    (MODERN_DIRECTION_COMPOSITIONS as readonly string[]).includes(model.brief.style.composition))) {
+    const proposals:{plan:Design;massing:MassingType;planSeed:number}[]=[]
+    const find=(composition:typeof MODERN_DIRECTION_COMPOSITIONS[number]|undefined,wide:boolean,round=0)=>{
+      const brief=structuredClone(model.brief)
+      if(composition)brief.style.composition=composition;else delete brief.style.composition
+      const variant=compile(brief),families=compositionFamilies(variant)??['rectangular','stepped','l-shape'] as PlateFamily[]
+      for(let attempt=0;attempt<24;attempt++) {
+        const seed=model.brief.variation+(round*16+Math.floor(attempt/families.length))*7919
+        const family=families[attempt%families.length]
+        const frontage=wide?'wide' as const:undefined
+        const plan=generateOne(variant,family,seed,variant.seed.split('-')[0],false,true,undefined,formVersion,frontage)
+        if(!plan)continue
+        plan.planSeed=seed;plan.planRecipe={family,seed,version:'resplan-ridge-retrieval-v1',...(frontage?{frontage}:{})}
+        if(!frontFacingPlan(plan)||wide&&!horizontalPlan(plan)||!validate(plan).hardChecksPass)continue
+        if(composition==='offset-box'&&!plan.floors.some(f=>f.supportZones?.some(z=>z.review)))continue
+        const shape=buildingShape(plan)
+        if(proposals.some(p=>buildingShapeDifference(buildingShape(p.plan),shape)<.08))continue
+        return plan
+      }
+    }
+    const commit=(plan:Design,index=proposals.length)=>{
+      proposals[index]={plan,massing:plan.massingType,planSeed:plan.planSeed!};onPlan?.(plan,index)
+    }
+    for(const composition of MODERN_DIRECTION_COMPOSITIONS.slice(0,count)) {
+      const needsWide=proposals.filter(p=>horizontalPlan(p.plan)).length<Math.min(2,count)
+      const plan=(needsWide?find(composition,true):undefined)??find(composition,false)
+      if(plan)commit(plan)
+    }
+    // A named composition can be unavailable without exhausting actual layout
+    // alternatives. Search fresh source recipes instead of padding duplicates.
+    for(let round=1;round<=2&&proposals.length<count;round++)for(const composition of MODERN_DIRECTION_COMPOSITIONS){
+      const needsWide=proposals.filter(p=>horizontalPlan(p.plan)).length<Math.min(2,count)
+      const plan=(needsWide?find(composition,true,round):undefined)??find(composition,false,round)
+      if(plan)commit(plan)
+      if(proposals.length===count)break
+    }
+    // Preserve the modern style even where a specific terrace/frame recipe
+    // cannot fit; genuine bar/stepped room layouts are also valid alternatives.
+    for(let round=0;round<3&&proposals.length<count;round++){
+      const needsWide=proposals.filter(p=>horizontalPlan(p.plan)).length<Math.min(2,count)
+      const plan=(needsWide?find(undefined,true,round):undefined)??find(undefined,false,round)
+      if(plan)commit(plan)
+    }
+    if(proposals.filter(p=>horizontalPlan(p.plan)).length<Math.min(2,count))for(const composition of MODERN_DIRECTION_COMPOSITIONS){
+      const plan=find(composition,true,3)
+      const index=proposals.findLastIndex(p=>!horizontalPlan(p.plan))
+      if(plan&&index>=0)commit(plan,index)
+      if(proposals.filter(p=>horizontalPlan(p.plan)).length>=Math.min(2,count))break
+    }
+    return proposals
+  }
   const plans:{plan:Design;massing:MassingType;planSeed:number}[]=[],seen=new Set<string>()
   const wants=directionPlans(model,count*8,formVersion)
   const add=(plan:Design|null)=>{
-    if(!plan||!validate(plan).hardChecksPass)return
+    if(!plan||!frontFacingPlan(plan)||!validate(plan).hardChecksPass)return
     const fingerprint=planFingerprint(plan)
     if(seen.has(fingerprint.key))return
     seen.add(fingerprint.key);plans.push({plan,massing:plan.massingType,planSeed:plan.planSeed??plan.dna.seed})
+  }
+  // Put real wide, street-facing geometry into the candidate pool first.
+  for(const want of wants.slice(0,16)){
+    const plan=generateOne(model,want.family,want.seed,model.seed.split('-')[0],false,true,undefined,formVersion,'wide')
+    if(plan&&horizontalPlan(plan)){plan.planSeed=want.seed;plan.planRecipe={family:want.family,seed:want.seed,version:'resplan-ridge-retrieval-v1',frontage:'wide'};add(plan)}
+    if(plans.filter(p=>horizontalPlan(p.plan)).length>=2)break
   }
   // Test single concrete recipes, rather than nesting a full 12-candidate
   // generate() search inside every diversity candidate. Preserve exact replay.
@@ -163,7 +229,10 @@ export function distinctDirectionPlans(model:CanonicalModel,count=4,formVersion?
     add(generate(model,{massing:want.family,seed:want.seed,formVersion}))
     if(plans.length>=count)break
   }
-  return diversePlans(plans,count)
+  const selected=plans.filter(p=>horizontalPlan(p.plan)).slice(0,Math.min(2,count))
+  for(const candidate of diversePlans(plans,plans.length))if(!selected.includes(candidate)&&selected.length<count)selected.push(candidate)
+  selected.forEach((p,index)=>onPlan?.(p.plan,index))
+  return selected
 }
 
 export type Candidate = { design: Design; score: PreferenceScore; strictOk: boolean }
@@ -244,7 +313,10 @@ export function generateCandidates(model: CanonicalModel, opts: Strategy | Gener
         const key = layoutKey(d)
         if (seen.has(key)) continue
         seen.add(key)
-        passing.push({ design: d, score: preferenceScore(d), strictOk: strictVastuFailures(d).length === 0 })
+        const candidate={ design: d, score: preferenceScore(d), strictOk: strictVastuFailures(d).length === 0 }
+        passing.push(candidate)
+        if(o.firstValid&&(model.brief.lifestyle.vastu!=='strict'||candidate.strictOk)&&validate(d).hardChecksPass)
+          return {passing:[candidate],fallback:d}
         continue
       }
       if (report.counts.error < bestErrors || (report.counts.error === bestErrors && report.counts.warning < bestWarnings)) {
@@ -289,8 +361,8 @@ export function generate(model: CanonicalModel, opts: Strategy | GenerateOpts = 
     return generate(model,{...(typeof opts==='string'?{strategy:opts}:opts),formVersion:SITE_FORM_VERSION})
   if(typeof opts!=='string' && opts.recipe){
     const recipe=opts.recipe
-    const replay=generateOne(model,recipe.family,recipe.seed,model.seed.split('-')[0],false,true,undefined,opts.formVersion)
-    if(replay && validate(replay).hardChecksPass){replay.planSeed=opts.seed??recipe.seed;return replay}
+    const replay=generateOne(model,recipe.family,recipe.seed,model.seed.split('-')[0],false,true,undefined,opts.formVersion,recipe.frontage)
+    if(replay && validate(replay).hardChecksPass){replay.planSeed=opts.seed??recipe.seed;replay.planRecipe={...recipe};return replay}
     // Stale/invalid recipes do not bypass any hard check.
     return generate(model,{...opts,recipe:undefined})
   }
@@ -322,7 +394,7 @@ export function generate(model: CanonicalModel, opts: Strategy | GenerateOpts = 
   return pool.reduce((a, b) => ((model.brief.site.openSpace?.mode === 'maxBuild' ? b.design.coveredFootprintSqm > a.design.coveredFootprintSqm : score(b) > score(a)) ? b : a)).design
 }
 
-export function generateOne(model: CanonicalModel, family: PlateFamily, seed: number, briefKey: string, force = false, learned = true, existing?: ExistingStructure, formVersion?: FormVersion): Design | null {
+export function generateOne(model: CanonicalModel, family: PlateFamily, seed: number, briefKey: string, force = false, learned = true, existing?: ExistingStructure, formVersion?: FormVersion,frontage?:'wide'): Design | null {
   const proposal = learned && !force && !existing ? proposePlan(model,seed) : null
   const choices = WING_FAMILIES.includes(family) ? layoutChoices(model, seed, family!=='twin-wing') : undefined
   if (choices) model = layoutProgramme(model,choices)
@@ -337,6 +409,7 @@ export function generateOne(model: CanonicalModel, family: PlateFamily, seed: nu
   const provisional = deriveDesignDNA(briefKey, seed, model.brief.style.character, 'rectangular', 'balanced', model.brief.style.personality)
 
   const plan = planVilla(model, {
+    ...(frontage?{frontage}:{}),
     ...(formVersion && !existing ? {formVersion,formSeed:seed}:{}),
     ...(existing ? {existing} : {}),
     ...(proposal ? {proposal}:{}),

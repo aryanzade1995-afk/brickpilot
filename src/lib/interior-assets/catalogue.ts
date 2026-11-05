@@ -3,7 +3,7 @@ import type {Brief} from '../model/brief.ts'
 
 export const INTERIOR_MODEL_SECTION='furniture-models'
 export const MODEL_PREFIX='visual-model-'
-export const INTERIOR_PACK_VERSION='bedroom-essentials-v5'
+export const INTERIOR_PACK_VERSION='bath-hardware-v6'
 export type InteriorAsset=typeof raw.assets[number]
 export const interiorAssets:InteriorAsset[]=raw.assets
 export const MODEL_CATEGORIES=[
@@ -20,7 +20,7 @@ export const MODEL_CATEGORIES=[
  {id:'nightstand',label:'Bedside tables',assets:['nightstand'],item:'interiors',rooms:'Bedrooms'},
  {id:'fan',label:'Ceiling fans',assets:['fan'],item:'fans',rooms:'Rooms with a selected fan'},
  {id:'toilet',label:'Toilets',assets:['user-bathroom-toilet','toilet-modern','toilet','toilet-wall'],item:'sanitary',rooms:'Bathrooms'},
- {id:'basin',label:'Washbasins',assets:['user-bathroom-basin','basin'],item:'bath-basin',rooms:'Bathrooms'},
+ {id:'basin',label:'Washbasins',assets:['basin-no-tap','user-bathroom-basin','basin'],item:'bath-basin',rooms:'Bathrooms'},
  {id:'bathtub',label:'Bathtubs',assets:['bathtub'],item:'bath-tub',rooms:'Where a bath is already placed'},
  {id:'kitchen-sink',label:'Kitchen sinks & taps',assets:['kitchen-sink'],item:'kitchen-sink',rooms:'Kitchens'},
  {id:'kitchen-base',label:'Kitchen base cabinets',assets:['user-library-base','user-library-drawers','kitchen-base','kitchen-drawers'],item:'kitchen-cabinets',rooms:'Kitchens'},

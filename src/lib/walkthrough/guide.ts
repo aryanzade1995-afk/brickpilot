@@ -1,3 +1,4 @@
+import {rectUnionArea} from '../geometry.ts'
 import { z } from 'zod'
 import type { WalkthroughAppearancePayload, WalkthroughGeometryPayload } from './delivery.ts'
 
@@ -26,10 +27,10 @@ export const guideRequestSchema = z.object({
 
 /** Compact read-only projection. Never send the brief, address, customer name,
  * render URLs, prices or raw meshes to the guide provider. */
-export function createGuideContext(metadata: Pick<WalkthroughGeometryPayload['metadata'], 'planId' | 'floors' | 'rooms' | 'openings'>,
+export function createGuideContext(metadata: Pick<WalkthroughGeometryPayload['metadata'], 'planId' | 'floors' | 'rooms' | 'openings'> & Partial<Pick<WalkthroughGeometryPayload['metadata'],'roofs'>>,
   appearance: WalkthroughAppearancePayload | undefined, currentRoomId: string | null): GuideContext | null {
   const finite = (n: number) => Number.isFinite(n) && n > 0 ? n : null
-  const rooms = metadata.rooms.map(room => {
+  const rooms:GuideContext['rooms'] = metadata.rooms.map(room => {
     const finishes = appearance?.specifications.find(s => s.roomId === room.id)?.finishes
     const level = metadata.floors.find(f => f.sourceId === room.floorId)?.level ?? NaN
     const colour = (value: string | undefined) => value && /^#[0-9a-f]{6}$/i.test(value) ? value : null
@@ -42,7 +43,12 @@ export function createGuideContext(metadata: Pick<WalkthroughGeometryPayload['me
       finishes: (finishes?.summary ?? []).slice(0, 32)
         .map(s => ({ label: s.label.slice(0, 120), value: s.value.slice(0, 180) })) }
   })
-  const parsed = guideContextSchema.safeParse({ version: 1, planId: metadata.planId, floors: metadata.floors.map(f => f.level), rooms,
+  for(const roof of metadata.roofs??[]){
+    if(!roof.regionsMm.length)continue
+    const xs=roof.regionsMm.flatMap(r=>[r.x,r.x+r.w]),ys=roof.regionsMm.flatMap(r=>[r.y,r.y+r.h])
+    rooms.push({id:roof.id,name:'Roof terrace',level:(metadata.floors.find(f=>f.sourceId===roof.floorId)?.level??0)+1,widthM:(Math.max(...xs)-Math.min(...xs))/1000,depthM:(Math.max(...ys)-Math.min(...ys))/1000,areaM2:rectUnionArea(roof.regionsMm)/1e6,outdoor:true,doors:metadata.openings.filter(o=>o.sourceId==='ROOF_STAIR_EXIT').length,windows:0,finishes:[]})
+  }
+  const parsed = guideContextSchema.safeParse({ version: 1, planId: metadata.planId, floors: [...new Set([...metadata.floors.map(f => f.level),...rooms.map(r=>r.level)])], rooms,
     currentRoomId: rooms.some(r => r.id === currentRoomId) ? currentRoomId : null })
   return parsed.success ? parsed.data : null
 }

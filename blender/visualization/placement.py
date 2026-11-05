@@ -64,6 +64,7 @@ def planting_layout(payload, options):
         return {"planters": [], "omissions": []}
     floors = {f["id"]: f for f in b["floors"]}
     ground = min(b["floors"], key=lambda f: f["level"])
+    grade = ground['elevationMm'] - b.get('structuralSizing', {}).get('plinthHeightMm', 400)
     boundary = {"x": 0, "y": 0, "w": b["plot"]["widthMm"], "h": b["plot"]["depthMm"]}
     units = (payload["facadeGrammar"].get("specialized") or {}).get("assemblies", [])
     parts = [part["world"] for feature in payload["facadeGrammar"]["features"] for part in feature["parts"]]
@@ -122,7 +123,7 @@ def planting_layout(payload, options):
                 along = (door["at"]["x"] if door["orient"] == "h" else door["at"]["y"]) + sign * (door["width"] / 2 + 1100)
                 for normal in (-800, 800):
                     x, y = (along, door["at"]["y"] + normal) if door["orient"] == "h" else (door["at"]["x"] + normal, along)
-                    found = accept({"x": x - 300, "y": y - 250, "w": 600, "h": 500}, ground["elevationMm"] - 400, "entry", door["id"]) or found
+                    found = accept({"x": x - 300, "y": y - 250, "w": 600, "h": 500}, grade, "entry", door["id"]) or found
             if not found:
                 omissions.append("Entry planter omitted: door approach, parking or site margin protected.")
     if config["terrace"] and payload["villaDesignDNA"]["roofType"] not in ("gable", "hip", "mono-slope"):
@@ -140,5 +141,5 @@ def planting_layout(payload, options):
     if config["side"]:
         for x in (300, b["plot"]["widthMm"] - 900):
             for y in range(1200, round(b["plot"]["depthMm"] - 1200), 3000):
-                accept({"x": x, "y": y, "w": 600, "h": 700}, ground["elevationMm"] - 400, "side", b["planId"])
+                accept({"x": x, "y": y, "w": 600, "h": 700}, grade, "side", b["planId"])
     return {"planters": plans, "omissions": omissions}

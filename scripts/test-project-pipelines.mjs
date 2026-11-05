@@ -58,6 +58,19 @@ test('saved roof-tank dimensions alter the shared manifold only; source model an
   assert.equal(resized.options.roofHeightScale,1.2)
 })
 
+test('rainwater enabled in Utilities replays the same collection system in massing without changing the house',()=>{
+  const before=JSON.stringify({building,design,brief})
+  const enabled=projectPipelines(design,building,brief,'project-A',{...SIMPLE_WATER_DEFAULTS,rainwater:true,tankLitres:'2000'},emptyStorage)
+  assert.equal(enabled.options.rainwater,true)
+  assert.equal(enabled.rain.ready,true)
+  assert.ok(enabled.rain.gutters.length>0)
+  assert.ok(enabled.rain.downpipes.pipes.length>0)
+  assert.equal(enabled.rain.tank.capacityLitres,2000)
+  assert.ok(enabled.rain.treatment.stages.length>0)
+  assert.deepEqual(enabled.home,network.home)
+  assert.equal(JSON.stringify({building,design,brief}),before)
+})
+
 test('only tagged old pipes are hidden before collision; walls, furniture, buffers and roof stands stay intact',()=>{
   const root=new Group(),wall=new Mesh(new BoxGeometry(),new MeshStandardMaterial()),pipe=wall.clone()
   wall.name='GF_Wall_1';pipe.userData.formstead_plumbing=true;root.add(wall,pipe)

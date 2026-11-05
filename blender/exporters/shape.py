@@ -50,13 +50,19 @@ def measure_shape(payload):
     front, side, roof, roof_front, roof_side = [], [], [], [], []
     facade_front, facade_side = [], []
     graph = bpy.context.evaluated_depsgraph_get()
+    # users_collection scans every collection for each object. Build membership
+    # once; this measures exactly the same evaluated solids and facade meshes.
+    selected = {obj for collection in bpy.data.collections if collection.name in
+                ('STRUCTURE', 'WALLS', 'OPENINGS', 'WINDOWS', 'DOORS', 'MASSING', 'FACADE', 'BALCONIES', 'ROOF')
+                for obj in collection.objects}
+    facade_members = {obj for collection in bpy.data.collections if collection.name in ('FACADE', 'BALCONIES')
+                      for obj in collection.objects}
     count = 0
     for obj in bpy.context.scene.objects:
-        if obj.type != "MESH" or obj.get("formstead_plumbing") or obj.get("formstead_solar") or obj.get("presentation_only") or not any(
-                c.name in ("STRUCTURE", "WALLS", "OPENINGS", "WINDOWS", "DOORS", "MASSING", "FACADE", "BALCONIES", "ROOF") for c in obj.users_collection):
+        if obj.type != "MESH" or obj.get("formstead_plumbing") or obj.get("formstead_solar") or obj.get("presentation_only") or obj not in selected:
             continue
         evaluated = obj.evaluated_get(graph)
-        facade = any(c.name in ("FACADE", "BALCONIES") for c in obj.users_collection)
+        facade = obj in facade_members
         mesh = evaluated.to_mesh()
         try:
             mesh.calc_loop_triangles()
@@ -71,6 +77,9 @@ def measure_shape(payload):
                 if facade:
                     facade_front.append([(v.x, v.z) for v in pts])
                     facade_side.append([(v.y, v.z) for v in pts])
+                # Most building faces are fully below the roof plane.
+                if max(v.z for v in pts) < top + .1:
+                    continue
                 clipped = _above_plane(pts, top + .1)
                 for i in range(1, len(clipped) - 1):
                     face = [clipped[0], clipped[i], clipped[i + 1]]

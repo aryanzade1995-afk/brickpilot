@@ -27,7 +27,7 @@ from geometry.structure import (create_foundation, create_slab, create_wall, cre
 from geometry.safety import create_emergency_system
 from geometry.openings import create_door_opening, create_window_opening  # noqa: E402
 from geometry.stairs import stair_opening, stair_layout  # noqa: E402
-from geometry.sizing import create_sized_foundation, slab_thickness  # noqa: E402
+from geometry.sizing import create_sized_foundation, create_plinth_enclosure, slab_thickness  # noqa: E402
 from geometry.outdoor import (create_balcony, create_terrace, create_parapet,
                               create_pergola, create_planter, accessible_roof_pad)  # noqa: E402
 from facade.features import create_facade, finish_wall_bevels  # noqa: E402
@@ -74,6 +74,11 @@ def create_scene(payload, visualization=None):
     for stair in building["stairs"]:
         stair_layout(stair)  # Fail on unsupported stair data before touching the scene.
     scene = SceneBuilder(building["planId"], options["palette"])
+    if building.get('modernComposition', {}).get('id') in ('offset-box', 'framed-balcony', 'stepped-terrace', 'interlocking-boxes'):
+        # Render the frame as one plastered volume, rather than exposing every
+        # structural member as a contrasting stripe. Source dimensions and
+        # subsequently applied product specifications remain authoritative.
+        scene.materials['concrete'] = scene.materials['wall']
     scene.facade = facade
     scene.plot_width = building["plot"]["widthMm"]
     scene.plot_depth = building["plot"]["depthMm"]
@@ -84,6 +89,7 @@ def create_scene(payload, visualization=None):
     else:
         create_foundation(scene, floors[0], exterior_walls=[wall for wall in building["walls"]
                           if wall["floorId"] == floors[0]["id"] and wall["kind"] == "exterior"])
+    create_plinth_enclosure(scene, building, floors[0])
     for slab in building["slabs"]:
         floor = by_floor[slab["floorId"]]
         voids = [stair_opening(stair) for stair in building["stairs"]
@@ -143,7 +149,8 @@ def create_scene(payload, visualization=None):
                                  mass["sourceFloorId"] == room["floorId"] and
                                  room["semanticId"] in mass["sourceRoomIds"]), None)
             customized = any(unit["category"] == "BALCONY" and room["semanticId"] in unit["sourceRoomIds"] for unit in assemblies)
-            create_balcony(scene, room, by_floor[room["floorId"]], terrace_mass, building["doors"], with_railing=not customized)
+            balcony_floor={**by_floor[room['floorId']], 'setbackBalconies':[r for r in building['rooms'] if r['floorId']==room['floorId'] and r['id'].startswith('balconySetback')]}
+            create_balcony(scene, room, balcony_floor, terrace_mass, building["doors"], with_railing=not customized)
     create_roof_services(scene, building, payload.get("roofAccess"))
     # Replay canonical shaft-edge casings; retain the service void behind them.
     from mathutils import Vector
@@ -221,6 +228,7 @@ def main(argv):
     parser.add_argument("--name", default="villa")
     parser.add_argument("--render", action="store_true")
     parser.add_argument("--render-all", action="store_true")
+    parser.add_argument("--direction-image", action="store_true", help="Render only the Directions hero, with identical scene and quality")
     parser.add_argument("--prepare", action="store_true", help="Build and measure only; no final export/render")
     parser.add_argument("--resume", action="store_true", help="Export the previously accepted prepared scene")
     parser.add_argument("--production-names", action="store_true")
@@ -287,7 +295,16 @@ def main(argv):
         # Blender integer custom properties are int32. DNA supports safe numeric
         # seeds including uint32 retries; retain the exact value as a string here.
         bpy.context.scene["architectural_seed"] = str(payload["villaDesignDNA"]["seed"])
-        bpy.ops.wm.save_as_mainfile(filepath=str(blend))
+        if not args.direction_image:
+            bpy.ops.wm.save_as_mainfile(filepath=str(blend))
+    if args.direction_image:
+        bpy.context.scene.camera = bpy.data.objects['HeroPerspectiveCamera']
+        bpy.context.scene.render.filepath = str(out_dir / f'{args.name}_hero.png')
+        bpy.ops.render.render(write_still=True)
+        manifest['renders']={'HeroPerspectiveCamera':bpy.context.scene.render.filepath}
+        manifest['render']=bpy.context.scene.render.filepath
+        (out_dir / f'{args.name}.json').write_text(json.dumps(manifest),encoding='utf-8')
+        return
     if args.prepare:
         (out_dir / f"{args.name}.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
         print(f"Prepared seed {manifest['seed']}: {manifest['realizedGeometry']['meshCount']} measured meshes", flush=True)

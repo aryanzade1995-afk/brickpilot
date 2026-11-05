@@ -1,14 +1,30 @@
 import type { BuildingModel } from './buildingModel.ts'
 import type { Rect } from '../geometry.ts'
 import type { ModernComposition } from '../model/modernCompositions.ts'
+import { sharedEdge } from '../geometry.ts'
 
-export type CompositionCanopy={id:string;floorId:string;sourceRoomId:string;sourceWindowId:string;rect:Rect;bottomMm:number;thicknessMm:number}
+export type CompositionCanopy={id:string;floorId:string;sourceRoomId:string;sourceWindowId:string;rect:Rect;bottomMm:number;thicknessMm:number;framePosts?:Rect[];baseMm?:number}
 const overlap=(a:Rect,b:Rect)=>Math.min(a.x+a.w,b.x+b.w)>Math.max(a.x,b.x)&&Math.min(a.y+a.h,b.y+b.h)>Math.max(a.y,b.y)
 
 /** Roof planes attach to real glazed wall bays. They stay in the envelope and
  * leave every serialized courtyard open; the exporter does not invent hosts. */
 export function modernCanopies(b:Pick<BuildingModel,'floors'|'rooms'|'walls'|'windows'|'plot'>,composition:ModernComposition):CompositionCanopy[]{
  const result:CompositionCanopy[]=[],env=b.plot.buildable
+ if(composition==='framed-balcony')for(const floor of b.floors.filter(f=>f.level>0)) {
+  const terrace=b.rooms.find(r=>r.floorId===floor.id&&r.outdoor&&r.id.startsWith('balcony')&&Math.max(r.rect.w,r.rect.h)>=2400&&Math.min(r.rect.w,r.rect.h)>=1200)
+  if(!terrace)continue
+  const r=terrace.rect,host=b.rooms.find(room=>room.floorId===floor.id&&!room.outdoor&&(sharedEdge(room.rect,r)?.length??0)>=900)
+  if(!host)continue
+  const window=b.windows.filter(w=>w.floorId===floor.id&&w.head!==undefined&&w.rooms?.includes(host.id))
+   .sort((a,c)=>Math.hypot(a.at.x-r.x-r.w/2,a.at.y-r.y-r.h/2)-Math.hypot(c.at.x-r.x-r.w/2,c.at.y-r.y-r.h/2))[0]
+  if(!window||r.x<env.x||r.y<env.y||r.x+r.w>env.x+env.w||r.y+r.h>env.y+env.h||floor.courtyard&&overlap(r,floor.courtyard))continue
+  // The outside edge is opposite the host room, leaving the access wall clear.
+  const horizontal=r.w>=r.h,positive=horizontal?host.rect.y+host.rect.h/2<r.y+r.h/2:host.rect.x+host.rect.w/2<r.x+r.w/2
+  const posts=horizontal?[{x:r.x,y:positive?r.y+r.h-180:r.y,w:180,h:180},{x:r.x+r.w-180,y:positive?r.y+r.h-180:r.y,w:180,h:180}]:
+   [{x:positive?r.x+r.w-180:r.x,y:r.y,w:180,h:180},{x:positive?r.x+r.w-180:r.x,y:r.y+r.h-180,w:180,h:180}]
+  result.push({id:`${floor.id}_BALCONY_FRAME`,floorId:floor.id,sourceRoomId:terrace.semanticId,sourceWindowId:window.id!,rect:{...r},
+   bottomMm:floor.elevationMm+floor.heightMm-190,thicknessMm:190,framePosts:posts,baseMm:floor.elevationMm})
+ }
  for(const floor of b.floors){
   const candidates=b.windows.filter(w=>w.floorId===floor.id&&w.head!==undefined&&w.head>=floor.heightMm-1000)
    .sort((a,c)=>Number(c.rooms?.includes('stair'))-Number(a.rooms?.includes('stair'))||c.at.y-a.at.y)

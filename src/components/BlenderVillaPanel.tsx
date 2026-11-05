@@ -23,8 +23,8 @@ import { finishSignature } from '@/lib/cost/finishAssignments.ts'
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {useProgress} from '@react-three/drei'
 import type { Design } from '@/lib/engine/types.ts'
-import { expandBalconyArea } from '@/lib/engine/balconyExtent.ts'
 import { createBuildingModel } from '@/lib/engine/buildingModel.ts'
+import {withSetbackBalcony} from '@/lib/engine/setbackBalcony.ts'
 import { useBlender, directionRenderKey } from '@/state/blender.ts'
 import { RenderProgress } from './RenderProgress.tsx'
 import { VillaSceneCanvas, AcceptedVillaModel } from './VillaSceneCanvas.tsx'
@@ -57,14 +57,16 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
   const pipelines = useProjectPipelines(finishedPlan, building, brief)
   const liveExport = useRef<Group>(null)
   const [waterPipes, setWaterPipes] = useState(false), [drainPipes, setDrainPipes] = useState(false), [pipeXray, setPipeXray] = useState(false)
+  const [rainVisibility, setRainVisibility] = useState<{planId: string; visible: boolean} | null>(null)
+  const rainPipes = rainVisibility?.planId === building.planId ? rainVisibility.visible : (pipelines?.options.rainwater ?? false)
+  const setRainPipes = (visible: boolean) => setRainVisibility({planId: building.planId, visible})
   const signature = finishSignature(brief)
   const id = building.planId
   const accepted = useBlender((s) => s.accepted[id])
-  const selectionKey = useBlender((s) => s.selectionKey)
   const job = useBlender((s) => s.job)
   const sourcePlanId = useBlender((s) => s.sourcePlanId)
   const previewKey = selectedSeed === undefined ? '' : directionRenderKey(id, selectedSeed)
-  const result = selectedSeed === undefined || selectionKey === `${previewKey}:${signature}` || accepted?.seed === selectedSeed ? accepted : undefined
+  const result = accepted?.planId === id && (selectedSeed === undefined || accepted.seed === selectedSeed) ? accepted : undefined
   const solar = useSolarVillaEditor(plan, result?.seed)
   const preview = useBlender((s) => s.previews[previewKey])
   const error = useBlender((s) => s.error)
@@ -78,50 +80,41 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
   const renderSolar = useSolarArtifacts(s => s.render), resumeSolar = useSolarArtifacts(s => s.resume)
   const currentSolar = isCurrentSolarArtifact(solarArtifact, result, solar.solar) ? solarArtifact : undefined
   const solarBusy = !!solarJob && !['complete', 'failed'].includes(solarJob.status)
-  const [fillingBalcony,setFillingBalcony]=useState(false)
-  const fillBalconyArea=useStudio(s=>s.fillBalconyArea)
-  const balconyAttempt = useRef('')
-  const balconyInFlight = useRef(false)
-  const needsFullBalcony = useMemo(() => expandBalconyArea(plan) !== plan, [plan])
-  const existingStructure = useStudio(s => s.existing)
   const shapeNotice = useStudio(s => s.generationNotice)
+  const useSetbackBalcony=useStudio(s=>s.useSetbackBalcony)
+  const canUseSetback=useMemo(()=>withSetbackBalcony(plan)!==plan,[plan])
   const jobBusy = Boolean(job && !['complete', 'failed'].includes(job.status))
   const previewBusy = Boolean(preview && ['queued', 'generating', 'rendering'].includes(preview.status))
-  const busy = jobBusy || previewBusy || fillingBalcony
+  const busy = jobBusy || previewBusy
   const currentJob = sourcePlanId === id ? job : null
-  const displayJob = fillingBalcony ? job : currentJob
+  const displayJob = currentJob
   useEffect(() => { void resume() }, [resume])
   useEffect(() => { void resumeSolar() }, [resumeSolar])
   useEffect(() => {
-    if (!autoGenerate || balconyInFlight.current) return
-    if (!existingStructure && needsFullBalcony && balconyAttempt.current !== id) {
-      if (jobBusy || previewBusy) return
-      balconyAttempt.current = id
-      balconyInFlight.current = true
-      setFillingBalcony(true)
-      void fillBalconyArea(quality).finally(() => {
-        balconyInFlight.current = false
-        setFillingBalcony(false)
-      })
-      return
-    }
+    if (!autoGenerate) return
+    // Opening a viewer exports the selected plan; it must not alter balconies
+    // or replace the geometry pinned in Directions / the 2D plan.
     void ensureForPlan(finishedPlan, selectedSeed)
-  }, [autoGenerate, existingStructure, needsFullBalcony, id, jobBusy, previewBusy, fillBalconyArea, quality, finishedPlan, selectedSeed, ensureForPlan, fillingBalcony])
+  }, [autoGenerate, jobBusy, job?.id, job?.status, previewBusy, finishedPlan, selectedSeed, ensureForPlan])
   return <section className="mt-5 border border-line p-4 md:p-6">
     <div className="flex flex-wrap items-center justify-between gap-4">
       <div><h2 className="font-display text-xl">{translateUi("Blender architectural design")}</h2></div>
+      {canUseSetback&&<button type="button" disabled={busy} onClick={useSetbackBalcony} className="border border-line px-4 py-2 text-sm disabled:opacity-50">Use setback as balcony</button>}
     </div>
     {previewBusy && <RenderProgress progress={preview!.progress} label={preview!.phase} />}
     {previewBusy && !preview!.phase.includes('Set BLENDER_BIN') && <p role="status" className="mt-4 text-sm text-ink-dim">{translateUi("Preparing your selected direction: ")}{translateUi(preview!.phase)}{translateUi(". The same villa will appear here when ready.")}</p>}
     {displayJob && jobBusy && !previewBusy && <RenderProgress progress={displayJob.progress} label={displayJob.phase} />}
     {displayJob && jobBusy && !displayJob.phase.includes('Set BLENDER_BIN') && <p role="status" className="mt-4 text-sm text-ink-dim">{translateUi(displayJob.phase)}{translateUi(displayJob.attempt ? ` · candidate ${displayJob.attempt}` : '')}{translateUi(". Rendering can take a few minutes.")}</p>}
-    {jobBusy && !currentJob && !fillingBalcony && !previewBusy && <p role="status" className="mt-4 text-sm text-ink-dim">{translateUi("Another plan is being generated. This plan will start when it finishes.")}</p>}
+    {jobBusy && !currentJob && !previewBusy && <p role="status" className="mt-4 text-sm text-ink-dim">{translateUi("Another plan is being generated. This plan will start when it finishes.")}</p>}
     {shapeNotice && !shapeNotice.includes('Valid directions are shown') && <p role="status" className="mt-3 text-sm text-ink-dim">{translateUi(shapeNotice)}</p>}
     {!result && <div className="mt-4 flex aspect-[4/3] items-center justify-center border border-line bg-bg-inset p-8 text-center text-sm text-ink-dim">
-      {translateUi(busy ? 'Building and rendering your villa…' : 'The interactive Blender model and three rendered views will appear here.')}
+      <div role="status" className="space-y-3">
+        {(busy || autoGenerate && !error) && <div aria-hidden="true" className="mx-auto h-7 w-7 animate-spin rounded-full border-2 border-line border-t-ink motion-reduce:animate-none" />}
+        <p>{translateUi(error && sourcePlanId === id ? 'Your 3D model could not be loaded. Retry below.' : 'Preparing your selected 3D model…')}</p>
+      </div>
     </div>}
-    {sourcePlanId === id && error && !error.includes('Set BLENDER_BIN') && <p role="alert" className="mt-4 text-sm text-bad">{translateUi(error)}</p>}
-    {sourcePlanId === id && error && !error.includes('Set BLENDER_BIN') && !busy && <button type="button" onClick={() => void generate(finishedPlan, result?.seed ?? selectedSeed ?? plan.dna.seed, quality, true)}
+    {sourcePlanId === id && error && <p role="alert" className="mt-4 text-sm text-bad">{translateUi(error)}</p>}
+    {!busy && (!result || sourcePlanId === id && error) && <button type="button" onClick={() => void generate(finishedPlan, result?.seed ?? selectedSeed ?? plan.dna.seed, quality, true)}
       className="mt-3 border border-line px-4 py-2 text-sm">{translateUi('Retry 3D model')}</button>}
     {result && <>
       {(result.geometryRevision !== WALKTHROUGH_ACCESS_REVISION || brief.style.character==='coastal-bungalow'&&result.roofRevision!==COASTAL_ROOF_REVISION) && <div className="mt-4 flex flex-wrap items-center gap-3 border border-line bg-bg-inset p-3"><p className="flex-1 text-xs text-ink-dim">{translateUi(brief.style.character==='coastal-bungalow'?'Update this villa with a continuous coastal roof.':'Update terrace walls and floor edges on this same villa.')}</p><button type="button" disabled={busy} onClick={() => void generate(finishedPlan, result.seed, quality, true)} className="min-h-11 border border-line bg-accent px-4 text-xs text-bg disabled:opacity-50">{translateUi(busy ? 'Updating Blender villa…' : 'Update 3D model')}</button></div>}
@@ -195,7 +188,7 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
               {building.entryRamp&&<EntryRampLayer ramp={building.entryRamp}/>}
               {shade!=='original'&&<BalconyShadeLayer url={result.files.glb} choice={shade}/>}
               <SolarLayer layout={solar.displayLayout} roof={solar.displayRoof} reservedAreas={solar.displayConfiguration.inputs.reservedAreas} selectedIds={solar.selectedIds} onSelect={solar.pickPanel}/>
-              {pipelines&&<><ResizableRoofTanks url={result.files.glb} ports={pipelines.originalPorts} diameterScale={pipelines.options.roofDiameterScale??1} heightScale={pipelines.options.roofHeightScale??1} xray={false} onSelect={()=>{}}/><ProjectPipelineLayer network={pipelines} water={waterPipes} drain={drainPipes} xray={pipeXray}/></>}
+              {pipelines&&<><ResizableRoofTanks url={result.files.glb} ports={pipelines.originalPorts} diameterScale={pipelines.options.roofDiameterScale??1} heightScale={pipelines.options.roofHeightScale??1} xray={false} onSelect={()=>{}}/><ProjectPipelineLayer network={pipelines} water={waterPipes} drain={drainPipes} rainwater={rainPipes} xray={pipeXray}/></>}
             </group><SolarCamera request={solar.camera} roof={solar.displayRoof} layout={solar.displayLayout} selectedIds={solar.selectedIds}/></Suspense>
             {contextMode&&<Suspense fallback={null}><RealisticSiteEnvironment key={result.files.glb} building={building} traffic={traffic} golden={golden} onReady={siteLoaded}/></Suspense>}
           </VillaSceneCanvas>
@@ -205,7 +198,7 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
       <label className="mt-4 flex flex-wrap items-center gap-3 text-xs">Parked car<select aria-label="Parked car" className="min-h-11 border border-line bg-bg px-3" value={parkedCar} onChange={e=>edit(b=>{b.specs??={overrides:{}};b.specs.overrides['visual-model-parked-car']=e.target.value})}>{Object.entries(VEHICLES).filter(([id])=>id!=='compact-hatch').map(([id,car])=><option key={id} value={id}>{car.label}</option>)}</select><a className="underline text-ink-dim" href="/exterior-assets/free-cars/SOURCE.md" target="_blank" rel="noreferrer">Car model credits</a></label>
       <section className="mt-4 border border-line bg-bg-raised p-4" aria-label={translateUi('Water & drainage pipelines')}>
         <label className="mb-4 flex flex-wrap items-center gap-3 text-xs">Balcony shade<select aria-label="Balcony shade" className="min-h-11 border border-line bg-bg px-3" value={shade} onChange={e=>edit(b=>{b.specs??={overrides:{}};b.specs.overrides[SHADE_CONTROL]=shadeChoice(e.target.value)})}>{SHADE_CHOICES.map(([id,label])=><option key={id} value={id}>{label}</option>)}</select><span className="text-ink-dim">Existing framed balconies · live 3D / combined GLB only · saved images unchanged</span><a className="underline" href="https://kenney.nl/assets/city-kit-commercial" target="_blank" rel="noreferrer">Kenney · CC0</a></label>
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-2"><h3 className="mr-auto font-display text-lg">{translateUi('Water & drainage pipelines')}</h3>{([[waterPipes,setWaterPipes,'Tank water supply'],[drainPipes,setDrainPipes,'Drainage & vents'],[pipeXray,setPipeXray,'See pipes through walls']] as const).map(([value,setter,label])=><label key={label} className="flex min-h-11 items-center gap-2 text-xs"><input type="checkbox" className="accent-accent" checked={value} onChange={e=>setter(e.target.checked)}/>{translateUi(label)}</label>)}</div>
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2"><h3 className="mr-auto font-display text-lg">{translateUi('Water & drainage pipelines')}</h3>{([[waterPipes,setWaterPipes,'Tank water supply'],[drainPipes,setDrainPipes,'Drainage & vents'],[rainPipes,setRainPipes,'Collect rainwater'],[pipeXray,setPipeXray,'See pipes through walls']] as const).map(([value,setter,label])=><label key={label} className="flex min-h-11 items-center gap-2 text-xs"><input type="checkbox" className="accent-accent" checked={value} onChange={e=>setter(e.target.checked)}/>{translateUi(label)}</label>)}</div>
         <p className="mt-2 text-xs text-ink-dim">{translateUi('Ivory: water pipes. Charcoal: drainage stacks. Warm grey: vents. Existing shaft openings are preserved.')}</p>
         <p role="status" className="mt-2 text-xs text-ink-dim">{translateUi(`Tank-fed fixtures: ${pipelines?.supply.fixtures.filter(f=>f.connected).length??0}/${pipelines?.supply.fixtures.length??0} · connected drains: ${pipelines?.fixtureScene.fixtures.filter(f=>f.branch?.connected).length??0}/${pipelines?.fixtureScene.fixtures.length??0}`)}</p>
         <details className="mt-2 text-xs text-ink-dim"><summary className="min-h-11 cursor-pointer py-3">{translateUi('Pipeline details & connections to review')}</summary><p>{translateUi('Selected pipe sizes')}: {selectedPipeSizes(brief).waterMm} mm · {translateUi('Tank water supply')}; {selectedPipeSizes(brief).soilMm} / {selectedPipeSizes(brief).wasteMm} mm · {translateUi('Drainage & vents')}</p><p className="mt-2">{translateUi('Pipe sizes are concept envelopes. Structural openings, fixture branches, vent sizing, gradients and final discharge need professional review. The house and estimate stay unchanged.')}</p><ul className="mt-3 space-y-2">{[...new Set([...(pipelines?.issues??[]),...(pipelines?.supply.issues??[]),...(pipelines?.fixtureScene.issues??[]),...(pipelines?.continuity.issues??[]),...(pipelines?.drainNetwork.issues??[])])].map((issue,i)=><li key={i}>{translateUi(issue)}</li>)}</ul><p className="mt-3">{translateUi('Use Live villa + visible pipelines GLB to download the pipework shown here. Saved images and original downloads keep their previously generated contents.')}</p></details>

@@ -22,10 +22,12 @@ import type { LayoutChoices } from './layoutChoices.ts'
 import type { PlanProposal } from './ml/proposal.ts'
 import { PLAN_LEARNING_LIMITS } from './ml/proposal.ts'
 import { upperProfile, usesSetbackTerraces, type FormVersion } from '../siteForm.ts'
+import { uncoveredRects } from './projections.ts'
 
 export type { PlateFamily } from './types.ts'
 
 export type PlanRequest = {
+  frontage?: 'wide'
   formVersion?: FormVersion
   formSeed?: number
   /** Existing Structure Mode: plan around what is already built */
@@ -79,6 +81,7 @@ export function planVilla(model: CanonicalModel, request: PlanRequest): PlanResu
     reorder(floors, request.order)
     const courtReq = courtOf(floors)
     const input: LayoutInput = {
+      frontage:request.frontage,
       courtyardPool: request.formVersion==='site-form-v3'&&model.brief.rooms.pool&&request.family==='courtyard',
       ...(request.formVersion ? { upperProfile: upperProfile(model, request.formSeed ?? request.order) } : {}),
       floors, site, family: request.family, large: nb.large, stairDepth: stair.depth,
@@ -142,6 +145,7 @@ export function planVilla(model: CanonicalModel, request: PlanRequest): PlanResu
   const pool = eligible.filter((c) => c.score <= eligible[0].score + Math.abs(eligible[0].score) * 0.18).slice(0, request.proposal ? PLAN_LEARNING_LIMITS.candidatePool : 4)
   if(request.proposal)pool.sort((a,b)=>learnedScore(a)-learnedScore(b))
   const cand: PlateCandidate = pool[request.pick % pool.length]
+  if(!cand)return null
 
   // ---- RoomPlacement (local u/v) + StructuralGrid cross axes ----
   const layout = placeFloors(input, cand)
@@ -233,7 +237,7 @@ export function planVilla(model: CanonicalModel, request: PlanRequest): PlanResu
         bbox, site, nb.twoCar, nb.large, outdoorRoom)
     } else {
       for (const r of req.outdoor.filter((x) => x.kind === 'balcony')) {
-        const b = placeBalcony(rooms, bbox, site, kindOf, lowerPlate,usesSetbackTerraces(request.formVersion),floors[0]?.rooms.filter(r=>r.id==='parking').map(r=>r.rect))
+        const b = placeBalcony(rooms, bbox, site, kindOf, lowerPlate,usesSetbackTerraces(request.formVersion),floors[0]?.rooms.filter(r=>r.id==='parking').map(r=>r.rect),['stepped-terrace','framed-balcony'].includes(model.brief.style.composition??''))
         if (b) rooms.push(outdoorRoom(usesSetbackTerraces(request.formVersion)&&covered(b,lowerPlate)?{...r,name:'Setback terrace'}:r, b))
       }
     }
@@ -259,6 +263,12 @@ export function planVilla(model: CanonicalModel, request: PlanRequest): PlanResu
     const cantilevers = rooms.filter((r) => r.outdoor && r.id.startsWith('balcony') &&
       !covered(r.rect, lowerPlate)).map((r) => r.rect)
     const supportZones = supportZonesFor(cells, prefix, cantilevers)
+    if(level>0&&model.brief.style.composition==='offset-box') {
+      uncoveredRects(footprint,lowerPlate).forEach((rect,index)=>supportZones.push({
+        id:`${prefix}_CONCEPT_PROJECTION_${index}`,rect,support:'cantilever',
+        review:'Concept only: projecting occupied slab requires structural engineer design.'
+      }))
+    }
 
     // ---- WallGraph → StairCore → DoorPlacement → WindowPlacement → WetAreaPlanning ----
     const walls = wallGraph(rooms, prefix, structuralLines)
@@ -432,7 +442,7 @@ export function frontYard(
  * roof of the floor below (fully supported), then any other face (a declared
  * cantilever). Habitable rooms host first; a lobby only when nothing else can.
  */
-export function placeBalcony(rooms: PlacedRoom[], house: Rect, site: SiteModel, kindOf: (id: string) => string, lowerPlate: Rect[], preferSetback=false, parking: Rect[]=[]): Rect | null {
+export function placeBalcony(rooms: PlacedRoom[], house: Rect, site: SiteModel, kindOf: (id: string) => string, lowerPlate: Rect[], preferSetback=false, parking: Rect[]=[], requireSetback=false): Rect | null {
   const enclosed = rooms.filter((r) => !r.outdoor)
   const clear = (b: Rect) => !parking.some(p=>b.x<rectRight(p)&&rectRight(b)>p.x&&b.y<rectBottom(p)&&rectBottom(b)>p.y) && rooms.every((o) => {
     const ox = Math.min(rectRight(b), rectRight(o.rect)) - Math.max(b.x, o.rect.x)
@@ -489,7 +499,7 @@ export function placeBalcony(rooms: PlacedRoom[], house: Rect, site: SiteModel, 
     }
   }
   options.sort((a, b) => a.rank - b.rank || a.rect.x - b.rect.x || a.rect.y - b.rect.y)
-  return options[0]?.rect ?? null
+  return (requireSetback?options.filter(o=>rectArea(o.rect)>=6e6&&covered(o.rect,lowerPlate)):options)[0]?.rect ?? null
 }
 
 /** BFS over the door graph: ground from the main door, upper floors from the stair */

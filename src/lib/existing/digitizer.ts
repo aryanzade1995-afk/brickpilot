@@ -7,7 +7,8 @@
  * into the canonical Survey schema for downstream consumption.
  */
 
-import { type Survey, surveySchema, SURVEY_DEFAULTS } from './survey.ts'
+import { type Survey, surveySchema, SURVEY_DEFAULTS, SURVEY_SETBACKS } from './survey.ts'
+import {z} from 'zod'
 
 export interface ImagePointPx {
   x: number
@@ -25,6 +26,7 @@ export interface RawSurveyRoom {
     h: number
   }
   confidence: number // 0 to 1
+  stairStartSide?: 'N'|'E'|'S'|'W'|null
   labelPoint?: ImagePointPx
 }
 
@@ -43,6 +45,9 @@ export interface RawSurveyOpening {
   orient: 'h' | 'v'
   at: ImagePointPx
   widthPx: number
+  headM?:number
+  sillM?:number
+  leaf?:boolean
   swing?: number // 1 or -1
   confidence: number // 0 to 1
 }
@@ -65,6 +70,7 @@ export interface RawSurvey {
     openings: RawSurveyOpening[]
     dimensions: RawSurveyDimension[]
   }
+  columns?:{x:number;y:number;sizeMm:number|null}[]
   scaleMPerPx?: number // inferred or calibrated
   metadata?: {
     adapterId: string
@@ -91,313 +97,46 @@ export interface DrawingDigitizer {
 // Automatic AI & Computer Vision Drawing Digitizer
 // ---------------------------------------------------------------------------
 
-/**
- * Intelligent plan synthesizer: Constructs a measured, architecturally coherent
- * Indian residential layout from the uploaded photo's proportions and bounds.
- */
-export function synthesizeIntelligentPlanFromImage(
-  imageWidth: number,
-  imageHeight: number,
-  assumedWidthM = 11.0
-): RawSurvey {
-  const marginX = Math.round(imageWidth * 0.12)
-  const marginY = Math.round(imageHeight * 0.10)
-  const houseW = Math.round(imageWidth * 0.76)
-  const houseH = Math.round(imageHeight * 0.78)
-
-  const scaleMPerPx = +(assumedWidthM / houseW).toFixed(6)
-  const extWallThickPx = Math.max(4, Math.round(0.23 / scaleMPerPx))
-  const intWallThickPx = Math.max(2, Math.round(0.115 / scaleMPerPx))
-
-  const x0 = marginX
-  const y0 = marginY
-  const x1 = x0 + houseW
-  const y1 = y0 + houseH
-
-  // Internal division points
-  const divX = Math.round(x0 + houseW * 0.54)
-  const divY = Math.round(y0 + houseH * 0.44)
-  const bathX = Math.round(divX + houseW * 0.24)
-  const bathY = Math.round(divY + houseH * 0.32)
-
-  // 1. Detected Rooms
-  const rooms: RawSurveyRoom[] = [
-    {
-      id: 'room-living',
-      name: 'Living Room',
-      type: 'living',
-      box: { x: x0, y: y0, w: divX - x0, h: divY - y0 },
-      confidence: 0.94,
-    },
-    {
-      id: 'room-kitchen',
-      name: 'Kitchen & Dining',
-      type: 'kitchen',
-      box: { x: divX, y: y0, w: x1 - divX, h: divY - y0 },
-      confidence: 0.91,
-    },
-    {
-      id: 'room-master-bed',
-      name: 'Master Bedroom',
-      type: 'bed',
-      box: { x: x0, y: divY, w: divX - x0, h: y1 - divY },
-      confidence: 0.89,
-    },
-    {
-      id: 'room-bed2',
-      name: 'Bedroom 2',
-      type: 'bed',
-      box: { x: divX, y: divY, w: bathX - divX, h: y1 - divY },
-      confidence: 0.86,
-    },
-    {
-      id: 'room-bath',
-      name: 'Toilet / Bath',
-      type: 'bath',
-      box: { x: bathX, y: divY, w: x1 - bathX, h: bathY - divY },
-      confidence: 0.82,
-    },
-    {
-      id: 'room-utility',
-      name: 'Utility / Store',
-      type: 'utility',
-      box: { x: bathX, y: bathY, w: x1 - bathX, h: y1 - bathY },
-      confidence: 0.78,
-    },
-  ]
-
-  // 2. Detected Walls
-  const walls: RawSurveyWall[] = [
-    // Exterior perimeter
-    { id: 'wall-ext-top', a: { x: x0, y: y0 }, b: { x: x1, y: y0 }, thicknessPx: extWallThickPx, kind: 'exterior', confidence: 0.95 },
-    { id: 'wall-ext-right', a: { x: x1, y: y0 }, b: { x: x1, y: y1 }, thicknessPx: extWallThickPx, kind: 'exterior', confidence: 0.95 },
-    { id: 'wall-ext-bottom', a: { x: x1, y: y1 }, b: { x: x0, y: y1 }, thicknessPx: extWallThickPx, kind: 'exterior', confidence: 0.95 },
-    { id: 'wall-ext-left', a: { x: x0, y: y1 }, b: { x: x0, y: y0 }, thicknessPx: extWallThickPx, kind: 'exterior', confidence: 0.95 },
-    // Interior partitions
-    { id: 'wall-int-h-mid', a: { x: x0, y: divY }, b: { x: x1, y: divY }, thicknessPx: intWallThickPx, kind: 'interior', confidence: 0.92 },
-    { id: 'wall-int-v-mid', a: { x: divX, y: y0 }, b: { x: divX, y: y1 }, thicknessPx: intWallThickPx, kind: 'interior', confidence: 0.90 },
-    { id: 'wall-int-v-bath', a: { x: bathX, y: divY }, b: { x: bathX, y: y1 }, thicknessPx: intWallThickPx, kind: 'interior', confidence: 0.85 },
-    { id: 'wall-int-h-util', a: { x: bathX, y: bathY }, b: { x: x1, y: bathY }, thicknessPx: intWallThickPx, kind: 'interior', confidence: 0.82 },
-  ]
-
-  // 3. Openings (Doors & Windows)
-  const doorWidthPx = Math.round(0.9 / scaleMPerPx)
-  const entryWidthPx = Math.round(1.0 / scaleMPerPx)
-  const winWidthPx = Math.round(1.2 / scaleMPerPx)
-
-  const openings: RawSurveyOpening[] = [
-    // Main Entrance Door (on front wall into Living Room)
-    {
-      id: 'open-entry',
-      kind: 'entry',
-      orient: 'h',
-      at: { x: Math.round(x0 + (divX - x0) * 0.45), y: y0 },
-      widthPx: entryWidthPx,
-      swing: 1,
-      confidence: 0.96,
-    },
-    // Living to Kitchen Door
-    {
-      id: 'open-door-kitchen',
-      kind: 'door',
-      orient: 'v',
-      at: { x: divX, y: Math.round(y0 + (divY - y0) * 0.5) },
-      widthPx: doorWidthPx,
-      swing: 1,
-      confidence: 0.88,
-    },
-    // Living to Master Bedroom Door
-    {
-      id: 'open-door-mbed',
-      kind: 'door',
-      orient: 'h',
-      at: { x: Math.round(x0 + (divX - x0) * 0.5), y: divY },
-      widthPx: doorWidthPx,
-      swing: 1,
-      confidence: 0.87,
-    },
-    // Passage to Bedroom 2 Door
-    {
-      id: 'open-door-bed2',
-      kind: 'door',
-      orient: 'h',
-      at: { x: Math.round(divX + (bathX - divX) * 0.5), y: divY },
-      widthPx: doorWidthPx,
-      swing: 1,
-      confidence: 0.85,
-    },
-    // Bath Door
-    {
-      id: 'open-door-bath',
-      kind: 'door',
-      orient: 'v',
-      at: { x: bathX, y: Math.round(divY + (bathY - divY) * 0.5) },
-      widthPx: doorWidthPx,
-      swing: 1,
-      confidence: 0.83,
-    },
-    // Exterior Windows
-    {
-      id: 'open-win-living',
-      kind: 'window',
-      orient: 'v',
-      at: { x: x0, y: Math.round(y0 + (divY - y0) * 0.5) },
-      widthPx: winWidthPx,
-      confidence: 0.92,
-    },
-    {
-      id: 'open-win-kitchen',
-      kind: 'window',
-      orient: 'h',
-      at: { x: Math.round(divX + (x1 - divX) * 0.5), y: y0 },
-      widthPx: winWidthPx,
-      confidence: 0.90,
-    },
-    {
-      id: 'open-win-mbed',
-      kind: 'window',
-      orient: 'v',
-      at: { x: x0, y: Math.round(divY + (y1 - divY) * 0.5) },
-      widthPx: winWidthPx,
-      confidence: 0.89,
-    },
-    {
-      id: 'open-win-bed2',
-      kind: 'window',
-      orient: 'h',
-      at: { x: Math.round(divX + (bathX - divX) * 0.5), y: y1 },
-      widthPx: winWidthPx,
-      confidence: 0.88,
-    },
-  ]
-
-  // 4. Detected dimension label
-  const dimensions: RawSurveyDimension[] = [
-    {
-      id: 'dim-width',
-      text: `${assumedWidthM.toFixed(1)} m`,
-      valueM: assumedWidthM,
-      a: { x: x0, y: y0 - 15 },
-      b: { x: x1, y: y0 - 15 },
-      confidence: 0.92,
-    },
-  ]
-
-  return {
-    imageWidth,
-    imageHeight,
-    elements: {
-      rooms,
-      walls,
-      openings,
-      dimensions,
-    },
-    scaleMPerPx,
-    metadata: {
-      adapterId: 'automatic-vision-synthesizer',
-      timestamp: Date.now(),
-      notes: [
-        'Automatically detected and reconstructed architectural plan from drawing image.',
-        `Calibrated building footprint: ${assumedWidthM.toFixed(1)} m width.`,
-      ],
-    },
-  }
+/** Convert the existing reader's normalized geometry, never a substitute layout. */
+export function drawingDraftToRaw(value:unknown,width:number,height:number):RawSurvey {
+  const draft=surveySchema.parse(value)
+  const source=z.object({source:z.object({imageBox:z.tuple([z.number().finite(),z.number().finite(),z.number().finite(),z.number().finite()]),imageSize:z.tuple([z.number().positive(),z.number().positive()])})}).safeParse(value)
+  const box=source.success?source.data.source.imageBox:[0,0,width,height]
+  const sx=source.success?width/source.data.source.imageSize[0]:1,sy=source.success?height/source.data.source.imageSize[1]:1
+  const x0=box[0]*sx,y0=box[1]*sy,w=(box[2]-box[0])*sx,h=(box[3]-box[1])*sy
+  if(w<=0||h<=0)throw Error('The drawing reader returned invalid image bounds.')
+  const scale=draft.widthM?draft.widthM/w:draft.depthM?draft.depthM/h:undefined
+  const provisional=scale??12/width
+  const point=(p:{x:number;y:number})=>({x:x0+p.x*w/1000,y:y0+p.y*h/1000})
+  return validateRawSurvey({imageWidth:width,imageHeight:height,scaleMPerPx:scale,
+    elements:{
+      rooms:draft.rooms.map((r,i)=>({id:`room-${i+1}`,name:r.name,type:r.type,box:{...point(r),w:r.w*w/1000,h:r.h*h/1000},stairStartSide:r.stairStartSide,confidence:.65})),
+      walls:draft.walls.map((w,i)=>({id:`wall-${i+1}`,a:point(w.a),b:point(w.b),kind:w.kind,...(w.thicknessMm?{thicknessPx:w.thicknessMm/1000/provisional}:{}),confidence:.65})),
+      openings:draft.openings.map((o,i)=>({id:`opening-${i+1}`,kind:o.kind,orient:o.orient,at:point(o),widthPx:(o.widthM??(o.kind==='window'?1.2:.9))/provisional,headM:o.headM??undefined,sillM:o.sillM??undefined,swing:o.swing,leaf:o.leaf,confidence:.65})),
+      dimensions:[]},
+    columns:draft.columns.map(c=>({...point(c),sizeMm:c.sizeMm})),
+    metadata:{adapterId:'auto-ai-digitizer',timestamp:Date.now(),notes:[...draft.notes,
+      'Detected geometry needs review. Unlabelled construction dimensions use editable standard assumptions.',
+      ...(scale?[]:['No readable drawing scale was found. Calibrate a known dimension before continuing.'])].slice(0,30)}})
 }
 
-/**
- * Primary Automatic Drawing Digitizer:
- * 1. Queries local `/api/existing-plan/read` endpoint if available.
- * 2. If the backend is unreachable or vision is offline, seamlessly analyzes
- *    image geometry and executes intelligent plan synthesis to construct the full
- *    design model automatically.
- */
 export class AutomaticDrawingDigitizer implements DrawingDigitizer {
-  public readonly id = 'auto-ai-digitizer'
-  public readonly name = 'Automatic Drawing Reader'
-  public readonly description = 'Reads floor plan drawings and automatically constructs the 2D architectural model.'
-
-  async digitize(image: File | Blob, opts?: DigitizeOptions): Promise<RawSurvey> {
-    const dims = await getImageDimensions(image)
-
-    // Attempt server backend reading if available
-    try {
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = () => {
-          const res = String(reader.result)
-          resolve(res.includes(',') ? res.split(',')[1] : res)
-        }
-        reader.onerror = reject
-        reader.readAsDataURL(image)
-      })
-
-      const timeoutMs = opts?.timeoutMs ?? 15000
-      const response = await fetch('/api/existing-plan/read', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ imageBase64: base64, mimeType: image.type || 'image/png' }),
-        signal: opts?.signal ?? AbortSignal.timeout(timeoutMs),
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        const draft = data.draft
-        if (draft && Array.isArray(draft.rooms) && draft.rooms.length > 0) {
-          // Convert normalized 0..1000 coordinates to image pixels
-          const toPxX = (norm: number) => Math.round((norm / 1000) * dims.width)
-          const toPxY = (norm: number) => Math.round((norm / 1000) * dims.height)
-
-          const rooms: RawSurveyRoom[] = draft.rooms.map((r: any, idx: number) => ({
-            id: `room-${idx + 1}`,
-            name: r.name || 'Room',
-            type: r.type || 'living',
-            box: {
-              x: toPxX(r.x),
-              y: toPxY(r.y),
-              w: toPxX(r.w),
-              h: toPxY(r.h),
-            },
-            confidence: 0.9,
-          }))
-
-          const walls: RawSurveyWall[] = (draft.walls || []).map((w: any, idx: number) => ({
-            id: `wall-${idx + 1}`,
-            a: { x: toPxX(w.a.x), y: toPxY(w.a.y) },
-            b: { x: toPxX(w.b.x), y: toPxY(w.b.y) },
-            kind: w.kind || 'interior',
-            thicknessPx: Math.round(((w.thicknessMm || 115) / 1000) / ((draft.widthM || 11) / dims.width)),
-            confidence: 0.9,
-          }))
-
-          const openings: RawSurveyOpening[] = (draft.openings || []).map((o: any, idx: number) => ({
-            id: `opening-${idx + 1}`,
-            kind: o.kind || 'door',
-            orient: o.orient || 'h',
-            at: { x: toPxX(o.x), y: toPxY(o.y) },
-            widthPx: Math.round((o.widthM || 0.9) / ((draft.widthM || 11) / dims.width)),
-            swing: 1,
-            confidence: 0.85,
-          }))
-
-          return {
-            imageWidth: dims.width,
-            imageHeight: dims.height,
-            elements: { rooms, walls, openings, dimensions: [] },
-            scaleMPerPx: draft.widthM ? draft.widthM / dims.width : undefined,
-            metadata: {
-              adapterId: this.id,
-              timestamp: Date.now(),
-              notes: draft.notes || ['Extracted via server drawing reader.'],
-            },
-          }
-        }
-      }
-    } catch {
-      // Server endpoint unavailable; proceed to intelligent vision synthesis
-    }
-
-    // Intelligent Synthesis: Automatically extracts and designs the floorplan from the photo
-    return synthesizeIntelligentPlanFromImage(dims.width, dims.height)
+  readonly id='auto-ai-digitizer'
+  readonly name='Drawing reader'
+  readonly description='Reads the uploaded geometry with the configured local drawing reader.'
+  async digitize(image:File|Blob,opts?:DigitizeOptions):Promise<RawSurvey>{
+    const dims=await getImageDimensions(image)
+    const base64=await new Promise<string>((resolve,reject)=>{
+      const reader=new FileReader()
+      reader.onload=()=>resolve(String(reader.result).split(',')[1])
+      reader.onerror=()=>reject(Error('Could not read the drawing image.'))
+      reader.readAsDataURL(image)
+    })
+    const response=await fetch('/api/existing-plan/read',{method:'POST',headers:{'content-type':'application/json'},
+      body:JSON.stringify({imageBase64:base64,mimeType:image.type||'image/png'}),signal:opts?.signal??AbortSignal.timeout(opts?.timeoutMs??180000)})
+    const data=await response.json()
+    if(!response.ok)throw Error(data.error||'The drawing reader is unavailable.')
+    return drawingDraftToRaw(data.draft,dims.width,dims.height)
   }
 }
 
@@ -491,19 +230,19 @@ export async function digitizeWithFallback(
     return { survey, fallbackUsed: false }
   }
 
+  let timer:ReturnType<typeof setTimeout>|undefined
+  const controller=new AbortController()
+  const abort=()=>controller.abort(opts?.signal?.reason)
+  opts?.signal?.addEventListener('abort',abort,{once:true})
   try {
-    const timeoutMs = opts?.timeoutMs ?? 20000
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Digitization request timed out')), timeoutMs)
-    )
-    const survey = await Promise.race([primary.digitize(image, opts), timeoutPromise])
-    return { survey, fallbackUsed: false }
-  } catch (err) {
-    const errorMsg = err instanceof Error ? err.message : 'Digitizer failed'
-    const manual = registry.get('manual-trace')!
-    const survey = await manual.digitize(image, opts)
-    return { survey, fallbackUsed: true, error: errorMsg }
-  }
+    if(opts?.signal?.aborted)throw new DOMException('Cancelled','AbortError')
+    const deadline=new Promise<never>((_,reject)=>{timer=setTimeout(()=>{controller.abort();reject(Error('Drawing reader timed out.'))},opts?.timeoutMs??180000)})
+    const survey=validateRawSurvey(await Promise.race([primary.digitize(image,{...opts,signal:controller.signal}),deadline]))
+    return {survey,fallbackUsed:false}
+  }catch(error){
+    if(opts?.signal?.aborted)throw error
+    return {survey:await registry.get('manual-trace')!.digitize(image,opts),fallbackUsed:true,error:error instanceof Error?error.message:'Drawing reader failed'}
+  }finally{clearTimeout(timer);opts?.signal?.removeEventListener('abort',abort)}
 }
 
 // ---------------------------------------------------------------------------
@@ -680,7 +419,7 @@ export function rawSurveyToSurvey(
   const rooms = raw.elements.rooms.map((r) => {
     const tl = ptToM({ x: r.box.x, y: r.box.y })
     const type: SurveyRoomType =
-      r.type === 'master_bed'
+      r.type === 'store' ? 'utility' : r.type === 'balcony' ? 'utility' : r.type === 'master_bed'
         ? 'bed'
         : VALID_ROOM_TYPES.has(r.type as SurveyRoomType)
           ? (r.type as SurveyRoomType)
@@ -693,7 +432,7 @@ export function rawSurveyToSurvey(
       y: tl.y,
       w: pxToM(r.box.w),
       h: pxToM(r.box.h),
-      stairStartSide: null as 'N' | 'S' | 'E' | 'W' | null,
+      stairStartSide: r.stairStartSide ?? null,
     }
   })
 
@@ -719,8 +458,8 @@ export function rawSurveyToSurvey(
   const openings = raw.elements.openings.map((o) => {
     const at = ptToM(o.at)
     const widthM = o.widthPx ? pxToM(o.widthPx) : o.kind === 'window' ? 1.2 : 0.9
-    const headM = o.kind === 'window' ? SURVEY_DEFAULTS.windowHeadM : SURVEY_DEFAULTS.doorHeadM
-    const sillM = o.kind === 'window' ? SURVEY_DEFAULTS.windowSillM : null
+    const headM = o.headM ?? (o.kind === 'window' ? SURVEY_DEFAULTS.windowHeadM : SURVEY_DEFAULTS.doorHeadM)
+    const sillM = o.kind === 'window' ? o.sillM ?? SURVEY_DEFAULTS.windowSillM : null
     const swing: 1 | -1 = o.swing === -1 ? -1 : 1
 
     return {
@@ -732,7 +471,7 @@ export function rawSurveyToSurvey(
       headM,
       sillM,
       swing,
-      leaf: true,
+      leaf: o.leaf ?? true,
       emergencyExit: false,
     }
   })
@@ -749,9 +488,7 @@ export function rawSurveyToSurvey(
     ...openings.map((o) => o.y),
   ]
 
-  const minX = allX.length ? Math.min(...allX) : 0
   const maxX = allX.length ? Math.max(...allX) : pxToM(raw.imageWidth)
-  const minY = allY.length ? Math.min(...allY) : 0
   const maxY = allY.length ? Math.max(...allY) : pxToM(raw.imageHeight)
 
   const widthM = +(maxX + 0.05).toFixed(2)
@@ -761,19 +498,38 @@ export function rawSurveyToSurvey(
     widthM: widthM > 0 ? widthM : null,
     depthM: depthM > 0 ? depthM : null,
     heightM: SURVEY_DEFAULTS.heightM,
-    plotOffsetXM: null,
-    plotOffsetYM: null,
-    columns: [],
+    plotOffsetXM: SURVEY_SETBACKS.left,
+    plotOffsetYM: SURVEY_SETBACKS.rear,
+    columns: (raw.columns??[]).map(c=>({...ptToM(c),sizeMm:c.sizeMm??SURVEY_DEFAULTS.columnMm})),
     footings: [],
     beams: [],
     walls,
     rooms,
     openings,
     notes: [
+      ...(raw.metadata?.notes??[]),
       `Digitized via ${raw.metadata?.adapterId ?? 'custom adapter'} at ${scaleMPerPx.toFixed(5)} m/px.`,
     ],
   }
 
   // Validate with surveySchema
   return surveySchema.parse(draft)
+}
+
+const coordinate=z.number().finite().min(0).max(65535)
+const imagePoint=z.object({x:coordinate,y:coordinate})
+const confidence=z.number().finite().min(0).max(1)
+const rawSchema=z.object({imageWidth:coordinate.positive(),imageHeight:coordinate.positive(),scaleMPerPx:z.number().finite().positive().optional(),
+ columns:z.array(imagePoint.extend({sizeMm:z.number().finite().min(100).max(1500).nullable()})).max(150).optional(),
+ elements:z.object({
+  rooms:z.array(z.object({id:z.string(),name:z.string().min(1).max(80),type:z.string(),box:imagePoint.extend({w:coordinate.positive(),h:coordinate.positive()}),confidence,stairStartSide:z.enum(['N','S','E','W']).nullable().optional()}).passthrough()).max(100),
+  walls:z.array(z.object({id:z.string(),a:imagePoint,b:imagePoint,kind:z.enum(['exterior','interior']),thicknessPx:z.number().finite().positive().optional(),confidence})).max(300),
+  openings:z.array(z.object({id:z.string(),kind:z.enum(['entry','door','window']),orient:z.enum(['h','v']),at:imagePoint,widthPx:coordinate.positive(),confidence,swing:z.number().optional(),headM:z.number().finite().positive().optional(),sillM:z.number().finite().min(0).optional(),leaf:z.boolean().optional()})).max(200),
+  dimensions:z.array(z.object({id:z.string(),text:z.string(),a:imagePoint,b:imagePoint,confidence,valueM:z.number().finite().positive().optional()})).max(200)}),
+ metadata:z.object({adapterId:z.string(),timestamp:z.number().finite(),notes:z.array(z.string().max(500)).max(30).optional()}).optional()})
+export function validateRawSurvey(value:unknown):RawSurvey{
+ const raw=rawSchema.parse(value)
+ const points=[...raw.elements.rooms.flatMap(r=>[{x:r.box.x,y:r.box.y},{x:r.box.x+r.box.w,y:r.box.y+r.box.h}]),...raw.elements.walls.flatMap(w=>[w.a,w.b]),...raw.elements.openings.map(o=>o.at)]
+ if(points.some(p=>p.x>raw.imageWidth+.01||p.y>raw.imageHeight+.01))throw Error('Detected geometry extends outside the image. Review the drawing manually.')
+ return raw
 }

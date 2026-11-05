@@ -416,6 +416,10 @@ export function ExistingMode() {
   const busy = useExisting((s) => s.busy)
   const reset = useExisting((s) => s.reset)
   const hasImage = useExisting((s) => !!s.imageUrl)
+  if(inputMode==='drawing')return <div className="mx-auto max-w-[1400px] min-w-0 px-6 py-8 md:px-10">
+    <div className="mb-8 flex flex-wrap items-start justify-between gap-4"><div><p className="label">Your drawing, your layout</p><h1 className="mt-2 font-display text-3xl md:text-4xl">Start from my plan</h1><p className="mt-3 max-w-2xl text-sm leading-relaxed text-ink-dim">Review your drawings, confirm measurements, then use the same plan in the 2D and 3D studio.</p></div><Link to="/workspace" className="border border-line px-4 py-2 text-xs text-ink-dim">Back to brief</Link></div>
+    <StartFromPlanFlow/>
+  </div>
   return (
     <div className="mx-auto max-w-[1400px] px-6 py-8 md:px-10">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -434,9 +438,8 @@ export function ExistingMode() {
       <div className="mt-7" aria-busy={!!busy}>
         {step === 0 && !inputMode && <div className="grid gap-4 md:grid-cols-3">{([['drawing','I have a rough plan','Upload a house layout or foundation / column drawing. Review the tracing and fill in missing measurements.'],['manual','I do not have a drawing','Enter individual column and footing positions, beam connections and existing walls.'],['photo','I have a site photo','Detect visible columns in a photograph and confirm their measurements.']] as const).map(([mode,label,description])=><button key={mode} type="button" onClick={()=>setInputMode(mode)} className="rounded-xl border border-line p-6 text-left hover:bg-bg-inset"><h2 className="font-display text-xl">{translateUi(label)}</h2><p className="mt-3 text-sm text-ink-dim">{translateUi(description)}</p></button>)}</div>}
         {step === 0 && inputMode === 'photo' && <PhotoStep />}
-        {inputMode === 'drawing' && <StartFromPlanFlow />}
         {inputMode === 'manual' && <div hidden={step!==0&&step!==2}><SurveyInput manual={true} /></div>}
-        {step === 2 && inputMode !== 'drawing' && inputMode !== 'manual' && <MeasureStep />}
+        {step === 2 && inputMode !== 'manual' && <MeasureStep />}
         {step === 3 && <MapStep />}
         {step === 4 && <PlanStep />}
       </div>

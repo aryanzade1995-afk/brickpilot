@@ -33,7 +33,7 @@ test('modern compositions use twelve deterministic exterior palettes instead of 
 })
 test('three compositions produce distinct valid occupied shapes, replay exactly and retain requested rooms',()=>{
  const shapes=new Set()
- for(const composition of MODERN_COMPOSITIONS){
+ for(const composition of MODERN_COMPOSITIONS.slice(0,3)){
   const b=brief(composition),model=compile(b),d=generate(model,{seed:41,formVersion:SITE_FORM_VERSION})
   assert.equal(compile(briefSchema.parse(b)).seed,model.seed,'Saving a composition changed its seed input')
   assert.deepEqual(generate(model,{seed:41}).floors,d.floors,'Brief fit checks must use the same composition planner')

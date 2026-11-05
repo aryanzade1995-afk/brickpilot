@@ -1,4 +1,7 @@
 import {readyHero} from './direction-render-profile.mjs'
+import {directionImageKey,readDirectionImageCache,writeDirectionImageCache} from './direction-image-cache.mjs'
+import {createRenderQueue} from './render-queue.mjs'
+import {availableParallelism} from 'node:os'
 import { spawn, spawnSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { existsSync, createReadStream, statSync } from 'node:fs'
@@ -9,8 +12,8 @@ import { prepareSolarReplay } from './solar-replay.mjs'
 import { handleCadExport } from './villa-cad.mjs'
 
 const ROOT = resolve(PROJECT_ROOT, 'output/villa-jobs')
-const jobs = new Map(), queue = []
-let running = false
+const jobs = new Map(), imageRequests = new Map()
+const queue = createRenderQueue(execute, Math.min(4,Math.max(1,Math.floor(availableParallelism()/2))))
 const UUID = /^[a-f0-9-]{36}$/
 const json = (res, code, value) => { res.writeHead(code, { 'content-type': 'application/json', 'cache-control': 'no-store' }); res.end(JSON.stringify(value)) }
 const publicJob = (job) => {
@@ -24,16 +27,17 @@ const publicJob = (job) => {
       [file === 'solar-layout.json' ? 'solarLayout' : extname(file) === '.blend' ? 'blend' : extname(file) === '.glb' ? 'glb' : file.match(/_(hero|front|aerial)\.png$/)[1],
         `/api/villas/${job.id}/files/${file}${job.result.roofRevision?`?roof=${encodeURIComponent(job.result.roofRevision)}`:''}`])) }
   return { heroPreview:readyHero(job)?`/api/villas/${job.id}/preview/hero`:undefined, id: job.id, status: job.status, phase: job.phase, progress: job.progress, seed: job.seed, attempt: job.attempt,
-    error: job.error, debug: job.debug, result }
+    error: job.error, debug: job.debug, result,
+    directionImage: job.directionImage&&{planId:job.directionImage.planId,seed:job.directionImage.seed,
+      quality:job.directionImage.quality,finishSignature:job.directionImage.finishSignature,url:`/api/villas/${job.id}/preview/hero`} }
 }
-async function drain() {
-  if (running || !queue.length) return
-  running = true
-  const job = queue.shift()
+async function execute(job) {
+ return new Promise((done)=>{
   job.status = 'generating'; job.phase = job.mode === 'solar-replay' ? 'Opening accepted building' : 'Checking architecture'; job.progress = 3
-  const worker = job.mode === 'solar-replay' ? 'scripts/solar-villa-worker.mjs' : 'scripts/villa-worker.mjs'
+  const worker = job.mode === 'direction-image' ? 'scripts/direction-image-worker.mjs' : job.mode === 'solar-replay' ? 'scripts/solar-villa-worker.mjs' : 'scripts/villa-worker.mjs'
   const child = spawn(process.execPath, ['--experimental-strip-types', resolve(PROJECT_ROOT, worker), job.directory],
     { cwd: PROJECT_ROOT, shell: false, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] })
+  job.workerPid=child.pid
   let pending = '', errors = ''
   child.stderr.on('data', (chunk) => { errors = (errors + chunk).slice(-3000) })
   child.stdout.on('data', (chunk) => {
@@ -50,9 +54,24 @@ async function drain() {
   child.on('error', (error) => { job.status = 'failed'; job.error = error.message })
   child.on('close', async (code) => {
     if (job.status !== 'complete') { job.status = 'failed'; job.error ||= `Generation failed (${code}). ${errors.trim()}` }
-    await writeFile(resolve(job.directory, 'status.json'), JSON.stringify(publicJob(job))).catch(() => {})
-    running = false; void drain()
+    await writeFile(resolve(job.directory, 'status.json'), JSON.stringify(job)).catch(() => {})
+    if(job.mode==='direction-image'&&job.status==='complete'&&readyHero(job))
+      await writeDirectionImageCache(ROOT,job.cacheKey,job.id).catch(()=>{})
+    done()
   })
+ })
+}
+async function restoreImage(id,cacheKey){
+ if(!UUID.test(id??''))return null
+ try{
+  const directory=resolve(ROOT,id),request=JSON.parse(await readFile(resolve(directory,'request.json'),'utf8'))
+  if(request.exact!==true||request.directionPreview!==true||request.quality!=='preview'||cacheKey&&directionImageKey(request)!==cacheKey)return null
+  const directionImage=JSON.parse(await readFile(resolve(directory,'direction-image.json'),'utf8'))
+  if(directionImage.seed!==request.seed||!directionImage.planId||directionImage.quality!=='preview')return null
+  const job={id,directory,mode:'direction-image',cacheKey,status:'complete',phase:'Ready',progress:100,seed:request.seed,directionImage,debug:[]}
+  if(!readyHero(job))return null
+  jobs.set(id,job);return job
+ }catch{return null}
 }
 export async function handleVillaRequest(req, res, readJson) {
   const path = new URL(req.url, 'http://localhost').pathname
@@ -108,15 +127,35 @@ export async function handleVillaRequest(req, res, readJson) {
       const job = { id, directory, mode: 'solar-replay', solarCacheKey: replay.solarCacheKey, status: 'queued',
         phase: 'Waiting to replay accepted building', seed: replay.accepted.seed, debug: [] }
       await writeFile(resolve(directory, 'status.json'), JSON.stringify(job))
-      jobs.set(id, job); queue.push(job); void drain()
+      jobs.set(id, job); queue.push(job)
       json(res, 202, publicJob(job)); return true
     }
     if (req.method === 'POST' && path === '/api/villas') {
-      if (queue.length >= 8) { json(res, 429, { error: 'Generation queue is full. Try after the current design finishes.' }); return true }
       const request = await readJson(req, 4e6)
       if (!request?.plan?.floors?.length || !Number.isSafeInteger(request.seed) ||
         !['preview', 'final'].includes(request.quality ?? 'preview')) throw new Error('A source plan, numeric seed and preview/final quality are required')
       if (Number(process.versions.node.split('.')[0]) < 24) throw new Error('Blender generation requires Node.js 24 or newer')
+      if(request.exact===true&&request.directionPreview===true&&(request.quality??'preview')==='preview'){
+        request.quality='preview'
+        const key=directionImageKey(request)
+        // Serialize creation for the same key, including concurrent requests
+        // that arrive before mkdir/read-cache has completed.
+        if(!imageRequests.has(key))imageRequests.set(key,(async()=>{
+          const active=[...jobs.values()].find(job=>job.cacheKey===key&&job.status!=='failed')
+          if(active)return active
+          const cached=await restoreImage(await readDirectionImageCache(ROOT,key),key)
+          if(cached)return cached
+          if(queue.length>=8)throw Error('Generation queue is full. Try after the current design finishes.')
+          const id=randomUUID(),directory=resolve(ROOT,id)
+          await mkdir(directory,{recursive:true});await writeFile(resolve(directory,'request.json'),JSON.stringify(request))
+          const job={id,directory,mode:'direction-image',cacheKey:key,status:'queued',phase:'Waiting to render',seed:request.seed,debug:[]}
+          await writeFile(resolve(directory,'status.json'),JSON.stringify(job))
+          jobs.set(id,job);queue.push(job);return job
+        })().finally(()=>imageRequests.delete(key)))
+        const job=await imageRequests.get(key)
+        json(res,job.status==='complete'?200:202,publicJob(job));return true
+      }
+      if (queue.length >= 8) { json(res, 429, { error: 'Generation queue is full. Try after the current design finishes.' }); return true }
       const id = randomUUID(), directory = resolve(ROOT, id)
       await mkdir(directory, { recursive: true })
       // exact: render this seed as given (a Directions preview must show the
@@ -125,12 +164,12 @@ export async function handleVillaRequest(req, res, readJson) {
         ...(request.exact === true ? { exact: true } : {}),...(request.directionPreview===true?{directionPreview:true}:{}) }))
       const job = { id, directory, status: 'queued', phase: 'Waiting to generate', seed: request.seed, debug: [] }
       await writeFile(resolve(directory, 'status.json'), JSON.stringify(job))
-      jobs.set(id, job); queue.push(job); void drain()
+      jobs.set(id, job); queue.push(job)
       json(res, 202, publicJob(job)); return true
     }
     const previewMatch=path.match(/^\/api\/villas\/([a-f0-9-]{36})\/preview\/hero$/)
     if(previewMatch&&['GET','HEAD'].includes(req.method)){
-      const job=jobs.get(previewMatch[1]),acceptedHero=job?.status==='complete'?job.result?.files.find(file=>file.endsWith('_hero.png')):null
+      const job=jobs.get(previewMatch[1])??await restoreImage(previewMatch[1]),acceptedHero=job?.status==='complete'?job.result?.files.find(file=>file.endsWith('_hero.png')):null
       const file=job&&(readyHero(job)||(acceptedHero?resolve(job.result.directory,acceptedHero):null))
       if(!file){json(res,404,{error:'Preview is not ready'});return true}
       res.writeHead(200,{'content-type':'image/png','content-length':statSync(file).size,'cache-control':'no-store'})
@@ -140,7 +179,7 @@ export async function handleVillaRequest(req, res, readJson) {
     const match = path.match(/^\/api\/villas\/([a-f0-9-]{36})(?:\/files\/([^/]+))?$/)
     if (!match || !UUID.test(match[1]) || !['GET', 'HEAD'].includes(req.method)) { json(res, 404, { error: 'Unknown villa endpoint' }); return true }
     const id = match[1], directory = resolve(ROOT, id)
-    let job = jobs.get(id)
+    let job = jobs.get(id)??await restoreImage(id)
     if (!job) {
       try {
         const result = JSON.parse(await readFile(resolve(directory, 'accepted.json'), 'utf8'))
@@ -156,7 +195,7 @@ export async function handleVillaRequest(req, res, readJson) {
             let owner
             try { owner = JSON.parse(await readFile(resolve(PROJECT_ROOT, 'output/villa-production-history.json.lock'), 'utf8')) } catch { /* Not active. */ }
             let alive = false
-            if (job.mode === 'solar-replay' && Number.isInteger(job.workerPid)) {
+            if (['solar-replay','direction-image'].includes(job.mode) && Number.isInteger(job.workerPid)) {
               try { process.kill(job.workerPid, 0); alive = true } catch { /* Interrupted solar replay. */ }
             } else if (owner?.directory === directory && Number.isInteger(owner.pid)) {
               try { process.kill(owner.pid, 0); alive = true } catch { /* Interrupted by a restart. */ }
@@ -170,7 +209,7 @@ export async function handleVillaRequest(req, res, readJson) {
     }
     if (!match[2]) { json(res, 200, publicJob(job)); return true }
     const file = match[2]
-    if (job.status !== 'complete' || file !== basename(file) || !job.result.files.includes(file)) { json(res, 404, { error: 'Accepted artifact not found' }); return true }
+    if (job.status !== 'complete' || file !== basename(file) || !job.result?.files.includes(file)) { json(res, 404, { error: 'Accepted artifact not found' }); return true }
     const filePath = resolve(job.result.directory, file), size = (await stat(filePath)).size
     res.writeHead(200, { 'content-type': file.endsWith('.glb') ? 'model/gltf-binary' : file.endsWith('.png') ? 'image/png' : 'application/octet-stream',
       'content-length': size, 'cache-control': 'public, max-age=31536000, immutable',

@@ -19,7 +19,7 @@ test('six electrical systems each offer five actual supplier products; bathrooms
   const offered=photographedOptions(item(id));assert.equal(offered.length,5,id)
   for(const o of offered){const p=finishProduct(o.finishProductId);assert.ok(p.preview);assert.equal(p.image.kind,'real-product-photo');assert.ok(optionImage(o));assert.equal(p.image.projection,'reference')}
  }
- for(const id of ['bath-basin','bath-shower','bath-tub','bath-enclosure','cp-fittings','water-heater'])assert.equal(photographedOptions(item(id)).length,5,id)
+ for(const id of ['bath-basin','bath-shower','bath-tub','cp-fittings','water-heater'])assert.equal(photographedOptions(item(id)).length,5,id)
  const toilets=photographedOptions(item('sanitary'));assert.equal(toilets.length,6)
  assert.ok(toilets.some(o=>finishProduct(o.finishProductId).preview.model==='toilet-indian'))
  assert.ok(toilets.some(o=>finishProduct(o.finishProductId).preview.model==='toilet-wall'))
@@ -40,12 +40,12 @@ test('catalogue assets are present, byte identical to audited sources, and never
  const audit=JSON.parse(readFileSync(new URL('../src/lib/finishes/service-image-audit.json',import.meta.url),'utf8'))
  assert.equal(audit.length,73);assert.equal(services.length,73)
  for(const p of services){const entry=audit.find(a=>a.id===p.id),bytes=readFileSync(new URL('../'+p.image.path,import.meta.url));assert.ok(bytes.length>1000);assert.equal(createHash('sha256').update(bytes).digest('hex'),entry.sha256)
-  assert.equal(entry.url,p.image.originalUrl);for(const id of p.itemIds){const i=item(id),o=i.options.find(o=>o.id===p.id),s=finishPreview(i,o);assert.equal(s.texture,undefined);assert.equal(s.image.src,'/'+p.image.path.replace(/^public\//,''))}
+  assert.equal(entry.url,p.image.originalUrl);for(const id of p.itemIds.filter(id=>item(id))){const i=item(id),o=i.options.find(o=>o.id===p.id),s=finishPreview(i,o);assert.equal(s.texture,undefined);assert.equal(s.image.src,'/'+p.image.path.replace(/^public\//,''))}
  }
 })
 test('recognisable component models, hollow ceramics and waterproofing details are finite, deterministic and preserve source data',()=>{
  const before=JSON.stringify(services)
- for(const p of services.filter(p=>p.preview.model!=='paint'))for(const id of p.itemIds){const i=item(id),o=i.options.find(o=>o.id===p.id),parts=servicePreviewParts(i,o);assert.ok(parts?.length>1,p.id);assert.deepEqual(parts,servicePreviewParts(i,o))
+ for(const p of services.filter(p=>p.preview.model!=='paint'))for(const id of p.itemIds.filter(id=>item(id))){const i=item(id),o=i.options.find(o=>o.id===p.id),parts=servicePreviewParts(i,o);assert.ok(parts?.length>1,p.id);assert.deepEqual(parts,servicePreviewParts(i,o))
   for(const part of parts){assert.ok(part.size.every(n=>Number.isFinite(n)&&n>0));assert.ok(part.at.every(Number.isFinite));if(part.shape==='shell')assert.ok(part.profile.length>=5)}
  }
  for(const id of ['bath-basin','bath-tub','sanitary'])assert.ok(photographedOptions(item(id)).every(o=>servicePreviewParts(item(id),o).some(p=>p.shape==='shell')))
@@ -65,5 +65,5 @@ test('bathroom preferences isolate rooms, persist in reports, undo, and never do
  const saved=briefSchema.parse(JSON.parse(JSON.stringify(next))),schedule=specificationSchedule(saved,priced)
  assert.equal(schedule.find(s=>s.item===basin.id&&s.roomId===rooms[0].id).optionId,'svc-basin-3');assert.equal(schedule.find(s=>s.item===basin.id&&s.roomId===rooms[1].id).optionId,'svc-basin-1')
  assert.equal(effectiveSpec(undoSpecification(saved,priced,basin,rooms[0].id),basin.id,rooms[0].id).id,'svc-basin-1')
- for(const id of ['bath-tub','bath-enclosure','electrical-bulbs','electrical-battens','electrical-exhaust']){const i=item(id),changed=applySpecification(brief,cost,i,photographedOptions(i).at(-1).id,applicableRooms(cost,i).map(r=>r.id)),c=estimateBoq(design,changed);assert.equal(c.expected,cost.expected);assert.ok(c.excluded.some(s=>s.startsWith(i.label)));assert.ok(!c.excluded.some(s=>s.includes('undefined')))}
+ for(const id of ['bath-tub','electrical-bulbs','electrical-battens','electrical-exhaust']){const i=item(id),changed=applySpecification(brief,cost,i,photographedOptions(i).at(-1).id,applicableRooms(cost,i).map(r=>r.id)),c=estimateBoq(design,changed);assert.equal(c.expected,cost.expected);assert.ok(c.excluded.some(s=>s.startsWith(i.label)));assert.ok(!c.excluded.some(s=>s.includes('undefined')))}
 })

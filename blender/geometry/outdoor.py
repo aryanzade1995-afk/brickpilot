@@ -122,8 +122,15 @@ def create_balcony(scene, room, floor, terrace_mass, doors, with_railing=True):
                source_id=room["semanticId"])
     if not with_railing:
         return
-    for index, edge in enumerate(boundary_edges([rect]), 1):
+    group = floor.get('setbackBalconies', []) if room['id'].startswith('balconySetback') else []
+    if group and room['id'] != group[0]['id']:
+        return
+    for index, edge in enumerate(boundary_edges([r['rect'] for r in group] if group else [rect]), 1):
         axis, fixed, lo, hi, _ = edge
+        if group:
+            cx,cy=((lo+hi)/2,fixed) if axis=='h' else (fixed,(lo+hi)/2)
+            if any(_inside(floor['footprint'],cx+dx,cy+dy) for dx,dy in [(2,0),(-2,0),(0,2),(0,-2)]):
+                continue
         # Never put a guard rail across the door that makes this balcony usable.
         if any(door["orient"] == axis and abs((door["at"]["y"] if axis == "h" else door["at"]["x"]) - fixed) <= 2 and
                lo <= (door["at"]["x"] if axis == "h" else door["at"]["y"]) <= hi for door in access):

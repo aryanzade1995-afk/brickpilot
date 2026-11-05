@@ -4,6 +4,7 @@ import { MAX_BEAM_SPAN, MAX_CANTILEVER, normalizeBrief, stairGeometry } from './
 import { reachability } from './index.ts'
 import { DOUBLE_HEIGHT_LIMITS } from './doubleHeight.ts'
 import { setbackTerraceArea } from '../siteForm.ts'
+import { uncoveredRects } from './projections.ts'
 
 /* ------------------------------------------------------------------ *
  *  Mandatory plan validators. Any finding here is an `error`: the plan
@@ -46,7 +47,7 @@ export function planFindings(design: Design): PlanFinding[] {
     out.push({ code, category, message, roomId })
   const ids = new Map<string, number>()
   const env = design.model
-  if(env.brief.style.character==='modern-box'&&env.brief.style.composition==='terraced-villa'&&setbackTerraceArea(design)<6)
+  if(env.brief.style.character==='modern-box'&&['terraced-villa','stepped-terrace','framed-balcony'].includes(env.brief.style.composition??'')&&setbackTerraceArea(design)<6)
     add('COMPOSITION_TERRACE_MISSING','planning','Terraced villa needs at least 6 m² of upper terrace with a real access door.')
   if(env.brief.style.character==='modern-box'&&env.brief.style.composition==='glazed-bay'){
     const ground=design.floors[0],core=ground.rooms.find(r=>r.id==='stair')
@@ -117,7 +118,14 @@ export function planFindings(design: Design): PlanFinding[] {
     // ---- vertical support: the upper plate sits wholly on the plate below ----
     if (lower) {
       for (const r of floor.footprint) {
-        if (coveredBy(r, lower.footprint) < rectArea(r) - 1000)
+        const zones=env.brief.style.composition==='offset-box'?(floor.supportZones??[]).filter(z=>z.support==='cantilever'&&z.review):[]
+        // A support declaration is only a concept assumption. Reject remote or
+        // oversized zones; it cannot exempt arbitrary floating slabs.
+        const validZones=zones.filter(z=>Math.min(z.rect.w,z.rect.h)<=MAX_CANTILEVER&&
+          lower.footprint.some(p=>sharedEdge(p,z.rect)!==null))
+        if (env.brief.style.composition==='offset-box'
+          ? uncoveredRects([r],[...lower.footprint,...validZones.map(z=>z.rect)]).reduce((a,p)=>a+rectArea(p),0)>1000
+          : coveredBy(r,lower.footprint)<rectArea(r)-1000)
           add('UPPER_FLOOR_UNSUPPORTED', 'vertical',
             `${floor.name} extends past the floor below — part of its plate has no wall, column or beam under it.`)
       }

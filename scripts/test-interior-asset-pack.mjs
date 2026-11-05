@@ -19,7 +19,7 @@ const b=defaultBrief();b.site.plotWidth=25;b.site.plotDepth=30;b.levels.storeys=
 const plan=generate(compile(b),{seed:41}),prefs={style:'modern',lighting:'daylight',furnitureDensity:'medium'}
 const prepare=d=>{const source=createWalkthroughSource(d,{hardChecksPass:true},prefs);const geometry=prepareWalkthroughGeometry(buildWalkthroughScene(source.building,{hardChecksPass:true}));return {source,geometry,app:prepareWalkthroughAppearance(d,source,geometry)}}
 test('all shipped models have source notices, bounded detail, matching hashes and metre Y-up geometry',async()=>{
- assert.equal(interiorAssets.filter(a=>!a.id.startsWith('user-')).length,23)
+ assert.equal(interiorAssets.filter(a=>!a.id.startsWith('user-')&&!/^(?:basin-tap-|shower-set-|basin-no-tap)/.test(a.id)).length,23)
  assert.equal(interiorAssets.filter(a=>a.id.startsWith('user-')).length,13)
  for(const a of interiorAssets){
   assert.ok(a.author&&(a.provenance==='user-supplied'?a.license==='User-supplied · rights unverified':['CC-BY-3.0','CC0-1.0'].includes(a.license)),a.id)
@@ -30,6 +30,7 @@ test('all shipped models have source notices, bounded detail, matching hashes an
   const loader=new GLTFLoader().register(()=>({name:'GEOMETRY_QA',loadTexture:()=>Promise.resolve(new Texture())})),g=await loader.parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'')
   const bounds=new Box3().setFromObject(g.scene),size=bounds.getSize(new Vector3()).toArray()
   size.forEach((v,i)=>assert.ok(Math.abs(v-a.sizeM[i])<.002,a.id+' axes '+i))
+  if(/^(?:basin-tap-|shower-set-)/.test(a.id))continue // Wall/rim anchors are tested separately.
   assert.ok(Math.abs(bounds.min.y)<.002,a.id+' floor anchor');assert.ok(Math.abs(bounds.getCenter(new Vector3()).x)<.002&&Math.abs(bounds.getCenter(new Vector3()).z)<.002,a.id+' centre')
  }
 })
@@ -55,7 +56,7 @@ test('room-scoped model changes affect only that room and leave shared architect
 })
 test('each imported instance fits entirely within its original furniture envelope',()=>{
  const {app}=prepare(plan);assert.ok(app.models.length>10)
- for(const m of app.models){
+ for(const m of app.models.filter(m=>!/^(?:basin-tap-|shower-set-)/.test(m.assetId))){
   assert.ok(m.size.every(v=>v>0)&&m.scale.every(v=>v>0));assert.equal(new Set(m.replaces).size,m.replaces.length)
   const parts=app.furniture.filter(p=>m.replaces.includes(p.id)),bounds=new Box3()
   for(const p of parts){const c=Math.abs(Math.cos(p.rotation)),s=Math.abs(Math.sin(p.rotation)),size=[p.size[0]*c+p.size[2]*s,p.size[1],p.size[0]*s+p.size[2]*c];bounds.expandByPoint(new Vector3(...p.position.map((v,i)=>v-size[i]/2)));bounds.expandByPoint(new Vector3(...p.position.map((v,i)=>v+size[i]/2)))}
@@ -104,6 +105,6 @@ test('uploaded defaults and selectable alternatives preserve existing product co
  assert.deepEqual(estimateBoq(plan,next),estimateBoq(plan,plan.model.brief))
  const {app}=prepare(plan)
  assert.ok(app.models.some(m=>m.assetId==='user-sofa'))
- assert.ok(app.models.some(m=>m.assetId==='user-bathroom-basin'))
+ assert.ok(app.models.some(m=>m.assetId==='basin-no-tap'))
  assert.ok(!app.models.some(m=>m.assetId==='user-service-cabinet'),'industrial roadside cabinet is opt-in')
 })

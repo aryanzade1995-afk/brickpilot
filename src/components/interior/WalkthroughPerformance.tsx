@@ -20,7 +20,7 @@ export function WalkthroughPerformance({ active, revision, quality = 'adaptive',
   const renderMs = useRef(0)
   const gpuMs=useRef<number|null>(null),history=useRef<number[]>([]),windows=useRef<number[]>([])
   useEffect(() => {
-    const render=gl.render,context=gl.getContext() as WebGL2RenderingContext,extension=context.getExtension('EXT_disjoint_timer_query_webgl2') as {TIME_ELAPSED_EXT:number;GPU_DISJOINT_EXT:number}|null,pending:WebGLQuery[]=[]
+    const render=gl.render,context=gl.getContext() as WebGL2RenderingContext,extension=(nativeResolution?context.getExtension('EXT_disjoint_timer_query_webgl2'):null) as {TIME_ELAPSED_EXT:number;GPU_DISJOINT_EXT:number}|null,pending:WebGLQuery[]=[]
     gl.render=(...args) => {const start=performance.now();let query:WebGLQuery|null=null
       if(extension&&pending.length<3&&!context.isContextLost()){query=context.createQuery();if(query)context.beginQuery(extension.TIME_ELAPSED_EXT,query)}
       try {render.apply(gl,args)} finally {renderMs.current=performance.now()-start;if(query&&extension){context.endQuery(extension.TIME_ELAPSED_EXT);pending.push(query)}}
@@ -29,7 +29,7 @@ export function WalkthroughPerformance({ active, revision, quality = 'adaptive',
       }
     }
     return () => {gl.render=render;pending.forEach(q=>context.deleteQuery(q))}
-  },[gl])
+  },[gl,nativeResolution])
   useEffect(() => { const context = gl.getContext(), extension = context.getExtension('WEBGL_debug_renderer_info'); if (extension) renderer.current = String(context.getParameter(extension.UNMASKED_RENDERER_WEBGL)) }, [gl])
   useEffect(() => { gl.shadowMap.needsUpdate = true; invalidate(); sample.current.warm = 0 }, [revision, gl, invalidate])
   useEffect(() => { sample.current = { elapsed: 0, frames: 0, warm: 0, good: 0, ratio: budget.start };history.current=[];windows.current=[];setDpr(budget.start); invalidate() }, [active, budget, setDpr, invalidate])

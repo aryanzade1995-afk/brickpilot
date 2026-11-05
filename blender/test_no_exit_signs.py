@@ -9,6 +9,9 @@ class Recorder:
     def __init__(self):
         self.materials={}
         self.names=[]
+        self.plan_id='test-plan'
+        self.collections={'SAFETY':bpy.data.collections.new('TestSafety')}
+        bpy.context.scene.collection.children.link(self.collections['SAFETY'])
     def box(self,name,*args,**kwargs):
         self.names.append(name)
         return {}
@@ -24,7 +27,9 @@ building={'floors':[{'id':'GF','level':0,'elevationMm':0}],
               {'id':'EXTINGUISHER','kind':'extinguisher','level':0,'sourceId':'fire','at':{'x':200,'y':200}}]}}
 before=set(bpy.data.curves.keys())
 create_emergency_system(scene,building)
-assert scene.names==['ALARM','EXTINGUISHER','EmergencyDoor_ReleaseBar'],scene.names
+assert scene.names==['ALARM','EmergencyDoor_ReleaseBar'],scene.names
 assert set(bpy.data.curves.keys())==before,'Exit lettering must not create any font geometry'
 assert 'safety_exit' not in scene.materials
 print('PASS: No EXIT plates or lettering on any door; alarms and door hardware remain.')
+
+assert any(o.name.startswith('EXTINGUISHER_Detailed') and o.get('formstead_extinguisher_asset') for o in scene.collections['SAFETY'].objects)

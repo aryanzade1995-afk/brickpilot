@@ -1,15 +1,17 @@
 import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
-import { useDeferredValue, useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Check, AlertTriangle, Sparkles, X, ChevronDown, ChevronUp } from 'lucide-react'
-import { assessBriefFit, fitSuggestions, type FitSuggestion } from '@/lib/engine/planner/fit.ts'
+import type {useBriefValidation,FitAction} from '@/state/briefValidation.ts'
+import {SpaceValidation} from '@/components/ui/SpaceValidation.tsx'
+import {applySuggestionChanges} from '@/lib/model/briefSuggestion.ts'
 import { useStudio } from '@/state/studio.ts'
 import { cx } from '@/lib/cx.ts'
 
 type Tone = 'ok' | 'tight' | 'bad'
 const TONE = {
-  ok: { text: 'text-ok', bar: '#2E7D32', soft: 'border-ok bg-ok/5', fill: '#BFE3C0' },
-  tight: { text: 'text-warn', bar: '#C77700', soft: 'border-warn bg-warn/5', fill: '#F5D9A8' },
-  bad: { text: 'text-bad', bar: '#B3261E', soft: 'border-bad bg-bad/5', fill: '#F3C9C5' },
+  ok: { text: 'text-ink', bar: '#52635a', soft: 'border-line bg-bg-inset', fill: '#dbe2dc' },
+  tight: { text: 'text-ink', bar: '#8a7d66', soft: 'border-line bg-bg-inset', fill: '#e8e1d5' },
+  bad: { text: 'text-ink', bar: '#866b68', soft: 'border-line bg-bg-inset', fill: '#e7dbd8' },
 } as const
 
 /** The plot, the buildable area inside the setbacks, and a block for the rooms that grows as you add them. */
@@ -26,7 +28,7 @@ function PlotDiagram({ plotSqm, w, d, need, tone }: { plotSqm: number; w: number
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="h-24 w-32 flex-none" role="img" aria-label={translateUi("Rooms against the buildable area")}>
       <rect x={cx - bw / 2 - 6} y={cy - bh / 2 - 6} width={bw + 12} height={bh + 12} fill="#F4F4F1" stroke="#9AA0A6" />
-      <rect x={cx - bw / 2} y={cy - bh / 2} width={bw} height={bh} fill="#FDF1DD" stroke="#E0873A" strokeDasharray="4 3" />
+      <rect x={cx - bw / 2} y={cy - bh / 2} width={bw} height={bh} fill="#eeeeec" stroke="#92928a" strokeDasharray="4 3" />
       <rect x={cx - hw / 2} y={cy - hh / 2} width={hw} height={hh} fill={TONE[tone].fill} stroke={TONE[tone].bar} strokeWidth={1.5}
         style={{ transition: 'all 400ms ease' }} />
       <text x={cx} y={H - 1} textAnchor="middle" fontSize="6.5" fill="#6B7280">{translateUi(Math.round(plotSqm))} {translateUi("m²")} ({(plotSqm / 101.17141).toFixed(1)} {translateUi("Guntha")})</text>
@@ -34,18 +36,22 @@ function PlotDiagram({ plotSqm, w, d, need, tone }: { plotSqm: number; w: number
   )
 }
 
-export function FitMeter() {
+export function FitMeter({validation,visible=true}:{validation:ReturnType<typeof useBriefValidation>;visible?:boolean}) {
   useLanguage(s => s.language);
 
-  const brief = useStudio((s) => s.brief)
   const edit = useStudio((s) => s.edit)
-  const capacityBrief = useDeferredValue(brief)
-  const checking = capacityBrief !== brief
-  const fit = useMemo(() => assessBriefFit(capacityBrief), [capacityBrief])
-  const help = useMemo(() => (fit.fits ? null : fitSuggestions(capacityBrief)), [fit.fits, capacityBrief])
+  const {fit,checking,error,suggestions,source}=validation
 
   // State: expanded (popup window open) vs minimized (notification pill)
   const [isOpen, setIsOpen] = useState(true)
+
+  useEffect(()=>{if(fit&&!fit.fits)setIsOpen(true)},[fit?.fits])
+  if(!visible)return null
+  if(checking||error||!fit)return <aside aria-label={translateUi('Plot feasibility')} aria-busy={checking}
+    className={`fixed bottom-6 right-6 z-40 border border-line-strong bg-bg-raised shadow-lg ${isOpen?'w-[calc(100vw-2rem)] max-w-[410px] overflow-hidden rounded-xl':'rounded-full px-4 py-2.5'}`}>
+    {isOpen&&<><div className="h-1.5 bg-ink-dim/30"/><div className="border-b border-line px-4 py-3"><p className="text-xs font-semibold uppercase tracking-wider text-ink-dim">{translateUi('Plot feasibility')}</p></div></>}
+    <div className={isOpen?'flex min-h-[155px] items-center p-4':''}>{error?<div role="alert"><p className="text-sm text-ink-dim">{error}</p><button type="button" className="mt-3 border border-line px-3 py-2 text-xs" onClick={validation.retry}>{translateUi('Check again')}</button></div>:<SpaceValidation compact={!isOpen}/>}</div>
+  </aside>
 
   // rooms + circulation the busiest floor needs, against the buildable area of one floor (walls take ~12%)
   const buildable = fit.buildableWidthM * fit.buildableDepthM
@@ -56,14 +62,8 @@ export function FitMeter() {
   const title = fit.issues.length ? 'These requirements cannot produce a valid plan yet'
     : !fit.fits ? 'This brief does not fit the plot yet'
       : fit.atTarget ? 'Everything fits comfortably' : 'It fits, but space is tight'
-  const apply = (s: FitSuggestion) => edit((b) => s.recipe(b))
-
-  // Automatically reopen popup if brief requirements fail to fit
-  useEffect(() => {
-    if (!fit.fits) {
-      setIsOpen(true)
-    }
-  }, [fit.fits])
+  const apply = (s: FitAction) => {if(source)edit(b=>applySuggestionChanges(b,source,s.brief))}
+  const help=!fit.fits
 
   // Compact notification pill when minimized or closed
   if (!isOpen) {
@@ -193,9 +193,9 @@ export function FitMeter() {
             <p className="flex items-center gap-1.5 font-mono text-[0.68rem] uppercase tracking-[0.1em] text-ink-dim">
               <Sparkles size={12} className="text-accent" /> {translateUi("Suggestions to make it fit")}
             </p>
-            {help.single.length > 0 || help.combined ? (
+            {validation.suggestionsChecking ? <SpaceValidation compact label="Finding options…"/> : suggestions?.length ? (
               <div className="flex flex-col gap-1.5">
-                {[...help.single, ...(help.combined ? [help.combined] : [])].map((s) => (
+                {suggestions.map((s) => (
                   <button
                     key={s.id}
                     type="button"

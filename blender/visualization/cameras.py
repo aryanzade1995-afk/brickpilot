@@ -8,9 +8,10 @@ from .config import CAMERAS
 
 def create_cameras(scene, building, options):
     bpy.context.view_layer.update()
+    members = {obj for collection in bpy.data.collections if collection.name != 'LANDSCAPE' for obj in collection.objects}
     points = [obj.matrix_world @ Vector(corner) for obj in bpy.context.scene.objects if obj.type == "MESH" and
               not obj.get("presentation_only") and obj.get("material_role") != "leaf" and
-              any(c.name != "LANDSCAPE" for c in obj.users_collection) for corner in obj.bound_box]
+              obj in members for corner in obj.bound_box]
     lo = Vector(tuple(min(p[i] for p in points) for i in range(3)))
     hi = Vector(tuple(max(p[i] for p in points) for i in range(3)))
     target = (lo + hi) / 2

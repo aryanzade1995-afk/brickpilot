@@ -3,6 +3,29 @@
 No claim of fire-code compliance; upper floors retain their real stair core.
 """
 import bpy
+from pathlib import Path
+
+
+def create_extinguisher(scene, marker, floor):
+    asset = Path(__file__).resolve().parents[2] / 'public/safety-assets/fire-extinguisher.blend'
+    if not asset.exists():
+        raise RuntimeError('Missing safety asset: public/safety-assets/fire-extinguisher.blend')
+    if not hasattr(scene, '_extinguisher_templates'):
+        with bpy.data.libraries.load(str(asset), link=False) as (source, target):
+            target.objects = list(source.objects)
+        scene._extinguisher_templates = [o for o in target.objects if o is not None and o.type == 'MESH']
+    for template in scene._extinguisher_templates:
+        obj = template.copy()
+        if obj is None or obj.type != 'MESH':
+            continue
+        obj.name = marker['id'] + '_Detailed'
+        scene.collections['SAFETY'].objects.link(obj)
+        obj.location = (marker['at']['x'] * .001, marker['at']['y'] * .001,
+                        floor['elevationMm'] * .001)
+        obj['source_id'] = marker['sourceId']
+        obj['source_plan_id'] = scene.plan_id
+        obj['concept_safety_only'] = True
+        obj['formstead_extinguisher_asset'] = True
 
 
 def create_emergency_system(scene, building):
@@ -29,6 +52,9 @@ def create_emergency_system(scene, building):
         # Exit routes stay in the plan, but signs and lettering are omitted
         # from the villa geometry, renders and exported Blender/GLB files.
         if kind == "exit":
+            continue
+        if kind == 'extinguisher':
+            create_extinguisher(scene, marker, floor)
             continue
         dims = (140, 140, 50) if kind == "alarm" else (150, 150, 420)
         elevation = 2600 if kind == "alarm" else 1100

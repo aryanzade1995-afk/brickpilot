@@ -28,7 +28,8 @@ const router = createBrowserRouter([
   {
     path: '/',
     element: <App />,
-    hydrateFallbackElement: <div className="min-h-dvh" />,
+    hydrateFallbackElement: <div role="status" className="flex min-h-dvh items-center justify-center bg-bg text-ink-dim"><span>Loading Formstead…</span></div>,
+    errorElement: <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-bg text-ink"><p>This page could not load.</p><button className="rounded border border-line px-5 py-2" onClick={() => window.location.reload()}>Reload page</button></div>,
     children: [
       { index: true, lazy: Landing },
       { path: 'start', lazy: Start },

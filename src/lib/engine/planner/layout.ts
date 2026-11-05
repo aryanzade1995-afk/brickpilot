@@ -31,6 +31,8 @@ export type PlateCandidate = {
 }
 
 export type LayoutInput = {
+  /** Source geometry preference for new Directions recipes, never a rotated drawing. */
+  frontage?: 'wide'
   courtyardPool?: boolean
   upperProfile?: UpperProfile
   /** Existing Structure Mode: cross axes (local u) already built; walls slide onto them and they stay the grid */
@@ -131,6 +133,8 @@ function search(input: LayoutInput, relaxed: boolean): PlateCandidate[] {
         // a large villa grows from its normal length up to the coverage limit
         const length = site.fillPlot ? Math.min(lMax, coverageLength)
           : site.growPlate ? Math.max(normal, Math.min(lMax, coverageLength)) : normal
+        const width=orientation==='x'?length:v,depth=orientation==='x'?v:length
+        if(input.frontage==='wide'&&width<depth)continue
         if (length < lm && !relaxed) continue
         const aspect = Math.max(length, v) / Math.min(length, v)
         // compact plates first; strongly elongated ones and squeezed rooms pay
@@ -417,13 +421,18 @@ export function placeFloors(input: LayoutInput, cand: PlateCandidate): LayoutRes
       const profile = input.upperProfile
       const choices: { r: ReturnType<typeof floorRooms>; score: number }[] = []
       // A contains the fixed stair/lift. Only B may recess from its start.
-      // Every new edge lands on the original structural grid and every
-      // occupied interval is clipped to the floor immediately underneath.
+      // Recessed edges land on the structural grid. Only the explicit offset
+      // profile may project into a notch, with a reviewed concept support zone.
       const starts = profile === 'recessed' && lower.segments.B.length
         ? [lower.segments.B[0][0], ...uLines.filter(u => u >= lower.segments.B[0][0]+1200 && u <= Math.min(4800, lower.length*.35)).slice(0,1)] : [0]
       for (const a of lines) for (const b of lines) for (const start of starts) {
         if (profile === 'compact' && a !== b) continue
-        const r = floorRooms(f, Math.max(a,b), clip(lower.segments.A,0,a), clip(lower.segments.B,start,b),uLines)
+        // Conceptual projection into the ground-floor notch, keeping the stair
+        // band and circulation fixed. 900 mm is a design choice, not a safe span.
+        const bEnd=Math.max(0,...lower.segments.B.map(([,end])=>end))
+        const projected=profile==='offset'&&bEnd<lower.length
+          ? [[0,Math.min(b,lower.length,bEnd+900)]] as [number,number][] : clip(lower.segments.B,start,b)
+        const r = floorRooms(f, Math.max(a,b), clip(lower.segments.A,0,a), projected,uLines)
         if (!r.fitsMin || r.rooms.length !== f.rooms.length + 1) continue
         const area = sum(r.plate.segments.A.map(([s,e])=>(e-s)*dA)) +
           sum(r.plate.segments.B.map(([s,e])=>(e-s)*dB)) + r.plate.length*cand.spine
@@ -433,7 +442,7 @@ export function placeFloors(input: LayoutInput, cand: PlateCandidate): LayoutRes
         const lowerArea = sum(lower.segments.A.map(([s,e])=>(e-s)*dA)) +
           sum(lower.segments.B.map(([s,e])=>(e-s)*dB)) + lower.length*cand.spine
         const changed = lowerArea-area>=6e6
-        const preferred = profile==='staggered' ? stagger&&changed : profile==='recessed' ? recess&&changed
+        const preferred = profile==='offset' ? endB>bEnd&&endA<lower.length : profile==='staggered' ? stagger&&changed : profile==='recessed' ? recess&&changed
           : profile==='terraced' ? Math.max(endA,endB)<=lower.length-1200 : a===b
         choices.push({r,score:(r.fitsTarget?0:100)+(preferred?0:10000)+area/1e6})
       }

@@ -327,22 +327,21 @@ export function dressRoom(design: Design, building: Building, level: number, roo
     const rect = ['basin-rectangle', 'basin-square', 'basin-undermount'].includes(model)
     add({ id: `${roomId}-selected-basin`, look: look(basinChoice.profile?.color ?? ceramic.color, .12), pos: [x, y, z], size: [w, h, d], shape: rect ? 'box' : 'cyl' })
     const side = nearest(x, z), [dx, dz] = { N: [0, -1], S: [0, 1], W: [-1, 0], E: [1, 0] }[side]
-    const mx = x + dx * w * 0.3, mz = z + dz * d * 0.3
-    add({ id: `${roomId}-basin-mixer`, look: fittings ?? m.metal, pos: [mx, y + h / 2 + 0.08, mz], size: [0.036, 0.16, 0.036], shape: 'cyl' })
-    add({ id: `${roomId}-basin-spout`, look: fittings ?? m.metal, pos: [mx - dx * 0.05, y + h / 2 + 0.14, mz - dz * 0.05], size: [dx ? 0.12 : 0.025, 0.025, dz ? 0.12 : 0.025] })
-  }
-  const glassBox = find('-shower-glass')
-  if (glassBox) {
-    skip.add(glassBox.id)
-    const accent = fin?.enclosure?.profile?.accent ?? '#AEB8BD'
-    add({ id: glassBox.id, look: look('#E6F2F5', 0.03, 0, { opacity: 0.3 }), pos: glassBox.pos, size: glassBox.size })
-    const horizontal = glassBox.size[0] > glassBox.size[2], span = horizontal ? glassBox.size[0] : glassBox.size[2]
-    for (const off of [-span / 2, span / 2]) {
-      const pos: V3 = [...glassBox.pos]
-      pos[horizontal ? 0 : 2] += off
-      add({ id: `${roomId}-enclosure-post${off > 0 ? 1 : 0}`, look: look(accent, 0.18, 1), pos, size: [0.022, glassBox.size[1], 0.022] })
+    const wallTap=fin?.fittings?.profile?.model==='faucet-wall'
+    const depth=side==='N'||side==='S'?d:w
+    const rear=Math.max(.03,depth/2-.035)
+    const tx=wallTap&&dx?dx*(hw-.14):x+dx*rear,tz=wallTap&&dz?dz*(hd-.14):z+dz*rear
+    add({id:`${roomId}-basin-tap-anchor`,look:fittings??m.metal,pos:[tx,y+h/2+(wallTap?.16:0),tz],size:[.01,.01,.01]})
+    const mx = x + dx * rear, mz = z + dz * rear
+    add({id:`${roomId}-basin-mixer`,look:fittings??m.metal,pos:[mx,y+h/2+.055,mz],size:[.032,.11,.032],shape:'cyl'})
+    add({id:`${roomId}-basin-spout`,look:fittings??m.metal,pos:[mx-dx*.06,y+h/2+.095,mz-dz*.06],size:[dx?.12:.02,.02,dz?.12:.02]})
+    for(const [name,offset,color] of [['hot',-.004,'#B52A24'],['cold',.004,'#2462AE']] as const){
+      add({id:`${roomId}-basin-${name}-index`,look:look(color,.3),pos:[mx+dz*offset,y+h/2+.113,mz-dx*offset],size:[.004,.004,.0045],shape:'cyl'})
     }
+
   }
+  // Ignore legacy saved partitions as well as omitting new ones.
+  for (const part of furniture) if (/-shower-glass$|-enclosure-/.test(part.id)) skip.add(part.id)
   const showerTray=find('-shower-tray')
   if(showerTray&&fin?.shower){
     const [x,,z]=showerTray.pos,side=nearest(x,z),metal=fittings??m.metal
@@ -350,6 +349,7 @@ export function dressRoom(design: Design, building: Building, level: number, roo
     const [dx,dz]=outward[side]
     // All shower hardware belongs to this wet zone and its actual back wall.
     const wallX=dx?dx*(hw-.14):x,wallZ=dz?dz*(hd-.14):z
+    add({id:`${roomId}-shower-set-anchor`,look:metal,pos:[wallX,1.0,wallZ],size:[.01,.01,.01]})
     const fixture=(id:string,pos:V3,size:V3,shape?:DressBox['shape'])=>add({id:`${roomId}-shower-${id}`,pos,size,shape,look:metal,bevel:.008})
     fixture('riser',[wallX,1.55,wallZ],[.022,1.05,.022],'cyl')
     fixture('arm',[wallX-dx*.12,2.08,wallZ-dz*.12],[dx?.26:.025,.025,dz?.26:.025])

@@ -71,9 +71,19 @@ export function batchWalkthroughScene(root: Group) {
     originals.forEach(m => { m.visible = false }); root.add(batchRoot)
   } catch (error) { batchRoot.traverse(o => { if (o instanceof Mesh) o.geometry.dispose() }); throw error }
   finally { for (const group of groups.values()) group.parts.forEach(p => p.dispose()) }
+  // Static transforms are already baked into spatial batches. Avoid walking
+  // the hidden original model's transform hierarchy on every presented frame.
+  const transforms:{object:Object3D;local:boolean;world:boolean}[]=[]
+  root.updateMatrixWorld(true)
+  root.traverse(object=>{
+    if(object.userData.walkthroughDoorId||'isLight' in object||'isCamera' in object)return
+    transforms.push({object,local:object.matrixAutoUpdate,world:object.matrixWorldAutoUpdate})
+    object.matrixAutoUpdate=false;object.matrixWorldAutoUpdate=false
+  })
   let released = false
   return { before: originals.size, after: batchRoot.children.length, release() {
     if (released) return; released = true
+    transforms.forEach(({object,local,world})=>{object.matrixAutoUpdate=local;object.matrixWorldAutoUpdate=world;object.matrixWorldNeedsUpdate=true})
     originals.forEach(m => { m.visible = true }); batchRoot.removeFromParent()
     batchRoot.traverse(o => { if (o instanceof Mesh) o.geometry.dispose() }); batchRoot.clear()
   } }

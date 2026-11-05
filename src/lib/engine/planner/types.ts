@@ -114,6 +114,9 @@ export type ExistingStructure = {
   position?: Point
   /** Confirmed traced ground floor; used verbatim instead of generating a replacement layout. */
   measuredPlan?: { rooms: import('../types.ts').PlacedRoom[]; walls: import('../types.ts').Wall[]; openings: import('../types.ts').Opening[]; heightM: number; stairStartSide?: 'N'|'S'|'E'|'W' }
+  /** Each confirmed drawing is retained; floors are never copied from ground. */
+  measuredFloors?: {level:number;plan:NonNullable<ExistingStructure['measuredPlan']>;position:Point;
+    columns:ExistingStructure['columns'];beams:ExistingStructure['beams']}[]
   columns: { id: string; at: Point; size: number }[]
   /** footings / pedestals with no column above yet: the position is fixed, the column is proposed on it */
   footings: { id: string; at: Point }[]
@@ -122,7 +125,7 @@ export type ExistingStructure = {
   /** storeys whose columns are already poured (1 = ground floor only) */
   storeysBuilt: number
 }
-export type SupportZone = { id: string; rect: Rect; support: 'columns' | 'cantilever' }
+export type SupportZone = { id: string; rect: Rect; support: 'columns' | 'cantilever'; review?: string }
 export type Shaft = { id: string; roomId: string; rect: Rect; stackedOver: string | null }
 
 export type PlanStructure = {
