@@ -31,7 +31,7 @@ test('separate ceiling fittings clear the fan sweep and touch the finished soffi
  }
  assert.ok([...groups.values()].some(p=>p.support.group==='fan'))
  for(const fan of [...groups.values()].filter(p=>p.support.group==='fan'))for(const light of [...groups.values()].filter(p=>p.roomId===fan.roomId&&p.support.group!=='fan'))
-  assert.ok(Math.hypot(fan.support.point[0]-light.support.point[0],fan.support.point[2]-light.support.point[2])>.9,'fixture intersects the fan sweep')
+  assert.ok(Math.hypot(fan.support.point[0]-light.support.point[0],fan.support.point[2]-light.support.point[2])>1.15,'fixture intersects the reserved blade sweep and visual clearance')
 })
 
 test('fixture footprints avoid disconnected soffits and stair/courtyard gaps',()=>{
@@ -40,6 +40,14 @@ test('fixture footprints avoid disconnected soffits and stair/courtyard gaps',()
  assert.equal(placeCeilingFitting([faces[0]],1.3,1.3),null)
  const chosen=placeCeilingFitting(faces,1.3,1.3);assert.equal(chosen.surface.id,'right');assert.ok(chosen.x>2.65&&chosen.x<3.35)
  assert.equal(placeCeilingFitting([], .3,.3),null)
+})
+
+test('fan rooms hide old floating centre diffusers even when a fragmented soffit cannot fit the selected light',()=>{
+ const root=new Group(),old=new Mesh(new BoxGeometry(.4,.012,.18),new MeshStandardMaterial())
+ old.name='Interior_FF_BEDROOM_WarmCeiling_Diffuser.001';root.add(old)
+ const wall=new Mesh(new BoxGeometry(),new MeshStandardMaterial());wall.name='FF_Wall_1';root.add(wall)
+ replaceAcceptedLegacyLights(root,{metadata:{rooms:[{id:'upstairs',semanticId:'FF_BEDROOM'}]}},{furniture:[{roomId:'upstairs',sourceIds:['fan-hub'],support:{group:'fan'}}]})
+ assert.equal(old.visible,false);assert.equal(wall.visible,true)
 })
 
 test('skirting follows source wall fragments and the existing 100 mm BOQ height without filling door openings',()=>{

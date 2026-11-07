@@ -12,6 +12,8 @@ import { validateProceduralFeatures } from '../facade/FacadeGrammar.ts'
 import { validateSpecializedAssemblies } from '../facade/specialized/validate.ts'
 import { createVillaShapeFingerprint } from './VillaShapeFingerprint.ts'
 import { createStairGuards } from '../../walkthrough/stairGuards.ts'
+import {generateFacadeVariation} from '../facade/variations.ts'
+import {automaticFacadeDesign} from '../../model/facadeDesign.ts'
 
 /** Pure exact-seed assembly for candidate evaluation and saved-design replay.
  * History/retries belong to VillaDiversityGate, not to this deterministic adapter. */
@@ -29,6 +31,7 @@ export function createVillaArchitecture(design: Design, seed = design.dna.seed, 
   const specializedIssues = validateSpecializedAssemblies({ building: buildingModel, dna: villaDesignDNA,
     massing: massingModel, facade: facadeGrammar, limits: facadeGrammar.specialized.limits }, facadeGrammar.specialized.assemblies)
   if (specializedIssues.length) throw new Error(`Component grammar rejected: ${JSON.stringify(specializedIssues)}`)
-  return { buildingModel, massingModel, villaDesignDNA, facadeGrammar, stairGuards: createStairGuards(buildingModel), balconySliders: balconySliders(buildingModel), roofAccess: roofAccess(buildingModel), serviceClosures:roofServiceClosures(buildingModel), plumbing: createVillaPlumbing(buildingModel, selectedPipeSizes(design.model.brief)),
+  const facadeDesign=generateFacadeVariation(buildingModel,facadeGrammar.zones,design.model.brief.facadeDesign??automaticFacadeDesign(seed),design.model.brief,facadeGrammar.coveredOutdoor)
+  return { ...(facadeDesign?{facadeDesign}:{}),buildingModel, massingModel, villaDesignDNA, facadeGrammar, stairGuards: createStairGuards(buildingModel), balconySliders: balconySliders(buildingModel), roofAccess: roofAccess(buildingModel), serviceClosures:roofServiceClosures(buildingModel), plumbing: createVillaPlumbing(buildingModel, selectedPipeSizes(design.model.brief)),
     shapeFingerprint: createVillaShapeFingerprint(buildingModel, villaDesignDNA, massingModel, facadeGrammar) }
 }

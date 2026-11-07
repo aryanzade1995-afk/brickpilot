@@ -31,6 +31,7 @@ from geometry.sizing import create_sized_foundation, create_plinth_enclosure, sl
 from geometry.outdoor import (create_balcony, create_terrace, create_parapet,
                               create_pergola, create_planter, accessible_roof_pad)  # noqa: E402
 from facade.features import create_facade, finish_wall_bevels  # noqa: E402
+from facade.variations import create_facade_variation  # noqa: E402
 from facade.specialized import create_specialized_grammars  # noqa: E402
 from visualization.config import visualization_options, CAMERAS  # noqa: E402
 from visualization.spec_materials import specification_intent
@@ -199,8 +200,11 @@ def create_scene(payload, visualization=None):
     if not specialized and pad and dna["landscapeStyle"] in ("courtyard", "lush-tropical"):
         create_planter(scene, f"{top['id']}_Roof_Planter_01", pad["x"] + pad["w"] / 2,
                        pad["y"] + pad["h"] - 170, roof_level)
-    create_facade(scene, facade, building, finish=False)
-    create_specialized_grammars(scene, specialized, building, massing)
+    if not payload.get('facadeDesign'):
+        create_facade(scene, facade, building, finish=False)
+    selected_specialized = {**specialized, 'assemblies':[u for u in specialized['assemblies'] if u['category'] != 'DEPTH']} if specialized and payload.get('facadeDesign') else specialized
+    create_specialized_grammars(scene, selected_specialized, building, massing)
+    create_facade_variation(scene, payload.get('facadeDesign'))
     finish_wall_bevels(scene)
     bpy.context.view_layer.update()
     composition = apply_finish_composition(scene, building, options["composition"])

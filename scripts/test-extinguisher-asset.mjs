@@ -1,8 +1,24 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
-import {Group,Mesh,BoxGeometry,MeshStandardMaterial,Box3,Vector3} from 'three'
-import {replaceExtinguisherBoxes} from '../src/lib/three/extinguisherAsset.ts'
+import {Group,Mesh,BoxGeometry,MeshStandardMaterial,Box3,Vector3,DataTexture} from 'three'
+import {replaceExtinguisherBoxes,restoreExtinguisherMaterials} from '../src/lib/three/extinguisherAsset.ts'
+
+test('older white extinguisher bodies regain the original red PBR map without recolouring labels or moving geometry',()=>{
+ const asset=new Group(),texture=new DataTexture(new Uint8Array([190,15,12,255]),1,1)
+ const source=new MeshStandardMaterial({map:texture,roughness:.45});source.name='korean_fire_extinguisher_01_body'
+ source.normalMap=new DataTexture(new Uint8Array([128,128,255,255]),1,1)
+ asset.add(new Mesh(new BoxGeometry(),source))
+ const old=new MeshStandardMaterial({color:'#cccccc'});old.name=source.name+'.001'
+ const root=new Group(),body=new Mesh(new BoxGeometry(.2,.65,.2),old),label=new Mesh(new BoxGeometry(),new MeshStandardMaterial({color:'white'}))
+ body.position.set(2,3.1,-4);label.material.name='korean_fire_extinguisher_01_paper';root.add(body,label)
+ const geometry=body.geometry,position=body.position.clone(),paper=label.material
+ restoreExtinguisherMaterials(root,asset)
+ assert.equal(body.material.map,texture);assert.equal(body.material.normalMap,source.normalMap)
+ assert.equal(body.geometry,geometry);assert.deepEqual(body.position,position);assert.equal(label.material,paper)
+ assert.equal(old.map,null,'original shared material was not recoloured')
+ const repaired=body.material;restoreExtinguisherMaterials(root,asset);assert.equal(body.material,repaired)
+})
 
 test('detailed prop is a compact self-contained PBR GLB with real geometry',()=>{
  const bytes=readFileSync(new URL('../public/safety-assets/fire-extinguisher.glb',import.meta.url))

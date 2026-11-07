@@ -2,6 +2,7 @@ import { useNarrationPreferences } from '@/state/narrationPreferences.ts'
 import { createGuideContext } from '@/lib/walkthrough/guide.ts'
 import { requestNarrationClip } from '@/lib/walkthrough/narrationClips.ts'
 import { NarrationSettings } from './NarrationSettings.tsx'
+import {curtainLayout} from '@/lib/curtains/layout.ts'
 import { useProjectPipelines } from '../water/useProjectPipelines.ts'
 import { lazy, Suspense, useMemo, useState, useEffect } from 'react'
 import type { BlenderResult } from '@/state/blender.ts'
@@ -26,6 +27,7 @@ export function AcceptedVillaWalkthrough({ asset, source, design }: { asset?: Bl
   })
   const url = asset?.files.glb, planId = source.building.planId, acceptedPlanId = asset?.planId
   const appearance = useMemo(() => geometry ? prepareWalkthroughAppearance(design, source, geometry) : undefined, [design, source, geometry])
+  const curtains=useMemo(()=>curtainLayout(source.building,design.model.brief),[source.building,design.model.brief])
   const voiceLanguage=useNarrationPreferences(s=>s.language),narrationEnabled=useNarrationPreferences(s=>s.enabled)
   useEffect(()=>{
     if(open||!geometry||!narrationEnabled||voiceLanguage!=='mr')return
@@ -43,7 +45,7 @@ export function AcceptedVillaWalkthrough({ asset, source, design }: { asset?: Bl
     {!acceptedVilla ? <div className="mt-4 border border-line bg-bg-inset p-4"><p className="text-sm">{t('Open 3D Massing and prepare your Blender villa first.')}</p><a href="/workspace/massing" className="mt-3 inline-flex min-h-11 items-center text-xs underline">{t('Open 3D Massing')}</a></div> : <>
       <div className="mt-4 flex flex-wrap gap-3"><button type="button" onClick={() => setOpen(v => !v)} className="min-h-11 border border-line bg-accent px-4 text-xs text-bg">{t(open ? 'Close 3D view' : 'Open 3D view')}</button>
         <a href={acceptedVilla.url} download className="inline-flex min-h-11 items-center border border-line px-4 text-xs underline">{t('Download GLB')}</a></div>
-      {open && <Suspense fallback={<p role="status" className="py-4 text-xs">{t('Loading the exported house…')}</p>}><Preview key={acceptedVilla.url} planId={source.building.planId} acceptedVilla={acceptedVilla} pipelines={pipelines} appearance={appearance} floors={acceptedVilla.geometry?.metadata.floors ?? []} /></Suspense>}
+      {open && <Suspense fallback={<p role="status" className="py-4 text-xs">{t('Loading the exported house…')}</p>}><Preview key={acceptedVilla.url} planId={source.building.planId} acceptedVilla={acceptedVilla} curtains={curtains} pipelines={pipelines} appearance={appearance} floors={acceptedVilla.geometry?.metadata.floors ?? []} /></Suspense>}
       <details className="mt-3 text-xs text-ink-dim"><summary className="min-h-11 cursor-pointer py-3">{t('Controls & model details')}</summary>
         <p>{t('WASD: move · Mouse: look · E: doors · Esc: exit')}</p>
         <p className="mt-2">{t('Selected products are shown where supported. Textures and procedural furnishings are visual approximations.')}</p>

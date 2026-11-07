@@ -11,11 +11,11 @@ const CAMERA = { position: [20, 14, -25] as [
         number,
         number,
         number
-    ], fov: 40 }, GL = { antialias: true, logarithmicDepthBuffer: true, preserveDrawingBuffer: true, powerPreference:'high-performance' as const }, DPR: [
+    ], fov: 40 }, GL = { antialias: true, preserveDrawingBuffer: true, powerPreference:'high-performance' as const }, DPR: [
     number,
     number
 ] = [1, 1.5];
-export const AcceptedVillaModel = memo(function AcceptedVillaModel({ url, fit = true, style, technicalXray = false, separateRoofTanks = false, gardenShade=false, replaceParkedCars=false }: {
+export const AcceptedVillaModel = memo(function AcceptedVillaModel({ url, fit = true, style, technicalXray = false, separateRoofTanks = false, gardenShade=false, replaceParkedCars=false, facadeDesign=false }: {
     url: string;
     fit?: boolean;
     style?: ReferenceGeometry['style'];
@@ -23,6 +23,7 @@ export const AcceptedVillaModel = memo(function AcceptedVillaModel({ url, fit = 
     separateRoofTanks?: boolean;
     gardenShade?: boolean;
     replaceParkedCars?: boolean;
+    facadeDesign?: boolean;
 }) {
     const gltf = useGLTF(url), anisotropy = useThree(s => s.gl.capabilities.getMaxAnisotropy());
     const { scene, owned } = useMemo(() => {
@@ -31,7 +32,7 @@ export const AcceptedVillaModel = memo(function AcceptedVillaModel({ url, fit = 
             for (const m of Array.isArray(o.material) ? o.material : [o.material])
                 if (o.userData.material_role)
                     roles.set(m, o.userData.material_role); });
-        const scene = prepareVillaScene(gltf.scene, anisotropy, separateRoofTanks, gardenShade,replaceParkedCars), owned: Material[] = [], cache = new Map<Material, Material>();
+        const scene = prepareVillaScene(gltf.scene, anisotropy, separateRoofTanks, gardenShade,replaceParkedCars,facadeDesign), owned: Material[] = [], cache = new Map<Material, Material>();
         if (style)
             scene.traverse(o => { if (!(o instanceof Mesh))
                 return; const convert = (m: Material) => { const look = style[roles.get(m) ?? '']; if (!look || !(m instanceof MeshStandardMaterial))
@@ -48,7 +49,7 @@ export const AcceptedVillaModel = memo(function AcceptedVillaModel({ url, fit = 
                 owned.push(v);
             } return v; }; o.material = Array.isArray(o.material) ? o.material.map(convert) : convert(o.material); });
         return { scene, owned };
-    }, [gltf.scene, anisotropy, style, separateRoofTanks, gardenShade,replaceParkedCars]);
+    }, [gltf.scene, anisotropy, style, separateRoofTanks, gardenShade,replaceParkedCars,facadeDesign]);
     useEffect(() => () => owned.forEach(m => m.dispose()), [owned]);
     const invalidate = useThree(s=>s.invalidate)
     useLayoutEffect(()=>{if(!technicalXray){invalidate();return}const restore=ghostWaterArchitecture(scene);invalidate();return()=>{restore();invalidate()}},[scene,technicalXray,invalidate]);

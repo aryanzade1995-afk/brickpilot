@@ -40,7 +40,7 @@ export const photoRequiredGroups = new Set(['flooring', 'wall-tiles-cladding', '
 export function photographedOptions(item: Pick<SpecItem, 'group' | 'options'>) {
   // Legacy service allowances use concrete/metal/plaster proxies, not photographs of a product.
   // Preserve their cost IDs for saved projects, but do not offer them as photographed products.
-  return photoRequiredGroups.has(item.group) ? item.options.filter(o => !!optionImage(o) && (!servicePhotoGroups.has(item.group)||!!finishProduct(o.finishProductId)?.preview)) : item.options
+  return photoRequiredGroups.has(item.group) ? item.options.filter(o => !!o.curtainOptionId||!!optionImage(o) && (!servicePhotoGroups.has(item.group)||!!finishProduct(o.finishProductId)?.preview)) : item.options
 }
 
 /** The product a card pictures for an option: its own photograph, or, for a general allowance with no photograph of its

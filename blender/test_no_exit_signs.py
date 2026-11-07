@@ -33,3 +33,17 @@ assert 'safety_exit' not in scene.materials
 print('PASS: No EXIT plates or lettering on any door; alarms and door hardware remain.')
 
 assert any(o.name.startswith('EXTINGUISHER_Detailed') and o.get('formstead_extinguisher_asset') for o in scene.collections['SAFETY'].objects)
+for obj in scene.collections['SAFETY'].objects:
+    for material in obj.data.materials:
+        assert material.get('asset_pbr'), 'Packed extinguisher textures must survive GLB export'
+from exporters.glb import export_glb
+import tempfile, json, struct
+with tempfile.TemporaryDirectory() as tmp:
+    target=Path(tmp)/'safety.glb'
+    export_glb(target)
+    raw=target.read_bytes()
+    data=json.loads(raw[20:20+struct.unpack_from('<I',raw,12)[0]])
+    body=next(m for m in data['materials'] if m['name']=='korean_fire_extinguisher_01_body')
+    assert body['pbrMetallicRoughness'].get('baseColorTexture'), 'Red body texture was stripped from exported villa'
+    assert body.get('normalTexture'), 'Detailed surface normals were stripped'
+print('PASS: Extinguisher retains packed body colour and normal maps in villa GLB.')

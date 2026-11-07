@@ -93,11 +93,11 @@ export const brandLinksRegistry = brandLinksRegistrySchema.superRefine((reg, ctx
 export const noLinkNeededMap = new Map(brandLinksRegistry.noLinkNeeded.map(n => [n.itemId, n.reason]))
 
 export function isNoLinkNeeded(itemId: string): boolean {
-  return noLinkNeededMap.has(itemId)
+  return itemId==='window-curtains'||noLinkNeededMap.has(itemId)
 }
 
 export function noLinkReason(itemId: string): string | undefined {
-  return noLinkNeededMap.get(itemId)
+  return itemId==='window-curtains'?'Illustrative curtain styles with provisional allowances; no supplier product is implied.':noLinkNeededMap.get(itemId)
 }
 
 /** Normalize item parameter to id and group */

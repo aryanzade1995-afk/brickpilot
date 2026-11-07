@@ -29,10 +29,15 @@ import {loadWalkthroughLightmaps,applyLightmapUVs,applyWalkthroughLightmaps,disp
 import { WalkthroughVoiceGuide } from './WalkthroughVoiceGuide.tsx'
 import { unlockRoomNarration } from '@/lib/walkthrough/roomAudio.ts'
 import { removeBathroomMirrors } from '@/lib/three/interiorDetails.ts'
+import type {CurtainWindow} from '@/lib/curtains/layout.ts'
+import {CurtainMotion} from '@/lib/curtains/motion.ts'
+import {WindowCurtains} from './WindowCurtains.tsx'
+const NO_CURTAINS:CurtainWindow[]=[]
 
 /** Shared orbit / first-person viewer of the same immutable delivered house. */
 export type AcceptedVillaPreview = { url: string; geometry: WalkthroughGeometryPayload | null;lighting?:{id:string;signature:string} }
-export default function WalkthroughAssetPreview({ id, planId, floors, appearance, acceptedVilla, pipelines }: { pipelines?: ProjectPipelines | null; id?: string; planId: string; floors: { sourceId: string; level: number; elevationM: number }[]; appearance?: WalkthroughAppearancePayload; acceptedVilla?: AcceptedVillaPreview }) {
+export default function WalkthroughAssetPreview({ id, planId, floors, appearance, acceptedVilla, pipelines,curtains=NO_CURTAINS }: { curtains?:CurtainWindow[];pipelines?: ProjectPipelines | null; id?: string; planId: string; floors: { sourceId: string; level: number; elevationM: number }[]; appearance?: WalkthroughAppearancePayload; acceptedVilla?: AcceptedVillaPreview }) {
+  const curtainMotion=useMemo(()=>new CurtainMotion(curtains,window.matchMedia('(prefers-reduced-motion: reduce)').matches),[curtains])
   const [model, setModel] = useState<Group | null>(null), [failed, setFailed] = useState(false), [cut, setCut] = useState('all')
   const bakedAssets=useRef<Awaited<ReturnType<typeof loadWalkthroughLightmaps>>|null>(null)
   const [lightingNotice,setLightingNotice]=useState('')
@@ -220,10 +225,11 @@ export default function WalkthroughAssetPreview({ id, planId, floors, appearance
         <WarmWalkthroughShaders revision={appearanceRevision} onReady={setRenderReady}/>
         <WalkthroughRoomLights appearance={appearance} geometry={acceptedVilla?.geometry} /><WalkthroughPerformance active={walking} revision={appearanceRevision} quality={quality} nativeResolution={nativeResolution} onMetrics={setMetrics} />
         <Bounds fit={!acceptedVilla && !walking} clip={!acceptedVilla && !walking} observe={false} margin={1.25}><primitive object={model} /></Bounds>
+        <WindowCurtains revision={0} motion={curtainMotion}/>
         {pipelines&&acceptedVilla&&<Suspense fallback={null}><ResizableRoofTanks url={acceptedVilla.url} ports={pipelines.originalPorts} diameterScale={pipelines.options.roofDiameterScale??1} heightScale={pipelines.options.roofHeightScale??1} xray={false} onSelect={()=>{}}/></Suspense>}
         {acceptedVilla && <FitAcceptedVilla scene={model} bounds={framing} />}
         <Clipping model={model} plane={plane} revision={appearanceRevision} /><OrbitControls enabled={!walking} makeDefault enableDamping={false} minDistance={1} maxDistance={80} />
-        {simulation && <FirstPersonController simulation={simulation} model={model} lookSpeed={lookSpeed} onControls={setControls} onActive={(active, mode) => { setWalking(active); setMetrics(null); if (active) { setCut('all'); setLookMode(mode ?? 'locked') } else setWalkingError('') }} onHud={setHud} onError={setWalkingError} />}
+        {simulation && <FirstPersonController simulation={simulation} model={model} curtains={curtainMotion} lookSpeed={lookSpeed} onControls={setControls} onActive={(active, mode) => { setWalking(active); setMetrics(null); if (active) { setCut('all'); setLookMode(mode ?? 'locked') } else setWalkingError('') }} onHud={setHud} onError={setWalkingError} />}
       </Canvas></ModelBoundary>
       {simulation && <WalkthroughVoiceGuide metadata={simulation.metadata} appearance={appearance} walking={walking} roomId={hud.roomId} onReview={() => controls?.exit()}/>}
       {walking && <><div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white bg-black/30" />
@@ -237,7 +243,8 @@ export default function WalkthroughAssetPreview({ id, planId, floors, appearance
           <MoveButton direction="left" label={t('Move left')} text="A ←" controls={controls} /><MoveButton direction="back" label={t('Move backward')} text="S ↓" controls={controls} /><MoveButton direction="right" label={t('Move right')} text="D →" controls={controls} />
         </div>
         <div className="pointer-events-none absolute bottom-4 right-4 max-w-[calc(100%_-_210px)] border border-line bg-bg/95 p-3 text-xs leading-relaxed text-ink sm:max-w-md">
-          <p>{t(lookMode === 'drag' ? 'Drag to look · WASD to move' : 'Mouse to look · WASD to move')}</p><p className="mt-1">{t('E: open / close doors · Esc: return to page')}</p>
+          <p>{t(lookMode === 'drag' ? 'Drag to look · WASD to move' : 'Mouse to look · WASD to move')}</p><p className="mt-1">{t('E: open / close doors · Esc: return to page')} · C: curtains</p>
+          {hud.curtain&&<button type="button" onClick={()=>controls?.curtain()} className="pointer-events-auto mt-2 min-h-11 cursor-auto border border-line bg-bg px-3">C · {hud.curtain.open?'Close curtains':'Open curtains'}</button>}
           {hud.blocked && <p role="status" className="mt-2">{t(hud.blocked === 'edge' ? 'Edge reached — no supported floor ahead.' : 'Walking paused: no supported floor. Press Escape to return to 3D.')}</p>}
           {hud.door?.blocked && <p role="status" className="mt-2">{t('Step back to let the door swing clear.')}</p>}
           {hud.door && <button type="button" onClick={() => controls?.interact()} className="pointer-events-auto mt-2 min-h-11 cursor-auto border border-line bg-bg px-3">E · {t(hud.door.open ? 'Close door' : 'Open door')}</button>}

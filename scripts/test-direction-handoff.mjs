@@ -5,6 +5,8 @@ import {defaultBrief} from '../src/lib/model/brief.ts'
 import {compile} from '../src/lib/model/canonical.ts'
 import {generate} from '../src/lib/engine/generate.ts'
 import {varyExterior} from '../src/lib/engine/variation.ts'
+import {expandBalconyArea} from '../src/lib/engine/balconyExtent.ts'
+import {withSetbackBalcony} from '../src/lib/engine/setbackBalcony.ts'
 import {generateAlternativeDesign} from '../src/lib/engine/generateAlternativeDesign.ts'
 import {createBuildingModel} from '../src/lib/engine/buildingModel.ts'
 import {finishSignature} from '../src/lib/cost/finishAssignments.ts'
@@ -16,7 +18,8 @@ globalThis.window={localStorage:globalThis.localStorage}
 const {useStudio}=await import('../src/state/studio.ts')
 const {useBlender,directionRenderKey}=await import('../src/state/blender.ts')
 const brief=defaultBrief();brief.site.plotWidth=25;brief.site.plotDepth=30;brief.style.composition='staggered-wings'
-const seed=650523944,design=varyExterior(generate(compile(brief),{seed:41,formVersion:SITE_FORM_VERSION}),seed)
+// Direction cards include the same automatic balcony defaults as production.
+const seed=650523944,design=withSetbackBalcony(expandBalconyArea(varyExterior(generate(compile(brief),{seed:41,formVersion:SITE_FORM_VERSION}),seed)))
 const architecture=generateAlternativeDesign(design,seed)
 const direction={...architecture,design,massing:design.massingType,seed,planSeed:design.planSeed,facadeModel:architecture.facadeGrammar}
 const id=architecture.buildingModel.planId,key=directionRenderKey(id,seed)

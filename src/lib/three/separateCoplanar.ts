@@ -73,8 +73,11 @@ export function separateCoplanar(root: THREE.Object3D, step = .0015) {
     for(const mi of order) {
       const used=new Set([...graph.get(mi)!].map(i=>levels.get(i)).filter(v=>v!==undefined))
       let level=0;while(used.has(level))level++
-      // Never reshape a slab top/bottom, including two legacy overlapping plates.
-      if(plate(meshes[mi]))level=0
+      // Keep walking plates exact. Foundation bodies also need their top and
+      // bottom levels preserved, but their vertical faces can overlap masonry,
+      // beams and soil in older exports. Exempting those sides leaves z-fighting.
+      const foundation=/plinth|foundation|compactedearth/i.test(nameOf(meshes[mi]))
+      if(plate(meshes[mi])&&(!foundation||axis===1))level=0
       levels.set(mi,level)
       if(!level)continue
       const list=moves.get(mi) ?? [];list.push({axis,sign,at:mm/1000,by:Math.min(level*Math.abs(step),.0045)});moves.set(mi,list)

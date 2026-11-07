@@ -1,4 +1,6 @@
 import { paintColour } from '../finishes/paint.ts'
+import {curtainLayout} from '../curtains/layout.ts'
+import {createBuildingModel} from '../engine/buildingModel.ts'
 import type { Brief } from '../model/brief.ts'
 import type { Design } from '../engine/types.ts'
 import { measureDesign, type Quantities } from './quantities.ts'
@@ -99,7 +101,7 @@ function priceLines(design: Design, brief: Brief, quantities: Quantities, useLeg
           item === 'water-tanks' ? `${spec.name} · ${plumbing.overheadLitres} L overhead only` : spec.name,
         qty, quantity: qty, unit: units[rate.unit] ?? rate.unit,
         rate: rate.installed, amount: qty * rate.installed, materialRate: rate.material, labourRate: rate.labour,
-        materialAmount: qty * rate.material, labourAmount: qty * rate.labour, roomId, floor, note: recipe.note,
+        materialAmount: qty * rate.material, labourAmount: qty * rate.labour, roomId, floor, note:item==='interiors'?`${recipe.note} Curtains and blinds are excluded here and measured separately.`:recipe.note,
         rateSource, provenance: 'provenance' in rate ? (rate as any).provenance : undefined,
         scopeCategory,
       })
@@ -121,6 +123,14 @@ function priceLines(design: Design, brief: Brief, quantities: Quantities, useLeg
     }
   }
 
+  for(const window of curtainLayout(createBuildingModel(design),brief)){
+    const rate=resolver?resolver.getRate(window.option.id):specificationRate(window.option.id),qty=window.option.kind==='none'?0:window.area
+    boq.push({id:`curtains:${window.id}`,item:'window-curtains',specId:`window-curtains/${window.option.id}`,rateId:rate.id,group:'Extras',
+      label:`${window.roomName} · window curtains`,specification:window.option.name,qty,quantity:qty,unit:'m²',rate:rate.installed,amount:qty*rate.installed,
+      materialRate:rate.material,labourRate:rate.labour,materialAmount:qty*rate.material,labourAmount:qty*rate.labour,roomId:window.roomId,floor:window.floor,
+      scopeCategory:'interiors',rateSource:resolver?.isManual(rate.id)?'manual':resolver?.isResearched(rate.id)?'researched':'baseline',
+      note:'Installed track width × drop; fabric fullness, track and fitting included in rate once. Provisional allowance; supplier quote required. Separate from the general interiors allowance.'})
+  }
   for (const run of plumbing.runs) {
     const item = run.system === 'water' ? 'water-pipes' : 'drain-pipes'
     const spec = resolveSpecification(brief, item)

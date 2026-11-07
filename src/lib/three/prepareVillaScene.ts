@@ -4,13 +4,14 @@ import { completeBalconyShades } from './balconyShades.ts'
 import { separateCoplanar } from './separateCoplanar.ts'
 import { hideBathroomPartitions } from './bathroomPartitions.ts'
 import { refineMaterialResponse } from './materialResponse.ts'
+import {stabilizeSurfaceDepth} from './stableSurfaceDepth.ts'
 
 // A route remount must not repeat geometry repairs or upload new copies of the
 // same static villa. Each canvas gets its own hierarchy and shares prepared data.
 const prepared = new WeakMap<THREE.Object3D, Map<string, THREE.Object3D>>()
 
-export function prepareVillaScene(source: THREE.Object3D, anisotropy: number, separateRoofTanks=false, gardenShade=false, replaceParkedCars=false) {
-  const key=`${anisotropy}:${separateRoofTanks}:${gardenShade}:${replaceParkedCars}`
+export function prepareVillaScene(source: THREE.Object3D, anisotropy: number, separateRoofTanks=false, gardenShade=false, replaceParkedCars=false, facadeDesign=false) {
+  const key=`${anisotropy}:${separateRoofTanks}:${gardenShade}:${replaceParkedCars}:${facadeDesign}`
   let variants = prepared.get(source)
   if (!variants) { variants = new Map(); prepared.set(source, variants) }
   let template = variants.get(key)
@@ -19,6 +20,7 @@ export function prepareVillaScene(source: THREE.Object3D, anisotropy: number, se
     hideBathroomPartitions(template)
     const remove: THREE.Object3D[] = []
     template.traverse(object => {
+      if(facadeDesign&&(object.userData.facade_design_part||/^Hero_|^Support_/.test(object.name)||object.userData.grammar_category==='DEPTH'))remove.push(object)
       if(replaceParkedCars&&(object.userData.asset_id==='ferrari-458'||object.userData.formstead_vehicle))remove.push(object)
       if (!gardenShade && (/^EnvelopeCanopy_forecourt-canopy/.test(object.name) || /^Envelope(?:Pier|Foundation)_exterior-pier-/.test(object.name))) remove.push(object)
       // Combined GLBs carry tagged PV. Strip before caching the architecture;
@@ -53,6 +55,7 @@ export function prepareVillaScene(source: THREE.Object3D, anisotropy: number, se
     }
     completeBalconyShades(template)
     separateCoplanar(template)
+    stabilizeSurfaceDepth(template)
     batchOpaqueMeshes(template)
     refineMaterialResponse(template)
     variants.set(key, template)

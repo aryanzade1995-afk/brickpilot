@@ -1,4 +1,5 @@
 import { experienceOptions, experienceChoices, experienceRates } from '../../finishes/experiences.ts'
+import {curtainCatalogueItem,curtainRates,curtainDefault,curtainOption} from '../../curtains/catalogue.ts'
 import ratesRaw from './rates.json' with { type: 'json' }
 import specsRaw from './specs-catalogue.json' with { type: 'json' }
 import presetsRaw from './presets.json' with { type: 'json' }
@@ -17,6 +18,7 @@ export function validateSpecificationData(r: unknown, s: unknown, p: unknown, m:
   const rates = ratesSchema.parse(r), catalogue = specsCatalogueSchema.parse(s), presets = presetsSchema.parse(p), materials = materialRegistrySchema.parse(m)
   const errors: string[] = []
   for (const item of catalogue.items) for (const option of item.options) {
+    if(option.curtainOptionId&&(item.id!=='window-curtains'||option.id!==option.curtainOptionId||!curtainOption(option.id)))errors.push(`${item.id}/${option.id}: invalid curtain illustration reference`)
     if (!rates.items.some(r => r.id === option.rateId)) errors.push(`${item.id}/${option.id}: missing rate ${option.rateId}`)
     const material = materials.materials.find(m => m.id === option.blenderMaterial)
     if (!material) errors.push(`${item.id}/${option.id}: missing Blender material`)
@@ -46,13 +48,14 @@ export function validateSpecificationData(r: unknown, s: unknown, p: unknown, m:
   if (errors.length) throw new Error(`Invalid specification references:\n${errors.join('\n')}`)
   return { rates, catalogue, presets, materials }
 }
-export const specificationData = validateSpecificationData({ ...ratesRaw, items: [...ratesRaw.items, ...flooringRates(), ...finishRates(), ...experienceRates(),...plumbingTankRates,...plumbingPipeRates(ratesRaw.items)] },
-  { ...specsRaw, items: [...specsRaw.items,...plumbingItems,...serviceItems.map(({roomSource: _roomSource,...item})=>item)].map(i => ({ ...i,
+export const specificationData = validateSpecificationData({ ...ratesRaw, items: [...ratesRaw.items, ...flooringRates(), ...finishRates(), ...experienceRates(),...plumbingTankRates,...plumbingPipeRates(ratesRaw.items),...curtainRates] },
+  { ...specsRaw, items: [...specsRaw.items,...plumbingItems,curtainCatalogueItem,...serviceItems.map(({roomSource: _roomSource,...item})=>item)].map(i => ({ ...i,
     label: i.id==='water-tanks'?'Overhead water tank':i.id==='sanitary'?'Toilets & sanitary allowance':i.id==='cp-fittings'?'Basin faucets & fittings allowance':i.id==='light-fittings'?'Ceiling lights & downlights':i.label,
+    note:i.id==='interiors'?`${i.note} Curtains and blinds are excluded here and measured separately under Window curtains & blinds.`:i.note,
     level: ['fans','light-fittings','switches','water-heater','terrace-waterproofing','bath-waterproofing'].includes(i.id)?'main':i.level,
     control: i.id === 'pool' ? 'dropdown' : i.control, options: [...i.options,
     ...(i.group === 'flooring' && i.level !== 'auto' ? flooringSpecificationOptions() : []), ...finishSpecificationOptions(i.id), ...experienceChoices(i.id)] })) },
-  {...presetsRaw,presets:presetsRaw.presets.map(p=>({...p,options:{...p.options,...plumbingDefaults,...Object.fromEntries(serviceItems.map(i=>[i.id,finishSpecificationOptions(i.id)[0].id]))}}))}, materialsRaw)
+  {...presetsRaw,presets:presetsRaw.presets.map(p=>({...p,options:{...p.options,...plumbingDefaults,'window-curtains':curtainDefault(p.id),...Object.fromEntries(serviceItems.map(i=>[i.id,finishSpecificationOptions(i.id)[0].id]))}}))}, materialsRaw)
 const installedRate = (id: string) => {
   const rate = specificationData.rates.items.find(r => r.id === id)
   if (!rate) throw new Error(`Missing deployed BOQ rate ${id}`)

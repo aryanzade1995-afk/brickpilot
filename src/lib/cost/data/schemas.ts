@@ -46,7 +46,7 @@ export const ratesSchema = z.strictObject({
     s.contingencyPct >= s.percentageLimits.contingency[0] && s.contingencyPct <= s.percentageLimits.contingency[1], 'Default allowance outside configured limits'),
   sanityBands: z.strictObject({ basic: sanityBand, mid: sanityBand, premium: sanityBand }),
   items: z.array(z.strictObject({ id, unit: z.enum(['m2', 'm3', 'm', 'kg', 'bag', 'item', 'set', 'point', 'percent']), material: amount, labour: amount,
-    city: z.literal('Pune'), date, source: z.enum(['Maharashtra PWD SOR + market, approximate','Concept plumbing allowance; supplier quote required']), verification: z.literal('provisional-allowance'),
+    city: z.literal('Pune'), date, source: z.enum(['Maharashtra PWD SOR + market, approximate','Concept plumbing allowance; supplier quote required','Concept curtain allowance; supplier quote required']), verification: z.literal('provisional-allowance'),
   })).min(1),
 }).refine(v => unique(v.items.map(i => i.id)), 'Duplicate rate id')
 
@@ -55,7 +55,7 @@ export const specsCatalogueSchema = z.strictObject({
   items: z.array(z.strictObject({ id, group: id, label: z.string().min(1), scope: z.enum(['house', 'perRoom']),
     level: z.enum(['main', 'more', 'technical', 'auto']), control: z.enum(['dropdown', 'toggle', 'computed']), note: z.string(),
     options: z.array(z.strictObject({ id, name: z.string().min(1), rateId: id, blenderMaterial: z.string().min(1), facts: z.array(z.string().min(1).max(110)).max(4),
-      tags: z.array(z.string().min(1)), photos: z.array(photoSchema), flooringProductId: id.optional(), finishProductId: id.optional(), experienceOptionId: id.optional(),
+      tags: z.array(z.string().min(1)), photos: z.array(photoSchema), flooringProductId: id.optional(), finishProductId: id.optional(), experienceOptionId: id.optional(), curtainOptionId:id.optional(),
     })).min(1),
   })).min(1),
 }).superRefine((v, ctx) => {
@@ -72,7 +72,7 @@ export const specsCatalogueSchema = z.strictObject({
       for (const o of i.options) {
         if (o.flooringProductId && i.group !== 'flooring') issue(`${i.id}: product catalogue is for flooring only`)
         if ([o.flooringProductId, o.finishProductId, o.experienceOptionId].filter(Boolean).length > 1) issue(`${i.id}: ambiguous product reference`)
-        if (!o.flooringProductId && !o.finishProductId && !o.experienceOptionId && !o.photos.some(p => p.kind === 'closeup')) issue(`${i.id}/${o.id}: verified close-up required`)
+        if (!o.flooringProductId && !o.finishProductId && !o.experienceOptionId && !o.curtainOptionId && !o.photos.some(p => p.kind === 'closeup')) issue(`${i.id}/${o.id}: verified close-up required`)
       }
     }
   }

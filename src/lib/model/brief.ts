@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { solarConfigurationSchema, recoverStoredSolar } from './solar.ts'
+import {facadeDesignSchema} from './facadeDesign.ts'
 
 /** Compass edges of a plot. */
 export const directionSchema = z.enum(['N', 'E', 'S', 'W'])
@@ -185,6 +186,7 @@ const DEFAULT_MEMBERS: Member[] = [
  */
 export const briefSchema = z
   .object({
+    facadeDesign:facadeDesignSchema.optional(),
     project: z
       .object({
         name: z.string().min(1).max(80).default('My family home'),
@@ -318,13 +320,14 @@ export const defaultBrief = (): Brief => briefSchema.parse({})
 
 /** Tolerant only at storage boundaries; live solar updates use the strict schema. */
 export function parseStoredBrief(value: unknown) {
+  const facade=value&&typeof value==='object'?facadeDesignSchema.safeParse((value as {facadeDesign?:unknown}).facadeDesign):null
   return briefSchema.safeParse(value && typeof value === 'object' && !Array.isArray(value)
-    ? { ...value, solar: recoverStoredSolar((value as { solar?: unknown }).solar) } : value)
+    ? { ...value, facadeDesign:facade?.success?facade.data:undefined,solar: recoverStoredSolar((value as { solar?: unknown }).solar) } : value)
 }
 
 /** Excludes cost preferences, preserving pre-specification saved-project seeds. */
 export function geometryBrief(brief: Brief) {
-  const { finish: _finish, specs: _specs, budget: _budget, solar: _solar, ...geometry } = brief
+  const { facadeDesign:_facadeDesign, finish: _finish, specs: _specs, budget: _budget, solar: _solar, ...geometry } = brief
   const { climate: _climate, ventilation: _ventilation, ...site } = geometry.site
   const { ramp: _ramp, accessIdentity: _accessIdentity, ...entry } = geometry.entry
   const { sizes, starred: _starred, ...rooms } = geometry.rooms

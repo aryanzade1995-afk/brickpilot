@@ -22,7 +22,7 @@ const publicJob = (job) => {
     solarVisualSignature: job.result.solarVisualSignature, roofSignature: job.result.roofSignature,
     panelCount: job.result.panelCount, capacityKwp: job.result.capacityKwp,
     seed: job.result.seed, requestedSeed: job.result.requestedSeed, planId: job.result.planId,
-    roofRevision:job.result.roofRevision, geometryRevision: job.result.geometryRevision, finishSignature: job.result.finishSignature, family: job.result.family, hero: job.result.hero, roofline: job.result.roofline, quality: job.result.quality,
+    facadeSignature:job.result.facadeSignature, roofRevision:job.result.roofRevision, geometryRevision: job.result.geometryRevision, finishSignature: job.result.finishSignature, family: job.result.family, hero: job.result.hero, roofline: job.result.roofline, quality: job.result.quality,
     warnings: job.result.warnings, files: Object.fromEntries(job.result.files.map((file) =>
       [file === 'solar-layout.json' ? 'solarLayout' : extname(file) === '.blend' ? 'blend' : extname(file) === '.glb' ? 'glb' : file.match(/_(hero|front|aerial)\.png$/)[1],
         `/api/villas/${job.id}/files/${file}${job.result.roofRevision?`?roof=${encodeURIComponent(job.result.roofRevision)}`:''}`])) }

@@ -43,9 +43,11 @@ export function Massing() {
 
   const result = useStudio((s) => s.result)
   const run = useStudio((s) => s.run)
+  const applyBalconyDefaults=useStudio(s=>s.useSetbackBalcony)
   useEffect(() => {
     if (!result) run()
-  }, [result, run])
+    else applyBalconyDefaults()
+  }, [result, run, applyBalconyDefaults])
 
   const [mode, setMode] = useState<ViewMode>('architecture')
   const [furnishedVisited, setFurnishedVisited] = useState(true)
@@ -56,7 +58,7 @@ export function Massing() {
   // the furnished view is dressed like the 360 preview: the brief's Finishes & Cost choices room by room, and the
   // interior style and furniture density chosen in the 360 panel. Any change rebuilds it at once.
   const brief = useStudio((s) => s.brief)
-  const acceptedVilla = useBlender(s => result?.buildingModel ? s.accepted[result.buildingModel.planId] : undefined)
+  const acceptedVilla = useBlender(s => result?.buildingModel ? !brief.facadeDesign&&s.baseModels[result.buildingModel.planId]?.seed===(result.villaDesignDNA?.seed??result.design.dna.seed)?s.baseModels[result.buildingModel.planId]:s.accepted[result.buildingModel.planId] : undefined)
   const matchingVilla = acceptedVilla?.seed === (result?.villaDesignDNA?.seed ?? result?.design.dna.seed) ? acceptedVilla : undefined
   const solarExportKey = solarArtifactKey(matchingVilla, brief.solar, matchingVilla?.quality)
   const solarExport = useSolarArtifacts(s => s.renders[solarExportKey])

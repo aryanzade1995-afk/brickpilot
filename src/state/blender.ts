@@ -7,6 +7,7 @@ import { createBuildingModel } from '@/lib/engine/buildingModel.ts'
 import { validate } from '@/lib/rules/index.ts'
 
 export type BlenderResult = {
+  facadeSignature?: string
   seed: number; requestedSeed: number; planId: string; family: string; hero: string; roofline: string
   finishSignature?: string; quality: 'preview' | 'final'; warnings: string[]
   roofRevision?:string; geometryRevision?: string
@@ -18,6 +19,7 @@ type Job = { planId?: string; heroPreview?:string; directionImage?:{planId:strin
 export const directionRenderKey = (planId: string, seed: number) => `${planId}:${seed}`
 export type Preview = { heroPreview?:string; status: 'queued' | 'generating' | 'rendering' | 'complete' | 'failed' | 'unavailable'; phase: string; progress?: number; jobId?: string; error?: string; planId: string; seed: number }
 type State = {
+  baseModels:Record<string,BlenderResult>
   accepted: Record<string, BlenderResult>; job: Job | null; sourcePlanId: string | null; error: string | null
   directionRenders: Record<string, BlenderResult>
   selectionKey: string | null
@@ -60,7 +62,10 @@ export const useBlender = create<State>()(persist((set, get) => {
           const result = job.result
           const previewKey=directionRenderKey(result.planId,result.seed)
           if(get().previews[previewKey])setPreview(previewKey,{...get().previews[previewKey],status:'complete',phase:'Ready',jobId:id,error:undefined})
-          set({ accepted: { ...get().accepted, [result.planId]: result }, error: null,
+          const previous=get().accepted[result.planId]
+          const baseModels=result.facadeSignature&&previous&&!previous.facadeSignature&&previous.seed===result.seed
+            ?{...get().baseModels,[result.planId]:previous}:get().baseModels
+          set({ baseModels,accepted: { ...get().accepted, [result.planId]: result }, error: null,
             ...(expectedSeed !== undefined || get().previews[previewKey] ? { directionRenders: { ...get().directionRenders,
               [directionRenderKey(result.planId, result.seed)]: result } } : {}) })
           break
@@ -117,7 +122,7 @@ export const useBlender = create<State>()(persist((set, get) => {
     })().finally(() => { previewPoll = undefined })
     return previewPoll
   }
-  return { accepted: {}, directionRenders: {}, selectionKey: null, job: null, sourcePlanId: null, error: null, previews: {},
+  return { baseModels:{},accepted: {}, directionRenders: {}, selectionKey: null, job: null, sourcePlanId: null, error: null, previews: {},
     selectDirection: (plan, seed) => {
       const id=createBuildingModel(plan).planId,signature=finishSignature(plan.model.brief)
       const key=directionRenderKey(id,seed)
@@ -290,7 +295,7 @@ export const useBlender = create<State>()(persist((set, get) => {
         job: get().job ? { ...get().job!, status: 'failed' } : null }) }
     },
   }
-}, { name: 'brickpilot.blender-v1', partialize: (s) => ({ accepted: s.accepted, directionRenders: s.directionRenders,
+}, { name: 'brickpilot.blender-v1', partialize: (s) => ({ baseModels:s.baseModels,accepted: s.accepted, directionRenders: s.directionRenders,
   previews: s.previews, selectionKey: s.selectionKey, job: s.job, sourcePlanId: s.sourcePlanId, error: s.error }),
   merge: (persisted, current) => {
     const saved = persisted as Partial<State> | undefined
@@ -300,7 +305,7 @@ export const useBlender = create<State>()(persist((set, get) => {
       .map(([key, p]): [string, Preview] => [key, !p.jobId && ['queued', 'generating', 'rendering'].includes(p.status)
         ? { ...p, status: 'failed', phase: 'Request interrupted', error: 'The preview request was interrupted before a job was created.' }
         : p]))
-    return { ...current, previews, accepted: saved?.accepted ?? {}, directionRenders: saved?.directionRenders ?? {},
+    return { ...current, baseModels:saved?.baseModels??{},previews, accepted: saved?.accepted ?? {}, directionRenders: saved?.directionRenders ?? {},
       selectionKey: saved?.selectionKey ?? null, sourcePlanId: saved?.sourcePlanId ?? null,
       job: interrupted ? { ...saved.job!, status: 'failed' } : saved?.job ?? null,
       error: interrupted ? 'Generation request was interrupted. Try again.' : saved?.job?.status === 'failed'

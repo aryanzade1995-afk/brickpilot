@@ -1,6 +1,7 @@
 import {COASTAL_ROOF_REVISION} from '@/lib/engine/massing/coastalRoof.ts'
 import { EntryRampLayer } from './EntryRampLayer.tsx'
 import {ServiceClosureLayer} from './ServiceClosureLayer.tsx'
+import {PlinthEnclosureLayer} from './PlinthEnclosureLayer.tsx'
 import {ParkedCarsLayer} from './ParkedCarsLayer.tsx'
 import {VEHICLES,parkedVehicleChoice} from '@/lib/three/vehicleGeometry.ts'
 import { BalconyShadeLayer } from './BalconyShadeLayer.tsx'
@@ -24,7 +25,12 @@ import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } fro
 import {useProgress} from '@react-three/drei'
 import type { Design } from '@/lib/engine/types.ts'
 import { createBuildingModel } from '@/lib/engine/buildingModel.ts'
-import {withSetbackBalcony} from '@/lib/engine/setbackBalcony.ts'
+import {generateFacadeVariation} from '@/lib/engine/facade/variations.ts'
+import {automaticFacadeDesign} from '@/lib/model/facadeDesign.ts'
+import {buildFacadeZones} from '@/lib/engine/facade/FacadeGrammar.ts'
+import type {MassingModel} from '@/lib/engine/massing/model.ts'
+import {FacadeDesignControls} from './FacadeDesignControls.tsx'
+import {FacadeDesignLayer} from './FacadeDesignLayer.tsx'
 import { useBlender, directionRenderKey } from '@/state/blender.ts'
 import { RenderProgress } from './RenderProgress.tsx'
 import { VillaSceneCanvas, AcceptedVillaModel } from './VillaSceneCanvas.tsx'
@@ -48,10 +54,15 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
 
   const brief = useStudio(s => s.result?.design === plan ? s.brief : plan.model.brief)
   const edit=useStudio(s=>s.edit),shade=shadeChoice(brief.specs?.overrides[SHADE_CONTROL])
+  const setFacadeDesign=useStudio(s=>s.setFacadeDesign)
+  const facadeSettings=useMemo(()=>automaticFacadeDesign(selectedSeed??plan.dna.seed,brief.facadeDesign),[selectedSeed,plan.dna.seed,brief.facadeDesign])
+  useEffect(()=>{if(brief.facadeDesign?.facadeStyle!=='MIXED'&&useStudio.getState().result?.design===plan)setFacadeDesign(facadeSettings)},[brief.facadeDesign,plan,facadeSettings,setFacadeDesign])
   const parkedCar=parkedVehicleChoice(brief.specs?.overrides['visual-model-parked-car'])
   // Solar is a sibling scene layer, never an input to the prepared building or its render effect.
-  const finishedPlan = useMemo(() => ({ ...plan, model: { ...plan.model, brief: { ...plan.model.brief, finish: brief.finish, specs: brief.specs } } }), [plan, brief.finish, brief.specs])
+  const finishedPlan = useMemo(() => ({ ...plan, model: { ...plan.model, brief: { ...plan.model.brief, finish: brief.finish, specs: brief.specs,facadeDesign:facadeSettings } } }), [plan, brief.finish, brief.specs,facadeSettings])
   const building = useMemo(() => createBuildingModel(finishedPlan), [finishedPlan])
+  const coveredFacade=useStudio(s=>s.result?.design===plan?s.result.facadeModel?.coveredOutdoor:undefined)
+  const facadeDesign=useMemo(()=>generateFacadeVariation(building,buildFacadeZones(building,{masses:[]} as unknown as MassingModel),facadeSettings,brief,coveredFacade),[building,facadeSettings,brief,coveredFacade])
   const referenceDocument = useReference(s=>s.document)
   const referenceFacade = useMemo(()=>{const d=referenceDocument;if(!d?.enabled||d.sourcePlanId!==building.planId||!d.accepted||(d.accepted.settings.mode!=='preserve-plan'&&d.accepted.settings.operation!=='style-transfer'))return null;try{const geometry=reconstructFacade(building,d.accepted.spec,d.accepted.settings);return geometry.status==='rejected'?null:{geometry,operation:d.accepted.settings.operation}}catch{return null}},[referenceDocument,building])
   const pipelines = useProjectPipelines(finishedPlan, building, brief)
@@ -62,7 +73,10 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
   const setRainPipes = (visible: boolean) => setRainVisibility({planId: building.planId, visible})
   const signature = finishSignature(brief)
   const id = building.planId
-  const accepted = useBlender((s) => s.accepted[id])
+  const acceptedRender = useBlender((s) => s.accepted[id])
+  const baseRender=useBlender(s=>s.baseModels[id])
+  const matchingBase=baseRender?.seed===(selectedSeed??acceptedRender?.seed)&&baseRender?.finishSignature===signature?baseRender:undefined
+  const accepted=!brief.facadeDesign&&matchingBase?matchingBase:acceptedRender
   const job = useBlender((s) => s.job)
   const sourcePlanId = useBlender((s) => s.sourcePlanId)
   const previewKey = selectedSeed === undefined ? '' : directionRenderKey(id, selectedSeed)
@@ -81,8 +95,6 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
   const currentSolar = isCurrentSolarArtifact(solarArtifact, result, solar.solar) ? solarArtifact : undefined
   const solarBusy = !!solarJob && !['complete', 'failed'].includes(solarJob.status)
   const shapeNotice = useStudio(s => s.generationNotice)
-  const useSetbackBalcony=useStudio(s=>s.useSetbackBalcony)
-  const canUseSetback=useMemo(()=>withSetbackBalcony(plan)!==plan,[plan])
   const jobBusy = Boolean(job && !['complete', 'failed'].includes(job.status))
   const previewBusy = Boolean(preview && ['queued', 'generating', 'rendering'].includes(preview.status))
   const busy = jobBusy || previewBusy
@@ -99,8 +111,8 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
   return <section className="mt-5 border border-line p-4 md:p-6">
     <div className="flex flex-wrap items-center justify-between gap-4">
       <div><h2 className="font-display text-xl">{translateUi("Blender architectural design")}</h2></div>
-      {canUseSetback&&<button type="button" disabled={busy} onClick={useSetbackBalcony} className="border border-line px-4 py-2 text-sm disabled:opacity-50">Use setback as balcony</button>}
     </div>
+    <FacadeDesignControls value={facadeSettings} model={facadeDesign} onChange={setFacadeDesign} onRender={()=>void generate(finishedPlan,result?.seed??selectedSeed??plan.dna.seed,quality,true)} busy={busy} rendered={result?.facadeSignature===facadeDesign.signature}/>
     {previewBusy && <RenderProgress progress={preview!.progress} label={preview!.phase} />}
     {previewBusy && !preview!.phase.includes('Set BLENDER_BIN') && <p role="status" className="mt-4 text-sm text-ink-dim">{translateUi("Preparing your selected direction: ")}{translateUi(preview!.phase)}{translateUi(". The same villa will appear here when ready.")}</p>}
     {displayJob && jobBusy && !previewBusy && <RenderProgress progress={displayJob.progress} label={displayJob.phase} />}
@@ -183,7 +195,7 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
           </div>
           {referenceFacade&&<p className="absolute bottom-2 left-2 right-2 z-10 bg-bg/90 px-3 py-2 text-xs text-ink-dim">Accepted reference facade overlay · source building retained. <Link className="underline" to="/workspace/plan#reference-facade">Edit / return to original</Link></p>}
           <VillaSceneCanvas key={`${result.files.glb}:${contextMode}`} realistic={contextMode} golden={contextMode&&golden}>
-            <Suspense fallback={null}><group ref={liveExport}><AcceptedVillaModel url={result.files.glb} replaceParkedCars gardenShade={brief.rooms.priorities.garden && brief.rooms.priorities.gardenShade} separateRoofTanks={!!pipelines} style={referenceFacade?.operation==='style-transfer'?referenceFacade.geometry.style:undefined}/><ParkedCarsLayer url={result.files.glb} choice={parkedCar} building={building}/>{referenceFacade&&<ReferenceLayer geometry={referenceFacade.geometry}/>}
+            <Suspense fallback={null}><group ref={liveExport}><AcceptedVillaModel url={result.files.glb} facadeDesign={!!facadeDesign} replaceParkedCars gardenShade={brief.rooms.priorities.garden && brief.rooms.priorities.gardenShade} separateRoofTanks={!!pipelines} style={referenceFacade?.operation==='style-transfer'?referenceFacade.geometry.style:undefined}/><PlinthEnclosureLayer building={building} url={result.files.glb}/>{facadeDesign&&<FacadeDesignLayer model={facadeDesign} url={result.files.glb}/>}<ParkedCarsLayer url={result.files.glb} choice={parkedCar} building={building}/>{referenceFacade&&<ReferenceLayer geometry={referenceFacade.geometry}/>}
               <ServiceClosureLayer building={building} design={finishedPlan} url={result.files.glb}/>
               {building.entryRamp&&<EntryRampLayer ramp={building.entryRamp}/>}
               {shade!=='original'&&<BalconyShadeLayer url={result.files.glb} choice={shade}/>}

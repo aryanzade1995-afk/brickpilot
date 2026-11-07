@@ -86,7 +86,7 @@ try {
       }
       history = [...history, { fingerprint: fingerprintRecord(payload.shapeFingerprint), geometry: final.realizedGeometry }].slice(-50)
       await writeAtomicJson(historyPath, history)
-      accepted = { roofRevision:payload.coastalRoof?.revision, geometryRevision: WALKTHROUGH_ACCESS_REVISION, finishSignature: payload.specifications?.signature, seed, requestedSeed: request.seed, planId: payload.buildingModel.planId, family: payload.massingModel.family,
+      accepted = { facadeSignature:payload.facadeDesign?.signature, roofRevision:payload.coastalRoof?.revision, geometryRevision: WALKTHROUGH_ACCESS_REVISION, finishSignature: payload.specifications?.signature, seed, requestedSeed: request.seed, planId: payload.buildingModel.planId, family: payload.massingModel.family,
         hero: payload.shapeFingerprint.heroFeature, facadeFamily: payload.shapeFingerprint.facadeFamily,
         roofline: payload.shapeFingerprint.rooflineType, files, directory: stage, quality: request.quality,
         shapeFingerprint: payload.shapeFingerprint, realizedGeometry: final.realizedGeometry, warnings: [...(final.warnings ?? []), ...(decision.relaxed ? [decision.reason] : [])] }

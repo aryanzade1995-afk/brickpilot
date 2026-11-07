@@ -33,6 +33,25 @@ test('adjacent triangle bounding boxes are not mistaken for actual surface overl
   assert.equal(separateCoplanar(root).meshes,0)
 })
 
+test('overlapping vertical plinth faces separate while foundation and floor elevations remain exact',()=>{
+ const root=new Group(),slab=new Mesh(new BoxGeometry(4,.125,3),new MeshStandardMaterial())
+ slab.name='GF_Slab';slab.position.y=-.0625;slab.userData.level_plate=true;root.add(slab)
+ const masonry=new Mesh(new BoxGeometry(4,1,3),new MeshStandardMaterial({color:'#ddd1bb'}))
+ masonry.name='Plinth_Masonry';masonry.userData.level_plate=true;masonry.position.y=-.625;root.add(masonry)
+ const beam=new Mesh(new BoxGeometry(2,.3,.23),new MeshStandardMaterial({color:'#777777'}))
+ beam.name='Plinth_GF_BEAM_B01';beam.position.set(0,-.275,1.385);root.add(beam)
+ const before=[...slab.geometry.attributes.position.array],source=masonry.geometry,beamBefore=beam.geometry
+ const levels=m=>[...new Set(Array.from(m.geometry.attributes.position.array).filter((_,i)=>i%3===1))].sort((a,b)=>a-b)
+ const oldLevels=[levels(masonry),levels(beam)]
+ assert.ok(separateCoplanar(root).meshes>0)
+ assert.deepEqual([...slab.geometry.attributes.position.array],before,'walking slab stays exact')
+ assert.deepEqual([levels(masonry),levels(beam)],oldLevels,'foundation top/bottom do not move')
+ assert.ok(masonry.geometry!==source||beam.geometry!==beamBefore,'competing sides must be repaired')
+ const maxZ=m=>Math.max(...Array.from(m.geometry.attributes.position.array).filter((_,i)=>i%3===2))+m.position.z
+ assert.ok(Math.abs(maxZ(masonry)-maxZ(beam))>=.001,'visible competing faces must have a real depth separation')
+ assert.equal(separateCoplanar(root).meshes,0)
+})
+
 test('selected room floor gets correctly scaled finish shading without changed geometry, colour or neighbouring rooms', async () => {
   const root=new Group(), key=r=>JSON.stringify(['GF',r,'floor']), floor=new Mesh(new BoxGeometry(4,.125,3),new MeshStandardMaterial()), other=new Mesh(new BoxGeometry(3,.125,3),new MeshStandardMaterial())
   floor.userData.materialBinding=key('living');other.userData.materialBinding=key('bed');root.add(floor,other)

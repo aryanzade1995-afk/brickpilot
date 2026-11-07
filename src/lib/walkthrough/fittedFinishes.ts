@@ -64,7 +64,9 @@ export function fitWalkthroughFinishes(fin: InteriorFinishes, roomId: string, ge
   const mount=(p:CeilingPlacement,group:string)=>{mounting={surfaceId:p.surface.canonicalSurfaceId,point:[p.x,p.y,p.z],normal:[0,-1,0],group}}
   const fan=fin.fan&&placeCeilingFitting(ceilings,1.3,1.3)
   if(fan&&fin.fan){
-    fan.radius=.62;occupied.push(fan);mount(fan,'fan')
+    // Reserve the full blade sweep plus a visual gap, including replacement
+    // fan models. A small hub-sized exclusion leaves lights beside the blades.
+    fan.radius=.8;occupied.push(fan);mount(fan,'fan')
     const {x,z}=fan,y=fan.y-ceilingOffset,color=fin.fan.profile?.color??'#8B6844',accent=fin.fan.profile?.accent??'#493B30'
     add('fan-rod',[x,y-.14,z],[.025,.28,.025],{color:accent,rough:.4},'cyl')
     add('fan-hub',[x,y-.31,z],[.24,.12,.24],{color,rough:.4},'cyl')

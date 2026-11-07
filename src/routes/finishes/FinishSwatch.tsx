@@ -9,7 +9,7 @@ export function FinishSwatch({item,option,className=''}:{item:SpecItem;option:Sp
 
  const preview=finishPreview(item,option)
  const realImage=!!optionImage(option)
- if(realImage)return <SpecificationImage option={option} className={className}/>
+ if(option.curtainOptionId||realImage)return <SpecificationImage option={option} className={className}/>
  if(preview.texture&&!['ceiling','landscape','pool','roof','sanitary','fittings'].includes(preview.kind))return <img src={preview.texture} alt={translateUi(`${option.name}: representative real texture close-up`)} className={className}/>
  return <div className={`relative flex items-center justify-center overflow-hidden rounded-lg bg-bg-inset ${className}`} title={translateUi("Indicative finish illustration · product photo unavailable")}>
   <svg viewBox="0 0 120 95" role="img" aria-label={translateUi(`${preview.kind} finish illustration, not a product photograph`)} className="h-full max-h-24 w-full p-3">

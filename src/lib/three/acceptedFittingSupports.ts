@@ -4,9 +4,10 @@ import type {WalkthroughGeometryPayload} from '../walkthrough/delivery.ts'
 import {isWalkthroughShellMesh} from './walkthroughShell.ts'
 
 export function replaceAcceptedLegacyLights(building:Group,geometry:WalkthroughGeometryPayload,app:WalkthroughAppearancePayload){
- const rooms=new Set(app.furniture.filter(p=>p.sourceIds.includes('ceiling-light')).map(p=>p.roomId))
+ const rooms=new Set(app.furniture.filter(p=>p.sourceIds.includes('ceiling-light')||p.support?.group==='fan').map(p=>p.roomId))
  const semantic=new Set(geometry.metadata.rooms.filter(r=>rooms.has(r.id)).map(r=>r.semanticId))
- building.traverse(o=>{if(o instanceof Mesh&&/^Interior_.+_WarmCeiling_Diffuser$/.test(o.name)&&semantic.has(o.userData.source_id)){
+ building.traverse(o=>{const legacy=/^Interior_(.+)_WarmCeiling_Diffuser(?:\.\d+)?$/.exec(o.name)
+  if(o instanceof Mesh&&legacy&&semantic.has(o.userData.source_id??legacy[1])){
   o.visible=false;o.userData.replacedBySelectedLighting=true
  }})
 }

@@ -21,7 +21,9 @@ export function FitAcceptedVilla({ scene, bounds }: { scene: Object3D; bounds?: 
     camera.position.copy(center).addScaledVector(new Vector3(1, .8, -1).normalize(), distance)
     // Three.js camera clipping planes are imperative renderer state.
     // eslint-disable-next-line react/immutability
-    camera.up.set(0, 1, 0); camera.near = Math.max(.05, distance / 300); camera.far = distance * 30
+    // A house uses metres, not planetary distances. A bounded depth range
+    // retains millimetre finish separation and makes polygon offset effective.
+    camera.up.set(0, 1, 0); camera.near = .1; camera.far = Math.max(150,distance+size.length()*4)
     camera.lookAt(center); camera.updateProjectionMatrix()
     if (controls) { (controls as OrbitControlsImpl).target.copy(center); (controls as OrbitControlsImpl).update() }
     invalidate()

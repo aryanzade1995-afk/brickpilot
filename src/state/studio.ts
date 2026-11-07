@@ -1,5 +1,6 @@
 import { newDesignSeed } from '@/lib/newDesignSeed.ts'
 import type { ModernComposition } from '@/lib/model/modernCompositions.ts'
+import {facadeDesignSchema,type FacadeDesign} from '@/lib/model/facadeDesign.ts'
 import { measuredPlanSchema, measuredFloorsSchema } from '@/lib/existing/survey.ts'
 import { selectAdaptiveVilla } from '@/lib/engine/fingerprint/AdaptiveVillaSearch.ts'
 import { create } from 'zustand'
@@ -170,6 +171,7 @@ type StudioState = {
   newBuildingShape: (quality?: 'preview' | 'final', composition?:ModernComposition|'auto') => Promise<boolean>
   fillBalconyArea: (quality?: 'preview' | 'final') => Promise<boolean>
   useSetbackBalcony: () => void
+  setFacadeDesign: (value:FacadeDesign|undefined) => void
   recentVillaFingerprints: ShapeFingerprintRecord[]
   diversityLimits: VillaDiversityLimits
   shapeDebug: FingerprintDebug[]
@@ -231,7 +233,10 @@ function resultForPlan(design: Design): Result {
 function exactResult(plan: Design, seed: number, inspiration: InspirationPreferences | null,
   shapeStatus: 'accepted' | 'replay' = 'replay'): Result {
   const exterior = varyExterior(plan, seed, variationLevel(plan.model.brief), inspiration)
-  const design = shapeStatus==='accepted'||plan.balconyExtent==='full-slab'?expandBalconyArea(exterior):exterior
+  const expanded = expandBalconyArea(exterior)
+  // A supported, accessible setback is usable outdoor space by default, for
+  // every style and on exact saved-plan replay as well as new directions.
+  const design = withSetbackBalcony(expanded)
   const architecture = generateAlternativeDesign(design, seed)
   const result = { ...resultForPlan(design), ...architecture, facadeModel: architecture.facadeGrammar, shapeStatus }
   result.cost = estimateBoq(design, design.model.brief, undefined, result)
@@ -655,13 +660,17 @@ export const useStudio = create<StudioState>()(
         return result
       },
 
+      setFacadeDesign: value => {
+        const parsed=value===undefined?undefined:facadeDesignSchema.parse(value)
+        set(s=>{if(parsed)s.brief.facadeDesign=parsed;else delete s.brief.facadeDesign})
+      },
       useSetbackBalcony: () => {
         const cur=get();if(!cur.result||cur.existing)return
         const design=withSetbackBalcony(cur.result.design)
         if(design===cur.result.design)return
         const seed=cur.result.villaDesignDNA?.seed??cur.result.design.dna.seed
         const result=exactResult(design,seed,cur.referencePreferences)
-        const oldKey=geometryCostKey(cur.result.design),key=geometryCostKey(design),entries=useFinishes.getState().entries
+        const oldKey=geometryCostKey(cur.result.design),key=geometryCostKey(result.design),entries=useFinishes.getState().entries
         if(key!==oldKey&&entries[oldKey]&&!entries[key])useFinishes.getState().setSelection(key,entries[oldKey])
         const pinned:PinnedDir={...(cur.pinned??{massing:design.massingType,seed,planSeed:design.planSeed,planFamily:design.planFamily,recipe:design.planRecipe,formVersion:design.formVersion,planner:design.planProposal?'ml':'baseline'}),setbackBalcony:true}
         set(s=>{s.pinned=pinned;s.result=result;s.directions=null;s.generationNotice=null})

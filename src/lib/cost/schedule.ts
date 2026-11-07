@@ -9,6 +9,7 @@ import { specsCatalogue, resolveSpecification } from './catalogue.ts'
 import { serviceRoomSource } from '../finishes/services.ts'
 import { optionPhotos, usableFinishImage } from '../finishes/optionImage.ts'
 import {PLUMBING_SIZES} from './plumbingCatalogue.ts'
+import {curtainOption} from '../curtains/catalogue.ts'
 
 import { createPricingResolver } from './pricingContext.ts'
 import type { PricingContext } from './research/types.ts'
@@ -40,7 +41,7 @@ export function specificationSchedule(brief: Brief, cost: CostEstimate, pricingC
       return { id: `${item.id}${room ? `@${room.id}` : ''}`, item: item.id, group: item.group,
         label: item.label, where: room ? `${room.floor} · ${room.name}` : 'Whole home', roomId: room?.id,
         optionId: option.id, choice: item.id === 'interior-paint' ? `${option.name} · ${paintColour(brief, room?.id).label} (${paintColour(brief, room?.id).hex})` :
-          ['water-tanks','underground-water-tank','drain-tank'].includes(item.id)&&own[0]?own[0].specification:option.name, material: option.blenderMaterial, facts: option.facts,
+          ['water-tanks','underground-water-tank','drain-tank'].includes(item.id)&&own[0]?own[0].specification:option.name, material:option.curtainOptionId?`${curtainOption(option.curtainOptionId)?.name} · illustrative fabric / track`:option.blenderMaterial, facts: option.facts,
         quantity: own.length ? `${own.reduce((sum, l) => sum + l.qty, 0).toFixed(2)} ${own[0].unit}` : 'As specified',
         rate: rate.installed, unit: rate.unit, city: rate.city, date: rate.date,
         photo: photo?.webFile ?? cleared?.thumbnail ?? null, photoSource: photo?.source ?? cleared?.sourceUrl ?? null, credit: photo?.credit ?? cleared?.image.credit ?? null,

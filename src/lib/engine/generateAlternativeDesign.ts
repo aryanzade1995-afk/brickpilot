@@ -19,6 +19,8 @@ import { createVillaShapeFingerprint } from './fingerprint/VillaShapeFingerprint
 import { sharedEdge } from '../geometry.ts'
 import { DEFAULT_ENVELOPE_LIMITS } from './massing/envelopeLimits.ts'
 import { createStairGuards } from '../walkthrough/stairGuards.ts'
+import {generateFacadeVariation} from './facade/variations.ts'
+import {automaticFacadeDesign} from '../model/facadeDesign.ts'
 
 /** Central concept limits. These are geometric checks, not engineering certification. */
 export const ENVELOPE_LIMITS: ArchitectureLimits = { ...DEFAULT_ENVELOPE_LIMITS }
@@ -101,6 +103,7 @@ export function generateAlternativeDesign(plan: Design, seed: number) {
   villaDesignDNA.blockRotations = actualBlocks.map((m) => m.rotation)
   const facadeGrammar = ArchitecturalFeatureGenerator.generate(buildingModel, villaDesignDNA, massingModel, { usableTerrace: !coastal, continuousRoof: coastal })
   if (facadeGrammar.status !== 'valid') throw new Error(`Facade rejected: ${JSON.stringify(facadeGrammar.issues)}`)
-  return { schemaVersion: 1 as const, ...(roof?{coastalRoof:roof.model}:{}), buildingModel, villaDesignDNA, massingModel, facadeGrammar, serviceClosures:roofServiceClosures(buildingModel), stairGuards: createStairGuards(buildingModel), balconySliders: balconySliders(buildingModel), roofAccess: roofAccess(buildingModel), plumbing: createVillaPlumbing(buildingModel, selectedPipeSizes(plan.model.brief)),
+  const facadeDesign=generateFacadeVariation(buildingModel,facadeGrammar.zones,plan.model.brief.facadeDesign??automaticFacadeDesign(seed),plan.model.brief,facadeGrammar.coveredOutdoor)
+  return { schemaVersion: 1 as const, ...(facadeDesign?{facadeDesign}:{}), ...(roof?{coastalRoof:roof.model}:{}), buildingModel, villaDesignDNA, massingModel, facadeGrammar, serviceClosures:roofServiceClosures(buildingModel), stairGuards: createStairGuards(buildingModel), balconySliders: balconySliders(buildingModel), roofAccess: roofAccess(buildingModel), plumbing: createVillaPlumbing(buildingModel, selectedPipeSizes(plan.model.brief)),
     shapeFingerprint: createVillaShapeFingerprint(buildingModel, villaDesignDNA, massingModel, facadeGrammar) }
 }

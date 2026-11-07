@@ -14,6 +14,12 @@ def create_extinguisher(scene, marker, floor):
         with bpy.data.libraries.load(str(asset), link=False) as (source, target):
             target.objects = list(source.objects)
         scene._extinguisher_templates = [o for o in target.objects if o is not None and o.type == 'MESH']
+        # The villa exporter unwraps procedural shader graphs by default.
+        # These are packed photographic PBR maps, so preserve their links.
+        for template in scene._extinguisher_templates:
+            for material in template.data.materials:
+                if material:
+                    material['asset_pbr'] = True
     for template in scene._extinguisher_templates:
         obj = template.copy()
         if obj is None or obj.type != 'MESH':

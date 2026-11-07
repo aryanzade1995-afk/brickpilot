@@ -18,6 +18,8 @@ import { defaultSolarConfiguration, solarSignature } from '@/lib/model/solar.ts'
 import { geometryCostKey } from '@/lib/cost/quantities.ts'
 import {INTERIOR_MODEL_SECTION,MODEL_PREFIX} from '@/lib/interior-assets/catalogue.ts'
 import { BrandLinkRow, BrandSearchBar } from './BrandLinksView.tsx'
+import {CURTAIN_ITEM} from '@/lib/curtains/catalogue.ts'
+import {CurtainChoicePreview} from '@/components/interior/CurtainChoicePreview.tsx'
 const InteriorModels=lazy(()=>import('./InteriorModels.tsx'))
 const SolarServices = lazy(() => import('./SolarServices.tsx'))
 
@@ -30,17 +32,19 @@ export function Specifications({ brief, cost, design, room, onRoom, onBrief, sol
   const [params, setParams] = useSearchParams(), [technical, setTechnical] = useState(false)
   const [more, setMore] = useState<Record<string, boolean>>({}), [editing, setEditing] = useState<SpecItem | null>(null)
   const [pendingFinish, setPending] = useState<Brief['finish'] | null>(null)
-  const groups = [...new Set(specsCatalogue.items.filter(i => i.level !== 'auto' && i.level !== 'technical' && !HIDDEN_GROUPS.has(i.group)).map(i => i.group)), INTERIOR_MODEL_SECTION, SOLAR_SECTION]
+  const groups = [...new Set(specsCatalogue.items.filter(i => i.level !== 'auto' && i.level !== 'technical' && !HIDDEN_GROUPS.has(i.group)).map(i => i.group))].flatMap(g=>g==='windows-glass-grills'?[g,CURTAIN_ITEM]:[g]).concat(INTERIOR_MODEL_SECTION,SOLAR_SECTION)
   const requestedGroup = params.get('section'), group = requestedGroup && [...groups, 'technical'].includes(requestedGroup) ? requestedGroup : 'flooring'
   const setGroup = (id: string) => { const next = new URLSearchParams(params); next.set('section', id); setParams(next) }
   const isSolar = group === SOLAR_SECTION
   const isModels=group===INTERIOR_MODEL_SECTION
-  const groupLabel = (id: string) => id===INTERIOR_MODEL_SECTION?'Furniture & 3D fixtures':id === SOLAR_SECTION ? 'Rooftop solar' : id === 'technical' ? 'Technical' : specsCatalogue.groups.find(g => g.id === id)?.label ?? id
+  const isCurtains=group===CURTAIN_ITEM
+  const groupLabel = (id: string) => id===CURTAIN_ITEM?'Window curtains & blinds':id===INTERIOR_MODEL_SECTION?'Furniture & 3D fixtures':id === SOLAR_SECTION ? 'Rooftop solar' : id === 'technical' ? 'Technical' : specsCatalogue.groups.find(g => g.id === id)?.label ?? id
   const roomObject = cost.quantities.rooms.find(r => r.id === room)
   const eligible = (i: SpecItem) => !HIDDEN_GROUPS.has(i.group) && photographedOptions(i).length > 0 && (!room || i.scope === 'house' || applicableRooms(cost, i).some(r => r.id === room))
-  const hasMain = specsCatalogue.items.some(i => i.group === group && i.level === 'main' && eligible(i))
-  const visible = specsCatalogue.items.filter(i => i.level !== 'auto' && eligible(i) && (group === 'technical' ? i.level === 'technical' : i.group === group && (i.level === 'main' || (!hasMain || more[group]) && i.level === 'more')))
-  const changedGroup = (g: string) => g===INTERIOR_MODEL_SECTION?Object.keys(brief.specs.overrides).some(k=>k.startsWith(MODEL_PREFIX)):g === SOLAR_SECTION ? solarSignature(brief.solar) !== solarSignature(defaultSolarConfiguration()) : specsCatalogue.items.some(i => (g === 'technical' ? i.level === 'technical' : i.group === g && i.level !== 'technical') && itemChanged(brief, cost, i, room))
+  const inGroup=(i:SpecItem,g:string)=>g===CURTAIN_ITEM?i.id===CURTAIN_ITEM:i.id!==CURTAIN_ITEM&&(g==='technical'?i.level==='technical':i.group===g&&i.level!=='technical')
+  const hasMain = specsCatalogue.items.some(i => inGroup(i,group) && i.level === 'main' && eligible(i))
+  const visible = specsCatalogue.items.filter(i => i.level !== 'auto' && eligible(i) && inGroup(i,group) && (group === 'technical' || i.level === 'main' || (!hasMain || more[group]) && i.level === 'more'))
+  const changedGroup = (g: string) => g===INTERIOR_MODEL_SECTION?Object.keys(brief.specs.overrides).some(k=>k.startsWith(MODEL_PREFIX)):g === SOLAR_SECTION ? solarSignature(brief.solar) !== solarSignature(defaultSolarConfiguration()) : specsCatalogue.items.some(i => inGroup(i,g) && itemChanged(brief, cost, i, room))
   const nav = (g: string) => <button key={g} type="button" onClick={() => setGroup(g)} aria-pressed={group === g} className={cx('flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm capitalize', group === g ? 'bg-bg-inset text-ink' : 'text-ink-dim hover:bg-bg-inset')}><span className="w-2 text-xs" aria-label={translateUi(changedGroup(g) ? 'Changed section' : undefined)}>{translateUi(changedGroup(g) ? '●' : '')}</span>{translateUi(groupLabel(g))}</button>
   return <>
     <div className="flex flex-wrap items-end gap-5 border-b border-line pb-5"><label className="text-xs">{translateUi("Finish level")}<select aria-label={translateUi("Finish level")} value={brief.finish} onChange={e => setPending(e.target.value as Brief['finish'])} className="mt-2 block min-w-36 border border-line bg-bg px-3 py-2.5 text-sm"><option value="basic">{translateUi("Basic")}</option><option value="mid">{translateUi("Mid")}</option><option value="premium">{translateUi("Premium")}</option></select></label>
@@ -58,6 +62,7 @@ export function Specifications({ brief, cost, design, room, onRoom, onBrief, sol
         <p className="mt-2 text-sm text-ink-dim">{translateUi("Explore finishes and specifications for this section. Your quantities stay linked to the plan.")}</p>{roomObject && <p className="mt-2 text-xs text-ink-dim">{translateUi(roomObject.floor)} · {translateUi(roomObject.name)}{translateUi(". Whole-home choices also apply here.")}</p>}
         {group === 'technical' && <p className="mt-2 text-xs leading-relaxed text-ink-dim">{translateUi("Concept allowances only. Approximate; structural design by a licensed engineer required.")}</p>}
         {group==='plumbing-sanitary'&&<PlumbingServices brief={brief} cost={cost} onBrief={onBrief}/>}
+        {isCurtains&&visible[0]&&<div className="mt-4 max-w-xl"><CurtainChoicePreview key={effectiveSpec(brief,CURTAIN_ITEM,room??applicableRooms(cost,visible[0])[0]?.id).id} optionId={effectiveSpec(brief,CURTAIN_ITEM,room??applicableRooms(cost,visible[0])[0]?.id).id}/><p className="mt-2 text-xs text-ink-dim">Open or close the 3D preview. Use Change below to choose a style for your home or selected rooms. Dry-room windows only.</p></div>}
         <div className="mt-5 grid gap-4 lg:grid-cols-2">{visible.map(item => {
           const rooms = applicableRooms(cost, item), scoped = room ? rooms.filter(r => r.id === room) : rooms
           const options = scoped.map(r => effectiveSpec(brief, item.id, r.id)), option = options[0] ?? effectiveSpec(brief, item.id)

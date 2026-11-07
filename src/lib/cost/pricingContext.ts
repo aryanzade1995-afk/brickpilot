@@ -126,7 +126,7 @@ export function classifyTradeScope(trade: Trade, item: string): 'construction' |
     return ['light-fittings', 'fans', 'switches'].includes(item) ? 'interiors' : 'construction'
   }
   if (trade === 'Extras') {
-    return item === 'interiors' ? 'interiors' : 'construction'
+    return item === 'interiors'||item==='window-curtains' ? 'interiors' : 'construction'
   }
   return 'construction'
 }

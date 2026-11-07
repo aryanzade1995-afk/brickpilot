@@ -19,9 +19,22 @@ const id = createBuildingModel(plan).planId
 const result = { finishSignature: finishSignature(plan.model.brief), planId: id, seed: plan.dna.seed, requestedSeed: plan.dna.seed, quality: 'preview',
   family: 'STEPPED', hero: 'C_FRAME', roofline: 'FLAT_PARAPET', warnings: [],
   files: Object.fromEntries(['blend', 'glb', 'hero', 'front', 'aerial'].map(k => [k, `/api/villas/test/files/model.${k}`])) }
-const reset = () => useBlender.setState({ accepted: {}, directionRenders: {}, selectionKey: null,
+const reset = () => useBlender.setState({ baseModels:{},accepted: {}, directionRenders: {}, selectionKey: null,
   previews: {}, job: null, sourcePlanId: null, error: null })
 const respond = data => new Response(JSON.stringify(data), {headers: {'content-type': 'application/json'}})
+
+test('rendering a facade retains the original house model for immediate restoration after reload',async()=>{
+ reset();useBlender.setState({accepted:{[id]:result}})
+ const original=globalThis.fetch
+ globalThis.fetch=async(url,options)=>respond(options?.method==='POST'?{id:'facade-export',status:'queued',debug:[]}:{id:'facade-export',status:'complete',result:{...result,facadeSignature:'facade-d07',files:{...result.files,glb:'/styled.glb'}},debug:[]})
+ try{
+  await useBlender.getState().generate(plan,result.seed,'preview',true)
+  assert.equal(useBlender.getState().accepted[id].files.glb,'/styled.glb')
+  assert.equal(useBlender.getState().baseModels[id].files.glb,result.files.glb)
+  await useBlender.persist.rehydrate()
+  assert.equal(useBlender.getState().baseModels[id].files.glb,result.files.glb)
+ }finally{globalThis.fetch=original}
+})
 
 test('pinning another plan detaches the old completed job before Massing resumes', async () => {
   reset()

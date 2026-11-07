@@ -1,4 +1,5 @@
 import { walkthroughLocation } from '@/lib/walkthrough/location.ts'
+import type {CurtainMotion,CurtainTarget} from '@/lib/curtains/motion.ts'
 /* eslint-disable react/immutability -- This imperative R3F bridge owns camera, canvas and loaded Three object transforms; no React data props are mutated. */
 import { useEffect, useLayoutEffect, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
@@ -7,15 +8,16 @@ import type { HouseWalkingSimulation } from '@/lib/walkthrough/navigation.ts'
 import { DEFAULT_LOOK_SPEED, walkthroughLook } from '@/lib/walkthrough/look.ts'
 
 export type WalkingControls = { enter: () => void; enterDrag: () => void; exit: () => void;
-  move: (direction: 'forward' | 'back' | 'left' | 'right', pressed: boolean) => void; interact: () => void }
+  move: (direction: 'forward' | 'back' | 'left' | 'right', pressed: boolean) => void; interact: () => void; curtain:()=>void }
 export type WalkingHud = { room: string; roomId?: string; floor: number; door: { id: string; open: boolean; blocked?: boolean } | null; blocked: string | null;
-  feet: [number, number, number]; grounded: boolean; look: [number, number] }
+  feet: [number, number, number]; grounded: boolean; look: [number, number]; curtain?:CurtainTarget|null }
 type Orbit = { enabled: boolean; target: Vector3; update: () => void }
 
 /** One R3F camera and one Rapier world. The orbit viewer and its loaded geometry
  * survive mode changes. Only active walking drives continuous frames.
  */
-export function FirstPersonController({ simulation, model, onControls, onActive, onHud, onError, lookSpeed = DEFAULT_LOOK_SPEED }: {
+export function FirstPersonController({ simulation, model, curtains, onControls, onActive, onHud, onError, lookSpeed = DEFAULT_LOOK_SPEED }: {
+  curtains?:CurtainMotion;
   simulation: HouseWalkingSimulation; model: Group; onControls: (controls: WalkingControls | null) => void;
   onActive: (active: boolean, mode?: 'locked' | 'drag') => void; onHud: (hud: WalkingHud) => void; onError: (message: string) => void; lookSpeed?: number
 }) {
@@ -104,8 +106,9 @@ export function FirstPersonController({ simulation, model, onControls, onActive,
       if (!active.current || event.ctrlKey || event.metaKey || event.altKey) return
       if (event.code === 'Escape') { event.preventDefault(); exit(); return }
       if (event.target instanceof HTMLElement && /INPUT|SELECT|TEXTAREA/.test(event.target.tagName)) return
-      if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyE'].includes(event.code)) event.preventDefault()
+      if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyE','KeyC'].includes(event.code)) event.preventDefault()
       if (event.code === 'KeyE' && !event.repeat) interact()
+      if (event.code === 'KeyC' && !event.repeat) curtain()
       keys.current.add(event.code)
     }
     const keyUp = (event: KeyboardEvent) => keys.current.delete(event.code)
@@ -113,6 +116,7 @@ export function FirstPersonController({ simulation, model, onControls, onActive,
     const visibility = () => { if (doc.hidden) blur() }
     const lockError = () => { if (active.current && inputMode.current === 'locked') { start('drag'); callbacks.current.onError('Mouse capture is unavailable here. Drag to look; Escape returns to the page.') } }
     const interact = () => { if (!active.current) return; camera.getWorldDirection(direction.current); const door = simulation.targetDoor(camera.position, direction.current); if (door) simulation.toggleDoor(door.id) }
+    const curtain=()=>{if(!active.current||!curtains)return;camera.getWorldDirection(direction.current);const target=curtains.target(camera.position,direction.current);if(target){curtains.toggle(target.id);invalidate()}}
     doc.addEventListener('pointerlockchange', lockChange); doc.addEventListener('pointerlockerror', lockError)
     doc.addEventListener('mousemove', mouse); doc.addEventListener('keydown', keyDown); doc.addEventListener('keyup', keyUp)
     canvas.addEventListener('mousedown', mouseDown); doc.addEventListener('mouseup', mouseUp)
@@ -121,7 +125,7 @@ export function FirstPersonController({ simulation, model, onControls, onActive,
       const code = { forward: 'KeyW', back: 'KeyS', left: 'KeyA', right: 'KeyD' }[direction]
       if (pressed && active.current) buttonKeys.current.add(code); else buttonKeys.current.delete(code)
     }
-    onControls({ enter, enterDrag, exit, move, interact })
+    onControls({ enter, enterDrag, exit, move, interact,curtain })
     return () => {
       onControls(null); doc.removeEventListener('pointerlockchange', lockChange); doc.removeEventListener('pointerlockerror', lockError)
       doc.removeEventListener('mousemove', mouse); doc.removeEventListener('keydown', keyDown); doc.removeEventListener('keyup', keyUp)
@@ -129,7 +133,7 @@ export function FirstPersonController({ simulation, model, onControls, onActive,
       view.removeEventListener('blur', blur); doc.removeEventListener('visibilitychange', visibility)
       if (doc.pointerLockElement === canvas) doc.exitPointerLock(); release()
     }
-  }, [camera, gl, get, invalidate, simulation, onControls])
+  }, [camera, gl, get, invalidate, simulation, curtains, onControls])
   useFrame((_, elapsed) => {
     if (!active.current) return
     const k = { has: (code: string) => keys.current.has(code) || buttonKeys.current.has(code) }
@@ -141,10 +145,10 @@ export function FirstPersonController({ simulation, model, onControls, onActive,
     if (clock.current >= .2) {
       clock.current = 0; camera.getWorldDirection(direction.current)
       const location=walkthroughLocation(simulation.metadata,simulation.feet,simulation.floorId)
-      const next:WalkingHud={ ...location, door: simulation.targetDoor(camera.position, direction.current), blocked: simulation.blocked,
+      const next:WalkingHud={ ...location, door: simulation.targetDoor(camera.position, direction.current),curtain:curtains?.target(camera.position,direction.current), blocked: simulation.blocked,
         feet: [simulation.feet.x, simulation.feet.y, simulation.feet.z], grounded: simulation.grounded, look: [yaw.current, pitch.current] }
       const old=previousHud.current
-      if(!old||old.roomId!==next.roomId||old.floor!==next.floor||old.door?.id!==next.door?.id||old.door?.open!==next.door?.open||old.door?.blocked!==next.door?.blocked||old.blocked!==next.blocked||old.grounded!==next.grounded||next.feet.some((v,i)=>Math.abs(v-old.feet[i])>.03)||next.look.some((v,i)=>Math.abs(v-old.look[i])>.02)){previousHud.current=next;callbacks.current.onHud(next)}
+      if(!old||old.roomId!==next.roomId||old.floor!==next.floor||old.curtain?.id!==next.curtain?.id||old.curtain?.open!==next.curtain?.open||old.door?.id!==next.door?.id||old.door?.open!==next.door?.open||old.door?.blocked!==next.door?.blocked||old.blocked!==next.blocked||old.grounded!==next.grounded||next.feet.some((v,i)=>Math.abs(v-old.feet[i])>.03)||next.look.some((v,i)=>Math.abs(v-old.look[i])>.02)){previousHud.current=next;callbacks.current.onHud(next)}
     }
     // Demand rendering resumes its idle behaviour immediately on Escape/blur.
     invalidate()
