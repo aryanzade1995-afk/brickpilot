@@ -29,8 +29,10 @@ for(const kind of ['living','bed','kitchen']) test(`${kind}: source geometry, cu
   assert.notEqual(previewKey(scene),previewKey(variant))
   assert.equal(previewKey(scene),previewKey(JSON.parse(JSON.stringify(scene))))
   assert.equal(JSON.stringify(design),original)
-  assert.ok(scene.shell.filter(b=>b.id.startsWith('column')).length)
   const sourceRoom=building.rooms.find(r=>r.floorId===floor.id && r.id===room.id)
+  const rect=sourceRoom.rect
+  const sourceColumns=building.columns.filter(c=>c.floorId===floor.id&&c.at.x+c.size/2>=rect.x&&c.at.x-c.size/2<=rect.x+rect.w&&c.at.y+c.size/2>=rect.y&&c.at.y-c.size/2<=rect.y+rect.h)
+  assert.equal(scene.shell.filter(b=>b.id.startsWith('column')).length,sourceColumns.length,'display exactly the columns intersecting this source room')
   assert.equal(scene.room.dims.w,sourceRoom.rect.w/1000)
   assert.equal(scene.room.dims.d,sourceRoom.rect.h/1000)
   for(const opening of scene.openings) {

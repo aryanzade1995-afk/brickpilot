@@ -30,6 +30,7 @@ function planRamp(design:Design):EntryRamp|null {
   const floor=design.floors[0],door=floor?.openings.find(d=>d.kind==='entry'&&!d.emergencyExit)
   const room=floor?.rooms.find(r=>r.id===door?.rooms?.[0])
   const plinth=quantityRules.plinthHeightsMm[resolveSpecification(design.model.brief,'plinth-height').id as keyof typeof quantityRules.plinthHeightsMm]
+  if(plinth===0)return null
   // site.py models exterior paving at grade + 10 + 40 mm. Join its top,
   // not the buried soil plane. This is a model datum, not a surveyed level.
   const approachSurfaceOffsetMm=50,rise=plinth-approachSurfaceOffsetMm

@@ -1,3 +1,4 @@
+import {exteriorColours} from '../model/exteriorPalette.ts'
 import * as THREE from 'three'
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js'
 import type {FacadePart,FacadeVariation} from '../engine/facade/variations.ts'
@@ -27,6 +28,8 @@ export function buildFacadeDesignGroup(model:FacadeVariation,invalidate:()=>void
  for(const p of model.parts){const list=batches.get(p.material)??[];list.push(facadePartGeometry(p));batches.set(p.material,list)}
  for(const [id,parts] of batches){
   const look=model.materials[id],material=id==='wall'&&wallMaterial?wallMaterial.clone():new THREE.MeshPhysicalMaterial({color:look.color,roughness:look.roughness,metalness:look.metalness,transmission:id==='glass'?.65:0,thickness:.025,transparent:id==='glass',opacity:id==='glass'?.65:1,envMapIntensity:.4})
+  const palette=exteriorColours(model.configuration.exteriorPalette)
+  if(palette&&id==='wall'&&material instanceof THREE.MeshStandardMaterial){material.color.set(palette[0]);material.map=null}
   if(look.texture){let texture=textures.get(look.texture)
    if(!texture){texture=new THREE.TextureLoader().load(look.texture,invalidate);texture.colorSpace=THREE.SRGBColorSpace;texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.anisotropy=4;textures.set(look.texture,texture)}
    if(material instanceof THREE.MeshStandardMaterial)material.map=texture

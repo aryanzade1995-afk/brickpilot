@@ -6,16 +6,20 @@
 import { spawn } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
+import {startLocalInteriorAI} from './local-interior-ai.mjs'
 
 const require = createRequire(import.meta.url)
 const viteBin = join(dirname(require.resolve('vite/package.json')), 'bin/vite.js')
 
 const web = spawn(process.execPath, [viteBin], { stdio: 'inherit' })
 const api = spawn(process.execPath, ['server/index.mjs'], { stdio: 'inherit' })
+let localAI
+void startLocalInteriorAI().then(child=>{localAI=child}).catch(error=>console.warn('[local AI]',error.message))
 
 const stop = () => {
   web.kill()
   api.kill()
+  localAI?.kill()
 }
 process.on('SIGINT', () => {
   stop()

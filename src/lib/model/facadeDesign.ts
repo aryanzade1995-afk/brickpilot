@@ -10,6 +10,7 @@ export const FACADE_DESIGNS = [
 export const facadeDesignSchema=z.object({
  version:z.literal(1).default(1),facadeStyle:z.enum(['MIXED','D01','D02','D03','D04','D05','D06','D07','D08','D09','D10']).default('MIXED'),
  facadeSeed:z.number().int().min(0).max(4294967295),facadeVariation:z.number().min(0).max(1).default(.65),
+ exteriorPalette:z.enum(['SAGE_LIMESTONE','TERRACOTTA_CREAM','SLATE_BLUE_OAK','CHARCOAL_WOOD_WHITE']).optional(),
  materialPalette:z.enum(['selected','warm-timber','stone-metal','light-mineral']).default('selected'),
 })
 export type FacadeDesign=z.infer<typeof facadeDesignSchema>

@@ -1,3 +1,5 @@
+import {exteriorRoleColour} from '../model/exteriorPalette.ts'
+import type {FacadeDesign} from '../model/facadeDesign.ts'
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import { completeBalconyShades } from './balconyShades.ts'
@@ -10,8 +12,8 @@ import {stabilizeSurfaceDepth} from './stableSurfaceDepth.ts'
 // same static villa. Each canvas gets its own hierarchy and shares prepared data.
 const prepared = new WeakMap<THREE.Object3D, Map<string, THREE.Object3D>>()
 
-export function prepareVillaScene(source: THREE.Object3D, anisotropy: number, separateRoofTanks=false, gardenShade=false, replaceParkedCars=false, facadeDesign=false) {
-  const key=`${anisotropy}:${separateRoofTanks}:${gardenShade}:${replaceParkedCars}:${facadeDesign}`
+export function prepareVillaScene(source: THREE.Object3D, anisotropy: number, separateRoofTanks=false, gardenShade=false, replaceParkedCars=false, facadeDesign=false, exteriorPalette?:FacadeDesign['exteriorPalette']) {
+  const key=`${anisotropy}:${separateRoofTanks}:${gardenShade}:${replaceParkedCars}:${facadeDesign}:${exteriorPalette??''}`
   let variants = prepared.get(source)
   if (!variants) { variants = new Map(); prepared.set(source, variants) }
   let template = variants.get(key)
@@ -53,6 +55,12 @@ export function prepareVillaScene(source: THREE.Object3D, anisotropy: number, se
       texture.anisotropy = anisotropy; texture.generateMipmaps = true
       texture.minFilter = THREE.LinearMipmapLinearFilter; texture.needsUpdate = true
     }
+    const colours=new Map<THREE.Material,THREE.Material>()
+    template.traverse(o=>{if(!(o instanceof THREE.Mesh))return
+      const color=exteriorRoleColour(o.userData.material_role,exteriorPalette);if(!color)return
+      const tint=(m:THREE.Material)=>{if(!(m instanceof THREE.MeshStandardMaterial))return m;let copy=colours.get(m);if(!copy){const next=m.clone();next.color.set(color);next.map=null;copy=next;colours.set(m,next)}return copy}
+      o.material=Array.isArray(o.material)?o.material.map(tint):tint(o.material)
+    })
     completeBalconyShades(template)
     separateCoplanar(template)
     stabilizeSurfaceDepth(template)

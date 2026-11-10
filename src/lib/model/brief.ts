@@ -240,6 +240,7 @@ export const briefSchema = z
         starred: z.array(z.string()).default([]),
         bedroomsWithBath: z.number().int().min(0).max(8).default(2),
         bedroomsNoBath: z.number().int().min(0).max(8).default(1),
+        bathroomLayout: z.enum(['combined','separate']).optional(),
         sharedBaths: z.number().int().min(0).max(6).default(1),
         studies: z.number().int().min(0).max(4).default(1),
         balcony: z.boolean().default(true),

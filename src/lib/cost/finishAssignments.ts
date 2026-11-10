@@ -10,7 +10,7 @@ export function finishSignature(brief: Brief) {
   // Structured solar settings/layouts have their own signatures and never enter this key.
   // Keep the historical specs.overrides.solar allowance token unchanged for old render caches.
   return `finishes-${fnv(JSON.stringify([brief.finish ?? 'mid', Object.entries(brief.specs?.overrides ?? {})
-    .filter(([id])=>!id.startsWith('visual-model-')&&id.split('@')[0]!=='window-curtains'&&!PLUMBING_CONTROL_IDS.includes(id.split('@')[0])).sort(([a], [b]) => a.localeCompare(b))])).toString(16)}`
+    .filter(([id])=>!id.startsWith('visual-model-')&&id.split('@')[0]!=='window-curtains'&&!PLUMBING_CONTROL_IDS.includes(id.split('@')[0])).sort(([a], [b]) => a.localeCompare(b))])).toString(16)}${brief.facadeDesign?.exteriorPalette?`-${brief.facadeDesign.exteriorPalette}`:''}`
 }
 export function createFinishAssignments(design: Design, brief: Brief = design.model.brief) {
   brief = { ...brief, finish: brief.finish ?? 'mid', specs: { overrides: brief.specs?.overrides ?? {} } }

@@ -1,3 +1,5 @@
+import {EXTERIOR_PALETTES} from '@/lib/model/exteriorPalette.ts'
+import {automaticFacadeDesign} from '@/lib/model/facadeDesign.ts'
 import { newDesignSeed } from '@/lib/newDesignSeed.ts'
 import type { ModernComposition } from '@/lib/model/modernCompositions.ts'
 import {facadeDesignSchema,type FacadeDesign} from '@/lib/model/facadeDesign.ts'
@@ -367,6 +369,7 @@ export function computeDirections(cur: DirectionsInput, progress?: (value:number
     // in form, not only in trim; a shape the plot cannot take falls back to
     // the brief's own plan
     const plans: { plan: Design; massing: MassingType; planSeed?: number }[] = distinctDirectionPlans(model,4,SITE_FORM_VERSION,cur.pinned?undefined:onPlan)
+    plans.forEach((source,index)=>{source.plan={...source.plan,model:{...source.plan.model,brief:{...source.plan.model.brief,facadeDesign:{...automaticFacadeDesign(source.plan.dna.seed),exteriorPalette:EXTERIOR_PALETTES[index%4].id}}}}})
     const plan=plans[0]?.plan??generate(model,{formVersion:SITE_FORM_VERSION})
     progress?.(20,"Floor plan options prepared")
     const modernSet=cur.brief.style.character==='modern-box'&&(!cur.brief.style.composition||(MODERN_DIRECTION_COMPOSITIONS as readonly string[]).includes(cur.brief.style.composition))
@@ -398,6 +401,8 @@ export function computeDirections(cur: DirectionsInput, progress?: (value:number
     if (validate(plan).hardChecksPass || plans.some((p) => p.planSeed !== undefined)) for (let i = dirs.length; i < 4 && plans.length; i++) {
       progress?.(20+i*20,`Checking direction ${i+1} of 4`)
       const source = plans.shift()!
+      const palette=EXTERIOR_PALETTES.find(p=>!dirs.some(d=>d.design.model.brief.facadeDesign?.exteriorPalette===p.id))!
+      source.plan={...source.plan,model:{...source.plan.model,brief:{...source.plan.model.brief,facadeDesign:{...automaticFacadeDesign(source.plan.dna.seed,source.plan.model.brief.facadeDesign),exteriorPalette:palette.id}}}}
       if(cur.pinned)onPlan?.(source.plan,i)
       const usedFamilies = new Set(dirs.map((d) => d.facadeModel.architecturalFamily))
       const selection = generateDistinct(source.plan, cur.brief.variation + 1 + i * 977, cur.referencePreferences, history, cur.diversityLimits,
@@ -819,6 +824,7 @@ export const useStudio = create<StudioState>()(
         const result = assembled.result
         set((s) => {
           s.pinned = pinned
+          if(source?.design.model.brief.facadeDesign)s.brief.facadeDesign=source.design.model.brief.facadeDesign
           if(source?.design.model.brief.style.character==='modern-box'){
             if(source.design.model.brief.style.composition)s.brief.style.composition=source.design.model.brief.style.composition
             else delete s.brief.style.composition

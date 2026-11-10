@@ -1,3 +1,4 @@
+import {handleInteriorAI} from './interior-ai.mjs'
 import {handleDirectionAdvice} from './direction-advice.mjs'
 import { handleCostShareRequest } from './cost-shares.mjs'
 import { handleCostResearchRequest } from './cost-research.mjs'
@@ -157,6 +158,7 @@ const server = createServer(async (req, res) => {
   if (await handleCostShareRequest(req, res, readJson)) return
   if (await handleCostResearchRequest(req, res, readJson)) return
   if (await handleInteriorPreview(req, res, readJson)) return
+  if (await handleInteriorAI(req, res, readJson)) return
   if (await handleWalkthroughAssets(req, res, readJson)) return
   if (await handleWalkthroughGuide(req, res, readJson)) return
   if (await handleDirectionAdvice(req, res, readJson)) return

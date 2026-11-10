@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
 import { App } from './App.tsx'
 import './index.css'
+import {FormsteadLoading} from './components/FormsteadLoading.tsx'
 import { LanguageDocument } from './components/LanguageDocument.tsx'
 import { workspacePages } from './lib/workspacePages.ts'
 // each page's code loads when it is first opened (the current page stays on screen meanwhile), so the first visit is fast
@@ -28,7 +29,7 @@ const router = createBrowserRouter([
   {
     path: '/',
     element: <App />,
-    hydrateFallbackElement: <div role="status" className="flex min-h-dvh items-center justify-center bg-bg text-ink-dim"><span>Loading Formstead…</span></div>,
+    hydrateFallbackElement: <FormsteadLoading/>,
     errorElement: <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-bg text-ink"><p>This page could not load.</p><button className="rounded border border-line px-5 py-2" onClick={() => window.location.reload()}>Reload page</button></div>,
     children: [
       { index: true, lazy: Landing },

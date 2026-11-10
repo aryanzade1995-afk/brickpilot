@@ -327,4 +327,9 @@ html:lang(hi) .uppercase, html:lang(mr) .uppercase { letter-spacing: normal; }
 }
 
 .direction-card { content-visibility: auto; contain-intrinsic-size: auto 1040px; }
+.formstead-loading-plan { stroke-dasharray: 600; animation: formstead-draw 2.8s ease-in-out infinite; }
+.formstead-loading-scan { animation: formstead-scan 2.8s ease-in-out infinite; }
+@keyframes formstead-draw { 0% { stroke-dashoffset:600;opacity:.2 } 55%,85% {stroke-dashoffset:0;opacity:1} 100% {stroke-dashoffset:0;opacity:.2} }
+@keyframes formstead-scan { 0%,100% {transform:translateY(0);opacity:0} 25% {opacity:.5} 75% {transform:translateY(100px);opacity:0} }
+@media(prefers-reduced-motion:reduce){.formstead-loading-plan,.formstead-loading-scan{animation:none}.formstead-loading-scan{display:none}}
 @media print { .direction-card { content-visibility: visible; contain-intrinsic-size: none; } }

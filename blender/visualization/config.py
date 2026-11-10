@@ -47,7 +47,7 @@ def visualization_options(payload, overrides=None):
         raise ValueError("Unsupported visualization schema")
     # Style-specific defaults are additive; explicit visualization selections win.
     style_palette = {"coastal-bungalow": "COASTAL_BUNGALOW", "tropical-beach-villa": "TROPICAL_BEACH_VILLA"}.get(payload["villaDesignDNA"].get("character"))
-    options["palette"] = resolve_palette(options["palette"] or style_palette or payload["villaDesignDNA"]["materialPalette"])
+    options["palette"] = resolve_palette(options["palette"] or (payload.get("facadeDesign") or {}).get("configuration", {}).get("exteriorPalette") or style_palette or payload["villaDesignDNA"]["materialPalette"])
     composition = options["composition"]
     for key, limits in {"primary": (.55, .75), "secondary": (.15, .30), "accent": (.05, .15)}.items():
         _number(composition[key], *limits, key)

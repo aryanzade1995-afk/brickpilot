@@ -36,7 +36,8 @@ export function briefRooms(brief:Brief):BriefRoom[] {
   // Compile already applies explicit preferred sizes; use the original target to avoid applying twice.
   const source={...s,target:s.preferredTarget??s.target}
   const dims=roomDimensions(source,size)
-  const fit=placeFurniture(id,dims.width,dims.depth,furnitureFor(kind,occupants,starred))
+  const items=furnitureFor(kind,occupants,starred).filter(item=>/bathing room only/i.test(s.name)?item.id!=='wc':s.id.endsWith('ToiletOnly')?item.id!=='shower':true)
+  const fit=placeFurniture(id,dims.width,dims.depth,items)
   if(!fit.placed.length&&!fit.dropped.length)fit.reason='No standard furniture is specified for this space.'
   return {id,spaceId:s.id,name:s.name,floor:f.name,kind,...dims,size,starred,occupants,fit}
  }))

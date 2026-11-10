@@ -1,3 +1,4 @@
+import {LocalInteriorAI} from './LocalInteriorAI.tsx'
 import { translate as translateUi, useLanguage } from '@/lib/i18n/index.ts'
 import { Component, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
@@ -138,6 +139,7 @@ export function FastInteriorPreview({design}: {design:Design}) {
       />
     </div>
 
+    <LocalInteriorAI key={savedKey} design={design} config={config} ready={!!result&&!busy} canvas={()=>viewer.current?.querySelector('canvas')}/>
     <div className="mt-5 grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
       <div ref={panel} className="min-w-0 space-y-3">
         {translateUi(select('Floor',String(room?.floor??0),[...new Set(rooms.map(r=>r.floor))].map(f=>({id:String(f),label:rooms.find(r=>r.floor===f)!.floorName})),v=>{const r=rooms.find(r=>r.floor===Number(v))!;store.set({room:{floor:r.floor,roomId:r.id}})}))}

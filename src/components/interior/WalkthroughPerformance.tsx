@@ -4,7 +4,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import type { PointLight } from 'three'
 import type { WalkthroughAppearancePayload, WalkthroughGeometryPayload } from '@/lib/walkthrough/delivery.ts'
 import { nearbyRoomEmitters } from '@/lib/walkthrough/roomLighting.ts'
-import { WALKTHROUGH_QUALITY, adaptWalkthroughResolution, type WalkthroughQuality } from '@/lib/walkthrough/quality.ts'
+import { WALKTHROUGH_QUALITY, adaptWalkthroughResolution,walkthroughPixelRatio, type WalkthroughQuality } from '@/lib/walkthrough/quality.ts'
 
 export type WalkthroughMetrics = { fps: number; calls: number; triangles: number; dpr: number; renderer: string; pageVisible: boolean; focused: boolean; renderMs: number;
  averageFps:number;lowestWindowFps:number;p95Ms:number;p99Ms:number;gpuMs:number|null;width:number;height:number;displayWidth:number;displayHeight:number;textures:number;geometries:number;seconds:number;quality:WalkthroughQuality }
@@ -13,7 +13,8 @@ export type WalkthroughMetrics = { fps: number; calls: number; triangles: number
  * under load. Geometry, materials and collision accuracy never change. The
  * Selected 40/60 FPS targets are budgets, not hardware guarantees. Orbit stays demand-only. */
 export function WalkthroughPerformance({ active, revision, quality = 'adaptive', onMetrics,nativeResolution=false }: { active: boolean; revision: number; quality?: WalkthroughQuality; onMetrics: (value: WalkthroughMetrics) => void;nativeResolution?:boolean }) {
-  const { gl, setDpr, invalidate } = useThree()
+  const { gl, setDpr, invalidate,size } = useThree()
+  const renderScale=walkthroughPixelRatio(quality,size.width,size.height,active)
   const budget = useMemo(()=>nativeResolution?{...WALKTHROUGH_QUALITY[quality],min:1,max:1,start:1}:WALKTHROUGH_QUALITY[quality],[quality,nativeResolution])
   const sample = useRef({ elapsed: 0, frames: 0, warm: 0, good: 0, ratio: 1.25 })
   const renderer = useRef('Unavailable')
@@ -32,7 +33,7 @@ export function WalkthroughPerformance({ active, revision, quality = 'adaptive',
   },[gl,nativeResolution])
   useEffect(() => { const context = gl.getContext(), extension = context.getExtension('WEBGL_debug_renderer_info'); if (extension) renderer.current = String(context.getParameter(extension.UNMASKED_RENDERER_WEBGL)) }, [gl])
   useEffect(() => { gl.shadowMap.needsUpdate = true; invalidate(); sample.current.warm = 0 }, [revision, gl, invalidate])
-  useEffect(() => { sample.current = { elapsed: 0, frames: 0, warm: 0, good: 0, ratio: budget.start };history.current=[];windows.current=[];setDpr(budget.start); invalidate() }, [active, budget, setDpr, invalidate])
+  useEffect(() => { sample.current = { elapsed: 0, frames: 0, warm: 0, good: 0, ratio: budget.start };history.current=[];windows.current=[];setDpr(budget.start*renderScale); invalidate() }, [active, budget, renderScale,setDpr, invalidate])
   useFrame((_, dt) => {
     if (!active || dt <= 0) return
     const s = sample.current; s.warm += dt
@@ -44,9 +45,9 @@ export function WalkthroughPerformance({ active, revision, quality = 'adaptive',
     const fps = s.frames / s.elapsed, previous = s.ratio
     windows.current.push(fps);if(windows.current.length>120)windows.current.shift()
     if(!nativeResolution)Object.assign(s,adaptWalkthroughResolution(quality,fps,s.ratio,s.good))
-    if (s.ratio !== previous) setDpr(s.ratio)
+    if (s.ratio !== previous) setDpr(s.ratio*renderScale)
     const sorted=[...history.current].sort((a,b)=>a-b),seconds=history.current.reduce((a,b)=>a+b,0)
-    onMetrics({ fps: Math.round(fps), calls: gl.info.render.calls, triangles: gl.info.render.triangles, dpr: +s.ratio.toFixed(2), renderer: renderer.current, pageVisible: !document.hidden, focused: document.hasFocus(), renderMs: +renderMs.current.toFixed(2),
+    onMetrics({ fps: Math.round(fps), calls: gl.info.render.calls, triangles: gl.info.render.triangles, dpr: +(s.ratio*renderScale).toFixed(2), renderer: renderer.current, pageVisible: !document.hidden, focused: document.hasFocus(), renderMs: +renderMs.current.toFixed(2),
       averageFps:Math.round(history.current.length/seconds),lowestWindowFps:Math.round(Math.min(...windows.current)),p95Ms:+(sorted[Math.floor(sorted.length*.95)]*1000).toFixed(2),p99Ms:+(sorted[Math.floor(sorted.length*.99)]*1000).toFixed(2),gpuMs:gpuMs.current===null?null:+gpuMs.current.toFixed(2),width:gl.domElement.width,height:gl.domElement.height,displayWidth:gl.domElement.clientWidth,displayHeight:gl.domElement.clientHeight,textures:gl.info.memory.textures,geometries:gl.info.memory.geometries,seconds:+seconds.toFixed(1),quality })
     s.elapsed = s.frames = 0
   })

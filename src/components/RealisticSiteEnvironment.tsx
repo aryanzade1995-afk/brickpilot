@@ -61,7 +61,7 @@ export default function RealisticSiteEnvironment({building,traffic,golden,onRead
   <fog attach="fog" args={[golden?'#d6c5ab':'#c9dce8',75,180]}/>
   <Sky distance={450000} sunPosition={golden?[45,9,-30]:[35,55,-20]} turbidity={golden?5:2.5} rayleigh={.7}/>
   <group name="Illustrative_neighbourhood" userData={{presentation_only:true}}>
-  <mesh rotation={[-Math.PI/2,0,0]} position={[site.centerX,site.grade-.04,-site.depth/2]} receiveShadow><planeGeometry args={[350,350]}/><meshStandardMaterial color="#677750" roughness={1}/></mesh>
+  <mesh name="Site_terrain" rotation={[-Math.PI/2,0,0]} position={[site.centerX,site.grade-.04,-site.depth/2]} receiveShadow><planeGeometry args={[3000,3000]}/><meshStandardMaterial color="#677750" roughness={1}/></mesh>
   <mesh rotation={[-Math.PI/2,0,0]} position={[site.centerX,site.grade,site.roadZ]} receiveShadow><planeGeometry args={[site.roadLength,7]}/><meshStandardMaterial color="#45494b" map={asphalt} roughness={.97}/></mesh>
   {[-1,1].map(side=><group key={side}>
    <mesh position={[site.centerX,site.grade+.035,site.roadZ+side*4.35]} receiveShadow><boxGeometry args={[site.roadLength,.07,1.7]}/><meshStandardMaterial color="#ada79a" roughness={.95}/></mesh>

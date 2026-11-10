@@ -10,7 +10,7 @@ export const quantityRulesSchema = z.object({
   beam:z.object({spanDepthRatio:positive,roundMm:positive,minDepthMm:positive,widthMm:positive}).strict(),
   slab:z.object({shortSpanLimitMm:positive,shortThicknessMm:positive,longThicknessMm:positive}).strict(),
   footing:z.object({baseWidthMm:positive,perStoreyMm:positive,thicknessMm:positive,perStoreyThicknessMm:positive,depthBelowGradeMm:positive,soilFactors:z.object({unknown:positive,firm:positive,rock:positive}).strict(),roundMm:positive}).strict(),
-  plinthHeightsMm:z.object({standard:positive,raised:positive,flood:positive}).strict(),
+  plinthHeightsMm:z.object({ground:nonnegative,standard:positive,raised:positive,flood:positive}).strict(),
   plinthBeam:z.object({widthMm:positive,depthMm:positive}).strict(),
   earthwork:z.object({workingSpaceMm:nonnegative,pccProjectionMm:nonnegative,pccThicknessMm:positive}).strict(),
   steelKgPerM3:z.object({footings:positive,columns:positive,plinthBeams:positive,beams:positive,slabs:positive,stairs:positive,lintels:positive,chajjas:positive}).strict(),

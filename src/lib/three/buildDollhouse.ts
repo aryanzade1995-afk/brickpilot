@@ -625,6 +625,7 @@ function onBoundary(r: { x: number; y: number; w: number; h: number }, p: { x: n
 }
 
 function recipeOf(id: string, type: string | undefined): string {
+  if(id.endsWith('ToiletOnly'))return 'toilet'
   const t = type ?? ''
   if (t) return t
   // room ids of the classic plan engine: bed1 is the master, the rest are bedrooms
@@ -989,6 +990,13 @@ function furnishRoom(
 
   /* ---------------- bath / WC ---------------- */
   if (recipe === 'bath' || recipe === 'toilet') {
+    if(/bathing room only/i.test(room.name)){
+      const shower=tryPlace({w:.9,d:.9,front:.6,gap:.02})
+      if(shower){const ss=sz(shower,shower.w,.02,shower.d);P('shower-tray','stone',shower.cx,0,shower.cz,...ss)}
+      const basin=tryPlace({w:.5,d:.4,front:.55,gap:.02})
+      if(basin){const bs=sz(basin,basin.w,.14,basin.d);P('basin','ceramic',basin.cx,.78,basin.cz,...bs)}
+      return n
+    }
     // away from the door: the WC is the piece you least want to see from it
     const opposite:Record<Side,Side>={N:'S',S:'N',E:'W',W:'E'}
     const facingDoor=new Set([...plan.doorSides].map(s=>opposite[s]))

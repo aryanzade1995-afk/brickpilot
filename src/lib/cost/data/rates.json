@@ -2286,6 +2286,16 @@
       "date": "2026-10-03",
       "source": "Maharashtra PWD SOR + market, approximate",
       "verification": "provisional-allowance"
+    },
+    {
+      "id": "plinth-height-ground",
+      "unit": "m",
+      "material": 0.0,
+      "labour": 0.0,
+      "city": "Pune",
+      "date": "2026-10-03",
+      "source": "Maharashtra PWD SOR + market, approximate",
+      "verification": "provisional-allowance"
     }
   ]
 }

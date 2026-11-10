@@ -193,7 +193,10 @@ export function interiorFinishes(design: Design, floorLevel: number, roomId: str
     note(item, value.option.name, value.photo)
     return { name: value.option.name, image: value.photo, profile: value.profile }
   }
-  const basin = wet ? fixture('bath-basin') : undefined, shower = wet ? fixture('bath-shower') : undefined
+  const bathingOnly=/bathing room only/i.test(room.name),toiletOnly=roomId.endsWith('ToiletOnly')
+  if(bathingOnly)sanitary=undefined
+  if(toiletOnly)waterHeater=undefined
+  const basin = wet ? fixture('bath-basin') : undefined, shower = wet&&!toiletOnly ? fixture('bath-shower') : undefined
   // These are optional installation preferences, not automatically included by a finish preset.
   const tub = wet ? fixture('bath-tub', true) : undefined, enclosure = undefined
   if (waterHeater) waterHeater.profile = pick('water-heater')!.profile
@@ -225,7 +228,7 @@ export function interiorFinishes(design: Design, floorLevel: number, roomId: str
   note('switches', sw.option.name, sw.photo)
 
   const specifications = specsCatalogue.items.filter(i => i.level !== 'auto' && (i.scope === 'house' || assigned.has(i.id) ||
-    wet && ['bath-basin', 'bath-shower', 'bath-tub'].includes(i.id))).map(i => {
+    wet && ['bath-basin', 'bath-shower', 'bath-tub'].includes(i.id))).filter(i=>!(bathingOnly&&i.id==='sanitary')&&!(toiletOnly&&['bath-shower','bath-tub','water-heater'].includes(i.id))).map(i => {
     const { option, chosen } = pick(i.id)!
     return { item: i.id, optionId: chosen.id, productId: option.finishProductId ?? option.flooringProductId, name: option.name }
   })

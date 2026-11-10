@@ -1,3 +1,4 @@
+import {EXTERIOR_PALETTES} from '@/lib/model/exteriorPalette.ts'
 import {useState} from 'react'
 import {Link} from 'react-router-dom'
 import {Shuffle} from 'lucide-react'
@@ -10,6 +11,7 @@ export function FacadeDesignControls({value,model,onChange,onRender,busy,rendere
  const update=(patch:Partial<FacadeDesign>)=>onChange({...value,...patch,facadeStyle:'MIXED'})
  const field='min-h-11 w-full border border-line bg-bg px-3 text-sm'
  return <div className="mt-4 border border-line bg-bg p-4">
+  <fieldset className="mb-4 border-b border-line pb-4"><legend className="mb-2 text-sm font-medium">Exterior colour combination</legend><div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{EXTERIOR_PALETTES.map(p=><button key={p.id} type="button" aria-pressed={value.exteriorPalette===p.id} onClick={()=>update({exteriorPalette:p.id})} className={`min-h-11 rounded border p-2 text-left text-xs ${value.exteriorPalette===p.id?'border-ink bg-bg-inset':'border-line hover:bg-bg-inset'}`}><span className="mb-2 flex h-5 overflow-hidden rounded" aria-hidden="true">{p.colours.map(c=><span key={c} className="flex-1" style={{backgroundColor:c}}/>)}</span>{p.name}</button>)}</div></fieldset>
   <div className="flex flex-wrap items-center justify-between gap-3">
    <div><h3 className="text-sm font-medium">Facade mix</h3><p className="mt-1 text-xs text-ink-dim">{model?.styles?.length??0} designs combined automatically · Saved with your house</p></div>
    <button type="button" onClick={()=>update({facadeSeed:newDesignSeed(value.facadeSeed)})} className="inline-flex min-h-11 items-center gap-2 border border-line px-4 text-sm hover:bg-bg-inset"><Shuffle size={15} aria-hidden="true"/>Shuffle facade</button>

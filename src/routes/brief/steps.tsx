@@ -621,9 +621,10 @@ export function LevelsStep() {
       </Field>
       <Field label="House height above site ground">
         <Segmented
-          value={['standard', '1m'].includes(resolveSpecification(brief, 'plinth-height').id) ? 'standard' : ['raised', '2m'].includes(resolveSpecification(brief, 'plinth-height').id) ? 'raised' : 'flood'}
+          value={resolveSpecification(brief, 'plinth-height').id === 'ground' ? 'ground' : ['standard', '1m'].includes(resolveSpecification(brief, 'plinth-height').id) ? 'standard' : ['raised', '2m'].includes(resolveSpecification(brief, 'plinth-height').id) ? 'raised' : 'flood'}
           onChange={v => edit(b => { b.specs.overrides['plinth-height'] = v })}
           options={[
+            { value: 'ground', label: '0 metre · Ground level' },
             { value: 'standard', label: '1 metre' },
             { value: 'raised', label: '2 metre' },
             { value: 'flood', label: '3 metre' },
@@ -672,6 +673,10 @@ export function RoomsStep() {
           <Stepper value={r.studies} min={0} max={4} onChange={(v) => edit((b) => void (b.rooms.studies = v))} />
         </Field>
       </div>
+
+      <Field label="Bathroom & toilet arrangement" hint="Every home includes at least one toilet and bathing space.">
+        <Segmented value={r.bathroomLayout??'combined'} onChange={v=>edit(b=>{b.rooms.bathroomLayout=v})} options={[{value:'combined',label:'Combined bathroom + toilet'},{value:'separate',label:'Separate bathroom & toilet'}]}/>
+      </Field>
 
       <Toggle checked={r.balcony} onChange={(v) => edit((b) => void (b.rooms.balcony = v))} label="Balcony on upper floors" />
 

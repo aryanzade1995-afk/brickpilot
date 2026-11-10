@@ -54,7 +54,7 @@ export function boqMeasures(design: Design, q: Quantities) {
         values: { [`floor:${floorKind}`]: area, skirting: kind === 'bath' ? 0 : Math.max(0, p - doorLength) * rules.finishes.skirtingHeightMm / 1000,
           wetTiles, dado, bathWaterproofing: kind === 'bath' ? area : 0, ceiling: area,
           counter: run * a.counterDepthM, cabinets: run * a.cabinetFaceHeightM, sink: kind === 'kitchen' ? 1 : 0,
-          sanitary: kind === 'bath' ? 1 : 0, cp: kind === 'bath' ? 1 : 0, heater: kind === 'bath' ? 1 : 0,
+          sanitary: kind === 'bath'&&!/bathing room only/i.test(room.name) ? 1 : 0, cp: kind === 'bath' ? 1 : 0, heater: kind === 'bath'&&!room.id.endsWith('ToiletOnly') ? 1 : 0,
           fans: boqRules.fansByRoom[kind] ?? 0, paint: Math.max(0, (weights.get(room.id) ?? p * height) - wetTiles - dado) } })
     }
     // Preserve the measured total, including unattributed circulation walls; do not invent extra face area.

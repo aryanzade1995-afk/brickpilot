@@ -237,8 +237,9 @@ export function compile(brief: Brief): CanonicalModel {
   const upperBeds = totalBeds - groundBeds
   const upperFloors = Math.max(1, storeys)
   const bedsPerUpper = hasUpper ? Math.ceil(upperBeds / upperFloors) : 0
-  const groundSharedBaths = !hasUpper ? brief.rooms.sharedBaths : Math.min(1, brief.rooms.sharedBaths)
-  const upperSharedBaths = brief.rooms.sharedBaths - groundSharedBaths
+  const sharedBaths = Math.max(brief.rooms.sharedBaths, brief.rooms.bedroomsWithBath === 0 ? 1 : 0)
+  const groundSharedBaths = !hasUpper ? sharedBaths : Math.min(1, sharedBaths)
+  const upperSharedBaths = sharedBaths - groundSharedBaths
 
   let bedNo = 0
   let bathNo = 0
@@ -546,6 +547,16 @@ export function compile(brief: Brief): CanonicalModel {
         const verandah=f.spaces.find(s=>s.id==='verandah')
         if (verandah) {verandah.target=Math.max(verandah.target,28);verandah.max=Math.max(verandah.max,48)}
       }
+    }
+  }
+
+  if(brief.rooms.bathroomLayout==='separate')for(const f of floors){
+    for(const bath of [...f.spaces].filter(s=>s.wet&&/bath/i.test(s.id))){
+      const toilet={...bath,id:`${bath.id}ToiletOnly`,name:'Separate toilet',target:3,min:2.7,max:5}
+      bath.name='Bathing room only';bath.target=Math.max(3,bath.target*.6);bath.min=2.7
+      f.spaces.push(toilet)
+      for(const relation of [...rel])if(relation.a===bath.id||relation.b===bath.id)rel.push({...relation,a:relation.a===bath.id?toilet.id:relation.a,b:relation.b===bath.id?toilet.id:relation.b})
+      addRel(bath.id,toilet.id,'near')
     }
   }
 

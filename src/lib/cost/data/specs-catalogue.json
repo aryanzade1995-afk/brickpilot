@@ -419,6 +419,18 @@
       "note": "Sets the approximate ground-floor height above site grade in Supports and Blender. Confirm drainage and access with your architect.",
       "options": [
         {
+          "id": "ground",
+          "name": "0 metre · at ground level",
+          "rateId": "plinth-height-ground",
+          "blenderMaterial": "exposed_concrete",
+          "facts": [],
+          "tags": [
+            "concept-allowance",
+            "surface-reference-not-product"
+          ],
+          "photos": []
+        },
+        {
           "id": "standard",
           "name": "1 metre proposal",
           "rateId": "plinth-height-standard",
