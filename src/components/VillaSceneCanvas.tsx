@@ -4,10 +4,11 @@ import type {RaytraceStatus,RaytraceQuality} from '@/lib/three/raytraceScene.ts'
 import { ghostWaterArchitecture } from '@/lib/water/ghostScene.ts';
 import { Canvas, useThree, type RootState } from '@react-three/fiber';
 import { OrbitControls, useGLTF } from '@react-three/drei';
-import { Mesh, MeshStandardMaterial, ACESFilmicToneMapping, PCFShadowMap, SRGBColorSpace, DataTexture, LinearFilter, type Material } from 'three';
+import { Mesh, MeshStandardMaterial, ACESFilmicToneMapping, AgXToneMapping, PCFShadowMap, SRGBColorSpace, DataTexture, LinearFilter, type Material } from 'three';
 import { prepareVillaScene } from '@/lib/three/prepareVillaScene.ts';
 import { FitAcceptedVilla } from '@/lib/three/SolarCamera.tsx';
 import { StudioReflections } from './StudioReflections.tsx';
+import {MassingPerformance} from './MassingPerformance.tsx';
 import type { ReferenceGeometry } from '@/lib/reference/reconstruct.ts';
 const CAMERA = { position: [20, 14, -25] as [
         number,
@@ -74,19 +75,21 @@ function StudioBackground(){
     useEffect(()=>()=>texture.dispose(),[texture])
     return <primitive object={texture} attach="background"/>
 }
-export function VillaSceneCanvas({ children, onCreated, realistic=false,golden=false, background='studio',raytrace }: {
+export function VillaSceneCanvas({ children, onCreated, realistic=false,golden=false, background='studio',raytrace,dynamicShadows=false }: {
     children: ReactNode;
     onCreated?: (state: RootState) => void;
     realistic?: boolean;
     golden?: boolean;
+    dynamicShadows?:boolean;
     background?: 'studio' | 'white';
     raytrace?:{revision:string;quality:RaytraceQuality;onStatus:(status:RaytraceStatus)=>void};
 }) {
-    return <ModelBoundary><Canvas frameloop="demand" shadows dpr={DPR} gl={GL} camera={CAMERA} onCreated={state=>{state.gl.toneMapping=ACESFilmicToneMapping;state.gl.toneMappingExposure=1;state.gl.outputColorSpace=SRGBColorSpace;state.gl.shadowMap.type=PCFShadowMap;onCreated?.(state)}}>
- {!realistic&&(background==='white'?<color attach="background" args={['#ffffff']}/>:<StudioBackground/>)}<hemisphereLight args={['#e5efff','#b4a18b',.65]}/>
- <directionalLight color={golden?'#ffd19c':'#fff2df'} position={golden?[35,12,-25]:[14, 24, -16]} intensity={golden?2:2.5} castShadow shadow-mapSize={[2048, 2048]} shadow-camera-left={-45} shadow-camera-right={45} shadow-camera-top={45} shadow-camera-bottom={-45} shadow-camera-far={150} shadow-bias={-.0002} shadow-normalBias={.025}/>
- <directionalLight color="#dce8ff" position={[-18,10,12]} intensity={.65}/>
- <Suspense fallback={null}><StudioReflections />{children}</Suspense><OrbitControls makeDefault minPolarAngle={0} maxPolarAngle={Math.PI / 2}/>
+    return <ModelBoundary><Canvas frameloop="demand" shadows dpr={DPR} gl={GL} camera={CAMERA} onCreated={state=>{state.gl.toneMapping=realistic?AgXToneMapping:ACESFilmicToneMapping;state.gl.toneMappingExposure=1;state.gl.outputColorSpace=SRGBColorSpace;state.gl.shadowMap.type=PCFShadowMap;onCreated?.(state)}}>
+ {!realistic&&(background==='white'?<color attach="background" args={['#ffffff']}/>:<StudioBackground/>)}<hemisphereLight args={['#e5efff','#b4a18b',realistic?.08:.65]}/>
+ <directionalLight color={golden?'#ffd19c':'#fff2df'} position={golden?[35,12,-25]:[14, 24, -16]} intensity={realistic?(golden?1.2:2):(golden?2:2.5)} castShadow shadow-mapSize={[2048, 2048]} shadow-camera-left={-45} shadow-camera-right={45} shadow-camera-top={45} shadow-camera-bottom={-45} shadow-camera-far={150} shadow-bias={-.0002} shadow-normalBias={.025}/>
+ <directionalLight color="#dce8ff" position={[-18,10,12]} intensity={realistic?.1:.65}/>
+ <Suspense fallback={null}>{!realistic&&<StudioReflections />}{children}</Suspense><OrbitControls makeDefault minPolarAngle={0} maxPolarAngle={Math.PI / 2}/>
+ {realistic&&<MassingPerformance traffic={dynamicShadows} revision={raytrace?.revision} golden={golden}/>}
  {realistic&&raytrace&&<Suspense fallback={null}><MassingRaytracer revision={raytrace.revision} quality={raytrace.quality} golden={golden} onStatus={raytrace.onStatus}/></Suspense>}
  </Canvas></ModelBoundary>;
 }

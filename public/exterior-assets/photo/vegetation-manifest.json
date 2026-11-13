@@ -1,0 +1,104 @@
+[
+  {
+    "asset": "tree_small_02",
+    "file": "garden-tree.glb",
+    "source": "https://polyhaven.com/a/tree_small_02",
+    "license": "CC0-1.0",
+    "triangleBudget": 90000,
+    "bytes": 16033232,
+    "sha256": "e73a6abcb1906e06e2875923c538fe2693efdb69d98a00a4ad770b8e29a1cb7f",
+    "sourceFiles": [
+      {
+        "path": "tree_small_02.gltf",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/tree_small_02/tree_small_02_1k.gltf",
+        "md5": "63f42b19687332f7b3a5c8b531734d8e"
+      },
+      {
+        "path": "textures/tree_small_02_branch_nor_gl_1k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/tree_small_02/tree_small_02_branch_nor_gl_1k.jpg",
+        "md5": "00a3eed0d4d28e7e890d9ec6ac0619af"
+      },
+      {
+        "path": "textures/tree_small_02_branch_diff_1k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/tree_small_02/tree_small_02_branch_diff_1k.jpg",
+        "md5": "88b531469f5dba2fc44ca85df3776e7c"
+      },
+      {
+        "path": "textures/tree_small_02_branch_arm_1k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/tree_small_02/tree_small_02_branch_arm_1k.jpg",
+        "md5": "9ec3d8428295d87ae363bf0d1e0a8288"
+      },
+      {
+        "path": "textures/tree_small_02_leaves_nor_gl_1k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/tree_small_02/tree_small_02_leaves_nor_gl_1k.jpg",
+        "md5": "b06c87e73f54d9654f66d67e9de7aa85"
+      },
+      {
+        "path": "textures/tree_small_02_leaves_diff_1k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/tree_small_02/tree_small_02_leaves_diff_1k.jpg",
+        "md5": "315cbc2cebfb399e649ccd39112c109a"
+      },
+      {
+        "path": "textures/tree_small_02_leaves_arm_1k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/tree_small_02/tree_small_02_leaves_arm_1k.jpg",
+        "md5": "3dad5bafc732f7692db32a262530bbab"
+      },
+      {
+        "path": "textures/tree_small_02_nor_gl_1k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/tree_small_02/tree_small_02_nor_gl_1k.jpg",
+        "md5": "115a20da8621cd3e034e9b1bbe574746"
+      },
+      {
+        "path": "textures/tree_small_02_diff_1k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/tree_small_02/tree_small_02_diff_1k.jpg",
+        "md5": "a7287a3f4e7f0d4577cb949b245f5b14"
+      },
+      {
+        "path": "textures/tree_small_02_arm_1k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/tree_small_02/tree_small_02_arm_1k.jpg",
+        "md5": "44b6ed4bf32d7cd67cb3e9d5faeacc38"
+      },
+      {
+        "path": "tree_small_02.bin",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/tree_small_02/tree_small_02.bin",
+        "md5": "7a7019a87e6fe0d7475c0fa2e08d8962"
+      }
+    ]
+  },
+  {
+    "asset": "shrub_04",
+    "file": "garden-shrub.glb",
+    "source": "https://polyhaven.com/a/shrub_04",
+    "license": "CC0-1.0",
+    "triangleBudget": 14000,
+    "bytes": 2266148,
+    "sha256": "99ec2901f9a47477154b15112b23bac957758da964e784ef76f140aff58c6622",
+    "sourceFiles": [
+      {
+        "path": "shrub_04.gltf",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/shrub_04/shrub_04_1k.gltf",
+        "md5": "eba22f7e018dd3d9ed951150c2092f17"
+      },
+      {
+        "path": "textures/shrub_04_nor_gl_1k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/shrub_04/shrub_04_nor_gl_1k.jpg",
+        "md5": "b08f500d19ee9b29d7da06fc0e874bb2"
+      },
+      {
+        "path": "textures/shrub_04_diff_1k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/shrub_04/shrub_04_diff_1k.jpg",
+        "md5": "b2b4682a82f44be10b8d4b4d481a4fe8"
+      },
+      {
+        "path": "textures/shrub_04_arm_1k.jpg",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/shrub_04/shrub_04_arm_1k.jpg",
+        "md5": "65e414abd3533b7157f05aed63f5f329"
+      },
+      {
+        "path": "shrub_04.bin",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/shrub_04/shrub_04.bin",
+        "md5": "987a672e598f9dc04b6d23cb8f36d697"
+      }
+    ]
+  }
+]

@@ -37,9 +37,10 @@ test('unlit models convert privately and finite sun follows daylight/golden-hour
 })
 
 test('large terrain remains a shadow receiver without mutating its source material',()=>{
- const source=new Scene(),material=new MeshStandardMaterial({color:'#677750'}),ground=new Mesh(new BoxGeometry(3000,.01,3000),material)
+ const source=new Scene(),normal=new Texture(),material=new MeshStandardMaterial({color:'#677750',normalMap:normal}),ground=new Mesh(new BoxGeometry(3000,.01,3000),material)
  ground.name='Site_terrain';source.add(ground)
  const snapshot=raytraceScene(source),copy=snapshot.scene.children.find(o=>o instanceof Mesh).material
  assert.notEqual(copy,material);assert.equal(copy.castShadow,false);assert.equal(material.castShadow,undefined)
+ assert.equal(copy.normalMap,null);assert.equal(material.normalMap,normal)
  assert.equal(copy.color.getHex(),material.color.getHex());snapshot.dispose()
 })

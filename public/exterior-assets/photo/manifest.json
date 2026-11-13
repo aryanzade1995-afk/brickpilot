@@ -1,0 +1,135 @@
+[
+  {
+    "asset": "asphalt_01",
+    "map": "Diffuse",
+    "file": "asphalt_01-Diffuse.jpg",
+    "bytes": 739513,
+    "md5": "43c88946c38109d77a24456686a376f9",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/asphalt_01/asphalt_01_diff_1k.jpg",
+    "source": "https://polyhaven.com/a/asphalt_01",
+    "license": "CC0-1.0"
+  },
+  {
+    "asset": "asphalt_01",
+    "map": "nor_gl",
+    "file": "asphalt_01-nor_gl.jpg",
+    "bytes": 1237059,
+    "md5": "ff3e4a0fc157cfa014fbcac68e662c38",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/asphalt_01/asphalt_01_nor_gl_1k.jpg",
+    "source": "https://polyhaven.com/a/asphalt_01",
+    "license": "CC0-1.0"
+  },
+  {
+    "asset": "asphalt_01",
+    "map": "Rough",
+    "file": "asphalt_01-Rough.jpg",
+    "bytes": 344964,
+    "md5": "92ffad35bc543f59ffd9860c53a98214",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/asphalt_01/asphalt_01_rough_1k.jpg",
+    "source": "https://polyhaven.com/a/asphalt_01",
+    "license": "CC0-1.0"
+  },
+  {
+    "asset": "concrete_floor_02",
+    "map": "Diffuse",
+    "file": "concrete_floor_02-Diffuse.jpg",
+    "bytes": 776097,
+    "md5": "1cfee53d2f82fa59726ab7ae6a2e8c09",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_floor_02/concrete_floor_02_diff_1k.jpg",
+    "source": "https://polyhaven.com/a/concrete_floor_02",
+    "license": "CC0-1.0"
+  },
+  {
+    "asset": "concrete_floor_02",
+    "map": "nor_gl",
+    "file": "concrete_floor_02-nor_gl.jpg",
+    "bytes": 192757,
+    "md5": "c2065fd81f571f4e39163ea5661128fb",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_floor_02/concrete_floor_02_nor_gl_1k.jpg",
+    "source": "https://polyhaven.com/a/concrete_floor_02",
+    "license": "CC0-1.0"
+  },
+  {
+    "asset": "concrete_floor_02",
+    "map": "Rough",
+    "file": "concrete_floor_02-Rough.jpg",
+    "bytes": 318550,
+    "md5": "653d60d0db1872a49138455cf31c8326",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_floor_02/concrete_floor_02_rough_1k.jpg",
+    "source": "https://polyhaven.com/a/concrete_floor_02",
+    "license": "CC0-1.0"
+  },
+  {
+    "asset": "industrial_sunset_puresky",
+    "map": "environment",
+    "file": "industrial_sunset_puresky-environment.hdr",
+    "bytes": 4344656,
+    "md5": "54457ed6fc7e0dcd7fcdcd0603892a7d",
+    "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/industrial_sunset_puresky_2k.hdr",
+    "source": "https://polyhaven.com/a/industrial_sunset_puresky",
+    "license": "CC0-1.0"
+  },
+  {
+    "asset": "Grass008",
+    "map": "Diffuse",
+    "file": "lawn-Diffuse.jpg",
+    "bytes": 1794028,
+    "md5": "a88e24d2d22c9bd3686795d763e5cb5a",
+    "archiveSha256": "9239813af20889949b6d0f50245fd0dab9f43b8ae627b1f07c6e327509e71403",
+    "url": "https://acg-download.struffelproductions.com/file/ambientCG-Web/download/Grass008_rCjsZG5x/Grass008_1K-JPG.zip",
+    "source": "https://ambientcg.com/view?id=Grass008",
+    "license": "CC0-1.0"
+  },
+  {
+    "asset": "Grass008",
+    "map": "nor_gl",
+    "file": "lawn-nor_gl.jpg",
+    "bytes": 2031145,
+    "md5": "d21553fc8476f8f3a3618e63e1e493e9",
+    "archiveSha256": "9239813af20889949b6d0f50245fd0dab9f43b8ae627b1f07c6e327509e71403",
+    "url": "https://acg-download.struffelproductions.com/file/ambientCG-Web/download/Grass008_rCjsZG5x/Grass008_1K-JPG.zip",
+    "source": "https://ambientcg.com/view?id=Grass008",
+    "license": "CC0-1.0"
+  },
+  {
+    "asset": "Grass008",
+    "map": "Rough",
+    "file": "lawn-Rough.jpg",
+    "bytes": 818600,
+    "md5": "8f4cd44489b4a7be993f7f8f682a686c",
+    "archiveSha256": "9239813af20889949b6d0f50245fd0dab9f43b8ae627b1f07c6e327509e71403",
+    "url": "https://acg-download.struffelproductions.com/file/ambientCG-Web/download/Grass008_rCjsZG5x/Grass008_1K-JPG.zip",
+    "source": "https://ambientcg.com/view?id=Grass008",
+    "license": "CC0-1.0"
+  },
+  {
+    "asset": "painted_plaster_wall",
+    "map": "nor_gl",
+    "file": "painted_plaster_wall-nor_gl.jpg",
+    "bytes": 900461,
+    "md5": "43fff290583dbdfc9bfa088a2750e840",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/painted_plaster_wall/painted_plaster_wall_nor_gl_1k.jpg",
+    "source": "https://polyhaven.com/a/painted_plaster_wall",
+    "license": "CC0-1.0"
+  },
+  {
+    "asset": "painted_plaster_wall",
+    "map": "Rough",
+    "file": "painted_plaster_wall-Rough.jpg",
+    "bytes": 354762,
+    "md5": "e076a6360329a2bc18c7397dc50c074a",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/painted_plaster_wall/painted_plaster_wall_rough_1k.jpg",
+    "source": "https://polyhaven.com/a/painted_plaster_wall",
+    "license": "CC0-1.0"
+  },
+  {
+    "asset": "suburban_field_01",
+    "map": "environment",
+    "file": "suburban_field_01-environment.hdr",
+    "bytes": 6477867,
+    "md5": "e7416ec979aac8195e0d13b843471efa",
+    "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/suburban_field_01_2k.hdr",
+    "source": "https://polyhaven.com/a/suburban_field_01",
+    "license": "CC0-1.0"
+  }
+]

@@ -23,3 +23,12 @@ test('context models are bounded, embedded browser meshes with retained source c
  }
  assert.match(readFileSync(new URL('ATTRIBUTION.md',base),'utf8'),/vicent091036/)
 })
+
+test('surrounding ground follows zero, standard and raised plinths without burying the plot paths or planters',()=>{
+ const building=createBuildingModel(plan),floor=Math.min(...building.floors.map(f=>f.elevationMm))
+ for(const height of [0,400,900,1200]){
+  const source={...building,structuralSizing:{...building.structuralSizing,plinthHeightMm:height}}
+  assert.equal(siteContext(source).grade,(floor-height)/1000)
+ }
+ assert.equal(siteContext({...building,structuralSizing:undefined}).grade,(floor-400)/1000)
+})
