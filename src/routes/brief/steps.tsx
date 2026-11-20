@@ -4,6 +4,8 @@ import {Link} from 'react-router-dom'
 import { resolveSpecification } from '@/lib/cost/catalogue.ts'
 import { FurnitureReview } from './RoomPanel.tsx'
 import { useState } from 'react'
+import {ModernDesignCards} from '@/components/ModernDesignCards.tsx'
+import {automaticFacadeDesign, isModernStyle} from '@/lib/model/facadeDesign.ts'
 import { MODERN_COMPOSITION_CHOICES, type ModernComposition } from '@/lib/model/modernCompositions.ts'
 import {SHAPE_CHOICES} from '@/lib/engine/planner/fit.ts'
 import {useBriefValidation} from '@/state/briefValidation.ts'
@@ -760,9 +762,17 @@ export function StyleStep() {
         </div>
         <CardChoice
           value={brief.style.character}
-          onChange={(v) => edit((b) => { b.style.character = v; if(v!=='modern-box')delete b.style.composition })}
+          onChange={(v) => edit((b) => { b.style.character = v
+            if(v==='modern-box'&&!isModernStyle(b.facadeDesign?.facadeStyle)) b.facadeDesign={...automaticFacadeDesign(41,b.facadeDesign),facadeStyle:'cantilever_modern'}
+            if(v!=='modern-box'){
+              delete b.style.composition
+              if(b.facadeDesign&&isModernStyle(b.facadeDesign.facadeStyle)) b.facadeDesign.facadeStyle='MIXED'
+            } })}
           options={CHARACTER_CARDS}
         />
+        {brief.style.character==='modern-box'&&!isModernStyle(brief.facadeDesign?.facadeStyle)&&<button type="button" className="border border-line px-3 py-2 text-sm" onClick={()=>useStudio.getState().setFacadeDesign({...automaticFacadeDesign(41,brief.facadeDesign),facadeStyle:'cantilever_modern'})}>Choose a pictured design</button>}
+        {brief.style.character==='modern-box'&&isModernStyle(brief.facadeDesign?.facadeStyle)&&<ModernDesignCards value={brief.facadeDesign?.facadeStyle}
+          onChange={facadeStyle=>useStudio.getState().setFacadeDesign({...automaticFacadeDesign(41,brief.facadeDesign),facadeStyle})}/>}
         {brief.style.character==='modern-box'&&<div className="space-y-3">
           <p className="label">{translateUi('Villa composition')}</p>
           <CardChoice value={brief.style.composition??'auto'} onChange={v=>edit(b=>{

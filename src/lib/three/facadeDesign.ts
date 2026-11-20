@@ -7,11 +7,12 @@ export function facadePartGeometry(p:FacadePart){
  const shape=new THREE.Shape()
  const profile=p.profile??[[0,0],[p.w,0],[p.w,p.h],[0,p.h]]
  profile.forEach(([x,y],i)=>i?shape.lineTo(x/1000,y/1000):shape.moveTo(x/1000,y/1000));shape.closePath()
- const geometry=new THREE.ExtrudeGeometry(shape,{depth:p.depth/1000,bevelEnabled:false,steps:1,curveSegments:8})
+ const geometry=new THREE.ExtrudeGeometry(shape,{depth:(p.profilePlane==='plan'?p.h:p.depth)/1000,bevelEnabled:false,steps:1,curveSegments:8})
  const horizontal=p.side==='N'||p.side==='S',sign=p.side==='N'||p.side==='W'?-1:1
  const along=horizontal?new THREE.Vector3(1,0,0):new THREE.Vector3(0,0,-1)
  const normal=horizontal?new THREE.Vector3(0,0,-sign):new THREE.Vector3(sign,0,0)
- const matrix=new THREE.Matrix4().makeBasis(along,new THREE.Vector3(0,1,0),normal)
+ const up=new THREE.Vector3(0,1,0)
+ const matrix=p.profilePlane==='plan'?new THREE.Matrix4().makeBasis(along,normal,up):new THREE.Matrix4().makeBasis(along,up,normal)
  matrix.setPosition(horizontal?p.u/1000:(p.fixed+sign*p.offset)/1000,p.z/1000,horizontal?-(p.fixed+sign*p.offset)/1000:-p.u/1000)
  geometry.applyMatrix4(matrix)
  if(matrix.determinant()<0){const pos=geometry.attributes.position,normalAttr=geometry.attributes.normal,uv=geometry.attributes.uv

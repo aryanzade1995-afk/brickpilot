@@ -7,6 +7,7 @@ import { createBuildingModel } from '@/lib/engine/buildingModel.ts'
 import { validate } from '@/lib/rules/index.ts'
 
 export type BlenderResult = {
+  facadeConfiguration?: import('../lib/model/facadeDesign.ts').FacadeDesign
   facadeSignature?: string
   seed: number; requestedSeed: number; planId: string; family: string; hero: string; roofline: string
   finishSignature?: string; quality: 'preview' | 'final'; warnings: string[]

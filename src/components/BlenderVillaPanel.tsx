@@ -26,7 +26,7 @@ import {useProgress} from '@react-three/drei'
 import type { Design } from '@/lib/engine/types.ts'
 import { createBuildingModel } from '@/lib/engine/buildingModel.ts'
 import {generateFacadeVariation} from '@/lib/engine/facade/variations.ts'
-import {automaticFacadeDesign} from '@/lib/model/facadeDesign.ts'
+import {automaticFacadeDesign,isModernStyle} from '@/lib/model/facadeDesign.ts'
 import {buildFacadeZones} from '@/lib/engine/facade/FacadeGrammar.ts'
 import type {MassingModel} from '@/lib/engine/massing/model.ts'
 import {FacadeDesignControls} from './FacadeDesignControls.tsx'
@@ -67,11 +67,11 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
   const edit=useStudio(s=>s.edit),shade=shadeChoice(brief.specs?.overrides[SHADE_CONTROL])
   const setFacadeDesign=useStudio(s=>s.setFacadeDesign)
   const facadeSettings=useMemo(()=>automaticFacadeDesign(selectedSeed??plan.dna.seed,brief.facadeDesign),[selectedSeed,plan.dna.seed,brief.facadeDesign])
-  useEffect(()=>{if(brief.facadeDesign?.facadeStyle!=='MIXED'&&useStudio.getState().result?.design===plan)setFacadeDesign(facadeSettings)},[brief.facadeDesign,plan,facadeSettings,setFacadeDesign])
+  useEffect(()=>{if(brief.facadeDesign?.facadeStyle!==facadeSettings.facadeStyle&&useStudio.getState().result?.design===plan)setFacadeDesign(facadeSettings)},[brief.facadeDesign,plan,facadeSettings,setFacadeDesign])
   const parkedCar=parkedVehicleChoice(brief.specs?.overrides['visual-model-parked-car'])
   // Solar is a sibling scene layer, never an input to the prepared building or its render effect.
   const finishedPlan = useMemo(() => ({ ...plan, model: { ...plan.model, brief: { ...plan.model.brief, finish: brief.finish, specs: brief.specs,facadeDesign:facadeSettings } } }), [plan, brief.finish, brief.specs,facadeSettings])
-  const building = useMemo(() => createBuildingModel(finishedPlan), [finishedPlan])
+  const building = useMemo(() => createBuildingModel(plan), [plan])
   const coveredFacade=useStudio(s=>s.result?.design===plan?s.result.facadeModel?.coveredOutdoor:undefined)
   const facadeDesign=useMemo(()=>generateFacadeVariation(building,buildFacadeZones(building,{masses:[]} as unknown as MassingModel),facadeSettings,brief,coveredFacade),[building,facadeSettings,brief,coveredFacade])
   const referenceDocument = useReference(s=>s.document)
@@ -92,6 +92,7 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
   const sourcePlanId = useBlender((s) => s.sourcePlanId)
   const previewKey = selectedSeed === undefined ? '' : directionRenderKey(id, selectedSeed)
   const result = accepted?.planId === id && (selectedSeed === undefined || accepted.seed === selectedSeed) ? accepted : undefined
+  const matchingFacade = result?.facadeSignature === facadeDesign.signature
   const solar = useSolarVillaEditor(plan, result?.seed)
   const preview = useBlender((s) => s.previews[previewKey])
   const error = useBlender((s) => s.error)
@@ -123,7 +124,7 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
     <div className="flex flex-wrap items-center justify-between gap-4">
       <div><h2 className="font-display text-xl">{translateUi("Blender architectural design")}</h2></div>
     </div>
-    <FacadeDesignControls value={facadeSettings} model={facadeDesign} onChange={setFacadeDesign} onRender={()=>void generate(finishedPlan,result?.seed??selectedSeed??plan.dna.seed,quality,true)} busy={busy} rendered={result?.facadeSignature===facadeDesign.signature}/>
+    <FacadeDesignControls modern={brief.style.character==='modern-box'} value={facadeSettings} model={facadeDesign} onChange={setFacadeDesign} onRender={()=>void generate(finishedPlan,result?.seed??selectedSeed??plan.dna.seed,quality,true)} busy={busy} rendered={matchingFacade}/>
     {previewBusy && <RenderProgress progress={preview!.progress} label={preview!.phase} />}
     {previewBusy && !preview!.phase.includes('Set BLENDER_BIN') && <p role="status" className="mt-4 text-sm text-ink-dim">{translateUi("Preparing your selected direction: ")}{translateUi(preview!.phase)}{translateUi(". The same villa will appear here when ready.")}</p>}
     {displayJob && jobBusy && !previewBusy && <RenderProgress progress={displayJob.progress} label={displayJob.phase} />}
@@ -141,6 +142,7 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
       className="mt-3 border border-line px-4 py-2 text-sm">{translateUi('Retry 3D model')}</button>}
     {result && <>
       {(result.geometryRevision !== WALKTHROUGH_ACCESS_REVISION || brief.style.character==='coastal-bungalow'&&result.roofRevision!==COASTAL_ROOF_REVISION) && <div className="mt-4 flex flex-wrap items-center gap-3 border border-line bg-bg-inset p-3"><p className="flex-1 text-xs text-ink-dim">{translateUi(brief.style.character==='coastal-bungalow'?'Update this villa with a continuous coastal roof.':'Update terrace walls and floor edges on this same villa.')}</p><button type="button" disabled={busy} onClick={() => void generate(finishedPlan, result.seed, quality, true)} className="min-h-11 border border-line bg-accent px-4 text-xs text-bg disabled:opacity-50">{translateUi(busy ? 'Updating Blender villa…' : 'Update 3D model')}</button></div>}
+       {isModernStyle(facadeSettings.facadeStyle)&&matchingFacade&&<details className="mt-3 text-sm"><summary className="cursor-pointer">Rendered elevations</summary><div className="mt-2 grid gap-3 sm:grid-cols-2">{(['front','hero'] as const).map(view=><a key={view} href={result.files[view]}><img loading="lazy" src={result.files[view]} alt={view==='front'?'Front elevation':'Three-quarter exterior'}/></a>)}</div></details>}
       {result.finishSignature !== signature && <p className="mt-3 text-sm text-ink-dim">{translateUi("Updating selected finishes on this same design…")}</p>}
       <p className="mt-4 font-mono text-xs text-ink-dim">{translateUi("Visualisation · Blender · Seed ")}{translateUi(result.seed)} · {translateUi(result.family.replaceAll('_', ' '))} · {translateUi(result.quality === 'final' ? 'Final render' : 'Preview')}</p>
       <div className="mt-3 min-w-0">
@@ -166,7 +168,7 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
               size="sm"
               floating
               items={[
-                ...villaCadExportItems(currentSolar ?? result),
+                ...villaCadExportItems(currentSolar ?? result).map(item => matchingFacade ? item : { ...item, label: `Previous export · ${item.label}` }),
                 { id: 'villa-live-pipelines', label: 'Live villa + visible pipelines GLB', ext: '.glb', onExport: async () => { if(liveExport.current) { const exported=plumbingExportScene(liveExport.current); try { await exportThreeSceneToGlb(exported.root, 'villa-live-pipelines.glb') } finally { exported.dispose() } } } },
                 {
                   id: 'villa-viewport-png',
@@ -181,7 +183,7 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
                 },
                 {
                   id: 'villa-model-glb',
-                  label: currentSolar ? 'Building + solar GLB' : 'Building-only GLB',
+                  label: !matchingFacade ? 'Previous export · GLB' : currentSolar ? 'Building + solar GLB' : 'Building-only GLB',
                   ext: '.glb',
                   onExport: async () => {
                     const fileUrl = (currentSolar ?? result).files.glb
@@ -197,7 +199,7 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
                 },
                 {
                   id: 'villa-scene-blend',
-                  label: currentSolar ? 'Building + solar Blender scene' : 'Building-only Blender scene',
+                  label: !matchingFacade ? 'Previous export · Blender scene' : currentSolar ? 'Building + solar Blender scene' : 'Building-only Blender scene',
                   ext: '.blend',
                   onExport: async () => {
                     const fileUrl = (currentSolar ?? result).files.blend
@@ -255,7 +257,7 @@ export function BlenderVillaPanel({ plan, autoGenerate = false, selectedSeed }: 
         </div>}
       </div>
       <div className="mt-4 flex flex-wrap gap-4 text-sm">{(['blend', 'glb', 'hero', 'front', 'aerial'] as const).map((key) =>
-        <a key={key} href={result.files[key]} download className="underline underline-offset-4">{translateUi(key === 'blend' ? 'Building-only Blender scene' : key === 'glb' ? 'Building-only GLB' : `${key} building-only image`)}</a>)}</div>
+        <a key={key} href={result.files[key]} download className="underline underline-offset-4">{!matchingFacade?'Previous export · ':''}{translateUi(key === 'blend' ? 'Building-only Blender scene' : key === 'glb' ? 'Building-only GLB' : `${key} building-only image`)}</a>)}</div>
       <p className="mt-2 text-xs text-ink-dim">{translateUi('Building-only downloads. Rooftop PV and keep-free areas are shown in the live villa viewer.')}</p>
       <p className="mt-3 text-xs text-ink-faint">{translateUi("Car: ")}<a href="https://sketchfab.com/models/57bf6cc56931426e87494f554df1dab6" target="_blank" rel="noreferrer" className="underline">{translateUi("Ferrari 458 Italia by vicent091036")}</a>{translateUi(", adapted under ")}<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer" className="underline">{translateUi("CC BY 4.0")}</a>.</p>
     </>}

@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {registerHooks} from 'node:module'
 import {defaultBrief,geometryBrief,parseStoredBrief} from '../src/lib/model/brief.ts'
-import {facadeDesignSchema,FACADE_DESIGNS,automaticFacadeDesign} from '../src/lib/model/facadeDesign.ts'
+import {facadeDesignSchema,FACADE_DESIGNS,MODERN_STYLES,automaticFacadeDesign} from '../src/lib/model/facadeDesign.ts'
 import {compile} from '../src/lib/model/canonical.ts'
 import {generate} from '../src/lib/engine/generate.ts'
 import {validate} from '../src/lib/rules/index.ts'
@@ -136,4 +136,60 @@ test('changing facade settings preserves the saved selected house and room edits
  assert.equal(useStudio.getState().result,before);assert.equal(JSON.stringify(before.design.floors),floors)
  const saved=JSON.parse(JSON.stringify(useStudio.getState().brief));useStudio.getState().loadSaved(saved,pin)
  assert.equal(JSON.stringify(useStudio.getState().run().design.floors),floors);assert.equal(useStudio.getState().brief.facadeDesign.facadeStyle,'D05')
+})
+
+test('pictured styles survive replay and export four different solids on the same validated plan',()=>{
+ for(const f of [fixtures[1],fixtures[3]]){
+  const baseline=structuredClone(f.building),fingerprints=new Set()
+  for(const style of MODERN_STYLES){
+   const brief={...f.brief,facadeDesign:config(style)}
+   const replay=parseStoredBrief(JSON.parse(JSON.stringify(brief))).data
+   const settings=automaticFacadeDesign(123,replay.facadeDesign)
+   assert.equal(settings.facadeStyle,style)
+   assert.equal(compile(brief).seed,compile(f.brief).seed)
+   const source={...f.plan,model:{...f.plan.model,brief}}
+   const payload=generateAlternativeDesign(source,41)
+   const live=generateFacadeVariation(f.building,f.zones,settings,replay)
+   assert.deepEqual(payload.facadeDesign,live)
+   assert.deepEqual(payload.buildingModel,baseline)
+   // Fingerprint actual vertex coordinates; style ids and materials do not participate.
+   const coords=[]
+   for(const part of live.parts){
+    assert.equal(part.sourceStyle,style)
+    const mesh=facadePartGeometry(part)
+    const verts=mesh.getAttribute('position')
+    assert.ok(verts.count>=12)
+    mesh.computeBoundingBox()
+    const bounds=part.bounds
+    assert.ok(Math.abs(mesh.boundingBox.max.x-(bounds.x+bounds.w)/1000)<.001)
+    assert.ok(Math.abs(mesh.boundingBox.min.z+(bounds.y+bounds.d)/1000)<.001)
+    assert.ok(Math.abs(mesh.boundingBox.max.y-(bounds.z+bounds.h)/1000)<.001)
+    assert.ok(!facadeOpeningKeepouts(baseline).some(k=>overlaps(bounds,k)))
+    const env=baseline.plot.buildable
+    assert.ok(bounds.x>=env.x&&bounds.y>=env.y&&bounds.x+bounds.w<=env.x+env.w&&bounds.y+bounds.d<=env.y+env.h)
+    coords.push(...verts.array)
+    mesh.dispose()
+   }
+   fingerprints.add(JSON.stringify(coords))
+   if(f===fixtures[1]){
+    if(style==='cantilever_modern')assert.ok(live.parts.some(p=>p.floorId==='FF'&&p.depth>900))
+    if(style==='vertical_fins_modern')assert.ok(live.parts.filter(p=>p.w===60&&p.depth>250).length>=8)
+    if(style==='curved_modern')assert.ok(live.parts.some(p=>p.zoneId.startsWith('balcony-edge:')&&p.profile?.length>=48))
+    if(style==='asymmetric_roof_modern')assert.equal(live.parts.filter(p=>p.zoneId==='roof:stair-cap').length,2)
+   }
+  }
+  assert.equal(fingerprints.size,4)
+ }
+})
+test('missing roof or balcony hosts adapt explicitly and other characters retain automatic generation',()=>{
+ const {building,zones,brief}=fixtures[1]
+ const noHosts={...building,roofTerrace:undefined,rooms:building.rooms.filter(r=>!r.id.startsWith('balcony'))}
+ for(const style of ['curved_modern','asymmetric_roof_modern']){
+  const m=generateFacadeVariation(noHosts,zones,config(style),brief)
+  assert.ok(!m.parts.some(p=>p.zoneId.startsWith('roof:')||p.zoneId.startsWith('balcony-edge:')))
+  assert.ok(m.notes.some(n=>n.startsWith('No ')))
+ }
+ const other={...brief,style:{...brief.style,character:'contemporary-indian'}}
+ const expected=generateFacadeVariation(building,zones,config('MIXED'),other)
+ assert.deepEqual(generateFacadeVariation(building,zones,config('curved_modern'),other),expected)
 })

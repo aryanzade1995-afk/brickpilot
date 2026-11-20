@@ -43,7 +43,9 @@ test('all four exterior combinations persist without entering the plan seed',()=
 })
 test('four generated directions carry four distinct saved exterior palettes',()=>{
  const brief=defaultBrief();brief.site.plotWidth=25;brief.site.plotDepth=30
+ brief.facadeDesign={...automaticFacadeDesign(125),facadeStyle:'curved_modern'}
  const out=computeDirections({brief,pinned:null,referencePreferences:null,recentVillaFingerprints:[],diversityLimits:DEFAULT_DIVERSITY_LIMITS})
  assert.equal(out.dirs.length,4)
+ assert.ok(out.dirs.every(d=>d.design.model.brief.facadeDesign.facadeStyle==='curved_modern'&&d.design.model.brief.facadeDesign.facadeSeed===125))
  assert.equal(new Set(out.dirs.map(d=>d.design.model.brief.facadeDesign.exteriorPalette)).size,4)
 })

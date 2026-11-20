@@ -183,3 +183,16 @@ openings, inspect semantic/editable meshes, shared geometry and GLB structure.
 full vertical wall silhouette and that materials/landscaping do not affect
 evaluated mesh measurements. Run it with Blender's `--python-exit-code 1` and
 `--python` options.
+
+
+### Modern Box design review
+
+The brief offers four design cards. The Modern Box composition continues to set the floor-plan arrangement. The card selects the exterior geometry family. From 3D Massing, select another design to update the live model and choose **Render facade & downloads** to refresh saved files.
+
+[Style picker screenshot](modern-box-review/cards.png) · [Four-style comparison](modern-box-review/comparison.jpg) · [Reference image provenance](../public/modern-house-designs/CREDITS.md)
+
+From the repository root, run `node --experimental-strip-types scripts/render-facade-designs.mjs --modern` with the configured Blender executable. Open `output/modern-box-review/index.html` for the fixed-plan comparison and each style's GLB and Blender scene. The matrix uses two-storey plan `plan-460b9ad3e7d66c21`, architectural seed 41, façade seed 77085, and the same cameras and lighting.
+
+The export checks matched 34 cantilever, 93 fin, 24 curved, and 13 asymmetric-roof mesh parts with the canonical geometry. The base model reported existing plumbing shaft, tank-feed, stack sizing and drain-invert warnings. The fascia supports and fixings, wind loading, and roof drainage and waterproofing details need project-specific engineering review. Projection is unoccupied. The asymmetrical roof uses the existing stair enclosure and preserves access to the terrace. On tight sites the geometry generator can shorten or omit details when an opening, balcony, or setback limits the design.
+
+Run `python scripts/test-modern-box-browser.py` against the running app for the selection and reload check. It requires Python Playwright and Chromium. Set `FORMSTEAD_URL` to test a different local server, or `PLAYWRIGHT_CHANNEL` to use an installed browser.

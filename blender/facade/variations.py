@@ -41,8 +41,10 @@ def create_facade_variation(scene, model):
         sign = -1 if p['side'] in ('N', 'W') else 1
         profile = p.get('profile') or [[0, 0], [p['w'], 0], [p['w'], p['h']], [0, p['h']]]
         vertices = []
-        for depth in (0, p['depth']):
-            for u, z in profile:
+        plan_profile = p.get('profilePlane') == 'plan'
+        for extrusion in (0, p['h'] if plan_profile else p['depth']):
+            for u, ordinate in profile:
+                depth, z = (ordinate, extrusion) if plan_profile else (extrusion, ordinate)
                 fixed = p['fixed'] + sign * (p['offset'] + depth)
                 vertices.append(((p['u'] + u if horizontal else fixed) / 1000,
                                  (fixed if horizontal else p['u'] + u) / 1000, (p['z'] + z) / 1000))
@@ -65,6 +67,8 @@ def create_facade_variation(scene, model):
         obj = bpy.data.objects.new(p['id'], mesh); scene.collections['FACADE'].objects.link(obj)
         obj['source_plan_id'], obj['source_id'] = scene.plan_id, p['zoneId']
         obj['facade_design_part'], obj['facade_design_signature'] = True, model['signature']
+        obj['facade_style'] = model['configuration']['facadeStyle']
+        obj['facade_seed'] = str(model['configuration']['facadeSeed'])
         if p.get('sourceStyle'):
             obj['facade_recipe'] = p['sourceStyle']
         obj['material_role'] = 'glass' if p['material'] == 'glass' else 'facade_finish'

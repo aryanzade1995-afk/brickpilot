@@ -1,5 +1,5 @@
 import {EXTERIOR_PALETTES} from '@/lib/model/exteriorPalette.ts'
-import {automaticFacadeDesign} from '@/lib/model/facadeDesign.ts'
+import {automaticFacadeDesign,isModernStyle} from '@/lib/model/facadeDesign.ts'
 import { newDesignSeed } from '@/lib/newDesignSeed.ts'
 import type { ModernComposition } from '@/lib/model/modernCompositions.ts'
 import {facadeDesignSchema,type FacadeDesign} from '@/lib/model/facadeDesign.ts'
@@ -358,6 +358,12 @@ function runPlanOp(get: () => StudioState, set: Setter, run: (layout: LayoutDoc,
   return { ok: true, message, notes: checked.notes, layout: target, before: cur.layout }
 }
 
+function newProjectBrief(): Brief {
+ const brief=defaultBrief()
+ if(brief.style.character==='modern-box') brief.facadeDesign={...automaticFacadeDesign(41),facadeStyle:'cantilever_modern'}
+ return brief
+}
+
 export type DirectionsInput = Pick<StudioState, 'brief' | 'pinned' | 'referencePreferences' | 'recentVillaFingerprints' | 'diversityLimits'>
 /** The four design directions for a brief. Pure: it runs on the main thread or in the directions worker. */
 export function computeDirections(cur: DirectionsInput, progress?: (value:number,label:string)=>void,onPlan?:(plan:Design,index:number)=>void) {
@@ -369,7 +375,7 @@ export function computeDirections(cur: DirectionsInput, progress?: (value:number
     // in form, not only in trim; a shape the plot cannot take falls back to
     // the brief's own plan
     const plans: { plan: Design; massing: MassingType; planSeed?: number }[] = distinctDirectionPlans(model,4,SITE_FORM_VERSION,cur.pinned?undefined:onPlan)
-    plans.forEach((source,index)=>{source.plan={...source.plan,model:{...source.plan.model,brief:{...source.plan.model.brief,facadeDesign:{...automaticFacadeDesign(source.plan.dna.seed),exteriorPalette:EXTERIOR_PALETTES[index%4].id}}}}})
+    plans.forEach((source,index)=>{source.plan={...source.plan,model:{...source.plan.model,brief:{...source.plan.model.brief,facadeDesign:{...automaticFacadeDesign(source.plan.dna.seed,cur.brief.facadeDesign),exteriorPalette:EXTERIOR_PALETTES[index%4].id}}}}})
     const plan=plans[0]?.plan??generate(model,{formVersion:SITE_FORM_VERSION})
     progress?.(20,"Floor plan options prepared")
     const modernSet=cur.brief.style.character==='modern-box'&&(!cur.brief.style.composition||(MODERN_DIRECTION_COMPOSITIONS as readonly string[]).includes(cur.brief.style.composition))
@@ -448,7 +454,7 @@ export function computeDirections(cur: DirectionsInput, progress?: (value:number
 export const useStudio = create<StudioState>()(
   persist(
     immer((set, get) => ({
-      brief: defaultBrief(),
+      brief: newProjectBrief(),
       briefChoiceIssue: null,
       selectedRoomId: null,
       selectRoom: (id) => set(s => { s.selectedRoomId = id }),
@@ -565,7 +571,7 @@ export const useStudio = create<StudioState>()(
         set((s) => {
           s.existing = null
           s.layout = null
-          s.brief = defaultBrief()
+          s.brief = newProjectBrief()
           s.briefChoiceIssue = null
           s.selectedRoomId = null
           s.directions = null
@@ -824,7 +830,11 @@ export const useStudio = create<StudioState>()(
         const result = assembled.result
         set((s) => {
           s.pinned = pinned
-          if(source?.design.model.brief.facadeDesign)s.brief.facadeDesign=source.design.model.brief.facadeDesign
+          const directionFacade=source?.design.model.brief.facadeDesign
+          if(directionFacade){
+            const selected=isModernStyle(s.brief.facadeDesign?.facadeStyle)?s.brief.facadeDesign:directionFacade
+            s.brief.facadeDesign={...selected,exteriorPalette:directionFacade.exteriorPalette}
+          }
           if(source?.design.model.brief.style.character==='modern-box'){
             if(source.design.model.brief.style.composition)s.brief.style.composition=source.design.model.brief.style.composition
             else delete s.brief.style.composition
@@ -876,7 +886,7 @@ export const useStudio = create<StudioState>()(
         try { if (p.diversityLimits && typeof p.diversityLimits === 'object') limits = diversityLimits(p.diversityLimits as Partial<VillaDiversityLimits>) } catch { /* Repair stale configuration. */ }
         return {
           ...current,
-          brief: parsed.success ? parsed.data : defaultBrief(),
+          brief: p.brief!==undefined && parsed.success ? parsed.data : newProjectBrief(),
           existing: parseExisting(p.existing),
           layout: parseLayout(p.layout),
           pinned: parsePinned(p.pinned),

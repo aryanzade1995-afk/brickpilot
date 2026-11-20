@@ -142,3 +142,19 @@ test('history is capped and a corrupt store is ignored, not trusted', () => {
   assert.ok(STAGES.length >= 6 && STAGES.some((s) => s.id === 'foundation'))
   assert.equal(parseCore({ brief: useStudio.getState().brief, stage: 'bogus', layout: { version: 1, signature: 1 } }).stage, 'concept')
 })
+
+test('saving and reopening a modern facade retains its plan, configuration and physical signature', () => {
+  fresh()
+  const configuration = { version: 1, facadeStyle: 'vertical_fins_modern', facadeSeed: 709, facadeVariation: 0.7, materialPalette: 'selected' }
+  useStudio.getState().setFacadeDesign(configuration)
+  const saved = P().save()
+  assert.deepEqual(saved.core.brief.facadeDesign, configuration)
+  assert.equal(saved.core.facadeGeometry.sourcePlanId, useStudio.getState().result.buildingModel.planId)
+  assert.match(saved.core.facadeGeometry.geometrySignature, /^facade-/)
+  assert.deepEqual(parseCore(JSON.parse(JSON.stringify(saved.core))).facadeGeometry, saved.core.facadeGeometry)
+  useStudio.getState().setFacadeDesign({ ...configuration, facadeStyle: 'curved_modern' })
+  P().open(saved.id)
+  assert.deepEqual(useStudio.getState().brief.facadeDesign, configuration)
+  useStudio.getState().run()
+  assert.deepEqual(P().save().core.facadeGeometry, saved.core.facadeGeometry)
+})

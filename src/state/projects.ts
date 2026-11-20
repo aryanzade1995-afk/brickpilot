@@ -6,6 +6,8 @@ import { parseWaterConfig, type WaterConfig } from '../lib/water/schema.ts'
 import {useReference} from './reference.ts'
 import {parseReferenceDocument,type ReferenceDocument} from '../lib/reference/schema.ts'
 import { parseStoredBrief, type Brief } from '@/lib/model/brief.ts'
+import { generateFacadeVariation } from '@/lib/engine/facade/variations.ts'
+import { isModernStyle } from '@/lib/model/facadeDesign.ts'
 import type { LayoutDoc } from '@/lib/plan/layout.ts'
 import { parseLayout } from '@/lib/plan/parse.ts'
 import type { ExistingStructure } from '@/lib/engine/planner/types.ts'
@@ -40,6 +42,7 @@ export type Core = {
   socialImpact?: ImpactDocument | null
   waterIntelligence?: WaterConfig | null
   brief: Brief
+  facadeGeometry?: { sourcePlanId: string; geometrySignature: string }
   pinned: string | null
   layout: LayoutDoc | null
   existing: { structure: ExistingStructure; seed: number } | null
@@ -113,6 +116,10 @@ export function summarise(): Summary | null {
 
 function currentCore(stage: StageId): Core {
   const { brief, pinned, layout, existing, result } = useStudio.getState()
+  const configuration = brief.facadeDesign
+  const facade = result?.buildingModel && result.facadeModel && configuration && isModernStyle(configuration.facadeStyle)
+    ? generateFacadeVariation(result.buildingModel, result.facadeModel.zones, configuration, brief, result.facadeModel.coveredOutdoor)
+    : undefined
   const key = result ? geometryCostKey(result.design) : null
   const selection = key ? useFinishes.getState().entries[key] : undefined
   const cr = useCostResearch.getState()
@@ -130,6 +137,7 @@ function currentCore(stage: StageId): Core {
     waterIntelligence: structuredClone(useWaterIntelligence.getState().document),
     reference: structuredClone(useReference.getState().document),
     brief: structuredClone(brief),
+    ...(facade && { facadeGeometry: { sourcePlanId: facade.sourcePlanId, geometrySignature: facade.signature } }),
     pinned: serializePinned(pinned),
     layout: layout ? structuredClone(layout) : null,
     existing: existing ? structuredClone(existing) : null,
@@ -154,6 +162,7 @@ export function parseCore(value: unknown): Core | null {
     waterIntelligence: parseWaterConfig(v.waterIntelligence),
     reference: parseReferenceDocument(v.reference),
     brief: brief.data,
+    ...(typeof v.facadeGeometry?.sourcePlanId === 'string' && typeof v.facadeGeometry.geometrySignature === 'string' && { facadeGeometry: v.facadeGeometry }),
     pinned: typeof v.pinned === 'string' ? v.pinned : null,
     layout: parseLayout(v.layout),
     existing,
@@ -350,7 +359,7 @@ export function startAutosave(): () => void {
     const cr = useCostResearch.getState()
     return JSON.stringify([
       s.pinned, s.layout, s.existing, s.brief.site, s.brief.rooms, s.brief.levels, s.brief.style, s.brief.project.name, s.brief.solar,
-      s.brief.finish, s.brief.specs,
+      s.brief.finish, s.brief.specs, s.brief.facadeDesign,
       cr.acceptedSnapshot?.id, Object.keys(cr.manualOverrides).length, cr.scopeMode, cr.location?.city,
       useReference.getState().document, useWaterIntelligence.getState().document, useSocialImpact.getState().document,
     ])

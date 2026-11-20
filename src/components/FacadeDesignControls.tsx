@@ -2,23 +2,30 @@ import {EXTERIOR_PALETTES} from '@/lib/model/exteriorPalette.ts'
 import {useState} from 'react'
 import {Link} from 'react-router-dom'
 import {Shuffle} from 'lucide-react'
-import {FACADE_DESIGNS,type FacadeDesign} from '@/lib/model/facadeDesign.ts'
+import {FACADE_DESIGNS,MODERN_DESIGNS,MODERN_STYLES,isModernStyle,type FacadeDesign} from '@/lib/model/facadeDesign.ts'
 import type {FacadeVariation} from '@/lib/engine/facade/variations.ts'
 import {newDesignSeed} from '@/lib/newDesignSeed.ts'
 
-export function FacadeDesignControls({value,model,onChange,onRender,busy,rendered}:{value:FacadeDesign;model:FacadeVariation|null;onChange:(v:FacadeDesign)=>void;onRender:()=>void;busy:boolean;rendered:boolean}){
+export function FacadeDesignControls({value,model,onChange,onRender,busy,rendered,modern}:{modern:boolean;value:FacadeDesign;model:FacadeVariation|null;onChange:(v:FacadeDesign)=>void;onRender:()=>void;busy:boolean;rendered:boolean}){
  const [seed,setSeed]=useState<string|null>(null)
- const update=(patch:Partial<FacadeDesign>)=>onChange({...value,...patch,facadeStyle:'MIXED'})
+ const explicit=isModernStyle(value.facadeStyle)
+ const update=(patch:Partial<FacadeDesign>)=>onChange({...value,...patch})
  const field='min-h-11 w-full border border-line bg-bg px-3 text-sm'
  return <div className="mt-4 border border-line bg-bg p-4">
+  {modern&&<label className="mb-4 block max-w-sm text-sm">Modern house design
+    <select aria-label="Modern house design" className={`mt-2 ${field}`} value={value.facadeStyle} onChange={e=>update({facadeStyle:e.target.value as FacadeDesign['facadeStyle']})}>
+      <option value="MIXED">Automatic façade mix</option>
+      {MODERN_STYLES.map(id=><option value={id} key={id}>{MODERN_DESIGNS[id].name}</option>)}
+    </select></label>}
   <fieldset className="mb-4 border-b border-line pb-4"><legend className="mb-2 text-sm font-medium">Exterior colour combination</legend><div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{EXTERIOR_PALETTES.map(p=><button key={p.id} type="button" aria-pressed={value.exteriorPalette===p.id} onClick={()=>update({exteriorPalette:p.id})} className={`min-h-11 rounded border p-2 text-left text-xs ${value.exteriorPalette===p.id?'border-ink bg-bg-inset':'border-line hover:bg-bg-inset'}`}><span className="mb-2 flex h-5 overflow-hidden rounded" aria-hidden="true">{p.colours.map(c=><span key={c} className="flex-1" style={{backgroundColor:c}}/>)}</span>{p.name}</button>)}</div></fieldset>
   <div className="flex flex-wrap items-center justify-between gap-3">
-   <div><h3 className="text-sm font-medium">Facade mix</h3><p className="mt-1 text-xs text-ink-dim">{model?.styles?.length??0} designs combined automatically · Saved with your house</p></div>
+   <div><h3 className="text-sm font-medium">{explicit?'Design variation':'Facade mix'}</h3><p className="mt-1 text-xs text-ink-dim">{explicit?'Vary the detailing within this design.':`${model?.styles?.length??0} designs combined automatically · Saved with your house`}</p></div>
    <button type="button" onClick={()=>update({facadeSeed:newDesignSeed(value.facadeSeed)})} className="inline-flex min-h-11 items-center gap-2 border border-line px-4 text-sm hover:bg-bg-inset"><Shuffle size={15} aria-hidden="true"/>Shuffle facade</button>
   </div>
   <ul aria-label="Combined facade designs" className="mt-3 flex flex-wrap gap-2">
    {model?.styles?.map(id=><li key={id} className="border border-line bg-bg-inset px-2 py-1 text-[11px] text-ink-dim">{FACADE_DESIGNS.find(d=>d[0]===id)?.[1]}</li>)}
   </ul>
+  {explicit&&model?.notes.map(note=><p key={note} className="mt-2 text-xs text-ink-dim">{note}</p>)}
   <details className="mt-3 border-t border-line pt-3">
    <summary className="cursor-pointer text-xs text-ink-dim">Materials & saved seed</summary>
    <div className="mt-3 grid items-end gap-3 sm:grid-cols-3">
@@ -27,7 +34,7 @@ export function FacadeDesignControls({value,model,onChange,onRender,busy,rendere
     <label className="text-xs">Detail intensity · {Math.round(value.facadeVariation*100)}%<input aria-label="Facade detail intensity" className="mt-4 block w-full accent-stone-700" type="range" min={0} max={1} step={.05} value={value.facadeVariation} onChange={e=>update({facadeVariation:Number(e.target.value)})}/></label>
    </div>
   </details>
-  <div className="mt-3 flex flex-wrap items-center gap-3 text-xs"><button type="button" disabled={busy||!model?.parts.length} onClick={onRender} className="min-h-11 border border-line px-4 disabled:opacity-50">{busy?'Rendering…':rendered?'Export current facade':'Render facade & downloads'}</button><Link className="text-ink-dim underline" to="/workspace/finishes?tab=specifications">Exterior finishes</Link></div>
-  {!rendered&&<p className="mt-2 text-xs text-ink-dim">Live mix shown. Render to update Blender views and downloads.</p>}
+  <div className="mt-3 flex flex-wrap items-center gap-3 text-xs"><button type="button" disabled={busy||!model||(!explicit&&!model.parts.length)} onClick={onRender} className="min-h-11 border border-line px-4 disabled:opacity-50">{busy?'Rendering…':rendered?'Export current facade':'Render facade & downloads'}</button><Link className="text-ink-dim underline" to="/workspace/finishes?tab=specifications">Exterior finishes</Link></div>
+  {!rendered&&<p className="mt-2 text-xs text-ink-dim">Live preview. Render to update the saved views and downloads.</p>}
  </div>
 }

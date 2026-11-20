@@ -1,3 +1,6 @@
+import {roofAccess} from '../../walkthrough/openingAssemblies.ts'
+import {rectUnionEdges} from '../../geometry.ts'
+import {isModernStyle, type ModernStyle} from '../../model/facadeDesign.ts'
 import type {BuildingModel} from '../buildingModel.ts'
 import type {FacadeZone} from './proceduralTypes.ts'
 import type {FacadeDesign} from '../../model/facadeDesign.ts'
@@ -10,7 +13,8 @@ import {quantityRules} from '../../cost/data/quantityRules.ts'
 import type {CoveredOutdoorModel} from '../coveredOutdoor.ts'
 
 export type FacadePart={id:string;zoneId:string;floorId:string;side:FacadeZone['side'];fixed:number;
- sourceStyle?:FacadeRecipe;
+ sourceStyle?:FacadeRecipe | ModernStyle;
+ profilePlane?:'plan';
  u:number;z:number;w:number;h:number;offset:number;depth:number;material:string;
  /** A convex profile in local wall coordinates, for rounded/angled solids. */
  profile?:[number,number][];
@@ -30,9 +34,25 @@ export function facadeOpeningKeepouts(b:BuildingModel):FacadePart['bounds'][] {
    w:horizontal?o.width+margin*2:normal*2,d:horizontal?normal*2:o.width+margin*2,h:top-z}
  })
 }
+// Horizontal outline with two tangent quarter-circle corners and a flat wall bearing.
+function roundedNose(width:number,depth:number):[number,number][] {
+ const radius=Math.min(depth,width*.46)
+ const outline:[number,number][]=[[0,0],[width,0]]
+ for(const [cx,start] of [[width-radius,0],[radius,Math.PI/2]]){
+  for(let i=0;i<=24;i++){
+   const angle=start+i*Math.PI/48
+   const point:[number,number]=[cx+radius*Math.cos(angle),depth-radius+radius*Math.sin(angle)]
+   if(Math.hypot(point[0]-outline.at(-1)![0],point[1]-outline.at(-1)![1])>0.01 && Math.hypot(...point)>0.01)outline.push(point)
+  }
+ }
+ return outline
+}
 /** Pure facade attachment recipes. Never mutates walls, windows, slabs or rooms. */
 export function generateFacadeVariation(b:BuildingModel,zones:FacadeZone[],input:FacadeDesign,brief:Brief,covered?:CoveredOutdoorModel):FacadeVariation {
  const configuration=facadeDesignSchema.parse(input)
+ if(isModernStyle(configuration.facadeStyle)&&brief.style.character!=='modern-box'){
+  return generateFacadeVariation(b,zones,{...configuration,facadeStyle:'MIXED'},brief,covered)
+ }
  if(configuration.facadeStyle==='MIXED')return mixFacadeVariations(b,zones,configuration,brief,covered)
  const {facadeStyle:style,facadeSeed:seed,facadeVariation:amount,materialPalette:palette}=configuration
  const rng=makeRng(seed,`${b.planId}|premium-facades-v1|${style}`),parts:FacadePart[]=[],notes:string[]=[]
@@ -49,16 +69,20 @@ export function generateFacadeVariation(b:BuildingModel,zones:FacadeZone[],input
   // Existing curated material assets remain authoritative; colours are neutral tints.
   materials[id]={color:id==='glass'?'#abc3c2':id==='green'?'#62755a':id.includes('metal')?'#343a38':'#f0ede6',roughness:m?.roughness??(id==='green'?.75:.35),metalness:m?.metallic??(id.includes('metal')?.7:0),texture:m?.webFile?.replace(/^public/,'') ,tileSizeM:m?.tileSizeM??1}
  }
- const add=(zone:FacadeZone,u:number,z:number,w:number,h:number,depth:number,material:string,offset=0,profile?:[number,number][])=>{
+ const add=(zone:FacadeZone,u:number,z:number,w:number,h:number,depth:number,material:string,offset=0,profile?:[number,number][],profilePlane?:'plan')=>{
   if(parts.length>=320||w<25||h<25||depth<=0||offset<0)return
   const horizontal=['N','S'].includes(zone.side),normal=['N','W'].includes(zone.side)?-1:1
-  const wall=b.walls.find(w=>w.id===zone.wallId),face=wall?wall.thickness/2+8:0
+  const wall=b.walls.find(w=>w.id===zone.wallId),face=wall?wall.thickness/2+(isModernStyle(style)?0:8):0
   const fixed=zone.fixedMm+normal*(face+offset)
   const bounds={x:horizontal?u:fixed+(normal<0?-depth:0),y:horizontal?fixed+(normal<0?-depth:0):u,z,w:horizontal?w:depth,d:horizontal?depth:w,h}
   if(bounds.x<env.x||bounds.y<env.y||bounds.x+bounds.w>env.x+env.w||bounds.y+bounds.d>env.y+env.h||keepouts.some(k=>hit(bounds,k)))return
   // Keep balcony access and usable headroom open; skins remain shallow.
   if(depth+offset>160&&b.rooms.some(r=>r.outdoor&&r.floorId===zone.floorId&&hit(bounds,{x:r.rect.x,y:r.rect.y,z:zone.elevationMm,w:r.rect.w,d:r.rect.h,h:2200})))return
-  parts.push({id:`FacadeDesign_${style}_${parts.length}`,sourceStyle:style,zoneId:zone.id,floorId:zone.floorId,side:zone.side,fixed:zone.fixedMm,u,z,w,h,offset:face+offset,depth,material,profile,bounds})
+  if(isModernStyle(style)){
+   if(parts.some(other=>hit(bounds,other.bounds)&&!(zone.id==='roof:stair-cap'&&other.zoneId===zone.id)))return
+   if(b.floors.some(f=>f.footprint.some(r=>hit(bounds,{x:r.x,y:r.y,z:f.elevationMm,w:r.w,d:r.h,h:f.heightMm}))))return
+  }
+  parts.push({...(profilePlane?{profilePlane}:{}),id:`FacadeDesign_${style}_${parts.length}`,sourceStyle:style,zoneId:zone.id,floorId:zone.floorId,side:zone.side,fixed:zone.fixedMm,u,z,w,h,offset:face+offset,depth,material,profile,bounds})
  }
  const walls=zones.filter(z=>z.wallId&&z.kind!=='VOID').sort((a,c)=>(a.side===b.orientation.roadPlanSide?-1:0)-(c.side===b.orientation.roadPlanSide?-1:0)||a.id.localeCompare(c.id))
  for(const zone of walls){
@@ -89,6 +113,43 @@ export function generateFacadeVariation(b:BuildingModel,zones:FacadeZone[],input
   }
   const band=(z=top,th=t,material=roles.wall,d=depth,u=start,w=width)=>add(zone,u,z,w,th,d,material)
   switch(style){
+   case 'cantilever_modern': {
+    if(f.level===0 && b.floors.length>1)break
+    const projection=Math.min(room-face-12, 1050+amount*500)
+    const edge=200+amount*100
+    if(projection<250)break
+    band(Z+H-edge,edge,roles.wall,projection)
+    band(Z,edge,roles.wall,projection)
+    // Jambs meet both horizontal members at their ends, clear of glazing.
+    for(const x of [start,end-edge])add(zone,x,Z+edge,edge,H-2*edge,projection,roles.wall)
+    break
+   }
+   case 'vertical_fins_modern': {
+    const pitch=rng.range(220,310)
+    const finDepth=Math.min(room-face-12,320+amount*260)
+    for(const pier of piers){
+     const count=Math.min(18,Math.floor(pier.w/pitch))
+     for(let i=0;i<count;i++){
+      const x=pier.x+(i+.5)*pier.w/count-30
+      add(zone,x,Z+100,60,H-200,finDepth*(.8+.2*Math.cos(i*.55)),roles.wood)
+     }
+    }
+    break
+   }
+   case 'curved_modern': {
+    const d=Math.min(room-face-12,width*.37,1350+amount*480)
+    if(d<180)break
+    const h=260+amount*120
+    add(zone,start,Z+H-h,width,h,d,roles.wall,0,roundedNose(width,d), 'plan')
+    break
+   }
+   case 'asymmetric_roof_modern':
+    // A folded eave shelters upper windows below the usable terrace.
+    if(f.level===b.floors.at(-1)?.level){
+     const d=Math.min(room-face-12,950),h=Math.min(450,H*.14)
+     add(zone,start,Z+H-h,width,h,d,roles.wall,0,[[0,0],[width,h-110],[width,h],[0,110]])
+    }
+    break
    case 'D01':
     if(zone.side===b.orientation.roadPlanSide&&(f.level>0||b.floors.length===1))skin(start,width,Z+180,H-360,Math.min(depth*.75,280))
     band(top-35,t*1.4);band(Z+H*.1,t*.75,accent,Math.min(depth,100),start+width*.18,width*.82)
@@ -164,6 +225,44 @@ export function generateFacadeVariation(b:BuildingModel,zones:FacadeZone[],input
     break
   }
  }
+ if(style==='curved_modern'){
+  let balconies=0
+  for(const floor of b.floors){
+   const rooms=b.rooms.filter(r=>r.floorId===floor.id&&r.outdoor&&r.id.startsWith('balcony')&&b.doors.some(d=>d.floorId===floor.id&&d.rooms?.includes(r.id)))
+   for(const edge of rectUnionEdges(rooms.map(r=>r.rect))){
+    const horizontal=edge.side==='N'||edge.side==='S'
+    const start=horizontal?edge.a.x:edge.a.y, end=horizontal?edge.b.x:edge.b.y
+    const width=end-start, fixed=horizontal?edge.a.y:edge.a.x
+    if(width<1500)continue
+    const depth=Math.min(520,width*.16)
+    const zone:FacadeZone={id:`balcony-edge:${floor.id}:${edge.side}:${start}:${fixed}`,kind:'ROOFLINE',floorId:floor.id,wallId:null,hostMassIds:[],roomId:null,side:edge.side,fixedMm:fixed,startMm:start,endMm:end,elevationMm:floor.elevationMm,heightMm:floor.heightMm,openingIds:[]}
+    const count=parts.length
+    // A solid curved upstand is seated against the outside of the balcony slab.
+    // Existing access, the load-bearing slab, and the original guard are preserved.
+    add(zone,start,floor.elevationMm-140,width,590,depth,roles.wall,0,roundedNose(width,depth),'plan')
+    if(parts.length>count)balconies++
+   }
+  }
+  if(!balconies)notes.push('No clear balcony edge; curved shading follows the available exterior walls.')
+ }
+ if(style==='asymmetric_roof_modern'){
+  const access=roofAccess(b), top=b.floors.at(-1)!
+  const count=parts.length
+  if(access){
+   const cap=access.cap
+   // The roof build-up bears continuously on the stair enclosure deck. Run
+   // the fall perpendicular to its door, away from the exit landing.
+   const across=access.side==='N'||access.side==='S'
+   const side=across?'S':'E'
+   const w=across?cap.w:cap.d,d=across?cap.d:cap.w,u=across?cap.x:cap.y,fixed=across?cap.y:cap.x
+   const rise=Math.min(1580,w*(.31+amount*.14)),low=110
+   const zone:FacadeZone={id:'roof:stair-cap',kind:'ROOFLINE',floorId:top.id,wallId:null,hostMassIds:['Roof_Mumty_Cap'],roomId:'stair',side,fixedMm:fixed,startMm:u,endMm:u+w,elevationMm:cap.z,heightMm:rise,openingIds:[]}
+   const drainsPositive=across?cap.x+w/2<b.plot.widthMm/2:cap.y+w/2<b.plot.depthMm/2
+   add(zone,u,cap.z+cap.h,w,rise,d,roles.wall,0,[[0,0],[w,0],[w,drainsPositive?low:rise],[0,drainsPositive?rise:low]])
+   add(zone,u,cap.z+cap.h+low,w,rise-low+55,d,roles.metal,0,[[0,drainsPositive?rise-low:0],[w,drainsPositive?0:rise-low],[w,drainsPositive?55:rise-low+55],[0,drainsPositive?rise-low+55:55]])
+  }
+  notes.push(parts.length>count?'Pitched stair roof above the existing deck. Confirm low-edge drainage, flashing and waterproofing before construction.':'No compatible roof-access enclosure. Only folded exterior eaves are available on this plan.')
+ }
  if(style==='D09'&&covered?.sourcePlanId===b.planId){
   const ground=b.floors[0]
   for(const roof of covered.roofs.filter(r=>b.rooms.some(room=>room.id==='parking'&&(r.roomId===room.id||r.roomId===room.semanticId))))for(const r of roof.slabs){
@@ -176,7 +275,8 @@ export function generateFacadeVariation(b:BuildingModel,zones:FacadeZone[],input
  }
  if(style==='D05'&&!b.rooms.some(r=>r.outdoor&&r.id.startsWith('balcony')))notes.push('No balcony in this plan; garden detailing is adapted to wall-mounted timber shading.')
  if(style==='D09')notes.push(b.rooms.some(r=>r.id==='parking')?'Canopy detailing complements the existing supported parking; no structural span is added.':'No covered parking in this plan; canopy detailing is limited to the entrance.')
- notes.push('Lightweight facade attachments only. Fixings and wind loads require professional design; no occupied cantilever or new room is created.')
+ if(style==='cantilever_modern')notes.push('The projecting frames are unoccupied. Their fixings and wind loads need structural review.')
+ else if(!isModernStyle(style))notes.push('Lightweight facade attachments only. Fixings and wind loads require professional design; no occupied cantilever or new room is created.')
  if(!parts.length)notes.push('The available setbacks and openings leave no safe attachment area. The original house is retained.')
  return {version:1,signature:`facade-${fnv(JSON.stringify([b.planId,configuration,parts])).toString(16)}`,sourcePlanId:b.planId,configuration,parts,notes,materials}
 }
