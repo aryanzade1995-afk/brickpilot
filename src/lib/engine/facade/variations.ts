@@ -34,6 +34,9 @@ export function facadeOpeningKeepouts(b:BuildingModel):FacadePart['bounds'][] {
    w:horizontal?o.width+margin*2:normal*2,d:horizontal?normal*2:o.width+margin*2,h:top-z}
  })
 }
+// Keep signatures identical across browser and Node implementations of trigonometry.
+const snapMillimetres=(value:number)=>Math.round(value*1000)/1000
+
 // Horizontal outline with two tangent quarter-circle corners and a flat wall bearing.
 function roundedNose(width:number,depth:number):[number,number][] {
  const radius=Math.min(depth,width*.46)
@@ -41,7 +44,7 @@ function roundedNose(width:number,depth:number):[number,number][] {
  for(const [cx,start] of [[width-radius,0],[radius,Math.PI/2]]){
   for(let i=0;i<=24;i++){
    const angle=start+i*Math.PI/48
-   const point:[number,number]=[cx+radius*Math.cos(angle),depth-radius+radius*Math.sin(angle)]
+   const point:[number,number]=[snapMillimetres(cx+radius*Math.cos(angle)),snapMillimetres(depth-radius+radius*Math.sin(angle))]
    if(Math.hypot(point[0]-outline.at(-1)![0],point[1]-outline.at(-1)![1])>0.01 && Math.hypot(...point)>0.01)outline.push(point)
   }
  }
@@ -131,7 +134,7 @@ export function generateFacadeVariation(b:BuildingModel,zones:FacadeZone[],input
      const count=Math.min(18,Math.floor(pier.w/pitch))
      for(let i=0;i<count;i++){
       const x=pier.x+(i+.5)*pier.w/count-30
-      add(zone,x,Z+100,60,H-200,finDepth*(.8+.2*Math.cos(i*.55)),roles.wood)
+      add(zone,x,Z+100,60,H-200,snapMillimetres(finDepth*(.8+.2*Math.cos(i*.55))),roles.wood)
      }
     }
     break

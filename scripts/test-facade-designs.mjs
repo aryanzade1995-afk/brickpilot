@@ -193,3 +193,19 @@ test('missing roof or balcony hosts adapt explicitly and other characters retain
  const expected=generateFacadeVariation(building,zones,config('MIXED'),other)
  assert.deepEqual(generateFacadeVariation(building,zones,config('curved_modern'),other),expected)
 })
+
+
+test('fins and rounded profiles have stable signatures when browser trigonometry differs in the last bit',()=>{
+ const {building,zones,brief}=fixtures[1]
+ const designs=['vertical_fins_modern','curved_modern']
+ const signatures=designs.map(style=>generateFacadeVariation(building,zones,config(style),brief).signature)
+ const {sin,cos}=Math
+ try {
+  Math.sin=angle=>sin(angle)+Number.EPSILON
+  Math.cos=angle=>cos(angle)-Number.EPSILON
+  assert.deepEqual(designs.map(style=>generateFacadeVariation(building,zones,config(style),brief).signature),signatures)
+ } finally {
+  Math.sin=sin
+  Math.cos=cos
+ }
+})
